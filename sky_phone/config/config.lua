@@ -1,0 +1,2 @@
+Config.Command = "phone"
+

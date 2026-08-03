@@ -1,0 +1,40 @@
+{
+  "name": "sky-phone-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n FRONTEND,BACKEND -c cyan,green \"vite\" \"node testserver/index.cjs\"",
+    "build": "pnpm typecheck && pnpm build-only",
+    "build-only": "vite build && node build.cjs",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --build",
+    "lint": "eslint .",
+    "format": "prettier --write src/ testserver/ build.cjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "konsta": "~5.2.0",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.17",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@tsconfig/node22": "^22.0.2",
+    "@types/node": "^22.15.32",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.5.1",
+    "@vue/tsconfig": "^0.7.0",
+    "concurrently": "^9.2.0",
+    "cors": "^2.8.5",
+    "eslint": "^9.29.0",
+    "eslint-plugin-vue": "~10.2.0",
+    "prettier": "3.5.3",
+    "tailwindcss": "^4.0.0",
+    "typescript": "~5.8.0",
+    "vite": "^7.0.0",
+    "vue-tsc": "^2.2.10"
+  }
+}

@@ -1,0 +1,111 @@
+@import 'tailwindcss';
+@import 'konsta/vue/theme.css';
+
+@theme {
+  --color-brand-primary: #007aff;
+}
+
+:root {
+  color-scheme: light;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial,
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.phone-device {
+  position: relative;
+  width: min(39vh, 390px);
+  aspect-ratio: 390 / 844;
+  padding: min(1.05vh, 10px);
+  overflow: hidden;
+  pointer-events: auto;
+  background: linear-gradient(145deg, #303238 0%, #090a0d 38%, #25272d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: min(5.2vh, 52px);
+  box-shadow:
+    0 4vh 10vh rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.phone-device__speaker {
+  position: absolute;
+  top: min(2.1vh, 21px);
+  left: 50%;
+  z-index: 20;
+  width: min(9vh, 90px);
+  height: min(2.8vh, 28px);
+  transform: translateX(-50%);
+  background: #08090b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  box-shadow: inset 0 -1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f2f2f7;
+  border-radius: min(4.25vh, 42px);
+}
+
+.phone-app {
+  width: 100%;
+  height: 100%;
+}
+
+.phone-home {
+  height: 100%;
+  padding-top: min(2.8vh, 28px);
+  background:
+    radial-gradient(
+      circle at 20% 22%,
+      rgba(66, 165, 245, 0.28),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 80% 58%,
+      rgba(175, 82, 222, 0.2),
+      transparent 42%
+    ),
+    linear-gradient(160deg, #f8fbff 0%, #edf0f8 48%, #f8f3fb 100%);
+}
+
+.phone-home__content {
+  display: grid;
+  gap: 1.5rem;
+  align-content: start;
+  padding-top: 1rem;
+}

@@ -1,0 +1,30 @@
+fx_version 'cerulean'
+game 'gta5'
+lua54 'yes'
+
+author 'Sky-Systems'
+description 'Sky Phone'
+version '0.1.0'
+
+escrow_ignore 'config/**'
+
+shared_scripts {
+    '@sky_base/source/import.lua',
+    'config/init.lua',
+}
+
+client_scripts {
+    'config/config.lua',
+    'config/locales/*.lua',
+    'source/client/main.lua',
+}
+
+files {
+    'source/html/index.html',
+    'source/html/assets/**',
+}
+
+ui_page 'source/html/index.html'
+
+dependency 'sky_base'
+
