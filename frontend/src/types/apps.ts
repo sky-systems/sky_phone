@@ -9,10 +9,9 @@ export type PhoneAppId =
   | 'settings'
 
 export type AppLaunchOrigin = {
-  height: number
+  borderRadius: number
   scaleX: number
   scaleY: number
-  width: number
   x: number
   y: number
 }

@@ -11,6 +11,7 @@ const app = computed(() => getPhoneApp(route.params.appId))
 const launchStyle = computed(() => {
   const origin = phone.launchOrigin
   return {
+    '--launch-radius': `${origin?.borderRadius ?? 72}px`,
     '--launch-scale-x': origin?.scaleX ?? 0.82,
     '--launch-scale-y': origin?.scaleY ?? 0.82,
     '--launch-x': `${origin?.x ?? 35}px`,
@@ -20,7 +21,7 @@ const launchStyle = computed(() => {
 </script>
 
 <template>
-  <div v-if="app" class="phone-app-window" :style="launchStyle">
+  <div v-if="app" class="app-window" :style="launchStyle">
     <Suspense>
       <component :is="app.component" />
       <template #fallback>

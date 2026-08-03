@@ -24,16 +24,21 @@ const iconFailed = ref(false)
 function launch(event: MouseEvent): void {
   const button = event.currentTarget as HTMLElement
   const screen = button.closest('.phone-screen')
-  if (screen) {
-    const origin = button.getBoundingClientRect()
+  const icon = button.querySelector<HTMLElement>('.app-icon')
+  if (screen && icon) {
+    const origin = icon.getBoundingClientRect()
     const target = screen.getBoundingClientRect()
+    const scaleX = origin.width / target.width
+    const scaleY = origin.height / target.height
+    const screenScaleX = target.width / screen.clientWidth
+    const screenScaleY = target.height / screen.clientHeight
+    const iconRadius = Number.parseFloat(getComputedStyle(icon).borderRadius)
     phone.setLaunchOrigin({
-      height: origin.height,
-      scaleX: origin.width / target.width,
-      scaleY: origin.height / target.height,
-      width: origin.width,
-      x: origin.left - target.left,
-      y: origin.top - target.top,
+      borderRadius: iconRadius / Math.min(scaleX, scaleY),
+      scaleX,
+      scaleY,
+      x: (origin.left - target.left) / screenScaleX,
+      y: (origin.top - target.top) / screenScaleY,
     })
   } else {
     phone.setLaunchOrigin(null)
