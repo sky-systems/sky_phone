@@ -1,71 +1,134 @@
 <script setup lang="ts">
+import { Heart, Images, Library, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
-import { Search } from 'lucide-vue-next'
+
 import { useMediaStore } from '@/stores/media'
 import { usePhoneStore } from '@/stores/phone'
+
 const media = useMediaStore()
 const phone = usePhoneStore()
-const tab = ref('library')
+const tab = ref<'library' | 'forYou' | 'albums' | 'search'>('library')
 const query = ref('')
-const tabs = ['library', 'forYou', 'albums', 'search']
-const photos = computed(() =>
+const tabs = [
+  { id: 'library', icon: Library },
+  { id: 'forYou', icon: Heart },
+  { id: 'albums', icon: Images },
+  { id: 'search', icon: Search },
+] as const
+const gallery = computed(() =>
+  Array.from(
+    { length: 54 },
+    (_, index) => media.photos[index % media.photos.length],
+  ),
+)
+const filtered = computed(() =>
   media.photos.filter((photo) =>
     phone.t(photo.titleKey).toLowerCase().includes(query.value.toLowerCase()),
   ),
 )
 </script>
+
 <template>
-  <main class="native-app photos-app">
-    <header class="app-header">
-      <h1>{{ phone.t(`Apps.photos.tabs.${tab}`) }}</h1>
-    </header>
-    <div v-if="tab === 'search'" class="app-search">
-      <Search :size="17" /><input
-        v-model="query"
-        :placeholder="phone.t('Apps.photos.searchPlaceholder')"
-      />
-    </div>
-    <section v-if="tab === 'albums'" class="album-cards">
-      <article>
-        <div
-          class="photo-tile"
-          :style="{ background: media.photos[0]?.gradient }"
+  <main class="native-app reference-photos">
+    <section v-if="tab === 'library'" class="photos-library">
+      <header class="photos-floating-header">
+        <div>
+          <strong>{{ phone.t('Apps.photos.dateRange') }}</strong
+          ><span>{{ phone.t('Apps.photos.place') }}</span>
+        </div>
+        <button type="button">{{ phone.t('Apps.photos.select') }}</button
+        ><button type="button">•••</button>
+      </header>
+      <div class="reference-photo-grid">
+        <article
+          v-for="(photo, index) in gallery"
+          :key="`${photo.id}-${index}`"
+          :style="{ background: photo.gradient }"
         />
-        <strong>{{ phone.t('Apps.photos.recents') }}</strong
-        ><small
-          >{{ media.photos.length }} {{ phone.t('Apps.photos.items') }}</small
-        >
-      </article>
-      <article>
-        <div class="photo-tile favorites" />
-        <strong>{{ phone.t('Apps.photos.favorites') }}</strong
-        ><small>2 {{ phone.t('Apps.photos.items') }}</small>
-      </article>
-    </section>
-    <section v-else-if="tab === 'forYou'" class="featured-photo">
-      <p>{{ phone.t('Apps.photos.memories') }}</p>
-      <div :style="{ background: media.photos[1]?.gradient }">
-        <span>{{ phone.t('Apps.photos.featured') }}</span>
+      </div>
+      <p class="photos-count">{{ phone.t('Apps.photos.count') }}</p>
+      <div class="photos-period">
+        <button>{{ phone.t('Apps.photos.years') }}</button
+        ><button>{{ phone.t('Apps.photos.months') }}</button
+        ><button>{{ phone.t('Apps.photos.days') }}</button
+        ><button class="active">{{ phone.t('Apps.photos.allPhotos') }}</button>
       </div>
     </section>
-    <section v-else class="photo-grid">
+    <section v-else-if="tab === 'forYou'" class="photos-scroll">
+      <h1>{{ phone.t('Apps.photos.tabs.forYou') }}</h1>
+      <div class="photos-section-title">
+        <h2>{{ phone.t('Apps.photos.memories') }}</h2>
+        <button>{{ phone.t('Apps.photos.seeAll') }}</button>
+      </div>
       <article
-        v-for="photo in photos"
-        :key="photo.id"
-        class="photo-tile"
-        :style="{ background: photo.gradient }"
-        :aria-label="phone.t(photo.titleKey)"
-      />
+        class="memory-card"
+        :style="{ background: media.photos[1]?.gradient }"
+      >
+        <Heart :size="25" />
+        <div>
+          <strong>{{ phone.t('Apps.photos.onThisDay') }}</strong
+          ><span>{{ phone.t('Apps.photos.trip') }}</span>
+        </div>
+      </article>
+      <div class="photos-section-title">
+        <h2>{{ phone.t('Apps.photos.featuredPhotos') }}</h2>
+      </div>
+      <div class="featured-row">
+        <article v-for="photo in media.photos.slice(0, 2)" :key="photo.id">
+          <div :style="{ background: photo.gradient }" />
+          <strong>{{ phone.t(photo.titleKey) }}</strong
+          ><span>{{ phone.t('Apps.photos.featuredDate') }}</span>
+        </article>
+      </div>
     </section>
-    <nav class="app-tabs">
+    <section v-else-if="tab === 'albums'" class="photos-scroll">
+      <h1>{{ phone.t('Apps.photos.tabs.albums') }}</h1>
+      <div class="album-cards">
+        <article>
+          <div
+            class="photo-tile"
+            :style="{ background: media.photos[0]?.gradient }"
+          />
+          <strong>{{ phone.t('Apps.photos.recents') }}</strong
+          ><small
+            >{{ media.photos.length }} {{ phone.t('Apps.photos.items') }}</small
+          >
+        </article>
+        <article>
+          <div class="photo-tile favorites" />
+          <strong>{{ phone.t('Apps.photos.favorites') }}</strong
+          ><small>2 {{ phone.t('Apps.photos.items') }}</small>
+        </article>
+      </div>
+    </section>
+    <section v-else class="photos-scroll">
+      <h1>{{ phone.t('Apps.photos.tabs.search') }}</h1>
+      <div class="app-search">
+        <Search :size="17" /><input
+          v-model="query"
+          :placeholder="phone.t('Apps.photos.searchPlaceholder')"
+        />
+      </div>
+      <div class="photo-grid">
+        <article
+          v-for="photo in filtered"
+          :key="photo.id"
+          class="photo-tile"
+          :style="{ background: photo.gradient }"
+        />
+      </div>
+    </section>
+    <nav class="reference-tabbar">
       <button
         v-for="item in tabs"
-        :key="item"
-        :class="{ active: tab === item }"
+        :key="item.id"
+        :class="{ active: tab === item.id }"
         type="button"
-        @click="tab = item"
+        @click="tab = item.id"
       >
-        {{ phone.t(`Apps.photos.tabs.${item}`) }}
+        <component :is="item.icon" :size="22" /><span>{{
+          phone.t(`Apps.photos.tabs.${item.id}`)
+        }}</span>
       </button>
     </nav>
   </main>

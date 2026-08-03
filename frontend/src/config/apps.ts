@@ -8,6 +8,12 @@ import {
 } from 'lucide-vue-next'
 import { defineAsyncComponent, markRaw } from 'vue'
 
+import appStoreIcon from '@/assets/img/app-icons/apps.webp'
+import calculatorIcon from '@/assets/img/app-icons/calculator.webp'
+import cameraIcon from '@/assets/img/app-icons/camera.webp'
+import clockIcon from '@/assets/img/app-icons/clock.webp'
+import photosIcon from '@/assets/img/app-icons/gallery.webp'
+import settingsIcon from '@/assets/img/app-icons/settings.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
@@ -19,6 +25,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     gridOrder: 0,
     icon: markRaw(Calculator),
     iconClass: 'app-icon--calculator',
+    iconImage: calculatorIcon,
     id: 'calculator',
     labelKey: 'Apps.calculator.name',
     route: '/apps/calculator',
@@ -31,6 +38,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     gridOrder: 1,
     icon: markRaw(Camera),
     iconClass: 'app-icon--camera',
+    iconImage: cameraIcon,
     id: 'camera',
     labelKey: 'Apps.camera.name',
     route: '/apps/camera',
@@ -43,6 +51,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     gridOrder: 2,
     icon: markRaw(Clock3),
     iconClass: 'app-icon--clock',
+    iconImage: clockIcon,
     id: 'clock',
     labelKey: 'Apps.clock.name',
     route: '/apps/clock',
@@ -55,6 +64,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     gridOrder: 3,
     icon: markRaw(Images),
     iconClass: 'app-icon--photos',
+    iconImage: photosIcon,
     id: 'photos',
     labelKey: 'Apps.photos.name',
     route: '/apps/photos',
@@ -67,6 +77,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     gridOrder: 4,
     icon: markRaw(ShoppingBag),
     iconClass: 'app-icon--store',
+    iconImage: appStoreIcon,
     id: 'app-store',
     labelKey: 'Apps.appStore.name',
     route: '/apps/app-store',
@@ -79,6 +90,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     gridOrder: 5,
     icon: markRaw(Settings),
     iconClass: 'app-icon--settings',
+    iconImage: settingsIcon,
     id: 'settings',
     labelKey: 'Apps.settings.name',
     route: '/apps/settings',

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { AlarmClock, Clock3, Plus, Timer, TimerReset } from 'lucide-vue-next'
 
 import { useClockStore } from '@/stores/clock'
 import { usePhoneStore } from '@/stores/phone'
@@ -35,7 +36,12 @@ const cities = [
   { key: 'london', zone: 'Europe/London' },
   { key: 'tokyo', zone: 'Asia/Tokyo' },
 ]
-const tabs = ['world', 'alarm', 'stopwatch', 'timer'] as const
+const tabs = [
+  { id: 'world', icon: Clock3 },
+  { id: 'alarm', icon: AlarmClock },
+  { id: 'stopwatch', icon: Timer },
+  { id: 'timer', icon: TimerReset },
+] as const
 function cityTime(zone: string): string {
   return new Intl.DateTimeFormat(phone.lang, {
     hour: '2-digit',
@@ -53,14 +59,25 @@ onBeforeUnmount(() => clearInterval(ticker))
 
 <template>
   <main class="native-app clock-app">
-    <header class="app-header">
+    <header class="reference-clock-header">
+      <nav>
+        <button type="button">{{ phone.t('Common.edit') }}</button
+        ><button type="button" :aria-label="phone.t('Apps.clock.add')">
+          <Plus :size="25" />
+        </button>
+      </nav>
       <h1>{{ phone.t(`Apps.clock.tabs.${tab}`) }}</h1>
     </header>
     <section class="clock-content">
-      <div v-if="tab === 'world'" class="settings-list">
-        <div v-for="city in cities" :key="city.key" class="settings-row">
-          <span>{{ phone.t(`Apps.clock.cities.${city.key}`) }}</span
-          ><strong>{{ cityTime(city.zone) }}</strong>
+      <div v-if="tab === 'world'" class="world-clock-list">
+        <div v-for="city in cities" :key="city.key">
+          <div>
+            <small
+              >{{ phone.t('Apps.clock.today') }},
+              {{ phone.t('Apps.clock.offset') }}</small
+            ><strong>{{ phone.t(`Apps.clock.cities.${city.key}`) }}</strong>
+          </div>
+          <time>{{ cityTime(city.zone) }}</time>
         </div>
       </div>
       <div v-else-if="tab === 'alarm'" class="settings-list">
@@ -162,15 +179,17 @@ onBeforeUnmount(() => clearInterval(ticker))
         </div>
       </div>
     </section>
-    <nav class="app-tabs">
+    <nav class="reference-tabbar reference-clock-tabs">
       <button
         v-for="item in tabs"
-        :key="item"
-        :class="{ active: tab === item }"
+        :key="item.id"
+        :class="{ active: tab === item.id }"
         type="button"
-        @click="tab = item"
+        @click="tab = item.id"
       >
-        {{ phone.t(`Apps.clock.tabs.${item}`) }}
+        <component :is="item.icon" :size="22" /><span>{{
+          phone.t(`Apps.clock.tabs.${item.id}`)
+        }}</span>
       </button>
     </nav>
   </main>

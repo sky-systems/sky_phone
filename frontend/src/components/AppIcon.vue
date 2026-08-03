@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { usePhoneStore } from '@/stores/phone'
@@ -18,6 +19,7 @@ const props = withDefaults(
 
 const phone = usePhoneStore()
 const router = useRouter()
+const iconFailed = ref(false)
 
 function launch(event: MouseEvent): void {
   const button = event.currentTarget as HTMLElement
@@ -49,8 +51,24 @@ function launch(event: MouseEvent): void {
     :aria-label="phone.t(app.labelKey)"
     @click="launch"
   >
-    <span class="app-icon" :class="app.iconClass" aria-hidden="true">
-      <component :is="app.icon" :size="compact ? 18 : 28" :stroke-width="2" />
+    <span
+      class="app-icon"
+      :class="[app.iconClass, { 'app-icon--image': !iconFailed }]"
+      aria-hidden="true"
+    >
+      <img
+        v-if="!iconFailed"
+        :src="app.iconImage"
+        alt=""
+        draggable="false"
+        @error="iconFailed = true"
+      />
+      <component
+        :is="app.icon"
+        v-else
+        :size="compact ? 18 : 28"
+        :stroke-width="2"
+      />
     </span>
     <span v-if="showLabel" class="app-icon-label">{{
       phone.t(app.labelKey)

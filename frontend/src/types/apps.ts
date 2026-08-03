@@ -23,6 +23,7 @@ export type PhoneAppDefinition = {
   gridOrder: number
   icon: Component
   iconClass: string
+  iconImage: string
   id: PhoneAppId
   labelKey: string
   route: `/apps/${PhoneAppId}`

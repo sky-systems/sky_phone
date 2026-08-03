@@ -8,6 +8,9 @@ describe('app registry', () => {
     expect(PHONE_APPS.every((app) => app.route === `/apps/${app.id}`)).toBe(
       true,
     )
+    expect(PHONE_APPS.every((app) => app.iconImage.endsWith('.webp'))).toBe(
+      true,
+    )
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))
