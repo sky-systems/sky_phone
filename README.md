@@ -1,25 +1,11 @@
 # sky_phone
 
-FiveM phone scaffold for Sky-Systems, using Vue 3 and Konsta UI.
+Standalone FiveM phone boilerplate built with Vue 3, TypeScript, Pinia, Vue Router, Konsta UI 5, and Tailwind CSS 4. The resource currently exposes only the localized `/phone` toggle and the private NUI `ui:ready`/`close` callbacks.
+
+The homescreen is an original implementation inspired by the interaction and layout concepts in [lukejacksonn/homescreen](https://github.com/lukejacksonn/homescreen), inspected at commit [`98a812f`](https://github.com/lukejacksonn/homescreen/tree/98a812f4f7c33594e791d65092f73b8f54b3c598). No source code or image assets from that project are included.
 
 ## Development
 
-```powershell
-cd frontend
-pnpm install
-pnpm dev
-```
+From `frontend/`, run `pnpm dev` for browser development. The phone opens automatically and NUI callbacks are mocked. Run `pnpm test`, `pnpm typecheck`, `pnpm lint`, and `pnpm build` before packaging.
 
-The development command starts Vite and a small mock server for NUI callbacks. The phone opens
-automatically in browser development mode.
-
-## Build
-
-```powershell
-cd frontend
-pnpm build
-```
-
-The production build is published to `sky_phone/source/html/`. In FiveM, ensure `sky_base` before
-`sky_phone` and use `/phone` to toggle the UI.
-
+`pnpm build` uses `build.cjs` to replace `sky_phone/source/html` deterministically with the Vite output. Production assets use relative paths so they work through the FiveM NUI protocol.

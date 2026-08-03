@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { kApp } from 'konsta/vue'
-import { onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 
+import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
+import PhoneStatusBar from '@/components/PhoneStatusBar.vue'
 import { usePhoneStore, type PhoneOpenPayload } from '@/stores/phone'
 import { nuiCall } from '@/utils/nui'
+import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
   type?: string
@@ -11,6 +15,8 @@ type AppMessage = {
 }
 
 const phone = usePhoneStore()
+const route = useRoute()
+const isAppRoute = computed(() => route.name === 'app')
 
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (event.data?.type === 'app:open') {
@@ -22,7 +28,6 @@ function onMessage(event: MessageEvent<AppMessage>): void {
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.key !== 'Escape' || !phone.isOpen) return
-
   phone.close()
   void nuiCall('close')
 }
@@ -31,10 +36,7 @@ onMounted(() => {
   window.addEventListener('message', onMessage)
   window.addEventListener('keydown', onKeydown)
   void nuiCall('ui:ready')
-
-  if (import.meta.env.DEV) {
-    phone.open()
-  }
+  if (import.meta.env.DEV) phone.open()
 })
 
 onBeforeUnmount(() => {
@@ -45,11 +47,18 @@ onBeforeUnmount(() => {
 
 <template>
   <main v-if="phone.isOpen" class="phone-stage">
-    <section class="phone-device" aria-label="Phone preview">
-      <div class="phone-device__speaker" aria-hidden="true"></div>
-      <div class="phone-screen">
-        <k-app theme="ios" safe-areas class="phone-app">
-          <RouterView />
+    <section class="phone-device" :aria-label="phone.t('Common.phone')">
+      <div class="phone-device__island" aria-hidden="true"></div>
+      <div class="phone-screen" :class="{ 'phone-screen--app': isAppRoute }">
+        <k-app theme="ios" dark safe-areas class="phone-app">
+          <PhoneStatusBar />
+          <SpringboardView />
+          <RouterView v-slot="{ Component }">
+            <Transition name="app-window">
+              <component :is="Component" v-if="isAppRoute" />
+            </Transition>
+          </RouterView>
+          <PhoneHomeIndicator />
         </k-app>
       </div>
     </section>
