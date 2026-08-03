@@ -7,23 +7,11 @@ import {
   kNavbarBackLink,
   kPage,
   kRange,
+  kSearchbar,
   kToggle,
 } from 'konsta/vue'
-import {
-  BellRing,
-  Check,
-  ChevronRight,
-  EyeOff,
-  Monitor,
-  Plane,
-  Search,
-  Settings,
-  Sun,
-  UserRound,
-  Volume1,
-  Volume2,
-} from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { Check, UserRound } from 'lucide-vue-next'
+import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
 
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { PHONE_APPS } from '@/config/apps'
@@ -56,44 +44,20 @@ const phone = usePhoneStore()
 const query = ref('')
 const activeView = ref<SettingsView>('root')
 const selectedNotificationAppId = ref<PhoneAppId>('calculator')
+const settingsPage = ref<ComponentPublicInstance | null>(null)
 
 const toggleRows = [
-  { key: 'airplaneMode' as const, icon: Plane, color: '#ff9500' },
-  { key: 'streamerMode' as const, icon: EyeOff, color: '#af52de' },
+  { key: 'airplaneMode' as const },
+  { key: 'streamerMode' as const },
 ]
 const serviceRows = [
-  {
-    key: 'notifications',
-    view: 'notifications' as const,
-    icon: BellRing,
-    color: '#ff453a',
-  },
-  {
-    key: 'sounds',
-    view: 'sounds' as const,
-    icon: Volume2,
-    color: '#ff2d55',
-  },
+  { key: 'notifications', view: 'notifications' as const },
+  { key: 'sounds', view: 'sounds' as const },
 ]
 const preferenceRows = [
-  {
-    key: 'general',
-    view: 'general' as const,
-    icon: Settings,
-    color: '#8e8e93',
-  },
-  {
-    key: 'appearance',
-    view: 'appearance' as const,
-    icon: Sun,
-    color: '#0a84ff',
-  },
-  {
-    key: 'wallpaper',
-    view: 'wallpaper' as const,
-    icon: Monitor,
-    color: '#64d2ff',
-  },
+  { key: 'general', view: 'general' as const },
+  { key: 'appearance', view: 'appearance' as const },
+  { key: 'wallpaper', view: 'wallpaper' as const },
 ]
 
 const normalizedQuery = computed(() => query.value.trim().toLowerCase())
@@ -133,25 +97,39 @@ function matchesSearch(key: string): boolean {
   )
 }
 
+function updateSearch(event: Event): void {
+  query.value = (event.target as HTMLInputElement).value
+}
+
 function openView(view: SubmenuView): void {
   activeView.value = view
+  scrollPageToTop()
 }
 
 function openNotificationApp(app: PhoneAppDefinition): void {
   selectedNotificationAppId.value = app.id
   activeView.value = 'notification-detail'
+  scrollPageToTop()
 }
 
 function goBack(): void {
   activeView.value =
     activeView.value === 'notification-detail' ? 'notifications' : 'root'
+  scrollPageToTop()
+}
+
+function scrollPageToTop(): void {
+  void nextTick(() => {
+    const pageElement = settingsPage.value?.$el as HTMLElement | undefined
+    pageElement?.scrollTo({ top: 0 })
+  })
 }
 
 function toggleRootSetting(key: RootToggleKey): void {
   phone.setPreference(key, !phone.preferences.settings[key])
 }
 
-function updateVolume(
+function updateNumberPreference(
   key: 'notificationVolume' | 'phoneScale' | 'ringtoneVolume',
   event: Event,
 ): void {
@@ -179,43 +157,41 @@ function selectNotificationSound(sound: NotificationSoundId): void {
 </script>
 
 <template>
-  <k-page class="native-app konsta-settings">
-    <section v-if="activeView === 'root'" class="settings-scroll">
-      <h1>{{ phone.t('Apps.settings.name') }}</h1>
-      <div class="settings-search">
-        <Search :size="17" />
-        <input
-          v-model="query"
-          :placeholder="phone.t('Apps.settings.searchPlaceholder')"
-          type="search"
-        />
-      </div>
-
-      <article class="settings-account">
-        <span><UserRound :size="34" /></span>
-        <div>
-          <strong>{{ phone.t('Apps.settings.accountName') }}</strong>
-          <small>{{ phone.t('Apps.settings.accountDetail') }}</small>
-        </div>
-        <ChevronRight :size="19" />
-      </article>
-
-      <k-list
-        v-if="visibleToggleRows.length"
-        strong
-        inset
-        class="settings-konsta-list"
+  <k-page ref="settingsPage" class="!pt-[44px] !pb-[24px]">
+    <template v-if="activeView === 'root'">
+      <k-navbar
+        large
+        transparent
+        :title="phone.t('Apps.settings.name')"
+        class="top-0 sticky"
       >
+        <template #subnavbar>
+          <k-searchbar
+            :value="query"
+            :placeholder="phone.t('Apps.settings.searchPlaceholder')"
+            @input="updateSearch"
+            @clear="query = ''"
+          />
+        </template>
+      </k-navbar>
+
+      <k-list strong inset>
+        <k-list-item
+          :title="phone.t('Apps.settings.accountName')"
+          :subtitle="phone.t('Apps.settings.accountDetail')"
+        >
+          <template #media>
+            <UserRound class="w-9 h-9 text-primary" />
+          </template>
+        </k-list-item>
+      </k-list>
+
+      <k-list v-if="visibleToggleRows.length" strong inset>
         <k-list-item
           v-for="row in visibleToggleRows"
           :key="row.key"
           :title="phone.t(`Apps.settings.${row.key}`)"
         >
-          <template #media>
-            <span class="settings-symbol" :style="{ background: row.color }">
-              <component :is="row.icon" :size="16" />
-            </span>
-          </template>
           <template #after>
             <k-toggle
               component="div"
@@ -227,53 +203,29 @@ function selectNotificationSound(sound: NotificationSoundId): void {
         </k-list-item>
       </k-list>
 
-      <k-list
-        v-if="visibleServiceRows.length"
-        strong
-        inset
-        class="settings-konsta-list"
-      >
+      <k-list v-if="visibleServiceRows.length" strong inset>
         <k-list-item
           v-for="row in visibleServiceRows"
           :key="row.key"
           link
-          link-component="button"
           :title="phone.t(`Apps.settings.${row.key}`)"
           @click="openView(row.view)"
-        >
-          <template #media>
-            <span class="settings-symbol" :style="{ background: row.color }">
-              <component :is="row.icon" :size="16" />
-            </span>
-          </template>
-        </k-list-item>
+        />
       </k-list>
 
-      <k-list
-        v-if="visiblePreferenceRows.length"
-        strong
-        inset
-        class="settings-konsta-list"
-      >
+      <k-list v-if="visiblePreferenceRows.length" strong inset>
         <k-list-item
           v-for="row in visiblePreferenceRows"
           :key="row.key"
           link
-          link-component="button"
           :title="phone.t(`Apps.settings.${row.key}`)"
           @click="openView(row.view)"
-        >
-          <template #media>
-            <span class="settings-symbol" :style="{ background: row.color }">
-              <component :is="row.icon" :size="16" />
-            </span>
-          </template>
-        </k-list-item>
+        />
       </k-list>
-    </section>
+    </template>
 
     <template v-else>
-      <k-navbar :title="activeTitle" class="settings-konsta-navbar">
+      <k-navbar :title="activeTitle" class="top-0 sticky z-20">
         <template #left>
           <k-navbar-back-link
             component="button"
@@ -285,305 +237,306 @@ function selectNotificationSound(sound: NotificationSoundId): void {
         </template>
       </k-navbar>
 
-      <section class="settings-subpage-scroll">
-        <template v-if="activeView === 'notifications'">
-          <k-list strong inset class="settings-konsta-list">
-            <k-list-item
-              v-for="app in notificationApps"
-              :key="app.id"
-              link
-              link-component="button"
-              :title="phone.t(app.labelKey)"
-              :after="
-                phone.t(
-                  phone.preferences.settings.notifications[app.id].enabled
-                    ? 'Apps.settings.on'
-                    : 'Apps.settings.off',
-                )
-              "
-              @click="openNotificationApp(app)"
-            >
-              <template #media>
-                <img
-                  class="settings-app-icon"
-                  :src="app.iconImage"
-                  alt=""
-                  draggable="false"
-                />
-              </template>
-            </k-list-item>
-          </k-list>
-        </template>
+      <template v-if="activeView === 'notifications'">
+        <k-list strong inset>
+          <k-list-item
+            v-for="app in notificationApps"
+            :key="app.id"
+            link
+            :title="phone.t(app.labelKey)"
+            :after="
+              phone.t(
+                phone.preferences.settings.notifications[app.id].enabled
+                  ? 'Apps.settings.on'
+                  : 'Apps.settings.off',
+              )
+            "
+            @click="openNotificationApp(app)"
+          >
+            <template #media>
+              <img
+                class="w-8 h-8 object-contain"
+                :src="app.iconImage"
+                alt=""
+                draggable="false"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+      </template>
 
-        <template
-          v-else-if="
-            activeView === 'notification-detail' && selectedNotificationApp
-          "
-        >
-          <div class="settings-notification-app">
-            <img
-              :src="selectedNotificationApp.iconImage"
-              alt=""
-              draggable="false"
-            />
-            <strong>{{ phone.t(selectedNotificationApp.labelKey) }}</strong>
-          </div>
-          <k-list strong inset class="settings-konsta-list">
-            <k-list-item :title="phone.t('Apps.settings.allowNotifications')">
-              <template #after>
-                <k-toggle
-                  component="div"
-                  :checked="
-                    phone.preferences.settings.notifications[
-                      selectedNotificationApp.id
-                    ].enabled
-                  "
-                  :aria-label="
-                    phone.t('Apps.settings.toggle.notifications', {
-                      app: phone.t(selectedNotificationApp.labelKey),
-                    })
-                  "
-                  @change="
-                    phone.setAppNotification(
-                      selectedNotificationApp.id,
-                      'enabled',
-                      !phone.preferences.settings.notifications[
-                        selectedNotificationApp.id
-                      ].enabled,
-                    )
-                  "
-                />
-              </template>
-            </k-list-item>
-            <k-list-item :title="phone.t('Apps.settings.notificationSounds')">
-              <template #after>
-                <k-toggle
-                  component="div"
-                  :disabled="
+      <template
+        v-else-if="
+          activeView === 'notification-detail' && selectedNotificationApp
+        "
+      >
+        <k-list strong inset>
+          <k-list-item :title="phone.t(selectedNotificationApp.labelKey)">
+            <template #media>
+              <img
+                class="w-12 h-12 object-contain"
+                :src="selectedNotificationApp.iconImage"
+                alt=""
+                draggable="false"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+        <k-list strong inset>
+          <k-list-item :title="phone.t('Apps.settings.allowNotifications')">
+            <template #after>
+              <k-toggle
+                component="div"
+                :checked="
+                  phone.preferences.settings.notifications[
+                    selectedNotificationApp.id
+                  ].enabled
+                "
+                :aria-label="
+                  phone.t('Apps.settings.toggle.notifications', {
+                    app: phone.t(selectedNotificationApp.labelKey),
+                  })
+                "
+                @change="
+                  phone.setAppNotification(
+                    selectedNotificationApp.id,
+                    'enabled',
                     !phone.preferences.settings.notifications[
                       selectedNotificationApp.id
-                    ].enabled
-                  "
-                  :checked="
-                    phone.preferences.settings.notifications[
+                    ].enabled,
+                  )
+                "
+              />
+            </template>
+          </k-list-item>
+          <k-list-item :title="phone.t('Apps.settings.notificationSounds')">
+            <template #after>
+              <k-toggle
+                component="div"
+                :disabled="
+                  !phone.preferences.settings.notifications[
+                    selectedNotificationApp.id
+                  ].enabled
+                "
+                :checked="
+                  phone.preferences.settings.notifications[
+                    selectedNotificationApp.id
+                  ].sounds
+                "
+                :aria-label="
+                  phone.t('Apps.settings.toggle.notificationSounds', {
+                    app: phone.t(selectedNotificationApp.labelKey),
+                  })
+                "
+                @change="
+                  phone.setAppNotification(
+                    selectedNotificationApp.id,
+                    'sounds',
+                    !phone.preferences.settings.notifications[
                       selectedNotificationApp.id
-                    ].sounds
-                  "
-                  :aria-label="
-                    phone.t('Apps.settings.toggle.notificationSounds', {
-                      app: phone.t(selectedNotificationApp.labelKey),
-                    })
-                  "
-                  @change="
-                    phone.setAppNotification(
-                      selectedNotificationApp.id,
-                      'sounds',
-                      !phone.preferences.settings.notifications[
-                        selectedNotificationApp.id
-                      ].sounds,
-                    )
-                  "
-                />
-              </template>
-            </k-list-item>
-          </k-list>
-        </template>
+                    ].sounds,
+                  )
+                "
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+      </template>
 
-        <template v-else-if="activeView === 'sounds'">
-          <k-block-title>
-            {{ phone.t('Apps.settings.ringtoneVolume') }}
-          </k-block-title>
-          <k-list strong inset class="settings-konsta-list settings-range-list">
-            <k-list-item>
-              <template #inner>
-                <div class="settings-range-row">
-                  <Volume1 :size="17" />
-                  <k-range
-                    :value="phone.preferences.settings.ringtoneVolume"
-                    :min="0"
-                    :max="100"
-                    @input="updateVolume('ringtoneVolume', $event)"
-                  />
-                  <Volume2 :size="19" />
-                </div>
-              </template>
-            </k-list-item>
-          </k-list>
+      <template v-else-if="activeView === 'sounds'">
+        <k-block-title>
+          {{ phone.t('Apps.settings.ringtoneVolume') }} ·
+          {{ phone.preferences.settings.ringtoneVolume }}%
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item>
+            <template #inner>
+              <k-range
+                class="w-full"
+                :value="phone.preferences.settings.ringtoneVolume"
+                :min="0"
+                :max="100"
+                :aria-label="phone.t('Apps.settings.ringtoneVolume')"
+                @input="updateNumberPreference('ringtoneVolume', $event)"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
 
-          <k-block-title>
-            {{ phone.t('Apps.settings.notificationVolume') }}
-          </k-block-title>
-          <k-list strong inset class="settings-konsta-list settings-range-list">
-            <k-list-item>
-              <template #inner>
-                <div class="settings-range-row">
-                  <Volume1 :size="17" />
-                  <k-range
-                    :value="phone.preferences.settings.notificationVolume"
-                    :min="0"
-                    :max="100"
-                    @input="updateVolume('notificationVolume', $event)"
-                  />
-                  <Volume2 :size="19" />
-                </div>
-              </template>
-            </k-list-item>
-          </k-list>
+        <k-block-title>
+          {{ phone.t('Apps.settings.notificationVolume') }} ·
+          {{ phone.preferences.settings.notificationVolume }}%
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item>
+            <template #inner>
+              <k-range
+                class="w-full"
+                :value="phone.preferences.settings.notificationVolume"
+                :min="0"
+                :max="100"
+                :aria-label="phone.t('Apps.settings.notificationVolume')"
+                @input="updateNumberPreference('notificationVolume', $event)"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
 
-          <k-block-title>{{ phone.t('Apps.settings.ringtone') }}</k-block-title>
-          <k-list strong inset class="settings-konsta-list">
-            <k-list-item
-              v-for="ringtone in RINGTONE_IDS"
-              :key="ringtone"
-              link
-              link-component="button"
-              :chevron="false"
-              :title="phone.t(`Apps.settings.ringtones.${ringtone}`)"
-              @click="selectRingtone(ringtone)"
-            >
-              <template #after>
-                <Check
-                  v-if="phone.preferences.settings.ringtone === ringtone"
-                  :size="19"
-                  class="settings-check"
-                />
-              </template>
-            </k-list-item>
-          </k-list>
+        <k-block-title>{{ phone.t('Apps.settings.ringtone') }}</k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            v-for="ringtone in RINGTONE_IDS"
+            :key="ringtone"
+            link
+            :chevron="false"
+            :title="phone.t(`Apps.settings.ringtones.${ringtone}`)"
+            @click="selectRingtone(ringtone)"
+          >
+            <template #after>
+              <Check
+                v-if="phone.preferences.settings.ringtone === ringtone"
+                class="w-5 h-5 text-primary"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
 
-          <k-block-title>
-            {{ phone.t('Apps.settings.notificationSound') }}
-          </k-block-title>
-          <k-list strong inset class="settings-konsta-list">
-            <k-list-item
-              v-for="sound in NOTIFICATION_SOUND_IDS"
-              :key="sound"
-              link
-              link-component="button"
-              :chevron="false"
-              :title="phone.t(`Apps.settings.notificationSoundsList.${sound}`)"
-              @click="selectNotificationSound(sound)"
-            >
-              <template #after>
-                <Check
-                  v-if="phone.preferences.settings.notificationSound === sound"
-                  :size="19"
-                  class="settings-check"
-                />
-              </template>
-            </k-list-item>
-          </k-list>
-        </template>
+        <k-block-title>
+          {{ phone.t('Apps.settings.notificationSound') }}
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            v-for="sound in NOTIFICATION_SOUND_IDS"
+            :key="sound"
+            link
+            :chevron="false"
+            :title="phone.t(`Apps.settings.notificationSoundsList.${sound}`)"
+            @click="selectNotificationSound(sound)"
+          >
+            <template #after>
+              <Check
+                v-if="phone.preferences.settings.notificationSound === sound"
+                class="w-5 h-5 text-primary"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+      </template>
 
-        <template v-else-if="activeView === 'general'">
-          <k-block-title>{{ phone.t('Apps.settings.about') }}</k-block-title>
-          <k-list strong inset class="settings-konsta-list">
-            <k-list-item
-              :title="phone.t('Apps.settings.deviceName')"
-              :after="phone.t('Apps.settings.deviceNameValue')"
-            />
-            <k-list-item
-              :title="phone.t('Apps.settings.softwareVersion')"
-              after="0.1.0"
-            />
-            <k-list-item
-              :title="phone.t('Apps.settings.language')"
-              :after="phone.t('Apps.settings.languageValue')"
-            />
-            <k-list-item
-              :title="phone.t('Apps.settings.localStorage')"
-              :after="phone.t('Apps.settings.localStorageValue')"
-            />
-          </k-list>
-        </template>
+      <template v-else-if="activeView === 'general'">
+        <k-block-title>{{ phone.t('Apps.settings.about') }}</k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            :title="phone.t('Apps.settings.deviceName')"
+            :after="phone.t('Apps.settings.deviceNameValue')"
+          />
+          <k-list-item
+            :title="phone.t('Apps.settings.softwareVersion')"
+            after="0.1.0"
+          />
+          <k-list-item
+            :title="phone.t('Apps.settings.language')"
+            :after="phone.t('Apps.settings.languageValue')"
+          />
+          <k-list-item
+            :title="phone.t('Apps.settings.localStorage')"
+            :after="phone.t('Apps.settings.localStorageValue')"
+          />
+        </k-list>
+      </template>
 
-        <template v-else-if="activeView === 'appearance'">
-          <k-block-title>
-            {{ phone.t('Apps.settings.appearanceMode') }}
-          </k-block-title>
-          <k-list strong inset class="settings-konsta-list">
-            <k-list-item
-              v-for="mode in APPEARANCE_MODE_IDS"
-              :key="mode"
-              link
-              link-component="button"
-              :chevron="false"
-              :title="phone.t(`Apps.settings.${mode}`)"
-              @click="selectAppearanceMode(mode)"
-            >
-              <template #after>
-                <Check
-                  v-if="phone.preferences.settings.appearanceMode === mode"
-                  :size="19"
-                  class="settings-check"
-                />
-              </template>
-            </k-list-item>
-          </k-list>
+      <template v-else-if="activeView === 'appearance'">
+        <k-block-title>
+          {{ phone.t('Apps.settings.appearanceMode') }}
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            v-for="mode in APPEARANCE_MODE_IDS"
+            :key="mode"
+            link
+            :chevron="false"
+            :title="phone.t(`Apps.settings.${mode}`)"
+            @click="selectAppearanceMode(mode)"
+          >
+            <template #after>
+              <Check
+                v-if="phone.preferences.settings.appearanceMode === mode"
+                class="w-5 h-5 text-primary"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
 
-          <k-block-title>
-            {{ phone.t('Apps.settings.phoneScale') }} ·
-            {{ phone.preferences.settings.phoneScale }}%
-          </k-block-title>
-          <k-list strong inset class="settings-konsta-list settings-range-list">
-            <k-list-item>
-              <template #inner>
-                <div class="settings-scale-row">
-                  <span>A</span>
-                  <k-range
-                    :value="phone.preferences.settings.phoneScale"
-                    :min="85"
-                    :max="115"
-                    :step="5"
-                    @input="updateVolume('phoneScale', $event)"
-                  />
-                  <strong>A</strong>
-                </div>
-              </template>
-            </k-list-item>
-          </k-list>
+        <k-block-title>
+          {{ phone.t('Apps.settings.phoneScale') }} ·
+          {{ phone.preferences.settings.phoneScale }}%
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item>
+            <template #inner>
+              <k-range
+                class="w-full"
+                :value="phone.preferences.settings.phoneScale"
+                :min="85"
+                :max="115"
+                :step="5"
+                :aria-label="phone.t('Apps.settings.phoneScale')"
+                @input="updateNumberPreference('phoneScale', $event)"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
 
-          <k-block-title>
-            {{ phone.t('Apps.settings.phoneFrame') }}
-          </k-block-title>
-          <div class="settings-frame-picker">
-            <button
-              v-for="frame in PHONE_FRAME_IDS"
-              :key="frame"
-              type="button"
-              :class="{
-                active: phone.preferences.settings.frame === frame,
-              }"
-              :aria-label="phone.t(`Apps.settings.frames.${frame}`)"
-              @click="selectFrame(frame)"
-            >
-              <img :src="PHONE_FRAME_IMAGES[frame]" alt="" draggable="false" />
-              <span>{{ phone.t(`Apps.settings.frames.${frame}`) }}</span>
-            </button>
-          </div>
-        </template>
+        <k-block-title>{{ phone.t('Apps.settings.phoneFrame') }}</k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            v-for="frame in PHONE_FRAME_IDS"
+            :key="frame"
+            link
+            :chevron="false"
+            :title="phone.t(`Apps.settings.frames.${frame}`)"
+            @click="selectFrame(frame)"
+          >
+            <template #media>
+              <img
+                class="w-6 h-12 object-fill"
+                :src="PHONE_FRAME_IMAGES[frame]"
+                alt=""
+                draggable="false"
+              />
+            </template>
+            <template #after>
+              <Check
+                v-if="phone.preferences.settings.frame === frame"
+                class="w-5 h-5 text-primary"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+      </template>
 
-        <template v-else-if="activeView === 'wallpaper'">
-          <k-block-title>
-            {{ phone.t('Apps.settings.wallpaperPicker') }}
-          </k-block-title>
-          <section class="wallpaper-picker settings-wallpaper-picker">
-            <button
-              v-for="wallpaper in WALLPAPER_IDS"
-              :key="wallpaper"
-              type="button"
-              :class="[
-                `wallpaper--${wallpaper}`,
-                {
-                  active: phone.preferences.settings.wallpaper === wallpaper,
-                },
-              ]"
-              :aria-label="phone.t(`Apps.settings.wallpapers.${wallpaper}`)"
-              @click="phone.setWallpaper(wallpaper)"
-            />
-          </section>
-        </template>
-      </section>
+      <template v-else-if="activeView === 'wallpaper'">
+        <k-block-title>
+          {{ phone.t('Apps.settings.wallpaperPicker') }}
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            v-for="wallpaper in WALLPAPER_IDS"
+            :key="wallpaper"
+            link
+            :chevron="false"
+            :title="phone.t(`Apps.settings.wallpapers.${wallpaper}`)"
+            @click="phone.setWallpaper(wallpaper)"
+          >
+            <template #after>
+              <Check
+                v-if="phone.preferences.settings.wallpaper === wallpaper"
+                class="w-5 h-5 text-primary"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+      </template>
     </template>
   </k-page>
 </template>
