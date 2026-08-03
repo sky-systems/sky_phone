@@ -10,7 +10,17 @@ import {
   kSearchbar,
   kToggle,
 } from 'konsta/vue'
-import { Check, UserRound } from 'lucide-vue-next'
+import {
+  BellRing,
+  Check,
+  EyeOff,
+  Monitor,
+  Plane,
+  Settings,
+  Sun,
+  UserRound,
+  Volume2,
+} from 'lucide-vue-next'
 import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
 
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
@@ -47,17 +57,50 @@ const selectedNotificationAppId = ref<PhoneAppId>('calculator')
 const settingsPage = ref<ComponentPublicInstance | null>(null)
 
 const toggleRows = [
-  { key: 'airplaneMode' as const },
-  { key: 'streamerMode' as const },
+  {
+    key: 'airplaneMode' as const,
+    icon: Plane,
+    iconClass: 'bg-linear-to-br from-amber-300 via-orange-500 to-red-500',
+  },
+  {
+    key: 'streamerMode' as const,
+    icon: EyeOff,
+    iconClass: 'bg-linear-to-br from-violet-400 via-purple-500 to-fuchsia-600',
+  },
 ]
 const serviceRows = [
-  { key: 'notifications', view: 'notifications' as const },
-  { key: 'sounds', view: 'sounds' as const },
+  {
+    key: 'notifications',
+    view: 'notifications' as const,
+    icon: BellRing,
+    iconClass: 'bg-linear-to-br from-rose-400 via-red-500 to-red-700',
+  },
+  {
+    key: 'sounds',
+    view: 'sounds' as const,
+    icon: Volume2,
+    iconClass: 'bg-linear-to-br from-pink-400 via-rose-500 to-red-600',
+  },
 ]
 const preferenceRows = [
-  { key: 'general', view: 'general' as const },
-  { key: 'appearance', view: 'appearance' as const },
-  { key: 'wallpaper', view: 'wallpaper' as const },
+  {
+    key: 'general',
+    view: 'general' as const,
+    icon: Settings,
+    iconClass: 'bg-linear-to-br from-slate-300 via-gray-500 to-slate-700',
+  },
+  {
+    key: 'appearance',
+    view: 'appearance' as const,
+    icon: Sun,
+    iconClass: 'bg-linear-to-br from-sky-300 via-blue-500 to-indigo-600',
+  },
+  {
+    key: 'wallpaper',
+    view: 'wallpaper' as const,
+    icon: Monitor,
+    iconClass: 'bg-linear-to-br from-cyan-300 via-sky-500 to-blue-600',
+  },
 ]
 
 const normalizedQuery = computed(() => query.value.trim().toLowerCase())
@@ -191,7 +234,19 @@ function selectNotificationSound(sound: NotificationSoundId): void {
           v-for="row in visibleToggleRows"
           :key="row.key"
           :title="phone.t(`Apps.settings.${row.key}`)"
+          title-font-size-ios="text-[16px]"
+          title-wrap-class="whitespace-nowrap"
         >
+          <template #media>
+            <span
+              :class="[
+                'flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.25)]',
+                row.iconClass,
+              ]"
+            >
+              <component :is="row.icon" :size="17" :stroke-width="2.25" />
+            </span>
+          </template>
           <template #after>
             <k-toggle
               component="div"
@@ -209,8 +264,21 @@ function selectNotificationSound(sound: NotificationSoundId): void {
           :key="row.key"
           link
           :title="phone.t(`Apps.settings.${row.key}`)"
+          title-font-size-ios="text-[16px]"
+          title-wrap-class="whitespace-nowrap"
           @click="openView(row.view)"
-        />
+        >
+          <template #media>
+            <span
+              :class="[
+                'flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.25)]',
+                row.iconClass,
+              ]"
+            >
+              <component :is="row.icon" :size="17" :stroke-width="2.25" />
+            </span>
+          </template>
+        </k-list-item>
       </k-list>
 
       <k-list v-if="visiblePreferenceRows.length" strong inset>
@@ -219,8 +287,21 @@ function selectNotificationSound(sound: NotificationSoundId): void {
           :key="row.key"
           link
           :title="phone.t(`Apps.settings.${row.key}`)"
+          title-font-size-ios="text-[16px]"
+          title-wrap-class="whitespace-nowrap"
           @click="openView(row.view)"
-        />
+        >
+          <template #media>
+            <span
+              :class="[
+                'flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.25)]',
+                row.iconClass,
+              ]"
+            >
+              <component :is="row.icon" :size="17" :stroke-width="2.25" />
+            </span>
+          </template>
+        </k-list-item>
       </k-list>
     </template>
 
