@@ -1,6 +1,19 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import {
+  kBlock,
+  kButton,
+  kLink,
+  kList,
+  kListInput,
+  kListItem,
+  kNavbar,
+  kPage,
+  kTabbar,
+  kTabbarLink,
+  kToggle,
+} from 'konsta/vue'
 import { AlarmClock, Clock3, Plus, Timer, TimerReset } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { useClockStore } from '@/stores/clock'
 import { usePhoneStore } from '@/stores/phone'
@@ -16,6 +29,7 @@ const clock = useClockStore()
 const tab = ref<'world' | 'alarm' | 'stopwatch' | 'timer'>('world')
 const now = ref(Date.now())
 let ticker: ReturnType<typeof setInterval> | undefined
+
 const stopwatchValue = computed(() =>
   elapsedMilliseconds(
     clock.stopwatchAccumulated,
@@ -30,77 +44,113 @@ const timerValue = computed(() =>
     now.value,
   ),
 )
-const cities = [
-  { key: 'cupertino', zone: 'America/Los_Angeles' },
-  { key: 'newYork', zone: 'America/New_York' },
-  { key: 'london', zone: 'Europe/London' },
-  { key: 'tokyo', zone: 'Asia/Tokyo' },
-]
+const losSantosTime = computed(() =>
+  new Intl.DateTimeFormat(phone.lang, {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Los_Angeles',
+  }).format(now.value),
+)
 const tabs = [
   { id: 'world', icon: Clock3 },
   { id: 'alarm', icon: AlarmClock },
   { id: 'stopwatch', icon: Timer },
   { id: 'timer', icon: TimerReset },
 ] as const
-function cityTime(zone: string): string {
-  return new Intl.DateTimeFormat(phone.lang, {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: zone,
-  }).format(now.value)
+const secondaryActionColors = {
+  tonalBgIos: 'bg-[#2c2c2e] active:bg-[#3a3a3c]',
+  tonalTextIos: 'text-white',
 }
+const positiveActionColors = {
+  fillBgIos: 'bg-[#103a20] active:bg-[#174d2a]',
+  fillTextIos: 'text-[#30d158]',
+}
+const toggleColors = {
+  checkedBgIos: 'bg-[#30d158]',
+}
+const tabColors = {
+  textActiveIos: 'text-[#d99900]',
+  textIos: 'text-[#77777c]',
+}
+
 onMounted(() => {
   ticker = setInterval(() => {
     now.value = Date.now()
   }, 250)
 })
+
 onBeforeUnmount(() => clearInterval(ticker))
 </script>
 
 <template>
-  <main class="native-app clock-app">
-    <header class="reference-clock-header">
-      <nav>
-        <button type="button">{{ phone.t('Common.edit') }}</button
-        ><button type="button" :aria-label="phone.t('Apps.clock.add')">
-          <Plus :size="25" />
-        </button>
-      </nav>
-      <h1>{{ phone.t(`Apps.clock.tabs.${tab}`) }}</h1>
-    </header>
-    <section class="clock-content">
-      <div v-if="tab === 'world'" class="world-clock-list">
-        <div v-for="city in cities" :key="city.key">
-          <div>
-            <small
-              >{{ phone.t('Apps.clock.today') }},
-              {{ phone.t('Apps.clock.offset') }}</small
-            ><strong>{{ phone.t(`Apps.clock.cities.${city.key}`) }}</strong>
-          </div>
-          <time>{{ cityTime(city.zone) }}</time>
-        </div>
-      </div>
-      <div v-else-if="tab === 'alarm'" class="settings-list">
-        <div v-for="alarm in clock.alarms" :key="alarm.id" class="settings-row">
-          <div>
-            <strong class="alarm-time">{{ alarm.time }}</strong
-            ><small>{{ phone.t(alarm.labelKey) }}</small>
-          </div>
-          <button
-            class="ios-switch"
-            :class="{ active: alarm.enabled }"
-            type="button"
-            @click="clock.toggleAlarm(alarm.id)"
-          >
-            <span />
-          </button>
-        </div>
-      </div>
-      <div v-else-if="tab === 'stopwatch'" class="clock-tool">
+  <k-page component="main" class="native-app clock-app">
+    <k-navbar
+      :title="phone.t(`Apps.clock.tabs.${tab}`)"
+      :large="tab === 'world' || tab === 'alarm'"
+      :transparent="tab === 'world' || tab === 'alarm'"
+      class="clock-navbar"
+    >
+      <template #left>
+        <k-link
+          component="button"
+          :link-props="{ type: 'button' }"
+        >
+          {{ phone.t('Common.edit') }}
+        </k-link>
+      </template>
+      <template #right>
+        <k-link
+          component="button"
+          icon-only
+          :link-props="{ type: 'button' }"
+          :aria-label="phone.t('Apps.clock.add')"
+        >
+          <Plus />
+        </k-link>
+      </template>
+    </k-navbar>
+
+    <k-block component="section" nested class="clock-content">
+      <k-block v-if="tab === 'world'" nested class="clock-world-now">
+        <span class="clock-world-location">{{
+          phone.t('Apps.clock.location')
+        }}</span>
+        <time class="clock-world-time">{{ losSantosTime }}</time>
+      </k-block>
+
+      <k-list
+        v-else-if="tab === 'alarm'"
+        strong
+        inset
+        class="clock-konsta-list clock-alarm-list"
+      >
+        <k-list-item
+          v-for="alarm in clock.alarms"
+          :key="alarm.id"
+          :title="alarm.time"
+          :subtitle="phone.t(alarm.labelKey)"
+          title-font-size-ios="text-[30px]"
+          class="clock-alarm-item"
+        >
+          <template #after>
+            <k-toggle
+              :checked="alarm.enabled"
+              :colors="toggleColors"
+              :aria-label="`${alarm.time}, ${phone.t(alarm.labelKey)}`"
+              @change="clock.toggleAlarm(alarm.id)"
+            />
+          </template>
+        </k-list-item>
+      </k-list>
+
+      <k-block v-else-if="tab === 'stopwatch'" nested class="clock-tool">
         <div class="clock-digits">{{ formatStopwatch(stopwatchValue) }}</div>
         <div class="clock-actions">
-          <button
-            type="button"
+          <k-button
+            rounded
+            tonal
+            :colors="secondaryActionColors"
+            class="clock-action-button"
             @click="
               clock.stopwatchStartedAt === null
                 ? clock.resetStopwatch()
@@ -113,10 +163,12 @@ onBeforeUnmount(() => clearInterval(ticker))
                   ? 'Common.reset'
                   : 'Apps.clock.lap',
               )
-            }}</button
-          ><button
-            class="positive"
-            type="button"
+            }}
+          </k-button>
+          <k-button
+            rounded
+            :colors="positiveActionColors"
+            class="clock-action-button"
             @click="
               clock.stopwatchStartedAt === null
                 ? clock.startStopwatch(now)
@@ -130,24 +182,25 @@ onBeforeUnmount(() => clearInterval(ticker))
                   : 'Common.stop',
               )
             }}
-          </button>
+          </k-button>
         </div>
-        <div class="lap-list">
-          <div v-for="(lap, index) in clock.laps" :key="index">
-            <span
-              >{{ phone.t('Apps.clock.lap') }}
-              {{ clock.laps.length - index }}</span
-            ><span>{{ formatStopwatch(lap) }}</span>
-          </div>
-        </div>
-      </div>
-      <div v-else class="clock-tool">
+        <k-list dividers class="clock-konsta-list clock-lap-list">
+          <k-list-item
+            v-for="(lap, index) in clock.laps"
+            :key="index"
+            :title="`${phone.t('Apps.clock.lap')} ${clock.laps.length - index}`"
+            :after="formatStopwatch(lap)"
+          />
+        </k-list>
+      </k-block>
+
+      <k-block v-else nested class="clock-tool">
         <div class="timer-ring">
           <span>{{ formatTimer(timerValue) }}</span>
         </div>
-        <label class="timer-input"
-          >{{ phone.t('Apps.clock.minutes')
-          }}<input
+        <k-list strong inset class="clock-konsta-list clock-timer-input">
+          <k-list-input
+            :label="phone.t('Apps.clock.minutes')"
             type="number"
             min="1"
             max="60"
@@ -157,13 +210,22 @@ onBeforeUnmount(() => clearInterval(ticker))
                 Number(($event.target as HTMLInputElement).value),
               )
             "
-        /></label>
+          />
+        </k-list>
         <div class="clock-actions">
-          <button type="button" @click="clock.resetTimer()">
-            {{ phone.t('Common.reset') }}</button
-          ><button
-            class="positive"
-            type="button"
+          <k-button
+            rounded
+            tonal
+            :colors="secondaryActionColors"
+            class="clock-action-button"
+            @click="clock.resetTimer()"
+          >
+            {{ phone.t('Common.reset') }}
+          </k-button>
+          <k-button
+            rounded
+            :colors="positiveActionColors"
+            class="clock-action-button"
             @click="
               clock.timerStartedAt === null
                 ? clock.startTimer(now)
@@ -175,22 +237,35 @@ onBeforeUnmount(() => clearInterval(ticker))
                 clock.timerStartedAt === null ? 'Common.start' : 'Common.pause',
               )
             }}
-          </button>
+          </k-button>
         </div>
-      </div>
-    </section>
-    <nav class="reference-tabbar reference-clock-tabs">
-      <button
+      </k-block>
+    </k-block>
+
+    <k-tabbar
+      component="nav"
+      labels
+      icons
+      class="clock-tabbar"
+      inner-class="!w-full !gap-0"
+      :aria-label="phone.t('Apps.clock.name')"
+    >
+      <k-tabbar-link
         v-for="item in tabs"
         :key="item.id"
-        :class="{ active: tab === item.id }"
-        type="button"
+        component="button"
+        :active="tab === item.id"
+        :colors="tabColors"
+        :link-props="{ type: 'button' }"
         @click="tab = item.id"
       >
-        <component :is="item.icon" :size="22" /><span>{{
+        <template #icon>
+          <component :is="item.icon" :size="22" />
+        </template>
+        <span class="clock-tab-label">{{
           phone.t(`Apps.clock.tabs.${item.id}`)
         }}</span>
-      </button>
-    </nav>
-  </main>
+      </k-tabbar-link>
+    </k-tabbar>
+  </k-page>
 </template>

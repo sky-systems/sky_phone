@@ -25,9 +25,8 @@ Locales["en"] = {
                 modes = { timelapse = "Timelapse", slowMo = "Slow-Mo", cinematic = "Cinematic", video = "Video", photo = "Photo", portrait = "Portrait", pano = "Pano" },
             },
             clock = {
-                name = "Clock", lap = "Lap", minutes = "Minutes", add = "Add clock", today = "Today", offset = "+0HRS",
+                name = "Clock", lap = "Lap", minutes = "Minutes", add = "Add clock", location = "Los Santos",
                 tabs = { world = "World Clock", alarm = "Alarm", stopwatch = "Stopwatch", timer = "Timer" },
-                cities = { cupertino = "Cupertino", newYork = "New York", london = "London", tokyo = "Tokyo" },
                 alarm = { weekday = "Weekdays", weekend = "Weekend" },
             },
             photos = {

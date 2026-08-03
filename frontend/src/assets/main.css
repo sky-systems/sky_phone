@@ -697,76 +697,46 @@ button {
   padding-left: 27px;
 }
 .clock-content {
-  height: calc(100% - 104px);
-  overflow: auto;
-  padding: 12px 15px 65px;
+  min-height: calc(100% - 113px);
+  padding: 0 0 88px;
 }
-.settings-list {
-  overflow: hidden;
-  border-radius: 12px;
-  background: #1c1c1e;
+.clock-konsta-list {
+  margin-top: 0;
+  margin-bottom: 0;
 }
-.settings-row {
-  min-height: 54px;
-  margin-left: 14px;
-  padding: 9px 14px 9px 0;
+.clock-world-now {
+  margin: 0;
+  padding: 76px 16px 0;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid #ffffff14;
-}
-.settings-row:last-child {
-  border-bottom: 0;
-}
-.settings-row > span:nth-child(2) {
-  flex: 1;
-}
-.settings-row strong:last-child {
-  margin-left: auto;
-  font-size: 22px;
-}
-.settings-row > div {
-  display: flex;
-  flex: 1;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
-.alarm-time {
-  font-size: 30px;
-  font-weight: 300;
+.clock-world-location {
+  color: #8e8e93;
+  font-size: 19px;
+  font-weight: 500;
 }
-.settings-row small {
-  color: #999;
+.clock-world-time {
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+  font-size: min(76px, 20cqw);
+  font-weight: 200;
+  letter-spacing: -4px;
 }
-.ios-switch {
-  margin-left: auto;
-  width: 46px;
-  height: 27px;
-  padding: 2px;
-  border: 0;
-  border-radius: 20px;
-  background: #3a3a3d;
-  transition: 0.2s;
+.clock-alarm-list {
+  margin-top: 8px;
 }
-.ios-switch span {
-  display: block;
-  width: 23px;
-  height: 23px;
-  border-radius: 50%;
-  background: white;
-  transition: 0.2s;
-  box-shadow: 0 1px 4px #0007;
-}
-.ios-switch.active {
-  background: #30d158;
-}
-.ios-switch.active span {
-  transform: translateX(19px);
+.clock-alarm-item {
+  min-height: 72px;
 }
 .clock-tool {
+  margin: 0;
+  padding: 0 16px;
   text-align: center;
 }
 .clock-digits {
-  margin: 60px 0;
+  margin: 70px 0 54px;
   font-variant-numeric: tabular-nums;
   font-size: 45px;
   font-weight: 250;
@@ -774,30 +744,21 @@ button {
 .clock-actions {
   display: flex;
   justify-content: space-between;
-  margin: 15px;
+  margin: 12px 0;
 }
-.clock-actions button {
+.clock-action-button {
   width: 66px;
   height: 66px;
-  border: 0;
-  border-radius: 50%;
-  background: #2c2c2e;
-  color: white;
+  min-width: 66px;
+  padding: 0;
 }
-.clock-actions button.positive {
-  background: #103a20;
-  color: #30d158;
-}
-.lap-list > div {
-  display: flex;
-  justify-content: space-between;
-  padding: 9px;
-  border-top: 1px solid #ffffff20;
+.clock-lap-list {
+  margin-top: 24px;
 }
 .timer-ring {
-  width: 190px;
-  height: 190px;
-  margin: 28px auto;
+  width: 170px;
+  height: 170px;
+  margin: 12px auto 16px;
   display: grid;
   place-items: center;
   border: 6px solid #ff9f0a33;
@@ -805,18 +766,11 @@ button {
   border-radius: 50%;
   font-size: 34px;
 }
-.timer-input {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  color: #aaa;
+.clock-timer-input {
+  margin-right: 0;
+  margin-left: 0;
 }
-.timer-input input {
-  width: 55px;
-  border: 0;
-  border-radius: 8px;
-  background: #252527;
-  color: white;
+.clock-timer-input input {
   text-align: center;
 }
 .camera-app {
@@ -1255,65 +1209,25 @@ button {
 .reference-tabbar button.active {
   color: #0a84ff;
 }
-.clock-app .app-tabs button.active {
-  color: #d99900;
-}
 .clock-app {
-  padding-top: 0;
+  padding: 44px 0 24px;
   background: #020202;
 }
-.reference-clock-header {
-  padding: 47px 16px 0;
+.clock-tabbar {
+  position: absolute !important;
+  right: 0;
+  bottom: 24px;
+  left: 0;
 }
-.reference-clock-header nav {
-  display: flex;
-  justify-content: space-between;
-  color: #d99900;
+.clock-tabbar .k-link {
+  min-width: 0 !important;
+  padding-right: 4px;
+  padding-left: 4px;
+  outline: none;
 }
-.reference-clock-header nav button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 15px;
-}
-.reference-clock-header h1 {
-  margin: 14px 0 0;
-  padding-bottom: 11px;
-  border-bottom: 1px solid #ffffff1c;
-  font-size: 35px;
-  line-height: 1;
-}
-.clock-app .clock-content {
-  height: calc(100% - 155px);
-  padding: 0 16px 72px;
-}
-.world-clock-list > div {
-  min-height: 95px;
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid #ffffff1c;
-}
-.world-clock-list > div > div {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.world-clock-list small {
-  color: #8e8e93;
-  font-size: 11px;
-}
-.world-clock-list strong {
-  font-size: min(25px, 7cqw);
-  font-weight: 400;
-}
-.world-clock-list time {
-  font-size: min(42px, 11cqw);
-  font-weight: 200;
-  letter-spacing: -2px;
-}
-.reference-clock-tabs button.active {
-  color: #d99900;
+.clock-tab-label {
+  font-size: 9px;
+  letter-spacing: -0.1px;
 }
 
 .reference-photos {
