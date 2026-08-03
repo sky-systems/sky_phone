@@ -182,12 +182,13 @@ const defaultLocales: LocaleTree = {
   Home: {
     appLibrary: 'App Library',
     appLibrarySearch: 'Search apps',
+    allApps: 'All Apps',
     apps: 'Apps',
     dock: 'Dock',
     noApps: 'No apps found',
     page: 'Page',
     pages: 'Home screen pages',
-    groups: { 0: 'Productivity', 1: 'Creativity' },
+    groups: { 0: 'Suggestions', 1: 'Recently Added', other: 'Other' },
     widgets: {
       label: 'Widgets',
       weather: { city: 'Los Santos', condition: 'Partly Cloudy' },

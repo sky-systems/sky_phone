@@ -6,11 +6,13 @@ import AppIcon from '@/components/AppIcon.vue'
 import SpringboardWidgets from '@/components/SpringboardWidgets.vue'
 import { PHONE_APPS } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
+import type { PhoneAppDefinition } from '@/types/apps'
 import { clampPage, SPRINGBOARD_PAGE_COUNT } from '@/utils/pages'
 
 const phone = usePhoneStore()
 const searchQuery = ref('')
 const searchFocused = ref(false)
+const showAllApps = ref(false)
 const dragOffset = ref(0)
 const dragging = ref(false)
 let pointerStart = 0
@@ -31,10 +33,28 @@ const filteredApps = computed(() => {
     phone.t(app.labelKey).toLocaleLowerCase(phone.lang).includes(query),
   )
 })
-const appGroups = computed(() => [
-  gridApps.value.slice(0, 3),
-  gridApps.value.slice(3, 6),
-])
+const appGroups = computed(() => {
+  const groups: PhoneAppDefinition[][] = []
+  for (let index = 0; index < gridApps.value.length; index += 3) {
+    groups.push(gridApps.value.slice(index, index + 3))
+  }
+  return groups.map((apps, index) => ({
+    apps,
+    moreApps: groups[(index + 1) % groups.length] ?? [],
+  }))
+})
+const alphabeticalGroups = computed(() => {
+  const groups: Array<{ apps: PhoneAppDefinition[]; letter: string }> = []
+  for (const app of [...filteredApps.value].sort((a, b) =>
+    phone.t(a.labelKey).localeCompare(phone.t(b.labelKey), phone.lang),
+  )) {
+    const letter = phone.t(app.labelKey).charAt(0).toLocaleUpperCase(phone.lang)
+    const group = groups.find((candidate) => candidate.letter === letter)
+    if (group) group.apps.push(app)
+    else groups.push({ apps: [app], letter })
+  }
+  return groups
+})
 const trackStyle = computed(() => ({
   '--drag-offset': `${dragOffset.value}px`,
   '--springboard-page': phone.currentPage,
@@ -69,6 +89,12 @@ function finishPointer(event: PointerEvent): void {
 function clearSearch(): void {
   searchQuery.value = ''
   searchFocused.value = false
+  showAllApps.value = false
+}
+
+function openAllApps(): void {
+  searchFocused.value = true
+  showAllApps.value = true
 }
 </script>
 
@@ -117,7 +143,7 @@ function clearSearch(): void {
             v-model="searchQuery"
             type="search"
             :placeholder="phone.t('Home.appLibrarySearch')"
-            @focus="searchFocused = true"
+            @focus="openAllApps"
           />
           <button
             v-if="searchQuery || searchFocused"
@@ -129,33 +155,70 @@ function clearSearch(): void {
           </button>
         </div>
 
-        <div v-if="searchQuery" class="app-library-results">
-          <AppIcon
-            v-for="app in filteredApps"
-            :key="app.id"
-            :app="app"
-            compact
-          />
-          <p v-if="filteredApps.length === 0">{{ phone.t('Home.noApps') }}</p>
-        </div>
-        <div v-else class="app-library-groups">
+        <div
+          class="app-library-groups"
+          :class="{ 'app-library-groups--behind': showAllApps }"
+        >
           <article
             v-for="(group, index) in appGroups"
             :key="index"
             class="app-library-group"
           >
-            <div>
+            <div class="app-library-group__icons">
               <AppIcon
-                v-for="app in group"
+                v-for="app in group.apps"
                 :key="app.id"
                 :app="app"
                 compact
                 :show-label="false"
               />
+              <button
+                class="app-library-more"
+                type="button"
+                :aria-label="phone.t('Home.allApps')"
+                @click="openAllApps"
+              >
+                <img
+                  v-for="app in group.moreApps.slice(0, 4)"
+                  :key="app.id"
+                  :src="app.iconImage"
+                  alt=""
+                  draggable="false"
+                />
+              </button>
             </div>
-            <span>{{ phone.t(`Home.groups.${index}`) }}</span>
+            <span>{{
+              phone.t(index < 2 ? `Home.groups.${index}` : 'Home.groups.other')
+            }}</span>
           </article>
         </div>
+
+        <Transition name="app-library-all">
+          <section
+            v-if="showAllApps"
+            class="app-library-all"
+            :aria-label="phone.t('Home.allApps')"
+          >
+            <div
+              v-for="group in alphabeticalGroups"
+              :key="group.letter"
+              class="app-library-letter"
+            >
+              <h2>{{ group.letter }}</h2>
+              <div
+                v-for="app in group.apps"
+                :key="app.id"
+                class="app-library-row"
+              >
+                <AppIcon :app="app" compact :show-label="false" />
+                <span>{{ phone.t(app.labelKey) }}</span>
+              </div>
+            </div>
+            <p v-if="filteredApps.length === 0" class="app-library-empty">
+              {{ phone.t('Home.noApps') }}
+            </p>
+          </section>
+        </Transition>
       </section>
     </div>
 

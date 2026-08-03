@@ -442,33 +442,113 @@ button {
 .app-library-groups {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 13px 12px;
   margin-top: 16px;
+  transition:
+    transform 0.35s ease,
+    opacity 0.35s ease;
+}
+.app-library-groups--behind {
+  transform: scale(0.95);
+  opacity: 0.45;
 }
 .app-library-group {
-  height: 136px;
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.app-library-group__icons {
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 11px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  place-items: center;
+  gap: 8px;
   border: 1px solid #ffffff24;
-  border-radius: 22px;
-  background: #ffffff16;
+  border-radius: 24px;
+  background: #00000032;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
-.app-library-group > div {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
 .app-library-group .app-icon {
-  width: 37px;
-  height: 37px;
-  border-radius: 9px;
+  width: 56px;
+  height: 56px;
+  border-radius: 13px;
 }
 .app-library-group > span {
-  display: block;
-  margin-top: 10px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  text-align: center;
+  text-shadow: 0 1px 4px #000c;
+}
+.app-library-more {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  place-items: center;
+  gap: 3px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+}
+.app-library-more img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.app-library-all {
+  position: absolute;
+  z-index: 5;
+  top: 112px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 6px 22px 55px;
+  overflow-y: auto;
+  background: #0909108a;
+  backdrop-filter: blur(24px) saturate(145%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+}
+.app-library-letter h2 {
+  margin: 8px 0 1px;
+  font-size: 16px;
+}
+.app-library-row {
+  height: 62px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.app-library-row > span {
+  align-self: stretch;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #ffffff1c;
+  font-size: 16px;
+}
+.app-library-row .app-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 11px;
+}
+.app-library-empty {
+  text-align: center;
+  color: #ffffffaa;
+}
+.app-library-all-enter-active,
+.app-library-all-leave-active {
+  transition: opacity 0.3s ease;
+}
+.app-library-all-enter-from,
+.app-library-all-leave-to {
+  opacity: 0;
 }
 .app-library-results {
   margin-top: 14px;
@@ -480,6 +560,11 @@ button {
   width: 44px;
   height: 44px;
   border-radius: 11px;
+}
+.app-library-group .app-icon-button--compact .app-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 13px;
 }
 .app-window {
   position: absolute;
