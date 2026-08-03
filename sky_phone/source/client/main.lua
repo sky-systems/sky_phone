@@ -1,4 +1,5 @@
 local is_open = false
+local notification_focus = false
 
 local function get_locale()
     return Locales[Sky.Config.locale] or Locales["en"]
@@ -20,6 +21,7 @@ local function open_phone()
     end
 
     is_open = true
+    notification_focus = false
     SetNuiFocus(true, true)
     send_open_message()
 end
@@ -30,7 +32,7 @@ local function close_phone()
     end
 
     is_open = false
-    SetNuiFocus(false, false)
+    SetNuiFocus(notification_focus, notification_focus)
     SendNUIMessage({ type = "app:close" })
 end
 
@@ -56,6 +58,12 @@ RegisterNUICallback("close", function(_, cb)
     cb({ success = true })
 end)
 
+RegisterNUICallback("notification:focus", function(data, cb)
+    notification_focus = data.active == true and not is_open
+    SetNuiFocus(is_open or notification_focus, is_open or notification_focus)
+    cb({ success = true })
+end)
+
 CreateThread(function()
     TriggerEvent("chat:addSuggestion", "/" .. Config.Command, get_locale().CommandDescription)
 end)
@@ -65,7 +73,7 @@ AddEventHandler("onResourceStop", function(resource_name)
         return
     end
 
-    if is_open then
+    if is_open or notification_focus then
         SetNuiFocus(false, false)
     end
 

@@ -177,7 +177,11 @@ function toggleRootSetting(key: RootToggleKey): void {
 }
 
 function updateNumberPreference(
-  key: 'notificationVolume' | 'phoneScale' | 'ringtoneVolume',
+  key:
+    | 'notificationDurationSeconds'
+    | 'notificationVolume'
+    | 'phoneScale'
+    | 'ringtoneVolume',
   event: Event,
 ): void {
   phone.setPreference(
@@ -539,6 +543,34 @@ function selectNotificationSound(sound: NotificationSoundId): void {
       </template>
 
       <template v-else-if="activeView === 'general'">
+        <k-block-title>
+          {{ phone.t('Apps.settings.notificationDuration') }} ·
+          {{
+            phone.t('Apps.settings.seconds', {
+              seconds: String(
+                phone.preferences.settings.notificationDurationSeconds,
+              ),
+            })
+          }}
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item>
+            <template #inner>
+              <k-range
+                class="w-full"
+                :value="phone.preferences.settings.notificationDurationSeconds"
+                :min="3"
+                :max="30"
+                :step="1"
+                :aria-label="phone.t('Apps.settings.notificationDuration')"
+                @input="
+                  updateNumberPreference('notificationDurationSeconds', $event)
+                "
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+
         <k-block-title>{{ phone.t('Apps.settings.about') }}</k-block-title>
         <k-list strong inset>
           <k-list-item

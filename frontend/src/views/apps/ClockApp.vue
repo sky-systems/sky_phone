@@ -8,15 +8,24 @@ import {
   kListItem,
   kNavbar,
   kPage,
-  kTabbar,
-  kTabbarLink,
+  kSegmented,
+  kSegmentedButton,
   kToggle,
 } from 'konsta/vue'
-import { AlarmClock, Clock3, Plus, Timer, TimerReset } from 'lucide-vue-next'
+import {
+  AlarmClock,
+  Clock3,
+  Minus,
+  Plus,
+  Timer,
+  TimerReset,
+} from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import AlarmEditor from '@/components/AlarmEditor.vue'
 import { useClockStore } from '@/stores/clock'
 import { usePhoneStore } from '@/stores/phone'
+import type { Alarm, AlarmDraft } from '@/utils/alarms'
 import {
   elapsedMilliseconds,
   formatStopwatch,
@@ -27,7 +36,12 @@ import {
 const phone = usePhoneStore()
 const clock = useClockStore()
 const tab = ref<'world' | 'alarm' | 'stopwatch' | 'timer'>('world')
+const alarmEditor = ref<
+  { mode: 'create' } | { id: string; mode: 'edit' } | null
+>(null)
+const alarmsEditing = ref(false)
 const now = ref(Date.now())
+const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 let ticker: ReturnType<typeof setInterval> | undefined
 
 const stopwatchValue = computed(() =>
@@ -44,13 +58,29 @@ const timerValue = computed(() =>
     now.value,
   ),
 )
-const losSantosTime = computed(() =>
+const currentTime = computed(() =>
   new Intl.DateTimeFormat(phone.lang, {
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'America/Los_Angeles',
+    timeZone: browserTimeZone,
   }).format(now.value),
 )
+const currentTimeZone = computed(
+  () =>
+    new Intl.DateTimeFormat(phone.lang, {
+      timeZone: browserTimeZone,
+      timeZoneName: 'short',
+    })
+      .formatToParts(now.value)
+      .find((part) => part.type === 'timeZoneName')?.value ??
+    browserTimeZone,
+)
+const selectedAlarm = computed(() => {
+  const editor = alarmEditor.value
+  return editor?.mode === 'edit'
+    ? clock.alarms.find((alarm) => alarm.id === editor.id)
+    : undefined
+})
 const tabs = [
   { id: 'world', icon: Clock3 },
   { id: 'alarm', icon: AlarmClock },
@@ -68,11 +98,72 @@ const positiveActionColors = {
 const toggleColors = {
   checkedBgIos: 'bg-[#30d158]',
 }
-const tabColors = {
-  textActiveIos: 'text-[#d99900]',
-  textIos: 'text-[#77777c]',
+const dangerActionColors = {
+  fillBgIos: 'bg-red-500 active:bg-red-600',
+  fillTextIos: 'text-white',
+}
+const weekdayKeys = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+] as const
+
+function alarmRepeat(alarm: Alarm): string {
+  const weekdays = [...alarm.weekdays].sort()
+  if (!weekdays.length) return phone.t('Apps.clock.alarm.never')
+  if (weekdays.length === 7) return phone.t('Apps.clock.alarm.everyDay')
+  if (weekdays.join(',') === '1,2,3,4,5') {
+    return phone.t('Apps.clock.alarm.weekdays')
+  }
+  if (weekdays.join(',') === '0,6') {
+    return phone.t('Apps.clock.alarm.weekends')
+  }
+  return weekdays
+    .map((weekday) =>
+      phone.t(`Apps.clock.alarm.daysShort.${weekdayKeys[weekday]}`),
+    )
+    .join(', ')
 }
 
+function alarmSubtitle(alarm: Alarm): string {
+  const repeat = alarmRepeat(alarm)
+  return alarm.note ? `${repeat} · ${alarm.note}` : repeat
+}
+
+function openAlarmEditor(id?: string): void {
+  tab.value = 'alarm'
+  alarmEditor.value = id ? { id, mode: 'edit' } : { mode: 'create' }
+}
+
+function saveAlarm(draft: AlarmDraft): void {
+  if (alarmEditor.value?.mode === 'edit') {
+    clock.updateAlarm(alarmEditor.value.id, draft)
+  } else {
+    clock.createAlarm(draft)
+  }
+  alarmEditor.value = null
+}
+
+function deleteSelectedAlarm(): void {
+  if (alarmEditor.value?.mode === 'edit') {
+    clock.deleteAlarm(alarmEditor.value.id)
+  }
+  alarmEditor.value = null
+}
+
+function toggleAlarmEditing(): void {
+  tab.value = 'alarm'
+  alarmsEditing.value = !alarmsEditing.value
+}
+
+function selectTab(nextTab: (typeof tabs)[number]['id']): void {
+  tab.value = nextTab
+  if (nextTab !== 'alarm') alarmsEditing.value = false
+}
 onMounted(() => {
   ticker = setInterval(() => {
     now.value = Date.now()
@@ -84,7 +175,16 @@ onBeforeUnmount(() => clearInterval(ticker))
 
 <template>
   <k-page component="main" class="native-app clock-app">
-    <k-navbar
+    <AlarmEditor
+      v-if="alarmEditor"
+      :alarm="selectedAlarm"
+      @cancel="alarmEditor = null"
+      @delete="deleteSelectedAlarm"
+      @save="saveAlarm"
+    />
+
+    <template v-else>
+      <k-navbar
       :title="phone.t(`Apps.clock.tabs.${tab}`)"
       :large="tab === 'world' || tab === 'alarm'"
       :transparent="tab === 'world' || tab === 'alarm'"
@@ -94,8 +194,9 @@ onBeforeUnmount(() => clearInterval(ticker))
         <k-link
           component="button"
           :link-props="{ type: 'button' }"
+          @click="toggleAlarmEditing"
         >
-          {{ phone.t('Common.edit') }}
+          {{ phone.t(alarmsEditing ? 'Common.done' : 'Common.edit') }}
         </k-link>
       </template>
       <template #right>
@@ -104,6 +205,7 @@ onBeforeUnmount(() => clearInterval(ticker))
           icon-only
           :link-props="{ type: 'button' }"
           :aria-label="phone.t('Apps.clock.add')"
+          @click="openAlarmEditor()"
         >
           <Plus />
         </k-link>
@@ -113,9 +215,10 @@ onBeforeUnmount(() => clearInterval(ticker))
     <k-block component="section" nested class="clock-content">
       <k-block v-if="tab === 'world'" nested class="clock-world-now">
         <span class="clock-world-location">{{
-          phone.t('Apps.clock.location')
+          browserTimeZone.replace(/_/g, ' ')
         }}</span>
-        <time class="clock-world-time">{{ losSantosTime }}</time>
+        <time class="clock-world-time">{{ currentTime }}</time>
+        <span class="clock-world-zone">{{ currentTimeZone }}</span>
       </k-block>
 
       <k-list
@@ -127,18 +230,37 @@ onBeforeUnmount(() => clearInterval(ticker))
         <k-list-item
           v-for="alarm in clock.alarms"
           :key="alarm.id"
+          link
+          :chevron="alarmsEditing"
           :title="alarm.time"
-          :subtitle="phone.t(alarm.labelKey)"
-          title-font-size-ios="text-[30px]"
+          :subtitle="alarmSubtitle(alarm)"
+          :strong-title="false"
+          title-font-size-ios="text-[38px] font-light"
           class="clock-alarm-item"
+          @click="openAlarmEditor(alarm.id)"
         >
+          <template v-if="alarmsEditing" #media>
+            <k-button
+              rounded
+              small
+              inline
+              :colors="dangerActionColors"
+              class="clock-alarm-remove"
+              :aria-label="phone.t('Apps.clock.alarm.delete')"
+              @click.stop="clock.deleteAlarm(alarm.id)"
+            >
+              <Minus aria-hidden="true" />
+            </k-button>
+          </template>
           <template #after>
-            <k-toggle
-              :checked="alarm.enabled"
-              :colors="toggleColors"
-              :aria-label="`${alarm.time}, ${phone.t(alarm.labelKey)}`"
-              @change="clock.toggleAlarm(alarm.id)"
-            />
+            <span v-if="!alarmsEditing" @click.stop>
+              <k-toggle
+                :checked="alarm.enabled"
+                :colors="toggleColors"
+                :aria-label="`${alarm.time}, ${alarmSubtitle(alarm)}`"
+                @change="clock.toggleAlarm(alarm.id)"
+              />
+            </span>
           </template>
         </k-list-item>
       </k-list>
@@ -242,30 +364,25 @@ onBeforeUnmount(() => clearInterval(ticker))
       </k-block>
     </k-block>
 
-    <k-tabbar
+    <k-navbar
       component="nav"
-      labels
-      icons
-      class="clock-tabbar"
-      inner-class="!w-full !gap-0"
       :aria-label="phone.t('Apps.clock.name')"
     >
-      <k-tabbar-link
-        v-for="item in tabs"
-        :key="item.id"
-        component="button"
-        :active="tab === item.id"
-        :colors="tabColors"
-        :link-props="{ type: 'button' }"
-        @click="tab = item.id"
-      >
-        <template #icon>
-          <component :is="item.icon" :size="22" />
-        </template>
-        <span class="clock-tab-label">{{
-          phone.t(`Apps.clock.tabs.${item.id}`)
-        }}</span>
-      </k-tabbar-link>
-    </k-tabbar>
+      <template #subnavbar>
+        <k-segmented :key="tab" strong rounded>
+          <k-segmented-button
+            v-for="item in tabs"
+            :key="item.id"
+            :active="tab === item.id"
+            :aria-label="phone.t(`Apps.clock.tabs.${item.id}`)"
+            :aria-pressed="tab === item.id"
+            @click="selectTab(item.id)"
+          >
+            <component :is="item.icon" aria-hidden="true" />
+          </k-segmented-button>
+        </k-segmented>
+      </template>
+    </k-navbar>
+    </template>
   </k-page>
 </template>

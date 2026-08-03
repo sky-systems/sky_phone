@@ -30,6 +30,7 @@ export type PhonePreferencesV1 = {
     appearanceMode: AppearanceMode
     frame: PhoneFrameId
     notificationSound: NotificationSoundId
+    notificationDurationSeconds: number
     notificationVolume: number
     notifications: Record<PhoneAppId, AppNotificationPreferences>
     phoneScale: number
@@ -59,6 +60,7 @@ export const DEFAULT_PHONE_PREFERENCES: PhonePreferencesV1 = {
     appearanceMode: 'automatic',
     frame: 'black',
     notificationSound: 'chime',
+    notificationDurationSeconds: 10,
     notificationVolume: 70,
     notifications: DEFAULT_APP_NOTIFICATIONS,
     phoneScale: 100,
@@ -146,6 +148,12 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
           settings.notificationSound,
           NOTIFICATION_SOUND_IDS,
           defaults.notificationSound,
+        ),
+        notificationDurationSeconds: readNumber(
+          settings.notificationDurationSeconds,
+          defaults.notificationDurationSeconds,
+          3,
+          30,
         ),
         notificationVolume: readNumber(
           settings.notificationVolume,

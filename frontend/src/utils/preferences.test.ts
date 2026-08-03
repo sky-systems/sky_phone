@@ -14,6 +14,7 @@ describe('preferences', () => {
         settings: {
           appearanceMode: 'light',
           notificationVolume: 45,
+          notificationDurationSeconds: 14,
           notifications: {
             camera: { enabled: false, sounds: false },
           },
@@ -24,6 +25,7 @@ describe('preferences', () => {
     )
     expect(value.settings.appearanceMode).toBe('light')
     expect(value.settings.notificationVolume).toBe(45)
+    expect(value.settings.notificationDurationSeconds).toBe(14)
     expect(value.settings.notifications.camera).toEqual({
       enabled: false,
       sounds: false,
@@ -41,6 +43,7 @@ describe('preferences', () => {
           appearanceMode: 'neon',
           frame: 'gold',
           notificationVolume: -10,
+          notificationDurationSeconds: 100,
           phoneScale: 500,
           ringtoneVolume: 120,
         },
@@ -50,6 +53,7 @@ describe('preferences', () => {
     expect(value.settings.appearanceMode).toBe('automatic')
     expect(value.settings.frame).toBe('black')
     expect(value.settings.notificationVolume).toBe(0)
+    expect(value.settings.notificationDurationSeconds).toBe(30)
     expect(value.settings.phoneScale).toBe(115)
     expect(value.settings.ringtoneVolume).toBe(100)
   })

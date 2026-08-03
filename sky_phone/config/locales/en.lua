@@ -2,10 +2,11 @@ Locales["en"] = {
     CommandDescription = "Open your phone.",
     Nui = {
         Common = {
-            cancel = "Cancel", close = "Close", edit = "Edit", home = "Home", pause = "Pause",
+            add = "Add", cancel = "Cancel", close = "Close", delete = "Delete", done = "Done", edit = "Edit", home = "Home", pause = "Pause",
             phone = "Phone", phoneStatus = "Phone status", reset = "Reset",
-            search = "Search", start = "Start", stop = "Stop",
+            save = "Save", search = "Search", start = "Start", stop = "Stop",
         },
+        Notifications = { now = "now" },
         Home = {
             appLibrary = "App Library", appLibrarySearch = "Search apps", allApps = "All Apps", apps = "Apps",
             dock = "Dock", noApps = "No apps found", page = "Page", pages = "Home screen pages",
@@ -25,9 +26,16 @@ Locales["en"] = {
                 modes = { timelapse = "Timelapse", slowMo = "Slow-Mo", cinematic = "Cinematic", video = "Video", photo = "Photo", portrait = "Portrait", pano = "Pano" },
             },
             clock = {
-                name = "Clock", lap = "Lap", minutes = "Minutes", add = "Add clock", location = "Los Santos",
+                name = "Clock", lap = "Lap", minutes = "Minutes", add = "Add alarm", location = "Los Santos",
                 tabs = { world = "World Clock", alarm = "Alarm", stopwatch = "Stopwatch", timer = "Timer" },
-                alarm = { weekday = "Weekdays", weekend = "Weekend" },
+                alarm = {
+                    add = "Add Alarm", edit = "Edit Alarm", ringing = "Alarm", time = "Time", hours = "Hours", repeat = "Repeat", note = "Note",
+                    notePlaceholder = "Alarm", sound = "Sound", delete = "Delete Alarm", never = "Never",
+                    everyDay = "Every Day", weekdays = "Weekdays", weekends = "Weekends",
+                    days = { sunday = "Sunday", monday = "Monday", tuesday = "Tuesday", wednesday = "Wednesday", thursday = "Thursday", friday = "Friday", saturday = "Saturday" },
+                    daysShort = { sunday = "Sun", monday = "Mon", tuesday = "Tue", wednesday = "Wed", thursday = "Thu", friday = "Fri", saturday = "Sat" },
+                    sounds = { radar = "Radar", beacon = "Beacon", chimes = "Chimes" },
+                },
             },
             photos = {
                 name = "Photos", searchPlaceholder = "Photos, people, places...", recents = "Recents",
@@ -60,7 +68,8 @@ Locales["en"] = {
                 accountStorage = "Cloud Storage", accountStorageValue = "On Device", accountPurchases = "Media & Purchases",
                 accountPurchasesValue = "Available", notifications = "Notifications", sounds = "Sounds & Haptics",
                 general = "General Settings", appearance = "Appearance", allowNotifications = "Allow Notifications",
-                notificationSounds = "Sounds", ringtoneVolume = "Ringtone Volume", notificationVolume = "Notification Volume",
+                notificationSounds = "Sounds", notificationDuration = "Notification Duration", seconds = "{seconds} seconds",
+                ringtoneVolume = "Ringtone Volume", notificationVolume = "Notification Volume",
                 ringtone = "Ringtone", notificationSound = "Notification Sound", appearanceMode = "Appearance Mode",
                 automatic = "Automatic", light = "Light", dark = "Dark", phoneScale = "Phone Scale", phoneFrame = "Phone Frame",
                 about = "About", deviceName = "Device Name", deviceNameValue = "Sky Phone", softwareVersion = "Software Version",

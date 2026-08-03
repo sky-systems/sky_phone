@@ -1,21 +1,35 @@
 <script setup lang="ts">
 import { kApp } from 'konsta/vue'
-import { computed, onBeforeUnmount, onMounted, type CSSProperties } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  type CSSProperties,
+  watch,
+} from 'vue'
 import { useRoute } from 'vue-router'
 
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
+import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import PhoneStatusBar from '@/components/PhoneStatusBar.vue'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
+import { useClockStore } from '@/stores/clock'
+import {
+  useNotificationsStore,
+  type PhoneNotificationInput,
+} from '@/stores/notifications'
 import { usePhoneStore, type PhoneOpenPayload } from '@/stores/phone'
 import { nuiCall } from '@/utils/nui'
 import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
   type?: string
-  data?: PhoneOpenPayload
+  data?: PhoneNotificationInput | PhoneOpenPayload
 }
 
 const phone = usePhoneStore()
+const clock = useClockStore()
+const notifications = useNotificationsStore()
 const route = useRoute()
 const isAppRoute = computed(() => route.name === 'app')
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
@@ -25,12 +39,15 @@ const phoneDeviceStyle = computed<CSSProperties>(() => ({
 const phoneFrameImage = computed(
   () => PHONE_FRAME_IMAGES[phone.preferences.settings.frame],
 )
+let alarmTicker: ReturnType<typeof setInterval> | undefined
 
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (event.data?.type === 'app:open') {
-    phone.open(event.data.data)
+    phone.open(event.data.data as PhoneOpenPayload)
   } else if (event.data?.type === 'app:close') {
     phone.close()
+  } else if (event.data?.type === 'notification:show' && event.data.data) {
+    notifications.show(event.data.data as PhoneNotificationInput)
   }
 }
 
@@ -50,10 +67,31 @@ onMounted(() => {
   systemColorScheme.addEventListener('change', onSystemColorSchemeChange)
   phone.setSystemDarkMode(systemColorScheme.matches)
   void nuiCall('ui:ready')
+  alarmTicker = setInterval(() => {
+    for (const alarm of clock.dueAlarms(Date.now())) {
+      notifications.show({
+        appId: 'clock',
+        critical: true,
+        persistent: true,
+        sound: alarm.sound,
+        subtitle: alarm.time,
+        text: alarm.note || phone.t('Apps.clock.alarm.ringing'),
+        title: phone.t('Apps.clock.name'),
+      })
+    }
+  }, 1000)
   if (import.meta.env.DEV) phone.open()
 })
 
+watch(
+  () => notifications.requiresAttention,
+  (active) => {
+    void nuiCall('notification:focus', { active })
+  },
+)
+
 onBeforeUnmount(() => {
+  if (alarmTicker) clearInterval(alarmTicker)
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   systemColorScheme.removeEventListener('change', onSystemColorSchemeChange)
@@ -61,7 +99,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main v-if="phone.isOpen" class="phone-stage">
+  <main
+    v-if="phone.isOpen || notifications.current"
+    class="phone-stage"
+    :class="{ 'phone-stage--peek': notifications.isPeeking }"
+  >
     <section
       class="phone-device"
       :style="phoneDeviceStyle"
@@ -86,6 +128,7 @@ onBeforeUnmount(() => {
             </Transition>
           </RouterView>
           <PhoneHomeIndicator />
+          <PhoneNotifications />
         </k-app>
       </div>
       <img
