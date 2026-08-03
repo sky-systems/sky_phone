@@ -43,35 +43,35 @@ button {
   width: min(39vh, 390px);
   aspect-ratio: 390/844;
   padding: min(1.05vh, 10px);
-  overflow: hidden;
+  overflow: visible;
   pointer-events: auto;
-  background: linear-gradient(145deg, #41434a, #090a0d 38%, #2b2d32);
-  border: 1px solid #ffffff38;
+  background: transparent;
+  border: 0;
   border-radius: min(5.2vh, 52px);
-  box-shadow:
-    0 4vh 10vh #0009,
-    inset 0 0 0 1px #ffffff1f;
+  transform: scale(var(--phone-scale, 1));
+  transition: transform 0.25s ease;
+  box-shadow: none;
+  filter: drop-shadow(0 4vh 10vh #0009);
 }
-.phone-device__island {
+.phone-device__frame {
   position: absolute;
-  top: min(2.05vh, 20px);
-  left: 50%;
-  z-index: 80;
-  width: min(9.2vh, 92px);
-  height: min(2.85vh, 28px);
-  transform: translateX(-50%);
-  background: #050506;
-  border-radius: 999px;
-  box-shadow: inset 0 -1px 1px #ffffff12;
+  z-index: 100;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
 }
 .phone-screen {
   position: relative;
   container-type: size;
-  width: 100%;
-  height: 100%;
+  margin: auto;
+  margin-top: 0.9vh;
+  width: 94%;
+  height: 97%;
   overflow: hidden;
   background: #08080a;
-  border-radius: min(4.25vh, 42px);
+  border-radius: 4vh;
 }
 .phone-app {
   position: absolute !important;
@@ -1762,6 +1762,118 @@ button {
 }
 .reference-settings .wallpaper-picker button {
   height: 105px;
+}
+.konsta-settings {
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+}
+.settings-konsta-list {
+  margin-top: 17px !important;
+  margin-bottom: 17px !important;
+}
+.settings-konsta-navbar {
+  z-index: 8;
+  margin-top: 44px;
+  flex: none;
+}
+.settings-subpage-scroll {
+  height: calc(100% - 88px);
+  padding: 1px 0 48px;
+  overflow-y: auto;
+}
+.settings-app-icon {
+  width: 32px;
+  height: 32px;
+  display: block;
+  object-fit: contain;
+}
+.settings-notification-app {
+  padding: 20px 20px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+}
+.settings-notification-app img {
+  width: 66px;
+  height: 66px;
+  object-fit: contain;
+}
+.settings-notification-app strong {
+  font-size: 17px;
+}
+.settings-range-row,
+.settings-scale-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.settings-range-row > div,
+.settings-scale-row > div {
+  flex: 1;
+}
+.settings-scale-row > span {
+  font-size: 13px;
+}
+.settings-scale-row > strong {
+  font-size: 21px;
+}
+.settings-check {
+  color: #0a84ff;
+}
+.settings-frame-picker {
+  margin: 0 16px 22px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+}
+.settings-frame-picker button {
+  min-width: 0;
+  padding: 9px 6px 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid transparent;
+  border-radius: 13px;
+  background: #1c1c1e;
+  color: inherit;
+  font-size: 10px;
+}
+.settings-frame-picker button.active {
+  border-color: #0a84ff;
+}
+.settings-frame-picker img {
+  width: 40px;
+  height: 82px;
+  object-fit: fill;
+}
+.settings-wallpaper-picker {
+  margin-top: 10px;
+}
+.phone-app--light .konsta-settings {
+  background: #f2f2f7;
+  color: #000;
+}
+.phone-app--light .settings-search,
+.phone-app--light .settings-account,
+.phone-app--light .settings-frame-picker button {
+  background: #fff;
+}
+.phone-app--light .settings-search {
+  color: #8e8e93;
+}
+.phone-app--light .settings-search input {
+  color: #000;
+}
+.phone-app--light .settings-account small {
+  color: #666;
+}
+.phone-screen--app .phone-app--light .phone-status-bar {
+  color: #000;
 }
 * {
   scrollbar-width: none;

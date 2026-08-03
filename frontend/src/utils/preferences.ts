@@ -1,34 +1,126 @@
+import type { PhoneAppId } from '@/types/apps'
+
 export const PHONE_PREFERENCES_KEY = 'sky_phone.preferences.v1'
 
-export type WallpaperId = 'midnight' | 'aurora' | 'ember'
+export const APPEARANCE_MODE_IDS = ['automatic', 'light', 'dark'] as const
+export const PHONE_FRAME_IDS = [
+  'black',
+  'blue',
+  'green',
+  'lavender',
+  'white',
+] as const
+export const RINGTONE_IDS = ['skyline', 'horizon', 'pulse'] as const
+export const NOTIFICATION_SOUND_IDS = ['chime', 'signal', 'soft'] as const
+export const WALLPAPER_IDS = ['midnight', 'aurora', 'ember'] as const
+
+export type AppearanceMode = (typeof APPEARANCE_MODE_IDS)[number]
+export type PhoneFrameId = (typeof PHONE_FRAME_IDS)[number]
+export type RingtoneId = (typeof RINGTONE_IDS)[number]
+export type NotificationSoundId = (typeof NOTIFICATION_SOUND_IDS)[number]
+export type WallpaperId = (typeof WALLPAPER_IDS)[number]
+export type AppNotificationPreferences = {
+  enabled: boolean
+  sounds: boolean
+}
 
 export type PhonePreferencesV1 = {
   settings: {
     airplaneMode: boolean
-    bluetooth: boolean
-    cellular: boolean
-    personalHotspot: boolean
-    vpn: boolean
+    appearanceMode: AppearanceMode
+    frame: PhoneFrameId
+    notificationSound: NotificationSoundId
+    notificationVolume: number
+    notifications: Record<PhoneAppId, AppNotificationPreferences>
+    phoneScale: number
+    ringtone: RingtoneId
+    ringtoneVolume: number
+    streamerMode: boolean
     wallpaper: WallpaperId
-    wifi: boolean
   }
   version: 1
+}
+
+const DEFAULT_APP_NOTIFICATIONS: Record<
+  PhoneAppId,
+  AppNotificationPreferences
+> = {
+  'app-store': { enabled: true, sounds: true },
+  calculator: { enabled: true, sounds: true },
+  camera: { enabled: true, sounds: true },
+  clock: { enabled: true, sounds: true },
+  photos: { enabled: true, sounds: true },
+  settings: { enabled: true, sounds: true },
 }
 
 export const DEFAULT_PHONE_PREFERENCES: PhonePreferencesV1 = {
   settings: {
     airplaneMode: false,
-    bluetooth: true,
-    cellular: true,
-    personalHotspot: false,
-    vpn: false,
+    appearanceMode: 'automatic',
+    frame: 'black',
+    notificationSound: 'chime',
+    notificationVolume: 70,
+    notifications: DEFAULT_APP_NOTIFICATIONS,
+    phoneScale: 100,
+    ringtone: 'skyline',
+    ringtoneVolume: 80,
+    streamerMode: false,
     wallpaper: 'midnight',
-    wifi: true,
   },
   version: 1,
 }
 
-export const WALLPAPER_IDS: WallpaperId[] = ['midnight', 'aurora', 'ember']
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function readNumber(
+  value: unknown,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(maximum, Math.max(minimum, value))
+    : fallback
+}
+
+function readChoice<T extends string>(
+  value: unknown,
+  choices: readonly T[],
+  fallback: T,
+): T {
+  return typeof value === 'string' && choices.includes(value as T)
+    ? (value as T)
+    : fallback
+}
+
+function readNotifications(
+  value: unknown,
+): Record<PhoneAppId, AppNotificationPreferences> {
+  const source =
+    value && typeof value === 'object'
+      ? (value as Partial<
+          Record<PhoneAppId, Partial<AppNotificationPreferences>>
+        >)
+      : {}
+  const notifications = structuredClone(DEFAULT_APP_NOTIFICATIONS)
+
+  for (const appId of Object.keys(notifications) as PhoneAppId[]) {
+    notifications[appId] = {
+      enabled: readBoolean(
+        source[appId]?.enabled,
+        DEFAULT_APP_NOTIFICATIONS[appId].enabled,
+      ),
+      sounds: readBoolean(
+        source[appId]?.sounds,
+        DEFAULT_APP_NOTIFICATIONS[appId].sounds,
+      ),
+    }
+  }
+
+  return notifications
+}
 
 export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
   if (!raw) return structuredClone(DEFAULT_PHONE_PREFERENCES)
@@ -43,28 +135,48 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
     const defaults = DEFAULT_PHONE_PREFERENCES.settings
     return {
       settings: {
-        airplaneMode:
-          typeof settings.airplaneMode === 'boolean'
-            ? settings.airplaneMode
-            : defaults.airplaneMode,
-        bluetooth:
-          typeof settings.bluetooth === 'boolean'
-            ? settings.bluetooth
-            : defaults.bluetooth,
-        cellular:
-          typeof settings.cellular === 'boolean'
-            ? settings.cellular
-            : defaults.cellular,
-        personalHotspot:
-          typeof settings.personalHotspot === 'boolean'
-            ? settings.personalHotspot
-            : defaults.personalHotspot,
-        vpn: typeof settings.vpn === 'boolean' ? settings.vpn : defaults.vpn,
-        wallpaper: WALLPAPER_IDS.includes(settings.wallpaper as WallpaperId)
-          ? (settings.wallpaper as WallpaperId)
-          : defaults.wallpaper,
-        wifi:
-          typeof settings.wifi === 'boolean' ? settings.wifi : defaults.wifi,
+        airplaneMode: readBoolean(settings.airplaneMode, defaults.airplaneMode),
+        appearanceMode: readChoice(
+          settings.appearanceMode,
+          APPEARANCE_MODE_IDS,
+          defaults.appearanceMode,
+        ),
+        frame: readChoice(settings.frame, PHONE_FRAME_IDS, defaults.frame),
+        notificationSound: readChoice(
+          settings.notificationSound,
+          NOTIFICATION_SOUND_IDS,
+          defaults.notificationSound,
+        ),
+        notificationVolume: readNumber(
+          settings.notificationVolume,
+          defaults.notificationVolume,
+          0,
+          100,
+        ),
+        notifications: readNotifications(settings.notifications),
+        phoneScale: readNumber(
+          settings.phoneScale,
+          defaults.phoneScale,
+          85,
+          115,
+        ),
+        ringtone: readChoice(
+          settings.ringtone,
+          RINGTONE_IDS,
+          defaults.ringtone,
+        ),
+        ringtoneVolume: readNumber(
+          settings.ringtoneVolume,
+          defaults.ringtoneVolume,
+          0,
+          100,
+        ),
+        streamerMode: readBoolean(settings.streamerMode, defaults.streamerMode),
+        wallpaper: readChoice(
+          settings.wallpaper,
+          WALLPAPER_IDS,
+          defaults.wallpaper,
+        ),
       },
       version: 1,
     }

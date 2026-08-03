@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
 
-import type { AppLaunchOrigin } from '@/types/apps'
+import type { AppLaunchOrigin, PhoneAppId } from '@/types/apps'
 import { clampPage } from '@/utils/pages'
 import {
   readPhonePreferences,
+  type AppNotificationPreferences,
+  type PhonePreferencesV1,
   type WallpaperId,
   writePhonePreferences,
 } from '@/utils/preferences'
@@ -132,32 +134,61 @@ const defaultLocales: LocaleTree = {
     settings: {
       name: 'Settings',
       searchPlaceholder: 'Search',
-      wifi: 'Wi-Fi',
-      bluetooth: 'Bluetooth',
       airplaneMode: 'Airplane Mode',
+      streamerMode: 'Streamer Mode',
       wallpaper: 'Wallpaper',
       on: 'On',
+      off: 'Off',
       accountName: 'Sky Citizen',
       accountDetail: 'Apple ID, iCloud, Media & Purchases',
-      mobileServices: 'Mobile Services',
-      personalHotspot: 'Personal Hotspot',
-      vpn: 'VPN',
       notifications: 'Notifications',
       sounds: 'Sounds & Haptics',
-      focus: 'Focus',
-      screenTime: 'Screen Time',
-      general: 'General',
-      display: 'Display & Brightness',
-      homeScreen: 'Home Screen & App Library',
-      accessibility: 'Accessibility',
-      battery: 'Battery',
-      privacy: 'Privacy & Security',
-      passwords: 'Passwords',
+      general: 'General Settings',
+      appearance: 'Appearance',
+      allowNotifications: 'Allow Notifications',
+      notificationSounds: 'Sounds',
+      ringtoneVolume: 'Ringtone Volume',
+      notificationVolume: 'Notification Volume',
+      ringtone: 'Ringtone',
+      notificationSound: 'Notification Sound',
+      appearanceMode: 'Appearance Mode',
+      automatic: 'Automatic',
+      light: 'Light',
+      dark: 'Dark',
+      phoneScale: 'Phone Scale',
+      phoneFrame: 'Phone Frame',
+      about: 'About',
+      deviceName: 'Device Name',
+      deviceNameValue: 'Sky Phone',
+      softwareVersion: 'Software Version',
+      language: 'Language',
+      languageValue: 'English',
+      localStorage: 'Local Storage',
+      localStorageValue: 'On Device',
+      back: 'Settings',
       wallpaperPicker: 'Built-in Wallpapers',
       toggle: {
-        wifi: 'Toggle Wi-Fi',
-        bluetooth: 'Toggle Bluetooth',
         airplaneMode: 'Toggle Airplane Mode',
+        streamerMode: 'Toggle Streamer Mode',
+        notifications: 'Toggle notifications for {app}',
+        notificationSounds: 'Toggle notification sounds for {app}',
+      },
+      frames: {
+        black: 'Black',
+        blue: 'Blue',
+        green: 'Green',
+        lavender: 'Lavender',
+        white: 'White',
+      },
+      ringtones: {
+        skyline: 'Skyline',
+        horizon: 'Horizon',
+        pulse: 'Pulse',
+      },
+      notificationSoundsList: {
+        chime: 'Chime',
+        signal: 'Signal',
+        soft: 'Soft',
       },
       wallpapers: {
         midnight: 'Midnight wallpaper',
@@ -224,7 +255,15 @@ export const usePhoneStore = defineStore('phone', {
     launchOrigin: null as AppLaunchOrigin | null,
     locales: defaultLocales,
     preferences: readPhonePreferences(),
+    systemDarkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
   }),
+  getters: {
+    isDarkMode(state): boolean {
+      if (state.preferences.settings.appearanceMode === 'dark') return true
+      if (state.preferences.settings.appearanceMode === 'light') return false
+      return state.systemDarkMode
+    },
+  },
   actions: {
     close(): void {
       this.isOpen = false
@@ -240,25 +279,42 @@ export const usePhoneStore = defineStore('phone', {
     setLaunchOrigin(origin: AppLaunchOrigin | null): void {
       this.launchOrigin = origin
     },
-    setSetting(
-      key: Exclude<keyof typeof this.preferences.settings, 'wallpaper'>,
+    setAppNotification(
+      appId: PhoneAppId,
+      key: keyof AppNotificationPreferences,
       value: boolean,
+    ): void {
+      this.preferences.settings.notifications[appId][key] = value
+      writePhonePreferences(this.preferences)
+    },
+    setPreference<K extends keyof PhonePreferencesV1['settings']>(
+      key: K,
+      value: PhonePreferencesV1['settings'][K],
     ): void {
       this.preferences.settings[key] = value
       writePhonePreferences(this.preferences)
+    },
+    setSystemDarkMode(value: boolean): void {
+      this.systemDarkMode = value
     },
     setWallpaper(wallpaper: WallpaperId): void {
       this.preferences.settings.wallpaper = wallpaper
       writePhonePreferences(this.preferences)
     },
-    t(path: string): string {
+    t(path: string, replacements: Record<string, string> = {}): string {
       const translated = getByPath(this.locales, path)
       const fallback = getByPath(defaultLocales, path)
-      return typeof translated === 'string'
-        ? translated
-        : typeof fallback === 'string'
-          ? fallback
-          : path
+      const value =
+        typeof translated === 'string'
+          ? translated
+          : typeof fallback === 'string'
+            ? fallback
+            : path
+      return Object.entries(replacements).reduce(
+        (result, [key, replacement]) =>
+          result.split(`{${key}}`).join(replacement),
+        value,
+      )
     },
   },
 })
