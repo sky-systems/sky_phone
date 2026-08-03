@@ -55,8 +55,11 @@ Locales["en"] = {
             },
             settings = {
                 name = "Settings", searchPlaceholder = "Search", airplaneMode = "Airplane Mode", streamerMode = "Streamer Mode",
-                wallpaper = "Wallpaper", on = "On", off = "Off", accountName = "Sky Citizen",
-                accountDetail = "Apple ID, iCloud, Media & Purchases", notifications = "Notifications", sounds = "Sounds & Haptics",
+                wallpaper = "Wallpaper", on = "On", off = "Off", accountName = "iFruit Account",
+                accountDetail = "Cloud, Media & Purchases", accountLocalDetail = "Local account for this phone",
+                accountInformation = "Account Information", accountStatus = "Account Status", accountStatusValue = "Active",
+                accountStorage = "Cloud Storage", accountStorageValue = "On Device", accountPurchases = "Media & Purchases",
+                accountPurchasesValue = "Available", notifications = "Notifications", sounds = "Sounds & Haptics",
                 general = "General Settings", appearance = "Appearance", allowNotifications = "Allow Notifications",
                 notificationSounds = "Sounds", ringtoneVolume = "Ringtone Volume", notificationVolume = "Notification Volume",
                 ringtone = "Ringtone", notificationSound = "Notification Sound", appearanceMode = "Appearance Mode",

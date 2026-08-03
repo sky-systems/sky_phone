@@ -41,6 +41,7 @@ import {
 
 type SettingsView =
   | 'root'
+  | 'account'
   | 'notifications'
   | 'notification-detail'
   | 'sounds'
@@ -60,12 +61,12 @@ const toggleRows = [
   {
     key: 'airplaneMode' as const,
     icon: Plane,
-    iconClass: 'bg-linear-to-br from-amber-300 via-orange-500 to-red-500',
+    iconClass: 'bg-linear-to-br from-orange-400 to-orange-500',
   },
   {
     key: 'streamerMode' as const,
     icon: EyeOff,
-    iconClass: 'bg-linear-to-br from-violet-400 via-purple-500 to-fuchsia-600',
+    iconClass: 'bg-linear-to-br from-purple-400 to-purple-500',
   },
 ]
 const serviceRows = [
@@ -73,13 +74,13 @@ const serviceRows = [
     key: 'notifications',
     view: 'notifications' as const,
     icon: BellRing,
-    iconClass: 'bg-linear-to-br from-rose-400 via-red-500 to-red-700',
+    iconClass: 'bg-linear-to-br from-red-400 to-red-500',
   },
   {
     key: 'sounds',
     view: 'sounds' as const,
     icon: Volume2,
-    iconClass: 'bg-linear-to-br from-pink-400 via-rose-500 to-red-600',
+    iconClass: 'bg-linear-to-br from-rose-400 to-rose-500',
   },
 ]
 const preferenceRows = [
@@ -87,19 +88,19 @@ const preferenceRows = [
     key: 'general',
     view: 'general' as const,
     icon: Settings,
-    iconClass: 'bg-linear-to-br from-slate-300 via-gray-500 to-slate-700',
+    iconClass: 'bg-linear-to-br from-slate-400 to-slate-500',
   },
   {
     key: 'appearance',
     view: 'appearance' as const,
     icon: Sun,
-    iconClass: 'bg-linear-to-br from-sky-300 via-blue-500 to-indigo-600',
+    iconClass: 'bg-linear-to-br from-blue-400 to-blue-500',
   },
   {
     key: 'wallpaper',
     view: 'wallpaper' as const,
     icon: Monitor,
-    iconClass: 'bg-linear-to-br from-cyan-300 via-sky-500 to-blue-600',
+    iconClass: 'bg-linear-to-br from-sky-400 to-sky-500',
   },
 ]
 
@@ -122,6 +123,9 @@ const selectedNotificationApp = computed(
     PHONE_APPS[0],
 )
 const activeTitle = computed(() => {
+  if (activeView.value === 'account') {
+    return phone.t('Apps.settings.accountName')
+  }
   if (activeView.value === 'notification-detail') {
     return selectedNotificationApp.value
       ? phone.t(selectedNotificationApp.value.labelKey)
@@ -220,8 +224,10 @@ function selectNotificationSound(sound: NotificationSoundId): void {
 
       <k-list strong inset>
         <k-list-item
+          link
           :title="phone.t('Apps.settings.accountName')"
           :subtitle="phone.t('Apps.settings.accountDetail')"
+          @click="openView('account')"
         >
           <template #media>
             <UserRound class="w-9 h-9 text-primary" />
@@ -249,7 +255,6 @@ function selectNotificationSound(sound: NotificationSoundId): void {
           </template>
           <template #after>
             <k-toggle
-              component="div"
               :checked="phone.preferences.settings[row.key]"
               :aria-label="phone.t(`Apps.settings.toggle.${row.key}`)"
               @change="toggleRootSetting(row.key)"
@@ -318,7 +323,38 @@ function selectNotificationSound(sound: NotificationSoundId): void {
         </template>
       </k-navbar>
 
-      <template v-if="activeView === 'notifications'">
+      <template v-if="activeView === 'account'">
+        <k-list strong inset>
+          <k-list-item
+            :title="phone.t('Apps.settings.accountName')"
+            :subtitle="phone.t('Apps.settings.accountLocalDetail')"
+          >
+            <template #media>
+              <UserRound class="w-12 h-12 text-primary" />
+            </template>
+          </k-list-item>
+        </k-list>
+
+        <k-block-title>
+          {{ phone.t('Apps.settings.accountInformation') }}
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            :title="phone.t('Apps.settings.accountStatus')"
+            :after="phone.t('Apps.settings.accountStatusValue')"
+          />
+          <k-list-item
+            :title="phone.t('Apps.settings.accountStorage')"
+            :after="phone.t('Apps.settings.accountStorageValue')"
+          />
+          <k-list-item
+            :title="phone.t('Apps.settings.accountPurchases')"
+            :after="phone.t('Apps.settings.accountPurchasesValue')"
+          />
+        </k-list>
+      </template>
+
+      <template v-else-if="activeView === 'notifications'">
         <k-list strong inset>
           <k-list-item
             v-for="app in notificationApps"
@@ -367,7 +403,6 @@ function selectNotificationSound(sound: NotificationSoundId): void {
           <k-list-item :title="phone.t('Apps.settings.allowNotifications')">
             <template #after>
               <k-toggle
-                component="div"
                 :checked="
                   phone.preferences.settings.notifications[
                     selectedNotificationApp.id
@@ -393,7 +428,6 @@ function selectNotificationSound(sound: NotificationSoundId): void {
           <k-list-item :title="phone.t('Apps.settings.notificationSounds')">
             <template #after>
               <k-toggle
-                component="div"
                 :disabled="
                   !phone.preferences.settings.notifications[
                     selectedNotificationApp.id
