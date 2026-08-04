@@ -4,6 +4,7 @@ import {
   formatStopwatch,
   formatTimer,
   remainingMilliseconds,
+  timerProgressRatio,
   timerPickerMilliseconds,
   timerPickerValue,
 } from './clock'
@@ -22,5 +23,12 @@ describe('timestamp clocks', () => {
 
   it('formats stopwatch durations with actual milliseconds', () => {
     expect(formatStopwatch(61_234)).toBe('01:01.234')
+  })
+
+  it('calculates bounded timer progress from remaining duration', () => {
+    expect(timerProgressRatio(7_500, 10_000)).toBe(0.75)
+    expect(timerProgressRatio(-1, 10_000)).toBe(0)
+    expect(timerProgressRatio(12_000, 10_000)).toBe(1)
+    expect(timerProgressRatio(0, 0)).toBe(0)
   })
 })

@@ -7,6 +7,9 @@ Locales["en"] = {
             save = "Save", search = "Search", send = "Send", start = "Start", stop = "Stop",
         },
         Notifications = { now = "now" },
+        LockScreen = {
+            label = "Lock Screen", flashlight = "Flashlight", camera = "Camera", swipeUp = "Swipe up to open",
+        },
         Home = {
             appLibrary = "App Library", appLibrarySearch = "Search apps", allApps = "All Apps", apps = "Apps",
             dock = "Dock", noApps = "No apps found", page = "Page", pages = "Home screen pages",
@@ -34,7 +37,10 @@ Locales["en"] = {
                     everyDay = "Every Day", weekdays = "Weekdays", weekends = "Weekends",
                     days = { sunday = "Sunday", monday = "Monday", tuesday = "Tuesday", wednesday = "Wednesday", thursday = "Thursday", friday = "Friday", saturday = "Saturday" },
                     daysShort = { sunday = "Sun", monday = "Mon", tuesday = "Tue", wednesday = "Wed", thursday = "Thu", friday = "Fri", saturday = "Sat" },
-                    sounds = { radar = "Radar", beacon = "Beacon", chimes = "Chimes" },
+                    sounds = {
+                        radar = "Radar", beacon = "Beacon", chimes = "Chimes", apex = "Apex", aurora = "Aurora",
+                        circuit = "Circuit", constellation = "Constellation", daybreak = "Daybreak", uplift = "Uplift",
+                    },
                 },
                 timer = {
                     time = "Timer duration", hours = "Hours", hoursShort = "hr", minutes = "Minutes", minutesShort = "min",

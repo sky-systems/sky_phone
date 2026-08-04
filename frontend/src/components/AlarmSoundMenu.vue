@@ -5,7 +5,7 @@ import { onBeforeUnmount } from 'vue'
 
 import { usePhoneStore } from '@/stores/phone'
 import { ALARM_SOUND_IDS, type AlarmSoundId } from '@/utils/alarms'
-import { playPhoneTone } from '@/utils/tones'
+import { phoneToneDuration, playPhoneTone } from '@/utils/tones'
 
 defineProps<{ backLabel: string; selectedSound: AlarmSoundId }>()
 const emit = defineEmits<{
@@ -31,7 +31,7 @@ function selectSound(sound: AlarmSoundId): void {
     phone.preferences.settings.ringtoneVolume,
     false,
   )
-  previewTimer = setTimeout(stopSoundPreview, 1800)
+  previewTimer = setTimeout(stopSoundPreview, phoneToneDuration(sound) + 100)
 }
 
 onBeforeUnmount(stopSoundPreview)

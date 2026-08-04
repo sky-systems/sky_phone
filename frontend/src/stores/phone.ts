@@ -120,7 +120,17 @@ const defaultLocales: LocaleTree = {
           friday: 'Fri',
           saturday: 'Sat',
         },
-        sounds: { radar: 'Radar', beacon: 'Beacon', chimes: 'Chimes' },
+        sounds: {
+          radar: 'Radar',
+          beacon: 'Beacon',
+          chimes: 'Chimes',
+          apex: 'Apex',
+          aurora: 'Aurora',
+          circuit: 'Circuit',
+          constellation: 'Constellation',
+          daybreak: 'Daybreak',
+          uplift: 'Uplift',
+        },
       },
       timer: {
         time: 'Timer duration',
@@ -353,6 +363,12 @@ const defaultLocales: LocaleTree = {
     stop: 'Stop',
   },
   Notifications: { now: 'now' },
+  LockScreen: {
+    label: 'Lock Screen',
+    flashlight: 'Flashlight',
+    camera: 'Camera',
+    swipeUp: 'Swipe up to open',
+  },
   Home: {
     appLibrary: 'App Library',
     appLibrarySearch: 'Search apps',

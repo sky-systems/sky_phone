@@ -1,6 +1,16 @@
 export const ALARMS_STORAGE_KEY = 'sky_phone.clock.alarms.v1'
 
-export const ALARM_SOUND_IDS = ['radar', 'beacon', 'chimes'] as const
+export const ALARM_SOUND_IDS = [
+  'radar',
+  'beacon',
+  'chimes',
+  'apex',
+  'aurora',
+  'circuit',
+  'constellation',
+  'daybreak',
+  'uplift',
+] as const
 export const WEEKDAY_IDS = [1, 2, 3, 4, 5, 6, 0] as const
 
 export type AlarmSoundId = (typeof ALARM_SOUND_IDS)[number]
@@ -40,8 +50,7 @@ const DEFAULT_ALARMS: Alarm[] = [
 
 function isAlarmSound(value: unknown): value is AlarmSoundId {
   return (
-    typeof value === 'string' &&
-    ALARM_SOUND_IDS.includes(value as AlarmSoundId)
+    typeof value === 'string' && ALARM_SOUND_IDS.includes(value as AlarmSoundId)
   )
 }
 

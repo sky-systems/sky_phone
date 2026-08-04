@@ -33,6 +33,14 @@ export function formatTimer(milliseconds: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
+export function timerProgressRatio(
+  remainingMilliseconds: number,
+  durationMilliseconds: number,
+): number {
+  if (durationMilliseconds <= 0) return 0
+  return Math.max(0, Math.min(1, remainingMilliseconds / durationMilliseconds))
+}
+
 export function timerPickerValue(milliseconds: number): string {
   const totalSeconds = Math.floor(milliseconds / 1000)
   const hours = Math.floor(totalSeconds / 3600)

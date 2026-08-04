@@ -8,9 +8,10 @@ import {
   type CSSProperties,
   watch,
 } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
+import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import PhoneStatusBar from '@/components/PhoneStatusBar.vue'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
@@ -38,7 +39,10 @@ const phone = usePhoneStore()
 const clock = useClockStore()
 const notifications = useNotificationsStore()
 const route = useRoute()
+const router = useRouter()
 const isAppRoute = computed(() => route.name === 'app')
+const isLocked = ref(false)
+const isUnlocking = ref(false)
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
 const viewportScale = ref(getViewportScale())
 const phoneResolutionStyle = computed<CSSProperties>(() => ({
@@ -52,6 +56,8 @@ const phoneFrameImage = computed(
   () => PHONE_FRAME_IMAGES[phone.preferences.settings.frame],
 )
 let clockTicker: ReturnType<typeof setInterval> | undefined
+let unlockTimer: number | undefined
+let cameraTimer: number | undefined
 
 function getViewportScale(): number {
   const heightScale = window.innerHeight / REFERENCE_VIEWPORT_HEIGHT
@@ -85,6 +91,22 @@ function onSystemColorSchemeChange(event: MediaQueryListEvent): void {
 
 function updateViewportScale(): void {
   viewportScale.value = getViewportScale()
+}
+
+function unlockPhone(destination?: 'camera'): void {
+  if (!isLocked.value) return
+  isUnlocking.value = true
+  isLocked.value = false
+
+  if (destination === 'camera') {
+    cameraTimer = window.setTimeout(() => {
+      void router.push('/apps/camera')
+    }, 260)
+  }
+
+  unlockTimer = window.setTimeout(() => {
+    isUnlocking.value = false
+  }, 720)
 }
 
 onMounted(() => {
@@ -131,8 +153,27 @@ watch(
   },
 )
 
+watch(
+  () => phone.isOpen,
+  (isOpen) => {
+    if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
+    if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
+    if (!isOpen) {
+      isLocked.value = false
+      isUnlocking.value = false
+      return
+    }
+    isLocked.value = true
+    isUnlocking.value = false
+    phone.setLaunchOrigin(null)
+    void router.replace('/')
+  },
+)
+
 onBeforeUnmount(() => {
   if (clockTicker) clearInterval(clockTicker)
+  if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
+  if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', updateViewportScale)
@@ -165,16 +206,20 @@ onBeforeUnmount(() => {
               :class="{
                 dark: phone.isDarkMode,
                 'phone-app--light': !phone.isDarkMode,
+                'phone-app--unlocking': isUnlocking,
               }"
             >
-              <PhoneStatusBar />
+              <PhoneStatusBar v-if="!isLocked" />
               <SpringboardView />
               <RouterView v-slot="{ Component }">
                 <Transition name="app-window">
                   <component :is="Component" v-if="isAppRoute" />
                 </Transition>
               </RouterView>
-              <PhoneHomeIndicator />
+              <PhoneHomeIndicator v-if="!isLocked" />
+              <Transition name="lock-screen">
+                <PhoneLockScreen v-if="isLocked" @unlock="unlockPhone" />
+              </Transition>
               <PhoneNotifications />
             </k-app>
           </div>

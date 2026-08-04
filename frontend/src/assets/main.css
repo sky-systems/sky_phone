@@ -205,6 +205,175 @@ button {
   filter: blur(5px);
   pointer-events: none;
 }
+.phone-app--unlocking .springboard {
+  animation: springboard-unlock 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.lock-screen {
+  position: absolute;
+  z-index: 80;
+  inset: 0;
+  overflow: hidden;
+  color: #fff;
+  background-position: center;
+  background-size: cover;
+  outline: none;
+  touch-action: none;
+  transform: translateY(var(--lock-drag));
+  transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.24, 1);
+  will-change: transform, opacity, filter;
+}
+.lock-screen--dragging {
+  transition: none;
+}
+.lock-screen__shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, #00000012 0%, transparent 34%, #00000012 70%),
+    radial-gradient(circle at 50% 34%, transparent 26%, #0000001f 100%);
+  pointer-events: none;
+}
+.lock-screen__status {
+  position: absolute;
+  z-index: 1;
+  top: 11px;
+  right: 26px;
+  left: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 18px;
+  filter: drop-shadow(0 1px 2px #0009);
+}
+.lock-screen__indicators {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.lock-screen__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 80px;
+  text-shadow: 0 2px 14px #0005;
+}
+.lock-screen__date {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.35px;
+}
+.lock-screen__time {
+  margin-top: -8px;
+  font-size: 92px;
+  font-weight: 250;
+  line-height: 1.1;
+  letter-spacing: -6px;
+  font-variant-numeric: tabular-nums;
+}
+.lock-screen__footer {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 25px;
+  left: 0;
+}
+.lock-screen__shortcuts {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 43px;
+}
+.lock-screen__shortcut {
+  width: 50px;
+  height: 50px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #2424248f;
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  box-shadow: inset 0 0 0 1px #ffffff17;
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    color 0.18s,
+    background 0.18s;
+}
+.lock-screen__shortcut:active {
+  transform: scale(0.88);
+}
+.lock-screen__shortcut--active {
+  color: #171717;
+  background: #fff;
+}
+.lock-screen__swipe {
+  width: 100%;
+  margin-top: 18px;
+  border: 0;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.15px;
+  text-shadow: 0 1px 4px #0009;
+}
+.lock-screen__swipe-chevron {
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 0 auto 2px;
+  border-top: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(45deg);
+  animation: lock-chevron 1.8s ease-in-out infinite;
+}
+.lock-screen-leave-active {
+  transition:
+    transform 0.64s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.42s ease-out,
+    filter 0.64s ease-out;
+}
+.lock-screen-leave-to {
+  transform: translateY(-104%) scale(1.035);
+  opacity: 0;
+  filter: blur(8px);
+}
+@keyframes springboard-unlock {
+  from {
+    transform: scale(0.92);
+    filter: blur(8px) brightness(0.72);
+  }
+  to {
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes lock-chevron {
+  0%,
+  55%,
+  100% {
+    opacity: 0.55;
+    transform: translateY(2px) rotate(45deg);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(-2px) rotate(45deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .phone-app--unlocking .springboard,
+  .lock-screen__swipe-chevron {
+    animation: none;
+  }
+  .lock-screen-leave-active {
+    transition-duration: 0.18s;
+  }
+}
 .springboard-track {
   width: 300%;
   height: 100%;
@@ -925,7 +1094,11 @@ button {
   font-weight: 200;
 }
 .clock-sound-menu {
+  min-height: 0;
+  flex: 1;
   margin-top: 8px;
+  margin-bottom: 0;
+  overflow-y: auto;
 }
 .clock-sound-selection {
   display: inline-flex;
@@ -952,19 +1125,45 @@ button {
   margin-top: 24px;
 }
 .timer-ring {
+  position: relative;
   width: 170px;
   height: 170px;
   margin: 12px auto 16px;
   display: grid;
   place-items: center;
-  border: 6px solid #ff9f0a33;
-  border-top-color: #ff9f0a;
-  border-radius: 50%;
   font-size: 34px;
+}
+.timer-ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.timer-ring circle {
+  fill: none;
+  stroke-width: 7;
+}
+.timer-ring-track {
+  stroke: #ff9f0a33;
+}
+.timer-ring-progress {
+  stroke: #ff9f0a;
+  stroke-dasharray: 100;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 250ms linear;
+}
+.timer-ring span {
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: tabular-nums;
 }
 .clock-timer-settings {
   margin-right: 0;
   margin-left: 0;
+}
+.clock-timer-sound {
+  margin-top: 16px;
 }
 .clock-timer {
   padding-bottom: 28px;

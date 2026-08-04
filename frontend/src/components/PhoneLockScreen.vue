@@ -1,0 +1,155 @@
+<script setup lang="ts">
+import {
+  BatteryMedium,
+  Camera,
+  Flashlight,
+  LockKeyhole,
+  Signal,
+  Wifi,
+} from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+
+import { usePhoneStore } from '@/stores/phone'
+
+const emit = defineEmits<{
+  unlock: [destination?: 'camera']
+}>()
+
+const phone = usePhoneStore()
+const now = ref(new Date())
+const dragOffset = ref(0)
+const dragging = ref(false)
+const flashlightActive = ref(false)
+let pointerStart = 0
+let pointerStartedAt = 0
+let clockTicker: number | undefined
+
+const date = computed(() =>
+  new Intl.DateTimeFormat(phone.lang, {
+    day: 'numeric',
+    month: 'long',
+    weekday: 'long',
+  }).format(now.value),
+)
+const time = computed(() =>
+  new Intl.DateTimeFormat(phone.lang, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+    .formatToParts(now.value)
+    .filter((part) => part.type !== 'dayPeriod')
+    .map((part) => part.value)
+    .join('')
+    .trim(),
+)
+const dragStyle = computed(() => ({
+  '--lock-drag': `${dragOffset.value}px`,
+}))
+
+function onPointerDown(event: PointerEvent): void {
+  if ((event.target as HTMLElement).closest('button')) return
+  pointerStart = event.clientY
+  pointerStartedAt = Date.now()
+  dragging.value = true
+  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+}
+
+function onPointerMove(event: PointerEvent): void {
+  if (!dragging.value) return
+  dragOffset.value = Math.min(0, event.clientY - pointerStart)
+}
+
+function finishPointer(event: PointerEvent): void {
+  if (!dragging.value) return
+  const distance = event.clientY - pointerStart
+  const elapsed = Math.max(1, Date.now() - pointerStartedAt)
+  const velocity = Math.abs(distance) / elapsed
+  dragging.value = false
+
+  if (distance < -74 || (distance < -22 && velocity > 0.55)) {
+    emit('unlock')
+    return
+  }
+
+  dragOffset.value = 0
+}
+
+function unlockWithKeyboard(event: KeyboardEvent): void {
+  if (event.key === 'Enter' || event.key === ' ') emit('unlock')
+}
+
+onMounted(() => {
+  clockTicker = window.setInterval(() => {
+    now.value = new Date()
+  }, 15_000)
+})
+
+onBeforeUnmount(() => {
+  if (clockTicker !== undefined) window.clearInterval(clockTicker)
+})
+</script>
+
+<template>
+  <section
+    class="lock-screen"
+    :class="[
+      `wallpaper--${phone.preferences.settings.wallpaper}`,
+      { 'lock-screen--dragging': dragging },
+    ]"
+    :style="dragStyle"
+    :aria-label="phone.t('LockScreen.label')"
+    tabindex="0"
+    @keydown="unlockWithKeyboard"
+    @pointerdown="onPointerDown"
+    @pointermove="onPointerMove"
+    @pointerup="finishPointer"
+    @pointercancel="finishPointer"
+  >
+    <div class="lock-screen__shade" aria-hidden="true"></div>
+
+    <header class="lock-screen__status">
+      <LockKeyhole :size="13" :stroke-width="2.5" aria-hidden="true" />
+      <div class="lock-screen__indicators" aria-hidden="true">
+        <Signal :size="12" :stroke-width="2.5" />
+        <Wifi :size="13" :stroke-width="2.5" />
+        <BatteryMedium :size="17" :stroke-width="2.4" />
+      </div>
+    </header>
+
+    <div class="lock-screen__content">
+      <time class="lock-screen__date">{{ date }}</time>
+      <time class="lock-screen__time">{{ time }}</time>
+    </div>
+
+    <div class="lock-screen__footer">
+      <div class="lock-screen__shortcuts">
+        <button
+          class="lock-screen__shortcut"
+          :class="{ 'lock-screen__shortcut--active': flashlightActive }"
+          type="button"
+          :aria-label="phone.t('LockScreen.flashlight')"
+          @click="flashlightActive = !flashlightActive"
+        >
+          <Flashlight :size="22" fill="currentColor" />
+        </button>
+        <button
+          class="lock-screen__shortcut"
+          type="button"
+          :aria-label="phone.t('LockScreen.camera')"
+          @click="emit('unlock', 'camera')"
+        >
+          <Camera :size="24" fill="currentColor" />
+        </button>
+      </div>
+
+      <button
+        class="lock-screen__swipe"
+        type="button"
+        @click="emit('unlock')"
+      >
+        <span class="lock-screen__swipe-chevron" aria-hidden="true"></span>
+        {{ phone.t('LockScreen.swipeUp') }}
+      </button>
+    </div>
+  </section>
+</template>

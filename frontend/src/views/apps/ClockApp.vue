@@ -36,6 +36,7 @@ import {
   remainingMilliseconds,
   timerPickerMilliseconds,
   timerPickerValue,
+  timerProgressRatio,
 } from '@/utils/clock'
 
 const phone = usePhoneStore()
@@ -64,6 +65,9 @@ const timerValue = computed(() =>
     clock.timerStartedAt,
     now.value,
   ),
+)
+const timerProgress = computed(() =>
+  timerProgressRatio(timerValue.value, clock.timerDuration),
 )
 const timerPicker = computed({
   get: () => timerPickerValue(clock.timerRemainingAtStart),
@@ -188,16 +192,13 @@ function updateStopwatchFrame(): void {
   stopwatchFrame = requestAnimationFrame(updateStopwatchFrame)
 }
 
-watch(
-  [() => clock.stopwatchStartedAt, tab],
-  ([startedAt, activeTab]) => {
-    if (stopwatchFrame !== undefined) cancelAnimationFrame(stopwatchFrame)
-    stopwatchFrame =
-      startedAt === null || activeTab !== 'stopwatch'
-        ? undefined
-        : requestAnimationFrame(updateStopwatchFrame)
-  },
-)
+watch([() => clock.stopwatchStartedAt, tab], ([startedAt, activeTab]) => {
+  if (stopwatchFrame !== undefined) cancelAnimationFrame(stopwatchFrame)
+  stopwatchFrame =
+    startedAt === null || activeTab !== 'stopwatch'
+      ? undefined
+      : requestAnimationFrame(updateStopwatchFrame)
+})
 
 onMounted(() => {
   ticker = setInterval(() => {
@@ -368,7 +369,26 @@ onBeforeUnmount(() => {
             {{ phone.t('Apps.clock.tabs.timer') }}
           </h1>
 
-          <div v-if="clock.timerStartedAt !== null" class="timer-ring">
+          <div
+            v-if="clock.timerStartedAt !== null"
+            class="timer-ring"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-valuenow="Math.round(timerProgress * 100)"
+            :aria-valuetext="formatTimer(timerValue)"
+          >
+            <svg viewBox="0 0 170 170" aria-hidden="true">
+              <circle class="timer-ring-track" cx="85" cy="85" r="72" />
+              <circle
+                class="timer-ring-progress"
+                cx="85"
+                cy="85"
+                r="72"
+                pathLength="100"
+                :style="{ strokeDashoffset: 100 - timerProgress * 100 }"
+              />
+            </svg>
             <span>{{ formatTimer(timerValue) }}</span>
           </div>
           <TimeWheelPicker
@@ -384,7 +404,11 @@ onBeforeUnmount(() => {
             :seconds-unit-label="phone.t('Apps.clock.timer.secondsShort')"
           />
 
-          <k-list strong inset class="clock-konsta-list clock-timer-settings">
+          <k-list
+            strong
+            inset
+            class="clock-konsta-list clock-timer-settings clock-timer-sound"
+          >
             <k-list-input
               :label="phone.t('Apps.clock.timer.note')"
               :placeholder="phone.t('Apps.clock.timer.notePlaceholder')"
