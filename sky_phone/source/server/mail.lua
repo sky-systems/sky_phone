@@ -2,10 +2,6 @@ if not Sky.DB.AwaitMigrations("sky_phone") then
     error("[sky_phone] Mail database migrations did not complete.")
 end
 
-local sessions = {}
-local account_sessions = {}
-local auth_attempts = {}
-
 local function trim(value)
     if type(value) ~= "string" then
         return nil
@@ -60,11 +56,6 @@ local function normalize_email(value)
     return local_part .. "@" .. Config.Mail.Domain
 end
 
-local function validate_password(value)
-    local length = text_length(value)
-    return length and length >= Config.Mail.PasswordMinLength and length <= Config.Mail.PasswordMaxLength
-end
-
 local function validate_text(value, maximum)
     local length = text_length(value)
     return length and length <= maximum
@@ -102,53 +93,8 @@ local function normalize_recipients(values, strict)
     return recipients
 end
 
-local function allow_auth_attempt(source)
-    local now = os.time()
-    local attempts = auth_attempts[source]
-    if not attempts or now - attempts.started_at >= 60 then
-        auth_attempts[source] = { count = 1, started_at = now }
-        return true
-    end
-
-    if attempts.count >= Config.Mail.AuthAttemptsPerMinute then
-        return false
-    end
-
-    attempts.count = attempts.count + 1
-    return true
-end
-
-local function clear_session(source)
-    local session = sessions[source]
-    if not session then
-        return
-    end
-
-    local key = tostring(session.id)
-    sessions[source] = nil
-    if account_sessions[key] then
-        account_sessions[key][source] = nil
-        if not next(account_sessions[key]) then
-            account_sessions[key] = nil
-        end
-    end
-end
-
-local function set_session(source, account)
-    clear_session(source)
-    sessions[source] = { id = account.id, email = account.email }
-    local key = tostring(account.id)
-    account_sessions[key] = account_sessions[key] or {}
-    account_sessions[key][source] = true
-end
-
 local function require_session(source)
-    local session = sessions[source]
-    if not session then
-        return nil, { success = false, error = "not_authenticated" }
-    end
-
-    return session
+    return SkyPhone.RequireAccount(source)
 end
 
 local function new_database_id()
@@ -161,14 +107,7 @@ local function new_database_id()
 end
 
 local function notify_account(account_id, event_name, data)
-    local sources = account_sessions[tostring(account_id)]
-    if not sources then
-        return
-    end
-
-    for source in pairs(sources) do
-        TriggerClientEvent(event_name, source, data)
-    end
+    SkyPhone.NotifyAccount(account_id, event_name, data)
 end
 
 local function get_counts(account_id)
@@ -201,92 +140,6 @@ local function broadcast_mailbox_changed(account_id)
         counts = get_counts(account_id),
     })
 end
-
-Sky.Cb.Register("sky_phone:mail:register", function(source, data)
-    if not allow_auth_attempt(source) then
-        return { success = false, error = "rate_limited" }
-    end
-
-    data = validate_payload(source, "register", data)
-    if not data then
-        return { success = false, error = "invalid_request" }
-    end
-
-    local email = normalize_email(data.email)
-    local password = data.password
-    if not email then
-        return { success = false, error = "invalid_email" }
-    end
-    if not validate_password(password) then
-        return { success = false, error = "invalid_password" }
-    end
-
-    local existing = Sky.Query(
-        "SELECT `id` FROM `sky_phone_mail_accounts` WHERE `email` = ? LIMIT 1",
-        { email }
-    )
-    if existing[1] then
-        return { success = false, error = "email_taken" }
-    end
-
-    local result = Sky.Query(
-        "INSERT INTO `sky_phone_mail_accounts` (`email`, `password`) VALUES (?, ?)",
-        { email, password }
-    )
-    if not result or result == 0 or (type(result) == "table" and result.affectedRows == 0) then
-        return { success = false, error = "email_taken" }
-    end
-
-    local accounts = Sky.Query(
-        "SELECT `id`, `email` FROM `sky_phone_mail_accounts` WHERE `email` = ? LIMIT 1",
-        { email }
-    )
-    if not accounts[1] then
-        error("[sky_phone] Registered mail account could not be loaded.")
-    end
-
-    set_session(source, accounts[1])
-    return {
-        success = true,
-        data = { email = email, counts = get_counts(accounts[1].id) },
-    }
-end)
-
-Sky.Cb.Register("sky_phone:mail:login", function(source, data)
-    if not allow_auth_attempt(source) then
-        return { success = false, error = "rate_limited" }
-    end
-
-    data = validate_payload(source, "login", data)
-    if not data then
-        return { success = false, error = "invalid_request" }
-    end
-
-    local email = normalize_email(data.email)
-    local password = data.password
-    if not email or not validate_password(password) then
-        return { success = false, error = "invalid_credentials" }
-    end
-
-    local accounts = Sky.Query(
-        "SELECT `id`, `email` FROM `sky_phone_mail_accounts` WHERE `email` = ? AND `password` = ? LIMIT 1",
-        { email, password }
-    )
-    if not accounts[1] then
-        return { success = false, error = "invalid_credentials" }
-    end
-
-    set_session(source, accounts[1])
-    return {
-        success = true,
-        data = { email = accounts[1].email, counts = get_counts(accounts[1].id) },
-    }
-end)
-
-Sky.Cb.Register("sky_phone:mail:logout", function(source)
-    clear_session(source)
-    return { success = true }
-end)
 
 Sky.Cb.Register("sky_phone:mail:counts", function(source)
     local session, error_response = require_session(source)
@@ -355,7 +208,7 @@ Sky.Cb.Register("sky_phone:mail:list", function(source, data)
                 m.`created_at`
             FROM `sky_phone_mail_entries` e
             JOIN `sky_phone_mail_messages` m ON m.`id` = e.`message_id`
-            JOIN `sky_phone_mail_accounts` sender ON sender.`id` = m.`sender_account_id`
+            JOIN `sky_phone_accounts` sender ON sender.`id` = m.`sender_account_id`
             WHERE e.`account_id` = ? AND %s
                 AND (? = '' OR m.`subject` LIKE ? OR m.`body` LIKE ? OR sender.`email` LIKE ? OR m.`recipients` LIKE ?)
             ORDER BY m.`created_at` DESC, e.`id` DESC
@@ -400,7 +253,7 @@ Sky.Cb.Register("sky_phone:mail:get", function(source, data)
             sender.`email` AS `sender`, m.`recipients`, m.`subject`, m.`body`, m.`created_at`
         FROM `sky_phone_mail_entries` e
         JOIN `sky_phone_mail_messages` m ON m.`id` = e.`message_id`
-        JOIN `sky_phone_mail_accounts` sender ON sender.`id` = m.`sender_account_id`
+        JOIN `sky_phone_accounts` sender ON sender.`id` = m.`sender_account_id`
         WHERE e.`id` = ? AND e.`account_id` = ?
         LIMIT 1
     ]], { entry_id, session.id })
@@ -550,7 +403,7 @@ Sky.Cb.Register("sky_phone:mail:send", function(source, data)
         placeholders[index] = "?"
     end
     local recipient_accounts = Sky.Query(
-        ("SELECT `id`, `email` FROM `sky_phone_mail_accounts` WHERE `email` IN (%s)"):format(table.concat(placeholders, ", ")),
+        ("SELECT `id`, `email` FROM `sky_phone_accounts` WHERE `email` IN (%s)"):format(table.concat(placeholders, ", ")),
         recipients
     )
     if #recipient_accounts ~= #recipients then
@@ -726,19 +579,4 @@ Sky.Cb.Register("sky_phone:mail:empty-trash", function(source)
     ]], {})
     broadcast_mailbox_changed(session.id)
     return { success = true }
-end)
-
-AddEventHandler("playerDropped", function()
-    auth_attempts[source] = nil
-    clear_session(source)
-end)
-
-AddEventHandler("onResourceStop", function(resource_name)
-    if resource_name ~= GetCurrentResourceName() then
-        return
-    end
-
-    sessions = {}
-    account_sessions = {}
-    auth_attempts = {}
 end)

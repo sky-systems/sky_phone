@@ -11,6 +11,7 @@ escrow_ignore 'config/**'
 shared_scripts {
     '@sky_base/source/import.lua',
     'config/init.lua',
+    'source/shared/imei.lua',
 }
 
 client_scripts {
@@ -22,6 +23,8 @@ client_scripts {
 server_scripts {
     'config/config.lua',
     'source/server/db_migrate.lua',
+    'source/server/phone.lua',
+    'source/server/notes.lua',
     'source/server/mail.lua',
 }
 

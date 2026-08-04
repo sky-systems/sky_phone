@@ -1,5 +1,12 @@
 Locales["en"] = {
     CommandDescription = "Open your phone.",
+    DeviceErrors = {
+        phone_slot_missing = "The used phone could not be identified. Make sure phones are not stacked.",
+        phone_stacked = "Phones cannot be stacked.",
+        invalid_imei = "This phone has invalid IMEI metadata.",
+        metadata_unsupported = "The configured inventory cannot store unique phone metadata.",
+        default = "The phone could not be opened.",
+    },
     Nui = {
         Common = {
             add = "Add", back = "Back", cancel = "Cancel", close = "Close", delete = "Delete", done = "Done", edit = "Edit", home = "Home", loading = "Loading", pause = "Pause",
@@ -110,7 +117,8 @@ Locales["en"] = {
             settings = {
                 name = "Settings", searchPlaceholder = "Search", airplaneMode = "Airplane Mode", streamerMode = "Streamer Mode",
                 wallpaper = "Wallpaper", on = "On", off = "Off", accountName = "iFruit Account",
-                accountDetail = "Cloud, Media & Purchases", accountLocalDetail = "Local account for this phone",
+                accountDetail = "Cloud, Mail & Notes", accountLocalDetail = "Not signed in",
+                accountCloudDetail = "Mail and notes sync through iFruit Cloud", accountLoginBody = "Sign in is optional. This phone also works with local data only.",
                 accountInformation = "Account Information", accountStatus = "Account Status", accountStatusValue = "Active",
                 accountStorage = "Cloud Storage", accountStorageValue = "On Device", accountPurchases = "Media & Purchases",
                 accountPurchasesValue = "Available", notifications = "Notifications", sounds = "Sounds & Haptics",
@@ -121,7 +129,16 @@ Locales["en"] = {
                 automatic = "Automatic", light = "Light", dark = "Dark", phoneScale = "Phone Scale", phoneFrame = "Phone Frame",
                 about = "About", deviceName = "Device Name", deviceNameValue = "Sky Phone", softwareVersion = "Software Version",
                 language = "Language", languageValue = "English", localStorage = "Local Storage", localStorageValue = "On Device",
-                back = "Settings", wallpaperPicker = "Built-in Wallpapers",
+                back = "Settings", wallpaperPicker = "Built-in Wallpapers", deviceInformation = "Device Information",
+                imei = "IMEI", linkedDevices = "Linked Devices", thisDevice = "This Phone", removeDevice = "Remove Device",
+                removeDeviceBody = "Enter your iFruit password to remove this device from the account.", signOut = "Sign Out",
+                factoryReset = "Erase All Content and Settings", factoryResetBody = "This removes the account and all local data from this phone. Cloud data and the IMEI remain.",
+                accountErrors = {
+                    invalid_email = "Choose a valid 3–32 character iFruit address.", invalid_password = "Password must be 6–64 characters.",
+                    invalid_credentials = "Email or password is incorrect.", email_taken = "That iFruit address is already registered.",
+                    rate_limited = "Too many attempts. Try again in a minute.", current_device = "Sign out instead of removing the current phone.",
+                    device_not_found = "That device is no longer linked.", default = "The account request failed.",
+                },
                 toggle = {
                     airplaneMode = "Toggle Airplane Mode", streamerMode = "Toggle Streamer Mode",
                     notifications = "Toggle notifications for {app}", notificationSounds = "Toggle notification sounds for {app}",
