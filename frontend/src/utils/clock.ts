@@ -21,8 +21,8 @@ export function formatStopwatch(milliseconds: number): string {
   const totalMilliseconds = Math.floor(milliseconds)
   const minutes = Math.floor(totalMilliseconds / 60_000)
   const seconds = Math.floor((totalMilliseconds % 60_000) / 1000)
-  const millisecondsPart = totalMilliseconds % 1000
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(millisecondsPart).padStart(3, '0')}`
+  const hundredths = Math.floor((totalMilliseconds % 1000) / 10)
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`
 }
 
 export function formatTimer(milliseconds: number): string {

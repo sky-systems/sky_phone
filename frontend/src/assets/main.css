@@ -115,6 +115,7 @@ button {
   color-scheme: light;
 }
 .phone-notification {
+  top: 68px !important;
   right: 8px !important;
   left: 8px !important;
   width: auto !important;
@@ -241,8 +242,16 @@ button {
   left: 26px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   min-height: 18px;
+  filter: drop-shadow(0 1px 2px #0009);
+}
+.lock-screen__lock {
+  position: absolute;
+  z-index: 1;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
   filter: drop-shadow(0 1px 2px #0009);
 }
 .lock-screen__indicators {
@@ -258,21 +267,26 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 80px;
+  padding-top: 94px;
   text-shadow: 0 2px 14px #0005;
 }
 .lock-screen__date {
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.35px;
+  font-size: 16px;
+  font-weight: 550;
+  letter-spacing: -0.2px;
 }
 .lock-screen__time {
-  margin-top: -8px;
-  font-size: 92px;
-  font-weight: 250;
-  line-height: 1.1;
-  letter-spacing: -6px;
+  margin-top: -5px;
+  color: #ffffffaa;
+  font-size: 110px;
+  font-weight: 300;
+  line-height: 1.04;
+  letter-spacing: -7px;
   font-variant-numeric: tabular-nums;
+  text-shadow:
+    0 0 12px #ffffff38,
+    0 2px 16px #0006;
+  filter: blur(0.24px);
 }
 .lock-screen__footer {
   position: absolute;
@@ -280,35 +294,6 @@ button {
   right: 0;
   bottom: 25px;
   left: 0;
-}
-.lock-screen__shortcuts {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 43px;
-}
-.lock-screen__shortcut {
-  width: 50px;
-  height: 50px;
-  border: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  background: #2424248f;
-  backdrop-filter: blur(18px) saturate(135%);
-  -webkit-backdrop-filter: blur(18px) saturate(135%);
-  box-shadow: inset 0 0 0 1px #ffffff17;
-  transition:
-    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
-    color 0.18s,
-    background 0.18s;
-}
-.lock-screen__shortcut:active {
-  transform: scale(0.88);
-}
-.lock-screen__shortcut--active {
-  color: #171717;
-  background: #fff;
 }
 .lock-screen__swipe {
   width: 100%;
@@ -873,6 +858,7 @@ button {
 .calculator-display {
   height: 145px;
   display: flex;
+  flex-direction: column;
   align-items: flex-end;
   justify-content: flex-end;
   padding: 0 8px 12px;
@@ -880,6 +866,20 @@ button {
   font-size: 65px;
   font-weight: 250;
   white-space: nowrap;
+}
+.calculator-result {
+  max-width: 100%;
+  overflow: hidden;
+}
+.calculator-calculation {
+  max-width: 100%;
+  overflow: hidden;
+  color: #8e8e93;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-overflow: ellipsis;
 }
 .calculator-pad {
   display: grid;
@@ -1078,15 +1078,6 @@ button {
   padding: 0 16px;
   text-align: center;
 }
-.clock-section-heading {
-  margin: 0;
-  padding: 4px 0 10px;
-  text-align: left;
-  font-size: 34px;
-  font-weight: 700;
-  line-height: 41px;
-  letter-spacing: -0.8px;
-}
 .clock-digits {
   margin: 70px 0 54px;
   font-variant-numeric: tabular-nums;
@@ -1095,9 +1086,11 @@ button {
 }
 .clock-sound-menu {
   min-height: 0;
-  flex: 1;
+  max-height: calc(100% - 52px);
+  flex: 0 1 auto;
+  align-self: stretch;
   margin-top: 8px;
-  margin-bottom: 0;
+  margin-bottom: 8px;
   overflow-y: auto;
 }
 .clock-sound-selection {
@@ -1126,12 +1119,13 @@ button {
 }
 .timer-ring {
   position: relative;
-  width: 170px;
-  height: 170px;
+  width: 210px;
+  height: 210px;
   margin: 12px auto 16px;
   display: grid;
   place-items: center;
-  font-size: 34px;
+  font-size: 42px;
+  font-weight: 200;
 }
 .timer-ring svg {
   position: absolute;
@@ -1142,7 +1136,7 @@ button {
 }
 .timer-ring circle {
   fill: none;
-  stroke-width: 7;
+  stroke-width: 4;
 }
 .timer-ring-track {
   stroke: #ff9f0a33;
@@ -1162,8 +1156,11 @@ button {
   margin-right: 0;
   margin-left: 0;
 }
-.clock-timer-sound {
+.clock-timer-note {
   margin-top: 16px;
+}
+.clock-timer-sound {
+  margin-top: 12px;
 }
 .clock-timer {
   padding-bottom: 28px;
@@ -1610,6 +1607,17 @@ button {
   flex-direction: column;
   overflow: hidden;
   background: #020202;
+  color: #fff;
+}
+.phone-app--light .clock-app {
+  background: #f2f2f7;
+  color: #000;
+}
+.phone-app--light .time-wheel-picker__selection {
+  background: #e5e5ea;
+}
+.phone-app--light .time-wheel-picker__value--selected {
+  color: #000;
 }
 
 .reference-photos {

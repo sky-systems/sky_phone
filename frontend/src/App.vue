@@ -63,10 +63,7 @@ function getViewportScale(): number {
   const heightScale = window.innerHeight / REFERENCE_VIEWPORT_HEIGHT
   if (isDevelopment) return heightScale
 
-  return Math.min(
-    window.innerWidth / REFERENCE_VIEWPORT_WIDTH,
-    heightScale,
-  )
+  return Math.min(window.innerWidth / REFERENCE_VIEWPORT_WIDTH, heightScale)
 }
 
 function onMessage(event: MessageEvent<AppMessage>): void {

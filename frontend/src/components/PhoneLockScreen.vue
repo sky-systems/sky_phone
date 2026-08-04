@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kLink, kNavbar } from 'konsta/vue'
 import {
   BatteryMedium,
   Camera,
@@ -20,6 +21,12 @@ const now = ref(new Date())
 const dragOffset = ref(0)
 const dragging = ref(false)
 const flashlightActive = ref(false)
+const lockNavbarColors = { bgIos: 'bg-transparent' }
+const neutralGlassClass =
+  '!bg-white/10 !shadow-none ring-1 ring-inset ring-white/15 backdrop-saturate-150'
+const activeFlashlightGlassClass =
+  '!bg-white !shadow-none ring-1 ring-inset ring-white/60 backdrop-saturate-150'
+const whiteNavbarLinkColors = { navbarTextIos: 'text-white' }
 let pointerStart = 0
 let pointerStartedAt = 0
 let clockTicker: number | undefined
@@ -44,6 +51,12 @@ const time = computed(() =>
 )
 const dragStyle = computed(() => ({
   '--lock-drag': `${dragOffset.value}px`,
+}))
+const flashlightGlassClass = computed(() =>
+  flashlightActive.value ? activeFlashlightGlassClass : neutralGlassClass,
+)
+const flashlightLinkColors = computed(() => ({
+  navbarTextIos: flashlightActive.value ? 'text-purple-500' : 'text-white',
 }))
 
 function onPointerDown(event: PointerEvent): void {
@@ -78,6 +91,11 @@ function unlockWithKeyboard(event: KeyboardEvent): void {
   if (event.key === 'Enter' || event.key === ' ') emit('unlock')
 }
 
+function unlockFromWallpaper(event: MouseEvent): void {
+  if ((event.target as HTMLElement).closest('button, [role="link"]')) return
+  emit('unlock')
+}
+
 onMounted(() => {
   clockTicker = window.setInterval(() => {
     now.value = new Date()
@@ -104,17 +122,23 @@ onBeforeUnmount(() => {
     @pointermove="onPointerMove"
     @pointerup="finishPointer"
     @pointercancel="finishPointer"
+    @click="unlockFromWallpaper"
   >
     <div class="lock-screen__shade" aria-hidden="true"></div>
 
     <header class="lock-screen__status">
-      <LockKeyhole :size="13" :stroke-width="2.5" aria-hidden="true" />
       <div class="lock-screen__indicators" aria-hidden="true">
         <Signal :size="12" :stroke-width="2.5" />
         <Wifi :size="13" :stroke-width="2.5" />
         <BatteryMedium :size="17" :stroke-width="2.4" />
       </div>
     </header>
+    <LockKeyhole
+      class="lock-screen__lock"
+      :size="14"
+      :stroke-width="1.8"
+      aria-hidden="true"
+    />
 
     <div class="lock-screen__content">
       <time class="lock-screen__date">{{ date }}</time>
@@ -122,31 +146,40 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="lock-screen__footer">
-      <div class="lock-screen__shortcuts">
-        <button
-          class="lock-screen__shortcut"
-          :class="{ 'lock-screen__shortcut--active': flashlightActive }"
-          type="button"
-          :aria-label="phone.t('LockScreen.flashlight')"
-          @click="flashlightActive = !flashlightActive"
-        >
-          <Flashlight :size="22" fill="currentColor" />
-        </button>
-        <button
-          class="lock-screen__shortcut"
-          type="button"
-          :aria-label="phone.t('LockScreen.camera')"
-          @click="emit('unlock', 'camera')"
-        >
-          <Camera :size="24" fill="currentColor" />
-        </button>
-      </div>
-
-      <button
-        class="lock-screen__swipe"
-        type="button"
-        @click="emit('unlock')"
+      <k-navbar
+        transparent
+        :colors="lockNavbarColors"
+        inner-class="!px-12"
+        :left-class="flashlightGlassClass"
+        :right-class="neutralGlassClass"
       >
+        <template #left>
+          <k-link
+            component="button"
+            icon-only
+            :colors="flashlightLinkColors"
+            :link-props="{ type: 'button' }"
+            :aria-label="phone.t('LockScreen.flashlight')"
+            @click="flashlightActive = !flashlightActive"
+          >
+            <Flashlight :stroke-width="1.4" aria-hidden="true" />
+          </k-link>
+        </template>
+        <template #right>
+          <k-link
+            component="button"
+            icon-only
+            :colors="whiteNavbarLinkColors"
+            :link-props="{ type: 'button' }"
+            :aria-label="phone.t('LockScreen.camera')"
+            @click="emit('unlock', 'camera')"
+          >
+            <Camera :stroke-width="1.4" aria-hidden="true" />
+          </k-link>
+        </template>
+      </k-navbar>
+
+      <button class="lock-screen__swipe" type="button" @click="emit('unlock')">
         <span class="lock-screen__swipe-chevron" aria-hidden="true"></span>
         {{ phone.t('LockScreen.swipeUp') }}
       </button>

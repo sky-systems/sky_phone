@@ -2,6 +2,7 @@ export type CalculatorOperator = 'add' | 'subtract' | 'multiply' | 'divide'
 
 export type CalculatorState = {
   accumulator: number | null
+  calculation: string
   display: string
   error: boolean
   pendingOperator: CalculatorOperator | null
@@ -10,10 +11,18 @@ export type CalculatorState = {
 
 export const INITIAL_CALCULATOR_STATE: CalculatorState = {
   accumulator: null,
+  calculation: '',
   display: '0',
   error: false,
   pendingOperator: null,
   waitingForOperand: false,
+}
+
+const OPERATOR_SYMBOLS: Record<CalculatorOperator, string> = {
+  add: '+',
+  subtract: '−',
+  multiply: '×',
+  divide: '÷',
 }
 
 function formatNumber(value: number): string {
@@ -45,7 +54,13 @@ export function inputDigit(
 ): CalculatorState {
   if (!/^\d$/.test(digit)) return state
   if (state.error || state.waitingForOperand) {
-    return { ...state, display: digit, error: false, waitingForOperand: false }
+    return {
+      ...state,
+      calculation: state.pendingOperator ? state.calculation : '',
+      display: digit,
+      error: false,
+      waitingForOperand: false,
+    }
   }
   if (state.display === '0') return { ...state, display: digit }
   if (state.display.replace('-', '').replace('.', '').length >= 10) return state
@@ -54,7 +69,13 @@ export function inputDigit(
 
 export function inputDecimal(state: CalculatorState): CalculatorState {
   if (state.error || state.waitingForOperand) {
-    return { ...state, display: '0.', error: false, waitingForOperand: false }
+    return {
+      ...state,
+      calculation: state.pendingOperator ? state.calculation : '',
+      display: '0.',
+      error: false,
+      waitingForOperand: false,
+    }
   }
   return state.display.includes('.')
     ? state
@@ -83,6 +104,15 @@ export function chooseCalculatorOperator(
   if (state.error) return clearCalculator()
   const input = Number(state.display)
   let accumulator = state.accumulator
+  let calculation = state.calculation
+
+  if (state.pendingOperator && state.waitingForOperand) {
+    return {
+      ...state,
+      calculation: `${calculation.slice(0, -1)}${OPERATOR_SYMBOLS[operator]}`,
+      pendingOperator: operator,
+    }
+  }
 
   if (
     accumulator !== null &&
@@ -93,12 +123,15 @@ export function chooseCalculatorOperator(
     if (result === null)
       return { ...clearCalculator(), display: 'Error', error: true }
     accumulator = result
+    calculation = `${calculation} ${state.display} ${OPERATOR_SYMBOLS[operator]}`
   } else if (accumulator === null) {
     accumulator = input
+    calculation = `${state.display} ${OPERATOR_SYMBOLS[operator]}`
   }
 
   return {
     accumulator,
+    calculation,
     display: formatNumber(accumulator),
     error: false,
     pendingOperator: operator,
@@ -118,6 +151,7 @@ export function resolveCalculator(state: CalculatorState): CalculatorState {
     return { ...clearCalculator(), display: 'Error', error: true }
   return {
     accumulator: null,
+    calculation: `${state.calculation} ${state.display} =`,
     display: formatNumber(result),
     error: false,
     pendingOperator: null,

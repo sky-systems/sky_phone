@@ -103,15 +103,17 @@ const tabs = [
   { id: 'timer', icon: TimerReset },
 ] as const
 const tabBarColors = {
-  strongHighlightBgIos: 'bg-[#2c2c2e]',
+  strongHighlightBgIos: 'bg-[#e5e5ea] dark:bg-[#2c2c2e]',
 }
 const secondaryActionColors = {
-  tonalBgIos: 'bg-[#2c2c2e] active:bg-[#3a3a3c]',
-  tonalTextIos: 'text-white',
+  tonalBgIos:
+    'bg-[#e5e5ea] active:bg-[#d1d1d6] dark:bg-[#2c2c2e] dark:active:bg-[#3a3a3c]',
+  tonalTextIos: 'text-black dark:text-white',
 }
 const positiveActionColors = {
-  fillBgIos: 'bg-[#103a20] active:bg-[#174d2a]',
-  fillTextIos: 'text-[#30d158]',
+  fillBgIos:
+    'bg-[#d9f7df] active:bg-[#c7efcf] dark:bg-[#103a20] dark:active:bg-[#174d2a]',
+  fillTextIos: 'text-[#248a3d] dark:text-[#30d158]',
 }
 const toggleColors = {
   checkedBgIos: 'bg-[#30d158]',
@@ -232,10 +234,10 @@ onBeforeUnmount(() => {
 
     <template v-else>
       <k-navbar
-        v-if="tab === 'world' || tab === 'alarm'"
+        v-if="tab !== 'stopwatch'"
         :title="phone.t(`Apps.clock.tabs.${tab}`)"
-        :large="tab === 'world' || tab === 'alarm'"
-        :transparent="tab === 'world' || tab === 'alarm'"
+        large
+        transparent
         class="clock-navbar"
       >
         <template #left>
@@ -365,10 +367,6 @@ onBeforeUnmount(() => {
         </k-block>
 
         <k-block v-else nested class="clock-tool clock-timer">
-          <h1 class="clock-section-heading">
-            {{ phone.t('Apps.clock.tabs.timer') }}
-          </h1>
-
           <div
             v-if="clock.timerStartedAt !== null"
             class="timer-ring"
@@ -378,13 +376,13 @@ onBeforeUnmount(() => {
             :aria-valuenow="Math.round(timerProgress * 100)"
             :aria-valuetext="formatTimer(timerValue)"
           >
-            <svg viewBox="0 0 170 170" aria-hidden="true">
-              <circle class="timer-ring-track" cx="85" cy="85" r="72" />
+            <svg viewBox="0 0 210 210" aria-hidden="true">
+              <circle class="timer-ring-track" cx="105" cy="105" r="92" />
               <circle
                 class="timer-ring-progress"
-                cx="85"
-                cy="85"
-                r="72"
+                cx="105"
+                cy="105"
+                r="92"
                 pathLength="100"
                 :style="{ strokeDashoffset: 100 - timerProgress * 100 }"
               />
@@ -407,7 +405,7 @@ onBeforeUnmount(() => {
           <k-list
             strong
             inset
-            class="clock-konsta-list clock-timer-settings clock-timer-sound"
+            class="clock-konsta-list clock-timer-settings clock-timer-note"
           >
             <k-list-input
               :label="phone.t('Apps.clock.timer.note')"
@@ -418,7 +416,11 @@ onBeforeUnmount(() => {
             />
           </k-list>
 
-          <k-list strong inset class="clock-konsta-list clock-timer-settings">
+          <k-list
+            strong
+            inset
+            class="clock-konsta-list clock-timer-settings clock-timer-sound"
+          >
             <k-list-item
               link
               :chevron="false"

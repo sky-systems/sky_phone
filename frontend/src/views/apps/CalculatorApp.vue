@@ -1,9 +1,17 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import { useCalculatorStore } from '@/stores/calculator'
 import { usePhoneStore } from '@/stores/phone'
 
 const calculator = useCalculatorStore()
 const phone = usePhoneStore()
+const calculation = computed(() => {
+  if (!calculator.calculation) return ''
+  return calculator.waitingForOperand
+    ? calculator.calculation
+    : `${calculator.calculation} ${calculator.display}`
+})
 const keys: Array<{ label: string; action: () => void; kind?: string }> = [
   { label: 'AC', action: calculator.clear, kind: 'utility' },
   { label: '+/−', action: calculator.toggleSign, kind: 'utility' },
@@ -52,7 +60,10 @@ const keys: Array<{ label: string; action: () => void; kind?: string }> = [
     :aria-label="phone.t('Apps.calculator.name')"
   >
     <div class="calculator-display" aria-live="polite">
-      {{ calculator.display }}
+      <div class="calculator-result">{{ calculator.display }}</div>
+      <div v-if="calculation" class="calculator-calculation">
+        {{ calculation }}
+      </div>
     </div>
     <div class="calculator-pad">
       <button
