@@ -42,6 +42,15 @@ Locales["en"] = {
                     note = "Note", notePlaceholder = "Timer", sound = "Sound", ringing = "Timer",
                 },
             },
+            notes = {
+                name = "Notes", note = "Note", back = "Back", actions = "Note actions",
+                newNote = "New Note", searchPlaceholder = "Search Notes",
+                title = "Title", titlePlaceholder = "Note title", body = "Note", bodyPlaceholder = "Start writing...",
+                untitled = "Untitled", noText = "No additional text", emptyBadge = "ON DEVICE", emptyTitle = "No Notes",
+                emptyBody = "Create a note to keep important details close at hand.", noResults = "No Results",
+                noResultsBody = "Try searching for a different word or phrase.", pin = "Pin note", unpin = "Unpin note",
+                deleteNote = "Delete note", deleteTitle = "Delete Note?", deleteBody = "This note will be permanently deleted.",
+            },
             photos = {
                 name = "Photos", searchPlaceholder = "Photos, people, places...", recents = "Recents",
                 favorites = "Favorites", items = "items", memories = "Memories", featured = "City colors",

@@ -3,6 +3,7 @@ import {
   Camera,
   Clock3,
   Images,
+  NotebookPen,
   Settings,
   ShoppingBag,
 } from 'lucide-vue-next'
@@ -12,11 +13,25 @@ import appStoreIcon from '@/assets/img/app-icons/apps.webp'
 import calculatorIcon from '@/assets/img/app-icons/calculator.webp'
 import cameraIcon from '@/assets/img/app-icons/camera.webp'
 import clockIcon from '@/assets/img/app-icons/clock.webp'
+import notesIcon from '@/assets/img/app-icons/notes.webp'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import settingsIcon from '@/assets/img/app-icons/settings.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/NotesApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 3,
+    icon: markRaw(NotebookPen),
+    iconClass: '',
+    iconImage: notesIcon,
+    id: 'notes',
+    labelKey: 'Apps.notes.name',
+    route: '/apps/notes',
+  },
   {
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CalculatorApp.vue')),
@@ -61,7 +76,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/PhotosApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 3,
+    gridOrder: 4,
     icon: markRaw(Images),
     iconClass: 'app-icon--photos',
     iconImage: photosIcon,
@@ -74,7 +89,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/AppStoreApp.vue')),
     ),
     dockOrder: 0,
-    gridOrder: 4,
+    gridOrder: 5,
     icon: markRaw(ShoppingBag),
     iconClass: 'app-icon--store',
     iconImage: appStoreIcon,
@@ -87,7 +102,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/SettingsApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 5,
+    gridOrder: 6,
     icon: markRaw(Settings),
     iconClass: 'app-icon--settings',
     iconImage: settingsIcon,
