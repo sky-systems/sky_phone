@@ -780,8 +780,22 @@ button {
   height: 200px;
   margin: 0 16px 16px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 64px 64px;
+  justify-content: center;
+  gap: 8px;
   overflow: hidden;
+}
+.time-wheel-picker--duration {
+  grid-template-columns: repeat(3, 64px);
+  gap: 0;
+}
+.time-wheel-picker__field {
+  position: relative;
+  width: 64px;
+  height: 200px;
+}
+.time-wheel-picker--duration .time-wheel-picker__field {
+  width: 64px;
 }
 .time-wheel-picker__selection {
   position: absolute;
@@ -794,20 +808,6 @@ button {
   background: #2c2c2e;
   pointer-events: none;
 }
-.time-wheel-picker__separator {
-  position: absolute;
-  z-index: 2;
-  top: 80px;
-  left: 50%;
-  height: 40px;
-  transform: translateX(-50%);
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: 31px;
-  font-weight: 300;
-  pointer-events: none;
-}
 .time-wheel-picker__column {
   position: relative;
   z-index: 1;
@@ -818,6 +818,9 @@ button {
   scrollbar-width: none;
   scroll-snap-type: y mandatory;
   overscroll-behavior: contain;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
   mask-image: linear-gradient(
     to bottom,
     transparent 0,
@@ -825,6 +828,23 @@ button {
     #000 70%,
     transparent 100%
   );
+}
+.time-wheel-picker--unit-labels .time-wheel-picker__column {
+  width: 36px;
+}
+.time-wheel-picker__unit {
+  position: absolute;
+  z-index: 2;
+  top: 80px;
+  left: 34px;
+  height: 40px;
+  color: #8e8e93;
+  font-size: 9px;
+  line-height: 40px;
+  pointer-events: none;
+}
+.time-wheel-picker__column:active {
+  cursor: grabbing;
 }
 .time-wheel-picker__column::-webkit-scrollbar {
   display: none;
@@ -835,6 +855,7 @@ button {
   display: block;
   padding: 0;
   border: 0;
+  outline: none;
   scroll-snap-align: center;
   background: transparent;
   color: #8e8e93;
@@ -845,6 +866,11 @@ button {
   transition:
     color 120ms ease,
     opacity 120ms ease;
+}
+.time-wheel-picker__value:focus-visible {
+  border-radius: 8px;
+  outline: 2px solid #ff9f0a;
+  outline-offset: -2px;
 }
 .time-wheel-picker__value--selected {
   color: #fff;
@@ -859,11 +885,20 @@ button {
   padding: 0 16px;
   text-align: center;
 }
+.clock-section-heading {
+  margin: 0;
+  padding: 4px 0 10px;
+  text-align: left;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 41px;
+  letter-spacing: -0.8px;
+}
 .clock-digits {
   margin: 70px 0 54px;
   font-variant-numeric: tabular-nums;
-  font-size: 45px;
-  font-weight: 250;
+  font-size: 58px;
+  font-weight: 200;
 }
 .clock-actions {
   display: flex;
@@ -890,12 +925,12 @@ button {
   border-radius: 50%;
   font-size: 34px;
 }
-.clock-timer-input {
+.clock-timer-settings {
   margin-right: 0;
   margin-left: 0;
 }
-.clock-timer-input input {
-  text-align: center;
+.clock-timer {
+  padding-bottom: 28px;
 }
 .camera-app {
   padding: 45px 0 25px;

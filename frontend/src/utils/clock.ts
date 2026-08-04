@@ -27,7 +27,23 @@ export function formatStopwatch(milliseconds: number): string {
 
 export function formatTimer(milliseconds: number): string {
   const totalSeconds = Math.ceil(milliseconds / 1000)
-  const minutes = Math.floor(totalSeconds / 60)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+export function timerPickerValue(milliseconds: number): string {
+  const totalSeconds = Math.floor(milliseconds / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return [hours, minutes, seconds]
+    .map((value) => String(value).padStart(2, '0'))
+    .join(':')
+}
+
+export function timerPickerMilliseconds(value: string): number {
+  const [hours = 0, minutes = 0, seconds = 0] = value.split(':').map(Number)
+  return (hours * 3600 + minutes * 60 + seconds) * 1000
 }

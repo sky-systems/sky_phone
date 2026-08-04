@@ -4,6 +4,7 @@ import {
   alarmMinuteKey,
   type Alarm,
   type AlarmDraft,
+  type AlarmSoundId,
   isAlarmDue,
   readAlarms,
   writeAlarms,
@@ -17,7 +18,9 @@ export const useClockStore = defineStore('clock', {
     stopwatchAccumulated: 0,
     stopwatchStartedAt: null as number | null,
     timerDuration: 5 * 60 * 1000,
+    timerNote: '',
     timerRemainingAtStart: 5 * 60 * 1000,
+    timerSound: 'radar' as AlarmSoundId,
     timerStartedAt: null as number | null,
   }),
   actions: {
@@ -89,10 +92,18 @@ export const useClockStore = defineStore('clock', {
       this.timerRemainingAtStart = this.timerDuration
       this.timerStartedAt = null
     },
-    setTimerMinutes(minutes: number): void {
-      this.timerDuration =
-        Math.max(1, Math.min(60, Math.round(minutes))) * 60 * 1000
+    setTimerDuration(milliseconds: number): void {
+      this.timerDuration = Math.max(
+        0,
+        Math.min(24 * 60 * 60 * 1000 - 1000, milliseconds),
+      )
       this.resetTimer()
+    },
+    setTimerNote(note: string): void {
+      this.timerNote = note
+    },
+    setTimerSound(sound: AlarmSoundId): void {
+      this.timerSound = sound
     },
     startStopwatch(now: number): void {
       if (this.stopwatchStartedAt !== null) return
@@ -102,6 +113,22 @@ export const useClockStore = defineStore('clock', {
       if (this.timerStartedAt !== null || this.timerRemainingAtStart <= 0)
         return
       this.timerStartedAt = now
+    },
+    consumeDueTimer(now: number): { note: string; sound: AlarmSoundId } | null {
+      if (
+        this.timerStartedAt === null ||
+        remainingMilliseconds(
+          this.timerRemainingAtStart,
+          this.timerStartedAt,
+          now,
+        ) > 0
+      ) {
+        return null
+      }
+
+      this.timerRemainingAtStart = 0
+      this.timerStartedAt = null
+      return { note: this.timerNote, sound: this.timerSound }
     },
     toggleAlarm(id: string): void {
       const alarm = this.alarms.find((candidate) => candidate.id === id)

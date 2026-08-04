@@ -36,6 +36,11 @@ Locales["en"] = {
                     daysShort = { sunday = "Sun", monday = "Mon", tuesday = "Tue", wednesday = "Wed", thursday = "Thu", friday = "Fri", saturday = "Sat" },
                     sounds = { radar = "Radar", beacon = "Beacon", chimes = "Chimes" },
                 },
+                timer = {
+                    time = "Timer duration", hours = "Hours", hoursShort = "hr", minutes = "Minutes", minutesShort = "min",
+                    seconds = "Seconds", secondsShort = "sec",
+                    note = "Note", notePlaceholder = "Timer", sound = "Sound", ringing = "Timer",
+                },
             },
             photos = {
                 name = "Photos", searchPlaceholder = "Photos, people, places...", recents = "Recents",

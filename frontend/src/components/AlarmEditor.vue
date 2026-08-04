@@ -9,7 +9,7 @@ import {
   kListItem,
   kNavbar,
 } from 'konsta/vue'
-import { Check } from 'lucide-vue-next'
+import { Check, X } from 'lucide-vue-next'
 import { reactive } from 'vue'
 
 import { usePhoneStore } from '@/stores/phone'
@@ -47,6 +47,9 @@ const dangerColors = {
   tonalBgIos: 'bg-red-500/15 active:bg-red-500/25',
   tonalTextIos: 'text-red-500',
 }
+const saveLinkColors = {
+  navbarTextIos: 'text-[#ff9f0a]',
+}
 
 function setNote(event: Event): void {
   draft.note = (event.target as HTMLInputElement).value.slice(0, 80)
@@ -71,13 +74,26 @@ function toggleWeekday(weekday: number): void {
 <template>
   <k-navbar :title="phone.t('Apps.clock.tabs.alarm')">
     <template #left>
-      <k-link component="button" @click="emit('cancel')">
-        {{ phone.t('Common.cancel') }}
+      <k-link
+        component="button"
+        icon-only
+        :link-props="{ type: 'button' }"
+        :aria-label="phone.t('Common.cancel')"
+        @click="emit('cancel')"
+      >
+        <X aria-hidden="true" />
       </k-link>
     </template>
     <template #right>
-      <k-link component="button" @click="save">
-        {{ phone.t('Common.save') }}
+      <k-link
+        component="button"
+        icon-only
+        :colors="saveLinkColors"
+        :link-props="{ type: 'button' }"
+        :aria-label="phone.t('Common.save')"
+        @click="save"
+      >
+        <Check aria-hidden="true" />
       </k-link>
     </template>
   </k-navbar>

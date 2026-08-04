@@ -20,6 +20,7 @@ import {
 } from '@/stores/notifications'
 import { usePhoneStore, type PhoneOpenPayload } from '@/stores/phone'
 import { nuiCall } from '@/utils/nui'
+import { formatTimer } from '@/utils/clock'
 import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
@@ -39,7 +40,7 @@ const phoneDeviceStyle = computed<CSSProperties>(() => ({
 const phoneFrameImage = computed(
   () => PHONE_FRAME_IMAGES[phone.preferences.settings.frame],
 )
-let alarmTicker: ReturnType<typeof setInterval> | undefined
+let clockTicker: ReturnType<typeof setInterval> | undefined
 
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (event.data?.type === 'app:open') {
@@ -67,8 +68,9 @@ onMounted(() => {
   systemColorScheme.addEventListener('change', onSystemColorSchemeChange)
   phone.setSystemDarkMode(systemColorScheme.matches)
   void nuiCall('ui:ready')
-  alarmTicker = setInterval(() => {
-    for (const alarm of clock.dueAlarms(Date.now())) {
+  clockTicker = setInterval(() => {
+    const now = Date.now()
+    for (const alarm of clock.dueAlarms(now)) {
       notifications.show({
         appId: 'clock',
         critical: true,
@@ -76,6 +78,19 @@ onMounted(() => {
         sound: alarm.sound,
         subtitle: alarm.time,
         text: alarm.note || phone.t('Apps.clock.alarm.ringing'),
+        title: phone.t('Apps.clock.name'),
+      })
+    }
+
+    const timer = clock.consumeDueTimer(now)
+    if (timer) {
+      notifications.show({
+        appId: 'clock',
+        critical: true,
+        persistent: true,
+        sound: timer.sound,
+        subtitle: formatTimer(clock.timerDuration),
+        text: timer.note || phone.t('Apps.clock.timer.ringing'),
         title: phone.t('Apps.clock.name'),
       })
     }
@@ -91,7 +106,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  if (alarmTicker) clearInterval(alarmTicker)
+  if (clockTicker) clearInterval(clockTicker)
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   systemColorScheme.removeEventListener('change', onSystemColorSchemeChange)
