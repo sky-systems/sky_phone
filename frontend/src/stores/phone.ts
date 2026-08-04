@@ -287,7 +287,7 @@ const defaultLocales: LocaleTree = {
       accountLocalDetail: 'Not signed in',
       accountCloudDetail: 'Mail and notes sync through iFruit Cloud',
       accountLoginBody:
-        'Sign in is optional. This phone also works with local data only.',
+        'Sign in to keep your Mail and Notes. Without an iFruit Account, this data is lost with the phone.',
       accountInformation: 'Account Information',
       accountStatus: 'Account Status',
       accountStatusValue: 'Active',

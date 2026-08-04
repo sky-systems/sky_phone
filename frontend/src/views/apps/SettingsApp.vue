@@ -12,6 +12,7 @@ import {
   kNavbar,
   kNavbarBackLink,
   kPage,
+  kPreloader,
   kRange,
   kSearchbar,
   kToast,
@@ -21,6 +22,7 @@ import {
   BellRing,
   Check,
   EyeOff,
+  KeyRound,
   Monitor,
   Plane,
   RotateCcw,
@@ -426,24 +428,45 @@ async function confirmFactoryReset(): Promise<void> {
               )
             }}
           </k-block-title>
-          <k-list>
+          <k-list class="bg-black">
             <k-list-input
+              class="relative"
               :value="accountEmail"
-              :label="phone.t('Apps.mail.email')"
+              :label="
+                phone.t(
+                  accountMode === 'login'
+                    ? 'Apps.mail.email'
+                    : 'Apps.mail.localPart',
+                )
+              "
               outline
               floating-label
+              :input-class="accountMode === 'register' ? 'pr-20' : undefined"
               autocomplete="username"
               autocapitalize="none"
+              spellcheck="false"
+              :clear-button="accountMode === 'login'"
               @input="accountEmail = eventValue($event)"
-            />
+              @clear="accountEmail = ''"
+            >
+              <span
+                v-if="accountMode === 'register'"
+                class="pointer-events-none absolute right-8 top-1/2 -translate-y-1/2 text-sm opacity-50"
+              >
+                @ifruit.com
+              </span>
+            </k-list-input>
             <k-list-input
               type="password"
               :value="accountPassword"
               :label="phone.t('Apps.mail.password')"
               outline
               floating-label
+              autocomplete="current-password"
               @input="accountPassword = eventValue($event)"
-            />
+            >
+              <template #media><KeyRound :size="20" /></template>
+            </k-list-input>
             <k-list-input
               v-if="accountMode === 'register'"
               type="password"
@@ -451,18 +474,24 @@ async function confirmFactoryReset(): Promise<void> {
               :label="phone.t('Apps.mail.confirmPassword')"
               outline
               floating-label
+              autocomplete="new-password"
               @input="accountConfirm = eventValue($event)"
-            />
+            >
+              <template #media><KeyRound :size="20" /></template>
+            </k-list-input>
           </k-list>
           <k-block>
             <k-button large rounded :disabled="accountSubmitting" @click="submitAccount">
-              {{
-                phone.t(
-                  accountMode === 'login'
-                    ? 'Apps.mail.login'
-                    : 'Apps.mail.register',
-                )
-              }}
+              <k-preloader v-if="accountSubmitting" />
+              <template v-else>
+                {{
+                  phone.t(
+                    accountMode === 'login'
+                      ? 'Apps.mail.login'
+                      : 'Apps.mail.register',
+                  )
+                }}
+              </template>
             </k-button>
           </k-block>
           <k-list strong inset>
@@ -478,17 +507,6 @@ async function confirmFactoryReset(): Promise<void> {
               }}
             </k-list-button>
           </k-list>
-          <k-block-title>{{ phone.t('Apps.settings.deviceInformation') }}</k-block-title>
-          <k-list strong inset>
-            <k-list-item
-              :title="phone.t('Apps.settings.imei')"
-              :after="phone.device?.imei ?? '—'"
-            />
-            <k-list-button @click="resetOpened = true">
-              <RotateCcw :size="18" />
-              {{ phone.t('Apps.settings.factoryReset') }}
-            </k-list-button>
-          </k-list>
         </template>
 
         <template v-else>
@@ -501,14 +519,6 @@ async function confirmFactoryReset(): Promise<void> {
               <UserRound class="w-12 h-12 text-primary" />
             </template>
           </k-list-item>
-          </k-list>
-
-          <k-block-title>{{ phone.t('Apps.settings.deviceInformation') }}</k-block-title>
-          <k-list strong inset>
-            <k-list-item
-              :title="phone.t('Apps.settings.imei')"
-              :after="phone.device?.imei ?? '—'"
-            />
           </k-list>
 
           <k-block-title>{{ phone.t('Apps.settings.linkedDevices') }}</k-block-title>
@@ -532,10 +542,6 @@ async function confirmFactoryReset(): Promise<void> {
           <k-list strong inset>
             <k-list-button @click="logoutAccount">
               {{ phone.t('Apps.settings.signOut') }}
-            </k-list-button>
-            <k-list-button @click="resetOpened = true">
-              <RotateCcw :size="18" />
-              {{ phone.t('Apps.settings.factoryReset') }}
             </k-list-button>
           </k-list>
         </template>
@@ -772,6 +778,18 @@ async function confirmFactoryReset(): Promise<void> {
             :title="phone.t('Apps.settings.localStorage')"
             :after="phone.t('Apps.settings.localStorageValue')"
           />
+        </k-list>
+
+        <k-block-title>{{ phone.t('Apps.settings.deviceInformation') }}</k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            :title="phone.t('Apps.settings.imei')"
+            :after="phone.device?.imei ?? '—'"
+          />
+          <k-list-button @click="resetOpened = true">
+            <RotateCcw :size="18" />
+            {{ phone.t('Apps.settings.factoryReset') }}
+          </k-list-button>
         </k-list>
       </template>
 

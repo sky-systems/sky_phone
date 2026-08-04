@@ -397,7 +397,7 @@ onBeforeUnmount(() => {
         )
       }}
     </k-block-title>
-    <k-list>
+    <k-list class="bg-black">
       <k-list-input
         class="relative"
         :value="authEmail"

@@ -118,7 +118,7 @@ Locales["en"] = {
                 name = "Settings", searchPlaceholder = "Search", airplaneMode = "Airplane Mode", streamerMode = "Streamer Mode",
                 wallpaper = "Wallpaper", on = "On", off = "Off", accountName = "iFruit Account",
                 accountDetail = "Cloud, Mail & Notes", accountLocalDetail = "Not signed in",
-                accountCloudDetail = "Mail and notes sync through iFruit Cloud", accountLoginBody = "Sign in is optional. This phone also works with local data only.",
+                accountCloudDetail = "Mail and notes sync through iFruit Cloud", accountLoginBody = "Sign in to keep your Mail and Notes. Without an iFruit Account, this data is lost with the phone.",
                 accountInformation = "Account Information", accountStatus = "Account Status", accountStatusValue = "Active",
                 accountStorage = "Cloud Storage", accountStorageValue = "On Device", accountPurchases = "Media & Purchases",
                 accountPurchasesValue = "Available", notifications = "Notifications", sounds = "Sounds & Haptics",
