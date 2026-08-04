@@ -1,10 +1,9 @@
-export const NOTES_STORAGE_KEY = 'sky_phone.notes.v1'
-
 export type Note = {
   body: string
   createdAt: number
   id: string
   pinned: boolean
+  revision: number
   title: string
   updatedAt: number
 }
@@ -21,6 +20,8 @@ function isNote(value: unknown): value is Note {
     typeof note.id === 'string' &&
     Boolean(note.id) &&
     typeof note.pinned === 'boolean' &&
+    (note.revision === undefined ||
+      (typeof note.revision === 'number' && Number.isFinite(note.revision))) &&
     typeof note.title === 'string' &&
     typeof note.updatedAt === 'number' &&
     Number.isFinite(note.updatedAt)
@@ -33,16 +34,11 @@ export function parseNotes(raw: string | null): Note[] {
   try {
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(isNote)
+    return parsed.filter(isNote).map((note) => ({
+      ...note,
+      revision: note.revision ?? 1,
+    }))
   } catch {
     return []
   }
-}
-
-export function readNotes(): Note[] {
-  return parseNotes(window.localStorage.getItem(NOTES_STORAGE_KEY))
-}
-
-export function writeNotes(notes: Note[]): void {
-  window.localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes))
 }

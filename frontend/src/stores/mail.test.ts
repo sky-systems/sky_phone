@@ -88,9 +88,10 @@ describe('mail store', () => {
   it('logs out the active session and resets mailbox state', async () => {
     mockNuiCall
       .mockResolvedValueOnce({
-        data: { counts, email: 'alex@ifruit.com' },
+        data: { devices: [], email: 'alex@ifruit.com' },
         success: true,
       })
+      .mockResolvedValueOnce({ data: counts, success: true })
       .mockResolvedValueOnce({
         data: { hasMore: true, items: [listItem(1)] },
         success: true,
@@ -108,5 +109,24 @@ describe('mail store', () => {
     expect(mail.search).toBe('')
     expect(mail.items).toEqual([])
     expect(mail.hasMore).toBe(false)
+  })
+
+  it('removes loaded cloud mail when the device becomes unlinked', async () => {
+    mockNuiCall
+      .mockResolvedValueOnce({ data: counts, success: true })
+      .mockResolvedValueOnce({
+        data: { hasMore: true, items: [listItem(1)] },
+        success: true,
+      })
+
+    const mail = useMailStore()
+    await mail.bootstrap('alex@ifruit.com')
+    await mail.loadFolder('sent', 'plans')
+    await mail.bootstrap('')
+
+    expect(mail.accountEmail).toBe('')
+    expect(mail.items).toEqual([])
+    expect(mail.folder).toBe('inbox')
+    expect(mail.search).toBe('')
   })
 })

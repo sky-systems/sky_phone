@@ -1,15 +1,11 @@
 import { defineStore } from 'pinia'
 
-import {
-  type Note,
-  type NoteDraft,
-  readNotes,
-  writeNotes,
-} from '@/utils/notes'
+import { nuiCall } from '@/utils/nui'
+import { type Note, type NoteDraft } from '@/utils/notes'
 
 export const useNotesStore = defineStore('notes', {
   state: () => ({
-    notes: readNotes(),
+    notes: [] as Note[],
   }),
   actions: {
     createNote(draft: NoteDraft): Note {
@@ -19,30 +15,41 @@ export const useNotesStore = defineStore('notes', {
         createdAt: now,
         id: `note-${now}-${Math.random().toString(36).slice(2, 9)}`,
         pinned: false,
+        revision: 1,
         updatedAt: now,
       }
       this.notes.unshift(note)
-      this.persist()
+      void this.createRemote(note)
       return note
     },
     deleteNote(id: string): void {
       this.notes = this.notes.filter((note) => note.id !== id)
-      this.persist()
+      void nuiCall<Note[]>('notes:delete', { id }).then((response) => {
+        if (response.success && response.data) this.hydrate(response.data)
+      })
     },
-    persist(): void {
-      writeNotes(this.notes)
+    hydrate(notes: Note[]): void {
+      this.notes = structuredClone(notes)
+    },
+    async createRemote(note: Note): Promise<void> {
+      const response = await nuiCall<Note[]>('notes:create', note)
+      if (response.data) this.hydrate(response.data)
     },
     togglePinned(id: string): void {
       const note = this.notes.find((candidate) => candidate.id === id)
       if (!note) return
       note.pinned = !note.pinned
-      this.persist()
+      void this.updateRemote(note)
     },
     updateNote(id: string, draft: NoteDraft): void {
       const note = this.notes.find((candidate) => candidate.id === id)
       if (!note) return
       Object.assign(note, draft, { updatedAt: Date.now() })
-      this.persist()
+      void this.updateRemote(note)
+    },
+    async updateRemote(note: Note): Promise<void> {
+      const response = await nuiCall<Note[]>('notes:update', note)
+      if (response.data) this.hydrate(response.data)
     },
   },
 })

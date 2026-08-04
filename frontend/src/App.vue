@@ -16,6 +16,10 @@ import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import PhoneStatusBar from '@/components/PhoneStatusBar.vue'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { useClockStore } from '@/stores/clock'
+import { useAccountStore } from '@/stores/account'
+import { useMailStore } from '@/stores/mail'
+import { useMediaStore } from '@/stores/media'
+import { useNotesStore } from '@/stores/notes'
 import {
   useNotificationsStore,
   type PhoneNotificationInput,
@@ -36,7 +40,11 @@ const PHONE_BASE_SCALE = 0.69
 const isDevelopment = import.meta.env.DEV
 
 const phone = usePhoneStore()
+const account = useAccountStore()
 const clock = useClockStore()
+const mail = useMailStore()
+const media = useMediaStore()
+const notes = useNotesStore()
 const notifications = useNotificationsStore()
 const route = useRoute()
 const router = useRouter()
@@ -66,9 +74,20 @@ function getViewportScale(): number {
   return Math.min(window.innerWidth / REFERENCE_VIEWPORT_WIDTH, heightScale)
 }
 
+function hydratePhone(payload: PhoneOpenPayload): void {
+  phone.open(payload)
+  account.hydrate(payload.account ?? null)
+  notes.hydrate(payload.notes ?? [])
+  clock.hydrate(payload.device?.data.alarms?.payload)
+  media.hydrate(payload.device?.data.media?.payload)
+  void mail.bootstrap(payload.account?.email ?? '')
+}
+
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (event.data?.type === 'app:open') {
-    phone.open(event.data.data as PhoneOpenPayload)
+    hydratePhone(event.data.data as PhoneOpenPayload)
+  } else if (event.data?.type === 'device:updated') {
+    hydratePhone(event.data.data as PhoneOpenPayload)
   } else if (event.data?.type === 'app:close') {
     phone.close()
   } else if (event.data?.type === 'notification:show' && event.data.data) {
@@ -140,7 +159,18 @@ onMounted(() => {
       })
     }
   }, 1000)
-  if (isDevelopment) phone.open()
+  if (isDevelopment) {
+    hydratePhone({
+      account: null,
+      device: {
+        data: {},
+        imei: '356938035643809',
+        name: 'iFruit Phone',
+      },
+      notes: [],
+      token: 'development',
+    })
+  }
 })
 
 watch(

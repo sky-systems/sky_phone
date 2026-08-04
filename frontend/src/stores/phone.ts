@@ -1,21 +1,29 @@
 import { defineStore } from 'pinia'
 
 import type { AppLaunchOrigin, PhoneAppId } from '@/types/apps'
+import type { DeviceBootstrap, PhoneDevice } from '@/types/device'
 import { clampPage } from '@/utils/pages'
+import { nuiCall } from '@/utils/nui'
 import {
-  readPhonePreferences,
+  DEFAULT_PHONE_PREFERENCES,
+  parsePhonePreferences,
   type AppNotificationPreferences,
   type PhonePreferencesV1,
   type WallpaperId,
-  writePhonePreferences,
 } from '@/utils/preferences'
 
 type LocaleTree = Record<string, unknown>
 
 export type PhoneOpenPayload = {
+  account?: DeviceBootstrap['account']
+  device?: PhoneDevice
   lang?: string
   locales?: LocaleTree
+  notes?: DeviceBootstrap['notes']
+  token?: string
 }
+
+const namespaceQueues = new Map<string, Promise<void>>()
 
 const defaultLocales: LocaleTree = {
   Apps: {
@@ -275,8 +283,11 @@ const defaultLocales: LocaleTree = {
       on: 'On',
       off: 'Off',
       accountName: 'iFruit Account',
-      accountDetail: 'Cloud, Media & Purchases',
-      accountLocalDetail: 'Local account for this phone',
+      accountDetail: 'Cloud, Mail & Notes',
+      accountLocalDetail: 'Not signed in',
+      accountCloudDetail: 'Mail and notes sync through iFruit Cloud',
+      accountLoginBody:
+        'Sign in is optional. This phone also works with local data only.',
       accountInformation: 'Account Information',
       accountStatus: 'Account Status',
       accountStatusValue: 'Active',
@@ -310,6 +321,27 @@ const defaultLocales: LocaleTree = {
       languageValue: 'English',
       localStorage: 'Local Storage',
       localStorageValue: 'On Device',
+      deviceInformation: 'Device Information',
+      imei: 'IMEI',
+      linkedDevices: 'Linked Devices',
+      thisDevice: 'This Phone',
+      removeDevice: 'Remove Device',
+      removeDeviceBody:
+        'Enter your iFruit password to remove this device from the account.',
+      signOut: 'Sign Out',
+      factoryReset: 'Erase All Content and Settings',
+      factoryResetBody:
+        'This removes the account and all local data from this phone. Cloud data and the IMEI remain.',
+      accountErrors: {
+        invalid_email: 'Choose a valid 3–32 character iFruit address.',
+        invalid_password: 'Password must be 6–64 characters.',
+        invalid_credentials: 'Email or password is incorrect.',
+        email_taken: 'That iFruit address is already registered.',
+        rate_limited: 'Too many attempts. Try again in a minute.',
+        current_device: 'Sign out instead of removing the current phone.',
+        device_not_found: 'That device is no longer linked.',
+        default: 'The account request failed.',
+      },
       back: 'Settings',
       wallpaperPicker: 'Built-in Wallpapers',
       toggle: {
@@ -409,11 +441,13 @@ function getByPath(source: LocaleTree, path: string): unknown {
 export const usePhoneStore = defineStore('phone', {
   state: () => ({
     currentPage: 1,
+    device: null as PhoneDevice | null,
+    deviceRevisions: {} as Record<string, number>,
     isOpen: false,
     lang: 'en',
     launchOrigin: null as AppLaunchOrigin | null,
     locales: defaultLocales,
-    preferences: readPhonePreferences(),
+    preferences: structuredClone(DEFAULT_PHONE_PREFERENCES),
     systemDarkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
   }),
   getters: {
@@ -430,7 +464,38 @@ export const usePhoneStore = defineStore('phone', {
     open(payload: PhoneOpenPayload = {}): void {
       this.lang = payload.lang ?? 'en'
       this.locales = payload.locales ?? defaultLocales
+      if (payload.device) this.hydrateDevice(payload.device)
       this.isOpen = true
+    },
+    hydrateDevice(device: PhoneDevice): void {
+      this.device = device
+      this.deviceRevisions = Object.fromEntries(
+        Object.entries(device.data).map(([key, value]) => [
+          key,
+          value?.revision ?? 0,
+        ]),
+      )
+      this.preferences = parsePhonePreferences(
+        JSON.stringify(device.data.settings?.payload ?? null),
+      )
+    },
+    saveDeviceNamespace(namespace: string, payload: unknown): void {
+      const previous = namespaceQueues.get(namespace) ?? Promise.resolve()
+      const queued = previous.then(async () => {
+        const response = await nuiCall<{ revision: number }>('device:save', {
+          namespace,
+          payload,
+          revision: this.deviceRevisions[namespace] ?? 0,
+        })
+        if (response.success && response.data) {
+          this.deviceRevisions[namespace] = response.data.revision
+        }
+      })
+      const tracked = queued.finally(() => {
+        if (namespaceQueues.get(namespace) === tracked)
+          namespaceQueues.delete(namespace)
+      })
+      namespaceQueues.set(namespace, tracked)
     },
     setCurrentPage(page: number): void {
       this.currentPage = clampPage(page)
@@ -444,21 +509,21 @@ export const usePhoneStore = defineStore('phone', {
       value: boolean,
     ): void {
       this.preferences.settings.notifications[appId][key] = value
-      writePhonePreferences(this.preferences)
+      this.saveDeviceNamespace('settings', this.preferences)
     },
     setPreference<K extends keyof PhonePreferencesV1['settings']>(
       key: K,
       value: PhonePreferencesV1['settings'][K],
     ): void {
       this.preferences.settings[key] = value
-      writePhonePreferences(this.preferences)
+      this.saveDeviceNamespace('settings', this.preferences)
     },
     setSystemDarkMode(value: boolean): void {
       this.systemDarkMode = value
     },
     setWallpaper(wallpaper: WallpaperId): void {
       this.preferences.settings.wallpaper = wallpaper
-      writePhonePreferences(this.preferences)
+      this.saveDeviceNamespace('settings', this.preferences)
     },
     t(path: string, replacements: Record<string, string> = {}): string {
       const translated = getByPath(this.locales, path)

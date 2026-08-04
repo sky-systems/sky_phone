@@ -361,9 +361,7 @@ onBeforeUnmount(() => {
   if (draftTimer) clearTimeout(draftTimer)
   if (searchTimer) clearTimeout(searchTimer)
   if (screen.value === 'compose') {
-    void saveDraftNow().finally(() => mail.logout())
-  } else {
-    void mail.logout()
+    void saveDraftNow()
   }
 })
 </script>

@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 
+import { usePhoneStore } from '@/stores/phone'
+
 export type PhonePhoto = {
   capturedAt: number
   gradient: string
@@ -59,9 +61,29 @@ export const useMediaStore = defineStore('media', {
         id: `capture-${Date.now()}`,
         titleKey: 'Apps.photos.samples.capture',
       })
+      this.persist()
     },
     claimApp(id: string): void {
-      if (!this.claimedApps.includes(id)) this.claimedApps.push(id)
+      if (!this.claimedApps.includes(id)) {
+        this.claimedApps.push(id)
+        this.persist()
+      }
+    },
+    hydrate(payload: unknown): void {
+      const data = payload as Partial<{
+        captures: PhonePhoto[]
+        claimedApps: string[]
+      }> | null
+      this.captures = Array.isArray(data?.captures) ? data.captures : []
+      this.claimedApps = Array.isArray(data?.claimedApps)
+        ? data.claimedApps.filter((id): id is string => typeof id === 'string')
+        : []
+    },
+    persist(): void {
+      usePhoneStore().saveDeviceNamespace('media', {
+        captures: this.captures,
+        claimedApps: this.claimedApps,
+      })
     },
   },
 })

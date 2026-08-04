@@ -1,7 +1,5 @@
 import type { PhoneAppId } from '@/types/apps'
 
-export const PHONE_PREFERENCES_KEY = 'sky_phone.preferences.v1'
-
 export const APPEARANCE_MODE_IDS = ['automatic', 'light', 'dark'] as const
 export const PHONE_FRAME_IDS = [
   'black',
@@ -196,17 +194,4 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
   } catch {
     return structuredClone(DEFAULT_PHONE_PREFERENCES)
   }
-}
-
-export function readPhonePreferences(): PhonePreferencesV1 {
-  return parsePhonePreferences(
-    window.localStorage.getItem(PHONE_PREFERENCES_KEY),
-  )
-}
-
-export function writePhonePreferences(preferences: PhonePreferencesV1): void {
-  window.localStorage.setItem(
-    PHONE_PREFERENCES_KEY,
-    JSON.stringify(preferences),
-  )
 }

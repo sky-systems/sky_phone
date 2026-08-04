@@ -23,4 +23,3 @@ _Avoid_: Player account, character account, mail account
 **Cloud Data**:
 Information owned by an iFruit Account and available on every Device linked to it.
 _Avoid_: Device Data, local data
-

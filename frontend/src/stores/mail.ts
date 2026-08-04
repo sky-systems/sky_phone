@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { useAccountStore } from '@/stores/account'
+import type { IfruitAccount } from '@/types/device'
 import type {
   MailComposeDraft,
   MailCounts,
@@ -9,7 +11,6 @@ import type {
   MailListItem,
   MailListResponse,
   MailMessage,
-  MailSession,
 } from '@/types/mail'
 import { nuiCall } from '@/utils/nui'
 
@@ -22,6 +23,7 @@ const emptyCounts = (): MailCounts => ({
 })
 
 export const useMailStore = defineStore('mail', () => {
+  const account = useAccountStore()
   const accountEmail = ref('')
   const counts = ref<MailCounts>(emptyCounts())
   const folder = ref<MailFolder>('inbox')
@@ -30,37 +32,54 @@ export const useMailStore = defineStore('mail', () => {
   const loading = ref(false)
   const search = ref('')
 
-  function applySession(session: MailSession): void {
-    accountEmail.value = session.email
-    counts.value = session.counts
-  }
-
-  async function login(email: string, password: string) {
-    const response = await nuiCall<MailSession>('mail:login', {
-      email,
-      password,
-    })
-    if (response.success && response.data) applySession(response.data)
-    return response
-  }
-
-  async function register(email: string, password: string) {
-    const response = await nuiCall<MailSession>('mail:register', {
-      email,
-      password,
-    })
-    if (response.success && response.data) applySession(response.data)
-    return response
-  }
-
-  async function logout(): Promise<void> {
-    if (accountEmail.value) await nuiCall('mail:logout')
+  function clearSession(): void {
     accountEmail.value = ''
     counts.value = emptyCounts()
     items.value = []
     hasMore.value = false
     folder.value = 'inbox'
     search.value = ''
+  }
+
+  async function bootstrap(email: string): Promise<void> {
+    if (!email) {
+      clearSession()
+      return
+    }
+    accountEmail.value = email
+    await refreshCounts()
+  }
+
+  async function login(email: string, password: string) {
+    const response = await nuiCall<IfruitAccount>('mail:login', {
+      email,
+      password,
+    })
+    if (response.success && response.data) {
+      account.hydrate(response.data)
+      await bootstrap(response.data.email)
+    }
+    return response
+  }
+
+  async function register(email: string, password: string) {
+    const response = await nuiCall<IfruitAccount>('mail:register', {
+      email,
+      password,
+    })
+    if (response.success && response.data) {
+      account.hydrate(response.data)
+      await bootstrap(response.data.email)
+    }
+    return response
+  }
+
+  async function logout(): Promise<void> {
+    if (accountEmail.value) {
+      const response = await nuiCall('mail:logout')
+      if (response.success) account.hydrate(null)
+    }
+    clearSession()
   }
 
   async function loadFolder(
@@ -160,6 +179,7 @@ export const useMailStore = defineStore('mail', () => {
 
   return {
     accountEmail,
+    bootstrap,
     counts,
     deleteDraft,
     emptyTrash,

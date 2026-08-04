@@ -5,15 +5,16 @@ import {
   type Alarm,
   type AlarmDraft,
   type AlarmSoundId,
+  DEFAULT_ALARMS,
   isAlarmDue,
-  readAlarms,
-  writeAlarms,
+  parseAlarms,
 } from '@/utils/alarms'
 import { elapsedMilliseconds, remainingMilliseconds } from '@/utils/clock'
+import { usePhoneStore } from '@/stores/phone'
 
 export const useClockStore = defineStore('clock', {
   state: () => ({
-    alarms: readAlarms(),
+    alarms: structuredClone(DEFAULT_ALARMS),
     laps: [] as number[],
     stopwatchAccumulated: 0,
     stopwatchStartedAt: null as number | null,
@@ -81,7 +82,10 @@ export const useClockStore = defineStore('clock', {
       this.timerStartedAt = null
     },
     persistAlarms(): void {
-      writeAlarms(this.alarms)
+      usePhoneStore().saveDeviceNamespace('alarms', this.alarms)
+    },
+    hydrate(alarms: unknown): void {
+      this.alarms = parseAlarms(alarms)
     },
     resetStopwatch(): void {
       this.stopwatchAccumulated = 0

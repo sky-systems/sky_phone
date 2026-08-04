@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import {
+  kBlock,
   kBlockTitle,
+  kButton,
+  kDialog,
+  kDialogButton,
   kList,
+  kListButton,
+  kListInput,
   kListItem,
   kNavbar,
   kNavbarBackLink,
   kPage,
   kRange,
   kSearchbar,
+  kToast,
   kToggle,
 } from 'konsta/vue'
 import {
@@ -16,7 +23,9 @@ import {
   EyeOff,
   Monitor,
   Plane,
+  RotateCcw,
   Settings,
+  Smartphone,
   Sun,
   UserRound,
   Volume2,
@@ -26,6 +35,7 @@ import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { PHONE_APPS } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
+import { useAccountStore } from '@/stores/account'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 import {
   APPEARANCE_MODE_IDS,
@@ -55,10 +65,21 @@ type RootToggleKey = 'airplaneMode' | 'streamerMode'
 type SubmenuView = Exclude<SettingsView, 'root' | 'notification-detail'>
 
 const phone = usePhoneStore()
+const account = useAccountStore()
 const query = ref('')
 const activeView = ref<SettingsView>('root')
 const selectedNotificationAppId = ref<PhoneAppId>('calculator')
 const settingsPage = ref<ComponentPublicInstance | null>(null)
+const accountMode = ref<'login' | 'register'>('login')
+const accountEmail = ref('')
+const accountPassword = ref('')
+const accountConfirm = ref('')
+const accountSubmitting = ref(false)
+const accountToast = ref('')
+const removeDeviceImei = ref('')
+const removeDevicePassword = ref('')
+const removeDeviceOpened = ref(false)
+const resetOpened = ref(false)
 
 const toggleRows = [
   {
@@ -208,6 +229,70 @@ function selectRingtone(ringtone: RingtoneId): void {
 function selectNotificationSound(sound: NotificationSoundId): void {
   phone.setPreference('notificationSound', sound)
 }
+
+function eventValue(event: Event): string {
+  return (event.target as HTMLInputElement).value
+}
+
+function accountError(error?: string): string {
+  const known = [
+    'invalid_email',
+    'invalid_password',
+    'invalid_credentials',
+    'email_taken',
+    'rate_limited',
+    'current_device',
+    'device_not_found',
+  ]
+  return phone.t(
+    `Apps.settings.accountErrors.${error && known.includes(error) ? error : 'default'}`,
+  )
+}
+
+async function submitAccount(): Promise<void> {
+  if (
+    accountMode.value === 'register' &&
+    accountPassword.value !== accountConfirm.value
+  ) {
+    accountToast.value = phone.t('Apps.mail.passwordsMismatch')
+    return
+  }
+  accountSubmitting.value = true
+  const response =
+    accountMode.value === 'login'
+      ? await account.login(accountEmail.value, accountPassword.value)
+      : await account.register(accountEmail.value, accountPassword.value)
+  accountSubmitting.value = false
+  if (!response.success) accountToast.value = accountError(response.error)
+  else {
+    accountPassword.value = ''
+    accountConfirm.value = ''
+  }
+}
+
+async function logoutAccount(): Promise<void> {
+  if (!(await account.logout())) accountToast.value = accountError()
+}
+
+function requestRemoveDevice(imei: string): void {
+  removeDeviceImei.value = imei
+  removeDevicePassword.value = ''
+  removeDeviceOpened.value = true
+}
+
+async function confirmRemoveDevice(): Promise<void> {
+  const response = await account.removeDevice(
+    removeDeviceImei.value,
+    removeDevicePassword.value,
+  )
+  if (!response.success) accountToast.value = accountError(response.error)
+  else removeDeviceOpened.value = false
+}
+
+async function confirmFactoryReset(): Promise<void> {
+  resetOpened.value = false
+  if (!(await account.factoryReset())) accountToast.value = accountError()
+}
 </script>
 
 <template>
@@ -331,34 +416,129 @@ function selectNotificationSound(sound: NotificationSoundId): void {
       </k-navbar>
 
       <template v-if="activeView === 'account'">
-        <k-list strong inset>
+        <template v-if="!account.email">
+          <k-block-title>
+            {{
+              phone.t(
+                accountMode === 'login'
+                  ? 'Apps.settings.accountLoginBody'
+                  : 'Apps.mail.passwordWarning',
+              )
+            }}
+          </k-block-title>
+          <k-list>
+            <k-list-input
+              :value="accountEmail"
+              :label="phone.t('Apps.mail.email')"
+              outline
+              floating-label
+              autocomplete="username"
+              autocapitalize="none"
+              @input="accountEmail = eventValue($event)"
+            />
+            <k-list-input
+              type="password"
+              :value="accountPassword"
+              :label="phone.t('Apps.mail.password')"
+              outline
+              floating-label
+              @input="accountPassword = eventValue($event)"
+            />
+            <k-list-input
+              v-if="accountMode === 'register'"
+              type="password"
+              :value="accountConfirm"
+              :label="phone.t('Apps.mail.confirmPassword')"
+              outline
+              floating-label
+              @input="accountConfirm = eventValue($event)"
+            />
+          </k-list>
+          <k-block>
+            <k-button large rounded :disabled="accountSubmitting" @click="submitAccount">
+              {{
+                phone.t(
+                  accountMode === 'login'
+                    ? 'Apps.mail.login'
+                    : 'Apps.mail.register',
+                )
+              }}
+            </k-button>
+          </k-block>
+          <k-list strong inset>
+            <k-list-button
+              @click="accountMode = accountMode === 'login' ? 'register' : 'login'"
+            >
+              {{
+                phone.t(
+                  accountMode === 'login'
+                    ? 'Apps.mail.register'
+                    : 'Apps.mail.login',
+                )
+              }}
+            </k-list-button>
+          </k-list>
+          <k-block-title>{{ phone.t('Apps.settings.deviceInformation') }}</k-block-title>
+          <k-list strong inset>
+            <k-list-item
+              :title="phone.t('Apps.settings.imei')"
+              :after="phone.device?.imei ?? '—'"
+            />
+            <k-list-button @click="resetOpened = true">
+              <RotateCcw :size="18" />
+              {{ phone.t('Apps.settings.factoryReset') }}
+            </k-list-button>
+          </k-list>
+        </template>
+
+        <template v-else>
+          <k-list strong inset>
           <k-list-item
-            :title="phone.t('Apps.settings.accountName')"
-            :subtitle="phone.t('Apps.settings.accountLocalDetail')"
+            :title="account.email"
+            :subtitle="phone.t('Apps.settings.accountCloudDetail')"
           >
             <template #media>
               <UserRound class="w-12 h-12 text-primary" />
             </template>
           </k-list-item>
-        </k-list>
+          </k-list>
 
-        <k-block-title>
-          {{ phone.t('Apps.settings.accountInformation') }}
-        </k-block-title>
-        <k-list strong inset>
-          <k-list-item
-            :title="phone.t('Apps.settings.accountStatus')"
-            :after="phone.t('Apps.settings.accountStatusValue')"
-          />
-          <k-list-item
-            :title="phone.t('Apps.settings.accountStorage')"
-            :after="phone.t('Apps.settings.accountStorageValue')"
-          />
-          <k-list-item
-            :title="phone.t('Apps.settings.accountPurchases')"
-            :after="phone.t('Apps.settings.accountPurchasesValue')"
-          />
-        </k-list>
+          <k-block-title>{{ phone.t('Apps.settings.deviceInformation') }}</k-block-title>
+          <k-list strong inset>
+            <k-list-item
+              :title="phone.t('Apps.settings.imei')"
+              :after="phone.device?.imei ?? '—'"
+            />
+          </k-list>
+
+          <k-block-title>{{ phone.t('Apps.settings.linkedDevices') }}</k-block-title>
+          <k-list strong inset>
+            <k-list-item
+              v-for="device in account.devices"
+              :key="device.imei"
+              :title="device.device_name"
+              :subtitle="device.imei"
+              :after="device.current ? phone.t('Apps.settings.thisDevice') : undefined"
+            >
+              <template #media><Smartphone :size="22" /></template>
+              <template v-if="!device.current" #footer>
+                <k-list-button @click="requestRemoveDevice(device.imei)">
+                  {{ phone.t('Apps.settings.removeDevice') }}
+                </k-list-button>
+              </template>
+            </k-list-item>
+          </k-list>
+
+          <k-list strong inset>
+            <k-list-button @click="logoutAccount">
+              {{ phone.t('Apps.settings.signOut') }}
+            </k-list-button>
+            <k-list-button @click="resetOpened = true">
+              <RotateCcw :size="18" />
+              {{ phone.t('Apps.settings.factoryReset') }}
+            </k-list-button>
+          </k-list>
+        </template>
       </template>
 
       <template v-else-if="activeView === 'notifications'">
@@ -689,4 +869,51 @@ function selectNotificationSound(sound: NotificationSoundId): void {
       </template>
     </template>
   </k-page>
+
+  <k-dialog
+    :opened="removeDeviceOpened"
+    :title="phone.t('Apps.settings.removeDevice')"
+    :content="phone.t('Apps.settings.removeDeviceBody')"
+    @backdropclick="removeDeviceOpened = false"
+  >
+    <k-list>
+      <k-list-input
+        type="password"
+        :value="removeDevicePassword"
+        :label="phone.t('Apps.mail.password')"
+        @input="removeDevicePassword = eventValue($event)"
+      />
+    </k-list>
+    <template #buttons>
+      <k-dialog-button @click="removeDeviceOpened = false">
+        {{ phone.t('Common.cancel') }}
+      </k-dialog-button>
+      <k-dialog-button strong @click="confirmRemoveDevice">
+        {{ phone.t('Apps.settings.removeDevice') }}
+      </k-dialog-button>
+    </template>
+  </k-dialog>
+
+  <k-dialog
+    :opened="resetOpened"
+    :title="phone.t('Apps.settings.factoryReset')"
+    :content="phone.t('Apps.settings.factoryResetBody')"
+    @backdropclick="resetOpened = false"
+  >
+    <template #buttons>
+      <k-dialog-button @click="resetOpened = false">
+        {{ phone.t('Common.cancel') }}
+      </k-dialog-button>
+      <k-dialog-button strong @click="confirmFactoryReset">
+        {{ phone.t('Common.reset') }}
+      </k-dialog-button>
+    </template>
+  </k-dialog>
+
+  <k-toast
+    :opened="Boolean(accountToast)"
+    position="center"
+    :text="accountToast"
+    @click="accountToast = ''"
+  />
 </template>

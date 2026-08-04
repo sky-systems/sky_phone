@@ -9,6 +9,18 @@ app.use(express.json())
 
 let authenticated = false
 let draft = null
+let linkedAccount = null
+let mockNotes = []
+const deviceData = {}
+const accountDevices = [
+  {
+    created_at: '2026-08-04 12:00:00',
+    current: true,
+    device_name: 'iFruit Phone',
+    imei: '356938035643809',
+    updated_at: '2026-08-04 12:00:00',
+  },
+]
 const messages = [
   {
     body: 'Welcome to iFruit Mail. Your shared mailbox is ready to use.',
@@ -82,12 +94,82 @@ function counts() {
 app.post('/api/:endpoint', (request, response) => {
   console.log(`[NUI] ${request.params.endpoint}`, request.body)
   const endpoint = request.params.endpoint
+  if (endpoint === 'account:login' || endpoint === 'account:register') {
+    authenticated = true
+    linkedAccount = {
+      devices: accountDevices,
+      email: request.body.email.includes('@')
+        ? request.body.email
+        : `${request.body.email}@ifruit.com`,
+    }
+    response.json({ success: true, data: linkedAccount })
+    return
+  }
+  if (endpoint === 'account:logout') {
+    authenticated = false
+    linkedAccount = null
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'account:devices') {
+    response.json({ success: true, data: accountDevices })
+    return
+  }
+  if (endpoint === 'account:remove-device') {
+    response.json({ success: true, data: accountDevices })
+    return
+  }
+  if (endpoint === 'device:save') {
+    const current = deviceData[request.body.namespace]
+    const revision = (current?.revision ?? 0) + 1
+    deviceData[request.body.namespace] = {
+      payload: request.body.payload,
+      revision,
+    }
+    response.json({ success: true, data: { revision } })
+    return
+  }
+  if (endpoint === 'device:factory-reset') {
+    authenticated = false
+    linkedAccount = null
+    mockNotes = []
+    for (const key of Object.keys(deviceData)) delete deviceData[key]
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'notes:list') {
+    response.json({ success: true, data: mockNotes })
+    return
+  }
+  if (endpoint === 'notes:create') {
+    mockNotes.unshift({ ...request.body, revision: 1 })
+    response.json({ success: true, data: mockNotes })
+    return
+  }
+  if (endpoint === 'notes:update') {
+    const index = mockNotes.findIndex((note) => note.id === request.body.id)
+    if (index >= 0) {
+      mockNotes[index] = {
+        ...request.body,
+        revision: mockNotes[index].revision + 1,
+        updatedAt: Date.now(),
+      }
+    }
+    response.json({ success: true, data: mockNotes })
+    return
+  }
+  if (endpoint === 'notes:delete') {
+    mockNotes = mockNotes.filter((note) => note.id !== request.body.id)
+    response.json({ success: true, data: mockNotes })
+    return
+  }
   if (endpoint === 'mail:login' || endpoint === 'mail:register') {
     authenticated = true
-    response.json({
-      success: true,
-      data: { counts: counts(), email: 'demo@ifruit.com' },
-    })
+    linkedAccount = {
+      devices: accountDevices,
+      email: 'demo@ifruit.com',
+    }
+    response.json({ success: true, data: linkedAccount })
     return
   }
   if (endpoint === 'mail:logout') {

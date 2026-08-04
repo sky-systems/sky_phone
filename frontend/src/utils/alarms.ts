@@ -1,5 +1,3 @@
-export const ALARMS_STORAGE_KEY = 'sky_phone.clock.alarms.v1'
-
 export const ALARM_SOUND_IDS = [
   'radar',
   'beacon',
@@ -27,7 +25,7 @@ export type Alarm = {
 
 export type AlarmDraft = Pick<Alarm, 'note' | 'sound' | 'time' | 'weekdays'>
 
-const DEFAULT_ALARMS: Alarm[] = [
+export const DEFAULT_ALARMS: Alarm[] = [
   {
     enabled: true,
     id: 'weekday',
@@ -90,21 +88,9 @@ function readAlarm(value: unknown): Alarm | null {
   }
 }
 
-export function readAlarms(): Alarm[] {
-  const raw = window.localStorage.getItem(ALARMS_STORAGE_KEY)
-  if (!raw) return structuredClone(DEFAULT_ALARMS)
-
-  try {
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return structuredClone(DEFAULT_ALARMS)
-    return parsed.map(readAlarm).filter((alarm): alarm is Alarm => !!alarm)
-  } catch {
-    return structuredClone(DEFAULT_ALARMS)
-  }
-}
-
-export function writeAlarms(alarms: Alarm[]): void {
-  window.localStorage.setItem(ALARMS_STORAGE_KEY, JSON.stringify(alarms))
+export function parseAlarms(value: unknown): Alarm[] {
+  if (!Array.isArray(value)) return structuredClone(DEFAULT_ALARMS)
+  return value.map(readAlarm).filter((alarm): alarm is Alarm => !!alarm)
 }
 
 export function alarmMinuteKey(date: Date): string {

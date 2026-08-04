@@ -14,7 +14,7 @@ describe('notes persistence', () => {
     }
 
     expect(parseNotes(JSON.stringify([valid, { id: 'broken' }]))).toEqual([
-      valid,
+      { ...valid, revision: 1 },
     ])
   })
 
