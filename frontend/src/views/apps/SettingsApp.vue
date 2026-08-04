@@ -5,6 +5,7 @@ import {
   kButton,
   kDialog,
   kDialogButton,
+  kLink,
   kList,
   kListButton,
   kListInput,
@@ -466,6 +467,21 @@ onBeforeUnmount(() => {
             @click="goBack"
           />
         </template>
+        <template #right>
+          <k-link
+            v-if="activeView === 'account' && !account.email"
+            component="button"
+            @click="accountMode = accountMode === 'login' ? 'register' : 'login'"
+          >
+            {{
+              phone.t(
+                accountMode === 'login'
+                  ? 'Apps.mail.registerLink'
+                  : 'Apps.mail.login',
+              )
+            }}
+          </k-link>
+        </template>
       </k-navbar>
 
       <template v-if="activeView === 'account'">
@@ -548,19 +564,6 @@ onBeforeUnmount(() => {
               </template>
             </k-button>
           </k-block>
-          <k-list strong inset>
-            <k-list-button
-              @click="accountMode = accountMode === 'login' ? 'register' : 'login'"
-            >
-              {{
-                phone.t(
-                  accountMode === 'login'
-                    ? 'Apps.mail.register'
-                    : 'Apps.mail.login',
-                )
-              }}
-            </k-list-button>
-          </k-list>
         </template>
 
         <template v-else>
