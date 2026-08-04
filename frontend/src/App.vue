@@ -31,6 +31,7 @@ type AppMessage = {
 
 const REFERENCE_VIEWPORT_WIDTH = 1920
 const REFERENCE_VIEWPORT_HEIGHT = 1080
+const PHONE_BASE_SCALE = 0.69
 
 const phone = usePhoneStore()
 const clock = useClockStore()
@@ -45,8 +46,11 @@ const viewportScale = ref(
   ),
 )
 const phoneResolutionStyle = computed<CSSProperties>(() => ({
+  '--phone-edge-gap': `${24 * viewportScale.value}px`,
   '--phone-zoom':
-    viewportScale.value * (phone.preferences.settings.phoneScale / 100),
+    viewportScale.value *
+    PHONE_BASE_SCALE *
+    (phone.preferences.settings.phoneScale / 100),
 }))
 const phoneFrameImage = computed(
   () => PHONE_FRAME_IMAGES[phone.preferences.settings.frame],
@@ -134,43 +138,49 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main
-    v-if="phone.isOpen || notifications.current"
-    class="phone-stage"
-    :class="{ 'phone-stage--peek': notifications.isPeeking }"
-  >
-    <div class="phone-resolution-wrapper" :style="phoneResolutionStyle">
-      <section class="phone-device" :aria-label="phone.t('Common.phone')">
-        <div class="phone-screen" :class="{ 'phone-screen--app': isAppRoute }">
-          <k-app
-            theme="ios"
-            :dark="phone.isDarkMode"
-            safe-areas
-            class="phone-app"
-            :class="{
-              dark: phone.isDarkMode,
-              'phone-app--light': !phone.isDarkMode,
-            }"
+  <Transition name="phone-lift" appear>
+    <main
+      v-if="phone.isOpen || notifications.current"
+      class="phone-stage"
+      :class="{ 'phone-stage--peek': notifications.isPeeking }"
+      :style="phoneResolutionStyle"
+    >
+      <div class="phone-resolution-wrapper">
+        <section class="phone-device" :aria-label="phone.t('Common.phone')">
+          <div
+            class="phone-screen"
+            :class="{ 'phone-screen--app': isAppRoute }"
           >
-            <PhoneStatusBar />
-            <SpringboardView />
-            <RouterView v-slot="{ Component }">
-              <Transition name="app-window">
-                <component :is="Component" v-if="isAppRoute" />
-              </Transition>
-            </RouterView>
-            <PhoneHomeIndicator />
-            <PhoneNotifications />
-          </k-app>
-        </div>
-        <img
-          class="phone-device__frame"
-          :src="phoneFrameImage"
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-        />
-      </section>
-    </div>
-  </main>
+            <k-app
+              theme="ios"
+              :dark="phone.isDarkMode"
+              safe-areas
+              class="phone-app"
+              :class="{
+                dark: phone.isDarkMode,
+                'phone-app--light': !phone.isDarkMode,
+              }"
+            >
+              <PhoneStatusBar />
+              <SpringboardView />
+              <RouterView v-slot="{ Component }">
+                <Transition name="app-window">
+                  <component :is="Component" v-if="isAppRoute" />
+                </Transition>
+              </RouterView>
+              <PhoneHomeIndicator />
+              <PhoneNotifications />
+            </k-app>
+          </div>
+          <img
+            class="phone-device__frame"
+            :src="phoneFrameImage"
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+        </section>
+      </div>
+    </main>
+  </Transition>
 </template>

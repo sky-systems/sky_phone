@@ -34,16 +34,29 @@ button {
   position: fixed;
   inset: 0;
   display: grid;
-  place-items: center;
-  pointer-events: none;
-}
-.phone-stage--peek {
   place-items: end;
-  padding: 0 24px;
+  padding: 0 var(--phone-edge-gap, 24px) var(--phone-edge-gap, 24px) 0;
+  pointer-events: none;
 }
 .phone-stage--peek .phone-device {
   transform: translateY(calc(100% - 190px));
   transform-origin: right bottom;
+}
+.phone-lift-enter-active {
+  transition: opacity 0.52s linear;
+}
+.phone-lift-leave-active {
+  transition: opacity 0.36s linear;
+}
+.phone-lift-enter-active .phone-resolution-wrapper {
+  transition: transform 0.52s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.phone-lift-leave-active .phone-resolution-wrapper {
+  transition: transform 0.36s cubic-bezier(0.7, 0, 0.84, 0);
+}
+.phone-lift-enter-from .phone-resolution-wrapper,
+.phone-lift-leave-to .phone-resolution-wrapper {
+  transform: translateY(calc(100% + var(--phone-edge-gap, 24px)));
 }
 .phone-resolution-wrapper {
   width: 390px;

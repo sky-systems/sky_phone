@@ -13,6 +13,9 @@ export const PHONE_FRAME_IDS = [
 export const RINGTONE_IDS = ['skyline', 'horizon', 'pulse'] as const
 export const NOTIFICATION_SOUND_IDS = ['chime', 'signal', 'soft'] as const
 export const WALLPAPER_IDS = ['midnight', 'aurora', 'ember'] as const
+export const PHONE_SCALE_MIN = 50
+export const PHONE_SCALE_MAX = 150
+export const PHONE_SCALE_STEP = 5
 
 export type AppearanceMode = (typeof APPEARANCE_MODE_IDS)[number]
 export type PhoneFrameId = (typeof PHONE_FRAME_IDS)[number]
@@ -167,8 +170,8 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
         phoneScale: readNumber(
           settings.phoneScale,
           defaults.phoneScale,
-          85,
-          115,
+          PHONE_SCALE_MIN,
+          PHONE_SCALE_MAX,
         ),
         ringtone: readChoice(
           settings.ringtone,

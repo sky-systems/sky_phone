@@ -31,6 +31,9 @@ import {
   APPEARANCE_MODE_IDS,
   NOTIFICATION_SOUND_IDS,
   PHONE_FRAME_IDS,
+  PHONE_SCALE_MAX,
+  PHONE_SCALE_MIN,
+  PHONE_SCALE_STEP,
   RINGTONE_IDS,
   WALLPAPER_IDS,
   type AppearanceMode,
@@ -624,9 +627,9 @@ function selectNotificationSound(sound: NotificationSoundId): void {
               <k-range
                 class="w-full"
                 :value="phone.preferences.settings.phoneScale"
-                :min="85"
-                :max="115"
-                :step="5"
+                :min="PHONE_SCALE_MIN"
+                :max="PHONE_SCALE_MAX"
+                :step="PHONE_SCALE_STEP"
                 :aria-label="phone.t('Apps.settings.phoneScale')"
                 @input="updateNumberPreference('phoneScale', $event)"
               />

@@ -58,7 +58,7 @@ describe('preferences', () => {
     expect(value.settings.frame).toBe('black')
     expect(value.settings.notificationVolume).toBe(0)
     expect(value.settings.notificationDurationSeconds).toBe(30)
-    expect(value.settings.phoneScale).toBe(115)
+    expect(value.settings.phoneScale).toBe(150)
     expect(value.settings.ringtoneVolume).toBe(100)
   })
 })
