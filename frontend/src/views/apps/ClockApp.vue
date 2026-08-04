@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
   kBlock,
-  kBlockTitle,
   kButton,
   kLink,
   kList,
@@ -15,20 +14,21 @@ import {
 } from 'konsta/vue'
 import {
   AlarmClock,
-  Check,
+  ChevronRight,
   Clock3,
   Minus,
   Plus,
   Timer,
   TimerReset,
 } from 'lucide-vue-next'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import AlarmEditor from '@/components/AlarmEditor.vue'
+import AlarmSoundMenu from '@/components/AlarmSoundMenu.vue'
 import TimeWheelPicker from '@/components/TimeWheelPicker.vue'
 import { useClockStore } from '@/stores/clock'
 import { usePhoneStore } from '@/stores/phone'
-import { ALARM_SOUND_IDS, type Alarm, type AlarmDraft } from '@/utils/alarms'
+import { type Alarm, type AlarmDraft } from '@/utils/alarms'
 import {
   elapsedMilliseconds,
   formatStopwatch,
@@ -44,10 +44,12 @@ const tab = ref<'world' | 'alarm' | 'stopwatch' | 'timer'>('world')
 const alarmEditor = ref<
   { mode: 'create' } | { id: string; mode: 'edit' } | null
 >(null)
+const timerSoundMenuOpen = ref(false)
 const alarmsEditing = ref(false)
 const now = ref(Date.now())
 const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 let ticker: ReturnType<typeof setInterval> | undefined
+let stopwatchFrame: number | undefined
 
 const stopwatchValue = computed(() =>
   elapsedMilliseconds(
@@ -180,19 +182,47 @@ function selectTab(nextTab: (typeof tabs)[number]['id']): void {
 function setTimerNote(event: Event): void {
   clock.setTimerNote((event.target as HTMLInputElement).value.slice(0, 80))
 }
+
+function updateStopwatchFrame(): void {
+  now.value = Date.now()
+  stopwatchFrame = requestAnimationFrame(updateStopwatchFrame)
+}
+
+watch(
+  [() => clock.stopwatchStartedAt, tab],
+  ([startedAt, activeTab]) => {
+    if (stopwatchFrame !== undefined) cancelAnimationFrame(stopwatchFrame)
+    stopwatchFrame =
+      startedAt === null || activeTab !== 'stopwatch'
+        ? undefined
+        : requestAnimationFrame(updateStopwatchFrame)
+  },
+)
+
 onMounted(() => {
   ticker = setInterval(() => {
     now.value = Date.now()
   }, 250)
 })
 
-onBeforeUnmount(() => clearInterval(ticker))
+onBeforeUnmount(() => {
+  clearInterval(ticker)
+  if (stopwatchFrame !== undefined) cancelAnimationFrame(stopwatchFrame)
+})
 </script>
 
 <template>
   <k-page component="main" class="native-app clock-app">
+    <AlarmSoundMenu
+      v-if="timerSoundMenuOpen"
+      :back-label="phone.t('Apps.clock.tabs.timer')"
+      :selected-sound="clock.timerSound"
+      @close="timerSoundMenuOpen = false"
+      @select="clock.setTimerSound($event)"
+    />
+
     <AlarmEditor
-      v-if="alarmEditor"
+      v-else-if="alarmEditor"
       :alarm="selectedAlarm"
       @cancel="alarmEditor = null"
       @delete="deleteSelectedAlarm"
@@ -209,6 +239,7 @@ onBeforeUnmount(() => clearInterval(ticker))
       >
         <template #left>
           <k-link
+            v-if="tab === 'alarm'"
             component="button"
             :link-props="{ type: 'button' }"
             @click="toggleAlarmEditing"
@@ -218,6 +249,7 @@ onBeforeUnmount(() => clearInterval(ticker))
         </template>
         <template #right>
           <k-link
+            v-if="tab === 'alarm'"
             component="button"
             icon-only
             :link-props="{ type: 'button' }"
@@ -291,7 +323,7 @@ onBeforeUnmount(() => clearInterval(ticker))
               @click="
                 clock.stopwatchStartedAt === null
                   ? clock.resetStopwatch()
-                  : clock.addLap(now)
+                  : clock.addLap(Date.now())
               "
             >
               {{
@@ -308,8 +340,8 @@ onBeforeUnmount(() => clearInterval(ticker))
               class="clock-action-button"
               @click="
                 clock.stopwatchStartedAt === null
-                  ? clock.startStopwatch(now)
-                  : clock.pauseStopwatch(now)
+                  ? clock.startStopwatch(Date.now())
+                  : clock.pauseStopwatch(Date.now())
               "
             >
               {{
@@ -362,21 +394,18 @@ onBeforeUnmount(() => clearInterval(ticker))
             />
           </k-list>
 
-          <k-block-title>{{ phone.t('Apps.clock.timer.sound') }}</k-block-title>
           <k-list strong inset class="clock-konsta-list clock-timer-settings">
             <k-list-item
-              v-for="sound in ALARM_SOUND_IDS"
-              :key="sound"
               link
               :chevron="false"
-              :title="phone.t(`Apps.clock.alarm.sounds.${sound}`)"
-              @click="clock.setTimerSound(sound)"
+              :title="phone.t('Apps.clock.timer.sound')"
+              @click="timerSoundMenuOpen = true"
             >
               <template #after>
-                <Check
-                  v-if="clock.timerSound === sound"
-                  class="h-5 w-5 text-primary"
-                />
+                <span class="clock-sound-selection">
+                  {{ phone.t(`Apps.clock.alarm.sounds.${clock.timerSound}`) }}
+                  <ChevronRight aria-hidden="true" />
+                </span>
               </template>
             </k-list-item>
           </k-list>

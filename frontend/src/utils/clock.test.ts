@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   elapsedMilliseconds,
+  formatStopwatch,
   formatTimer,
   remainingMilliseconds,
   timerPickerMilliseconds,
@@ -17,5 +18,9 @@ describe('timestamp clocks', () => {
     expect(formatTimer(3_661_000)).toBe('01:01:01')
     expect(timerPickerValue(3_661_000)).toBe('01:01:01')
     expect(timerPickerMilliseconds('01:01:01')).toBe(3_661_000)
+  })
+
+  it('formats stopwatch durations with actual milliseconds', () => {
+    expect(formatStopwatch(61_234)).toBe('01:01.234')
   })
 })

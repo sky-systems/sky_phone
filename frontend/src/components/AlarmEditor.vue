@@ -9,13 +9,13 @@ import {
   kListItem,
   kNavbar,
 } from 'konsta/vue'
-import { Check, X } from 'lucide-vue-next'
-import { reactive } from 'vue'
+import { ChevronRight, Check, X } from 'lucide-vue-next'
+import { reactive, ref } from 'vue'
 
+import AlarmSoundMenu from '@/components/AlarmSoundMenu.vue'
 import { usePhoneStore } from '@/stores/phone'
 import TimeWheelPicker from '@/components/TimeWheelPicker.vue'
 import {
-  ALARM_SOUND_IDS,
   type Alarm,
   type AlarmDraft,
   WEEKDAY_IDS,
@@ -28,6 +28,7 @@ const emit = defineEmits<{
   save: [draft: AlarmDraft]
 }>()
 const phone = usePhoneStore()
+const soundMenuOpen = ref(false)
 const weekdayKeys = [
   'sunday',
   'monday',
@@ -72,7 +73,15 @@ function toggleWeekday(weekday: number): void {
 </script>
 
 <template>
-  <k-navbar :title="phone.t('Apps.clock.tabs.alarm')">
+  <AlarmSoundMenu
+    v-if="soundMenuOpen"
+    :back-label="phone.t('Apps.clock.tabs.alarm')"
+    :selected-sound="draft.sound"
+    @close="soundMenuOpen = false"
+    @select="draft.sound = $event"
+  />
+
+  <k-navbar v-show="!soundMenuOpen" :title="phone.t('Apps.clock.tabs.alarm')">
     <template #left>
       <k-link
         component="button"
@@ -98,7 +107,11 @@ function toggleWeekday(weekday: number): void {
     </template>
   </k-navbar>
 
-  <k-block component="section" class="clock-alarm-editor">
+  <k-block
+    v-show="!soundMenuOpen"
+    component="section"
+    class="clock-alarm-editor"
+  >
     <TimeWheelPicker
       v-model="draft.time"
       :hours-label="phone.t('Apps.clock.alarm.hours')"
@@ -135,18 +148,18 @@ function toggleWeekday(weekday: number): void {
       />
     </k-list>
 
-    <k-block-title>{{ phone.t('Apps.clock.alarm.sound') }}</k-block-title>
     <k-list strong inset>
       <k-list-item
-        v-for="sound in ALARM_SOUND_IDS"
-        :key="sound"
         link
         :chevron="false"
-        :title="phone.t(`Apps.clock.alarm.sounds.${sound}`)"
-        @click="draft.sound = sound"
+        :title="phone.t('Apps.clock.alarm.sound')"
+        @click="soundMenuOpen = true"
       >
         <template #after>
-          <Check v-if="draft.sound === sound" class="w-5 h-5 text-primary" />
+          <span class="clock-sound-selection">
+            {{ phone.t(`Apps.clock.alarm.sounds.${draft.sound}`) }}
+            <ChevronRight aria-hidden="true" />
+          </span>
         </template>
       </k-list-item>
     </k-list>

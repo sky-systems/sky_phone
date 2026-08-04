@@ -921,8 +921,21 @@ button {
 .clock-digits {
   margin: 70px 0 54px;
   font-variant-numeric: tabular-nums;
-  font-size: 58px;
+  font-size: min(52px, 14cqw);
   font-weight: 200;
+}
+.clock-sound-menu {
+  margin-top: 8px;
+}
+.clock-sound-selection {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #8e8e93;
+}
+.clock-sound-selection svg {
+  width: 17px;
+  height: 17px;
 }
 .clock-actions {
   display: flex;

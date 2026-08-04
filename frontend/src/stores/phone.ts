@@ -82,7 +82,7 @@ const defaultLocales: LocaleTree = {
       add: 'Add alarm',
       location: 'Los Santos',
       tabs: {
-        world: 'World Clock',
+        world: 'Clock',
         alarm: 'Alarm',
         stopwatch: 'Stopwatch',
         timer: 'Timer',
