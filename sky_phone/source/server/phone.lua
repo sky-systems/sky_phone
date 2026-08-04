@@ -25,24 +25,25 @@ local function affected_rows(result)
 end
 
 local function reserve_imei()
-    for _ = 1, 20 do
-        local uuid_rows = Sky.Query("SELECT UUID() AS `id`", {})
-        local uuid = uuid_rows[1] and uuid_rows[1].id
+    local imei = SkyPhoneImei.Reserve(function()
+        local rows = Sky.Query("SELECT UUID() AS `id`", {})
+        local uuid = rows[1] and rows[1].id
         if type(uuid) ~= "string" then
             error("[sky_phone] Database did not generate entropy for an IMEI.")
         end
-
-        local imei = SkyPhoneImei.FromEntropy(uuid)
+        return uuid
+    end, function(candidate)
         local result = Sky.Query([[
             INSERT IGNORE INTO `sky_phone_devices` (`imei`, `device_name`)
             VALUES (?, ?)
-        ]], { imei, Config.Phone.DeviceName })
-        if affected_rows(result) > 0 then
-            return imei
-        end
-    end
+        ]], { candidate, Config.Phone.DeviceName })
+        return affected_rows(result) > 0
+    end)
 
-    error("[sky_phone] Could not generate a unique IMEI after 20 attempts.")
+    if not imei then
+        error("[sky_phone] Could not generate a unique IMEI after 20 attempts.")
+    end
+    return imei
 end
 
 local function find_device_slots(source, imei)

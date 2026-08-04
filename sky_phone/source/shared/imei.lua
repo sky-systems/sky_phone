@@ -45,3 +45,14 @@ function SkyPhoneImei.IsValid(value)
     end
     return value:sub(15, 15) == SkyPhoneImei.CheckDigit(value:sub(1, 14))
 end
+
+function SkyPhoneImei.Reserve(entropy_factory, reserve)
+    for _ = 1, 20 do
+        local imei = SkyPhoneImei.FromEntropy(entropy_factory())
+        if imei and reserve(imei) then
+            return imei
+        end
+    end
+
+    return nil
+end
