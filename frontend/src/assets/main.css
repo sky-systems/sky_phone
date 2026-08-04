@@ -73,12 +73,12 @@ button {
   position: relative;
   container-type: size;
   margin: auto;
-  margin-top: 0.8vh;
+  margin-top: min(0.8vh, 8px);
   width: 94.5%;
   height: 98%;
   overflow: hidden;
   background: #08080a;
-  border-radius: 4vh;
+  border-radius: min(4vh, 40px);
 }
 .phone-app {
   position: absolute !important;
