@@ -32,6 +32,7 @@ type AppMessage = {
 const REFERENCE_VIEWPORT_WIDTH = 1920
 const REFERENCE_VIEWPORT_HEIGHT = 1080
 const PHONE_BASE_SCALE = 0.69
+const isDevelopment = import.meta.env.DEV
 
 const phone = usePhoneStore()
 const clock = useClockStore()
@@ -39,12 +40,7 @@ const notifications = useNotificationsStore()
 const route = useRoute()
 const isAppRoute = computed(() => route.name === 'app')
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
-const viewportScale = ref(
-  Math.min(
-    window.innerWidth / REFERENCE_VIEWPORT_WIDTH,
-    window.innerHeight / REFERENCE_VIEWPORT_HEIGHT,
-  ),
-)
+const viewportScale = ref(getViewportScale())
 const phoneResolutionStyle = computed<CSSProperties>(() => ({
   '--phone-edge-gap': `${24 * viewportScale.value}px`,
   '--phone-zoom':
@@ -56,6 +52,16 @@ const phoneFrameImage = computed(
   () => PHONE_FRAME_IMAGES[phone.preferences.settings.frame],
 )
 let clockTicker: ReturnType<typeof setInterval> | undefined
+
+function getViewportScale(): number {
+  const heightScale = window.innerHeight / REFERENCE_VIEWPORT_HEIGHT
+  if (isDevelopment) return heightScale
+
+  return Math.min(
+    window.innerWidth / REFERENCE_VIEWPORT_WIDTH,
+    heightScale,
+  )
+}
 
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (event.data?.type === 'app:open') {
@@ -78,10 +84,7 @@ function onSystemColorSchemeChange(event: MediaQueryListEvent): void {
 }
 
 function updateViewportScale(): void {
-  viewportScale.value = Math.min(
-    window.innerWidth / REFERENCE_VIEWPORT_WIDTH,
-    window.innerHeight / REFERENCE_VIEWPORT_HEIGHT,
-  )
+  viewportScale.value = getViewportScale()
 }
 
 onMounted(() => {
@@ -118,7 +121,7 @@ onMounted(() => {
       })
     }
   }, 1000)
-  if (import.meta.env.DEV) phone.open()
+  if (isDevelopment) phone.open()
 })
 
 watch(
@@ -142,7 +145,10 @@ onBeforeUnmount(() => {
     <main
       v-if="phone.isOpen || notifications.current"
       class="phone-stage"
-      :class="{ 'phone-stage--peek': notifications.isPeeking }"
+      :class="{
+        'phone-stage--dev': isDevelopment,
+        'phone-stage--peek': notifications.isPeeking,
+      }"
       :style="phoneResolutionStyle"
     >
       <div class="phone-resolution-wrapper">

@@ -38,6 +38,10 @@ button {
   padding: 0 var(--phone-edge-gap, 24px) var(--phone-edge-gap, 24px) 0;
   pointer-events: none;
 }
+.phone-stage--dev {
+  place-items: center;
+  padding: 0;
+}
 .phone-stage--peek .phone-device {
   transform: translateY(calc(100% - 190px));
   transform-origin: right bottom;
