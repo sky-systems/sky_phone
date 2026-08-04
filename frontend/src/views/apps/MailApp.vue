@@ -708,10 +708,10 @@ onBeforeUnmount(() => {
 
   <k-dialog
     :opened="emptyTrashOpened"
-    :title="phone.t('Apps.mail.emptyTrashTitle')"
-    :content="phone.t('Apps.mail.emptyTrashBody')"
     @backdropclick="emptyTrashOpened = false"
   >
+    <template #title>{{ phone.t('Apps.mail.emptyTrashTitle') }}</template>
+    <p>{{ phone.t('Apps.mail.emptyTrashBody') }}</p>
     <template #buttons>
       <k-dialog-button @click="emptyTrashOpened = false">
         {{ phone.t('Common.cancel') }}

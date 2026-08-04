@@ -890,10 +890,10 @@ async function confirmFactoryReset(): Promise<void> {
 
   <k-dialog
     :opened="removeDeviceOpened"
-    :title="phone.t('Apps.settings.removeDevice')"
-    :content="phone.t('Apps.settings.removeDeviceBody')"
     @backdropclick="removeDeviceOpened = false"
   >
+    <template #title>{{ phone.t('Apps.settings.removeDevice') }}</template>
+    <p>{{ phone.t('Apps.settings.removeDeviceBody') }}</p>
     <k-list>
       <k-list-input
         type="password"
@@ -914,10 +914,10 @@ async function confirmFactoryReset(): Promise<void> {
 
   <k-dialog
     :opened="resetOpened"
-    :title="phone.t('Apps.settings.factoryReset')"
-    :content="phone.t('Apps.settings.factoryResetBody')"
     @backdropclick="resetOpened = false"
   >
+    <template #title>{{ phone.t('Apps.settings.factoryReset') }}</template>
+    <p>{{ phone.t('Apps.settings.factoryResetBody') }}</p>
     <template #buttons>
       <k-dialog-button @click="resetOpened = false">
         {{ phone.t('Common.cancel') }}
