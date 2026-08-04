@@ -42,6 +42,7 @@ import {
 
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { PHONE_APPS } from '@/config/apps'
+import { IFRUIT_AUTH_INPUT_COLORS } from '@/config/ifruit'
 import { usePhoneStore } from '@/stores/phone'
 import { useAccountStore } from '@/stores/account'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
@@ -481,6 +482,7 @@ onBeforeUnmount(() => {
           <k-list class="bg-black">
             <k-list-input
               class="relative"
+              :colors="IFRUIT_AUTH_INPUT_COLORS"
               :value="accountEmail"
               :label="
                 phone.t(
@@ -508,6 +510,7 @@ onBeforeUnmount(() => {
             </k-list-input>
             <k-list-input
               type="password"
+              :colors="IFRUIT_AUTH_INPUT_COLORS"
               :value="accountPassword"
               :label="phone.t('Apps.mail.password')"
               outline
@@ -520,6 +523,7 @@ onBeforeUnmount(() => {
             <k-list-input
               v-if="accountMode === 'register'"
               type="password"
+              :colors="IFRUIT_AUTH_INPUT_COLORS"
               :value="accountConfirm"
               :label="phone.t('Apps.mail.confirmPassword')"
               outline

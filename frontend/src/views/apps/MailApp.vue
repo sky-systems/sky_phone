@@ -29,6 +29,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import { IFRUIT_AUTH_INPUT_COLORS } from '@/config/ifruit'
 import { useMailStore } from '@/stores/mail'
 import { useNotificationsStore } from '@/stores/notifications'
 import { usePhoneStore } from '@/stores/phone'
@@ -400,6 +401,7 @@ onBeforeUnmount(() => {
     <k-list class="bg-black">
       <k-list-input
         class="relative"
+        :colors="IFRUIT_AUTH_INPUT_COLORS"
         :value="authEmail"
         :label="
           phone.t(
@@ -425,6 +427,7 @@ onBeforeUnmount(() => {
       </k-list-input>
       <k-list-input
         type="password"
+        :colors="IFRUIT_AUTH_INPUT_COLORS"
         :value="authPassword"
         :label="phone.t('Apps.mail.password')"
         outline
@@ -437,6 +440,7 @@ onBeforeUnmount(() => {
       <k-list-input
         v-if="authMode === 'register'"
         type="password"
+        :colors="IFRUIT_AUTH_INPUT_COLORS"
         :value="authConfirm"
         :label="phone.t('Apps.mail.confirmPassword')"
         outline
