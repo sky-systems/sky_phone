@@ -4,6 +4,7 @@ import {
   computed,
   onBeforeUnmount,
   onMounted,
+  ref,
   type CSSProperties,
   watch,
 } from 'vue'
@@ -28,14 +29,24 @@ type AppMessage = {
   data?: PhoneNotificationInput | PhoneOpenPayload
 }
 
+const REFERENCE_VIEWPORT_WIDTH = 1920
+const REFERENCE_VIEWPORT_HEIGHT = 1080
+
 const phone = usePhoneStore()
 const clock = useClockStore()
 const notifications = useNotificationsStore()
 const route = useRoute()
 const isAppRoute = computed(() => route.name === 'app')
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
-const phoneDeviceStyle = computed<CSSProperties>(() => ({
-  '--phone-scale': phone.preferences.settings.phoneScale / 100,
+const viewportScale = ref(
+  Math.min(
+    window.innerWidth / REFERENCE_VIEWPORT_WIDTH,
+    window.innerHeight / REFERENCE_VIEWPORT_HEIGHT,
+  ),
+)
+const phoneResolutionStyle = computed<CSSProperties>(() => ({
+  '--phone-zoom':
+    viewportScale.value * (phone.preferences.settings.phoneScale / 100),
 }))
 const phoneFrameImage = computed(
   () => PHONE_FRAME_IMAGES[phone.preferences.settings.frame],
@@ -62,9 +73,17 @@ function onSystemColorSchemeChange(event: MediaQueryListEvent): void {
   phone.setSystemDarkMode(event.matches)
 }
 
+function updateViewportScale(): void {
+  viewportScale.value = Math.min(
+    window.innerWidth / REFERENCE_VIEWPORT_WIDTH,
+    window.innerHeight / REFERENCE_VIEWPORT_HEIGHT,
+  )
+}
+
 onMounted(() => {
   window.addEventListener('message', onMessage)
   window.addEventListener('keydown', onKeydown)
+  window.addEventListener('resize', updateViewportScale)
   systemColorScheme.addEventListener('change', onSystemColorSchemeChange)
   phone.setSystemDarkMode(systemColorScheme.matches)
   void nuiCall('ui:ready')
@@ -109,6 +128,7 @@ onBeforeUnmount(() => {
   if (clockTicker) clearInterval(clockTicker)
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('resize', updateViewportScale)
   systemColorScheme.removeEventListener('change', onSystemColorSchemeChange)
 })
 </script>
@@ -119,40 +139,38 @@ onBeforeUnmount(() => {
     class="phone-stage"
     :class="{ 'phone-stage--peek': notifications.isPeeking }"
   >
-    <section
-      class="phone-device"
-      :style="phoneDeviceStyle"
-      :aria-label="phone.t('Common.phone')"
-    >
-      <div class="phone-screen" :class="{ 'phone-screen--app': isAppRoute }">
-        <k-app
-          theme="ios"
-          :dark="phone.isDarkMode"
-          safe-areas
-          class="phone-app"
-          :class="{
-            dark: phone.isDarkMode,
-            'phone-app--light': !phone.isDarkMode,
-          }"
-        >
-          <PhoneStatusBar />
-          <SpringboardView />
-          <RouterView v-slot="{ Component }">
-            <Transition name="app-window">
-              <component :is="Component" v-if="isAppRoute" />
-            </Transition>
-          </RouterView>
-          <PhoneHomeIndicator />
-          <PhoneNotifications />
-        </k-app>
-      </div>
-      <img
-        class="phone-device__frame"
-        :src="phoneFrameImage"
-        alt=""
-        aria-hidden="true"
-        draggable="false"
-      />
-    </section>
+    <div class="phone-resolution-wrapper" :style="phoneResolutionStyle">
+      <section class="phone-device" :aria-label="phone.t('Common.phone')">
+        <div class="phone-screen" :class="{ 'phone-screen--app': isAppRoute }">
+          <k-app
+            theme="ios"
+            :dark="phone.isDarkMode"
+            safe-areas
+            class="phone-app"
+            :class="{
+              dark: phone.isDarkMode,
+              'phone-app--light': !phone.isDarkMode,
+            }"
+          >
+            <PhoneStatusBar />
+            <SpringboardView />
+            <RouterView v-slot="{ Component }">
+              <Transition name="app-window">
+                <component :is="Component" v-if="isAppRoute" />
+              </Transition>
+            </RouterView>
+            <PhoneHomeIndicator />
+            <PhoneNotifications />
+          </k-app>
+        </div>
+        <img
+          class="phone-device__frame"
+          :src="phoneFrameImage"
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        />
+      </section>
+    </div>
   </main>
 </template>

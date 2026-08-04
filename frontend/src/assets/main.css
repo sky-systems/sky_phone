@@ -42,23 +42,27 @@ button {
   padding: 0 24px;
 }
 .phone-stage--peek .phone-device {
-  transform: translateY(calc(100% - 190px)) scale(var(--phone-scale, 1));
+  transform: translateY(calc(100% - 190px));
   transform-origin: right bottom;
+}
+.phone-resolution-wrapper {
+  width: 390px;
+  height: 844px;
+  zoom: var(--phone-zoom, 1);
 }
 .phone-device {
   position: relative;
-  width: min(39vh, 390px);
-  aspect-ratio: 390/844;
-  padding: min(1.05vh, 10px);
+  width: 390px;
+  height: 844px;
+  padding: 10px;
   overflow: visible;
   pointer-events: auto;
   background: transparent;
   border: 0;
-  border-radius: min(5.2vh, 52px);
-  transform: scale(var(--phone-scale, 1));
+  border-radius: 52px;
   transition: transform 0.25s ease;
   box-shadow: none;
-  filter: drop-shadow(0 4vh 10vh #0009);
+  filter: drop-shadow(0 40px 100px #0009);
 }
 .phone-device__frame {
   position: absolute;
@@ -73,12 +77,12 @@ button {
   position: relative;
   container-type: size;
   margin: auto;
-  margin-top: min(0.8vh, 8px);
+  margin-top: 8px;
   width: 94.5%;
   height: 98%;
   overflow: hidden;
   background: #08080a;
-  border-radius: min(4vh, 40px);
+  border-radius: 40px;
 }
 .phone-app {
   position: absolute !important;
