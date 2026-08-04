@@ -332,6 +332,9 @@ const defaultLocales: LocaleTree = {
       factoryReset: 'Erase All Content and Settings',
       factoryResetBody:
         'This removes the account and all local data from this phone. Cloud data and the IMEI remain.',
+      factoryResetProgress: 'Erasing iFruit Phone',
+      factoryResetWarning:
+        'Do not turn off this phone. This takes 60 seconds.',
       accountErrors: {
         invalid_email: 'Choose a valid 3–32 character iFruit address.',
         invalid_password: 'Password must be 6–64 characters.',

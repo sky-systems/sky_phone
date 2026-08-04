@@ -32,7 +32,13 @@ import {
   UserRound,
   Volume2,
 } from 'lucide-vue-next'
-import { computed, nextTick, ref, type ComponentPublicInstance } from 'vue'
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  ref,
+  type ComponentPublicInstance,
+} from 'vue'
 
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { PHONE_APPS } from '@/config/apps'
@@ -66,6 +72,9 @@ type SettingsView =
 type RootToggleKey = 'airplaneMode' | 'streamerMode'
 type SubmenuView = Exclude<SettingsView, 'root' | 'notification-detail'>
 
+const FACTORY_RESET_DURATION_MS = 60_000
+const FACTORY_RESET_CIRCUMFERENCE = 2 * Math.PI * 48
+
 const phone = usePhoneStore()
 const account = useAccountStore()
 const query = ref('')
@@ -82,6 +91,13 @@ const removeDeviceImei = ref('')
 const removeDevicePassword = ref('')
 const removeDeviceOpened = ref(false)
 const resetOpened = ref(false)
+const factoryResetting = ref(false)
+const factoryResetProgress = ref(0)
+const factoryResetDashOffset = computed(
+  () =>
+    FACTORY_RESET_CIRCUMFERENCE * (1 - factoryResetProgress.value / 100),
+)
+let factoryResetAnimationFrame: number | undefined
 
 const toggleRows = [
   {
@@ -293,8 +309,42 @@ async function confirmRemoveDevice(): Promise<void> {
 
 async function confirmFactoryReset(): Promise<void> {
   resetOpened.value = false
-  if (!(await account.factoryReset())) accountToast.value = accountError()
+  factoryResetting.value = true
+  factoryResetProgress.value = 0
+  const startedAt = performance.now()
+
+  const animateProgress = (now: number): void => {
+    factoryResetProgress.value = Math.min(
+      100,
+      ((now - startedAt) / FACTORY_RESET_DURATION_MS) * 100,
+    )
+    if (factoryResetProgress.value < 100) {
+      factoryResetAnimationFrame = requestAnimationFrame(animateProgress)
+    }
+  }
+  factoryResetAnimationFrame = requestAnimationFrame(animateProgress)
+
+  const [success] = await Promise.all([
+    account.factoryReset(),
+    new Promise<void>((resolve) =>
+      window.setTimeout(resolve, FACTORY_RESET_DURATION_MS),
+    ),
+  ])
+
+  if (factoryResetAnimationFrame !== undefined) {
+    cancelAnimationFrame(factoryResetAnimationFrame)
+    factoryResetAnimationFrame = undefined
+  }
+  factoryResetProgress.value = 100
+  factoryResetting.value = false
+  if (!success) accountToast.value = accountError()
 }
+
+onBeforeUnmount(() => {
+  if (factoryResetAnimationFrame !== undefined) {
+    cancelAnimationFrame(factoryResetAnimationFrame)
+  }
+})
 </script>
 
 <template>
@@ -887,6 +937,57 @@ async function confirmFactoryReset(): Promise<void> {
       </template>
     </template>
   </k-page>
+
+  <div
+    v-if="factoryResetting"
+    class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black px-8 text-center text-white"
+  >
+    <div
+      class="relative flex h-28 w-28 items-center justify-center"
+      role="progressbar"
+      :aria-label="phone.t('Apps.settings.factoryResetProgress')"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      :aria-valuenow="Math.floor(factoryResetProgress)"
+    >
+      <svg
+        class="h-28 w-28 -rotate-90"
+        viewBox="0 0 112 112"
+        aria-hidden="true"
+      >
+        <circle
+          cx="56"
+          cy="56"
+          r="48"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="6"
+          class="text-white/15"
+        />
+        <circle
+          cx="56"
+          cy="56"
+          r="48"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="6"
+          stroke-linecap="round"
+          :stroke-dasharray="FACTORY_RESET_CIRCUMFERENCE"
+          :stroke-dashoffset="factoryResetDashOffset"
+          class="text-white"
+        />
+      </svg>
+      <span class="absolute text-xl font-semibold tabular-nums">
+        {{ Math.floor(factoryResetProgress) }}%
+      </span>
+    </div>
+    <h2 class="mt-8 text-xl font-semibold">
+      {{ phone.t('Apps.settings.factoryResetProgress') }}
+    </h2>
+    <p class="mt-3 max-w-64 text-sm leading-5 text-white/55">
+      {{ phone.t('Apps.settings.factoryResetWarning') }}
+    </p>
+  </div>
 
   <k-dialog
     :opened="removeDeviceOpened"
