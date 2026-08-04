@@ -4,15 +4,6 @@ Config.Phone = {
     Item = "phone",
     DevelopmentCommand = false,
     DeviceName = "iFruit Phone",
-    MaxDeviceDataBytes = 100000,
-    AllowedDeviceNamespaces = {
-        settings = true,
-        notifications = true,
-        wallpaper = true,
-        alarms = true,
-        media = true,
-        apps = true,
-    },
 }
 
 Config.Mail = {

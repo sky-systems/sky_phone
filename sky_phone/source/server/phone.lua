@@ -7,6 +7,15 @@ SkyPhone = {}
 local sessions = {}
 local auth_attempts = {}
 local operation_attempts = {}
+local max_device_data_bytes = 100000
+local allowed_device_namespaces = {
+    settings = true,
+    notifications = true,
+    wallpaper = true,
+    alarms = true,
+    media = true,
+    apps = true,
+}
 
 local function trim(value)
     if type(value) ~= "string" then
@@ -440,12 +449,12 @@ Sky.Cb.Register("sky_phone:device:save", function(source, data)
     if not session then
         return error_response
     end
-    if type(data) ~= "table" or not Config.Phone.AllowedDeviceNamespaces[data.namespace] then
+    if type(data) ~= "table" or not allowed_device_namespaces[data.namespace] then
         return { success = false, error = "invalid_namespace" }
     end
 
     local encoded = json.encode(data.payload)
-    if #encoded > Config.Phone.MaxDeviceDataBytes then
+    if #encoded > max_device_data_bytes then
         return { success = false, error = "payload_too_large" }
     end
     local revision = math.max(0, math.floor(tonumber(data.revision) or 0))
