@@ -4,6 +4,7 @@ export type PhoneAppId =
   | 'calculator'
   | 'camera'
   | 'clock'
+  | 'mail'
   | 'notes'
   | 'photos'
   | 'app-store'

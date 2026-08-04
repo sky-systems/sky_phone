@@ -1,6 +1,24 @@
 local is_open = false
 local notification_focus = false
 
+local mail_callbacks = {
+    "mail:register",
+    "mail:login",
+    "mail:logout",
+    "mail:counts",
+    "mail:list",
+    "mail:get",
+    "mail:get-draft",
+    "mail:save-draft",
+    "mail:delete-draft",
+    "mail:send",
+    "mail:set-read",
+    "mail:trash",
+    "mail:restore",
+    "mail:delete-forever",
+    "mail:empty-trash",
+}
+
 local function get_locale()
     return Locales[Sky.Config.locale] or Locales["en"]
 end
@@ -62,6 +80,26 @@ RegisterNUICallback("notification:focus", function(data, cb)
     notification_focus = data.active == true and not is_open
     SetNuiFocus(is_open or notification_focus, is_open or notification_focus)
     cb({ success = true })
+end)
+
+for _, callback_name in ipairs(mail_callbacks) do
+    RegisterNUICallback(callback_name, function(data, cb)
+        local result = Sky.Cb.Trigger("sky_phone:" .. callback_name, data)
+        if result then
+            cb(result)
+            return
+        end
+
+        cb({ success = false, error = "request_failed" })
+    end)
+end
+
+RegisterNetEvent("sky_phone:mail:changed", function(data)
+    SendNUIMessage({ type = "mail:changed", data = data })
+end)
+
+RegisterNetEvent("sky_phone:mail:new", function(data)
+    SendNUIMessage({ type = "mail:new", data = data })
 end)
 
 CreateThread(function()

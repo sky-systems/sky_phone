@@ -19,6 +19,12 @@ client_scripts {
     'source/client/main.lua',
 }
 
+server_scripts {
+    'config/config.lua',
+    'source/server/db_migrate.lua',
+    'source/server/mail.lua',
+}
+
 files {
     'source/html/index.html',
     'source/html/assets/**',
@@ -27,4 +33,3 @@ files {
 ui_page 'source/html/index.html'
 
 dependency 'sky_base'
-

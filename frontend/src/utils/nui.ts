@@ -10,8 +10,11 @@ export async function nuiCall<T = unknown>(
   endpoint: string,
   data: Record<string, unknown> = {},
 ): Promise<NuiResponse<T>> {
+  const developmentPort = new URLSearchParams(window.location.search).get(
+    'apiPort',
+  )
   const baseUrl = import.meta.env.DEV
-    ? 'http://localhost:3001/api'
+    ? `http://localhost:${developmentPort ?? '3001'}/api`
     : `https://${resourceName}`
 
   try {

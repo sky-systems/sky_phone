@@ -31,6 +31,10 @@ describe('preferences', () => {
       sounds: false,
     })
     expect(value.settings.notifications.clock.enabled).toBe(true)
+    expect(value.settings.notifications.mail).toEqual({
+      enabled: true,
+      sounds: true,
+    })
     expect(value.settings.phoneScale).toBe(110)
     expect(value.settings.wallpaper).toBe('ember')
   })

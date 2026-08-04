@@ -2,7 +2,6 @@
 @import 'konsta/vue/theme.css';
 
 :root {
-  color-scheme: dark;
   font-family:
     -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue',
     sans-serif;
@@ -21,7 +20,7 @@ body,
   min-height: 0 !important;
   margin: 0;
   overflow: hidden;
-  background: transparent;
+  background: transparent !important;
   user-select: none;
 }
 button,
@@ -89,6 +88,10 @@ button {
   min-height: 0 !important;
   overflow: hidden;
   background: transparent !important;
+  color-scheme: dark;
+}
+.phone-app--light {
+  color-scheme: light;
 }
 .phone-notification {
   right: 8px !important;
