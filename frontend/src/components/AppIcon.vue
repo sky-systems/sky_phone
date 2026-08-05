@@ -27,7 +27,7 @@ const unreadCount = computed(() =>
   props.app.id === 'mail' ? mail.counts.unread : 0,
 )
 const notificationBadgeColors = {
-  bg: 'bg-red-500',
+  bg: 'bg-[#ff3b30]',
   text: 'text-white',
 }
 

@@ -77,6 +77,10 @@ type SubmenuView = Exclude<SettingsView, 'root' | 'notification-detail'>
 
 const FACTORY_RESET_DURATION_MS = 60_000
 const FACTORY_RESET_CIRCUMFERENCE = 2 * Math.PI * 48
+const FRAME_PICKER_WIDTH = 240
+const FRAME_PICKER_HEIGHT = 140
+const FRAME_PICKER_INSET = 8
+const FRAME_PICKER_GAP = 8
 
 const phone = usePhoneStore()
 const account = useAccountStore()
@@ -88,6 +92,9 @@ const framePickerButton = ref<ComponentPublicInstance | null>(null)
 const framePickerOpened = ref(false)
 const framePickerTarget = computed(
   () => framePickerButton.value?.$el as HTMLElement | undefined,
+)
+const framePickerPortalTarget = computed(() =>
+  framePickerTarget.value?.closest<HTMLElement>('.phone-screen'),
 )
 const accountMode = ref<'login' | 'register'>('login')
 const accountEmail = ref('')
@@ -253,65 +260,52 @@ function selectFrame(frame: PhoneFrameId): void {
   framePickerOpened.value = false
 }
 
-async function openFramePicker(): Promise<void> {
+function openFramePicker(): void {
   const target = framePickerTarget.value
-  const screen = target?.closest<HTMLElement>('.phone-screen')
-  const wrapper = target?.closest<HTMLElement>('.phone-resolution-wrapper')
-  const popover = document.querySelector<HTMLElement>(
-    '.settings-frame-popover',
-  )
-  if (!target || !screen || !wrapper || !popover) {
+  const screen = framePickerPortalTarget.value
+  if (!target || !screen) {
     console.error('Unable to position the Settings frame color picker')
     return
   }
 
-  const framePickerScale =
-    wrapper.getBoundingClientRect().width / wrapper.offsetWidth
-  popover.style.width = `${240 * framePickerScale}px`
-  popover.style.marginLeft = '0px'
-  popover.style.marginTop = '0px'
-
-  const pickerGrid = popover.querySelector<HTMLElement>('[role="group"]')
-  if (pickerGrid) {
-    pickerGrid.style.gap = `${20 * framePickerScale}px`
-    pickerGrid.style.padding = `${20 * framePickerScale}px`
-    pickerGrid.querySelectorAll<HTMLElement>('button').forEach((button) => {
-      button.style.width = `${40 * framePickerScale}px`
-      button.style.height = `${40 * framePickerScale}px`
-    })
-  }
-
-  framePickerOpened.value = true
-  await nextTick()
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-
   const screenRect = screen.getBoundingClientRect()
   const targetRect = target.getBoundingClientRect()
-  const popoverRect = popover.getBoundingClientRect()
-  const inset = 8 * framePickerScale
-  const gap = 8 * framePickerScale
-  const minimumLeft = screenRect.left + inset
-  const maximumLeft = screenRect.right - popoverRect.width - inset
+  const screenScale = screenRect.width / screen.offsetWidth
+  const targetLeft = (targetRect.left - screenRect.left) / screenScale
+  const targetTop = (targetRect.top - screenRect.top) / screenScale
+  const targetWidth = targetRect.width / screenScale
+  const targetHeight = targetRect.height / screenScale
   const desiredLeft =
-    targetRect.left + targetRect.width / 2 - popoverRect.width / 2
-  const aboveTop = targetRect.top - popoverRect.height - gap
+    targetLeft + targetWidth / 2 - FRAME_PICKER_WIDTH / 2
+  const aboveTop =
+    targetTop - FRAME_PICKER_HEIGHT - FRAME_PICKER_GAP
   const desiredTop =
-    aboveTop >= screenRect.top + inset ? aboveTop : targetRect.bottom + gap
+    aboveTop >= FRAME_PICKER_INSET
+      ? aboveTop
+      : targetTop + targetHeight + FRAME_PICKER_GAP
 
-  const clampedLeft = Math.max(
-    minimumLeft,
-    Math.min(desiredLeft, maximumLeft),
+  screen.style.setProperty(
+    '--settings-frame-picker-left',
+    `${Math.max(
+      FRAME_PICKER_INSET,
+      Math.min(
+        desiredLeft,
+        screen.offsetWidth - FRAME_PICKER_WIDTH - FRAME_PICKER_INSET,
+      ),
+    )}px`,
   )
-  const clampedTop = Math.max(
-    screenRect.top + inset,
-    Math.min(
-      desiredTop,
-      screenRect.bottom - popoverRect.height - inset,
-    ),
+  screen.style.setProperty(
+    '--settings-frame-picker-top',
+    `${Math.max(
+      FRAME_PICKER_INSET,
+      Math.min(
+        desiredTop,
+        screen.offsetHeight - FRAME_PICKER_HEIGHT - FRAME_PICKER_INSET,
+      ),
+    )}px`,
   )
 
-  popover.style.marginLeft = `${clampedLeft - popoverRect.left}px`
-  popover.style.marginTop = `${clampedTop - popoverRect.top}px`
+  framePickerOpened.value = true
 }
 
 function selectRingtone(ringtone: RingtoneId): void {
@@ -979,12 +973,11 @@ onBeforeUnmount(() => {
           </k-list-item>
         </k-list>
 
-        <Teleport to="body">
+        <Teleport v-if="framePickerPortalTarget" :to="framePickerPortalTarget">
           <k-popover
             :opened="framePickerOpened"
-            :target="framePickerTarget"
             :class="[
-              'settings-frame-popover',
+              'settings-frame-popover !absolute !z-[200] !left-[var(--settings-frame-picker-left)] !top-[var(--settings-frame-picker-top)]',
               { dark: phone.isDarkMode },
             ]"
             @backdropclick="framePickerOpened = false"
