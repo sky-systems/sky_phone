@@ -48,6 +48,8 @@ import { IFRUIT_AUTH_INPUT_COLORS } from '@/config/ifruit'
 import { usePhoneStore } from '@/stores/phone'
 import { useAccountStore } from '@/stores/account'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
+import { nuiCall } from '@/utils/nui'
+import { formatPhoneNumber } from '@/utils/phone'
 import {
   APPEARANCE_MODE_IDS,
   NOTIFICATION_SOUND_IDS,
@@ -106,11 +108,11 @@ const removeDeviceImei = ref('')
 const removeDevicePassword = ref('')
 const removeDeviceOpened = ref(false)
 const resetOpened = ref(false)
+const simEjectOpened = ref(false)
 const factoryResetting = ref(false)
 const factoryResetProgress = ref(0)
 const factoryResetDashOffset = computed(
-  () =>
-    FACTORY_RESET_CIRCUMFERENCE * (1 - factoryResetProgress.value / 100),
+  () => FACTORY_RESET_CIRCUMFERENCE * (1 - factoryResetProgress.value / 100),
 )
 const selectedFrameColor = computed(
   () => PHONE_FRAME_COLORS[phone.preferences.settings.frame],
@@ -275,10 +277,8 @@ function openFramePicker(): void {
   const targetTop = (targetRect.top - screenRect.top) / screenScale
   const targetWidth = targetRect.width / screenScale
   const targetHeight = targetRect.height / screenScale
-  const desiredLeft =
-    targetLeft + targetWidth / 2 - FRAME_PICKER_WIDTH / 2
-  const aboveTop =
-    targetTop - FRAME_PICKER_HEIGHT - FRAME_PICKER_GAP
+  const desiredLeft = targetLeft + targetWidth / 2 - FRAME_PICKER_WIDTH / 2
+  const aboveTop = targetTop - FRAME_PICKER_HEIGHT - FRAME_PICKER_GAP
   const desiredTop =
     aboveTop >= FRAME_PICKER_INSET
       ? aboveTop
@@ -408,6 +408,16 @@ async function confirmFactoryReset(): Promise<void> {
   if (!success) accountToast.value = accountError()
 }
 
+async function confirmSimEject(): Promise<void> {
+  const response = await nuiCall('sim:eject')
+  simEjectOpened.value = false
+  if (!response.success) {
+    accountToast.value = phone.t(
+      `Apps.phone.errors.${response.error ?? 'default'}`,
+    )
+  }
+}
+
 onBeforeUnmount(() => {
   if (factoryResetAnimationFrame !== undefined) {
     cancelAnimationFrame(factoryResetAnimationFrame)
@@ -534,7 +544,9 @@ onBeforeUnmount(() => {
           <k-link
             v-if="activeView === 'account' && !account.email"
             component="button"
-            @click="accountMode = accountMode === 'login' ? 'register' : 'login'"
+            @click="
+              accountMode = accountMode === 'login' ? 'register' : 'login'
+            "
           >
             {{
               phone.t(
@@ -614,7 +626,12 @@ onBeforeUnmount(() => {
             </k-list-input>
           </k-list>
           <k-block>
-            <k-button large rounded :disabled="accountSubmitting" @click="submitAccount">
+            <k-button
+              large
+              rounded
+              :disabled="accountSubmitting"
+              @click="submitAccount"
+            >
               <k-preloader v-if="accountSubmitting" />
               <template v-else>
                 {{
@@ -631,24 +648,28 @@ onBeforeUnmount(() => {
 
         <template v-else>
           <k-list strong inset>
-          <k-list-item
-            :title="account.email"
-            :subtitle="phone.t('Apps.settings.accountCloudDetail')"
-          >
-            <template #media>
-              <UserRound class="w-12 h-12 text-primary" />
-            </template>
-          </k-list-item>
+            <k-list-item
+              :title="account.email"
+              :subtitle="phone.t('Apps.settings.accountCloudDetail')"
+            >
+              <template #media>
+                <UserRound class="w-12 h-12 text-primary" />
+              </template>
+            </k-list-item>
           </k-list>
 
-          <k-block-title>{{ phone.t('Apps.settings.linkedDevices') }}</k-block-title>
+          <k-block-title>{{
+            phone.t('Apps.settings.linkedDevices')
+          }}</k-block-title>
           <k-list strong inset>
             <k-list-item
               v-for="device in account.devices"
               :key="device.imei"
               :title="device.device_name"
               :subtitle="device.imei"
-              :after="device.current ? phone.t('Apps.settings.thisDevice') : undefined"
+              :after="
+                device.current ? phone.t('Apps.settings.thisDevice') : undefined
+              "
             >
               <template #media><Smartphone :size="22" /></template>
               <template v-if="!device.current" #footer>
@@ -900,12 +921,39 @@ onBeforeUnmount(() => {
           />
         </k-list>
 
-        <k-block-title>{{ phone.t('Apps.settings.deviceInformation') }}</k-block-title>
+        <k-block-title>{{
+          phone.t('Apps.settings.deviceInformation')
+        }}</k-block-title>
         <k-list strong inset>
           <k-list-item
             :title="phone.t('Apps.settings.imei')"
             :after="phone.device?.imei ?? '—'"
           />
+          <k-list-item
+            :title="phone.t('Apps.settings.simNumber')"
+            :after="
+              phone.device?.sim
+                ? formatPhoneNumber(phone.device.sim.number)
+                : phone.t('Apps.settings.noSim')
+            "
+          />
+          <k-list-item
+            v-if="phone.device?.sim"
+            :title="phone.t('Apps.settings.simType')"
+            :after="
+              phone.t(
+                phone.device.sim.type === 'registered'
+                  ? 'Apps.settings.registeredSim'
+                  : 'Apps.settings.anonymousSim',
+              )
+            "
+          />
+          <k-list-button
+            v-if="phone.device?.sim"
+            @click="simEjectOpened = true"
+          >
+            {{ phone.t('Apps.settings.ejectSim') }}
+          </k-list-button>
           <k-list-button @click="resetOpened = true">
             <RotateCcw :size="18" />
             {{ phone.t('Apps.settings.factoryReset') }}
@@ -1102,10 +1150,20 @@ onBeforeUnmount(() => {
     </template>
   </k-dialog>
 
-  <k-dialog
-    :opened="resetOpened"
-    @backdropclick="resetOpened = false"
-  >
+  <k-dialog :opened="simEjectOpened" @backdropclick="simEjectOpened = false">
+    <template #title>{{ phone.t('Apps.settings.ejectSim') }}</template>
+    <p>{{ phone.t('Apps.settings.ejectSimBody') }}</p>
+    <template #buttons>
+      <k-dialog-button @click="simEjectOpened = false">{{
+        phone.t('Common.cancel')
+      }}</k-dialog-button>
+      <k-dialog-button strong @click="confirmSimEject">{{
+        phone.t('Apps.settings.ejectSim')
+      }}</k-dialog-button>
+    </template>
+  </k-dialog>
+
+  <k-dialog :opened="resetOpened" @backdropclick="resetOpened = false">
     <template #title>{{ phone.t('Apps.settings.factoryReset') }}</template>
     <p>{{ phone.t('Apps.settings.factoryResetBody') }}</p>
     <template #buttons>

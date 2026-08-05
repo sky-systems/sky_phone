@@ -8,16 +8,16 @@ describe('app registry', () => {
     expect(PHONE_APPS.every((app) => app.route === `/apps/${app.id}`)).toBe(
       true,
     )
-    expect(
-      PHONE_APPS.filter((app) => app.id !== 'map').every((app) =>
-        app.iconImage.endsWith('.webp'),
-      ),
-    ).toBe(true)
-    expect(PHONE_APPS.find((app) => app.id === 'map')?.iconImage).toMatch(
-      /^(data:image\/svg\+xml|.+\.svg$)/,
+    expect(PHONE_APPS.every((app) => app.iconImage.endsWith('.webp'))).toBe(
+      true,
     )
+    expect(PHONE_APPS.find((app) => app.id === 'phone')).toMatchObject({
+      dockOrder: 0,
+      labelKey: 'Apps.phone.name',
+      route: '/apps/phone',
+    })
     expect(PHONE_APPS.find((app) => app.id === 'mail')).toMatchObject({
-      gridOrder: 3,
+      gridOrder: 4,
       labelKey: 'Apps.mail.name',
       route: '/apps/mail',
     })
@@ -25,6 +25,6 @@ describe('app registry', () => {
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))
         .map((app) => app.id),
-    ).toEqual(['app-store', 'calculator', 'camera', 'clock'])
+    ).toEqual(['phone', 'calculator', 'camera', 'clock'])
   })
 })

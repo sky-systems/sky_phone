@@ -144,6 +144,14 @@ app.post('/api/:endpoint', (request, response) => {
     response.json({ success: true })
     return
   }
+  if (
+    endpoint === 'sim:insert' &&
+    request.body.imei === '356938035643810' &&
+    !request.body.confirmed
+  ) {
+    response.json({ success: false, error: 'confirmation_required' })
+    return
+  }
   if (endpoint === 'notes:list') {
     response.json({ success: true, data: mockNotes })
     return

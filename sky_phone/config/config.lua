@@ -6,6 +6,21 @@ Config.Phone = {
     DeviceName = "iFruit Phone",
 }
 
+Config.Sim = {
+    RegisteredItem = "sky_phone_sim_registered",
+    AnonymousItem = "sky_phone_sim_anonymous",
+    NumberLength = 10,
+    NumberPrefix = "",
+    NumberGroups = { 3, 3, 4 },
+}
+
+Config.Calls = {
+    VoiceProvider = "pma",
+    RingSeconds = 30,
+    ContactNameMaxLength = 80,
+    RecentPageSize = 100,
+}
+
 Config.Mail = {
     Domain = "ifruit.com",
     LocalPartMinLength = 3,

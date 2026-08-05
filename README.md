@@ -2,13 +2,16 @@
 
 Standalone FiveM phone built with Vue 3, TypeScript, Pinia, Vue Router, Konsta UI 5, and Tailwind CSS 4. Each non-stackable `sky_phone` item receives a unique 15-digit IMEI and owns its server-persisted device state. The phone opens through the usable item; `/phone` is disabled unless `Config.Phone.DevelopmentCommand` is enabled explicitly.
 
-An iFruit account is optional. Unlinked devices retain local settings, alarms, media, apps, and notes. Linking from Mail or Settings moves local notes into the account and exposes the same notes and mailbox on every linked device. Signing out hides cloud data without deleting it, while a factory reset removes only the current device's local data and account link.
+An iFruit account is optional. Unlinked devices retain local settings, alarms, media, apps, notes, contacts, and recent calls. Linking from Mail or Settings moves local data into an empty cloud account; an existing cloud dataset wins over local contacts and recents. Signing out keeps an editable local snapshot without deleting cloud data.
 
 ## Requirements
 
 - `sky_base` with a slot-aware inventory adapter implementing `GetInventorySlot`, `GetInventorySlotsWithItem`, and `SetInventorySlotMetadata`.
+- `sky_jobs_base` for the authoritative character identifier captured by registered SIM cards.
 - A non-stackable inventory item named `sky_phone`.
+- Two unique, non-stackable inventory items named `sky_phone_sim_registered` and `sky_phone_sim_anonymous`. Their metadata is initialized automatically on first use, so shops and crafting recipes add plain items without supplying a number.
 - MySQL/MariaDB through the database driver configured in `sky_base`.
+- `pma-voice` when `Config.Calls.VoiceProvider` is set to `"pma"`.
 
 Database migrations run automatically. Existing `sky_phone_mail_accounts` installations are renamed to `sky_phone_accounts` while preserving account IDs and mail foreign keys. iFruit passwords are intentional in-character credentials and remain plaintext `VARCHAR(64)` values; registration screens warn players never to reuse a real password.
 

@@ -216,9 +216,11 @@ end
 
 local function load_device(imei)
     local rows = Sky.Query([[
-        SELECT d.`imei`, d.`device_name`, d.`account_id`, d.`created_at`, d.`updated_at`, a.`email`
+        SELECT d.`imei`, d.`device_name`, d.`account_id`, d.`sim_id`, d.`created_at`, d.`updated_at`,
+            a.`email`, s.`phone_number`, s.`sim_type`, s.`registered_at`
         FROM `sky_phone_devices` d
         LEFT JOIN `sky_phone_accounts` a ON a.`id` = d.`account_id`
+        LEFT JOIN `sky_phone_sims` s ON s.`id` = d.`sim_id`
         WHERE d.`imei` = ?
         LIMIT 1
     ]], { imei })
@@ -270,6 +272,12 @@ local function bootstrap(source)
         device = {
             imei = device.imei,
             name = device.device_name,
+            sim = device.sim_id and {
+                id = device.sim_id,
+                number = device.phone_number,
+                type = device.sim_type,
+                registered = device.registered_at ~= nil,
+            } or nil,
             data = load_device_data(device.imei),
         },
         account = device.account_id and {
@@ -287,6 +295,11 @@ local function refresh_source(source)
         TriggerClientEvent("sky_phone:device:updated", source, payload)
     end
 end
+
+SkyPhone.EnsureDevice = ensure_device
+SkyPhone.FindDeviceSlots = find_device_slots
+SkyPhone.LoadDevice = load_device
+SkyPhone.RefreshSource = refresh_source
 
 local function allow_auth_attempt(source)
     local now = os.time()
@@ -338,6 +351,9 @@ local function link_account(source, account)
         return error_response
     end
 
+    if not SkyPhoneCalls.LinkAccountData(account.id, session.imei) then
+        return { success = false, error = "request_failed" }
+    end
     if not Sky.DB.Transaction({
         {
             query = "UPDATE `sky_phone_devices` SET `account_id` = ? WHERE `imei` = ?",
@@ -569,6 +585,21 @@ local function open_phone(source, used_item)
     return true
 end
 
+function SkyPhone.OpenDeviceForCall(source, imei)
+    local matches = find_device_slots(source, imei)
+    if not matches[1] then
+        Sky.Debug("warn", "[sky_phone] Could not open ringing device %s for source %s.", tostring(imei), tostring(source))
+        return false
+    end
+    sessions[source] = {
+        imei = imei,
+        slot = matches[1].slot,
+        token = ("%s:%s:%s"):format(imei, tostring(source), tostring(GetGameTimer())),
+    }
+    TriggerClientEvent("sky_phone:device:open", source, bootstrap(source))
+    return true
+end
+
 Sky.Debug(
     "debug",
     "[sky_phone] Registering usable item '%s' through inventory '%s'.",
@@ -674,6 +705,9 @@ for _, endpoint in ipairs({ "account:logout", "mail:logout" }) do
         if not account then
             return error_response
         end
+        if not SkyPhoneCalls.CopyCloudToDevice(account.id, account.imei) then
+            return { success = false, error = "request_failed" }
+        end
         Sky.Query("UPDATE `sky_phone_devices` SET `account_id` = NULL WHERE `imei` = ?", { account.imei })
         refresh_source(source)
         return { success = true }
@@ -736,6 +770,14 @@ Sky.Cb.Register("sky_phone:device:factory-reset", function(source)
         },
         {
             query = "DELETE FROM `sky_phone_notes` WHERE `device_imei` = ? AND `account_id` IS NULL",
+            params = { session.imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_contacts` WHERE `device_imei` = ? AND `account_id` IS NULL",
+            params = { session.imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_call_entries` WHERE `device_imei` = ? AND `account_id` IS NULL",
             params = { session.imei },
         },
         {

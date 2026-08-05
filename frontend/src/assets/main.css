@@ -1,6 +1,190 @@
 @import 'tailwindcss';
 @import 'konsta/vue/theme.css';
 
+.sim-picker-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 45%);
+  pointer-events: auto;
+}
+
+.sim-picker {
+  position: relative;
+  width: min(58vh, 90vw);
+  max-height: 46vh;
+  overflow: clip;
+  padding: 2.2vh;
+  border: 0.1vh solid rgb(255 255 255 / 12%);
+  border-radius: 0.9vh;
+  background: #050505;
+  box-shadow: 0 2.4vh 8vh rgb(0 0 0 / 55%);
+  color: #fff;
+}
+
+.sim-picker__glow {
+  position: absolute;
+  border-radius: 50%;
+  background: #1dd1ce;
+  filter: blur(12vh);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.sim-picker__glow--top {
+  width: 18vh;
+  height: 18vh;
+  top: -12vh;
+  right: -8vh;
+}
+
+.sim-picker__glow--bottom {
+  width: 32vh;
+  height: 16vh;
+  right: 10vh;
+  bottom: -16vh;
+}
+
+.sim-picker__header,
+.sim-picker__card,
+.sim-picker__confirmation {
+  position: relative;
+  z-index: 1;
+}
+
+.sim-picker__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 2vh;
+  margin-bottom: 1.6vh;
+}
+
+.sim-picker__header h1,
+.sim-picker__confirmation h2 {
+  margin: 0;
+  color: #1dd1ce;
+  font-size: 2vh;
+}
+
+.sim-picker__header p,
+.sim-picker__confirmation p {
+  margin: 0.45vh 0 0;
+  color: #9ca3af;
+  font-size: 1.15vh;
+}
+
+.sim-picker__close {
+  display: grid;
+  place-items: center;
+  width: 2.8vh;
+  height: 2.8vh;
+  border: 0;
+  border-radius: 0.35vh;
+  background: #1dd1ce;
+  color: #050505;
+  cursor: pointer;
+}
+
+.sim-picker__close svg {
+  width: 1.6vh;
+  height: 1.6vh;
+}
+
+.sim-picker__cards {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1vh;
+  max-height: 34vh;
+  overflow: auto;
+}
+
+.sim-picker__card {
+  display: flex;
+  align-items: center;
+  gap: 1vh;
+  min-width: 0;
+  padding: 1.2vh;
+  border: 0.1vh solid rgb(143 143 143 / 37%);
+  border-radius: 0.6vh;
+  background: #050505;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sim-picker__card:hover {
+  border-color: rgb(255 255 255 / 50%);
+}
+
+.sim-picker__phone-icon,
+.sim-picker__card > svg:last-child {
+  flex: 0 0 auto;
+  width: 2.2vh;
+  height: 2.2vh;
+}
+
+.sim-picker__phone-icon {
+  color: #1dd1ce;
+}
+
+.sim-picker__details {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25vh;
+}
+
+.sim-picker__details strong {
+  overflow: hidden;
+  font-size: 1.2vh;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sim-picker__details small {
+  color: #9ca3af;
+  font-size: 0.95vh;
+}
+
+.sim-picker__confirmation {
+  padding: 2vh 0 0;
+  text-align: center;
+}
+
+.sim-picker__confirmation > div {
+  display: flex;
+  justify-content: center;
+  gap: 1vh;
+  margin-top: 2vh;
+}
+
+.sim-picker__confirmation button {
+  padding: 0.8vh 1.6vh;
+  border: 0.1vh solid rgb(255 255 255 / 18%);
+  border-radius: 0.45vh;
+  background: #151515;
+  color: #fff;
+  cursor: pointer;
+}
+
+.sim-picker__confirmation button.is-primary {
+  border-color: #1dd1ce;
+  background: #1dd1ce;
+  color: #050505;
+}
+
+.sim-picker__error {
+  position: relative;
+  z-index: 1;
+  color: #ff453a;
+  font-size: 1vh;
+  text-align: center;
+}
 :root {
   font-family:
     -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue',
@@ -944,6 +1128,19 @@ button {
   flex: 1;
   overflow-y: auto;
   padding: 0;
+}
+.phone-call-content {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+.phone-calls-app {
+  display: flex;
+  flex-direction: column;
+}
+.phone-calls-app.phone-app--light {
+  background: #f2f2f7;
+  color: #000;
 }
 .clock-konsta-list {
   margin-top: 0;

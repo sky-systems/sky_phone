@@ -47,6 +47,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   PhoneAppId,
   AppNotificationPreferences
 > = {
+  phone: { enabled: true, sounds: true },
   'app-store': { enabled: true, sounds: true },
   calculator: { enabled: true, sounds: true },
   camera: { enabled: true, sounds: true },

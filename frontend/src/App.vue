@@ -15,8 +15,12 @@ import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import NotificationPhonePreview from '@/components/NotificationPhonePreview.vue'
 import PhoneStatusBar from '@/components/PhoneStatusBar.vue'
+import SimPhonePicker, {
+  type SimPhoneChoice,
+} from '@/components/SimPhonePicker.vue'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { useClockStore } from '@/stores/clock'
+import { useCallsStore } from '@/stores/calls'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
 import { useMediaStore } from '@/stores/media'
@@ -28,6 +32,7 @@ import {
 import { usePhoneStore, type PhoneOpenPayload } from '@/stores/phone'
 import type { PhoneNotificationDevicePayload } from '@/types/device'
 import type { MailCounts } from '@/types/mail'
+import type { PhoneCall } from '@/types/phone'
 import { nuiCall } from '@/utils/nui'
 import { formatTimer } from '@/utils/clock'
 import { parsePhonePreferences } from '@/utils/preferences'
@@ -35,7 +40,12 @@ import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
   type?: string
-  data?: MailEventData | PhoneNotificationInput | PhoneOpenPayload
+  data?: MailEventData | PhoneCall | PhoneNotificationInput | PhoneOpenPayload
+}
+
+type SimPickerPayload = {
+  choices: SimPhoneChoice[]
+  number: string
 }
 
 type MailEventData = {
@@ -55,6 +65,7 @@ const isDevelopment = import.meta.env.DEV
 const phone = usePhoneStore()
 const account = useAccountStore()
 const clock = useClockStore()
+const calls = useCallsStore()
 const mail = useMailStore()
 const media = useMediaStore()
 const notes = useNotesStore()
@@ -64,6 +75,7 @@ const router = useRouter()
 const isAppRoute = computed(() => route.name === 'app')
 const isLocked = ref(false)
 const isUnlocking = ref(false)
+const simPicker = ref<SimPickerPayload | null>(null)
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
 const viewportScale = ref(getViewportScale())
 const phoneBaseZoom = computed(() => viewportScale.value * PHONE_BASE_SCALE)
@@ -94,6 +106,7 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   clock.hydrate(payload.device?.data.alarms?.payload)
   media.hydrate(payload.device?.data.media?.payload)
   void mail.bootstrap(payload.account?.email ?? '')
+  void calls.bootstrap()
 }
 
 function onMessage(event: MessageEvent<AppMessage>): void {
@@ -136,6 +149,23 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       }
     }
     notifications.show(notification)
+  } else if (event.data?.type === 'contacts:changed') {
+    void calls.loadContacts()
+  } else if (event.data?.type === 'calls:changed') {
+    void calls.loadRecents()
+  } else if (
+    (event.data?.type === 'call:incoming' ||
+      event.data?.type === 'call:state') &&
+    event.data.data
+  ) {
+    calls.applyCallState(event.data.data as PhoneCall)
+    isLocked.value = false
+    isUnlocking.value = false
+    window.setTimeout(() => void router.push('/apps/phone'), 0)
+  } else if (event.data?.type === 'sim:picker' && event.data.data) {
+    simPicker.value = event.data.data as unknown as SimPickerPayload
+  } else if (event.data?.type === 'sim:picker-close') {
+    simPicker.value = null
   }
 }
 
@@ -210,17 +240,43 @@ onMounted(() => {
         data: {},
         imei: '356938035643809',
         name: 'iFruit Phone',
+        sim: {
+          id: 'development-sim',
+          number: '5551234567',
+          registered: true,
+          type: 'registered',
+        },
       },
       notes: [],
       token: 'development',
     })
+    if (new URLSearchParams(window.location.search).has('simPickerPreview')) {
+      simPicker.value = {
+        choices: [
+          {
+            imei: '356938035643809',
+            name: 'Personal Phone',
+            occupied: false,
+          },
+          {
+            imei: '356938035643810',
+            name: 'Work Phone',
+            number: '5559876543',
+            occupied: true,
+          },
+        ],
+        number: '5551234567',
+      }
+    }
   }
 })
 
 watch(
-  () => notifications.requiresAttention,
-  (active) => {
-    void nuiCall('notification:focus', { active })
+  [() => notifications.requiresAttention, () => calls.activeCall],
+  ([requiresAttention, activeCall]) => {
+    void nuiCall('notification:focus', {
+      active: requiresAttention || activeCall !== null,
+    })
   },
 )
 
@@ -253,11 +309,18 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <SimPhonePicker
+    v-if="simPicker"
+    :choices="simPicker.choices"
+    :number="simPicker.number"
+    @close="simPicker = null"
+  />
   <Transition name="phone-lift" appear>
     <main
       v-if="
         phone.isOpen ||
         notifications.current ||
+        calls.activeCall ||
         notifications.devicePreviews.length
       "
       class="phone-stage"

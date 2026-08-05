@@ -1,4 +1,5 @@
 import type { Note } from '@/utils/notes'
+import type { PhoneSim } from '@/types/phone'
 
 export type DeviceDataEntry<T = unknown> = {
   payload: T
@@ -9,6 +10,7 @@ export type PhoneDevice = {
   data: Record<string, DeviceDataEntry | undefined>
   imei: string
   name: string
+  sim: PhoneSim | null
 }
 
 export type PhoneNotificationDevicePayload = {

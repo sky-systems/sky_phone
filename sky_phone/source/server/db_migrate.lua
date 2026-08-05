@@ -116,6 +116,27 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_sims",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "contact_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "phone_number", type = "VARCHAR(24) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "sim_type", type = "ENUM('registered', 'anonymous') NOT NULL" },
+            { name = "owner_identifier", type = "VARCHAR(80) NULL" },
+            { name = "owner_firstname", type = "VARCHAR(80) NULL" },
+            { name = "owner_lastname", type = "VARCHAR(80) NULL" },
+            { name = "owner_birthdate", type = "VARCHAR(32) NULL" },
+            { name = "registered_at", type = "DATETIME NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_sim_number", columns = "(`phone_number`)" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
         name = "sky_phone_devices",
         columns = {
             {
@@ -125,6 +146,7 @@ local schema = {
                 collation = "ascii_bin",
             },
             { name = "account_id", type = "BIGINT UNSIGNED NULL" },
+            { name = "sim_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "device_name", type = "VARCHAR(64) NOT NULL DEFAULT 'iFruit Phone'" },
             { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
             {
@@ -133,6 +155,9 @@ local schema = {
             },
         },
         primaryKey = "imei",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_devices_sim", columns = "(`sim_id`)" },
+        },
         indexes = {
             { name = "idx_sky_phone_devices_account", columns = "(`account_id`, `updated_at`)" },
         },
@@ -140,6 +165,10 @@ local schema = {
             {
                 column = "account_id",
                 references = "`sky_phone_accounts` (`id`) ON DELETE SET NULL",
+            },
+            {
+                column = "sim_id",
+                references = "`sky_phone_sims` (`id`) ON DELETE SET NULL",
             },
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
@@ -217,6 +246,81 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_contacts",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "account_id", type = "BIGINT UNSIGNED NULL" },
+            { name = "device_imei", type = "CHAR(15) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "name", type = "VARCHAR(80) NOT NULL" },
+            { name = "phone_number", type = "VARCHAR(24) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_contacts_account", columns = "(`account_id`, `name`)" },
+            { name = "idx_sky_phone_contacts_device", columns = "(`device_imei`, `name`)" },
+        },
+        foreignKeys = {
+            { column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "device_imei", references = "`sky_phone_devices` (`imei`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_calls",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "caller_sim_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "callee_sim_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "caller_number", type = "VARCHAR(24) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "callee_number", type = "VARCHAR(24) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "status", type = "VARCHAR(24) NOT NULL" },
+            { name = "started_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "answered_at", type = "DATETIME NULL" },
+            { name = "ended_at", type = "DATETIME NULL" },
+            { name = "duration_seconds", type = "INT UNSIGNED NOT NULL DEFAULT 0" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_calls_caller", columns = "(`caller_sim_id`, `started_at`)" },
+            { name = "idx_sky_phone_calls_callee", columns = "(`callee_sim_id`, `started_at`)" },
+        },
+        foreignKeys = {
+            { column = "caller_sim_id", references = "`sky_phone_sims` (`id`) ON DELETE CASCADE" },
+            { column = "callee_sim_id", references = "`sky_phone_sims` (`id`) ON DELETE SET NULL" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_call_entries",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "call_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "account_id", type = "BIGINT UNSIGNED NULL" },
+            { name = "device_imei", type = "CHAR(15) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "direction", type = "ENUM('incoming', 'outgoing') NOT NULL" },
+            { name = "status", type = "VARCHAR(24) NOT NULL" },
+            { name = "other_number", type = "VARCHAR(24) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_call_entries_account", columns = "(`account_id`, `created_at`)" },
+            { name = "idx_sky_phone_call_entries_device", columns = "(`device_imei`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "call_id", references = "`sky_phone_calls` (`id`) ON DELETE CASCADE" },
+            { column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "device_imei", references = "`sky_phone_devices` (`imei`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Sky.DB.Migrate("sky_phone", schema)
+Sky.DB.EnsureIndex("sky_phone_devices", "uniq_sky_phone_devices_sim", "(`sim_id`)", { unique = true })
+Sky.Query("UPDATE `sky_phone_contacts` SET `contact_id` = `id` WHERE `contact_id` IS NULL", {})
+Sky.DB.EnsureIndex("sky_phone_contacts", "uniq_sky_phone_contacts_account_contact", "(`account_id`, `contact_id`)", { unique = true })
+Sky.DB.EnsureIndex("sky_phone_contacts", "uniq_sky_phone_contacts_device_contact", "(`device_imei`, `contact_id`)", { unique = true })

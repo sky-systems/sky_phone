@@ -1,6 +1,8 @@
 local is_open = false
 local notification_focus = false
 local device_payload = nil
+local sim_picker_open = false
+local call_channel = 0
 
 Sky.Debug("debug", "[sky_phone] Client script initialized.", { always = true })
 
@@ -31,6 +33,16 @@ local server_callbacks = {
     "mail:restore",
     "mail:delete-forever",
     "mail:empty-trash",
+    "sim:insert",
+    "sim:eject",
+    "contacts:list",
+    "contacts:save",
+    "contacts:delete",
+    "calls:recents",
+    "calls:dial",
+    "calls:answer",
+    "calls:decline",
+    "calls:hangup",
 }
 
 local function get_locale()
@@ -68,9 +80,33 @@ local function close_phone()
     end
 
     is_open = false
-    SetNuiFocus(notification_focus, notification_focus)
+    SetNuiFocus(notification_focus or sim_picker_open, notification_focus or sim_picker_open)
     SendNUIMessage({ type = "app:close" })
     Sky.Cb.Trigger("sky_phone:device:close", {})
+end
+
+local function leave_call_voice()
+    if call_channel == 0 then
+        return
+    end
+    if Config.Calls.VoiceProvider == "pma" and GetResourceState("pma-voice") == "started" then
+        exports["pma-voice"]:setCallChannel(0)
+    end
+    call_channel = 0
+end
+
+local function join_call_voice(channel)
+    if Config.Calls.VoiceProvider ~= "pma" then
+        Sky.Debug("error", "[sky_phone] Unsupported voice provider '%s'.", tostring(Config.Calls.VoiceProvider))
+        return false
+    end
+    if GetResourceState("pma-voice") ~= "started" then
+        Sky.Debug("error", "[sky_phone] Configured pma-voice provider is not started.")
+        return false
+    end
+    call_channel = tonumber(channel) or 0
+    exports["pma-voice"]:setCallChannel(call_channel)
+    return true
 end
 
 if Config.Phone.DevelopmentCommand then
@@ -98,6 +134,12 @@ end)
 
 RegisterNUICallback("notification:focus", function(data, cb)
     notification_focus = data.active == true and not is_open
+    SetNuiFocus(is_open or notification_focus, is_open or notification_focus)
+    cb({ success = true })
+end)
+
+RegisterNUICallback("sim:picker-close", function(_, cb)
+    sim_picker_open = false
     SetNuiFocus(is_open or notification_focus, is_open or notification_focus)
     cb({ success = true })
 end)
@@ -172,6 +214,43 @@ RegisterNetEvent("sky_phone:mail:new", function(data)
     SendNUIMessage({ type = "mail:new", data = data })
 end)
 
+RegisterNetEvent("sky_phone:sim:picker", function(data)
+    sim_picker_open = true
+    SetNuiFocus(true, true)
+    SendNUIMessage({ type = "sim:picker", data = data })
+end)
+
+RegisterNetEvent("sky_phone:sim:picker-close", function()
+    sim_picker_open = false
+    SetNuiFocus(is_open or notification_focus, is_open or notification_focus)
+    SendNUIMessage({ type = "sim:picker-close" })
+end)
+
+RegisterNetEvent("sky_phone:contacts:changed", function()
+    SendNUIMessage({ type = "contacts:changed" })
+end)
+
+RegisterNetEvent("sky_phone:calls:changed", function()
+    SendNUIMessage({ type = "calls:changed" })
+end)
+
+RegisterNetEvent("sky_phone:call:incoming", function(data)
+    notification_focus = true
+    SetNuiFocus(true, true)
+    SendNUIMessage({ type = "call:incoming", data = data })
+end)
+
+RegisterNetEvent("sky_phone:call:state", function(data)
+    if data.state == "connected" and data.channel then
+        if not join_call_voice(data.channel) then
+            TriggerEvent("sky_phone:device:error", "voice_unavailable")
+        end
+    elseif data.state ~= "ringing" then
+        leave_call_voice()
+    end
+    SendNUIMessage({ type = "call:state", data = data })
+end)
+
 CreateThread(function()
     if Config.Phone.DevelopmentCommand then
         TriggerEvent("chat:addSuggestion", "/" .. Config.Command, get_locale().CommandDescription)
@@ -186,6 +265,8 @@ AddEventHandler("onResourceStop", function(resource_name)
     if is_open or notification_focus then
         SetNuiFocus(false, false)
     end
+
+    leave_call_voice()
 
     if Config.Phone.DevelopmentCommand then
         TriggerEvent("chat:removeSuggestion", "/" .. Config.Command)

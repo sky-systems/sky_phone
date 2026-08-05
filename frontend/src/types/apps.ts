@@ -1,6 +1,7 @@
 import type { Component } from 'vue'
 
 export type PhoneAppId =
+  | 'phone'
   | 'calculator'
   | 'camera'
   | 'clock'

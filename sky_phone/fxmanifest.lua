@@ -10,8 +10,10 @@ escrow_ignore 'config/**'
 
 shared_scripts {
     '@sky_base/source/import.lua',
+    '@sky_jobs_base/source/import.lua',
     'config/init.lua',
     'source/shared/imei.lua',
+    'source/shared/sim_number.lua',
 }
 
 client_scripts {
@@ -24,6 +26,8 @@ server_scripts {
     'config/config.lua',
     'source/server/db_migrate.lua',
     'source/server/phone.lua',
+    'source/server/sim.lua',
+    'source/server/calls.lua',
     'source/server/notes.lua',
     'source/server/mail.lua',
 }
@@ -36,4 +40,4 @@ files {
 
 ui_page 'source/html/index.html'
 
-dependency 'sky_base'
+dependencies { 'sky_base', 'sky_jobs_base' }
