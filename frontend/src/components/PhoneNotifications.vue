@@ -3,28 +3,33 @@ import { kNotification } from 'konsta/vue'
 import { computed } from 'vue'
 
 import { getPhoneApp } from '@/config/apps'
-import { useNotificationsStore } from '@/stores/notifications'
+import type { PhoneNotification } from '@/stores/notifications'
 import { usePhoneStore } from '@/stores/phone'
 
-const notifications = useNotificationsStore()
+const props = defineProps<{
+  notification: PhoneNotification | null
+}>()
+const emit = defineEmits<{
+  close: []
+}>()
 const phone = usePhoneStore()
 const icon = computed(() =>
-  notifications.current
-    ? getPhoneApp(notifications.current.appId)?.iconImage
+  props.notification
+    ? getPhoneApp(props.notification.appId)?.iconImage
     : undefined,
 )
 </script>
 
 <template>
   <k-notification
-    :opened="!!notifications.current"
-    :title="notifications.current?.title"
-    :subtitle="notifications.current?.subtitle"
-    :text="notifications.current?.text"
+    :opened="!!notification"
+    :title="notification?.title"
+    :subtitle="notification?.subtitle"
+    :text="notification?.text"
     :title-right-text="phone.t('Notifications.now')"
     button="close"
     class="phone-notification"
-    @close="notifications.dismissCurrent()"
+    @close="emit('close')"
   >
     <template v-if="icon" #icon>
       <img :src="icon" alt="" class="phone-notification__icon" />

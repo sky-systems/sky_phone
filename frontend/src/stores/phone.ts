@@ -67,6 +67,19 @@ const defaultLocales: LocaleTree = {
       },
     },
     calculator: { name: 'Calculator' },
+    map: {
+      name: 'Map',
+      controls: 'Map controls',
+      currentLocation: 'Current Location',
+      imageError: 'The map image could not be loaded.',
+      switchStyle: 'Switch Map Type',
+      styles: {
+        default: 'Default Map',
+        satellite: 'Satellite Map',
+        atlas: 'Atlas Map',
+        roads: 'Road Map',
+      },
+    },
     camera: {
       name: 'Camera',
       shutter: 'Take photo',

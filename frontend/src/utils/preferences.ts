@@ -52,6 +52,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   camera: { enabled: true, sounds: true },
   clock: { enabled: true, sounds: true },
   mail: { enabled: true, sounds: true },
+  map: { enabled: true, sounds: true },
   notes: { enabled: true, sounds: true },
   photos: { enabled: true, sounds: true },
   settings: { enabled: true, sounds: true },

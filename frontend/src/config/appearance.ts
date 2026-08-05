@@ -12,3 +12,11 @@ export const PHONE_FRAME_IMAGES: Record<PhoneFrameId, string> = {
   lavender: lavenderFrame,
   white: whiteFrame,
 }
+
+export const PHONE_FRAME_COLORS: Record<PhoneFrameId, string> = {
+  black: '#3a3a3c',
+  blue: '#7294c2',
+  green: '#889b6e',
+  lavender: '#aaa1c8',
+  white: '#f2f2f2',
+}

@@ -31,6 +31,7 @@ server_scripts {
 files {
     'source/html/index.html',
     'source/html/assets/**',
+    'source/html/img/**',
 }
 
 ui_page 'source/html/index.html'

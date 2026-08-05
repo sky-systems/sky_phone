@@ -3,11 +3,19 @@ import { defineStore } from 'pinia'
 
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppId } from '@/types/apps'
+import type { PhonePreferencesV1 } from '@/utils/preferences'
 import { playPhoneTone, type PhoneToneId } from '@/utils/tones'
+
+export type PhoneNotificationDevice = {
+  imei: string
+  name: string
+  preferences: PhonePreferencesV1
+}
 
 export type PhoneNotificationInput = {
   appId: PhoneAppId
   critical?: boolean
+  device?: PhoneNotificationDevice
   persistent?: boolean
   sound?: PhoneToneId
   subtitle?: string
@@ -25,21 +33,34 @@ const stopToneHandles = new Map<string, () => void>()
 export const useNotificationsStore = defineStore('notifications', () => {
   const phone = usePhoneStore()
   const queue = ref<PhoneNotification[]>([])
+  const deviceQueue = ref<PhoneNotification[]>([])
   const current = computed(() => queue.value[0] ?? null)
+  const devicePreviews = computed(() => {
+    const devices = new Set<string>()
+    return deviceQueue.value.filter((notification) => {
+      const imei = notification.device?.imei
+      if (!imei || devices.has(imei)) return false
+      devices.add(imei)
+      return true
+    })
+  })
   const isPeeking = computed(() => !!current.value && !phone.isOpen)
   const requiresAttention = computed(
-    () => !!current.value?.persistent && !phone.isOpen,
+    () =>
+      !phone.isOpen &&
+      (!!current.value?.persistent ||
+        devicePreviews.value.some((notification) => notification.persistent)),
   )
 
   function activate(notification: PhoneNotification): void {
+    const preferences = notification.device?.preferences ?? phone.preferences
     const appPreferences =
-      phone.preferences.settings.notifications[notification.appId]
+      preferences.settings.notifications[notification.appId]
     if (appPreferences.sounds || notification.critical) {
-      const sound =
-        notification.sound ?? phone.preferences.settings.notificationSound
+      const sound = notification.sound ?? preferences.settings.notificationSound
       const volume = notification.critical
-        ? phone.preferences.settings.ringtoneVolume
-        : phone.preferences.settings.notificationVolume
+        ? preferences.settings.ringtoneVolume
+        : preferences.settings.notificationVolume
       stopToneHandles.set(
         notification.id,
         playPhoneTone(sound, volume, !!notification.persistent),
@@ -51,23 +72,44 @@ export const useNotificationsStore = defineStore('notifications', () => {
         notification.id,
         setTimeout(
           () => dismiss(notification.id),
-          phone.preferences.settings.notificationDurationSeconds * 1000,
+          preferences.settings.notificationDurationSeconds * 1000,
         ),
       )
     }
   }
 
   function dismiss(id: string): void {
-    const index = queue.value.findIndex((notification) => notification.id === id)
-    if (index < 0) return
-    const wasCurrent = index === 0
+    const index = queue.value.findIndex(
+      (notification) => notification.id === id,
+    )
+    const deviceIndex = deviceQueue.value.findIndex(
+      (notification) => notification.id === id,
+    )
+    if (index < 0 && deviceIndex < 0) return
     const timeout = timeoutHandles.get(id)
     if (timeout) clearTimeout(timeout)
     timeoutHandles.delete(id)
     stopToneHandles.get(id)?.()
     stopToneHandles.delete(id)
-    queue.value.splice(index, 1)
-    if (wasCurrent && current.value) activate(current.value)
+
+    if (index >= 0) {
+      const wasCurrent = index === 0
+      queue.value.splice(index, 1)
+      if (wasCurrent && current.value) activate(current.value)
+      return
+    }
+
+    const imei = deviceQueue.value[deviceIndex].device?.imei
+    const wasDeviceCurrent = !deviceQueue.value
+      .slice(0, deviceIndex)
+      .some((notification) => notification.device?.imei === imei)
+    deviceQueue.value.splice(deviceIndex, 1)
+    if (wasDeviceCurrent) {
+      const next = deviceQueue.value.find(
+        (notification) => notification.device?.imei === imei,
+      )
+      if (next) activate(next)
+    }
   }
 
   function dismissCurrent(): void {
@@ -75,7 +117,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
   }
 
   function show(input: PhoneNotificationInput): string | null {
-    const appPreferences = phone.preferences.settings.notifications[input.appId]
+    const preferences = input.device?.preferences ?? phone.preferences
+    const appPreferences = preferences.settings.notifications[input.appId]
     if (!appPreferences) {
       console.error(`[Phone notifications] Unknown app: ${input.appId}`)
       return null
@@ -84,19 +127,33 @@ export const useNotificationsStore = defineStore('notifications', () => {
       return null
     }
     if (input.critical) {
-      for (const notification of [...queue.value]) dismiss(notification.id)
+      const pending = input.device
+        ? deviceQueue.value.filter(
+            (notification) => notification.device?.imei === input.device?.imei,
+          )
+        : queue.value
+      for (const notification of [...pending]) dismiss(notification.id)
     }
     const notification: PhoneNotification = {
       ...input,
       id: `notification-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     }
-    queue.value.push(notification)
-    if (queue.value.length === 1) activate(notification)
+    if (notification.device) {
+      const isFirstForDevice = !deviceQueue.value.some(
+        (pending) => pending.device?.imei === notification.device?.imei,
+      )
+      deviceQueue.value.push(notification)
+      if (isFirstForDevice) activate(notification)
+    } else {
+      queue.value.push(notification)
+      if (queue.value.length === 1) activate(notification)
+    }
     return notification.id
   }
 
   return {
     current,
+    devicePreviews,
     dismiss,
     dismissCurrent,
     isPeeking,

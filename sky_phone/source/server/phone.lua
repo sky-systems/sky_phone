@@ -464,6 +464,42 @@ function SkyPhone.NotifyAccount(account_id, event_name, data)
     end
 end
 
+function SkyPhone.NotifyAccountDevices(account_id, event_name, data)
+    local rows = Sky.Query([[
+        SELECT d.`imei`, d.`device_name`, settings.`payload` AS `settings`
+        FROM `sky_phone_devices` d
+        LEFT JOIN `sky_phone_device_data` settings
+            ON settings.`device_imei` = d.`imei` AND settings.`namespace` = 'settings'
+        WHERE d.`account_id` = ?
+    ]], { account_id })
+    local devices = {}
+    for _, row in ipairs(rows) do
+        devices[row.imei] = row
+    end
+
+    for _, player_source in ipairs(Sky.FW.GetPlayers()) do
+        local source = tonumber(player_source) or player_source
+        local notified_devices = {}
+        for _, item in ipairs(Sky.FW.GetInventorySlotsWithItem(source, Config.Phone.Item)) do
+            local imei = item.metadata and item.metadata.imei
+            local device = imei and devices[imei]
+            if device and not notified_devices[imei] then
+                local payload = {}
+                for key, value in pairs(data) do
+                    payload[key] = value
+                end
+                payload.device = {
+                    imei = device.imei,
+                    name = device.device_name,
+                    settings = device.settings,
+                }
+                notified_devices[imei] = true
+                TriggerClientEvent(event_name, source, payload)
+            end
+        end
+    end
+end
+
 function SkyPhone.RefreshAccount(account_id)
     for source in pairs(sessions) do
         local account = SkyPhone.RequireAccount(source)

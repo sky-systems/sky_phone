@@ -102,6 +102,20 @@ RegisterNUICallback("notification:focus", function(data, cb)
     cb({ success = true })
 end)
 
+RegisterNUICallback("map:getPlayerCoords", function(_, cb)
+    local coords = GetEntityCoords(PlayerPedId())
+    cb({
+        success = true,
+        data = {
+            coords = {
+                x = coords.x,
+                y = coords.y,
+                z = coords.z
+            }
+        }
+    })
+end)
+
 for _, callback_name in ipairs(server_callbacks) do
     RegisterNUICallback(callback_name, function(data, cb)
         local result = Sky.Cb.Trigger("sky_phone:" .. callback_name, data)
@@ -152,6 +166,9 @@ RegisterNetEvent("sky_phone:mail:changed", function(data)
 end)
 
 RegisterNetEvent("sky_phone:mail:new", function(data)
+    local mail_locale = get_locale().Nui.Apps.mail
+    data.title = mail_locale.name
+    data.text = mail_locale.newMessage:gsub("{sender}", tostring(data.sender))
     SendNUIMessage({ type = "mail:new", data = data })
 end)
 

@@ -13,6 +13,7 @@ import { useRoute, useRouter } from 'vue-router'
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
+import NotificationPhonePreview from '@/components/NotificationPhonePreview.vue'
 import PhoneStatusBar from '@/components/PhoneStatusBar.vue'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { useClockStore } from '@/stores/clock'
@@ -25,13 +26,25 @@ import {
   type PhoneNotificationInput,
 } from '@/stores/notifications'
 import { usePhoneStore, type PhoneOpenPayload } from '@/stores/phone'
+import type { PhoneNotificationDevicePayload } from '@/types/device'
+import type { MailCounts } from '@/types/mail'
 import { nuiCall } from '@/utils/nui'
 import { formatTimer } from '@/utils/clock'
+import { parsePhonePreferences } from '@/utils/preferences'
 import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
   type?: string
-  data?: PhoneNotificationInput | PhoneOpenPayload
+  data?: MailEventData | PhoneNotificationInput | PhoneOpenPayload
+}
+
+type MailEventData = {
+  counts?: MailCounts
+  device?: PhoneNotificationDevicePayload
+  sender?: string
+  subject?: string
+  text?: string
+  title?: string
 }
 
 const REFERENCE_VIEWPORT_WIDTH = 1920
@@ -53,12 +66,12 @@ const isLocked = ref(false)
 const isUnlocking = ref(false)
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
 const viewportScale = ref(getViewportScale())
+const phoneBaseZoom = computed(() => viewportScale.value * PHONE_BASE_SCALE)
 const phoneResolutionStyle = computed<CSSProperties>(() => ({
   '--phone-edge-gap': `${24 * viewportScale.value}px`,
+  '--phone-stack-gap': `${16 * viewportScale.value}px`,
   '--phone-zoom':
-    viewportScale.value *
-    PHONE_BASE_SCALE *
-    (phone.preferences.settings.phoneScale / 100),
+    phoneBaseZoom.value * (phone.preferences.settings.phoneScale / 100),
 }))
 const phoneFrameImage = computed(
   () => PHONE_FRAME_IMAGES[phone.preferences.settings.frame],
@@ -92,6 +105,37 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     phone.close()
   } else if (event.data?.type === 'notification:show' && event.data.data) {
     notifications.show(event.data.data as PhoneNotificationInput)
+  } else if (event.data?.type === 'mail:changed' && event.data.data) {
+    const data = event.data.data as MailEventData
+    if (data.counts) mail.setCounts(data.counts)
+  } else if (event.data?.type === 'mail:new' && event.data.data) {
+    const data = event.data.data as MailEventData
+    if (
+      data.counts &&
+      (!data.device || data.device.imei === phone.device?.imei)
+    ) {
+      mail.setCounts(data.counts)
+    }
+
+    const notification: PhoneNotificationInput = {
+      appId: 'mail',
+      subtitle: data.subject,
+      text:
+        data.text ??
+        phone.t('Apps.mail.newMessage', { sender: data.sender ?? '' }),
+      title: data.title ?? phone.t('Apps.mail.name'),
+    }
+    if (
+      data.device &&
+      (!phone.isOpen || data.device.imei !== phone.device?.imei)
+    ) {
+      notification.device = {
+        imei: data.device.imei,
+        name: data.device.name,
+        preferences: parsePhonePreferences(data.device.settings ?? null),
+      }
+    }
+    notifications.show(notification)
   }
 }
 
@@ -211,7 +255,11 @@ onBeforeUnmount(() => {
 <template>
   <Transition name="phone-lift" appear>
     <main
-      v-if="phone.isOpen || notifications.current"
+      v-if="
+        phone.isOpen ||
+        notifications.current ||
+        notifications.devicePreviews.length
+      "
       class="phone-stage"
       :class="{
         'phone-stage--dev': isDevelopment,
@@ -219,45 +267,64 @@ onBeforeUnmount(() => {
       }"
       :style="phoneResolutionStyle"
     >
-      <div class="phone-resolution-wrapper">
-        <section class="phone-device" :aria-label="phone.t('Common.phone')">
-          <div
-            class="phone-screen"
-            :class="{ 'phone-screen--app': isAppRoute }"
-          >
-            <k-app
-              theme="ios"
-              :dark="phone.isDarkMode"
-              safe-areas
-              class="phone-app"
-              :class="{
-                dark: phone.isDarkMode,
-                'phone-app--light': !phone.isDarkMode,
-                'phone-app--unlocking': isUnlocking,
-              }"
+      <div class="phone-device-row">
+        <NotificationPhonePreview
+          v-for="notification in notifications.devicePreviews"
+          :key="notification.device?.imei"
+          :notification="notification"
+          :zoom="
+            phoneBaseZoom *
+            ((notification.device?.preferences.settings.phoneScale ?? 100) /
+              100)
+          "
+          @close="notifications.dismiss(notification.id)"
+        />
+        <div
+          v-if="phone.isOpen || notifications.current"
+          class="phone-resolution-wrapper phone-resolution-wrapper--primary"
+        >
+          <section class="phone-device" :aria-label="phone.t('Common.phone')">
+            <div
+              class="phone-screen"
+              :class="{ 'phone-screen--app': isAppRoute }"
             >
-              <PhoneStatusBar v-if="!isLocked" />
-              <SpringboardView />
-              <RouterView v-slot="{ Component }">
-                <Transition name="app-window">
-                  <component :is="Component" v-if="isAppRoute" />
+              <k-app
+                theme="ios"
+                :dark="phone.isDarkMode"
+                safe-areas
+                class="phone-app"
+                :class="{
+                  dark: phone.isDarkMode,
+                  'phone-app--light': !phone.isDarkMode,
+                  'phone-app--unlocking': isUnlocking,
+                }"
+              >
+                <PhoneStatusBar v-if="!isLocked" />
+                <SpringboardView />
+                <RouterView v-slot="{ Component }">
+                  <Transition name="app-window">
+                    <component :is="Component" v-if="isAppRoute" />
+                  </Transition>
+                </RouterView>
+                <PhoneHomeIndicator v-if="!isLocked" />
+                <Transition name="lock-screen">
+                  <PhoneLockScreen v-if="isLocked" @unlock="unlockPhone" />
                 </Transition>
-              </RouterView>
-              <PhoneHomeIndicator v-if="!isLocked" />
-              <Transition name="lock-screen">
-                <PhoneLockScreen v-if="isLocked" @unlock="unlockPhone" />
-              </Transition>
-              <PhoneNotifications />
-            </k-app>
-          </div>
-          <img
-            class="phone-device__frame"
-            :src="phoneFrameImage"
-            alt=""
-            aria-hidden="true"
-            draggable="false"
-          />
-        </section>
+                <PhoneNotifications
+                  :notification="notifications.current"
+                  @close="notifications.dismissCurrent()"
+                />
+              </k-app>
+            </div>
+            <img
+              class="phone-device__frame"
+              :src="phoneFrameImage"
+              alt=""
+              aria-hidden="true"
+              draggable="false"
+            />
+          </section>
+        </div>
       </div>
     </main>
   </Transition>

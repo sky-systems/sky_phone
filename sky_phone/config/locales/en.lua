@@ -82,6 +82,11 @@ Locales["en"] = {
                     default = "The mail request failed.",
                 },
             },
+            map = {
+                name = "Map", controls = "Map controls", currentLocation = "Current Location",
+                imageError = "The map image could not be loaded.", switchStyle = "Switch Map Type",
+                styles = { default = "Default Map", satellite = "Satellite Map", atlas = "Atlas Map", roads = "Road Map" },
+            },
             notes = {
                 name = "Notes", note = "Note", back = "Back", actions = "Note actions",
                 newNote = "New Note", searchPlaceholder = "Search Notes",

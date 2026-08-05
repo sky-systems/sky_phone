@@ -94,6 +94,13 @@ function counts() {
 app.post('/api/:endpoint', (request, response) => {
   console.log(`[NUI] ${request.params.endpoint}`, request.body)
   const endpoint = request.params.endpoint
+  if (endpoint === 'map:getPlayerCoords') {
+    response.json({
+      success: true,
+      data: { coords: { x: -75.2, y: -818.9, z: 326.2 } },
+    })
+    return
+  }
   if (endpoint === 'account:login' || endpoint === 'account:register') {
     authenticated = true
     linkedAccount = {

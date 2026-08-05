@@ -11,6 +11,12 @@ export type PhoneDevice = {
   name: string
 }
 
+export type PhoneNotificationDevicePayload = {
+  imei: string
+  name: string
+  settings?: string | null
+}
+
 export type AccountDevice = {
   created_at: string
   current: boolean

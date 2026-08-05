@@ -42,7 +42,7 @@ button {
   place-items: center;
   padding: 0;
 }
-.phone-stage--peek .phone-device {
+.phone-stage--peek .phone-resolution-wrapper--primary .phone-device {
   transform: translateY(calc(100% - 190px));
   transform-origin: right bottom;
 }
@@ -66,6 +66,23 @@ button {
   width: 390px;
   height: 844px;
   zoom: var(--phone-zoom, 1);
+}
+.phone-device-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: var(--phone-stack-gap, 16px);
+}
+.phone-resolution-wrapper--notification {
+  flex: 0 0 auto;
+}
+.phone-device--notification {
+  transform: translateY(calc(100% - 190px));
+  transform-origin: right bottom;
+}
+.notification-phone-background {
+  position: absolute;
+  inset: 0;
 }
 .phone-device {
   position: relative;
@@ -115,6 +132,7 @@ button {
   color-scheme: light;
 }
 .phone-notification {
+  z-index: 85 !important;
   top: 68px !important;
   right: 8px !important;
   left: 8px !important;
@@ -399,6 +417,11 @@ button {
   cursor: pointer;
   text-shadow: 0 1px 4px #000b;
 }
+.app-icon-anchor {
+  position: relative;
+  display: inline-grid;
+  overflow: visible;
+}
 .app-icon {
   width: 56px;
   height: 56px;
@@ -410,6 +433,14 @@ button {
   box-shadow:
     0 4px 13px #0004,
     inset 0 1px 1px #ffffff55;
+}
+.app-icon-badge {
+  position: absolute;
+  z-index: 2;
+  top: -5px;
+  right: -5px;
+  text-shadow: none;
+  box-shadow: 0 1px 3px #0008;
 }
 .app-icon > img {
   width: 100%;

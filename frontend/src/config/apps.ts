@@ -4,6 +4,7 @@ import {
   Clock3,
   Images,
   Mail,
+  MapPinned,
   NotebookPen,
   Settings,
   ShoppingBag,
@@ -15,12 +16,26 @@ import calculatorIcon from '@/assets/img/app-icons/calculator.webp'
 import cameraIcon from '@/assets/img/app-icons/camera.webp'
 import clockIcon from '@/assets/img/app-icons/clock.webp'
 import mailIcon from '@/assets/img/app-icons/mail.webp'
+import mapIcon from '@/assets/img/app-icons/map.svg'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import settingsIcon from '@/assets/img/app-icons/settings.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/MapApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 8,
+    icon: markRaw(MapPinned),
+    iconClass: '',
+    iconImage: mapIcon,
+    id: 'map',
+    labelKey: 'Apps.map.name',
+    route: '/apps/map',
+  },
   {
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MailApp.vue')),

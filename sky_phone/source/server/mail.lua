@@ -135,9 +135,9 @@ local function get_counts(account_id)
     }
 end
 
-local function broadcast_mailbox_changed(account_id)
+local function broadcast_mailbox_changed(account_id, counts)
     notify_account(account_id, "sky_phone:mail:changed", {
-        counts = get_counts(account_id),
+        counts = counts or get_counts(account_id),
     })
 end
 
@@ -450,11 +450,13 @@ Sky.Cb.Register("sky_phone:mail:send", function(source, data)
 
     broadcast_mailbox_changed(session.id)
     for _, account in ipairs(recipient_accounts) do
-        notify_account(account.id, "sky_phone:mail:new", {
+        local counts = get_counts(account.id)
+        SkyPhone.NotifyAccountDevices(account.id, "sky_phone:mail:new", {
+            counts = counts,
             sender = session.email,
             subject = subject,
         })
-        broadcast_mailbox_changed(account.id)
+        broadcast_mailbox_changed(account.id, counts)
     end
 
     return { success = true, data = { id = message_id } }

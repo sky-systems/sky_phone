@@ -8,8 +8,13 @@ describe('app registry', () => {
     expect(PHONE_APPS.every((app) => app.route === `/apps/${app.id}`)).toBe(
       true,
     )
-    expect(PHONE_APPS.every((app) => app.iconImage.endsWith('.webp'))).toBe(
-      true,
+    expect(
+      PHONE_APPS.filter((app) => app.id !== 'map').every((app) =>
+        app.iconImage.endsWith('.webp'),
+      ),
+    ).toBe(true)
+    expect(PHONE_APPS.find((app) => app.id === 'map')?.iconImage).toMatch(
+      /^(data:image\/svg\+xml|.+\.svg$)/,
     )
     expect(PHONE_APPS.find((app) => app.id === 'mail')).toMatchObject({
       gridOrder: 3,

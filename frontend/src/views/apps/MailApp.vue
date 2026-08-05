@@ -31,7 +31,6 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { IFRUIT_AUTH_INPUT_COLORS } from '@/config/ifruit'
 import { useMailStore } from '@/stores/mail'
-import { useNotificationsStore } from '@/stores/notifications'
 import { usePhoneStore } from '@/stores/phone'
 import type {
   MailComposeDraft,
@@ -51,15 +50,12 @@ type MailScreen = 'folders' | 'list' | 'message' | 'compose'
 type MailEvent = {
   data?: {
     counts?: MailCounts
-    sender?: string
-    subject?: string
   }
-  type?: 'mail:changed' | 'mail:new'
+  type?: 'mail:changed'
 }
 
 const phone = usePhoneStore()
 const mail = useMailStore()
-const notifications = useNotificationsStore()
 const authMode = ref<AuthMode>('login')
 const authEmail = ref('')
 const authPassword = ref('')
@@ -335,18 +331,6 @@ function onMailEvent(event: MessageEvent<MailEvent>): void {
     if (screen.value === 'list') {
       void mail.loadFolder(mail.folder, mail.search)
     }
-    return
-  }
-
-  if (event.data.type === 'mail:new' && event.data.data?.sender) {
-    notifications.show({
-      appId: 'mail',
-      subtitle: event.data.data.subject || phone.t('Apps.mail.untitled'),
-      text: phone.t('Apps.mail.newMessage', {
-        sender: event.data.data.sender,
-      }),
-      title: phone.t('Apps.mail.name'),
-    })
   }
 }
 

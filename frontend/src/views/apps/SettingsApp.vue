@@ -13,6 +13,7 @@ import {
   kNavbar,
   kNavbarBackLink,
   kPage,
+  kPopover,
   kPreloader,
   kRange,
   kSearchbar,
@@ -41,7 +42,7 @@ import {
   type ComponentPublicInstance,
 } from 'vue'
 
-import { PHONE_FRAME_IMAGES } from '@/config/appearance'
+import { PHONE_FRAME_COLORS } from '@/config/appearance'
 import { PHONE_APPS } from '@/config/apps'
 import { IFRUIT_AUTH_INPUT_COLORS } from '@/config/ifruit'
 import { usePhoneStore } from '@/stores/phone'
@@ -83,6 +84,11 @@ const query = ref('')
 const activeView = ref<SettingsView>('root')
 const selectedNotificationAppId = ref<PhoneAppId>('calculator')
 const settingsPage = ref<ComponentPublicInstance | null>(null)
+const framePickerButton = ref<ComponentPublicInstance | null>(null)
+const framePickerOpened = ref(false)
+const framePickerTarget = computed(
+  () => framePickerButton.value?.$el as HTMLElement | undefined,
+)
 const accountMode = ref<'login' | 'register'>('login')
 const accountEmail = ref('')
 const accountPassword = ref('')
@@ -99,18 +105,21 @@ const factoryResetDashOffset = computed(
   () =>
     FACTORY_RESET_CIRCUMFERENCE * (1 - factoryResetProgress.value / 100),
 )
+const selectedFrameColor = computed(
+  () => PHONE_FRAME_COLORS[phone.preferences.settings.frame],
+)
 let factoryResetAnimationFrame: number | undefined
 
 const toggleRows = [
   {
     key: 'airplaneMode' as const,
     icon: Plane,
-    iconClass: 'bg-linear-to-br from-orange-400 to-orange-500',
+    iconColor: '#ff9500',
   },
   {
     key: 'streamerMode' as const,
     icon: EyeOff,
-    iconClass: 'bg-linear-to-br from-purple-400 to-purple-500',
+    iconColor: '#af52de',
   },
 ]
 const serviceRows = [
@@ -118,13 +127,13 @@ const serviceRows = [
     key: 'notifications',
     view: 'notifications' as const,
     icon: BellRing,
-    iconClass: 'bg-linear-to-br from-red-400 to-red-500',
+    iconColor: '#ff3b30',
   },
   {
     key: 'sounds',
     view: 'sounds' as const,
     icon: Volume2,
-    iconClass: 'bg-linear-to-br from-rose-400 to-rose-500',
+    iconColor: '#ff2d55',
   },
 ]
 const preferenceRows = [
@@ -132,19 +141,19 @@ const preferenceRows = [
     key: 'general',
     view: 'general' as const,
     icon: Settings,
-    iconClass: 'bg-linear-to-br from-slate-400 to-slate-500',
+    iconColor: '#8e8e93',
   },
   {
     key: 'appearance',
     view: 'appearance' as const,
     icon: Sun,
-    iconClass: 'bg-linear-to-br from-blue-400 to-blue-500',
+    iconColor: '#007aff',
   },
   {
     key: 'wallpaper',
     view: 'wallpaper' as const,
     icon: Monitor,
-    iconClass: 'bg-linear-to-br from-sky-400 to-sky-500',
+    iconColor: '#32ade6',
   },
 ]
 
@@ -204,6 +213,7 @@ function openNotificationApp(app: PhoneAppDefinition): void {
 }
 
 function goBack(): void {
+  framePickerOpened.value = false
   activeView.value =
     activeView.value === 'notification-detail' ? 'notifications' : 'root'
   scrollPageToTop()
@@ -240,6 +250,68 @@ function selectAppearanceMode(mode: AppearanceMode): void {
 
 function selectFrame(frame: PhoneFrameId): void {
   phone.setPreference('frame', frame)
+  framePickerOpened.value = false
+}
+
+async function openFramePicker(): Promise<void> {
+  const target = framePickerTarget.value
+  const screen = target?.closest<HTMLElement>('.phone-screen')
+  const wrapper = target?.closest<HTMLElement>('.phone-resolution-wrapper')
+  const popover = document.querySelector<HTMLElement>(
+    '.settings-frame-popover',
+  )
+  if (!target || !screen || !wrapper || !popover) {
+    console.error('Unable to position the Settings frame color picker')
+    return
+  }
+
+  const framePickerScale =
+    wrapper.getBoundingClientRect().width / wrapper.offsetWidth
+  popover.style.width = `${240 * framePickerScale}px`
+  popover.style.marginLeft = '0px'
+  popover.style.marginTop = '0px'
+
+  const pickerGrid = popover.querySelector<HTMLElement>('[role="group"]')
+  if (pickerGrid) {
+    pickerGrid.style.gap = `${20 * framePickerScale}px`
+    pickerGrid.style.padding = `${20 * framePickerScale}px`
+    pickerGrid.querySelectorAll<HTMLElement>('button').forEach((button) => {
+      button.style.width = `${40 * framePickerScale}px`
+      button.style.height = `${40 * framePickerScale}px`
+    })
+  }
+
+  framePickerOpened.value = true
+  await nextTick()
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+
+  const screenRect = screen.getBoundingClientRect()
+  const targetRect = target.getBoundingClientRect()
+  const popoverRect = popover.getBoundingClientRect()
+  const inset = 8 * framePickerScale
+  const gap = 8 * framePickerScale
+  const minimumLeft = screenRect.left + inset
+  const maximumLeft = screenRect.right - popoverRect.width - inset
+  const desiredLeft =
+    targetRect.left + targetRect.width / 2 - popoverRect.width / 2
+  const aboveTop = targetRect.top - popoverRect.height - gap
+  const desiredTop =
+    aboveTop >= screenRect.top + inset ? aboveTop : targetRect.bottom + gap
+
+  const clampedLeft = Math.max(
+    minimumLeft,
+    Math.min(desiredLeft, maximumLeft),
+  )
+  const clampedTop = Math.max(
+    screenRect.top + inset,
+    Math.min(
+      desiredTop,
+      screenRect.bottom - popoverRect.height - inset,
+    ),
+  )
+
+  popover.style.marginLeft = `${clampedLeft - popoverRect.left}px`
+  popover.style.marginTop = `${clampedTop - popoverRect.top}px`
 }
 
 function selectRingtone(ringtone: RingtoneId): void {
@@ -350,7 +422,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <k-page ref="settingsPage" class="!pt-[44px] !pb-[24px]">
+  <k-page
+    ref="settingsPage"
+    :class="['!pb-[24px]', { '!pt-[44px]': activeView !== 'root' }]"
+  >
     <template v-if="activeView === 'root'">
       <k-navbar
         large
@@ -391,10 +466,8 @@ onBeforeUnmount(() => {
         >
           <template #media>
             <span
-              :class="[
-                'flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.25)]',
-                row.iconClass,
-              ]"
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.25)]"
+              :style="{ backgroundColor: row.iconColor }"
             >
               <component :is="row.icon" :size="17" :stroke-width="2.25" />
             </span>
@@ -421,10 +494,8 @@ onBeforeUnmount(() => {
         >
           <template #media>
             <span
-              :class="[
-                'flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.25)]',
-                row.iconClass,
-              ]"
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.25)]"
+              :style="{ backgroundColor: row.iconColor }"
             >
               <component :is="row.icon" :size="17" :stroke-width="2.25" />
             </span>
@@ -444,10 +515,8 @@ onBeforeUnmount(() => {
         >
           <template #media>
             <span
-              :class="[
-                'flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.25)]',
-                row.iconClass,
-              ]"
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.25)]"
+              :style="{ backgroundColor: row.iconColor }"
             >
               <component :is="row.icon" :size="17" :stroke-width="2.25" />
             </span>
@@ -895,29 +964,49 @@ onBeforeUnmount(() => {
         <k-block-title>{{ phone.t('Apps.settings.phoneFrame') }}</k-block-title>
         <k-list strong inset>
           <k-list-item
-            v-for="frame in PHONE_FRAME_IDS"
-            :key="frame"
+            ref="framePickerButton"
             link
-            :chevron="false"
-            :title="phone.t(`Apps.settings.frames.${frame}`)"
-            @click="selectFrame(frame)"
+            :title="phone.t('Apps.settings.phoneFrame')"
+            @click="openFramePicker"
           >
-            <template #media>
-              <img
-                class="w-6 h-12 object-fill"
-                :src="PHONE_FRAME_IMAGES[frame]"
-                alt=""
-                draggable="false"
-              />
-            </template>
             <template #after>
-              <Check
-                v-if="phone.preferences.settings.frame === frame"
-                class="w-5 h-5 text-primary"
+              <span
+                class="h-7 w-7 rounded-full border border-black/15 shadow-sm"
+                :style="{ backgroundColor: selectedFrameColor }"
+                aria-hidden="true"
               />
             </template>
           </k-list-item>
         </k-list>
+
+        <Teleport to="body">
+          <k-popover
+            :opened="framePickerOpened"
+            :target="framePickerTarget"
+            :class="[
+              'settings-frame-popover',
+              { dark: phone.isDarkMode },
+            ]"
+            @backdropclick="framePickerOpened = false"
+          >
+            <div
+              class="grid grid-cols-3 gap-5 p-5"
+              role="group"
+              :aria-label="phone.t('Apps.settings.phoneFrame')"
+            >
+              <button
+                v-for="frame in PHONE_FRAME_IDS"
+                :key="frame"
+                type="button"
+                class="h-10 w-10 rounded-full border border-black/15 shadow-sm"
+                :style="{ backgroundColor: PHONE_FRAME_COLORS[frame] }"
+                :aria-label="phone.t(`Apps.settings.frames.${frame}`)"
+                :aria-pressed="phone.preferences.settings.frame === frame"
+                @click="selectFrame(frame)"
+              />
+            </div>
+          </k-popover>
+        </Teleport>
       </template>
 
       <template v-else-if="activeView === 'wallpaper'">

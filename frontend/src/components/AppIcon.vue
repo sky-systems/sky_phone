@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { kBadge } from 'konsta/vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { useMailStore } from '@/stores/mail'
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppDefinition } from '@/types/apps'
 
@@ -18,8 +20,16 @@ const props = withDefaults(
 )
 
 const phone = usePhoneStore()
+const mail = useMailStore()
 const router = useRouter()
 const iconFailed = ref(false)
+const unreadCount = computed(() =>
+  props.app.id === 'mail' ? mail.counts.unread : 0,
+)
+const notificationBadgeColors = {
+  bg: 'bg-red-500',
+  text: 'text-white',
+}
 
 function launch(event: MouseEvent): void {
   const button = event.currentTarget as HTMLElement
@@ -56,24 +66,33 @@ function launch(event: MouseEvent): void {
     :aria-label="phone.t(app.labelKey)"
     @click="launch"
   >
-    <span
-      class="app-icon"
-      :class="[app.iconClass, { 'app-icon--image': !iconFailed }]"
-      aria-hidden="true"
-    >
-      <img
-        v-if="!iconFailed"
-        :src="app.iconImage"
-        alt=""
-        draggable="false"
-        @error="iconFailed = true"
-      />
-      <component
-        :is="app.icon"
-        v-else
-        :size="compact ? 18 : 28"
-        :stroke-width="2"
-      />
+    <span class="app-icon-anchor" aria-hidden="true">
+      <span
+        class="app-icon"
+        :class="[app.iconClass, { 'app-icon--image': !iconFailed }]"
+      >
+        <img
+          v-if="!iconFailed"
+          :src="app.iconImage"
+          alt=""
+          draggable="false"
+          @error="iconFailed = true"
+        />
+        <component
+          :is="app.icon"
+          v-else
+          :size="compact ? 18 : 28"
+          :stroke-width="2"
+        />
+      </span>
+      <k-badge
+        v-if="unreadCount"
+        class="app-icon-badge"
+        :small="compact"
+        :colors="notificationBadgeColors"
+      >
+        {{ unreadCount > 99 ? '99+' : unreadCount }}
+      </k-badge>
     </span>
     <span v-if="showLabel" class="app-icon-label">{{
       phone.t(app.labelKey)
