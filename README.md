@@ -6,14 +6,52 @@ An iFruit account is optional. Unlinked devices retain local settings, alarms, m
 
 ## Requirements
 
-- `sky_base` with a slot-aware inventory adapter implementing `GetInventorySlot`, `GetInventorySlotsWithItem`, and `SetInventorySlotMetadata`.
-- `sky_jobs_base` for the authoritative character identifier captured by registered SIM cards.
+- ESX Legacy (`es_extended`), Qbox (`qbx_core`), or QBCore (`qb-core`). The bridge selects a running supported framework when `Config.Bridge.Framework` is set to `"auto"`.
+- A supported metadata inventory: `ox_inventory`, `qb-inventory`, `lj-inventory`, `qs-inventory`, `codem-inventory`, `core_inventory`, or `mf-inventory`. The bridge auto-detects a running provider and normalizes `metadata`/`info`, slots, counts, item mutations, and usable-item callbacks. `mf-inventory` requires ESX.
 - A non-stackable inventory item named `sky_phone`.
 - Two unique, non-stackable inventory items named `sky_phone_sim_registered` and `sky_phone_sim_anonymous`. Their metadata is initialized automatically on first use, so shops and crafting recipes add plain items without supplying a number.
-- MySQL/MariaDB through the database driver configured in `sky_base`.
+- `oxmysql` with MySQL/MariaDB.
 - `pma-voice` when `Config.Calls.VoiceProvider` is set to `"pma"`.
 
 Database migrations run automatically. Existing `sky_phone_mail_accounts` installations are renamed to `sky_phone_accounts` while preserving account IDs and mail foreign keys. iFruit passwords are intentional in-character credentials and remain plaintext `VARCHAR(64)` values; registration screens warn players never to reuse a real password.
+
+For a fresh manual database installation, import `sky_phone/sql/install.sql`. It contains the complete current table, key, index, collation, and foreign-key schema. Runtime migrations remain authoritative for upgrading an existing installation and must stay enabled.
+
+Framework, inventory, callback, notification, and database integrations live under `sky_phone/source/bridge`. The resource has no dependency on any other Sky resource.
+
+Inventory metadata has no framework-wide standard: providers differ in export names, callback payloads, slot handling, and whether metadata is called `metadata` or `info`. For that reason, `sky_phone` uses explicit provider adapters instead of guessing exports at runtime. Every supported adapter implements slot lookup, item lookup, metadata replacement, capacity handling, add/remove operations, and usable-item registration. Providers without a separate capacity export use their authoritative add operation as the final capacity gate.
+
+When a SIM is ejected or replaced, the returned inventory item is rebuilt from the authoritative `sky_phone_sims` row. Its metadata contains `sim_metadata_version`, `sim_id`, `phone_number`, `formatted_number`, and `sim_type`. Registered SIMs additionally contain `firstname`, `lastname`, `birthdate`, and `registered_at`. The internal framework owner identifier remains database-only. Inserting the item again resolves the SIM by `sim_id`; contacts and device/cloud data remain attached to their existing phone-owned persistence instead of being copied into inventory metadata.
+
+For `ox_inventory`, configure all three items with `stack = false` and `consume = 0`. Do not configure a client event or export. Ox then completes its normal server-authoritative use flow and emits `ox_inventory:usedItem`; the bridge resolves the authoritative slot again and only opens the matching device or SIM. A client export would return before Ox calls `useItem` and therefore prevent `ox_inventory:usedItem` from being emitted.
+
+Example `ox_inventory/data/items.lua` entries:
+
+```lua
+["sky_phone"] = {
+    label = "iFruit Phone",
+    weight = 200,
+    stack = false,
+    close = true,
+    consume = 0,
+},
+["sky_phone_sim_registered"] = {
+    label = "Registered SIM",
+    weight = 5,
+    stack = false,
+    close = true,
+    consume = 0,
+},
+["sky_phone_sim_anonymous"] = {
+    label = "Anonymous SIM",
+    weight = 5,
+    stack = false,
+    close = true,
+    consume = 0,
+},
+```
+
+For QBCore-style item tables, define the same names with `unique = true`, `useable = true`, and `shouldClose = true`. The provider adapter registers the server-side usable callbacks; no `lb-phone` event or export is used.
 
 The homescreen is an original implementation inspired by the interaction and layout concepts in [lukejacksonn/homescreen](https://github.com/lukejacksonn/homescreen), inspected at commit [`98a812f`](https://github.com/lukejacksonn/homescreen/tree/98a812f4f7c33594e791d65092f73b8f54b3c598). No source code or image assets from that project are included.
 

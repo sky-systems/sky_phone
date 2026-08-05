@@ -1,3 +1,4 @@
+Bridge.Database.AfterMigration("sky_phone", function()
 SkyPhoneNotes = {}
 
 local function text_length(value)
@@ -33,7 +34,7 @@ end
 
 function SkyPhoneNotes.List(account_id, imei)
     local condition, params = note_owner(account_id, imei)
-    local rows = Sky.Query(([[
+    local rows = Bridge.Database.Query(([[
         SELECT `id`, `title`, `body`, `pinned`, `revision`,
             UNIX_TIMESTAMP(`created_at`) AS `created_at_unix`,
             UNIX_TIMESTAMP(`updated_at`) AS `updated_at_unix`
@@ -57,15 +58,16 @@ local function session_owner(source)
     return account and account.id or nil, session.imei
 end
 
-Sky.Cb.Register("sky_phone:notes:list", function(source)
+Bridge.Callbacks.Register("sky_phone:notes:list", function(source)
     local account_id, imei, error_response = session_owner(source)
     if not imei then
         return error_response
     end
     return { success = true, data = SkyPhoneNotes.List(account_id, imei) }
 end)
+end)
 
-Sky.Cb.Register("sky_phone:notes:create", function(source, data)
+Bridge.Callbacks.Register("sky_phone:notes:create", function(source, data)
     if not SkyPhone.AllowOperation(source, "notes_write", 120, 60) then
         return { success = false, error = "rate_limited" }
     end
@@ -89,13 +91,13 @@ Sky.Cb.Register("sky_phone:notes:create", function(source, data)
 
     local result
     if account_id then
-        result = Sky.Query([[
+        result = Bridge.Database.Query([[
             INSERT IGNORE INTO `sky_phone_notes`
                 (`id`, `account_id`, `device_imei`, `title`, `body`, `pinned`)
             VALUES (?, ?, NULL, ?, ?, ?)
         ]], { data.id, account_id, data.title, data.body, data.pinned and 1 or 0 })
     else
-        result = Sky.Query([[
+        result = Bridge.Database.Query([[
             INSERT IGNORE INTO `sky_phone_notes`
                 (`id`, `account_id`, `device_imei`, `title`, `body`, `pinned`)
             VALUES (?, NULL, ?, ?, ?, ?)
@@ -111,7 +113,7 @@ Sky.Cb.Register("sky_phone:notes:create", function(source, data)
     return { success = true, data = SkyPhoneNotes.List(account_id, imei) }
 end)
 
-Sky.Cb.Register("sky_phone:notes:update", function(source, data)
+Bridge.Callbacks.Register("sky_phone:notes:update", function(source, data)
     if not SkyPhone.AllowOperation(source, "notes_write", 120, 60) then
         return { success = false, error = "rate_limited" }
     end
@@ -137,7 +139,7 @@ Sky.Cb.Register("sky_phone:notes:update", function(source, data)
         params[#params + 1] = value
     end
     params[#params + 1] = revision
-    local result = Sky.Query(([[
+    local result = Bridge.Database.Query(([[
         UPDATE `sky_phone_notes`
         SET `title` = ?, `body` = ?, `pinned` = ?, `revision` = `revision` + 1
         WHERE `id` = ? AND %s AND `revision` = ?
@@ -152,7 +154,7 @@ Sky.Cb.Register("sky_phone:notes:update", function(source, data)
     return { success = true, data = SkyPhoneNotes.List(account_id, imei) }
 end)
 
-Sky.Cb.Register("sky_phone:notes:delete", function(source, data)
+Bridge.Callbacks.Register("sky_phone:notes:delete", function(source, data)
     if not SkyPhone.AllowOperation(source, "notes_write", 120, 60) then
         return { success = false, error = "rate_limited" }
     end
@@ -169,7 +171,7 @@ Sky.Cb.Register("sky_phone:notes:delete", function(source, data)
     for _, value in ipairs(owner_params) do
         params[#params + 1] = value
     end
-    Sky.Query(("DELETE FROM `sky_phone_notes` WHERE `id` = ? AND %s"):format(condition), params)
+    Bridge.Database.Query(("DELETE FROM `sky_phone_notes` WHERE `id` = ? AND %s"):format(condition), params)
     notify_owner(account_id, imei)
     return { success = true, data = SkyPhoneNotes.List(account_id, imei) }
 end)

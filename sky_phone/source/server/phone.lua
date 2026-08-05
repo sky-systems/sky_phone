@@ -1,15 +1,5 @@
-Sky.Debug("debug", "[sky_phone] Server initialization started.", { always = true })
-
-local migrations_ready = Sky.DB.AwaitMigrations("sky_phone")
-Sky.Debug(
-    "debug",
-    "[sky_phone] Device database migrations ready: %s.",
-    tostring(migrations_ready),
-    { always = true }
-)
-if not migrations_ready then
-    error("[sky_phone] Device database migrations did not complete.")
-end
+Bridge.Database.AfterMigration("sky_phone", function()
+Bridge.Debug("debug", "[sky_phone] Server initialization started after database migration.", { always = true })
 
 SkyPhone = {}
 
@@ -44,14 +34,14 @@ end
 
 local function reserve_imei()
     local imei = SkyPhoneImei.Reserve(function()
-        local rows = Sky.Query("SELECT UUID() AS `id`", {})
+        local rows = Bridge.Database.Query("SELECT UUID() AS `id`", {})
         local uuid = rows[1] and rows[1].id
         if type(uuid) ~= "string" then
             error("[sky_phone] Database did not generate entropy for an IMEI.")
         end
         return uuid
     end, function(candidate)
-        local result = Sky.Query([[
+        local result = Bridge.Database.Query([[
             INSERT IGNORE INTO `sky_phone_devices` (`imei`, `device_name`)
             VALUES (?, ?)
         ]], { candidate, Config.Phone.DeviceName })
@@ -66,14 +56,14 @@ end
 
 local function find_device_slots(source, imei)
     local matches = {}
-    for _, item in ipairs(Sky.FW.GetInventorySlotsWithItem(source, Config.Phone.Item)) do
+    for _, item in ipairs(Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)) do
         if item.metadata and item.metadata.imei == imei then
             matches[#matches + 1] = item
         end
     end
 
     if #matches > 1 then
-        Sky.Debug(
+        Bridge.Debug(
             "warn",
             "[sky_phone] Source %s has %s items with duplicated IMEI %s.",
             tostring(source),
@@ -86,7 +76,7 @@ local function find_device_slots(source, imei)
 end
 
 local function resolve_used_slot(source, used_item)
-    Sky.Debug(
+    Bridge.Debug(
         "debug",
         "[sky_phone] Resolving used item for source %s: type=%s slot=%s id=%s name=%s.",
         tostring(source),
@@ -97,10 +87,10 @@ local function resolve_used_slot(source, used_item)
         { always = true }
     )
 
-    local slot_id = tonumber(used_item and (used_item.slot or used_item.id))
+    local slot_id = used_item and (used_item.slot or used_item.id)
     if slot_id then
-        local slot = Sky.FW.GetInventorySlot(source, slot_id)
-        Sky.Debug(
+        local slot = Bridge.Inventory.GetSlot(source, slot_id)
+        Bridge.Debug(
             "debug",
             "[sky_phone] Inventory slot lookup for source %s slot %s returned name=%s amount=%s metadata_imei=%s.",
             tostring(source),
@@ -115,8 +105,8 @@ local function resolve_used_slot(source, used_item)
         end
     end
 
-    local slots = Sky.FW.GetInventorySlotsWithItem(source, Config.Phone.Item)
-    Sky.Debug(
+    local slots = Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)
+    Bridge.Debug(
         "debug",
         "[sky_phone] Inventory fallback found %s phone slot candidates for source %s.",
         tostring(#slots),
@@ -124,7 +114,7 @@ local function resolve_used_slot(source, used_item)
         { always = true }
     )
     for _, candidate in ipairs(slots) do
-        Sky.Debug(
+        Bridge.Debug(
             "debug",
             "[sky_phone] Candidate slot=%s name=%s amount=%s metadata_imei=%s.",
             tostring(candidate.slot),
@@ -138,7 +128,7 @@ local function resolve_used_slot(source, used_item)
         return slots[1]
     end
 
-    Sky.Debug(
+    Bridge.Debug(
         "warn",
         "[sky_phone] Usable item callback did not identify an exact phone slot for source %s (%s candidates).",
         tostring(source),
@@ -149,32 +139,32 @@ end
 
 local function ensure_device(source, slot)
     local amount = tonumber(slot.amount or slot.count) or 0
-    Sky.Debug(
+    Bridge.Debug(
         "debug",
         "[sky_phone] Ensuring device for source %s slot=%s amount=%s existing_imei=%s inventory=%s.",
         tostring(source),
         tostring(slot.slot),
         tostring(amount),
         tostring(slot.metadata and slot.metadata.imei),
-        tostring(Sky.FW.GetResourceName()),
+        tostring(Bridge.Inventory.GetResourceName()),
         { always = true }
     )
     if amount ~= 1 then
-        Sky.Debug("warn", "[sky_phone] Phone item in slot %s is stacked for source %s.", tostring(slot.slot), tostring(source))
+        Bridge.Debug("warn", "[sky_phone] Phone item in slot %s is stacked for source %s.", tostring(slot.slot), tostring(source))
         return nil, "phone_stacked"
     end
 
     local metadata = slot.metadata or {}
     local imei = metadata.imei
     if imei and not SkyPhoneImei.IsValid(imei) then
-        Sky.Debug("warn", "[sky_phone] Phone item in slot %s has invalid IMEI metadata.", tostring(slot.slot))
+        Bridge.Debug("warn", "[sky_phone] Phone item in slot %s has invalid IMEI metadata.", tostring(slot.slot))
         return nil, "invalid_imei"
     end
 
     if not imei then
         imei = reserve_imei()
         metadata.imei = imei
-        Sky.Debug(
+        Bridge.Debug(
             "debug",
             "[sky_phone] Reserved IMEI %s; writing metadata to source %s slot %s.",
             imei,
@@ -182,8 +172,8 @@ local function ensure_device(source, slot)
             tostring(slot.slot),
             { always = true }
         )
-        local metadata_written = Sky.FW.SetInventorySlotMetadata(source, slot.slot, metadata)
-        Sky.Debug(
+        local metadata_written = Bridge.Inventory.SetSlotMetadata(source, slot.slot, metadata)
+        Bridge.Debug(
             "debug",
             "[sky_phone] Metadata write result for source %s slot %s IMEI %s: %s.",
             tostring(source),
@@ -193,11 +183,11 @@ local function ensure_device(source, slot)
             { always = true }
         )
         if not metadata_written then
-            Sky.Query("DELETE FROM `sky_phone_devices` WHERE `imei` = ?", { imei })
-            Sky.Debug(
+            Bridge.Database.Query("DELETE FROM `sky_phone_devices` WHERE `imei` = ?", { imei })
+            Bridge.Debug(
                 "error",
                 "[sky_phone] Inventory '%s' could not write phone metadata for source %s slot %s.",
-                Sky.FW.GetResourceName(),
+                Bridge.Inventory.GetResourceName(),
                 tostring(source),
                 tostring(slot.slot)
             )
@@ -206,7 +196,7 @@ local function ensure_device(source, slot)
         return imei
     end
 
-    Sky.Query([[
+    Bridge.Database.Query([[
         INSERT IGNORE INTO `sky_phone_devices` (`imei`, `device_name`)
         VALUES (?, ?)
     ]], { imei, Config.Phone.DeviceName })
@@ -215,7 +205,7 @@ local function ensure_device(source, slot)
 end
 
 local function load_device(imei)
-    local rows = Sky.Query([[
+    local rows = Bridge.Database.Query([[
         SELECT d.`imei`, d.`device_name`, d.`account_id`, d.`sim_id`, d.`created_at`, d.`updated_at`,
             a.`email`, s.`phone_number`, s.`sim_type`, s.`registered_at`
         FROM `sky_phone_devices` d
@@ -228,7 +218,7 @@ local function load_device(imei)
 end
 
 local function load_device_data(imei)
-    local rows = Sky.Query([[
+    local rows = Bridge.Database.Query([[
         SELECT `namespace`, `payload`, `revision`
         FROM `sky_phone_device_data`
         WHERE `device_imei` = ?
@@ -244,7 +234,7 @@ local function load_device_data(imei)
 end
 
 local function account_devices(account_id, current_imei)
-    local rows = Sky.Query([[
+    local rows = Bridge.Database.Query([[
         SELECT `imei`, `device_name`, `created_at`, `updated_at`
         FROM `sky_phone_devices`
         WHERE `account_id` = ?
@@ -354,7 +344,7 @@ local function link_account(source, account)
     if not SkyPhoneCalls.LinkAccountData(account.id, session.imei) then
         return { success = false, error = "request_failed" }
     end
-    if not Sky.DB.Transaction({
+    if not Bridge.Database.Transaction({
         {
             query = "UPDATE `sky_phone_devices` SET `account_id` = ? WHERE `imei` = ?",
             params = { account.id, session.imei },
@@ -399,7 +389,7 @@ local function authenticate(source, data, registering)
     end
 
     if registering then
-        local result = Sky.Query(
+        local result = Bridge.Database.Query(
             "INSERT IGNORE INTO `sky_phone_accounts` (`email`, `password`) VALUES (?, ?)",
             { email, password }
         )
@@ -408,7 +398,7 @@ local function authenticate(source, data, registering)
         end
     end
 
-    local accounts = Sky.Query(
+    local accounts = Bridge.Database.Query(
         "SELECT `id`, `email` FROM `sky_phone_accounts` WHERE `email` = ? AND `password` = ? LIMIT 1",
         { email, password }
     )
@@ -443,7 +433,7 @@ function SkyPhone.AllowOperation(source, operation, maximum, window_seconds)
         return true
     end
     if attempts.count >= maximum then
-        Sky.Debug(
+        Bridge.Debug(
             "warn",
             "[sky_phone] Rate limit '%s' exceeded by source %s.",
             operation,
@@ -481,7 +471,7 @@ function SkyPhone.NotifyAccount(account_id, event_name, data)
 end
 
 function SkyPhone.NotifyAccountDevices(account_id, event_name, data)
-    local rows = Sky.Query([[
+    local rows = Bridge.Database.Query([[
         SELECT d.`imei`, d.`device_name`, settings.`payload` AS `settings`
         FROM `sky_phone_devices` d
         LEFT JOIN `sky_phone_device_data` settings
@@ -493,10 +483,10 @@ function SkyPhone.NotifyAccountDevices(account_id, event_name, data)
         devices[row.imei] = row
     end
 
-    for _, player_source in ipairs(Sky.FW.GetPlayers()) do
+    for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
         local source = tonumber(player_source) or player_source
         local notified_devices = {}
-        for _, item in ipairs(Sky.FW.GetInventorySlotsWithItem(source, Config.Phone.Item)) do
+        for _, item in ipairs(Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)) do
             local imei = item.metadata and item.metadata.imei
             local device = imei and devices[imei]
             if device and not notified_devices[imei] then
@@ -534,7 +524,7 @@ function SkyPhone.RefreshDevice(imei)
 end
 
 local function open_phone(source, used_item)
-    Sky.Debug(
+    Bridge.Debug(
         "debug",
         "[sky_phone] Usable phone callback invoked for source %s.",
         tostring(source),
@@ -542,7 +532,7 @@ local function open_phone(source, used_item)
     )
     local slot = resolve_used_slot(source, used_item)
     if not slot then
-        Sky.Debug(
+        Bridge.Debug(
             "debug",
             "[sky_phone] Phone open rejected for source %s: no exact inventory slot.",
             tostring(source),
@@ -554,7 +544,7 @@ local function open_phone(source, used_item)
 
     local imei, error_code = ensure_device(source, slot)
     if not imei then
-        Sky.Debug(
+        Bridge.Debug(
             "debug",
             "[sky_phone] Phone open rejected for source %s slot %s: %s.",
             tostring(source),
@@ -572,7 +562,7 @@ local function open_phone(source, used_item)
         token = ("%s:%s:%s"):format(imei, tostring(source), tostring(GetGameTimer())),
     }
     local payload = bootstrap(source)
-    Sky.Debug(
+    Bridge.Debug(
         "debug",
         "[sky_phone] Triggering client open for source %s slot %s IMEI %s account_linked=%s.",
         tostring(source),
@@ -588,7 +578,7 @@ end
 function SkyPhone.OpenDeviceForCall(source, imei)
     local matches = find_device_slots(source, imei)
     if not matches[1] then
-        Sky.Debug("warn", "[sky_phone] Could not open ringing device %s for source %s.", tostring(imei), tostring(source))
+        Bridge.Debug("warn", "[sky_phone] Could not open ringing device %s for source %s.", tostring(imei), tostring(source))
         return false
     end
     sessions[source] = {
@@ -600,34 +590,34 @@ function SkyPhone.OpenDeviceForCall(source, imei)
     return true
 end
 
-Sky.Debug(
+Bridge.Debug(
     "debug",
     "[sky_phone] Registering usable item '%s' through inventory '%s'.",
     Config.Phone.Item,
-    tostring(Sky.FW.GetResourceName()),
+    tostring(Bridge.Inventory.GetResourceName()),
     { always = true }
 )
-local usable_registered = Sky.FW.RegisterUsableItem(Config.Phone.Item, open_phone, true)
-Sky.Debug(
+local usable_registered = Bridge.Inventory.RegisterUsableItem(Config.Phone.Item, open_phone)
+Bridge.Debug(
     "debug",
     "[sky_phone] Usable item registration returned: %s.",
     tostring(usable_registered),
     { always = true }
 )
 
-Sky.Cb.Register("sky_phone:device:close", function(source)
+Bridge.Callbacks.Register("sky_phone:device:close", function(source)
     sessions[source] = nil
     return { success = true }
 end)
 
-Sky.Cb.Register("sky_phone:device:development-open", function(source)
+Bridge.Callbacks.Register("sky_phone:device:development-open", function(source)
     if not Config.Phone.DevelopmentCommand then
         return { success = false, error = "disabled" }
     end
     return { success = open_phone(source, nil) }
 end)
 
-Sky.Cb.Register("sky_phone:device:save", function(source, data)
+Bridge.Callbacks.Register("sky_phone:device:save", function(source, data)
     if not SkyPhone.AllowOperation(source, "device_save", 120, 60) then
         return { success = false, error = "rate_limited" }
     end
@@ -644,7 +634,7 @@ Sky.Cb.Register("sky_phone:device:save", function(source, data)
         return { success = false, error = "payload_too_large" }
     end
     local revision = math.max(0, math.floor(tonumber(data.revision) or 0))
-    local rows = Sky.Query([[
+    local rows = Bridge.Database.Query([[
         SELECT `payload`, `revision`
         FROM `sky_phone_device_data`
         WHERE `device_imei` = ? AND `namespace` = ?
@@ -661,7 +651,7 @@ Sky.Cb.Register("sky_phone:device:save", function(source, data)
                 data = { payload = json.decode(rows[1].payload), revision = current_revision },
             }
         end
-        local result = Sky.Query([[
+        local result = Bridge.Database.Query([[
             UPDATE `sky_phone_device_data`
             SET `payload` = ?, `revision` = `revision` + 1
             WHERE `device_imei` = ? AND `namespace` = ? AND `revision` = ?
@@ -676,7 +666,7 @@ Sky.Cb.Register("sky_phone:device:save", function(source, data)
     if revision ~= 0 then
         return { success = false, error = "conflict" }
     end
-    local result = Sky.Query([[
+    local result = Bridge.Database.Query([[
         INSERT IGNORE INTO `sky_phone_device_data` (`device_imei`, `namespace`, `payload`)
         VALUES (?, ?, ?)
     ]], { session.imei, data.namespace, encoded })
@@ -688,19 +678,19 @@ Sky.Cb.Register("sky_phone:device:save", function(source, data)
 end)
 
 for _, endpoint in ipairs({ "account:login", "mail:login" }) do
-    Sky.Cb.Register("sky_phone:" .. endpoint, function(source, data)
+    Bridge.Callbacks.Register("sky_phone:" .. endpoint, function(source, data)
         return authenticate(source, data, false)
     end)
 end
 
 for _, endpoint in ipairs({ "account:register", "mail:register" }) do
-    Sky.Cb.Register("sky_phone:" .. endpoint, function(source, data)
+    Bridge.Callbacks.Register("sky_phone:" .. endpoint, function(source, data)
         return authenticate(source, data, true)
     end)
 end
 
 for _, endpoint in ipairs({ "account:logout", "mail:logout" }) do
-    Sky.Cb.Register("sky_phone:" .. endpoint, function(source)
+    Bridge.Callbacks.Register("sky_phone:" .. endpoint, function(source)
         local account, error_response = SkyPhone.RequireAccount(source)
         if not account then
             return error_response
@@ -708,13 +698,13 @@ for _, endpoint in ipairs({ "account:logout", "mail:logout" }) do
         if not SkyPhoneCalls.CopyCloudToDevice(account.id, account.imei) then
             return { success = false, error = "request_failed" }
         end
-        Sky.Query("UPDATE `sky_phone_devices` SET `account_id` = NULL WHERE `imei` = ?", { account.imei })
+        Bridge.Database.Query("UPDATE `sky_phone_devices` SET `account_id` = NULL WHERE `imei` = ?", { account.imei })
         refresh_source(source)
         return { success = true }
     end)
 end
 
-Sky.Cb.Register("sky_phone:account:devices", function(source)
+Bridge.Callbacks.Register("sky_phone:account:devices", function(source)
     local account, error_response = SkyPhone.RequireAccount(source)
     if not account then
         return error_response
@@ -722,7 +712,7 @@ Sky.Cb.Register("sky_phone:account:devices", function(source)
     return { success = true, data = account_devices(account.id, account.imei) }
 end)
 
-Sky.Cb.Register("sky_phone:account:remove-device", function(source, data)
+Bridge.Callbacks.Register("sky_phone:account:remove-device", function(source, data)
     if not SkyPhone.AllowOperation(source, "remove_device", 10, 60) then
         return { success = false, error = "rate_limited" }
     end
@@ -736,14 +726,14 @@ Sky.Cb.Register("sky_phone:account:remove-device", function(source, data)
     if data.imei == account.imei then
         return { success = false, error = "current_device" }
     end
-    local passwords = Sky.Query("SELECT `id` FROM `sky_phone_accounts` WHERE `id` = ? AND `password` = ? LIMIT 1", {
+    local passwords = Bridge.Database.Query("SELECT `id` FROM `sky_phone_accounts` WHERE `id` = ? AND `password` = ? LIMIT 1", {
         account.id,
         data.password,
     })
     if not passwords[1] then
         return { success = false, error = "invalid_credentials" }
     end
-    local result = Sky.Query(
+    local result = Bridge.Database.Query(
         "UPDATE `sky_phone_devices` SET `account_id` = NULL WHERE `imei` = ? AND `account_id` = ?",
         { data.imei, account.id }
     )
@@ -755,7 +745,7 @@ Sky.Cb.Register("sky_phone:account:remove-device", function(source, data)
     return { success = true, data = account_devices(account.id, account.imei) }
 end)
 
-Sky.Cb.Register("sky_phone:device:factory-reset", function(source)
+Bridge.Callbacks.Register("sky_phone:device:factory-reset", function(source)
     if not SkyPhone.AllowOperation(source, "factory_reset", 3, 60) then
         return { success = false, error = "rate_limited" }
     end
@@ -763,7 +753,7 @@ Sky.Cb.Register("sky_phone:device:factory-reset", function(source)
     if not session then
         return error_response
     end
-    if not Sky.DB.Transaction({
+    if not Bridge.Database.Transaction({
         {
             query = "DELETE FROM `sky_phone_device_data` WHERE `device_imei` = ?",
             params = { session.imei },
@@ -803,4 +793,5 @@ AddEventHandler("onResourceStop", function(resource_name)
         auth_attempts = {}
         operation_attempts = {}
     end
+end)
 end)

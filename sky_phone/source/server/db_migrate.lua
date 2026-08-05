@@ -1,4 +1,4 @@
-local legacy_accounts = Sky.Query([[
+local legacy_accounts = Bridge.Database.Query([[
     SELECT TABLE_NAME AS `name`
     FROM INFORMATION_SCHEMA.TABLES
     WHERE TABLE_SCHEMA = DATABASE()
@@ -10,7 +10,7 @@ for _, row in ipairs(legacy_accounts) do
 end
 
 if account_tables.sky_phone_mail_accounts and not account_tables.sky_phone_accounts then
-    Sky.Query("RENAME TABLE `sky_phone_mail_accounts` TO `sky_phone_accounts`", {})
+    Bridge.Database.Query("RENAME TABLE `sky_phone_mail_accounts` TO `sky_phone_accounts`", {})
 elseif account_tables.sky_phone_mail_accounts and account_tables.sky_phone_accounts then
     error("[sky_phone] Both legacy and current iFruit account tables exist; refusing an ambiguous migration.")
 end
@@ -250,6 +250,7 @@ local schema = {
         name = "sky_phone_contacts",
         columns = {
             { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "contact_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "account_id", type = "BIGINT UNSIGNED NULL" },
             { name = "device_imei", type = "CHAR(15) NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "name", type = "VARCHAR(80) NOT NULL" },
@@ -319,8 +320,9 @@ local schema = {
     },
 }
 
-Sky.DB.Migrate("sky_phone", schema)
-Sky.DB.EnsureIndex("sky_phone_devices", "uniq_sky_phone_devices_sim", "(`sim_id`)", { unique = true })
-Sky.Query("UPDATE `sky_phone_contacts` SET `contact_id` = `id` WHERE `contact_id` IS NULL", {})
-Sky.DB.EnsureIndex("sky_phone_contacts", "uniq_sky_phone_contacts_account_contact", "(`account_id`, `contact_id`)", { unique = true })
-Sky.DB.EnsureIndex("sky_phone_contacts", "uniq_sky_phone_contacts_device_contact", "(`device_imei`, `contact_id`)", { unique = true })
+Bridge.Database.Migrate("sky_phone", schema)
+Bridge.Database.EnsureIndex("sky_phone_devices", "uniq_sky_phone_devices_sim", "(`sim_id`)", { unique = true })
+Bridge.Database.Query("UPDATE `sky_phone_contacts` SET `contact_id` = `id` WHERE `contact_id` IS NULL", {})
+Bridge.Database.EnsureIndex("sky_phone_contacts", "uniq_sky_phone_contacts_account_contact", "(`account_id`, `contact_id`)", { unique = true })
+Bridge.Database.EnsureIndex("sky_phone_contacts", "uniq_sky_phone_contacts_device_contact", "(`device_imei`, `contact_id`)", { unique = true })
+Bridge.Database.CompleteMigration("sky_phone")

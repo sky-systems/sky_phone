@@ -1,6 +1,4 @@
-if not Sky.DB.AwaitMigrations("sky_phone") then
-    error("[sky_phone] Calling database migrations did not complete.")
-end
+Bridge.Database.AfterMigration("sky_phone", function()
 
 SkyPhoneCalls = {}
 
@@ -12,7 +10,7 @@ local dialing_by_sim = {}
 local next_voice_channel = 10000
 
 local function uuid()
-    local rows = Sky.Query("SELECT UUID() AS `id`", {})
+    local rows = Bridge.Database.Query("SELECT UUID() AS `id`", {})
     if not rows[1] or type(rows[1].id) ~= "string" then
         error("[sky_phone] Database did not generate a call UUID.")
     end
@@ -60,7 +58,7 @@ local function scope_condition(scope, alias)
 end
 
 local function find_device_holder(imei)
-    for _, player_source in ipairs(Sky.FW.GetPlayers()) do
+    for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
         local source = tonumber(player_source) or player_source
         if SkyPhone.FindDeviceSlots(source, imei)[1] then
             return source
@@ -70,7 +68,7 @@ local function find_device_holder(imei)
 end
 
 local function airplane_mode(imei)
-    local rows = Sky.Query([[
+    local rows = Bridge.Database.Query([[
         SELECT `payload` FROM `sky_phone_device_data`
         WHERE `device_imei` = ? AND `namespace` = 'settings' LIMIT 1
     ]], { imei })
@@ -83,7 +81,7 @@ end
 
 local function add_call_entry(call_id, device, direction, status, other_number)
     local account_id, device_imei = scope_for_device(device)
-    Sky.Query([[
+    Bridge.Database.Query([[
         INSERT INTO `sky_phone_call_entries`
             (`call_id`, `account_id`, `device_imei`, `direction`, `status`, `other_number`)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -122,7 +120,7 @@ local function finish_call(call, status)
     if status == "no_answer" or status == "cancelled" then
         callee_status = "missed"
     end
-    Sky.DB.Transaction({
+    Bridge.Database.Transaction({
         {
             query = [[
                 UPDATE `sky_phone_calls`
@@ -167,19 +165,19 @@ function SkyPhoneCalls.EndForSim(sim_id, reason)
 end
 
 function SkyPhoneCalls.LinkAccountData(account_id, imei)
-    local counts = Sky.Query([[
+    local counts = Bridge.Database.Query([[
         SELECT
             (SELECT COUNT(*) FROM `sky_phone_contacts` WHERE `account_id` = ?) AS `contacts`,
             (SELECT COUNT(*) FROM `sky_phone_call_entries` WHERE `account_id` = ?) AS `recents`
     ]], { account_id, account_id })
     local has_cloud_data = counts[1] and ((tonumber(counts[1].contacts) or 0) > 0 or (tonumber(counts[1].recents) or 0) > 0)
     if has_cloud_data then
-        return Sky.DB.Transaction({
+        return Bridge.Database.Transaction({
             { query = "DELETE FROM `sky_phone_contacts` WHERE `device_imei` = ? AND `account_id` IS NULL", params = { imei } },
             { query = "DELETE FROM `sky_phone_call_entries` WHERE `device_imei` = ? AND `account_id` IS NULL", params = { imei } },
         })
     end
-    return Sky.DB.Transaction({
+    return Bridge.Database.Transaction({
         {
             query = "UPDATE `sky_phone_contacts` SET `account_id` = ?, `device_imei` = NULL WHERE `device_imei` = ? AND `account_id` IS NULL",
             params = { account_id, imei },
@@ -192,7 +190,7 @@ function SkyPhoneCalls.LinkAccountData(account_id, imei)
 end
 
 function SkyPhoneCalls.CopyCloudToDevice(account_id, imei)
-    return Sky.DB.Transaction({
+    return Bridge.Database.Transaction({
         { query = "DELETE FROM `sky_phone_contacts` WHERE `device_imei` = ? AND `account_id` IS NULL", params = { imei } },
         { query = "DELETE FROM `sky_phone_call_entries` WHERE `device_imei` = ? AND `account_id` IS NULL", params = { imei } },
         {
@@ -216,20 +214,20 @@ function SkyPhoneCalls.CopyCloudToDevice(account_id, imei)
     })
 end
 
-Sky.Cb.Register("sky_phone:contacts:list", function(source)
+Bridge.Callbacks.Register("sky_phone:contacts:list", function(source)
     local scope, error_response = current_scope(source)
     if not scope then
         return error_response
     end
     local condition, params = scope_condition(scope)
-    local rows = Sky.Query(([[
+    local rows = Bridge.Database.Query(([[
         SELECT `contact_id` AS `id`, `name`, `phone_number`, `created_at`, `updated_at`
         FROM `sky_phone_contacts` WHERE %s ORDER BY LOWER(`name`), `phone_number`
     ]]):format(condition), params)
     return { success = true, data = rows }
 end)
 
-Sky.Cb.Register("sky_phone:contacts:save", function(source, data)
+Bridge.Callbacks.Register("sky_phone:contacts:save", function(source, data)
     if not SkyPhone.AllowOperation(source, "contact_save", 30, 60) or type(data) ~= "table" then
         return { success = false, error = "invalid_request" }
     end
@@ -249,7 +247,7 @@ Sky.Cb.Register("sky_phone:contacts:save", function(source, data)
         for _, value in ipairs(condition_params) do
             owned_params[#owned_params + 1] = value
         end
-        local owned = Sky.Query(("SELECT `id` FROM `sky_phone_contacts` WHERE `contact_id` = ? AND %s LIMIT 1"):format(condition), owned_params)
+        local owned = Bridge.Database.Query(("SELECT `id` FROM `sky_phone_contacts` WHERE `contact_id` = ? AND %s LIMIT 1"):format(condition), owned_params)
         if not owned[1] then
             return { success = false, error = "contact_not_found" }
         end
@@ -257,12 +255,12 @@ Sky.Cb.Register("sky_phone:contacts:save", function(source, data)
         for _, value in ipairs(condition_params) do
             params[#params + 1] = value
         end
-        Sky.Query(([[
+        Bridge.Database.Query(([[
             UPDATE `sky_phone_contacts` SET `name` = ?, `phone_number` = ?
             WHERE `contact_id` = ? AND %s
         ]]):format(condition), params)
     else
-        Sky.Query([[
+        Bridge.Database.Query([[
             INSERT INTO `sky_phone_contacts` (`id`, `contact_id`, `account_id`, `device_imei`, `name`, `phone_number`)
             VALUES (?, ?, ?, ?, ?, ?)
         ]], { uuid(), id, scope.account_id, scope.device_imei, name, number })
@@ -273,7 +271,7 @@ Sky.Cb.Register("sky_phone:contacts:save", function(source, data)
     return { success = true, data = { id = id, name = name, phone_number = number } }
 end)
 
-Sky.Cb.Register("sky_phone:contacts:delete", function(source, data)
+Bridge.Callbacks.Register("sky_phone:contacts:delete", function(source, data)
     if type(data) ~= "table" or type(data.id) ~= "string" then
         return { success = false, error = "invalid_request" }
     end
@@ -286,21 +284,21 @@ Sky.Cb.Register("sky_phone:contacts:delete", function(source, data)
     for _, value in ipairs(values) do
         params[#params + 1] = value
     end
-    Sky.Query(("DELETE FROM `sky_phone_contacts` WHERE `contact_id` = ? AND %s"):format(condition), params)
+    Bridge.Database.Query(("DELETE FROM `sky_phone_contacts` WHERE `contact_id` = ? AND %s"):format(condition), params)
     if scope.account_id then
         SkyPhone.NotifyAccount(scope.account_id, "sky_phone:contacts:changed", {})
     end
     return { success = true }
 end)
 
-Sky.Cb.Register("sky_phone:calls:recents", function(source)
+Bridge.Callbacks.Register("sky_phone:calls:recents", function(source)
     local scope, error_response = current_scope(source)
     if not scope then
         return error_response
     end
     local condition, params = scope_condition(scope, "e")
     params[#params + 1] = Config.Calls.RecentPageSize
-    local rows = Sky.Query(([[
+    local rows = Bridge.Database.Query(([[
         SELECT e.`id`, e.`call_id`, e.`direction`, e.`status`, e.`other_number`, e.`created_at`,
             c.`duration_seconds`
         FROM `sky_phone_call_entries` e
@@ -312,7 +310,7 @@ end)
 
 local function create_terminal_call(scope, number, target_sim, status)
     local id = uuid()
-    Sky.Query([[
+    Bridge.Database.Query([[
         INSERT INTO `sky_phone_calls`
             (`id`, `caller_sim_id`, `callee_sim_id`, `caller_number`, `callee_number`, `status`, `ended_at`)
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -328,7 +326,7 @@ local function create_terminal_call(scope, number, target_sim, status)
     }
 end
 
-Sky.Cb.Register("sky_phone:calls:dial", function(source, data)
+Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
     if not SkyPhone.AllowOperation(source, "call_dial", 15, 60) then
         return { success = false, error = "rate_limited" }
     end
@@ -366,7 +364,7 @@ Sky.Cb.Register("sky_phone:calls:dial", function(source, data)
         return { success = false, error = "busy" }
     end
     dialing_by_sim[scope.device.sim_id] = true
-    local targets = Sky.Query([[
+    local targets = Bridge.Database.Query([[
         SELECT s.`id`, s.`phone_number`, d.`imei`, d.`account_id`, d.`device_name`
         FROM `sky_phone_sims` s LEFT JOIN `sky_phone_devices` d ON d.`sim_id` = s.`id`
         WHERE s.`phone_number` = ? LIMIT 1
@@ -406,7 +404,7 @@ Sky.Cb.Register("sky_phone:calls:dial", function(source, data)
         callee_device = target,
         started_at = os.time(),
     }
-    Sky.Query([[
+    Bridge.Database.Query([[
         INSERT INTO `sky_phone_calls`
             (`id`, `caller_sim_id`, `callee_sim_id`, `caller_number`, `callee_number`, `status`)
         VALUES (?, ?, ?, ?, ?, 'ringing')
@@ -442,7 +440,7 @@ Sky.Cb.Register("sky_phone:calls:dial", function(source, data)
     return { success = true, data = { id = id, state = "ringing", direction = "outgoing", otherNumber = number, startedAt = call.started_at } }
 end)
 
-Sky.Cb.Register("sky_phone:calls:answer", function(source, data)
+Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     local call = type(data) == "table" and calls[data.id] or nil
     if not call or call.callee_source ~= source or call.answered_at then
         return { success = false, error = "call_not_found" }
@@ -457,14 +455,14 @@ Sky.Cb.Register("sky_phone:calls:answer", function(source, data)
     call.answered_at = os.time()
     call.channel = next_voice_channel
     next_voice_channel = next_voice_channel + 1
-    Sky.Query("UPDATE `sky_phone_calls` SET `status` = 'connected', `answered_at` = CURRENT_TIMESTAMP WHERE `id` = ?", { call.id })
-    Sky.Query("UPDATE `sky_phone_call_entries` SET `status` = 'connected' WHERE `call_id` = ?", { call.id })
+    Bridge.Database.Query("UPDATE `sky_phone_calls` SET `status` = 'connected', `answered_at` = CURRENT_TIMESTAMP WHERE `id` = ?", { call.id })
+    Bridge.Database.Query("UPDATE `sky_phone_call_entries` SET `status` = 'connected' WHERE `call_id` = ?", { call.id })
     send_state(call, call.caller_source, "connected", call.channel)
     send_state(call, call.callee_source, "connected", call.channel)
     return { success = true }
 end)
 
-Sky.Cb.Register("sky_phone:calls:decline", function(source, data)
+Bridge.Callbacks.Register("sky_phone:calls:decline", function(source, data)
     local call = type(data) == "table" and calls[data.id] or nil
     if not call or call.callee_source ~= source or call.answered_at then
         return { success = false, error = "call_not_found" }
@@ -473,7 +471,7 @@ Sky.Cb.Register("sky_phone:calls:decline", function(source, data)
     return { success = true }
 end)
 
-Sky.Cb.Register("sky_phone:calls:hangup", function(source, data)
+Bridge.Callbacks.Register("sky_phone:calls:hangup", function(source, data)
     local call_id = active_by_source[source]
     local call = call_id and calls[call_id] or nil
     if not call or (type(data) == "table" and data.id and data.id ~= call.id) then
@@ -518,4 +516,5 @@ AddEventHandler("onResourceStop", function(resource_name)
     for _, call_id in ipairs(call_ids) do
         finish_call(calls[call_id], "disconnected")
     end
+end)
 end)

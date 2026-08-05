@@ -1,6 +1,4 @@
-if not Sky.DB.AwaitMigrations("sky_phone") then
-    error("[sky_phone] SIM database migrations did not complete.")
-end
+Bridge.Database.AfterMigration("sky_phone", function()
 
 SkyPhoneSim = {}
 
@@ -19,7 +17,7 @@ local function affected_rows(result)
 end
 
 local function uuid()
-    local rows = Sky.Query("SELECT UUID() AS `id`", {})
+    local rows = Bridge.Database.Query("SELECT UUID() AS `id`", {})
     if not rows[1] or type(rows[1].id) ~= "string" then
         error("[sky_phone] Database did not generate a SIM UUID.")
     end
@@ -30,7 +28,7 @@ local function reserve_sim(sim_type)
     local sim_id
     local number = SkyPhoneSimNumber.Reserve(uuid, function(candidate)
         sim_id = uuid()
-        local result = Sky.Query([[
+        local result = Bridge.Database.Query([[
             INSERT IGNORE INTO `sky_phone_sims` (`id`, `phone_number`, `sim_type`)
             VALUES (?, ?, ?)
         ]], { sim_id, candidate, sim_type })
@@ -43,12 +41,13 @@ local function reserve_sim(sim_type)
 end
 
 local function load_sim(sim_id)
-    local rows = Sky.Query("SELECT * FROM `sky_phone_sims` WHERE `id` = ? LIMIT 1", { sim_id })
+    local rows = Bridge.Database.Query("SELECT * FROM `sky_phone_sims` WHERE `id` = ? LIMIT 1", { sim_id })
     return rows[1]
 end
 
 local function sim_metadata(sim)
     local metadata = {
+        sim_metadata_version = 1,
         sim_id = sim.id,
         phone_number = sim.phone_number,
         formatted_number = SkyPhoneSimNumber.Format(sim.phone_number, Config.Sim.NumberGroups, Config.Sim.NumberLength, Config.Sim.NumberPrefix),
@@ -58,21 +57,22 @@ local function sim_metadata(sim)
         metadata.firstname = sim.owner_firstname
         metadata.lastname = sim.owner_lastname
         metadata.birthdate = sim.owner_birthdate
+        metadata.registered_at = sim.registered_at
     end
     return metadata
 end
 
 local function resolve_used_sim(source, used_item, item_name)
-    local slot_id = tonumber(used_item and (used_item.slot or used_item.id))
-    local slot = slot_id and Sky.FW.GetInventorySlot(source, slot_id) or nil
+    local slot_id = used_item and (used_item.slot or used_item.id)
+    local slot = slot_id and Bridge.Inventory.GetSlot(source, slot_id) or nil
     if slot and slot.name == item_name then
         return slot
     end
-    local slots = Sky.FW.GetInventorySlotsWithItem(source, item_name)
+    local slots = Bridge.Inventory.GetSlotsWithItem(source, item_name)
     if #slots == 1 then
         return slots[1]
     end
-    Sky.Debug("warn", "[sky_phone] Could not resolve exact SIM slot for source %s.", tostring(source))
+    Bridge.Debug("warn", "[sky_phone] Could not resolve exact SIM slot for source %s.", tostring(source))
     return nil
 end
 
@@ -87,8 +87,8 @@ local function ensure_sim(source, slot, sim_type)
     end
     if not sim then
         sim = reserve_sim(sim_type)
-        if not Sky.FW.SetInventorySlotMetadata(source, slot.slot, sim_metadata(sim)) then
-            Sky.Query("DELETE FROM `sky_phone_sims` WHERE `id` = ?", { sim.id })
+        if not Bridge.Inventory.SetSlotMetadata(source, slot.slot, sim_metadata(sim)) then
+            Bridge.Database.Query("DELETE FROM `sky_phone_sims` WHERE `id` = ?", { sim.id })
             return nil, "metadata_unsupported"
         end
     end
@@ -97,7 +97,7 @@ end
 
 local function list_phone_choices(source)
     local choices = {}
-    for _, slot in ipairs(Sky.FW.GetInventorySlotsWithItem(source, Config.Phone.Item)) do
+    for _, slot in ipairs(Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)) do
         local imei = SkyPhone.EnsureDevice(source, slot)
         if imei then
             local device = SkyPhone.LoadDevice(imei)
@@ -117,7 +117,7 @@ local function rollback_phone_metadata(source, phone_slot, old_sim)
     metadata.sim_id = old_sim and old_sim.id or nil
     metadata.phone_number = old_sim and old_sim.phone_number or nil
     metadata.formatted_number = old_sim and SkyPhoneSimNumber.Format(old_sim.phone_number, Config.Sim.NumberGroups, Config.Sim.NumberLength, Config.Sim.NumberPrefix) or nil
-    Sky.FW.SetInventorySlotMetadata(source, phone_slot.slot, metadata)
+    Bridge.Inventory.SetSlotMetadata(source, phone_slot.slot, metadata)
 end
 
 local function insert_sim(source, phone_imei, confirmed)
@@ -129,7 +129,7 @@ local function insert_sim(source, phone_imei, confirmed)
         pending_insertions[source] = nil
         return { success = false, error = "sim_request_expired" }
     end
-    local sim_slot = Sky.FW.GetInventorySlot(source, pending.slot)
+    local sim_slot = Bridge.Inventory.GetSlot(source, pending.slot)
     if not sim_slot or sim_slot.name ~= pending.item_name or not sim_slot.metadata
         or sim_slot.metadata.sim_id ~= pending.sim.id then
         return { success = false, error = "sim_not_owned" }
@@ -150,18 +150,18 @@ local function insert_sim(source, phone_imei, confirmed)
     phone_metadata.sim_id = pending.sim.id
     phone_metadata.phone_number = pending.sim.phone_number
     phone_metadata.formatted_number = SkyPhoneSimNumber.Format(pending.sim.phone_number, Config.Sim.NumberGroups, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
-    if not Sky.FW.SetInventorySlotMetadata(source, phone_slot.slot, phone_metadata) then
+    if not Bridge.Inventory.SetSlotMetadata(source, phone_slot.slot, phone_metadata) then
         operation_locks[source] = nil
         return { success = false, error = "metadata_unsupported" }
     end
-    if Sky.FW.RemoveItem(source, pending.item_name, 1, pending.slot) ~= 1 then
+    if Bridge.Inventory.RemoveItem(source, pending.item_name, 1, pending.slot) ~= 1 then
         rollback_phone_metadata(source, phone_slot, old_sim)
         operation_locks[source] = nil
         return { success = false, error = "sim_not_owned" }
     end
     local old_item_name = old_sim and (old_sim.sim_type == "registered" and Config.Sim.RegisteredItem or Config.Sim.AnonymousItem) or nil
-    if old_sim and not Sky.FW.AddItem(source, old_item_name, 1, pending.slot, sim_metadata(old_sim)) then
-        Sky.FW.AddItem(source, pending.item_name, 1, pending.slot, sim_metadata(pending.sim))
+    if old_sim and not Bridge.Inventory.AddItem(source, old_item_name, 1, pending.slot, sim_metadata(old_sim)) then
+        Bridge.Inventory.AddItem(source, pending.item_name, 1, pending.slot, sim_metadata(pending.sim))
         rollback_phone_metadata(source, phone_slot, old_sim)
         operation_locks[source] = nil
         return { success = false, error = "inventory_full" }
@@ -182,19 +182,19 @@ local function insert_sim(source, phone_imei, confirmed)
                 WHERE `id` = ? AND `owner_identifier` IS NULL
             ]],
             params = {
-                Sky_Jobs.PlayerCache.GetIdentifier(source),
-                Sky.FW.GetFirstname(source),
-                Sky.FW.GetLastname(source),
-                Sky.FW.GetBirthdate(source),
+                Bridge.Framework.GetIdentifier(source),
+                Bridge.Framework.GetFirstname(source),
+                Bridge.Framework.GetLastname(source),
+                Bridge.Framework.GetBirthdate(source),
                 pending.sim.id,
             },
         }
     end
-    if not Sky.DB.Transaction(transaction) then
+    if not Bridge.Database.Transaction(transaction) then
         if old_sim then
-            Sky.FW.RemoveItem(source, old_sim.sim_type == "registered" and Config.Sim.RegisteredItem or Config.Sim.AnonymousItem, 1, pending.slot)
+            Bridge.Inventory.RemoveItem(source, old_sim.sim_type == "registered" and Config.Sim.RegisteredItem or Config.Sim.AnonymousItem, 1, pending.slot)
         end
-        Sky.FW.AddItem(source, pending.item_name, 1, pending.slot, sim_metadata(pending.sim))
+        Bridge.Inventory.AddItem(source, pending.item_name, 1, pending.slot, sim_metadata(pending.sim))
         rollback_phone_metadata(source, phone_slot, old_sim)
         operation_locks[source] = nil
         return { success = false, error = "request_failed" }
@@ -214,7 +214,7 @@ local function use_sim(source, used_item)
     local item_name = used_item and used_item.name
     local sim_type = item_name and sim_types[item_name]
     if not sim_type then
-        Sky.Debug("warn", "[sky_phone] Usable SIM callback received an invalid item for source %s.", tostring(source))
+        Bridge.Debug("warn", "[sky_phone] Usable SIM callback received an invalid item for source %s.", tostring(source))
         return false
     end
     if operation_locks[source] then
@@ -257,17 +257,17 @@ local function use_sim(source, used_item)
     return true
 end
 
-Sky.FW.RegisterUsableItem(Config.Sim.RegisteredItem, use_sim, true)
-Sky.FW.RegisterUsableItem(Config.Sim.AnonymousItem, use_sim, true)
+Bridge.Inventory.RegisterUsableItem(Config.Sim.RegisteredItem, use_sim)
+Bridge.Inventory.RegisterUsableItem(Config.Sim.AnonymousItem, use_sim)
 
-Sky.Cb.Register("sky_phone:sim:insert", function(source, data)
+Bridge.Callbacks.Register("sky_phone:sim:insert", function(source, data)
     if type(data) ~= "table" or not SkyPhoneImei.IsValid(data.imei) then
         return { success = false, error = "invalid_request" }
     end
     return insert_sim(source, data.imei, data.confirmed == true)
 end)
 
-Sky.Cb.Register("sky_phone:sim:eject", function(source)
+Bridge.Callbacks.Register("sky_phone:sim:eject", function(source)
     if operation_locks[source] then
         return { success = false, error = "operation_in_progress" }
     end
@@ -280,25 +280,25 @@ Sky.Cb.Register("sky_phone:sim:eject", function(source)
     if not sim then
         return { success = false, error = "no_sim" }
     end
-    local phone_slot = Sky.FW.GetInventorySlot(source, session.slot)
+    local phone_slot = Bridge.Inventory.GetSlot(source, session.slot)
     local item_name = sim.sim_type == "registered" and Config.Sim.RegisteredItem or Config.Sim.AnonymousItem
     local metadata = sim_metadata(sim)
-    if not Sky.FW.CanCarryItem(source, item_name, 1, metadata) then
+    if not Bridge.Inventory.CanCarryItem(source, item_name, 1, metadata) then
         return { success = false, error = "inventory_full" }
     end
 
     operation_locks[source] = true
     rollback_phone_metadata(source, phone_slot, nil)
-    if not Sky.FW.AddItem(source, item_name, 1, nil, metadata) then
+    if not Bridge.Inventory.AddItem(source, item_name, 1, nil, metadata) then
         rollback_phone_metadata(source, phone_slot, sim)
         operation_locks[source] = nil
         return { success = false, error = "inventory_full" }
     end
-    if affected_rows(Sky.Query("UPDATE `sky_phone_devices` SET `sim_id` = NULL WHERE `imei` = ? AND `sim_id` = ?", {
+    if affected_rows(Bridge.Database.Query("UPDATE `sky_phone_devices` SET `sim_id` = NULL WHERE `imei` = ? AND `sim_id` = ?", {
         session.imei,
         sim.id,
     })) ~= 1 then
-        Sky.FW.RemoveItem(source, item_name, 1, nil, metadata)
+        Bridge.Inventory.RemoveItem(source, item_name, 1, nil, metadata)
         rollback_phone_metadata(source, phone_slot, sim)
         operation_locks[source] = nil
         return { success = false, error = "request_failed" }
@@ -312,4 +312,5 @@ end)
 AddEventHandler("playerDropped", function()
     pending_insertions[source] = nil
     operation_locks[source] = nil
+end)
 end)

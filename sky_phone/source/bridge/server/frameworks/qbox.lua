@@ -1,0 +1,45 @@
+if Bridge.Framework.Name ~= "qbox" then
+    return
+end
+
+local function get_player(source)
+    return exports.qbx_core:GetPlayer(tonumber(source))
+end
+
+function Bridge.Framework.GetPlayers()
+    local players = {}
+    for _, player_source in ipairs(GetPlayers()) do
+        players[#players + 1] = tonumber(player_source)
+    end
+    return players
+end
+
+function Bridge.Framework.GetIdentifier(source)
+    local player = get_player(source)
+    return player and player.PlayerData and tostring(player.PlayerData.citizenid) or nil
+end
+
+local function get_character_info(source)
+    local player = get_player(source)
+    return player and player.PlayerData and player.PlayerData.charinfo or nil
+end
+
+function Bridge.Framework.GetFirstname(source)
+    local character = get_character_info(source)
+    return character and character.firstname or nil
+end
+
+function Bridge.Framework.GetLastname(source)
+    local character = get_character_info(source)
+    return character and character.lastname or nil
+end
+
+function Bridge.Framework.GetBirthdate(source)
+    local character = get_character_info(source)
+    return character and character.birthdate or nil
+end
+
+function Bridge.Framework.RegisterUsableItem(item_name, callback)
+    exports.qbx_core:CreateUseableItem(item_name, callback)
+    return true
+end

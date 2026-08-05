@@ -1,17 +1,20 @@
 fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
+use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
 version '0.1.0'
 
-escrow_ignore 'config/**'
+escrow_ignore {
+    'config/**',
+    'source/bridge/**',
+}
 
 shared_scripts {
-    '@sky_base/source/import.lua',
-    '@sky_jobs_base/source/import.lua',
     'config/init.lua',
+    'source/bridge/shared.lua',
     'source/shared/imei.lua',
     'source/shared/sim_number.lua',
 }
@@ -19,11 +22,21 @@ shared_scripts {
 client_scripts {
     'config/config.lua',
     'config/locales/*.lua',
+    'source/bridge/client/framework.lua',
+    'source/bridge/client/callbacks.lua',
     'source/client/main.lua',
 }
 
 server_scripts {
+    '@oxmysql/lib/MySQL.lua',
     'config/config.lua',
+    'source/bridge/server/database.lua',
+    'source/bridge/server/migrations.lua',
+    'source/bridge/server/callbacks.lua',
+    'source/bridge/server/framework.lua',
+    'source/bridge/server/frameworks/*.lua',
+    'source/bridge/server/inventory.lua',
+    'source/bridge/server/inventory/*.lua',
     'source/server/db_migrate.lua',
     'source/server/phone.lua',
     'source/server/sim.lua',
@@ -40,4 +53,4 @@ files {
 
 ui_page 'source/html/index.html'
 
-dependencies { 'sky_base', 'sky_jobs_base' }
+dependency 'oxmysql'

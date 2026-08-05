@@ -4,7 +4,7 @@ local device_payload = nil
 local sim_picker_open = false
 local call_channel = 0
 
-Sky.Debug("debug", "[sky_phone] Client script initialized.", { always = true })
+Bridge.Debug("debug", "[sky_phone] Client script initialized.", { always = true })
 
 local server_callbacks = {
     "device:save",
@@ -46,7 +46,7 @@ local server_callbacks = {
 }
 
 local function get_locale()
-    return Locales[Sky.Config.locale] or Locales["en"]
+    return Locales[Config.Bridge.Locale] or Locales["en"]
 end
 
 local function send_open_message()
@@ -55,7 +55,7 @@ local function send_open_message()
     end
 
     local payload = device_payload
-    payload.lang = Sky.Config.locale
+    payload.lang = Config.Bridge.Locale
     payload.locales = get_locale().Nui
     SendNUIMessage({
         type = "app:open",
@@ -82,7 +82,7 @@ local function close_phone()
     is_open = false
     SetNuiFocus(notification_focus or sim_picker_open, notification_focus or sim_picker_open)
     SendNUIMessage({ type = "app:close" })
-    Sky.Cb.Trigger("sky_phone:device:close", {})
+    Bridge.Callbacks.Trigger("sky_phone:device:close", {})
 end
 
 local function leave_call_voice()
@@ -97,11 +97,11 @@ end
 
 local function join_call_voice(channel)
     if Config.Calls.VoiceProvider ~= "pma" then
-        Sky.Debug("error", "[sky_phone] Unsupported voice provider '%s'.", tostring(Config.Calls.VoiceProvider))
+        Bridge.Debug("error", "[sky_phone] Unsupported voice provider '%s'.", tostring(Config.Calls.VoiceProvider))
         return false
     end
     if GetResourceState("pma-voice") ~= "started" then
-        Sky.Debug("error", "[sky_phone] Configured pma-voice provider is not started.")
+        Bridge.Debug("error", "[sky_phone] Configured pma-voice provider is not started.")
         return false
     end
     call_channel = tonumber(channel) or 0
@@ -115,7 +115,7 @@ if Config.Phone.DevelopmentCommand then
             close_phone()
             return
         end
-        Sky.Cb.Trigger("sky_phone:device:development-open", {})
+        Bridge.Callbacks.Trigger("sky_phone:device:development-open", {})
     end, false)
 end
 
@@ -160,7 +160,7 @@ end)
 
 for _, callback_name in ipairs(server_callbacks) do
     RegisterNUICallback(callback_name, function(data, cb)
-        local result = Sky.Cb.Trigger("sky_phone:" .. callback_name, data)
+        local result = Bridge.Callbacks.Trigger("sky_phone:" .. callback_name, data)
         if result then
             cb(result)
             return
@@ -171,7 +171,7 @@ for _, callback_name in ipairs(server_callbacks) do
 end
 
 RegisterNetEvent("sky_phone:device:open", function(data)
-    Sky.Debug(
+    Bridge.Debug(
         "debug",
         "[sky_phone] Client received device open for IMEI %s account_linked=%s.",
         tostring(data.device.imei),
@@ -193,14 +193,14 @@ RegisterNetEvent("sky_phone:device:invalidated", function()
 end)
 
 RegisterNetEvent("sky_phone:device:error", function(error_code)
-    Sky.Debug(
+    Bridge.Debug(
         "debug",
         "[sky_phone] Client received device error: %s.",
         tostring(error_code),
         { always = true }
     )
     local message = get_locale().DeviceErrors[error_code] or get_locale().DeviceErrors.default
-    Sky.Show.Notification("iFruit", message, "error", 5000)
+    Bridge.Framework.Notify("iFruit", message, "error", 5000)
 end)
 
 RegisterNetEvent("sky_phone:mail:changed", function(data)

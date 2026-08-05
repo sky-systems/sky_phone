@@ -1,3 +1,16 @@
+Config.Bridge = {
+    Framework = "auto", -- auto, esx, qbox, qb
+    Inventory = "auto", -- auto, ox, qb, lj, qs, codem, core, mf
+    Locale = "en",
+    CallbackTimeout = 5000,
+    Debug = false,
+    DebugLevels = {
+        info = true,
+        warn = true,
+        error = true,
+    },
+}
+
 Config.Command = "phone"
 
 Config.Phone = {
