@@ -1,4 +1,13 @@
-if not Sky.DB.AwaitMigrations("sky_phone") then
+Sky.Debug("debug", "[sky_phone] Server initialization started.", { always = true })
+
+local migrations_ready = Sky.DB.AwaitMigrations("sky_phone")
+Sky.Debug(
+    "debug",
+    "[sky_phone] Device database migrations ready: %s.",
+    tostring(migrations_ready),
+    { always = true }
+)
+if not migrations_ready then
     error("[sky_phone] Device database migrations did not complete.")
 end
 
@@ -77,15 +86,54 @@ local function find_device_slots(source, imei)
 end
 
 local function resolve_used_slot(source, used_item)
+    Sky.Debug(
+        "debug",
+        "[sky_phone] Resolving used item for source %s: type=%s slot=%s id=%s name=%s.",
+        tostring(source),
+        type(used_item),
+        tostring(used_item and used_item.slot),
+        tostring(used_item and used_item.id),
+        tostring(used_item and used_item.name),
+        { always = true }
+    )
+
     local slot_id = tonumber(used_item and (used_item.slot or used_item.id))
     if slot_id then
         local slot = Sky.FW.GetInventorySlot(source, slot_id)
+        Sky.Debug(
+            "debug",
+            "[sky_phone] Inventory slot lookup for source %s slot %s returned name=%s amount=%s metadata_imei=%s.",
+            tostring(source),
+            tostring(slot_id),
+            tostring(slot and slot.name),
+            tostring(slot and (slot.amount or slot.count)),
+            tostring(slot and slot.metadata and slot.metadata.imei),
+            { always = true }
+        )
         if slot and slot.name == Config.Phone.Item then
             return slot
         end
     end
 
     local slots = Sky.FW.GetInventorySlotsWithItem(source, Config.Phone.Item)
+    Sky.Debug(
+        "debug",
+        "[sky_phone] Inventory fallback found %s phone slot candidates for source %s.",
+        tostring(#slots),
+        tostring(source),
+        { always = true }
+    )
+    for _, candidate in ipairs(slots) do
+        Sky.Debug(
+            "debug",
+            "[sky_phone] Candidate slot=%s name=%s amount=%s metadata_imei=%s.",
+            tostring(candidate.slot),
+            tostring(candidate.name),
+            tostring(candidate.amount or candidate.count),
+            tostring(candidate.metadata and candidate.metadata.imei),
+            { always = true }
+        )
+    end
     if #slots == 1 then
         return slots[1]
     end
@@ -100,7 +148,18 @@ local function resolve_used_slot(source, used_item)
 end
 
 local function ensure_device(source, slot)
-    if (tonumber(slot.amount or slot.count) or 0) ~= 1 then
+    local amount = tonumber(slot.amount or slot.count) or 0
+    Sky.Debug(
+        "debug",
+        "[sky_phone] Ensuring device for source %s slot=%s amount=%s existing_imei=%s inventory=%s.",
+        tostring(source),
+        tostring(slot.slot),
+        tostring(amount),
+        tostring(slot.metadata and slot.metadata.imei),
+        tostring(Sky.FW.GetResourceName()),
+        { always = true }
+    )
+    if amount ~= 1 then
         Sky.Debug("warn", "[sky_phone] Phone item in slot %s is stacked for source %s.", tostring(slot.slot), tostring(source))
         return nil, "phone_stacked"
     end
@@ -115,7 +174,25 @@ local function ensure_device(source, slot)
     if not imei then
         imei = reserve_imei()
         metadata.imei = imei
-        if not Sky.FW.SetInventorySlotMetadata(source, slot.slot, metadata) then
+        Sky.Debug(
+            "debug",
+            "[sky_phone] Reserved IMEI %s; writing metadata to source %s slot %s.",
+            imei,
+            tostring(source),
+            tostring(slot.slot),
+            { always = true }
+        )
+        local metadata_written = Sky.FW.SetInventorySlotMetadata(source, slot.slot, metadata)
+        Sky.Debug(
+            "debug",
+            "[sky_phone] Metadata write result for source %s slot %s IMEI %s: %s.",
+            tostring(source),
+            tostring(slot.slot),
+            imei,
+            tostring(metadata_written),
+            { always = true }
+        )
+        if not metadata_written then
             Sky.Query("DELETE FROM `sky_phone_devices` WHERE `imei` = ?", { imei })
             Sky.Debug(
                 "error",
@@ -405,14 +482,34 @@ function SkyPhone.RefreshDevice(imei)
 end
 
 local function open_phone(source, used_item)
+    Sky.Debug(
+        "debug",
+        "[sky_phone] Usable phone callback invoked for source %s.",
+        tostring(source),
+        { always = true }
+    )
     local slot = resolve_used_slot(source, used_item)
     if not slot then
+        Sky.Debug(
+            "debug",
+            "[sky_phone] Phone open rejected for source %s: no exact inventory slot.",
+            tostring(source),
+            { always = true }
+        )
         TriggerClientEvent("sky_phone:device:error", source, "phone_slot_missing")
         return false
     end
 
     local imei, error_code = ensure_device(source, slot)
     if not imei then
+        Sky.Debug(
+            "debug",
+            "[sky_phone] Phone open rejected for source %s slot %s: %s.",
+            tostring(source),
+            tostring(slot.slot),
+            tostring(error_code),
+            { always = true }
+        )
         TriggerClientEvent("sky_phone:device:error", source, error_code)
         return false
     end
@@ -423,11 +520,33 @@ local function open_phone(source, used_item)
         token = ("%s:%s:%s"):format(imei, tostring(source), tostring(GetGameTimer())),
     }
     local payload = bootstrap(source)
+    Sky.Debug(
+        "debug",
+        "[sky_phone] Triggering client open for source %s slot %s IMEI %s account_linked=%s.",
+        tostring(source),
+        tostring(slot.slot),
+        imei,
+        tostring(payload.account ~= nil),
+        { always = true }
+    )
     TriggerClientEvent("sky_phone:device:open", source, payload)
     return true
 end
 
-Sky.FW.RegisterUsableItem(Config.Phone.Item, open_phone)
+Sky.Debug(
+    "debug",
+    "[sky_phone] Registering usable item '%s' through inventory '%s'.",
+    Config.Phone.Item,
+    tostring(Sky.FW.GetResourceName()),
+    { always = true }
+)
+local usable_registered = Sky.FW.RegisterUsableItem(Config.Phone.Item, open_phone)
+Sky.Debug(
+    "debug",
+    "[sky_phone] Usable item registration returned: %s.",
+    tostring(usable_registered),
+    { always = true }
+)
 
 Sky.Cb.Register("sky_phone:device:close", function(source)
     sessions[source] = nil

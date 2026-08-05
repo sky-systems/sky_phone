@@ -2,6 +2,8 @@ local is_open = false
 local notification_focus = false
 local device_payload = nil
 
+Sky.Debug("debug", "[sky_phone] Client script initialized.", { always = true })
+
 local server_callbacks = {
     "device:save",
     "device:factory-reset",
@@ -113,6 +115,13 @@ for _, callback_name in ipairs(server_callbacks) do
 end
 
 RegisterNetEvent("sky_phone:device:open", function(data)
+    Sky.Debug(
+        "debug",
+        "[sky_phone] Client received device open for IMEI %s account_linked=%s.",
+        tostring(data.device.imei),
+        tostring(data.account ~= nil),
+        { always = true }
+    )
     device_payload = data
     open_phone()
 end)
@@ -128,6 +137,12 @@ RegisterNetEvent("sky_phone:device:invalidated", function()
 end)
 
 RegisterNetEvent("sky_phone:device:error", function(error_code)
+    Sky.Debug(
+        "debug",
+        "[sky_phone] Client received device error: %s.",
+        tostring(error_code),
+        { always = true }
+    )
     local message = get_locale().DeviceErrors[error_code] or get_locale().DeviceErrors.default
     Sky.Show.Notification("iFruit", message, "error", 5000)
 end)
