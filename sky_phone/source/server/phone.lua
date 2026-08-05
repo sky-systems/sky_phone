@@ -540,7 +540,7 @@ Sky.Debug(
     tostring(Sky.FW.GetResourceName()),
     { always = true }
 )
-local usable_registered = Sky.FW.RegisterUsableItem(Config.Phone.Item, open_phone)
+local usable_registered = Sky.FW.RegisterUsableItem(Config.Phone.Item, open_phone, true)
 Sky.Debug(
     "debug",
     "[sky_phone] Usable item registration returned: %s.",

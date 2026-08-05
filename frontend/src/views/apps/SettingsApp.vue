@@ -1039,7 +1039,8 @@ onBeforeUnmount(() => {
   <k-toast
     :opened="Boolean(accountToast)"
     position="center"
-    :text="accountToast"
     @click="accountToast = ''"
-  />
+  >
+    {{ accountToast }}
+  </k-toast>
 </template>

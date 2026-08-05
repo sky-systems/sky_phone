@@ -726,10 +726,7 @@ onBeforeUnmount(() => {
     </template>
   </k-dialog>
 
-  <k-toast
-    :opened="toastOpened"
-    position="center"
-    :text="toastText"
-    @click="toastOpened = false"
-  />
+  <k-toast :opened="toastOpened" position="center" @click="toastOpened = false">
+    {{ toastText }}
+  </k-toast>
 </template>

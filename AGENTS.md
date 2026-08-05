@@ -31,8 +31,8 @@ Run commands from `frontend/`:
 - `pnpm lint` runs ESLint without rewriting files.
 - `pnpm build` validates and publishes the NUI into `sky_phone/source/html/`.
 
-After frontend changes, run the monorepo-root `build_frontend.bat`, which also deploys configured
-resources. For Lua/config-only changes, run `build_copy.bat`.
+After frontend changes, run the monorepo-root `build_frontend.bat`. Local servers consume the
+workspace resource through symlinks, so Lua/config-only changes require no deployment copy step.
 
 ## Commits
 
