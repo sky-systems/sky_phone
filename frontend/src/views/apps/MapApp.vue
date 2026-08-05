@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { kButton, kPage } from 'konsta/vue'
+import { kFab, kPage } from 'konsta/vue'
 import { LocateFixed, Map, MapPinned, Route, Satellite } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
@@ -61,6 +61,15 @@ const mapStyles = [
   { id: 'atlas' as const, icon: Map },
   { id: 'roads' as const, icon: Route },
 ]
+const mapControlColors = {
+  bgIos: 'bg-ios-light-glass dark:bg-ios-dark-glass',
+  activeBgIos: 'active:bg-white/90 dark:active:bg-white/20',
+  textIos: 'text-black dark:text-white',
+}
+const locationControlColors = {
+  ...mapControlColors,
+  textIos: 'text-white',
+}
 const activeMapStyle = computed(
   () => mapStyles.find((style) => style.id === mapStyle.value) ?? mapStyles[0],
 )
@@ -144,14 +153,17 @@ function changeZoom(direction: -1 | 1, focalPoint?: MapPoint): void {
   )
   if (nextZoom === zoom.value) return
 
-  if (focalPoint && canvasRef.value) {
+  if (focalPoint && canvasRef.value && viewportRef.value) {
     const rect = canvasRef.value.getBoundingClientRect()
+    const viewport = viewportRef.value.getBoundingClientRect()
+    const renderedScaleX = viewport.width / viewportRef.value.clientWidth
+    const renderedScaleY = viewport.height / viewportRef.value.clientHeight
     const offsetX = focalPoint.x - rect.left - rect.width / 2
     const offsetY = focalPoint.y - rect.top - rect.height / 2
     const scale = nextZoom / zoom.value
     pan.value = {
-      x: pan.value.x - offsetX * (scale - 1),
-      y: pan.value.y - offsetY * (scale - 1),
+      x: pan.value.x - (offsetX * (scale - 1)) / renderedScaleX,
+      y: pan.value.y - (offsetY * (scale - 1)) / renderedScaleY,
     }
   }
 
@@ -180,9 +192,14 @@ function onPointerMove(event: PointerEvent): void {
   if (pointerMoveFrame) cancelAnimationFrame(pointerMoveFrame)
   pointerMoveFrame = requestAnimationFrame(() => {
     pointerMoveFrame = undefined
+    const viewportElement = viewportRef.value
+    const viewport = viewportElement?.getBoundingClientRect()
+    if (!viewportElement || !viewport) return
+    const renderedScaleX = viewport.width / viewportElement.clientWidth
+    const renderedScaleY = viewport.height / viewportElement.clientHeight
     pan.value = {
-      x: pointerStart.panX + deltaX,
-      y: pointerStart.panY + deltaY,
+      x: pointerStart.panX + deltaX / renderedScaleX,
+      y: pointerStart.panY + deltaY / renderedScaleY,
     }
   })
 }
@@ -311,24 +328,31 @@ onBeforeUnmount(() => {
     </div>
 
     <nav class="map-controls" :aria-label="phone.t('Apps.map.controls')">
-      <k-button
-        rounded
-        tonal
+      <k-fab
+        component="button"
+        type="button"
         class="map-control"
+        :colors="mapControlColors"
         :aria-label="`${phone.t('Apps.map.switchStyle')}: ${phone.t(`Apps.map.styles.${mapStyle}`)}`"
         @click="cycleMapStyle"
       >
-        <component :is="activeMapStyle.icon" aria-hidden="true" />
-      </k-button>
-      <k-button
-        rounded
+        <template #icon>
+          <component :is="activeMapStyle.icon" aria-hidden="true" />
+        </template>
+      </k-fab>
+      <k-fab
+        component="button"
+        type="button"
         class="map-control map-control--location"
+        :colors="locationControlColors"
         :disabled="locating"
         :aria-label="phone.t('Apps.map.currentLocation')"
         @click="loadCurrentLocation(true)"
       >
-        <LocateFixed aria-hidden="true" />
-      </k-button>
+        <template #icon>
+          <LocateFixed aria-hidden="true" />
+        </template>
+      </k-fab>
     </nav>
   </k-page>
 </template>
@@ -416,23 +440,12 @@ onBeforeUnmount(() => {
 }
 
 .map-control {
-  width: 46px;
-  min-width: 46px;
-  height: 46px;
-  padding: 0;
-  color: #1c1c1e;
-  background: rgb(242 242 247 / 90%);
-  box-shadow: 0 5px 18px rgb(0 0 0 / 24%);
+  --color-primary: #8e8e93;
 }
 
 .map-control svg {
   width: 21px;
   height: 21px;
-}
-
-.map-control--location {
-  color: #fff;
-  background: #007aff;
 }
 
 .map-error {
