@@ -9,6 +9,7 @@ import {
   Phone,
   Settings,
   ShoppingBag,
+  CloudSun,
 } from 'lucide-vue-next'
 import { defineAsyncComponent, markRaw } from 'vue'
 
@@ -22,6 +23,7 @@ import notesIcon from '@/assets/img/app-icons/notes.webp'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
 import settingsIcon from '@/assets/img/app-icons/settings.webp'
+import weatherIcon from '@/assets/img/app-icons/weather.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
@@ -43,7 +45,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/MapApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 9,
+    gridOrder: 10,
     icon: markRaw(MapPinned),
     iconClass: '',
     iconImage: mapIcon,
@@ -56,7 +58,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/MailApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 4,
+    gridOrder: 5,
     icon: markRaw(Mail),
     iconClass: '',
     iconImage: mailIcon,
@@ -69,7 +71,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/NotesApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 5,
+    gridOrder: 6,
     icon: markRaw(NotebookPen),
     iconClass: '',
     iconImage: notesIcon,
@@ -118,10 +120,23 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
   },
   {
     component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/WeatherApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 4,
+    icon: markRaw(CloudSun),
+    iconClass: 'app-icon--weather',
+    iconImage: weatherIcon,
+    id: 'weather',
+    labelKey: 'Apps.weather.name',
+    route: '/apps/weather',
+  },
+  {
+    component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/PhotosApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 6,
+    gridOrder: 7,
     icon: markRaw(Images),
     iconClass: 'app-icon--photos',
     iconImage: photosIcon,
@@ -134,7 +149,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/AppStoreApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 7,
+    gridOrder: 8,
     icon: markRaw(ShoppingBag),
     iconClass: 'app-icon--store',
     iconImage: appStoreIcon,
@@ -147,7 +162,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/SettingsApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 8,
+    gridOrder: 9,
     icon: markRaw(Settings),
     iconClass: 'app-icon--settings',
     iconImage: settingsIcon,

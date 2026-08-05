@@ -52,6 +52,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   calculator: { enabled: true, sounds: true },
   camera: { enabled: true, sounds: true },
   clock: { enabled: true, sounds: true },
+  weather: { enabled: true, sounds: true },
   mail: { enabled: true, sounds: true },
   map: { enabled: true, sounds: true },
   notes: { enabled: true, sounds: true },

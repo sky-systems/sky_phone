@@ -1,20 +1,55 @@
 <script setup lang="ts">
 import {
   BatteryCharging,
+  Cloud,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
   CloudSun,
+  MoonStar,
   Pause,
   Play,
+  Snowflake,
   SkipForward,
+  Sun,
 } from 'lucide-vue-next'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, type Component } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { usePhoneStore } from '@/stores/phone'
+import { useWeatherStore } from '@/stores/weather'
+import type { WeatherConditionId } from '@/types/weather'
 
 const phone = usePhoneStore()
+const weather = useWeatherStore()
+const router = useRouter()
 const now = ref(new Date())
 const playing = ref(false)
 let intervalId: number | undefined
 
+const conditionIcons: Record<WeatherConditionId, Component> = {
+  sunny: Sun,
+  clear: MoonStar,
+  partly_cloudy: CloudSun,
+  cloudy: Cloud,
+  rain: CloudRain,
+  thunder: CloudLightning,
+  fog: CloudFog,
+  snow: Snowflake,
+}
+const weatherIcon = computed(
+  () => conditionIcons[weather.forecast?.condition ?? 'partly_cloudy'],
+)
+const weatherRegion = computed(() =>
+  weather.forecast
+    ? phone.t(`Apps.weather.regions.${weather.forecast.region}`)
+    : phone.t('Apps.weather.regions.los_santos'),
+)
+const weatherCondition = computed(() =>
+  weather.forecast
+    ? phone.t(`Apps.weather.conditions.${weather.forecast.condition}`)
+    : phone.t('Common.loading'),
+)
 const date = computed(() =>
   new Intl.DateTimeFormat(phone.lang, {
     month: 'long',
@@ -22,6 +57,11 @@ const date = computed(() =>
   }).format(now.value),
 )
 const day = computed(() => now.value.getDate())
+
+function openWeather(): void {
+  phone.setLaunchOrigin(null)
+  void router.push('/apps/weather')
+}
 
 onMounted(() => {
   intervalId = window.setInterval(() => {
@@ -36,14 +76,19 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="widgets-stack">
-    <article class="widget widget--weather">
+    <button
+      type="button"
+      class="widget widget--weather"
+      :aria-label="phone.t('Apps.weather.name')"
+      @click="openWeather"
+    >
       <div>
-        <span>{{ phone.t('Home.widgets.weather.city') }}</span>
-        <strong>21°</strong>
-        <small>{{ phone.t('Home.widgets.weather.condition') }}</small>
+        <span>{{ weatherRegion }}</span>
+        <strong>{{ weather.forecast?.temperature ?? '--' }}°</strong>
+        <small>{{ weatherCondition }}</small>
       </div>
-      <CloudSun :size="48" aria-hidden="true" />
-    </article>
+      <component :is="weatherIcon" :size="48" aria-hidden="true" />
+    </button>
 
     <div class="widget-row">
       <article class="widget widget--calendar">

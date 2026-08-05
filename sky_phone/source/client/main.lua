@@ -158,6 +158,55 @@ RegisterNUICallback("map:getPlayerCoords", function(_, cb)
     })
 end)
 
+local weather_types = {
+    [joaat("EXTRASUNNY")] = "sunny",
+    [joaat("CLEAR")] = "clear",
+    [joaat("CLOUDS")] = "partly_cloudy",
+    [joaat("OVERCAST")] = "cloudy",
+    [joaat("RAIN")] = "rain",
+    [joaat("CLEARING")] = "rain",
+    [joaat("THUNDER")] = "thunder",
+    [joaat("SMOG")] = "fog",
+    [joaat("FOGGY")] = "fog",
+    [joaat("NEUTRAL")] = "cloudy",
+    [joaat("SNOW")] = "snow",
+    [joaat("BLIZZARD")] = "snow",
+    [joaat("SNOWLIGHT")] = "snow",
+    [joaat("XMAS")] = "snow",
+    [joaat("HALLOWEEN")] = "cloudy",
+}
+
+local function weather_region(coords)
+    if coords.x > 2500.0 and coords.y < -3000.0 then
+        return "cayo_perico"
+    end
+    if coords.y > 900.0 then
+        return "blaine_county"
+    end
+    return "los_santos"
+end
+
+RegisterNUICallback("weather:get", function(_, cb)
+    local coords = GetEntityCoords(PlayerPedId())
+    local weather_hash = GetPrevWeatherTypeHashName()
+    cb({
+        success = true,
+        data = {
+            condition = weather_types[weather_hash] or "clear",
+            region = weather_region(coords),
+            clock = {
+                year = GetClockYear(),
+                month = GetClockMonth() + 1,
+                day = GetClockDayOfMonth(),
+                hour = GetClockHours(),
+                minute = GetClockMinutes(),
+            },
+            windSpeed = math.max(0.0, GetWindSpeed()),
+            rainLevel = math.max(0.0, math.min(1.0, GetRainLevel())),
+        },
+    })
+end)
+
 for _, callback_name in ipairs(server_callbacks) do
     RegisterNUICallback(callback_name, function(data, cb)
         local result = Bridge.Callbacks.Trigger("sky_phone:" .. callback_name, data)

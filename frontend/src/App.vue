@@ -25,6 +25,7 @@ import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
 import { useMediaStore } from '@/stores/media'
 import { useNotesStore } from '@/stores/notes'
+import { useWeatherStore } from '@/stores/weather'
 import {
   useNotificationsStore,
   type PhoneNotificationInput,
@@ -69,6 +70,7 @@ const calls = useCallsStore()
 const mail = useMailStore()
 const media = useMediaStore()
 const notes = useNotesStore()
+const weather = useWeatherStore()
 const notifications = useNotificationsStore()
 const route = useRoute()
 const router = useRouter()
@@ -286,11 +288,13 @@ watch(
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
     if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
     if (!isOpen) {
+      weather.stop()
       isLocked.value = false
       isUnlocking.value = false
       return
     }
     isLocked.value = true
+    weather.start()
     isUnlocking.value = false
     phone.setLaunchOrigin(null)
     void router.replace('/')
@@ -298,6 +302,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  weather.stop()
   if (clockTicker) clearInterval(clockTicker)
   if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
   if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)

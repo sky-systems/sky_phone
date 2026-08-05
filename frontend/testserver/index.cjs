@@ -94,6 +94,19 @@ function counts() {
 app.post('/api/:endpoint', (request, response) => {
   console.log(`[NUI] ${request.params.endpoint}`, request.body)
   const endpoint = request.params.endpoint
+  if (endpoint === 'weather:get') {
+    response.json({
+      success: true,
+      data: {
+        clock: { year: 2026, month: 8, day: 5, hour: 17, minute: 20 },
+        condition: 'partly_cloudy',
+        rainLevel: 0.08,
+        region: 'los_santos',
+        windSpeed: 3.2,
+      },
+    })
+    return
+  }
   if (endpoint === 'map:getPlayerCoords') {
     response.json({
       success: true,

@@ -17,9 +17,14 @@ describe('app registry', () => {
       route: '/apps/phone',
     })
     expect(PHONE_APPS.find((app) => app.id === 'mail')).toMatchObject({
-      gridOrder: 4,
+      gridOrder: 5,
       labelKey: 'Apps.mail.name',
       route: '/apps/mail',
+    })
+    expect(PHONE_APPS.find((app) => app.id === 'weather')).toMatchObject({
+      gridOrder: 4,
+      labelKey: 'Apps.weather.name',
+      route: '/apps/weather',
     })
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
