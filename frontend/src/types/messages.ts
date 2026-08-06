@@ -1,3 +1,5 @@
+import type { DatabaseDateValue } from '@/utils/date'
+
 export type SmsDirection = 'sent' | 'received'
 export type SmsAttachmentType = 'image' | 'gif' | 'video'
 export type SmsMessageType = 'text' | 'voice' | SmsAttachmentType
@@ -5,7 +7,7 @@ export type SmsDeliveryStatus = 'sending' | 'delivered' | 'failed'
 
 export type SmsConversation = {
   lastMessage: string
-  lastMessageAt: string
+  lastMessageAt: DatabaseDateValue
   lastMessageType: SmsMessageType
   phoneNumber: string
   unread: number
@@ -14,7 +16,7 @@ export type SmsConversation = {
 export type SmsMessage = {
   body: string
   client_id?: string
-  created_at: string
+  created_at: DatabaseDateValue
   delivery_status?: SmsDeliveryStatus
   direction: SmsDirection
   id: string
