@@ -11,6 +11,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
+import PhoneMediaCapture from '@/components/PhoneMediaCapture.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import NotificationPhonePreview from '@/components/NotificationPhonePreview.vue'
@@ -20,11 +21,14 @@ import SimPhonePicker, {
 } from '@/components/SimPhonePicker.vue'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { useClockStore } from '@/stores/clock'
+import { useGamesStore } from '@/features/games/store'
 import { useCallsStore } from '@/stores/calls'
 import { useBankingStore } from '@/stores/banking'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
 import { useMediaStore } from '@/stores/media'
+import { useMarketplaceStore } from '@/stores/marketplace'
+import { useAppStoreStore } from '@/stores/app-store'
 import { useNotesStore } from '@/stores/notes'
 import { useWeatherStore } from '@/stores/weather'
 import {
@@ -34,6 +38,7 @@ import {
 import { usePhoneStore, type PhoneOpenPayload } from '@/stores/phone'
 import type { PhoneNotificationDevicePayload } from '@/types/device'
 import type { MailCounts } from '@/types/mail'
+import type { MarketplaceCounts } from '@/types/marketplace'
 import type { PhoneCall } from '@/types/phone'
 import { nuiCall } from '@/utils/nui'
 import { formatTimer } from '@/utils/clock'
@@ -42,7 +47,13 @@ import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
   type?: string
-  data?: MailEventData | PhoneCall | PhoneNotificationInput | PhoneOpenPayload
+  data?:
+    | CalendarReminderData
+    | MailEventData
+    | MarketplaceEventData
+    | PhoneCall
+    | PhoneNotificationInput
+    | PhoneOpenPayload
 }
 
 type SimPickerPayload = {
@@ -59,6 +70,25 @@ type MailEventData = {
   title?: string
 }
 
+type MarketplaceEventData = {
+  counts?: MarketplaceCounts
+  device?: PhoneNotificationDevicePayload
+  inquiryId?: string
+  listingId?: string
+  sender?: string
+  text?: string
+  title?: string
+}
+
+type CalendarReminderData = {
+  device?: PhoneNotificationDevicePayload
+  eventId?: string
+  eventTitle?: string
+  startsAt?: number
+  text?: string
+  title?: string
+}
+
 const REFERENCE_VIEWPORT_WIDTH = 1920
 const REFERENCE_VIEWPORT_HEIGHT = 1080
 const PHONE_BASE_SCALE = 0.69
@@ -67,16 +97,22 @@ const isDevelopment = import.meta.env.DEV
 const phone = usePhoneStore()
 const account = useAccountStore()
 const clock = useClockStore()
+const games = useGamesStore()
 const calls = useCallsStore()
 const banking = useBankingStore()
 const mail = useMailStore()
 const media = useMediaStore()
+const marketplace = useMarketplaceStore()
+const appStore = useAppStoreStore()
 const notes = useNotesStore()
 const weather = useWeatherStore()
 const notifications = useNotificationsStore()
 const route = useRoute()
 const router = useRouter()
 const isAppRoute = computed(() => route.name === 'app')
+const appTransitionName = computed(() =>
+  route.query.transition === 'app-switch' ? 'app-switch' : 'app-window',
+)
 const isLocked = ref(false)
 const isUnlocking = ref(false)
 const simPicker = ref<SimPickerPayload | null>(null)
@@ -94,7 +130,6 @@ const phoneFrameImage = computed(
 )
 let clockTicker: ReturnType<typeof setInterval> | undefined
 let unlockTimer: number | undefined
-let cameraTimer: number | undefined
 
 function getViewportScale(): number {
   const heightScale = window.innerHeight / REFERENCE_VIEWPORT_HEIGHT
@@ -108,14 +143,44 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   account.hydrate(payload.account ?? null)
   notes.hydrate(payload.notes ?? [])
   clock.hydrate(payload.device?.data.alarms?.payload)
+  games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
+  appStore.hydrate(payload.device?.data.apps?.payload)
   void mail.bootstrap(payload.account?.email ?? '')
+  if (payload.account?.email) void marketplace.loadCounts()
+  else marketplace.setCounts({ active: 0, unread: 0 })
   void calls.bootstrap()
+}
+
+async function hydrateDevelopmentPhone(): Promise<void> {
+  const response = await nuiCall<PhoneOpenPayload>('development:bootstrap')
+  if (response.success && response.data) {
+    hydratePhone(response.data)
+    return
+  }
+
+  hydratePhone({
+    account: null,
+    device: {
+      data: {},
+      imei: '356938035643809',
+      name: 'iFruit Phone',
+      sim: {
+        id: 'development-sim',
+        number: '5551234567',
+        registered: true,
+        type: 'registered',
+      },
+    },
+    notes: [],
+    token: 'development',
+  })
 }
 
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (event.data?.type === 'app:open') {
     hydratePhone(event.data.data as PhoneOpenPayload)
+    void nuiCall('ui:opened')
   } else if (event.data?.type === 'device:updated') {
     hydratePhone(event.data.data as PhoneOpenPayload)
   } else if (event.data?.type === 'app:close') {
@@ -141,6 +206,61 @@ function onMessage(event: MessageEvent<AppMessage>): void {
         data.text ??
         phone.t('Apps.mail.newMessage', { sender: data.sender ?? '' }),
       title: data.title ?? phone.t('Apps.mail.name'),
+    }
+    if (
+      data.device &&
+      (!phone.isOpen || data.device.imei !== phone.device?.imei)
+    ) {
+      notification.device = {
+        imei: data.device.imei,
+        name: data.device.name,
+        preferences: parsePhonePreferences(data.device.settings ?? null),
+      }
+    }
+    notifications.show(notification)
+  } else if (event.data?.type === 'marketplace:changed' && event.data.data) {
+    const data = event.data.data as MarketplaceEventData
+    if (data.counts) marketplace.setCounts(data.counts)
+  } else if (
+    event.data?.type === 'marketplace:new-message' &&
+    event.data.data
+  ) {
+    const data = event.data.data as MarketplaceEventData
+    const notification: PhoneNotificationInput = {
+      appId: 'citymarkt',
+      subtitle: data.sender,
+      text:
+        data.text ??
+        phone.t('Apps.citymarkt.newMessage', { sender: data.sender ?? '' }),
+      title: data.title ?? phone.t('Apps.citymarkt.name'),
+    }
+    if (
+      data.device &&
+      (!phone.isOpen || data.device.imei !== phone.device?.imei)
+    ) {
+      notification.device = {
+        imei: data.device.imei,
+        name: data.device.name,
+        preferences: parsePhonePreferences(data.device.settings ?? null),
+      }
+    }
+    notifications.show(notification)
+    void marketplace.loadCounts()
+  } else if (event.data?.type === 'calendar:reminder' && event.data.data) {
+    const data = event.data.data as CalendarReminderData
+    const startsAt = Number(data.startsAt) || Date.now()
+    const notification: PhoneNotificationInput = {
+      appId: 'calendar',
+      subtitle: new Intl.DateTimeFormat(phone.lang, {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(startsAt),
+      text:
+        data.text ??
+        phone.t('Apps.calendar.reminderNotification', {
+          title: data.eventTitle ?? '',
+        }),
+      title: data.title ?? phone.t('Apps.calendar.name'),
     }
     if (
       data.device &&
@@ -189,20 +309,19 @@ function updateViewportScale(): void {
   viewportScale.value = getViewportScale()
 }
 
-function unlockPhone(destination?: 'camera'): void {
+function unlockPhone(): void {
   if (!isLocked.value) return
   isUnlocking.value = true
   isLocked.value = false
 
-  if (destination === 'camera') {
-    cameraTimer = window.setTimeout(() => {
-      void router.push('/apps/camera')
-    }, 260)
-  }
-
   unlockTimer = window.setTimeout(() => {
     isUnlocking.value = false
   }, 720)
+}
+
+function unlockCamera(): void {
+  unlockPhone()
+  window.setTimeout(() => void router.push('/apps/camera'), 0)
 }
 
 onMounted(() => {
@@ -240,22 +359,7 @@ onMounted(() => {
     }
   }, 1000)
   if (isDevelopment) {
-    hydratePhone({
-      account: null,
-      device: {
-        data: {},
-        imei: '356938035643809',
-        name: 'iFruit Phone',
-        sim: {
-          id: 'development-sim',
-          number: '5551234567',
-          registered: true,
-          type: 'registered',
-        },
-      },
-      notes: [],
-      token: 'development',
-    })
+    void hydrateDevelopmentPhone()
     if (new URLSearchParams(window.location.search).has('simPickerPreview')) {
       simPicker.value = {
         choices: [
@@ -290,7 +394,6 @@ watch(
   () => phone.isOpen,
   (isOpen) => {
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
-    if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
     if (!isOpen) {
       weather.stop()
       isLocked.value = false
@@ -309,7 +412,6 @@ onBeforeUnmount(() => {
   weather.stop()
   if (clockTicker) clearInterval(clockTicker)
   if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
-  if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', updateViewportScale)
@@ -318,6 +420,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <PhoneMediaCapture />
   <SimPhonePicker
     v-if="simPicker"
     :choices="simPicker.choices"
@@ -335,6 +438,7 @@ onBeforeUnmount(() => {
       class="phone-stage"
       :class="{
         'phone-stage--dev': isDevelopment,
+        'phone-stage--landscape': phone.cameraLandscape,
         'phone-stage--peek': notifications.isPeeking,
       }"
       :style="phoneResolutionStyle"
@@ -374,13 +478,21 @@ onBeforeUnmount(() => {
                 <PhoneStatusBar v-if="!isLocked" />
                 <SpringboardView />
                 <RouterView v-slot="{ Component }">
-                  <Transition name="app-window">
-                    <component :is="Component" v-if="isAppRoute" />
+                  <Transition :name="appTransitionName">
+                    <component
+                      :is="Component"
+                      v-if="isAppRoute"
+                      :key="route.path"
+                    />
                   </Transition>
                 </RouterView>
                 <PhoneHomeIndicator v-if="!isLocked" />
                 <Transition name="lock-screen">
-                  <PhoneLockScreen v-if="isLocked" @unlock="unlockPhone" />
+                  <PhoneLockScreen
+                    v-if="isLocked"
+                    @camera="unlockCamera"
+                    @unlock="unlockPhone"
+                  />
                 </Transition>
                 <PhoneNotifications
                   :notification="notifications.current"

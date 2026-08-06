@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { usePhoneStore } from '@/stores/phone'
-import type { PhoneAppId } from '@/types/apps'
+import type { LaunchablePhoneAppId } from '@/types/apps'
 import type { PhonePreferencesV1 } from '@/utils/preferences'
 import { playPhoneTone, type PhoneToneId } from '@/utils/tones'
 
@@ -13,7 +13,7 @@ export type PhoneNotificationDevice = {
 }
 
 export type PhoneNotificationInput = {
-  appId: PhoneAppId
+  appId: LaunchablePhoneAppId
   critical?: boolean
   device?: PhoneNotificationDevice
   persistent?: boolean

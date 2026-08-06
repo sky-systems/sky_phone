@@ -1,4 +1,5 @@
 local is_open = false
+local open_requested = false
 local notification_focus = false
 local device_payload = nil
 local sim_picker_open = false
@@ -33,6 +34,32 @@ local server_callbacks = {
     "mail:restore",
     "mail:delete-forever",
     "mail:empty-trash",
+    "marketplace:list",
+    "marketplace:get",
+    "marketplace:list-own",
+    "marketplace:create",
+    "marketplace:update",
+    "marketplace:set-status",
+    "marketplace:favorite",
+    "marketplace:counts",
+    "marketplace:list-inquiries",
+    "marketplace:get-inquiry",
+    "marketplace:send-message",
+    "marketplace:make-offer",
+    "marketplace:respond-offer",
+    "marketplace:report",
+    "marketplace:block",
+    "pages:list",
+    "pages:get",
+    "pages:list-own",
+    "pages:create",
+    "pages:share-citymarkt",
+    "pages:react",
+    "pages:delete",
+    "calendar:list",
+    "calendar:create",
+    "calendar:update",
+    "calendar:delete",
     "sim:insert",
     "sim:eject",
     "contacts:list",
@@ -47,6 +74,8 @@ local server_callbacks = {
     "banking:deposit",
     "banking:withdraw",
     "banking:transfer",
+    "gallery:list",
+    "media:config",
 }
 
 local function get_locale()
@@ -72,18 +101,17 @@ local function open_phone()
         return
     end
 
-    is_open = true
-    notification_focus = false
-    SetNuiFocus(true, true)
     send_open_message()
 end
 
 local function close_phone()
+    open_requested = false
     if not is_open then
         return
     end
 
     is_open = false
+    TriggerEvent("sky_phone:nuiClosed")
     SetNuiFocus(notification_focus or sim_picker_open, notification_focus or sim_picker_open)
     SendNUIMessage({ type = "app:close" })
     Bridge.Callbacks.Trigger("sky_phone:device:close", {})
@@ -124,10 +152,28 @@ if Config.Phone.DevelopmentCommand then
 end
 
 RegisterNUICallback("ui:ready", function(_, cb)
-    if is_open then
+    Bridge.Debug("debug", "[sky_phone] NUI reported ready.", { always = true })
+    if open_requested and device_payload then
         send_open_message()
     end
 
+    cb({ success = true })
+end)
+
+RegisterNUICallback("ui:opened", function(_, cb)
+    if not open_requested or not device_payload then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone] Ignored a NUI open confirmation without a pending device open.",
+            { always = true }
+        )
+        cb({ success = false, error = "open_not_requested" })
+        return
+    end
+
+    is_open = true
+    notification_focus = false
+    SetNuiFocus(true, true)
     cb({ success = true })
 end)
 
@@ -232,6 +278,7 @@ RegisterNetEvent("sky_phone:device:open", function(data)
         { always = true }
     )
     device_payload = data
+    open_requested = true
     open_phone()
 end)
 
@@ -241,6 +288,7 @@ RegisterNetEvent("sky_phone:device:updated", function(data)
 end)
 
 RegisterNetEvent("sky_phone:device:invalidated", function()
+    open_requested = false
     device_payload = nil
     close_phone()
 end)
@@ -265,6 +313,38 @@ RegisterNetEvent("sky_phone:mail:new", function(data)
     data.title = mail_locale.name
     data.text = mail_locale.newMessage:gsub("{sender}", tostring(data.sender))
     SendNUIMessage({ type = "mail:new", data = data })
+end)
+
+RegisterNetEvent("sky_phone:marketplace:changed", function(data)
+    SendNUIMessage({ type = "marketplace:changed", data = data })
+end)
+
+RegisterNetEvent("sky_phone:marketplace:new-message", function(data)
+    local marketplace_locale = get_locale().Nui.Apps.citymarkt
+    data.title = marketplace_locale.name
+    if data.kind == "offer" then
+        data.text = marketplace_locale.newOffer
+            :gsub("{sender}", tostring(data.sender))
+            :gsub("{price}", tostring(data.amount))
+    elseif data.kind == "offer-response" and data.action == "accepted" then
+        data.text = marketplace_locale.offerAcceptedNotification
+            :gsub("{sender}", tostring(data.sender))
+            :gsub("{price}", tostring(data.amount))
+    elseif data.kind == "offer-response" and data.action == "rejected" then
+        data.text = marketplace_locale.offerRejectedNotification
+            :gsub("{sender}", tostring(data.sender))
+            :gsub("{price}", tostring(data.amount))
+    else
+        data.text = marketplace_locale.newMessage:gsub("{sender}", tostring(data.sender))
+    end
+    SendNUIMessage({ type = "marketplace:new-message", data = data })
+end)
+
+RegisterNetEvent("sky_phone:calendar:reminder", function(data)
+    local calendar_locale = get_locale().Nui.Apps.calendar
+    data.title = calendar_locale.name
+    data.text = calendar_locale.reminder:gsub("{title}", tostring(data.eventTitle))
+    SendNUIMessage({ type = "calendar:reminder", data = data })
 end)
 
 RegisterNetEvent("sky_phone:sim:picker", function(data)

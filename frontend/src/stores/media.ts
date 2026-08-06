@@ -48,20 +48,22 @@ export const useMediaStore = defineStore('media', {
     photos: (state): PhonePhoto[] => [...state.captures, ...samplePhotos],
   },
   actions: {
-    capture(): void {
+    capture(): PhonePhoto {
       const gradients = [
         'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)',
         'linear-gradient(150deg, #00c9a7, #4d8076 46%, #1f3a5f)',
         'linear-gradient(135deg, #ffc75f, #f96d80 48%, #4b4453)',
       ]
       const captureNumber = this.captures.length
-      this.captures.unshift({
+      const photo: PhonePhoto = {
         capturedAt: Date.now(),
         gradient: gradients[captureNumber % gradients.length],
-        id: `capture-${Date.now()}`,
+        id: `capture-${Date.now()}-${captureNumber + 1}`,
         titleKey: 'Apps.photos.samples.capture',
-      })
+      }
+      this.captures.unshift(photo)
       this.persist()
+      return photo
     },
     claimApp(id: string): void {
       if (!this.claimedApps.includes(id)) {

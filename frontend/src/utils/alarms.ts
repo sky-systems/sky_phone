@@ -1,3 +1,5 @@
+import { cloneJsonData } from '@/utils/clone'
+
 export const ALARM_SOUND_IDS = [
   'radar',
   'beacon',
@@ -89,7 +91,7 @@ function readAlarm(value: unknown): Alarm | null {
 }
 
 export function parseAlarms(value: unknown): Alarm[] {
-  if (!Array.isArray(value)) return structuredClone(DEFAULT_ALARMS)
+  if (!Array.isArray(value)) return cloneJsonData(DEFAULT_ALARMS)
   return value.map(readAlarm).filter((alarm): alarm is Alarm => !!alarm)
 }
 

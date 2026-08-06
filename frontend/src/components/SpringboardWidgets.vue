@@ -16,11 +16,15 @@ import {
 import { computed, onBeforeUnmount, onMounted, ref, type Component } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { useAccountStore } from '@/stores/account'
+import { useCalendarStore } from '@/stores/calendar'
 import { usePhoneStore } from '@/stores/phone'
 import { useWeatherStore } from '@/stores/weather'
 import type { WeatherConditionId } from '@/types/weather'
 
 const phone = usePhoneStore()
+const account = useAccountStore()
+const calendar = useCalendarStore()
 const weather = useWeatherStore()
 const router = useRouter()
 const now = ref(new Date())
@@ -57,15 +61,46 @@ const date = computed(() =>
   }).format(now.value),
 )
 const day = computed(() => now.value.getDate())
+const nextCalendarEvent = computed(() =>
+  calendar.events
+    .filter((event) => event.endsAt >= now.value.getTime())
+    .sort((left, right) => left.startsAt - right.startsAt)
+    .at(0),
+)
+const calendarEventLabel = computed(
+  () =>
+    nextCalendarEvent.value?.title ?? phone.t('Home.widgets.calendar.event'),
+)
+
+async function loadCalendarDay(): Promise<void> {
+  if (!account.email) {
+    calendar.events = []
+    return
+  }
+
+  const start = new Date(now.value)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+  await calendar.load(start.getTime(), end.getTime())
+}
 
 function openWeather(): void {
   phone.setLaunchOrigin(null)
   void router.push('/apps/weather')
 }
 
+function openCalendar(): void {
+  phone.setLaunchOrigin(null)
+  void router.push('/apps/calendar')
+}
+
 onMounted(() => {
+  void loadCalendarDay()
   intervalId = window.setInterval(() => {
+    const previousDay = now.value.toDateString()
     now.value = new Date()
+    if (now.value.toDateString() !== previousDay) void loadCalendarDay()
   }, 60_000)
 })
 
@@ -91,11 +126,16 @@ onBeforeUnmount(() => {
     </button>
 
     <div class="widget-row">
-      <article class="widget widget--calendar">
+      <button
+        type="button"
+        class="widget widget--calendar"
+        :aria-label="phone.t('Apps.calendar.name')"
+        @click="openCalendar"
+      >
         <span>{{ date }}</span>
         <strong>{{ day }}</strong>
-        <small>{{ phone.t('Home.widgets.calendar.event') }}</small>
-      </article>
+        <small>{{ calendarEventLabel }}</small>
+      </button>
       <article class="widget widget--battery">
         <BatteryCharging :size="25" aria-hidden="true" />
         <strong>78%</strong>

@@ -373,7 +373,6 @@ Bridge.Callbacks.Register("sky_phone:mail:delete-draft", function(source, data)
     broadcast_mailbox_changed(session.id)
     return { success = true }
 end)
-end)
 
 Bridge.Callbacks.Register("sky_phone:mail:send", function(source, data)
     local session, error_response = require_session(source)
@@ -580,4 +579,5 @@ Bridge.Callbacks.Register("sky_phone:mail:empty-trash", function(source)
     ]], {})
     broadcast_mailbox_changed(session.id)
     return { success = true }
+end)
 end)

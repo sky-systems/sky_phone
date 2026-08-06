@@ -19,7 +19,8 @@ function goHome(): void {
     :class="{ 'phone-home-indicator--interactive': isApp }"
     type="button"
     :aria-label="phone.t('Common.home')"
-    @click="goHome"
+    @pointerdown.stop="goHome"
+    @click.stop="goHome"
   >
     <span aria-hidden="true"></span>
   </button>

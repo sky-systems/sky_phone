@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useMailStore } from '@/stores/mail'
+import { useMarketplaceStore } from '@/stores/marketplace'
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppDefinition } from '@/types/apps'
 
@@ -21,17 +22,22 @@ const props = withDefaults(
 
 const phone = usePhoneStore()
 const mail = useMailStore()
+const marketplace = useMarketplaceStore()
 const router = useRouter()
 const iconFailed = ref(false)
-const unreadCount = computed(() =>
-  props.app.id === 'mail' ? mail.counts.unread : 0,
-)
+const unreadCount = computed(() => {
+  if (props.app.id === 'mail') return mail.counts.unread
+  if (props.app.id === 'citymarkt') return marketplace.counts.unread
+  return 0
+})
 const notificationBadgeColors = {
   bg: 'bg-[#ff3b30]',
   text: 'text-white',
 }
 
 function launch(event: MouseEvent): void {
+  if (!props.app.route) return
+
   const button = event.currentTarget as HTMLElement
   const screen = button.closest('.phone-screen')
   const icon = button.querySelector<HTMLElement>('.app-icon')
@@ -64,6 +70,7 @@ function launch(event: MouseEvent): void {
     :class="{ 'app-icon-button--compact': compact }"
     type="button"
     :aria-label="phone.t(app.labelKey)"
+    :aria-disabled="!app.route"
     @click="launch"
   >
     <span class="app-icon-anchor" aria-hidden="true">

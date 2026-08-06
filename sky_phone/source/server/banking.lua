@@ -12,8 +12,8 @@ local function valid_amount(value)
 end
 
 local function player_name(source)
-    local firstname = Sky.FW.GetFirstname(source)
-    local lastname = Sky.FW.GetLastname(source)
+    local firstname = Bridge.Framework.GetFirstname(source)
+    local lastname = Bridge.Framework.GetLastname(source)
     local name = ((firstname or "") .. " " .. (lastname or "")):match("^%s*(.-)%s*$")
     if name == "" then
         name = GetPlayerName(source) or ("Player %s"):format(source)
@@ -26,7 +26,7 @@ local function require_banking_session(source)
     if not session then
         return nil, error_response
     end
-    local identifier = Sky.FW.GetIdentifier(source)
+    local identifier = Bridge.Framework.GetIdentifier(source)
     if type(identifier) ~= "string" or identifier == "" then
         return nil, { success = false, error = "banking_unavailable" }
     end
@@ -62,8 +62,8 @@ end
 
 local function overview(source, identifier)
     return {
-        bank = math.max(0, tonumber(Sky.FW.GetAccountMoney(source, "bank")) or 0),
-        cash = math.max(0, tonumber(Sky.FW.GetAccountMoney(source, "cash")) or 0),
+        bank = math.max(0, tonumber(Bridge.Framework.GetMoney(source, "bank")) or 0),
+        cash = math.max(0, tonumber(Bridge.Framework.GetMoney(source, "cash")) or 0),
         currency = Config.Banking.Currency,
         playerId = source,
         playerName = player_name(source),
@@ -103,12 +103,11 @@ Bridge.Callbacks.Register("sky_phone:banking:deposit", function(source, data)
     if not amount then
         return { success = false, error = "invalid_request" }
     end
-    if not Sky.FW.RemoveAccountMoney(source, "cash", amount) then
+    if not Bridge.Framework.RemoveMoney(source, "cash", amount) then
         return { success = false, error = "insufficient_funds" }
     end
-    local added = pcall(Sky.FW.AddAccountMoney, source, "bank", amount)
-    if not added then
-        Sky.FW.AddAccountMoney(source, "cash", amount)
+    if not Bridge.Framework.AddMoney(source, "bank", amount) then
+        Bridge.Framework.AddMoney(source, "cash", amount)
         return { success = false, error = "transfer_failed" }
     end
     record_transaction(identifier, "deposit", amount, "", "cash-deposit")
@@ -127,12 +126,11 @@ Bridge.Callbacks.Register("sky_phone:banking:withdraw", function(source, data)
     if not amount then
         return { success = false, error = "invalid_request" }
     end
-    if not Sky.FW.RemoveAccountMoney(source, "bank", amount) then
+    if not Bridge.Framework.RemoveMoney(source, "bank", amount) then
         return { success = false, error = "insufficient_funds" }
     end
-    local added = pcall(Sky.FW.AddAccountMoney, source, "cash", amount)
-    if not added then
-        Sky.FW.AddAccountMoney(source, "bank", amount)
+    if not Bridge.Framework.AddMoney(source, "cash", amount) then
+        Bridge.Framework.AddMoney(source, "bank", amount)
         return { success = false, error = "transfer_failed" }
     end
     record_transaction(identifier, "withdrawal", amount, "", "cash-withdrawal")
@@ -161,16 +159,15 @@ Bridge.Callbacks.Register("sky_phone:banking:transfer", function(source, data)
     if target == source then
         return { success = false, error = "self_transfer" }
     end
-    local target_identifier = Sky.FW.GetIdentifier(target)
+    local target_identifier = Bridge.Framework.GetIdentifier(target)
     if type(target_identifier) ~= "string" or target_identifier == "" then
         return { success = false, error = "target_not_found" }
     end
-    if not Sky.FW.RemoveAccountMoney(source, "bank", amount) then
+    if not Bridge.Framework.RemoveMoney(source, "bank", amount) then
         return { success = false, error = "insufficient_funds" }
     end
-    local added = pcall(Sky.FW.AddAccountMoney, target, "bank", amount)
-    if not added then
-        Sky.FW.AddAccountMoney(source, "bank", amount)
+    if not Bridge.Framework.AddMoney(target, "bank", amount) then
+        Bridge.Framework.AddMoney(source, "bank", amount)
         return { success = false, error = "transfer_failed" }
     end
 

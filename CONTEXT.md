@@ -23,3 +23,25 @@ _Avoid_: Player account, character account, mail account
 **Cloud Data**:
 Information owned by an iFruit Account and available on every Device linked to it.
 _Avoid_: Device Data, local data
+
+## CityMarkt
+
+**Listing**:
+A seller-published classified offer owned by one iFruit Account.
+_Avoid_: Auction, shop item, marketplace post
+
+**Inquiry**:
+A private, Listing-scoped conversation between one interested iFruit Account and the seller.
+_Avoid_: Mail thread, public comment, bid
+
+**Reservation**:
+A reversible promise that a Listing is intended for one interested iFruit Account; it does not transfer money or ownership.
+_Avoid_: Purchase, sale, escrow
+
+**Completion**:
+The seller-confirmed end of a Listing after an in-game handover.
+_Avoid_: Automatic transfer, checkout
+
+**Favorite**:
+A private iFruit Account bookmark for a Listing.
+_Avoid_: Like, rating, watch bid

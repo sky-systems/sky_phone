@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Calendar">
+  <defs>
+    <linearGradient id="bg" x1="32" y1="20" x2="224" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff765f"/>
+      <stop offset="1" stop-color="#e93147"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#8c1021" flood-opacity=".32"/>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="58" fill="url(#bg)"/>
+  <g filter="url(#shadow)">
+    <rect x="42" y="50" width="172" height="164" rx="28" fill="#fff"/>
+    <path d="M42 78c0-15.5 12.5-28 28-28h116c15.5 0 28 12.5 28 28v26H42V78Z" fill="#f8e9eb"/>
+    <rect x="77" y="36" width="14" height="42" rx="7" fill="#fff"/>
+    <rect x="165" y="36" width="14" height="42" rx="7" fill="#fff"/>
+    <g fill="#d5d8df">
+      <rect x="67" y="124" width="26" height="21" rx="7"/><rect x="104" y="124" width="26" height="21" rx="7"/><rect x="141" y="124" width="26" height="21" rx="7"/>
+      <rect x="67" y="157" width="26" height="21" rx="7"/><rect x="141" y="157" width="26" height="21" rx="7"/>
+    </g>
+    <rect x="101" y="153" width="32" height="29" rx="9" fill="#ff4259"/>
+    <path d="m109 167 7 7 11-14" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <circle cx="201" cy="198" r="27" fill="#272b36" stroke="#fff" stroke-width="6"/>
+  <path d="M201 183v16l10 7" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

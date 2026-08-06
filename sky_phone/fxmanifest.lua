@@ -13,7 +13,6 @@ escrow_ignore {
 }
 
 shared_scripts {
-    '@sky_base/source/import.lua',
     'config/init.lua',
     'source/bridge/shared.lua',
     'source/shared/imei.lua',
@@ -25,12 +24,14 @@ client_scripts {
     'config/locales/*.lua',
     'source/bridge/client/framework.lua',
     'source/bridge/client/callbacks.lua',
+    'source/client/camera.lua',
     'source/client/main.lua',
 }
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'config/config.lua',
+    'config/media.lua',
     'source/bridge/server/database.lua',
     'source/bridge/server/migrations.lua',
     'source/bridge/server/callbacks.lua',
@@ -45,6 +46,10 @@ server_scripts {
     'source/server/notes.lua',
     'source/server/mail.lua',
     'source/server/banking.lua',
+    'source/server/marketplace.lua',
+    'source/server/pages.lua',
+    'source/server/media.lua',
+    'source/server/calendar.lua',
 }
 
 files {
@@ -55,7 +60,4 @@ files {
 
 ui_page 'source/html/index.html'
 
-dependencies {
-    'oxmysql',
-    'sky_base',
-}
+dependency 'oxmysql'
