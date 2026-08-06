@@ -280,4 +280,5 @@ onMounted(() => void loadFeed())
 .pages__header .pages__brand{display:flex;align-items:center;gap:4px;color:var(--yellow);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
 .pages__header h1{margin:1px 0 0;font-size:25px;line-height:1}
 .pages__content{height:calc(100% - 64px - 58px)}
+.pages__segmented button{min-height:34px;padding:8px 10px;font-size:12px;font-weight:700}
 </style>
