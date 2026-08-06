@@ -370,7 +370,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 .number-merge-header span {
   display: block;
   color: #9c7465;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.2px;
   text-transform: uppercase;
@@ -435,8 +435,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 .number-merge-hero__tile--4 { color: #fff7e4; background: #e96c2c; }
 .number-merge-hero__tile--8 { color: #fff7e4; background: #713c31; }
 
-.number-merge-menu__intro h2 { margin: 0; font-size: 22px; letter-spacing: -0.5px; }
-.number-merge-menu__intro p { max-width: 270px; margin: 5px 0 0; color: #8b675b; font-size: 11px; line-height: 1.4; }
+.number-merge-menu__intro h2 { margin: 0; font-size: 25px; letter-spacing: -0.5px; }
+.number-merge-menu__intro p { max-width: 300px; margin: 6px 0 0; color: #8b675b; font-size: 14px; line-height: 1.45; }
 
 .number-merge-records {
   width: 100%;
@@ -457,22 +457,22 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 .number-merge-records span,
 .number-merge-toolbar span {
   color: #9d7567;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
 }
 
-.number-merge-records strong { font-size: 17px; }
+.number-merge-records strong { font-size: 20px; }
 
 .number-merge-menu__actions { width: 100%; display: grid; gap: 7px; }
 
 .number-merge-primary,
 .number-merge-secondary,
 .number-merge-danger {
-  min-height: 42px;
+  min-height: 46px;
   padding: 0 18px;
   border-radius: 14px;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -497,16 +497,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   background: rgb(255 255 255 / 28%);
 }
 
-.number-merge-how-to strong { font-size: 10px; text-transform: uppercase; }
-.number-merge-how-to p { margin: 3px 0 0; font-size: 9px; line-height: 1.35; }
+.number-merge-how-to strong { font-size: 13px; text-transform: uppercase; }
+.number-merge-how-to p { margin: 5px 0 0; font-size: 12px; line-height: 1.4; }
 .number-merge-how-to div {
-  margin: 6px 0 3px;
+  margin: 7px 0 4px;
   color: #a7472d;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 900;
   letter-spacing: -0.2px;
 }
-.number-merge-how-to small { display: block; color: #8b6559; font-size: 8px; line-height: 1.25; }
+.number-merge-how-to small { display: block; color: #8b6559; font-size: 11px; line-height: 1.35; }
 
 .number-merge-game { padding-top: 5px; }
 
@@ -525,7 +525,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   line-height: 1.05;
 }
 
-.number-merge-toolbar strong { max-width: 80px; overflow: hidden; font-size: 16px; text-overflow: ellipsis; }
+.number-merge-toolbar strong { max-width: 80px; overflow: hidden; font-size: 18px; text-overflow: ellipsis; }
 .number-merge-toolbar__restart { justify-self: end; }
 
 .number-merge-board {
@@ -625,7 +625,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 
 .number-merge-overlay > span { color: #ffc75b; font-size: 29px; font-weight: 900; }
 .number-merge-overlay h2 { margin: 0; font-size: 25px; }
-.number-merge-overlay p { margin: -3px 0 4px; color: #e7cabd; font-size: 11px; line-height: 1.35; }
+.number-merge-overlay p { margin: -3px 0 4px; color: #e7cabd; font-size: 14px; line-height: 1.4; }
 .number-merge-overlay button { min-width: 160px; }
 .number-merge-overlay .number-merge-secondary { color: #fff1df; background: rgb(255 255 255 / 8%); border-color: rgb(255 255 255 / 13%); }
 
@@ -634,11 +634,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   border: 0;
   color: #e9cec2;
   background: transparent;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 800;
 }
 
-.number-merge-hint { margin: 10px 0 7px; color: #976f61; font-size: 9px; text-align: center; }
+.number-merge-hint { margin: 10px 0 7px; color: #976f61; font-size: 12px; text-align: center; }
 
 .number-merge-controls {
   display: grid;
@@ -683,7 +683,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 }
 
 .number-merge-confirm h2 { margin: 0; font-size: 21px; }
-.number-merge-confirm p { margin: 0 0 5px; color: #876359; font-size: 11px; line-height: 1.4; }
+.number-merge-confirm p { margin: 0 0 5px; color: #876359; font-size: 14px; line-height: 1.4; }
 .number-merge-danger { border: 0; color: #fff; background: #b64f39; }
 
 button:active { transform: scale(0.97); }

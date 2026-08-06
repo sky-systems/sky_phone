@@ -1,6 +1,6 @@
 Config.Bridge = {
     Framework = "auto", -- auto, esx, qbox, qb
-    Inventory = "auto", -- auto, ox, qb, lj, qs, codem, core, mf
+    Inventory = "auto", -- auto, ox, qb, lj, qs, codem, core, mf, smx
     Locale = "en",
     CallbackTimeout = 5000,
     Debug = false,

@@ -150,9 +150,35 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   void calls.bootstrap()
 }
 
+async function hydrateDevelopmentPhone(): Promise<void> {
+  const response = await nuiCall<PhoneOpenPayload>('development:bootstrap')
+  if (response.success && response.data) {
+    hydratePhone(response.data)
+    return
+  }
+
+  hydratePhone({
+    account: null,
+    device: {
+      data: {},
+      imei: '356938035643809',
+      name: 'iFruit Phone',
+      sim: {
+        id: 'development-sim',
+        number: '5551234567',
+        registered: true,
+        type: 'registered',
+      },
+    },
+    notes: [],
+    token: 'development',
+  })
+}
+
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (event.data?.type === 'app:open') {
     hydratePhone(event.data.data as PhoneOpenPayload)
+    void nuiCall('ui:opened')
   } else if (event.data?.type === 'device:updated') {
     hydratePhone(event.data.data as PhoneOpenPayload)
   } else if (event.data?.type === 'app:close') {
@@ -193,15 +219,23 @@ function onMessage(event: MessageEvent<AppMessage>): void {
   } else if (event.data?.type === 'marketplace:changed' && event.data.data) {
     const data = event.data.data as MarketplaceEventData
     if (data.counts) marketplace.setCounts(data.counts)
-  } else if (event.data?.type === 'marketplace:new-message' && event.data.data) {
+  } else if (
+    event.data?.type === 'marketplace:new-message' &&
+    event.data.data
+  ) {
     const data = event.data.data as MarketplaceEventData
     const notification: PhoneNotificationInput = {
       appId: 'citymarkt',
       subtitle: data.sender,
-      text: data.text ?? phone.t('Apps.citymarkt.newMessage', { sender: data.sender ?? '' }),
+      text:
+        data.text ??
+        phone.t('Apps.citymarkt.newMessage', { sender: data.sender ?? '' }),
       title: data.title ?? phone.t('Apps.citymarkt.name'),
     }
-    if (data.device && (!phone.isOpen || data.device.imei !== phone.device?.imei)) {
+    if (
+      data.device &&
+      (!phone.isOpen || data.device.imei !== phone.device?.imei)
+    ) {
       notification.device = {
         imei: data.device.imei,
         name: data.device.name,
@@ -226,7 +260,10 @@ function onMessage(event: MessageEvent<AppMessage>): void {
         }),
       title: data.title ?? phone.t('Apps.calendar.name'),
     }
-    if (data.device && (!phone.isOpen || data.device.imei !== phone.device?.imei)) {
+    if (
+      data.device &&
+      (!phone.isOpen || data.device.imei !== phone.device?.imei)
+    ) {
       notification.device = {
         imei: data.device.imei,
         name: data.device.name,
@@ -318,44 +355,7 @@ onMounted(() => {
     }
   }, 1000)
   if (isDevelopment) {
-    hydratePhone({
-      account: {
-        devices: [
-          {
-            created_at: '2026-08-04 12:00:00',
-            current: true,
-            device_name: 'iFruit Phone',
-            imei: '356938035643809',
-            updated_at: '2026-08-06 12:00:00',
-          },
-        ],
-        email: 'demo@ifruit.com',
-        id: 1,
-      },
-      device: {
-        data: {},
-        imei: '356938035643809',
-        name: 'iFruit Phone',
-        sim: {
-          id: 'development-sim',
-          number: '5551234567',
-          registered: true,
-          type: 'registered',
-        },
-      },
-      notes: [
-        {
-          body: 'Meet Morgan in Vinewood and inspect the Sultan RS.',
-          createdAt: Date.now() - 3_600_000,
-          id: 'demo-note-marketplace',
-          pinned: true,
-          revision: 1,
-          title: 'CityMarkt viewing',
-          updatedAt: Date.now() - 3_600_000,
-        },
-      ],
-      token: 'development',
-    })
+    void hydrateDevelopmentPhone()
     if (new URLSearchParams(window.location.search).has('simPickerPreview')) {
       simPicker.value = {
         choices: [
@@ -475,7 +475,11 @@ onBeforeUnmount(() => {
                 <SpringboardView />
                 <RouterView v-slot="{ Component }">
                   <Transition :name="appTransitionName">
-                    <component :is="Component" v-if="isAppRoute" :key="route.path" />
+                    <component
+                      :is="Component"
+                      v-if="isAppRoute"
+                      :key="route.path"
+                    />
                   </Transition>
                 </RouterView>
                 <PhoneHomeIndicator v-if="!isLocked" />

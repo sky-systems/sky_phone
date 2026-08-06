@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 
 import { nuiCall } from '@/utils/nui'
 import { type Note, type NoteDraft } from '@/utils/notes'
+import { cloneJsonData } from '@/utils/clone'
 
 export const useNotesStore = defineStore('notes', {
   state: () => ({
@@ -29,7 +30,7 @@ export const useNotesStore = defineStore('notes', {
       })
     },
     hydrate(notes: Note[]): void {
-      this.notes = structuredClone(notes)
+      this.notes = cloneJsonData(notes)
     },
     async createRemote(note: Note): Promise<void> {
       const response = await nuiCall<Note[]>('notes:create', note)

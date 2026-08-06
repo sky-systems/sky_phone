@@ -92,7 +92,7 @@ SetEntityCoords(ped, coords.x, coords.y, coords.z) -- valid with OAL
 
 ## Local deployment
 
-- The deployable resource lives at `sky_phone/` inside this repository.
+- The deployable resource lives at `sky_phone/sky_phone`.
 - After frontend changes, run `build_frontend.bat`; it builds `sky_phone/frontend` and then runs
   `build_copy.bat` automatically.
 - After Lua, config, locale, SQL, manifest, or other resource-only changes, run `build_copy.bat`

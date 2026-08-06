@@ -72,6 +72,12 @@ end
 
 local function hydrate_posts(rows)
     for _, post in ipairs(rows) do
+        local created_at = tonumber(post.created_at_unix)
+        if not created_at then
+            error("[sky_phone] Local Pages post has an invalid created_at timestamp.")
+        end
+        post.created_at = created_at * 1000
+        post.created_at_unix = nil
         post.images = load_images(post.id)
         post.like_count = tonumber(post.like_count) or 0
         post.is_liked = tonumber(post.is_liked) or 0
@@ -88,7 +94,7 @@ local function list_posts(account_id, where_clause, values, limit, offset)
     parameters[#parameters + 1] = offset
     return hydrate_posts(Bridge.Database.Query(([[
         SELECT p.`id`, p.`title`, p.`body`, p.`category`, p.`district`, p.`source_type`,
-            p.`citymarkt_listing_id`, p.`created_at`,
+            p.`citymarkt_listing_id`, UNIX_TIMESTAMP(p.`created_at`) AS `created_at_unix`,
             SUBSTRING_INDEX(a.`email`, '@', 1) AS `author_name`,
             (p.`account_id` = ?) AS `is_owner`,
             EXISTS(SELECT 1 FROM `sky_phone_pages_reactions` r WHERE r.`post_id` = p.`id`

@@ -1,4 +1,5 @@
 local is_open = false
+local open_requested = false
 local notification_focus = false
 local device_payload = nil
 local sim_picker_open = false
@@ -96,13 +97,11 @@ local function open_phone()
         return
     end
 
-    is_open = true
-    notification_focus = false
-    SetNuiFocus(true, true)
     send_open_message()
 end
 
 local function close_phone()
+    open_requested = false
     if not is_open then
         return
     end
@@ -149,10 +148,28 @@ if Config.Phone.DevelopmentCommand then
 end
 
 RegisterNUICallback("ui:ready", function(_, cb)
-    if is_open then
+    Bridge.Debug("debug", "[sky_phone] NUI reported ready.", { always = true })
+    if open_requested and device_payload then
         send_open_message()
     end
 
+    cb({ success = true })
+end)
+
+RegisterNUICallback("ui:opened", function(_, cb)
+    if not open_requested or not device_payload then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone] Ignored a NUI open confirmation without a pending device open.",
+            { always = true }
+        )
+        cb({ success = false, error = "open_not_requested" })
+        return
+    end
+
+    is_open = true
+    notification_focus = false
+    SetNuiFocus(true, true)
     cb({ success = true })
 end)
 
@@ -257,6 +274,7 @@ RegisterNetEvent("sky_phone:device:open", function(data)
         { always = true }
     )
     device_payload = data
+    open_requested = true
     open_phone()
 end)
 
@@ -266,6 +284,7 @@ RegisterNetEvent("sky_phone:device:updated", function(data)
 end)
 
 RegisterNetEvent("sky_phone:device:invalidated", function()
+    open_requested = false
     device_payload = nil
     close_phone()
 end)

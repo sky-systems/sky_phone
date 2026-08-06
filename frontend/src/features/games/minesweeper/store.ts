@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 import { useGamesStore } from '@/features/games/store'
+import { cloneJsonData } from '@/utils/clone'
 
 import {
   createMinesweeperGame,
@@ -58,7 +59,7 @@ export const useMinesweeperStore = defineStore('minesweeper', {
           ? saved.elapsedMs
           : 0
       this.game = isMinesweeperGameState(saved?.game)
-        ? structuredClone(saved.game)
+        ? cloneJsonData(saved.game)
         : null
       if (typeof saved?.soundEnabled === 'boolean') {
         this.soundEnabled = saved.soundEnabled

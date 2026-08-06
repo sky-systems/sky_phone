@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
 .memory-header span {
   display: block;
   color: #8175a2;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.25px;
   text-transform: uppercase;
@@ -366,7 +366,7 @@ onBeforeUnmount(() => {
 
 .memory-intro { text-align: center; }
 .memory-intro h2 { margin: 0; font-size: 23px; letter-spacing: -0.6px; }
-.memory-intro p { margin: 6px 25px 0; color: #7d7397; font-size: 12px; line-height: 1.4; }
+.memory-intro p { margin: 7px 18px 0; color: #74698f; font-size: 14px; line-height: 1.4; }
 
 .memory-difficulties {
   display: grid;
@@ -374,7 +374,7 @@ onBeforeUnmount(() => {
 }
 
 .memory-difficulties button {
-  min-height: 58px;
+  min-height: 62px;
   display: grid;
   grid-template-columns: 48px 1fr auto;
   grid-template-rows: 1fr 1fr;
@@ -397,12 +397,12 @@ onBeforeUnmount(() => {
   border-radius: 11px;
   color: #fff;
   background: linear-gradient(135deg, #9a7be1, #7558c4);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
 }
 
-.memory-difficulty__name { align-self: end; font-size: 13px; font-weight: 800; }
-.memory-difficulty__best { align-self: start; color: #8b819f; font-size: 9px; }
+.memory-difficulty__name { align-self: end; font-size: 15px; font-weight: 800; }
+.memory-difficulty__best { align-self: start; color: #74698f; font-size: 11.5px; line-height: 1.2; }
 .memory-difficulties svg { grid-column: 3; grid-row: 1 / 3; color: #7658c7; }
 
 .memory-game { padding-top: 5px; }
@@ -416,9 +416,9 @@ onBeforeUnmount(() => {
 }
 
 .memory-stats div { display: grid; }
-.memory-stats span { color: #81769c; font-size: 8px; font-weight: 800; text-transform: uppercase; }
-.memory-stats strong { font-size: 18px; line-height: 1.05; }
-.memory-stats button { justify-self: end; border: 0; color: #7052bf; background: transparent; font-size: 11px; font-weight: 800; }
+.memory-stats span { color: #74698f; font-size: 10.5px; font-weight: 800; text-transform: uppercase; }
+.memory-stats strong { font-size: 19px; line-height: 1.05; }
+.memory-stats button { justify-self: end; border: 0; color: #7052bf; background: transparent; font-size: 14px; font-weight: 800; }
 .memory-stats .memory-menu-button {
   width: 30px;
   height: 30px;
@@ -562,16 +562,16 @@ onBeforeUnmount(() => {
   box-shadow: 0 9px 22px rgb(100 75 151 / 17%);
 }
 
-.memory-complete > span { color: #8175a2; font-size: 9px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+.memory-complete > span { color: #74698f; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
 .memory-complete h2 { margin: 0; font-size: 27px; }
-.memory-complete p { margin: -4px 0 4px; color: #756b8e; font-size: 13px; }
+.memory-complete p { margin: -4px 0 4px; color: #756b8e; font-size: 14px; }
 
 .memory-primary,
 .memory-secondary {
   min-width: 155px;
   min-height: 42px;
   border-radius: 14px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
 }
 

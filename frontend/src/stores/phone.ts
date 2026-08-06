@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import type { AppLaunchOrigin, LaunchablePhoneAppId } from '@/types/apps'
 import type { DeviceBootstrap, PhoneDevice } from '@/types/device'
 import { clampPage } from '@/utils/pages'
+import { cloneJsonData } from '@/utils/clone'
 import { nuiCall } from '@/utils/nui'
 import {
   DEFAULT_PHONE_PREFERENCES,
@@ -417,7 +418,7 @@ const defaultLocales: LocaleTree = {
     },
     localPages: {
       name: 'Local Pages', eyebrow: 'Your city. Your stories.', cityPulse: 'Live from Los Santos',
-      heroTitle: 'What is happening nearby?', heroBody: 'Places, people, tips and local discoveries from the community.',
+      heroTitle: 'What is happening nearby?', heroBody: 'Discover places, people and local tips.',
       searchPlaceholder: 'Search posts and places', search: 'Search', allCategories: 'All categories',
       allLosSantos: 'Los Santos', hoursAgo: '{count}h ago', daysAgo: '{count}d ago',
       categories: { recommendation: 'Recommended', wanted: 'Wanted', service: 'Service', event: 'Event', place: 'Place', community: 'Community', citymarkt: 'CityMarkt' },
@@ -524,6 +525,13 @@ const defaultLocales: LocaleTree = {
     },
     calendar: {
       name: 'Calendar',
+      today: 'Today',
+      calendars: 'Calendars',
+      calendar: 'Calendar',
+      calendarName: 'iFruit',
+      searchPlaceholder: 'Search events',
+      previousMonth: 'Previous month',
+      nextMonth: 'Next month',
       eyebrow: 'Your time. Clearly planned.',
       schedule: 'Schedule',
       event: 'Event',
@@ -545,6 +553,12 @@ const defaultLocales: LocaleTree = {
       signInTitle: 'Your iFruit calendar',
       signInBody: 'Sign in to iFruit in Settings to sync appointments and receive reminders.',
       reminderNotification: 'Upcoming: {title}',
+      views: {
+        compact: 'Compact',
+        stacked: 'Stacked',
+        details: 'Details',
+        list: 'List',
+      },
       reminders: {
         none: 'No reminder',
         atStart: 'At start time',
@@ -869,6 +883,7 @@ const defaultLocales: LocaleTree = {
   Common: {
     add: 'Add',
     cancel: 'Cancel',
+    clear: 'Clear',
     close: 'Close',
     back: 'Back',
     delete: 'Delete',
@@ -940,7 +955,7 @@ export const usePhoneStore = defineStore('phone', {
     lang: 'en',
     launchOrigin: null as AppLaunchOrigin | null,
     locales: defaultLocales,
-    preferences: structuredClone(DEFAULT_PHONE_PREFERENCES),
+    preferences: cloneJsonData(DEFAULT_PHONE_PREFERENCES),
     systemDarkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
   }),
   getters: {

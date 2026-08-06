@@ -1,4 +1,5 @@
 import type { LaunchablePhoneAppId } from '@/types/apps'
+import { cloneJsonData } from '@/utils/clone'
 
 export const APPEARANCE_MODE_IDS = ['automatic', 'light', 'dark'] as const
 export const PHONE_FRAME_IDS = [
@@ -122,7 +123,7 @@ function readNotifications(
           Record<LaunchablePhoneAppId, Partial<AppNotificationPreferences>>
         >)
       : {}
-  const notifications = structuredClone(DEFAULT_APP_NOTIFICATIONS)
+  const notifications = cloneJsonData(DEFAULT_APP_NOTIFICATIONS)
 
   for (const appId of Object.keys(notifications) as LaunchablePhoneAppId[]) {
     notifications[appId] = {
@@ -141,13 +142,13 @@ function readNotifications(
 }
 
 export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
-  if (!raw) return structuredClone(DEFAULT_PHONE_PREFERENCES)
+  if (!raw) return cloneJsonData(DEFAULT_PHONE_PREFERENCES)
 
   try {
     const parsed = JSON.parse(raw) as Partial<PhonePreferencesV1>
     const settings = parsed.settings
     if (parsed.version !== 1 || !settings || typeof settings !== 'object') {
-      return structuredClone(DEFAULT_PHONE_PREFERENCES)
+      return cloneJsonData(DEFAULT_PHONE_PREFERENCES)
     }
 
     const defaults = DEFAULT_PHONE_PREFERENCES.settings
@@ -205,6 +206,6 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
       version: 1,
     }
   } catch {
-    return structuredClone(DEFAULT_PHONE_PREFERENCES)
+    return cloneJsonData(DEFAULT_PHONE_PREFERENCES)
   }
 }

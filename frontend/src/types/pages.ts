@@ -19,7 +19,7 @@ export type PagesPost = {
   category: PagesCategory
   citymarkt_listing_id: string | null
   citymarkt_price: number | string | null
-  created_at: string
+  created_at: number
   district: string | null
   id: string
   image: string | null

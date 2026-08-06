@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 import { useGamesStore } from '@/features/games/store'
+import { cloneJsonData } from '@/utils/clone'
 
 import {
   continueNumberMerge,
@@ -45,7 +46,7 @@ export const useNumberMergeStore = defineStore('number-merge', {
       )
       this.game = isNumberMergeGameState(saved?.game)
         ? {
-            ...structuredClone(saved.game),
+            ...cloneJsonData(saved.game),
             tiles: saved.game.tiles.map((tile) => ({
               ...tile,
               isNew: false,

@@ -15,7 +15,7 @@ Locales["en"] = {
     },
     Nui = {
         Common = {
-            add = "Add", back = "Back", cancel = "Cancel", close = "Close", delete = "Delete", done = "Done", edit = "Edit", home = "Home", loading = "Loading", pause = "Pause",
+            add = "Add", back = "Back", cancel = "Cancel", clear = "Clear", close = "Close", delete = "Delete", done = "Done", edit = "Edit", home = "Home", loading = "Loading", pause = "Pause",
             phone = "Phone", phoneStatus = "Phone status", reset = "Reset",
             save = "Save", search = "Search", send = "Send", start = "Start", stop = "Stop",
         },
@@ -168,7 +168,29 @@ Locales["en"] = {
                 },
             },
             calendar = {
-                name = "Calendar", reminder = "Upcoming: {title}",
+                name = "Calendar", today = "Today", calendars = "Calendars", calendar = "Calendar", calendarName = "iFruit",
+                searchPlaceholder = "Search events", previousMonth = "Previous month", nextMonth = "Next month",
+                eyebrow = "Your time. Clearly planned.", schedule = "Schedule", event = "Event", appointment = "Appointment",
+                newEvent = "New event", editEvent = "Edit event", deleteEvent = "Delete event", details = "Event details",
+                title = "Title", titlePlaceholder = "What is planned?", date = "Date", starts = "Starts", ends = "Ends",
+                reminder = "Reminder", reminderNotification = "Upcoming: {title}", note = "Note",
+                notePlaceholder = "Add details, an address or anything to remember...", noEvents = "Nothing planned",
+                noEventsBody = "This day is still free. Add an event whenever you are ready.",
+                signInTitle = "Your iFruit calendar",
+                signInBody = "Sign in to iFruit in Settings to sync appointments and receive reminders.",
+                views = { compact = "Compact", stacked = "Stacked", details = "Details", list = "List" },
+                reminders = {
+                    none = "No reminder", atStart = "At start time", tenMinutes = "10 minutes before",
+                    thirtyMinutes = "30 minutes before", oneHour = "1 hour before", oneDay = "1 day before",
+                },
+                errors = {
+                    invalid_event = "Enter a title and make sure the end is after the start.",
+                    invalid_range = "This calendar period is invalid.",
+                    conflict = "This event changed on another phone. Open it again.",
+                    rate_limited = "Too many changes. Try again shortly.",
+                    not_authenticated = "Sign in to your iFruit account first.",
+                    request_failed = "Calendar is temporarily unavailable.", default = "The calendar request failed.",
+                },
             },
             clock = {
                 name = "Clock", lap = "Lap", minutes = "Minutes", add = "Add alarm", location = "Los Santos",
@@ -281,7 +303,7 @@ Locales["en"] = {
             },
             localPages = {
                 name = "Local Pages", eyebrow = "Your city. Your stories.", cityPulse = "Live from Los Santos",
-                heroTitle = "What is happening nearby?", heroBody = "Places, people, tips and local discoveries from the community.",
+                heroTitle = "What is happening nearby?", heroBody = "Discover places, people and local tips.",
                 searchPlaceholder = "Search posts and places", search = "Search", allCategories = "All categories",
                 allLosSantos = "Los Santos", hoursAgo = "{count}h ago", daysAgo = "{count}d ago",
                 categories = { recommendation = "Recommended", wanted = "Wanted", service = "Service", event = "Event", place = "Place", community = "Community", citymarkt = "CityMarkt" },

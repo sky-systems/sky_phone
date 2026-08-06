@@ -7,7 +7,7 @@ An iFruit account is optional. Unlinked devices retain local settings, alarms, m
 ## Requirements
 
 - ESX Legacy (`es_extended`), Qbox (`qbx_core`), or QBCore (`qb-core`). The bridge selects a running supported framework when `Config.Bridge.Framework` is set to `"auto"`.
-- A supported metadata inventory: `ox_inventory`, `qb-inventory`, `lj-inventory`, `qs-inventory`, `codem-inventory`, `core_inventory`, or `mf-inventory`. The bridge auto-detects a running provider and normalizes `metadata`/`info`, slots, counts, item mutations, and usable-item callbacks. `mf-inventory` requires ESX.
+- A supported inventory: `ox_inventory`, `qb-inventory`, `lj-inventory`, `qs-inventory`, `codem-inventory`, `core_inventory`, `mf-inventory`, or `smx-inventory`. The bridge auto-detects a running provider and normalizes metadata, slots, counts, item mutations, and usable-item callbacks. `mf-inventory` and `smx-inventory` require ESX. Because SMX stores standard ESX items as stacks, its adapter persists one active Phone/SIM metadata record per player and item type in ESX player metadata.
 - A non-stackable inventory item named `sky_phone`.
 - Two unique, non-stackable inventory items named `sky_phone_sim_registered` and `sky_phone_sim_anonymous`. Their metadata is initialized automatically on first use, so shops and crafting recipes add plain items without supplying a number.
 - `oxmysql` with MySQL/MariaDB.

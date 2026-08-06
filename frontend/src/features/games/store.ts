@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 import { usePhoneStore } from '@/stores/phone'
+import { cloneJsonData } from '@/utils/clone'
 
 export const useGamesStore = defineStore('games', {
   state: () => ({
@@ -10,14 +11,14 @@ export const useGamesStore = defineStore('games', {
     hydrate(payload: unknown): void {
       this.games =
         payload && typeof payload === 'object'
-          ? structuredClone(payload as Record<string, unknown>)
+          ? cloneJsonData(payload as Record<string, unknown>)
           : {}
     },
     readGame<T>(gameId: string): T | undefined {
       return this.games[gameId] as T | undefined
     },
     saveGame(gameId: string, payload: unknown): void {
-      this.games[gameId] = structuredClone(payload)
+      this.games[gameId] = cloneJsonData(payload)
       usePhoneStore().saveDeviceNamespace('games', this.games)
     },
   },

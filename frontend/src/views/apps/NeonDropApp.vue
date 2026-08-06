@@ -431,14 +431,14 @@ onBeforeUnmount(() => {
 .neon-menu__copy > span {
   display: block;
   color: #7cf6e7;
-  font-size: 8px;
+  font-size: 14px;
   font-weight: 900;
   letter-spacing: 1.2px;
   text-transform: uppercase;
 }
 .neon-header h1 {
   margin: 1px 0 0;
-  font-size: 23px;
+  font-size: 32px;
   line-height: 1;
 }
 .neon-header button,
@@ -531,14 +531,15 @@ onBeforeUnmount(() => {
   color: #7a6cff;
 }
 .neon-menu__copy h2 {
-  margin: 2px 0 4px;
-  font-size: 20px;
+  margin: 4px 0 7px;
+  font-size: 30px;
 }
 .neon-menu__copy p {
-  max-width: 272px;
+  max-width: 296px;
   margin: 0;
-  color: #b6c0db;
-  font-size: 10px;
+  color: #e1e7f5;
+  font-size: 18px;
+  font-weight: 550;
   line-height: 1.4;
 }
 .neon-records {
@@ -548,8 +549,8 @@ onBeforeUnmount(() => {
   gap: 7px;
 }
 .neon-records div {
-  padding: 9px;
-  border: 1px solid #ffffff12;
+  padding: 12px 9px;
+  border: 1px solid #ffffff24;
   border-radius: 13px;
   background: #ffffff08;
 }
@@ -557,20 +558,20 @@ onBeforeUnmount(() => {
 .neon-side > span,
 .neon-toolbar span {
   display: block;
-  color: #99a8c9;
-  font-size: 8px;
+  color: #d2dcef;
+  font-size: 12px;
   font-weight: 850;
   text-transform: uppercase;
 }
 .neon-records strong {
-  font-size: 18px;
+  font-size: 26px;
 }
 .neon-how {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 9px 11px;
+  padding: 12px 13px;
   border: 1px solid #6ff5e42a;
   border-radius: 13px;
   color: #72f5e4;
@@ -579,25 +580,25 @@ onBeforeUnmount(() => {
 }
 .neon-how p {
   margin: 0;
-  color: #aeb9d4;
-  font-size: 9px;
-  line-height: 1.35;
+  color: #dce4f3;
+  font-size: 16px;
+  line-height: 1.4;
 }
 .neon-how strong {
   display: block;
   color: #fff;
-  font-size: 10px;
+  font-size: 17px;
 }
 .neon-primary,
 .neon-secondary {
   width: 100%;
-  min-height: 41px;
+  min-height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
   border-radius: 13px;
-  font-size: 11px;
+  font-size: 18px;
   font-weight: 900;
 }
 .neon-primary {
@@ -626,7 +627,7 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 .neon-toolbar strong {
-  font-size: 14px;
+  font-size: 21px;
 }
 .neon-play-area {
   display: flex;
@@ -635,7 +636,7 @@ onBeforeUnmount(() => {
   gap: 5px;
 }
 .neon-board {
-  width: 230px;
+  width: 218px;
   height: 414px;
   display: grid;
   grid-template-columns: repeat(10, 1fr);
@@ -699,29 +700,29 @@ onBeforeUnmount(() => {
   animation: neon-clear 0.24s ease-out;
 }
 .neon-side {
-  width: 47px;
+  width: 70px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  padding: 7px 3px 9px;
-  border: 1px solid #65f4e41f;
+  gap: 9px;
+  padding: 10px 4px 11px;
+  border: 1px solid #65f4e448;
   border-radius: 13px;
   background: linear-gradient(180deg, #1420478f, #090d24a3);
   box-shadow: inset 0 0 16px #53e8d90a;
 }
 .neon-side > strong {
-  font-size: 22px;
+  font-size: 28px;
 }
 .neon-preview {
-  width: 43px;
-  height: 43px;
+  width: 62px;
+  height: 62px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(4, 1fr);
-  gap: 1px;
-  padding: 4px;
-  border: 1px solid #ffffff16;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid #ffffff35;
   border-radius: 10px;
   background: #ffffff08;
 }
@@ -733,8 +734,8 @@ onBeforeUnmount(() => {
 }
 .neon-level {
   position: relative;
-  width: 7px;
-  height: 246px;
+  width: 12px;
+  height: 221px;
   overflow: hidden;
   border-radius: 8px;
   background: #ffffff0c;
@@ -756,7 +757,7 @@ onBeforeUnmount(() => {
   margin-top: 9px;
 }
 .neon-controls button {
-  height: 41px;
+  height: 48px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -769,10 +770,14 @@ onBeforeUnmount(() => {
   color: #071225;
   background: linear-gradient(135deg, #ffe265, #ff9167);
 }
+.neon-controls svg {
+  transform: scale(1.2);
+}
 .neon-hint {
-  margin: 5px 0 0;
-  color: #8d9bb9;
-  font-size: 8px;
+  margin: 7px 0 0;
+  color: #d6deed;
+  font-size: 16px;
+  font-weight: 700;
   text-align: center;
 }
 .neon-overlay {
@@ -795,19 +800,19 @@ onBeforeUnmount(() => {
 }
 .neon-overlay > span {
   color: #ff7fa0;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 900;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
 .neon-overlay h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 30px;
 }
 .neon-overlay p {
   margin: 0 0 4px;
-  color: #aeb8d0;
-  font-size: 10px;
+  color: #dce4f2;
+  font-size: 16px;
 }
 @keyframes neon-fall {
   0% {
