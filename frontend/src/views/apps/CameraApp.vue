@@ -680,11 +680,11 @@ onBeforeUnmount(() => {
   padding: 0 24px 4px;
 }
 .camera-latest {
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   overflow: hidden;
-  border: 2px solid #ffffff99;
-  border-radius: 12px;
+  border: 0;
+  border-radius: 50%;
   background: #111b;
   color: #fff;
   display: grid;
