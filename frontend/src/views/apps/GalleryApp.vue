@@ -543,8 +543,14 @@ onBeforeUnmount(() => {
 .gallery-error {
   color: #ff3b30;
 }
+.gallery-detail {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .gallery-detail-stage {
-  height: calc(100cqh - 174px);
+  min-height: 0;
+  flex: 1;
   overflow: hidden;
   background: #000;
   display: grid;
@@ -563,7 +569,7 @@ onBeforeUnmount(() => {
   transition: transform 0.12s ease-out;
 }
 .gallery-zoom-controls {
-  height: 48px;
+  flex: 0 0 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -571,7 +577,8 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #8e8e9333;
 }
 .gallery-detail-date {
-  padding: 12px 18px;
+  flex: 0 0 auto;
+  padding: 8px 18px 10px;
   color: #8e8e93;
   text-align: center;
   font-size: 12px;
