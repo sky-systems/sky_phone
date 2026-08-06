@@ -176,3 +176,21 @@ CREATE TABLE IF NOT EXISTS `sky_phone_call_entries` (
     FOREIGN KEY (`account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE,
     FOREIGN KEY (`device_imei`) REFERENCES `sky_phone_devices` (`imei`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_calendar_events` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `account_id` BIGINT UNSIGNED NOT NULL,
+    `title` VARCHAR(120) NOT NULL,
+    `note` TEXT NOT NULL,
+    `starts_at` DATETIME NOT NULL,
+    `ends_at` DATETIME NOT NULL,
+    `reminder_minutes` SMALLINT UNSIGNED NULL,
+    `reminded_at` DATETIME NULL,
+    `revision` INT UNSIGNED NOT NULL DEFAULT 1,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_calendar_account` (`account_id`, `starts_at`),
+    KEY `idx_sky_phone_calendar_reminders` (`reminded_at`, `starts_at`),
+    FOREIGN KEY (`account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

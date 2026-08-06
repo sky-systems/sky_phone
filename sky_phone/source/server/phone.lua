@@ -13,6 +13,7 @@ local allowed_device_namespaces = {
     wallpaper = true,
     alarms = true,
     apps = true,
+    games = true,
 }
 
 local function trim(value)

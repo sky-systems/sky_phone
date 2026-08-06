@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useMailStore } from '@/stores/mail'
+import { useMarketplaceStore } from '@/stores/marketplace'
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppDefinition } from '@/types/apps'
 
@@ -21,11 +22,14 @@ const props = withDefaults(
 
 const phone = usePhoneStore()
 const mail = useMailStore()
+const marketplace = useMarketplaceStore()
 const router = useRouter()
 const iconFailed = ref(false)
-const unreadCount = computed(() =>
-  props.app.id === 'mail' ? mail.counts.unread : 0,
-)
+const unreadCount = computed(() => {
+  if (props.app.id === 'mail') return mail.counts.unread
+  if (props.app.id === 'citymarkt') return marketplace.counts.unread
+  return 0
+})
 const notificationBadgeColors = {
   bg: 'bg-[#ff3b30]',
   text: 'text-white',

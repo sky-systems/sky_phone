@@ -5,6 +5,7 @@ export type PhoneAppId =
   | 'calculator'
   | 'camera'
   | 'clock'
+  | 'calendar'
   | 'weather'
   | 'mail'
   | 'map'
@@ -12,6 +13,15 @@ export type PhoneAppId =
   | 'photos'
   | 'app-store'
   | 'settings'
+  | 'snake'
+  | 'memory'
+  | 'number-merge'
+  | 'minesweeper'
+  | 'tower-stack'
+  | 'sky-flappy'
+  | 'neon-drop'
+  | 'citymarkt'
+  | 'local-pages'
 
 export type LaunchablePhoneAppId = PhoneAppId
 

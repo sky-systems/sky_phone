@@ -15,6 +15,8 @@ if configured_inventory == "auto" then
         configured_inventory = "core"
     elseif GetResourceState("mf-inventory") == "started" then
         configured_inventory = "mf"
+    elseif GetResourceState("smx-inventory") == "started" then
+        configured_inventory = "smx"
     end
 end
 
@@ -26,6 +28,7 @@ local supported_inventories = {
     codem = true,
     core = true,
     mf = true,
+    smx = true,
 }
 
 if not supported_inventories[configured_inventory] then

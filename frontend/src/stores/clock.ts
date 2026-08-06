@@ -10,11 +10,12 @@ import {
   parseAlarms,
 } from '@/utils/alarms'
 import { elapsedMilliseconds, remainingMilliseconds } from '@/utils/clock'
+import { cloneJsonData } from '@/utils/clone'
 import { usePhoneStore } from '@/stores/phone'
 
 export const useClockStore = defineStore('clock', {
   state: () => ({
-    alarms: structuredClone(DEFAULT_ALARMS),
+    alarms: cloneJsonData(DEFAULT_ALARMS),
     laps: [] as number[],
     stopwatchAccumulated: 0,
     stopwatchStartedAt: null as number | null,
@@ -27,7 +28,7 @@ export const useClockStore = defineStore('clock', {
   actions: {
     createAlarm(draft: AlarmDraft): Alarm {
       const alarm: Alarm = {
-        ...structuredClone(draft),
+        ...cloneJsonData(draft),
         enabled: true,
         id: `alarm-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         lastTriggeredMinute: null,
@@ -144,7 +145,7 @@ export const useClockStore = defineStore('clock', {
     updateAlarm(id: string, draft: AlarmDraft): void {
       const alarm = this.alarms.find((candidate) => candidate.id === id)
       if (!alarm) return
-      Object.assign(alarm, structuredClone(draft), {
+      Object.assign(alarm, cloneJsonData(draft), {
         lastTriggeredMinute: null,
       })
       this.persistAlarms()
