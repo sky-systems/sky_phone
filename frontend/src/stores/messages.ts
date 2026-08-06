@@ -22,7 +22,12 @@ export const useMessagesStore = defineStore('messages', () => {
 
   async function loadConversations(): Promise<boolean> {
     const response = await nuiCall<SmsConversation[]>('messages:conversations')
-    if (response.success && response.data) conversations.value = response.data
+    if (response.success && response.data) {
+      conversations.value = response.data.map((conversation) => ({
+        ...conversation,
+        phoneNumber: String(conversation.phoneNumber),
+      }))
+    }
     else if (!response.success) conversations.value = []
     return response.success
   }
@@ -39,6 +44,8 @@ export const useMessagesStore = defineStore('messages', () => {
       ...message,
       delivery_status:
         message.direction === 'sent' ? 'delivered' : undefined,
+      recipient_number: String(message.recipient_number),
+      sender_number: String(message.sender_number),
     }))
     await loadConversations()
     return true
