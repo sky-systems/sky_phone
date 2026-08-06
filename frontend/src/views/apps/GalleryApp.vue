@@ -430,17 +430,19 @@ onBeforeUnmount(() => {
     </k-navbar>
 
     <div class="gallery-detail-stage">
-      <img
-        v-if="selected.mediaType === 'photo'"
-        :src="selected.url"
-        :alt="phone.t('Apps.photos.photoAlt')"
-        :style="imageStyle"
-        draggable="false"
-        @load="orientToImage"
-        @pointerdown="startDragging"
-        @dblclick="setZoom(imageZoom === 1 ? 2 : 1)"
-      />
-      <video v-else :src="selected.url" controls autoplay playsinline></video>
+      <div class="gallery-detail-media">
+        <img
+          v-if="selected.mediaType === 'photo'"
+          :src="selected.url"
+          :alt="phone.t('Apps.photos.photoAlt')"
+          :style="imageStyle"
+          draggable="false"
+          @load="orientToImage"
+          @pointerdown="startDragging"
+          @dblclick="setZoom(imageZoom === 1 ? 2 : 1)"
+        />
+        <video v-else :src="selected.url" controls autoplay playsinline></video>
+      </div>
     </div>
 
     <nav v-if="selected.mediaType === 'photo'" class="gallery-zoom-controls">
@@ -574,16 +576,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   overflow: hidden;
 }
-.gallery-detail--landscape {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  width: 100cqh !important;
-  height: 100cqw !important;
-  transform: translate(-50%, -50%) rotate(90deg);
-  transform-origin: center;
-}
 .gallery-detail-stage {
+  position: relative;
+  container-type: size;
   min-height: 0;
   flex: 1;
   overflow: hidden;
@@ -592,16 +587,38 @@ onBeforeUnmount(() => {
   place-items: center;
   touch-action: none;
 }
-.gallery-detail-stage img,
-.gallery-detail-stage video {
+.gallery-detail-media {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  transform-origin: center;
+  transition: transform 0.25s ease;
+}
+.gallery-detail--landscape .gallery-detail-media {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100cqh;
+  height: 100cqw;
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.gallery-detail-media img,
+.gallery-detail-media video {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   transform-origin: center;
   user-select: none;
 }
-.gallery-detail-stage img {
+.gallery-detail-media img {
   transition: transform 0.12s ease-out;
+}
+.gallery-detail :deep(svg) {
+  transition: transform 0.25s ease;
+}
+.gallery-detail--landscape :deep(svg) {
+  transform: rotate(90deg);
 }
 .gallery-zoom-controls {
   flex: 0 0 48px;
