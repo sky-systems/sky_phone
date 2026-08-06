@@ -70,6 +70,9 @@ const controlColors = {
 const modeColors = {
   strongHighlightBgIos: 'bg-[#e5e5ea] dark:bg-[#2c2c2e]',
 }
+const modeButtonColors = {
+  segmentedStrongTextIos: 'text-[#ffd60a]',
+}
 const modeNavbarColors = {
   bgIos: 'bg-transparent',
 }
@@ -518,20 +521,22 @@ onBeforeUnmount(() => {
         <template #subnavbar>
           <k-segmented strong rounded :colors="modeColors">
             <k-segmented-button
-              large
+              small
               :active="mode === 'photo'"
               :disabled="recording || savingVideo"
-              :class="mode === 'photo' ? 'text-primary' : 'text-[#8e8e93]'"
+              :colors="modeButtonColors"
+              :class="mode === 'photo' ? undefined : 'text-[#8e8e93]'"
               :aria-pressed="mode === 'photo'"
               @click="setMode('photo')"
             >
               {{ phone.t('Apps.camera.photo') }}
             </k-segmented-button>
             <k-segmented-button
-              large
+              small
               :active="mode === 'video'"
               :disabled="recording || savingVideo"
-              :class="mode === 'video' ? 'text-primary' : 'text-[#8e8e93]'"
+              :colors="modeButtonColors"
+              :class="mode === 'video' ? undefined : 'text-[#8e8e93]'"
               :aria-pressed="mode === 'video'"
               @click="setMode('video')"
             >
