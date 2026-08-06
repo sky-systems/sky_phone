@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { kLink, kNavbar } from 'konsta/vue'
+import { kFab } from 'konsta/vue'
 import {
   BatteryMedium,
   Camera,
@@ -11,9 +11,11 @@ import {
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { usePhoneStore } from '@/stores/phone'
+import { nuiCall } from '@/utils/nui'
 
 const emit = defineEmits<{
-  unlock: [destination?: 'camera']
+  camera: []
+  unlock: []
 }>()
 
 const phone = usePhoneStore()
@@ -21,12 +23,11 @@ const now = ref(new Date())
 const dragOffset = ref(0)
 const dragging = ref(false)
 const flashlightActive = ref(false)
-const lockNavbarColors = { bgIos: 'bg-transparent' }
-const neutralGlassClass =
-  '!bg-white/10 !shadow-none ring-1 ring-inset ring-white/15 backdrop-saturate-150'
-const activeFlashlightGlassClass =
-  '!bg-white !shadow-none ring-1 ring-inset ring-white/60 backdrop-saturate-150'
-const whiteNavbarLinkColors = { navbarTextIos: 'text-white' }
+const shortcutColors = {
+  bgIos: 'bg-ios-light-glass dark:bg-ios-dark-glass',
+  activeBgIos: 'active:bg-white/90 dark:active:bg-white/20',
+  textIos: 'text-black dark:text-white',
+}
 let pointerStart = 0
 let pointerStartedAt = 0
 let clockTicker: number | undefined
@@ -52,12 +53,15 @@ const time = computed(() =>
 const dragStyle = computed(() => ({
   '--lock-drag': `${dragOffset.value}px`,
 }))
-const flashlightGlassClass = computed(() =>
-  flashlightActive.value ? activeFlashlightGlassClass : neutralGlassClass,
+const flashlightShortcutColors = computed(() =>
+  flashlightActive.value
+    ? {
+        ...shortcutColors,
+        bgIos: 'bg-white',
+        textIos: 'text-purple-500',
+      }
+    : shortcutColors,
 )
-const flashlightLinkColors = computed(() => ({
-  navbarTextIos: flashlightActive.value ? 'text-purple-500' : 'text-white',
-}))
 
 function onPointerDown(event: PointerEvent): void {
   if ((event.target as HTMLElement).closest('button')) return
@@ -96,6 +100,13 @@ function unlockFromWallpaper(event: MouseEvent): void {
   emit('unlock')
 }
 
+async function toggleFlashlight(): Promise<void> {
+  const enabled = !flashlightActive.value
+  flashlightActive.value = enabled
+  const response = await nuiCall('camera:setFlash', { enabled })
+  if (!response.success) flashlightActive.value = !enabled
+}
+
 onMounted(() => {
   clockTicker = window.setInterval(() => {
     now.value = new Date()
@@ -104,6 +115,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (clockTicker !== undefined) window.clearInterval(clockTicker)
+  if (flashlightActive.value)
+    void nuiCall('camera:setFlash', { enabled: false })
 })
 </script>
 
@@ -146,38 +159,32 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="lock-screen__footer">
-      <k-navbar
-        transparent
-        :colors="lockNavbarColors"
-        inner-class="!px-12"
-        :left-class="flashlightGlassClass"
-        :right-class="neutralGlassClass"
-      >
-        <template #left>
-          <k-link
-            component="button"
-            icon-only
-            :colors="flashlightLinkColors"
-            :link-props="{ type: 'button' }"
-            :aria-label="phone.t('LockScreen.flashlight')"
-            @click="flashlightActive = !flashlightActive"
-          >
+      <nav class="lock-screen__shortcuts">
+        <k-fab
+          component="button"
+          type="button"
+          class="lock-screen__shortcut"
+          :colors="flashlightShortcutColors"
+          :aria-label="phone.t('LockScreen.flashlight')"
+          @click="toggleFlashlight"
+        >
+          <template #icon>
             <Flashlight :stroke-width="1.4" aria-hidden="true" />
-          </k-link>
-        </template>
-        <template #right>
-          <k-link
-            component="button"
-            icon-only
-            :colors="whiteNavbarLinkColors"
-            :link-props="{ type: 'button' }"
-            :aria-label="phone.t('LockScreen.camera')"
-            @click="emit('unlock', 'camera')"
-          >
+          </template>
+        </k-fab>
+        <k-fab
+          component="button"
+          type="button"
+          class="lock-screen__shortcut"
+          :colors="shortcutColors"
+          :aria-label="phone.t('LockScreen.camera')"
+          @click="emit('camera')"
+        >
+          <template #icon>
             <Camera :stroke-width="1.4" aria-hidden="true" />
-          </k-link>
-        </template>
-      </k-navbar>
+          </template>
+        </k-fab>
+      </nav>
 
       <button class="lock-screen__swipe" type="button" @click="emit('unlock')">
         <span class="lock-screen__swipe-chevron" aria-hidden="true"></span>

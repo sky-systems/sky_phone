@@ -11,6 +11,18 @@ let authenticated = false
 let draft = null
 let linkedAccount = null
 let mockNotes = []
+let mockMedia = Array.from({ length: 65 }, (_, index) => {
+  const id = index + 1
+  const video = id % 10 === 0
+  return {
+    createdAt: Date.now() - id * 60_000,
+    id,
+    mediaType: video ? 'video' : 'photo',
+    url: video
+      ? 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+      : `https://picsum.photos/seed/sky-phone-${id}/600/800`,
+  }
+})
 const deviceData = {}
 const accountDevices = [
   {
@@ -115,6 +127,44 @@ app.post('/api/:endpoint', (request, response) => {
     })
     return
   }
+  if (endpoint === 'media:config') {
+    response.json({ success: true, data: { videoBitrateKbps: 1500 } })
+    return
+  }
+  if (endpoint === 'gallery:list') {
+    if (request.body.mockState === 'error') {
+      response.json({ success: false, error: 'service_unavailable' })
+      return
+    }
+    if (request.body.mockState === 'empty') {
+      response.json({ success: true, data: [] })
+      return
+    }
+    const filtered = request.body.mediaType
+      ? mockMedia.filter((item) => item.mediaType === request.body.mediaType)
+      : mockMedia
+    const offset = Number(request.body.offset) || 0
+    const limit = Number(request.body.limit) || 30
+    response.json({
+      success: true,
+      data: filtered.slice(offset, offset + limit),
+    })
+    return
+  }
+  if (
+    endpoint === 'media:requestUpload' ||
+    endpoint === 'media:completeUpload' ||
+    endpoint === 'media:failUpload' ||
+    endpoint === 'media:cancelUpload'
+  ) {
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'gallery:delete') {
+    mockMedia = mockMedia.filter((item) => item.id !== Number(request.body.id))
+    response.json({ success: true })
+    return
+  }
   if (endpoint === 'account:login' || endpoint === 'account:register') {
     authenticated = true
     linkedAccount = {
@@ -154,6 +204,7 @@ app.post('/api/:endpoint', (request, response) => {
     authenticated = false
     linkedAccount = null
     mockNotes = []
+    mockMedia = []
     for (const key of Object.keys(deviceData)) delete deviceData[key]
     response.json({ success: true })
     return

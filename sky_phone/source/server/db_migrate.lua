@@ -247,6 +247,39 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_media",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "account_id", type = "BIGINT UNSIGNED NULL" },
+            {
+                name = "device_imei",
+                type = "CHAR(15) NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            { name = "url", type = "TEXT NOT NULL" },
+            { name = "remote_id", type = "VARCHAR(128) NOT NULL" },
+            { name = "media_type", type = "ENUM('photo', 'video') NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_media_account", columns = "(`account_id`, `created_at`, `id`)" },
+            { name = "idx_sky_phone_media_device", columns = "(`device_imei`, `created_at`, `id`)" },
+        },
+        foreignKeys = {
+            {
+                column = "account_id",
+                references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE",
+            },
+            {
+                column = "device_imei",
+                references = "`sky_phone_devices` (`imei`) ON DELETE CASCADE",
+            },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
         name = "sky_phone_contacts",
         columns = {
             { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },

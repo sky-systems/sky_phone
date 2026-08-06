@@ -24,7 +24,11 @@ import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
 import settingsIcon from '@/assets/img/app-icons/settings.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
-import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
+import type {
+  LaunchablePhoneAppDefinition,
+  LaunchablePhoneAppId,
+  PhoneAppDefinition,
+} from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
   {
@@ -133,7 +137,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
   },
   {
     component: markRaw(
-      defineAsyncComponent(() => import('@/views/apps/PhotosApp.vue')),
+      defineAsyncComponent(() => import('@/views/apps/GalleryApp.vue')),
     ),
     dockOrder: null,
     gridOrder: 7,
@@ -181,6 +185,13 @@ export function getPhoneApp(
   return PHONE_APPS.find((app) => app.id === appId)
 }
 
-export function isPhoneAppId(value: string): value is PhoneAppId {
-  return PHONE_APP_IDS.includes(value as PhoneAppId)
+export function isPhoneAppId(value: string): value is LaunchablePhoneAppId {
+  const app = getPhoneApp(value)
+  return !!app && isLaunchablePhoneApp(app)
+}
+
+export function isLaunchablePhoneApp(
+  app: PhoneAppDefinition,
+): app is LaunchablePhoneAppDefinition {
+  return app.component !== null && app.route !== null
 }
