@@ -141,7 +141,7 @@ onBeforeUnmount(() => {
         <div class="flappy-clouds" aria-hidden="true"><i v-for="cloud in 7" :key="cloud"></i></div>
         <div v-for="obstacle in game.obstacles" :key="obstacle.id" class="flappy-obstacle" :style="obstacleStyle(obstacle)" aria-hidden="true">
           <span class="flappy-obstacle__top" :style="{ height: `${obstacle.gapTop}%` }"></span>
-          <span class="flappy-obstacle__bottom" :style="{ top: `${obstacle.gapTop + 29}%` }"></span>
+          <span class="flappy-obstacle__bottom" :style="{ top: `${obstacle.gapTop + obstacle.gapHeight}%` }"></span>
         </div>
         <div :key="flapEffect" class="sky-glider sky-glider--player" :style="playerStyle" aria-hidden="true"><i></i><span></span><b></b></div>
         <strong v-if="game.status === 'ready'" class="flappy-ready">{{ phone.t('Apps.skyFlappy.firstTap') }}</strong>

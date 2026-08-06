@@ -6,8 +6,21 @@ export const FLAPPY_GRAVITY = 82
 export const FLAPPY_IMPULSE = -34
 export const FLAPPY_OBSTACLE_WIDTH = 14
 export const FLAPPY_GAP_HEIGHT = 29
+export const FLAPPY_MIN_GAP_HEIGHT = 22
 export const FLAPPY_MIN_GAP_TOP = 15
 export const FLAPPY_MAX_GAP_TOP = 56
+export const FLAPPY_BASE_SPEED = 20.5
+export const FLAPPY_MAX_SPEED = 40
+
+export function getSkyFlappyDifficulty(score: number): {
+  gapHeight: number
+  speed: number
+} {
+  return {
+    gapHeight: Math.max(FLAPPY_MIN_GAP_HEIGHT, FLAPPY_GAP_HEIGHT - score * 0.35),
+    speed: Math.min(FLAPPY_MAX_SPEED, FLAPPY_BASE_SPEED + score * 0.65),
+  }
+}
 
 export function createSkyFlappyGame(): SkyFlappyGameState {
   return {
@@ -27,9 +40,11 @@ export function flapSkyGlider(state: SkyFlappyGameState): SkyFlappyGameState {
 
 function createObstacle(
   id: number,
+  gapHeight: number,
   random: () => number,
 ): SkyFlappyObstacle {
   return {
+    gapHeight,
     gapTop:
       FLAPPY_MIN_GAP_TOP +
       Math.max(0, Math.min(1, random())) *
@@ -52,7 +67,7 @@ function collidesWithObstacle(
 
   return (
     playerY - FLAPPY_PLAYER_RADIUS < obstacle.gapTop ||
-    playerY + FLAPPY_PLAYER_RADIUS > obstacle.gapTop + FLAPPY_GAP_HEIGHT
+    playerY + FLAPPY_PLAYER_RADIUS > obstacle.gapTop + obstacle.gapHeight
   )
 }
 
@@ -63,19 +78,22 @@ export function stepSkyFlappy(
 ): SkyFlappyGameState {
   if (state.status !== 'playing' || elapsedSeconds <= 0) return state
 
-  const speed = Math.min(33, 20.5 + state.score * 0.38)
+  const difficulty = getSkyFlappyDifficulty(state.score)
   const playerVelocity = state.playerVelocity + FLAPPY_GRAVITY * elapsedSeconds
   const playerY = state.playerY + playerVelocity * elapsedSeconds
   let nextObstacleId = state.nextObstacleId
   let obstacles = state.obstacles
     .map((obstacle) => ({
       ...obstacle,
-      x: obstacle.x - speed * elapsedSeconds,
+      x: obstacle.x - difficulty.speed * elapsedSeconds,
     }))
     .filter((obstacle) => obstacle.x + FLAPPY_OBSTACLE_WIDTH > -2)
 
   if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < 61) {
-    obstacles = [...obstacles, createObstacle(nextObstacleId, random)]
+    obstacles = [
+      ...obstacles,
+      createObstacle(nextObstacleId, difficulty.gapHeight, random),
+    ]
     nextObstacleId += 1
   }
 

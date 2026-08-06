@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   createSkyFlappyGame,
   FLAPPY_GAP_HEIGHT,
+  FLAPPY_MAX_SPEED,
   FLAPPY_MAX_GAP_TOP,
+  FLAPPY_MIN_GAP_HEIGHT,
   FLAPPY_MIN_GAP_TOP,
   flapSkyGlider,
+  getSkyFlappyDifficulty,
   stepSkyFlappy,
 } from './engine'
 
@@ -36,10 +39,21 @@ describe('sky flappy engine', () => {
     expect(high.obstacles[0].gapTop + FLAPPY_GAP_HEIGHT).toBeLessThan(100)
   })
 
+  it('increases speed and narrows the gap as the score rises', () => {
+    const start = getSkyFlappyDifficulty(0)
+    const advanced = getSkyFlappyDifficulty(20)
+    const maximum = getSkyFlappyDifficulty(100)
+
+    expect(advanced.speed).toBeGreaterThan(start.speed)
+    expect(advanced.gapHeight).toBeLessThan(start.gapHeight)
+    expect(maximum.speed).toBe(FLAPPY_MAX_SPEED)
+    expect(maximum.gapHeight).toBe(FLAPPY_MIN_GAP_HEIGHT)
+  })
+
   it('scores an obstacle only once', () => {
     const state = {
       ...flapSkyGlider(createSkyFlappyGame()),
-      obstacles: [{ gapTop: 30, id: 1, scored: false, x: 7 }],
+      obstacles: [{ gapHeight: FLAPPY_GAP_HEIGHT, gapTop: 30, id: 1, scored: false, x: 7 }],
     }
     const scored = stepSkyFlappy(state, 0.01, () => 0.5)
     expect(scored.score).toBe(1)
@@ -49,7 +63,7 @@ describe('sky flappy engine', () => {
   it('detects collision using the player edges', () => {
     const state = {
       ...flapSkyGlider(createSkyFlappyGame()),
-      obstacles: [{ gapTop: 40, id: 1, scored: false, x: 22 }],
+      obstacles: [{ gapHeight: FLAPPY_GAP_HEIGHT, gapTop: 40, id: 1, scored: false, x: 22 }],
       playerY: 41,
       playerVelocity: 0,
     }
