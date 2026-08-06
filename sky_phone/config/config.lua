@@ -2,7 +2,7 @@ Config.Bridge = {
     Framework = "auto", -- auto, esx, qbox, qb
     Inventory = "auto", -- auto, ox, qb, lj, qs, codem, core, mf
     Locale = "en",
-    CallbackTimeout = 5000,
+    CallbackTimeout = 15000,
     Debug = false,
     DebugLevels = {
         info = true,
@@ -48,6 +48,7 @@ Config.Messages = {
 }
 
 Config.Media = {
+    GiphyApiKey = "",
     GifPageSize = 24,
     GifRating = "pg-13",
     UrlMaxLength = 2048,
