@@ -189,7 +189,10 @@ function openCityMarktListing(): void {
   if (!selected.value?.citymarkt_listing_id) return
   void router.push({
     path: '/apps/citymarkt',
-    query: { listingId: selected.value.citymarkt_listing_id },
+    query: {
+      listingId: selected.value.citymarkt_listing_id,
+      transition: 'app-switch',
+    },
   })
 }
 

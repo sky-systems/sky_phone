@@ -1026,6 +1026,35 @@ button {
   opacity: 1;
   border-radius: 0;
 }
+.app-switch-enter-active,
+.app-switch-leave-active {
+  transition:
+    transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.28s ease,
+    border-radius 0.38s ease;
+}
+.app-switch-enter-active {
+  z-index: 51;
+}
+.app-switch-leave-active {
+  z-index: 50;
+}
+.app-switch-enter-from {
+  transform: translateX(100%) scale(0.98);
+  opacity: 0.75;
+  border-radius: 24px;
+}
+.app-switch-leave-to {
+  transform: translateX(-22%) scale(0.96);
+  opacity: 0.35;
+  border-radius: 18px;
+}
+.app-switch-enter-to,
+.app-switch-leave-from {
+  transform: none;
+  opacity: 1;
+  border-radius: 0;
+}
 .native-app {
   position: absolute;
   inset: 0;

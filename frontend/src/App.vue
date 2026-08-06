@@ -90,6 +90,9 @@ const notifications = useNotificationsStore()
 const route = useRoute()
 const router = useRouter()
 const isAppRoute = computed(() => route.name === 'app')
+const appTransitionName = computed(() =>
+  route.query.transition === 'app-switch' ? 'app-switch' : 'app-window',
+)
 const isLocked = ref(false)
 const isUnlocking = ref(false)
 const simPicker = ref<SimPickerPayload | null>(null)
@@ -430,8 +433,8 @@ onBeforeUnmount(() => {
                 <PhoneStatusBar v-if="!isLocked" />
                 <SpringboardView />
                 <RouterView v-slot="{ Component }">
-                  <Transition name="app-window">
-                    <component :is="Component" v-if="isAppRoute" />
+                  <Transition :name="appTransitionName">
+                    <component :is="Component" v-if="isAppRoute" :key="route.path" />
                   </Transition>
                 </RouterView>
                 <PhoneHomeIndicator v-if="!isLocked" />
