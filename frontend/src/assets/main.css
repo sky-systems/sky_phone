@@ -512,7 +512,7 @@ button {
   padding: 0 48px;
 }
 .lock-screen__shortcut {
-  --color-primary: #8e8e93;
+  --color-primary: transparent;
 }
 .lock-screen__shortcut svg {
   width: 21px;
