@@ -318,6 +318,24 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_bank_transactions",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "owner_identifier", type = "VARCHAR(80) NOT NULL" },
+            { name = "kind", type = "ENUM('deposit', 'withdrawal', 'transfer_in', 'transfer_out') NOT NULL" },
+            { name = "amount", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "label", type = "VARCHAR(160) NOT NULL DEFAULT ''" },
+            { name = "reference", type = "VARCHAR(96) NOT NULL DEFAULT ''", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_bank_owner", columns = "(`owner_identifier`, `id`)" },
+            { name = "idx_sky_phone_bank_reference", columns = "(`reference`)" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Bridge.Database.Migrate("sky_phone", schema)

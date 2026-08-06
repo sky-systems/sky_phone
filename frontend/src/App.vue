@@ -21,6 +21,7 @@ import SimPhonePicker, {
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { useClockStore } from '@/stores/clock'
 import { useCallsStore } from '@/stores/calls'
+import { useBankingStore } from '@/stores/banking'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
 import { useMediaStore } from '@/stores/media'
@@ -67,6 +68,7 @@ const phone = usePhoneStore()
 const account = useAccountStore()
 const clock = useClockStore()
 const calls = useCallsStore()
+const banking = useBankingStore()
 const mail = useMailStore()
 const media = useMediaStore()
 const notes = useNotesStore()
@@ -155,6 +157,8 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     void calls.loadContacts()
   } else if (event.data?.type === 'calls:changed') {
     void calls.loadRecents()
+  } else if (event.data?.type === 'banking:changed') {
+    void banking.load()
   } else if (
     (event.data?.type === 'call:incoming' ||
       event.data?.type === 'call:state') &&

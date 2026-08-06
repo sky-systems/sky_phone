@@ -43,6 +43,10 @@ local server_callbacks = {
     "calls:answer",
     "calls:decline",
     "calls:hangup",
+    "banking:overview",
+    "banking:deposit",
+    "banking:withdraw",
+    "banking:transfer",
 }
 
 local function get_locale()
@@ -281,6 +285,10 @@ end)
 
 RegisterNetEvent("sky_phone:calls:changed", function()
     SendNUIMessage({ type = "calls:changed" })
+end)
+
+RegisterNetEvent("sky_phone:banking:changed", function()
+    SendNUIMessage({ type = "banking:changed" })
 end)
 
 RegisterNetEvent("sky_phone:call:incoming", function(data)

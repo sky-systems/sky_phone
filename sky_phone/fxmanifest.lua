@@ -13,6 +13,7 @@ escrow_ignore {
 }
 
 shared_scripts {
+    '@sky_base/source/import.lua',
     'config/init.lua',
     'source/bridge/shared.lua',
     'source/shared/imei.lua',
@@ -43,6 +44,7 @@ server_scripts {
     'source/server/calls.lua',
     'source/server/notes.lua',
     'source/server/mail.lua',
+    'source/server/banking.lua',
 }
 
 files {
@@ -53,4 +55,7 @@ files {
 
 ui_page 'source/html/index.html'
 
-dependency 'oxmysql'
+dependencies {
+    'oxmysql',
+    'sky_base',
+}

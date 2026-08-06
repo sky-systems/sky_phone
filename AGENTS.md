@@ -21,6 +21,10 @@ Standalone FiveM phone resource built on `sky_base`, with a Vue 3 and Konsta UI 
 - The phone intentionally uses Konsta UI's iOS liquid-glass styling. Any `backdrop-filter` or
   `-webkit-backdrop-filter` prohibition inherited from sibling-resource conventions does not apply
   anywhere in `sky_phone`; these effects are explicitly allowed here.
+- For every design implementation, prefer Konsta UI's native iOS components (for example Navbar,
+  Tabbar, Sheet, Dialog, List, Card, Button, and Glass) over custom equivalents. Preserve their
+  built-in iOS interaction, motion, active, and glass behavior so the phone feels native; add
+  scoped styling only where the product design requires it.
 
 ## Build and validation
 
@@ -36,4 +40,7 @@ workspace resource through symlinks, so Lua/config-only changes require no deplo
 
 ## Commits
 
-Use the monorepo commit format: `TAG - short imperative summary`.
+- Format: `TAG - short imperative summary`.
+- Tags: `ENH`, `ADD`, `FIX`, `DOC`, `BLD`, `PERF`, `CLN`, `TRY`.
+- Keep commits focused and call out required config, SQL, or locale migrations.
+- Stage only files belonging to the task; never use broad staging that captures unrelated work.
