@@ -206,6 +206,7 @@ export function createGameView(
   gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
   gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
   gl.uniform1i(gl.getUniformLocation(program, 'u_texture'), 0)
+  gl.clearColor(0, 0, 0, 1)
 
   return {
     canvas,
@@ -222,6 +223,7 @@ export function createGameView(
     isLost: () => lost,
     render() {
       if (disposed || lost) return
+      gl.clear(gl.COLOR_BUFFER_BIT)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       gl.finish()
     },
