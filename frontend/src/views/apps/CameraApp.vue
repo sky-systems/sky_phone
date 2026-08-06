@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { kFab, kPage, kTabbar, kTabbarLink, kToast } from 'konsta/vue'
+import {
+  kFab,
+  kNavbar,
+  kPage,
+  kSegmented,
+  kSegmentedButton,
+  kToast,
+} from 'konsta/vue'
 import {
   Images,
   RectangleHorizontal,
   RectangleVertical,
-  RefreshCw,
+  RotateCcwSquare,
   Video,
   Zap,
   ZapOff,
@@ -57,7 +64,13 @@ const pendingCount = computed(
 const controlColors = {
   bgIos: 'bg-ios-light-glass dark:bg-ios-dark-glass',
   activeBgIos: 'active:bg-white/90 dark:active:bg-white/20',
-  textIos: 'text-black dark:text-white',
+  textIos: 'text-black/80 dark:text-white/80',
+}
+const modeColors = {
+  strongHighlightBgIos: 'bg-[#e5e5ea] dark:bg-[#2c2c2e]',
+}
+const modeNavbarColors = {
+  bgIos: 'bg-transparent',
 }
 const flashColors = computed(() => ({
   ...controlColors,
@@ -65,13 +78,6 @@ const flashColors = computed(() => ({
     ? 'text-yellow-500 dark:text-yellow-300'
     : controlColors.textIos,
 }))
-const tabbarColors = {
-  bgIos: 'bg-gradient-to-t from-black via-black/90 to-transparent',
-}
-const tabColors = {
-  textActiveIos: 'text-yellow-300',
-  textIos: 'text-white/55',
-}
 
 function correlationId(): string {
   return `${Date.now()}-${crypto.randomUUID()}`
@@ -402,10 +408,20 @@ onBeforeUnmount(() => {
         type="button"
         class="camera-control"
         :colors="controlColors"
-        :aria-label="phone.t('Apps.camera.flip')"
-        @click="toggleFacing"
+        :disabled="recording || savingVideo"
+        :aria-label="
+          phone.t(
+            phone.cameraLandscape
+              ? 'Apps.camera.portrait'
+              : 'Apps.camera.landscape',
+          )
+        "
+        @click="toggleOrientation"
       >
-        <template #icon><RefreshCw :size="19" /></template>
+        <template #icon>
+          <RectangleVertical v-if="phone.cameraLandscape" :size="19" />
+          <RectangleHorizontal v-else :size="19" />
+        </template>
       </k-fab>
     </header>
 
@@ -450,56 +466,49 @@ onBeforeUnmount(() => {
           <span></span>
         </button>
 
-        <button
-          class="camera-orientation"
+        <k-fab
+          component="button"
           type="button"
-          :disabled="recording || savingVideo"
-          :aria-label="
-            phone.t(
-              phone.cameraLandscape
-                ? 'Apps.camera.portrait'
-                : 'Apps.camera.landscape',
-            )
-          "
-          @click="toggleOrientation"
+          class="camera-control camera-selfie"
+          :colors="controlColors"
+          :aria-label="phone.t('Apps.camera.flip')"
+          @click="toggleFacing"
         >
-          <RectangleVertical v-if="phone.cameraLandscape" :size="22" />
-          <RectangleHorizontal v-else :size="22" />
-        </button>
+          <template #icon><RotateCcwSquare :size="20" /></template>
+        </k-fab>
       </div>
 
-      <k-tabbar labels class="camera-mode-tabbar" :colors="tabbarColors">
-        <k-tabbar-link
-          component="button"
-          :active="mode === 'photo'"
-          :class="{
-            'pointer-events-none opacity-50': recording || savingVideo,
-          }"
-          :colors="tabColors"
-          :label="phone.t('Apps.camera.photo')"
-          :link-props="{
-            component: 'button',
-            type: 'button',
-            'aria-disabled': recording || savingVideo,
-          }"
-          @click="setMode('photo')"
-        />
-        <k-tabbar-link
-          component="button"
-          :active="mode === 'video'"
-          :class="{
-            'pointer-events-none opacity-50': recording || savingVideo,
-          }"
-          :colors="tabColors"
-          :label="phone.t('Apps.camera.video')"
-          :link-props="{
-            component: 'button',
-            type: 'button',
-            'aria-disabled': recording || savingVideo,
-          }"
-          @click="setMode('video')"
-        />
-      </k-tabbar>
+      <k-navbar
+        component="nav"
+        class="camera-mode-navbar"
+        :colors="modeNavbarColors"
+        :aria-label="phone.t('Apps.camera.name')"
+      >
+        <template #subnavbar>
+          <k-segmented strong rounded :colors="modeColors">
+            <k-segmented-button
+              large
+              :active="mode === 'photo'"
+              :disabled="recording || savingVideo"
+              :class="mode === 'photo' ? 'text-primary' : 'text-[#8e8e93]'"
+              :aria-pressed="mode === 'photo'"
+              @click="setMode('photo')"
+            >
+              {{ phone.t('Apps.camera.photo') }}
+            </k-segmented-button>
+            <k-segmented-button
+              large
+              :active="mode === 'video'"
+              :disabled="recording || savingVideo"
+              :class="mode === 'video' ? 'text-primary' : 'text-[#8e8e93]'"
+              :aria-pressed="mode === 'video'"
+              @click="setMode('video')"
+            >
+              {{ phone.t('Apps.camera.video') }}
+            </k-segmented-button>
+          </k-segmented>
+        </template>
+      </k-navbar>
     </footer>
 
     <k-toast
@@ -584,7 +593,7 @@ onBeforeUnmount(() => {
 }
 .camera-shade {
   pointer-events: none;
-  background: linear-gradient(#0008, transparent 22%, transparent 62%, #000d);
+  background: linear-gradient(#0008, transparent 22%);
 }
 .camera-flash {
   z-index: 8;
@@ -609,7 +618,7 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 .camera-control {
-  --color-primary: #8e8e93;
+  --color-primary: #636366;
 }
 .camera-control svg {
   width: 21px;
@@ -670,11 +679,7 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 0 24px 4px;
 }
-.camera-mode-tabbar {
-  width: 100%;
-}
-.camera-latest,
-.camera-orientation {
+.camera-latest {
   width: 50px;
   height: 50px;
   overflow: hidden;
@@ -685,11 +690,8 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
 }
-.camera-orientation {
+.camera-selfie {
   justify-self: end;
-}
-.camera-orientation:disabled {
-  opacity: 0.5;
 }
 .camera-latest img {
   width: 100%;
@@ -724,5 +726,10 @@ onBeforeUnmount(() => {
 }
 .camera-shutter:disabled {
   opacity: 0.5;
+}
+.camera-mode-navbar {
+  position: relative;
+  top: auto;
+  padding-top: 0;
 }
 </style>
