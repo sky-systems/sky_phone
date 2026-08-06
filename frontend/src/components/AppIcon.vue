@@ -32,6 +32,8 @@ const notificationBadgeColors = {
 }
 
 function launch(event: MouseEvent): void {
+  if (!props.app.route) return
+
   const button = event.currentTarget as HTMLElement
   const screen = button.closest('.phone-screen')
   const icon = button.querySelector<HTMLElement>('.app-icon')
@@ -64,6 +66,7 @@ function launch(event: MouseEvent): void {
     :class="{ 'app-icon-button--compact': compact }"
     type="button"
     :aria-label="phone.t(app.labelKey)"
+    :aria-disabled="!app.route"
     @click="launch"
   >
     <span class="app-icon-anchor" aria-hidden="true">
