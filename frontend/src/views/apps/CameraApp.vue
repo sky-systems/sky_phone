@@ -566,7 +566,7 @@ onBeforeUnmount(() => {
 }
 .camera-viewport {
   position: absolute;
-  top: 50%;
+  top: 46%;
   left: 0;
   width: 100%;
   aspect-ratio: 3 / 4;
@@ -574,7 +574,7 @@ onBeforeUnmount(() => {
   transform: translateY(-50%);
 }
 .camera-page--landscape .camera-viewport {
-  top: 50%;
+  top: 46%;
   left: 50%;
   width: calc(100% * 16 / 9);
   height: auto;
