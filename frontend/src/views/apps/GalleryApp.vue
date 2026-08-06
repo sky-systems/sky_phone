@@ -318,7 +318,7 @@ onBeforeUnmount(() => {
 <template>
   <k-page
     v-if="!selected"
-    class="gallery-page !pt-[44px] !pb-[25px]"
+    class="gallery-page !pt-[44px]"
     :aria-label="phone.t('Apps.photos.name')"
   >
     <k-navbar :title="phone.t('Apps.photos.name')" />
