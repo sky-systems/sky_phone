@@ -23,6 +23,7 @@ import { useClockStore } from '@/stores/clock'
 import { useCallsStore } from '@/stores/calls'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
+import { useMessagesStore } from '@/stores/messages'
 import { useMediaStore } from '@/stores/media'
 import { useNotesStore } from '@/stores/notes'
 import { useWeatherStore } from '@/stores/weather'
@@ -41,7 +42,12 @@ import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
   type?: string
-  data?: MailEventData | PhoneCall | PhoneNotificationInput | PhoneOpenPayload
+  data?:
+    | MailEventData
+    | MessagesEventData
+    | PhoneCall
+    | PhoneNotificationInput
+    | PhoneOpenPayload
 }
 
 type SimPickerPayload = {
@@ -58,6 +64,14 @@ type MailEventData = {
   title?: string
 }
 
+type MessagesEventData = {
+  device?: PhoneNotificationDevicePayload
+  phoneNumber?: string
+  sender?: string
+  text?: string
+  title?: string
+}
+
 const REFERENCE_VIEWPORT_WIDTH = 1920
 const REFERENCE_VIEWPORT_HEIGHT = 1080
 const PHONE_BASE_SCALE = 0.69
@@ -68,6 +82,7 @@ const account = useAccountStore()
 const clock = useClockStore()
 const calls = useCallsStore()
 const mail = useMailStore()
+const messages = useMessagesStore()
 const media = useMediaStore()
 const notes = useNotesStore()
 const weather = useWeatherStore()
@@ -92,7 +107,6 @@ const phoneFrameImage = computed(
 )
 let clockTicker: ReturnType<typeof setInterval> | undefined
 let unlockTimer: number | undefined
-let cameraTimer: number | undefined
 
 function getViewportScale(): number {
   const heightScale = window.innerHeight / REFERENCE_VIEWPORT_HEIGHT
@@ -109,6 +123,7 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   media.hydrate(payload.device?.data.media?.payload)
   void mail.bootstrap(payload.account?.email ?? '')
   void calls.bootstrap()
+  void messages.loadConversations()
 }
 
 function onMessage(event: MessageEvent<AppMessage>): void {
@@ -153,6 +168,35 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     notifications.show(notification)
   } else if (event.data?.type === 'contacts:changed') {
     void calls.loadContacts()
+  } else if (event.data?.type === 'messages:changed') {
+    void messages.loadConversations()
+    if (messages.activeNumber) void messages.openThread(messages.activeNumber)
+  } else if (event.data?.type === 'messages:new' && event.data.data) {
+    const data = event.data.data as MessagesEventData
+    void messages.loadConversations()
+    if (messages.activeNumber === data.phoneNumber) {
+      void messages.openThread(messages.activeNumber)
+    }
+
+    const notification: PhoneNotificationInput = {
+      appId: 'messages',
+      subtitle: data.phoneNumber,
+      text:
+        data.text ??
+        phone.t('Apps.messages.newMessage', { sender: data.sender ?? '' }),
+      title: data.title ?? phone.t('Apps.messages.name'),
+    }
+    if (
+      data.device &&
+      (!phone.isOpen || data.device.imei !== phone.device?.imei)
+    ) {
+      notification.device = {
+        imei: data.device.imei,
+        name: data.device.name,
+        preferences: parsePhonePreferences(data.device.settings ?? null),
+      }
+    }
+    notifications.show(notification)
   } else if (event.data?.type === 'calls:changed') {
     void calls.loadRecents()
   } else if (
@@ -185,16 +229,10 @@ function updateViewportScale(): void {
   viewportScale.value = getViewportScale()
 }
 
-function unlockPhone(destination?: 'camera'): void {
+function unlockPhone(): void {
   if (!isLocked.value) return
   isUnlocking.value = true
   isLocked.value = false
-
-  if (destination === 'camera') {
-    cameraTimer = window.setTimeout(() => {
-      void router.push('/apps/camera')
-    }, 260)
-  }
 
   unlockTimer = window.setTimeout(() => {
     isUnlocking.value = false
@@ -286,7 +324,6 @@ watch(
   () => phone.isOpen,
   (isOpen) => {
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
-    if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
     if (!isOpen) {
       weather.stop()
       isLocked.value = false
@@ -305,7 +342,6 @@ onBeforeUnmount(() => {
   weather.stop()
   if (clockTicker) clearInterval(clockTicker)
   if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
-  if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', updateViewportScale)
