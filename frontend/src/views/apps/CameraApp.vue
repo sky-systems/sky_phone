@@ -539,7 +539,7 @@ onBeforeUnmount(() => {
   width: calc(100% * 16 / 9);
   height: auto;
   aspect-ratio: 16 / 9;
-  transform: translate(-50%, -50%) rotate(-90deg);
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 .camera-game-view,
 .camera-dev-view,
