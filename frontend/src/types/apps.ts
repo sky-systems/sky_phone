@@ -22,6 +22,8 @@ export type PhoneAppId =
   | 'citymarkt'
   | 'local-pages'
 
+export type LaunchablePhoneAppId = PhoneAppId
+
 export type AppLaunchOrigin = {
   borderRadius: number
   scaleX: number
@@ -31,7 +33,7 @@ export type AppLaunchOrigin = {
 }
 
 export type PhoneAppDefinition = {
-  component: Component
+  component: Component | null
   dockOrder: number | null
   gridOrder: number
   icon: Component
@@ -39,5 +41,11 @@ export type PhoneAppDefinition = {
   iconImage: string
   id: PhoneAppId
   labelKey: string
-  route: `/apps/${PhoneAppId}`
+  route: `/apps/${LaunchablePhoneAppId}` | null
+}
+
+export type LaunchablePhoneAppDefinition = PhoneAppDefinition & {
+  component: Component
+  id: LaunchablePhoneAppId
+  route: `/apps/${LaunchablePhoneAppId}`
 }

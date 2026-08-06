@@ -12,8 +12,16 @@ An iFruit account is optional. Unlinked devices retain local settings, alarms, m
 - Two unique, non-stackable inventory items named `sky_phone_sim_registered` and `sky_phone_sim_anonymous`. Their metadata is initialized automatically on first use, so shops and crafting recipes add plain items without supplying a number.
 - `oxmysql` with MySQL/MariaDB.
 - `pma-voice` when `Config.Calls.VoiceProvider` is set to `"pma"`.
+- A FiveManage V3 Media API token for Camera photo/video uploads and Gallery deletion. Set the
+  server-only `Config.Media.FiveManage.ApiKey` in `sky_phone/config/media.lua`; the token is never
+  sent to NUI because clients receive temporary presigned upload URLs instead.
 
 Database migrations run automatically. Existing `sky_phone_mail_accounts` installations are renamed to `sky_phone_accounts` while preserving account IDs and mail foreign keys. iFruit passwords are intentional in-character credentials and remain plaintext `VARCHAR(64)` values; registration screens warn players never to reuse a real password.
+
+Camera and Gallery media is stored in `sky_phone_media`. Signed-out captures belong to the current
+IMEI; linking an iFruit account moves those rows into the account gallery so every linked phone sees
+them. Signing out hides cloud media without deleting it. Factory reset removes device-local media
+and attempts to delete its remote FiveManage files, while account-owned media remains in the cloud.
 
 For a fresh manual database installation, import `sky_phone/sql/install.sql`. It contains the complete current table, key, index, collation, and foreign-key schema. Runtime migrations remain authoritative for upgrading an existing installation and must stay enabled.
 

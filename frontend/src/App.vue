@@ -11,6 +11,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
+import PhoneMediaCapture from '@/components/PhoneMediaCapture.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import NotificationPhonePreview from '@/components/NotificationPhonePreview.vue'
@@ -26,6 +27,7 @@ import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
 import { useMediaStore } from '@/stores/media'
 import { useMarketplaceStore } from '@/stores/marketplace'
+import { useAppStoreStore } from '@/stores/app-store'
 import { useNotesStore } from '@/stores/notes'
 import { useWeatherStore } from '@/stores/weather'
 import {
@@ -84,6 +86,7 @@ const calls = useCallsStore()
 const mail = useMailStore()
 const media = useMediaStore()
 const marketplace = useMarketplaceStore()
+const appStore = useAppStoreStore()
 const notes = useNotesStore()
 const weather = useWeatherStore()
 const notifications = useNotificationsStore()
@@ -110,7 +113,6 @@ const phoneFrameImage = computed(
 )
 let clockTicker: ReturnType<typeof setInterval> | undefined
 let unlockTimer: number | undefined
-let cameraTimer: number | undefined
 
 function getViewportScale(): number {
   const heightScale = window.innerHeight / REFERENCE_VIEWPORT_HEIGHT
@@ -126,6 +128,7 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   clock.hydrate(payload.device?.data.alarms?.payload)
   games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
+  appStore.hydrate(payload.device?.data.apps?.payload)
   void mail.bootstrap(payload.account?.email ?? '')
   if (payload.account?.email) void marketplace.loadCounts()
   else marketplace.setCounts({ active: 0, unread: 0 })
@@ -226,20 +229,19 @@ function updateViewportScale(): void {
   viewportScale.value = getViewportScale()
 }
 
-function unlockPhone(destination?: 'camera'): void {
+function unlockPhone(): void {
   if (!isLocked.value) return
   isUnlocking.value = true
   isLocked.value = false
 
-  if (destination === 'camera') {
-    cameraTimer = window.setTimeout(() => {
-      void router.push('/apps/camera')
-    }, 260)
-  }
-
   unlockTimer = window.setTimeout(() => {
     isUnlocking.value = false
   }, 720)
+}
+
+function unlockCamera(): void {
+  unlockPhone()
+  window.setTimeout(() => void router.push('/apps/camera'), 0)
 }
 
 onMounted(() => {
@@ -349,7 +351,6 @@ watch(
   () => phone.isOpen,
   (isOpen) => {
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
-    if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
     if (!isOpen) {
       weather.stop()
       isLocked.value = false
@@ -368,7 +369,6 @@ onBeforeUnmount(() => {
   weather.stop()
   if (clockTicker) clearInterval(clockTicker)
   if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
-  if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', updateViewportScale)
@@ -377,6 +377,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <PhoneMediaCapture />
   <SimPhonePicker
     v-if="simPicker"
     :choices="simPicker.choices"
@@ -394,6 +395,7 @@ onBeforeUnmount(() => {
       class="phone-stage"
       :class="{
         'phone-stage--dev': isDevelopment,
+        'phone-stage--landscape': phone.cameraLandscape,
         'phone-stage--peek': notifications.isPeeking,
       }"
       :style="phoneResolutionStyle"
@@ -439,7 +441,11 @@ onBeforeUnmount(() => {
                 </RouterView>
                 <PhoneHomeIndicator v-if="!isLocked" />
                 <Transition name="lock-screen">
-                  <PhoneLockScreen v-if="isLocked" @unlock="unlockPhone" />
+                  <PhoneLockScreen
+                    v-if="isLocked"
+                    @camera="unlockCamera"
+                    @unlock="unlockPhone"
+                  />
                 </Transition>
                 <PhoneNotifications
                   :notification="notifications.current"

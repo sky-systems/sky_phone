@@ -43,11 +43,14 @@ import {
 } from 'vue'
 
 import { PHONE_FRAME_COLORS } from '@/config/appearance'
-import { PHONE_APPS } from '@/config/apps'
+import { isLaunchablePhoneApp, PHONE_APPS } from '@/config/apps'
 import { IFRUIT_AUTH_INPUT_COLORS } from '@/config/ifruit'
 import { usePhoneStore } from '@/stores/phone'
 import { useAccountStore } from '@/stores/account'
-import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
+import type {
+  LaunchablePhoneAppDefinition,
+  LaunchablePhoneAppId,
+} from '@/types/apps'
 import { nuiCall } from '@/utils/nui'
 import { formatPhoneNumber } from '@/utils/phone'
 import {
@@ -88,7 +91,7 @@ const phone = usePhoneStore()
 const account = useAccountStore()
 const query = ref('')
 const activeView = ref<SettingsView>('root')
-const selectedNotificationAppId = ref<PhoneAppId>('calculator')
+const selectedNotificationAppId = ref<LaunchablePhoneAppId>('calculator')
 const settingsPage = ref<ComponentPublicInstance | null>(null)
 const framePickerButton = ref<ComponentPublicInstance | null>(null)
 const framePickerOpened = ref(false)
@@ -177,12 +180,15 @@ const visiblePreferenceRows = computed(() =>
   preferenceRows.filter((row) => matchesSearch(row.key)),
 )
 const notificationApps = computed(() =>
-  [...PHONE_APPS].sort((left, right) => left.gridOrder - right.gridOrder),
+  PHONE_APPS.filter(isLaunchablePhoneApp).sort(
+    (left, right) => left.gridOrder - right.gridOrder,
+  ),
 )
 const selectedNotificationApp = computed(
   () =>
-    PHONE_APPS.find((app) => app.id === selectedNotificationAppId.value) ??
-    PHONE_APPS[0],
+    notificationApps.value.find(
+      (app) => app.id === selectedNotificationAppId.value,
+    ) ?? notificationApps.value[0],
 )
 const activeTitle = computed(() => {
   if (activeView.value === 'account') {
@@ -215,7 +221,7 @@ function openView(view: SubmenuView): void {
   scrollPageToTop()
 }
 
-function openNotificationApp(app: PhoneAppDefinition): void {
+function openNotificationApp(app: LaunchablePhoneAppDefinition): void {
   selectedNotificationAppId.value = app.id
   activeView.value = 'notification-detail'
   scrollPageToTop()
