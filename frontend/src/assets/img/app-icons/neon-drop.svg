@@ -1,13 +1,92 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#07101f"/>
-  <rect x="82" y="48" width="348" height="416" rx="42" fill="#111a3c" stroke="#65f4e4" stroke-width="10"/>
-  <path d="M104 82h304M104 130h304M104 178h304M104 226h304M104 274h304M104 322h304M104 370h304M104 418h304M130 64v384M178 64v384M226 64v384M274 64v384M322 64v384M370 64v384" stroke="#80a0d0" stroke-opacity=".12" stroke-width="4"/>
-  <g stroke="#ffffff" stroke-opacity=".55" stroke-width="4">
-    <path d="M178 106h48v48h48v48h-48v48h-48v-48h-48v-48h48Z" fill="#49e8e0"/>
-    <path d="M130 346h48v48h48v48h-96Z" fill="#5c8cff"/>
-    <path d="M226 394h48v48h-48Z" fill="#ffe265"/>
-    <path d="M274 346h48v48h48v48h-96Z" fill="#b86cff"/>
-    <path d="M370 394h38v48h-38Z" fill="#ff5f7e"/>
+  <defs>
+    <radialGradient id="backdrop" cx="0" cy="0" r="1" gradientTransform="translate(256 34) rotate(90) scale(478 360)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#26366e"/>
+      <stop offset=".55" stop-color="#101735"/>
+      <stop offset="1" stop-color="#060916"/>
+    </radialGradient>
+    <linearGradient id="frame" x1="66" y1="44" x2="449" y2="469" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#78fff0"/>
+      <stop offset=".48" stop-color="#41decf"/>
+      <stop offset="1" stop-color="#568cff"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#80fff4"/>
+      <stop offset=".5" stop-color="#42ded6"/>
+      <stop offset="1" stop-color="#1aa8bd"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#79b2ff"/>
+      <stop offset="1" stop-color="#496cf1"/>
+    </linearGradient>
+    <linearGradient id="yellow" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff196"/>
+      <stop offset="1" stop-color="#ffc947"/>
+    </linearGradient>
+    <linearGradient id="purple" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d08aff"/>
+      <stop offset="1" stop-color="#8c4ce6"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff8aa5"/>
+      <stop offset="1" stop-color="#ef466f"/>
+    </linearGradient>
+    <pattern id="grid" width="38" height="38" patternUnits="userSpaceOnUse">
+      <path d="M38 0H0v38" fill="none" stroke="#80a9dc" stroke-opacity=".13" stroke-width="2"/>
+    </pattern>
+    <filter id="cyan-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="row-glow" x="-20%" y="-200%" width="140%" height="500%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#backdrop)"/>
+  <rect x="55" y="36" width="402" height="440" rx="58" fill="#071025" stroke="url(#frame)" stroke-width="11"/>
+  <rect x="76" y="58" width="360" height="396" rx="34" fill="#0b1230"/>
+  <rect x="85" y="67" width="342" height="380" fill="url(#grid)"/>
+  <path d="M86 371H426" stroke="#73fff0" stroke-width="16" stroke-linecap="round" opacity=".23" filter="url(#row-glow)"/>
+  <path d="M87 371H425" stroke="#aafff6" stroke-width="3" stroke-linecap="round" opacity=".82"/>
+
+  <g fill="none" stroke="#64f2e4" stroke-width="5" stroke-linecap="round" opacity=".6">
+    <path d="m241 85 15 13 15-13"/>
+    <path d="m241 106 15 13 15-13"/>
   </g>
-  <path d="M202 76h24v22h-24Z" fill="#ffffff" opacity=".8"/>
+
+  <g opacity=".3" fill="none" stroke="#53ecdf" stroke-width="4" stroke-dasharray="7 6">
+    <rect x="199" y="278" width="38" height="38" rx="5"/>
+    <rect x="237" y="278" width="38" height="38" rx="5"/>
+    <rect x="275" y="278" width="38" height="38" rx="5"/>
+    <rect x="237" y="316" width="38" height="38" rx="5"/>
+  </g>
+
+  <g filter="url(#cyan-glow)" stroke="#d9fffb" stroke-width="2">
+    <rect x="199" y="137" width="38" height="38" rx="5" fill="url(#cyan)"/>
+    <rect x="237" y="137" width="38" height="38" rx="5" fill="url(#cyan)"/>
+    <rect x="275" y="137" width="38" height="38" rx="5" fill="url(#cyan)"/>
+    <rect x="237" y="175" width="38" height="38" rx="5" fill="url(#cyan)"/>
+  </g>
+  <g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".55">
+    <path d="M206 144h23M244 144h23M282 144h23M244 182h23"/>
+  </g>
+
+  <g stroke="#ffffffa8" stroke-width="2">
+    <rect x="88" y="371" width="38" height="38" rx="5" fill="url(#blue)"/>
+    <rect x="88" y="409" width="38" height="38" rx="5" fill="url(#blue)"/>
+    <rect x="126" y="409" width="38" height="38" rx="5" fill="url(#blue)"/>
+    <rect x="164" y="409" width="38" height="38" rx="5" fill="url(#yellow)"/>
+    <rect x="202" y="371" width="38" height="38" rx="5" fill="url(#yellow)"/>
+    <rect x="202" y="409" width="38" height="38" rx="5" fill="url(#yellow)"/>
+    <rect x="240" y="371" width="38" height="38" rx="5" fill="url(#purple)"/>
+    <rect x="278" y="371" width="38" height="38" rx="5" fill="url(#purple)"/>
+    <rect x="316" y="371" width="38" height="38" rx="5" fill="url(#purple)"/>
+    <rect x="278" y="409" width="38" height="38" rx="5" fill="url(#purple)"/>
+    <rect x="354" y="371" width="38" height="38" rx="5" fill="url(#red)"/>
+    <rect x="392" y="409" width="34" height="38" rx="5" fill="url(#red)"/>
+  </g>
+  <g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".38">
+    <path d="M95 378h23M95 416h23M133 416h23M171 416h23M209 378h23M209 416h23M247 378h23M285 378h23M323 378h23M285 416h23M361 378h23M399 416h20"/>
+  </g>
 </svg>
