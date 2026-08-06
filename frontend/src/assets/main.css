@@ -583,13 +583,10 @@ button {
   }
 }
 .springboard-track {
-  width: 300%;
   height: 100%;
   display: flex;
   touch-action: pan-y;
-  transform: translateX(
-    calc(var(--springboard-page) * -33.333333% + var(--drag-offset))
-  );
+  transform: translateX(calc(var(--springboard-offset) + var(--drag-offset)));
   transition: transform 0.46s cubic-bezier(0.22, 0.9, 0.24, 1);
 }
 .springboard--dragging .springboard-track {
@@ -597,7 +594,6 @@ button {
 }
 .springboard-page {
   position: relative;
-  width: 33.333333%;
   flex: none;
   padding: 61px 22px 138px;
 }

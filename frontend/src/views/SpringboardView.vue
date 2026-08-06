@@ -7,8 +7,9 @@ import SpringboardWidgets from '@/components/SpringboardWidgets.vue'
 import { PHONE_APPS } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppDefinition } from '@/types/apps'
-import { clampPage, SPRINGBOARD_PAGE_COUNT } from '@/utils/pages'
+import { paginateItems } from '@/utils/pages'
 
+const APPS_PER_HOME_PAGE = 16
 const phone = usePhoneStore()
 const searchQuery = ref('')
 const searchFocused = ref(false)
@@ -20,6 +21,14 @@ let pointerStartedAt = 0
 
 const gridApps = computed(() =>
   [...PHONE_APPS].sort((a, b) => a.gridOrder - b.gridOrder),
+)
+const appPages = computed(() =>
+  paginateItems(gridApps.value, APPS_PER_HOME_PAGE),
+)
+const pageCount = computed(() => appPages.value.length + 2)
+const libraryPage = computed(() => pageCount.value - 1)
+const isAppPage = computed(
+  () => phone.currentPage > 0 && phone.currentPage < libraryPage.value,
 )
 const dockApps = computed(() =>
   PHONE_APPS.filter((app) => app.dockOrder !== null).sort(
@@ -57,8 +66,10 @@ const alphabeticalGroups = computed(() => {
 })
 const trackStyle = computed(() => ({
   '--drag-offset': `${dragOffset.value}px`,
-  '--springboard-page': phone.currentPage,
+  '--springboard-offset': `${(-phone.currentPage * 100) / pageCount.value}%`,
+  width: `${pageCount.value * 100}%`,
 }))
+const pageStyle = computed(() => ({ width: `${100 / pageCount.value}%` }))
 
 function onPointerDown(event: PointerEvent): void {
   const target = event.target as HTMLElement
@@ -80,7 +91,10 @@ function finishPointer(event: PointerEvent): void {
   const elapsed = Math.max(1, Date.now() - pointerStartedAt)
   const velocity = Math.abs(distance) / elapsed
   if (Math.abs(distance) > 48 || velocity > 0.45) {
-    phone.setCurrentPage(phone.currentPage + (distance < 0 ? 1 : -1))
+    phone.setCurrentPage(
+      phone.currentPage + (distance < 0 ? 1 : -1),
+      pageCount.value,
+    )
   }
   dragging.value = false
   dragOffset.value = 0
@@ -116,22 +130,27 @@ function openAllApps(): void {
     >
       <section
         class="springboard-page springboard-page--widgets"
+        :style="pageStyle"
         :aria-label="phone.t('Home.widgets.label')"
       >
         <SpringboardWidgets />
       </section>
 
       <section
+        v-for="(apps, pageIndex) in appPages"
+        :key="`apps-${pageIndex}`"
         class="springboard-page springboard-page--apps"
+        :style="pageStyle"
         :aria-label="phone.t('Home.apps')"
       >
         <div class="app-grid">
-          <AppIcon v-for="app in gridApps" :key="app.id" :app="app" />
+          <AppIcon v-for="app in apps" :key="app.id" :app="app" />
         </div>
       </section>
 
       <section
         class="springboard-page springboard-page--library"
+        :style="pageStyle"
         :aria-label="phone.t('Home.appLibrary')"
       >
         <div
@@ -223,11 +242,7 @@ function openAllApps(): void {
     </div>
 
     <Transition name="dock">
-      <nav
-        v-if="phone.currentPage === 1"
-        class="app-dock"
-        :aria-label="phone.t('Home.dock')"
-      >
+      <nav v-if="isAppPage" class="app-dock" :aria-label="phone.t('Home.dock')">
         <AppIcon
           v-for="app in dockApps"
           :key="app.id"
@@ -237,14 +252,18 @@ function openAllApps(): void {
       </nav>
     </Transition>
 
-    <nav class="page-indicator" :aria-label="phone.t('Home.pages')">
+    <nav
+      v-if="isAppPage && appPages.length > 1"
+      class="page-indicator"
+      :aria-label="phone.t('Home.pages')"
+    >
       <button
-        v-for="page in SPRINGBOARD_PAGE_COUNT"
-        :key="page"
+        v-for="(_, pageIndex) in appPages"
+        :key="pageIndex"
         type="button"
-        :class="{ active: phone.currentPage === page - 1 }"
-        :aria-label="`${phone.t('Home.page')} ${page}`"
-        @click="phone.setCurrentPage(clampPage(page - 1))"
+        :class="{ active: phone.currentPage === pageIndex + 1 }"
+        :aria-label="`${phone.t('Home.page')} ${pageIndex + 1}`"
+        @click="phone.setCurrentPage(pageIndex + 1, pageCount)"
       ></button>
     </nav>
   </section>

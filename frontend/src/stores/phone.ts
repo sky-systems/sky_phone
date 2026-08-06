@@ -1024,8 +1024,8 @@ export const usePhoneStore = defineStore('phone', {
       })
       namespaceQueues.set(namespace, tracked)
     },
-    setCurrentPage(page: number): void {
-      this.currentPage = clampPage(page)
+    setCurrentPage(page: number, pageCount?: number): void {
+      this.currentPage = clampPage(page, pageCount)
     },
     setCameraLandscape(landscape: boolean): void {
       this.cameraLandscape = landscape
