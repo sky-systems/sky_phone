@@ -153,7 +153,7 @@ const defaultLocales: LocaleTree = {
       displayName: 'Radio display name',
       displayNamePlaceholder: 'Leave empty to use your character name',
       displayNameDescription:
-        'This name is shown to other participants in the radio and HUD.',
+        'This name is shown to other participants and in the built-in radio overlay.',
       displayNameNotAllowed:
         'Your current job or grade is not allowed to change the radio display name.',
       otherSettings: 'Other',

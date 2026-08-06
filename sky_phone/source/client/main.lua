@@ -149,6 +149,7 @@ end
 
 RegisterNUICallback("ui:ready", function(_, cb)
     Bridge.Debug("debug", "[sky_phone] NUI reported ready.", { always = true })
+    TriggerEvent("sky_phone:client:nuiReady")
     if open_requested and device_payload then
         send_open_message()
     end

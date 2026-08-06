@@ -519,10 +519,12 @@ onBeforeUnmount(() => {
 }
 
 .radio-setting-hint {
-  color: var(--k-color-subtitle, #8e8e93);
-  font-size: 14px;
-  line-height: 1.4;
+  color: inherit;
+  font-size: 16px;
+  font-weight: 450;
+  line-height: 1.45;
   margin: 0;
+  opacity: 0.82;
 }
 
 .radio-hint-block {

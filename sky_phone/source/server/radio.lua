@@ -210,9 +210,11 @@ local function get_members(frequency)
     for player_source, channel in pairs(channels) do
         if channel.primary == frequency or channel.secondary == frequency then
             local job = Bridge.Framework.GetJob(player_source)
+            local _, profile = load_profile(player_source)
             members[#members + 1] = {
                 id = player_source,
                 name = get_radio_member_name(player_source),
+                badge = Config.Radio.Badge.Enabled and profile and profile.badge or "",
                 joinTime = os.time() - (joined_at[player_source] or os.time()),
                 rank = job.gradeLabel,
                 rankNumber = job.grade,
@@ -412,21 +414,6 @@ local function badge_forbidden(badge)
     return false
 end
 
-local function notify_hud(event_name, source, value)
-    local hud = Config.Radio.Hud
-    if type(hud) ~= "table" or not hud.Enabled then
-        return
-    end
-    if type(hud.Resource) ~= "string" or GetResourceState(hud.Resource) ~= "started" then
-        return
-    end
-    local event = hud[event_name]
-    if type(event) ~= "string" or event == "" then
-        return
-    end
-    TriggerClientEvent(event, -1, source, value)
-end
-
 Bridge.Callbacks.Register("sky_phone:radio:save-badge", function(source, data)
     if not Config.Radio.Badge.Enabled then
         return { success = false, error = "badge_disabled" }
@@ -441,7 +428,9 @@ Bridge.Callbacks.Register("sky_phone:radio:save-badge", function(source, data)
     end
     profile.badge = badge
     save_profile(identifier, profile)
-    notify_hud("BadgeUpdateEvent", source, badge)
+    for frequency in pairs(frequency_set(channels[source])) do
+        broadcast_frequency(frequency)
+    end
     return { success = true, data = { badge = badge } }
 end)
 
@@ -470,21 +459,7 @@ Bridge.Callbacks.Register("sky_phone:radio:save-display-name", function(source, 
     for frequency in pairs(frequency_set(channels[source])) do
         broadcast_frequency(frequency)
     end
-    notify_hud("DisplayNameUpdateEvent", source, display_name)
     return { success = true, data = { displayName = display_name } }
-end)
-
-exports("GetPlayerBadge", function(source)
-    local _, profile = load_profile(tonumber(source))
-    return profile and profile.badge or ""
-end)
-
-exports("GetPlayerRadioDisplayName", function(source)
-    source = tonumber(source)
-    if not source then
-        return ""
-    end
-    return get_effective_display_name(source)
 end)
 
 AddEventHandler("playerDropped", function()

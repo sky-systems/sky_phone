@@ -57,9 +57,13 @@ Config.Radio = {
     },
     Hud = {
         Enabled = true,
-        Resource = "sa_hudv2",
-        BadgeUpdateEvent = "sky_phone:radio:badgeUpdated",
-        DisplayNameUpdateEvent = "sky_phone:radio:displayNameUpdated",
+        SpeakerPersistMilliseconds = 3000,
+        Position = {
+            Horizontal = "right", -- left or right
+            Vertical = "top", -- top or bottom
+            HorizontalOffset = 2.0, -- vh
+            VerticalOffset = 30.0, -- vh
+        },
     },
     Badge = {
         Enabled = true,

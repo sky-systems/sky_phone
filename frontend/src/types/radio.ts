@@ -4,11 +4,29 @@ export type RadioHistoryEntry = {
 }
 
 export type RadioMember = {
+  badge: string
   id: number
   joinTime: number
   name: string
   rank: string
   rankNumber: number
+}
+
+export type RadioHudConfig = {
+  enabled: boolean
+  horizontal: 'left' | 'right'
+  horizontalOffset: number
+  speakerPersistMilliseconds: number
+  vertical: 'bottom' | 'top'
+  verticalOffset: number
+}
+
+export type RadioHudMember = {
+  badge: string
+  channel: 1 | 2
+  id: number
+  name: string
+  talking: boolean
 }
 
 export type RadioSettings = {

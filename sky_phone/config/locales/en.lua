@@ -69,7 +69,7 @@ Locales["en"] = {
                 noHistory = "No history", badge = "Service number", badgePlaceholder = "e.g. 231",
                 profileSaved = "Radio profile saved", otherSettings = "Other", autoRejoin = "Automatic rejoin",
                 displayName = "Radio display name", displayNamePlaceholder = "Leave empty to use your character name",
-                displayNameDescription = "This name is shown to other participants in the radio and HUD.",
+                displayNameDescription = "This name is shown to other participants and in the built-in radio overlay.",
                 displayNameNotAllowed = "Your current job or grade is not allowed to change the radio display name.",
                 autoRejoinDescription = "Reconnect after spawning or restarting the phone resource",
                 radioNotifications = "Radio notifications", notificationsDescription = "Show joins and leaves on your current channel",

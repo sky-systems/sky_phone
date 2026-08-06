@@ -6,6 +6,87 @@ local radio_settings = {
     notifications = Config.Radio.Notifications,
 }
 local auto_rejoin_pending = false
+local hud_members = { [1] = {}, [2] = {} }
+local hud_talking = {}
+
+local function get_hud_config()
+    local hud = type(Config.Radio.Hud) == "table" and Config.Radio.Hud or {}
+    local position = type(hud.Position) == "table" and hud.Position or {}
+    return {
+        enabled = hud.Enabled == true,
+        horizontal = position.Horizontal == "left" and "left" or "right",
+        vertical = position.Vertical == "bottom" and "bottom" or "top",
+        horizontalOffset = math.max(0.0, math.min(100.0, tonumber(position.HorizontalOffset) or 2.0)),
+        verticalOffset = math.max(0.0, math.min(100.0, tonumber(position.VerticalOffset) or 30.0)),
+        speakerPersistMilliseconds = math.max(
+            0,
+            math.min(10000, math.floor(tonumber(hud.SpeakerPersistMilliseconds) or 3000))
+        ),
+    }
+end
+
+local function send_hud_config()
+    SendNUIMessage({ type = "radio:hud-config", data = get_hud_config() })
+end
+
+local function send_hud_members()
+    local combined = {}
+    for channel_id = 1, 2 do
+        for player_id, member in pairs(hud_members[channel_id]) do
+            if not combined[player_id] then
+                local talking = hud_talking[player_id]
+                combined[player_id] = {
+                    id = player_id,
+                    name = member.name,
+                    badge = member.badge,
+                    talking = talking and talking.state or false,
+                    channel = talking and talking.channel or channel_id,
+                }
+            end
+        end
+    end
+
+    local members = {}
+    for _, member in pairs(combined) do
+        members[#members + 1] = member
+    end
+    table.sort(members, function(left, right)
+        return left.name:lower() < right.name:lower()
+    end)
+    SendNUIMessage({ type = "radio:hud-update", data = { members = members } })
+end
+
+local function clear_hud_members()
+    hud_members = { [1] = {}, [2] = {} }
+    hud_talking = {}
+    send_hud_members()
+end
+
+local function set_hud_members(channel_id, members)
+    local channel_members = {}
+    if type(members) == "table" then
+        for _, member in ipairs(members) do
+            local player_id = tonumber(member.id)
+            if player_id then
+                channel_members[player_id] = {
+                    name = tostring(member.name or ("ID " .. player_id)),
+                    badge = tostring(member.badge or ""),
+                }
+            end
+        end
+    end
+    hud_members[channel_id] = channel_members
+    send_hud_members()
+end
+
+local function set_hud_talking(player_id, state, channel_id)
+    player_id = tonumber(player_id)
+    if not player_id then
+        return
+    end
+    hud_talking[player_id] = state and { state = true, channel = channel_id == 2 and 2 or 1 } or nil
+    send_hud_members()
+end
 
 local function request(name, data)
     local result = Bridge.Callbacks.Trigger("sky_phone:radio:" .. name, data or {})
@@ -47,6 +128,9 @@ local function join_radio(primary, secondary)
         return { success = false, error = "voice_unavailable" }
     end
 
+    if current_primary ~= approved_primary or current_secondary ~= approved_secondary then
+        clear_hud_members()
+    end
     current_primary = approved_primary
     current_secondary = approved_secondary
     Bridge.Radio.SetVolume(current_volume)
@@ -60,6 +144,7 @@ local function leave_radio()
     Bridge.Radio.Leave()
     current_primary = 0
     current_secondary = 0
+    clear_hud_members()
     return request("disconnect")
 end
 
@@ -110,10 +195,40 @@ RegisterNUICallback("radio:save-display-name", function(data, cb)
 end)
 
 RegisterNetEvent("sky_phone:radio:members", function(data)
-    if tonumber(data.frequency) ~= current_primary then
+    local frequency = tonumber(data.frequency)
+    local channel_id = frequency == current_primary and 1 or frequency == current_secondary and 2 or nil
+    if not channel_id then
         return
     end
-    SendNUIMessage({ type = "radio:updated", data = data })
+    set_hud_members(channel_id, data.members)
+    if channel_id == 1 then
+        SendNUIMessage({ type = "radio:updated", data = data })
+    end
+end)
+
+RegisterNetEvent("yaca:external:isRadioReceiving", function(state, channel, player_id)
+    if Bridge.Radio.GetProvider() ~= "yaca" then
+        return
+    end
+    set_hud_talking(player_id, state == true, tonumber(channel) or 1)
+end)
+
+RegisterNetEvent("yaca:external:isRadioTalking", function(state, channel)
+    if Bridge.Radio.GetProvider() ~= "yaca" then
+        return
+    end
+    set_hud_talking(GetPlayerServerId(PlayerId()), state == true, tonumber(channel) or 1)
+end)
+
+RegisterNetEvent("yaca:external:isRadioEnabled", function(state)
+    if Bridge.Radio.GetProvider() == "yaca" and not state then
+        clear_hud_members()
+    end
+end)
+
+AddEventHandler("sky_phone:client:nuiReady", function()
+    send_hud_config()
+    send_hud_members()
 end)
 
 RegisterNetEvent("sky_phone:radio:notification", function(data)
@@ -168,17 +283,22 @@ RegisterNetEvent("yaca:external:setRadioFrequency", function(channel, frequency)
     local channel_id = tonumber(channel)
     local value = math.max(0, tonumber(frequency) or 0)
     if channel_id == 1 then
+        hud_members[1] = {}
         current_primary = value
         if value == 0 then
             current_secondary = 0
+            hud_members[2] = {}
+            hud_talking = {}
             request("disconnect")
         else
             request("connect", { frequency = current_primary, secondaryFrequency = current_secondary })
         end
     elseif channel_id == 2 then
+        hud_members[2] = {}
         current_secondary = value == current_primary and 0 or value
         if current_primary > 0 then
             request("connect", { frequency = current_primary, secondaryFrequency = current_secondary })
         end
     end
+    send_hud_members()
 end)
