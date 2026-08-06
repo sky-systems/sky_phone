@@ -463,7 +463,26 @@ onMounted(async () => {
         <div v-if="!isAuthenticated" class="citymarkt__auth"><UserRound :size="40" /><h2>{{ phone.t('Apps.citymarkt.signInTitle') }}</h2><p>{{ phone.t('Apps.citymarkt.signInBody') }}</p></div>
         <template v-else>
           <div class="citymarkt__profile"><span>{{ account.email.charAt(0).toUpperCase() }}</span><div><strong>{{ account.email.split('@')[0] }}</strong><small>{{ account.email }}</small></div></div>
-          <div class="citymarkt__segmented"><button :class="{ active: profileMode === 'own' }" @click="profileMode = 'own'">{{ phone.t('Apps.citymarkt.myListings') }} ({{ marketplace.counts.active }})</button><button :class="{ active: profileMode === 'favorites' }" @click="profileMode = 'favorites'">{{ phone.t('Apps.citymarkt.favorites') }}</button></div>
+          <div class="citymarkt__segmented">
+            <button
+              type="button"
+              :class="{ active: profileMode === 'own' }"
+              @click="profileMode = 'own'"
+            >
+              <Tag :size="14" />
+              {{ phone.t('Apps.citymarkt.myListings') }}
+              <span>{{ marketplace.counts.active }}</span>
+            </button>
+            <button
+              type="button"
+              :class="{ active: profileMode === 'favorites' }"
+              @click="profileMode = 'favorites'"
+            >
+              <Heart :size="14" />
+              {{ phone.t('Apps.citymarkt.favorites') }}
+              <span>{{ marketplace.items.length }}</span>
+            </button>
+          </div>
           <div v-if="!displayItems.length" class="citymarkt__empty"><Tag :size="34" /><strong>{{ phone.t('Apps.citymarkt.noProfileListings') }}</strong></div>
           <div v-else class="citymarkt__list">
             <button v-for="item in displayItems" :key="item.id" @click="openListing(item)"><span :style="{ background: item.image ?? '#303238' }" /><div><strong>{{ item.title }}</strong><b>{{ formatPrice(item) }}</b><small>{{ label('status', item.status) }}</small></div><ChevronRight :size="17" /></button>
@@ -529,5 +548,12 @@ onMounted(async () => {
 .citymarkt__categories{margin-right:0;margin-left:0;padding-right:0;padding-left:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;overflow-x:visible}
 .citymarkt__categories button{width:auto;min-width:0}
 .citymarkt__filters .citymarkt-select:last-child{grid-column:1/-1}
-.citymarkt__segmented button{min-height:32px;padding:8px 7px;font-size:11px;font-weight:700}
+.citymarkt__segmented{padding:4px;gap:4px;border:1px solid #ffffff0b;border-radius:12px}
+.citymarkt__segmented button{min-height:36px;padding:8px 7px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:700;transition:background .18s ease,color .18s ease,transform .18s ease}
+.citymarkt__segmented button:active{transform:scale(.98)}
+.citymarkt__segmented button svg{flex:none}
+.citymarkt__segmented button span{min-width:19px;height:19px;padding:0 5px;border-radius:10px;display:grid;place-items:center;background:#ffffff10;font-size:9px;font-weight:900}
+.citymarkt__segmented button.active span{background:#17181626}
+:global(.citymarkt--light) .citymarkt__segmented{border-color:#0000000b}
+:global(.citymarkt--light) .citymarkt__segmented button span{background:#0000000b}
 </style>
