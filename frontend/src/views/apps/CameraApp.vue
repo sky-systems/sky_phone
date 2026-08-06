@@ -714,10 +714,10 @@ onBeforeUnmount(() => {
   width: 30px;
   height: 26px;
   padding: 0;
-  border: 1px solid rgb(255 255 255 / 15%);
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: rgb(28 28 28 / 90%);
-  color: rgb(255 255 255 / 75%);
+  background: transparent;
+  color: #fff;
   font-size: 10px;
   text-align: center;
   transition:
@@ -727,10 +727,10 @@ onBeforeUnmount(() => {
     box-shadow 0.2s ease;
 }
 .camera-zoom-pill.active {
-  border-color: rgb(255 255 255 / 60%);
-  background: rgb(255 255 255 / 92%);
+  border-color: transparent;
+  background: rgb(44 44 46 / 88%);
   box-shadow: 0 8px 16px rgb(0 0 0 / 30%);
-  color: #111;
+  color: #ffd60a;
 }
 .camera-controls {
   position: absolute;
