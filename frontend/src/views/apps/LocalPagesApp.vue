@@ -233,8 +233,11 @@ onMounted(() => void loadFeed())
     <template v-if="screen === 'main'">
       <header class="pages__header">
         <div>
-          <span class="pages__brand"><MapPin :size="14" /> {{ phone.t('Apps.localPages.eyebrow') }}</span>
-          <h1>{{ phone.t('Apps.localPages.name') }}</h1>
+          <span class="pages__brand">
+            <MapPin :size="14" />
+            {{ phone.t(tab === 'feed' ? 'Apps.localPages.eyebrow' : 'Apps.localPages.name') }}
+          </span>
+          <h1>{{ phone.t(tab === 'feed' ? 'Apps.localPages.name' : 'Apps.localPages.profile') }}</h1>
         </div>
       </header>
 
