@@ -11,6 +11,7 @@ import {
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { usePhoneStore } from '@/stores/phone'
+import { nuiCall } from '@/utils/nui'
 
 const emit = defineEmits<{
   camera: []
@@ -99,6 +100,13 @@ function unlockFromWallpaper(event: MouseEvent): void {
   emit('unlock')
 }
 
+async function toggleFlashlight(): Promise<void> {
+  const enabled = !flashlightActive.value
+  flashlightActive.value = enabled
+  const response = await nuiCall('camera:setFlash', { enabled })
+  if (!response.success) flashlightActive.value = !enabled
+}
+
 onMounted(() => {
   clockTicker = window.setInterval(() => {
     now.value = new Date()
@@ -107,6 +115,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (clockTicker !== undefined) window.clearInterval(clockTicker)
+  if (flashlightActive.value)
+    void nuiCall('camera:setFlash', { enabled: false })
 })
 </script>
 
@@ -156,7 +166,7 @@ onBeforeUnmount(() => {
           class="lock-screen__shortcut"
           :colors="flashlightShortcutColors"
           :aria-label="phone.t('LockScreen.flashlight')"
-          @click="flashlightActive = !flashlightActive"
+          @click="toggleFlashlight"
         >
           <template #icon>
             <Flashlight :stroke-width="1.4" aria-hidden="true" />

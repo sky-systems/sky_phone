@@ -38,12 +38,12 @@ end
 
 local function set_flash_enabled(enabled)
     camera_state.flash_enabled = enabled
-    if not enabled or not camera_state.active or camera_state.flash_thread then
+    if not enabled or camera_state.flash_thread then
         return
     end
     camera_state.flash_thread = true
     CreateThread(function()
-        while camera_state.active and camera_state.flash_enabled do
+        while camera_state.flash_enabled do
             draw_flash_light()
             Wait(0)
         end
@@ -238,7 +238,7 @@ local function set_camera_active(active)
         end)
         return
     end
-    camera_state.flash_enabled = false
+    set_flash_enabled(false)
     camera_state.front_camera = false
     clear_front_camera()
     clear_ultrawide_camera()
@@ -356,11 +356,13 @@ RegisterNetEvent("sky_phone:media:delete-result", function(data)
 end)
 
 AddEventHandler("sky_phone:nuiClosed", function()
+    set_flash_enabled(false)
     set_camera_active(false)
 end)
 
 AddEventHandler("onResourceStop", function(resource_name)
     if resource_name == GetCurrentResourceName() then
+        set_flash_enabled(false)
         set_camera_active(false)
         SetNuiFocusKeepInput(false)
     end
