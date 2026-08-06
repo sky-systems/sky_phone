@@ -34,6 +34,52 @@ Config.Calls = {
     RecentPageSize = 100,
 }
 
+Config.Radio = {
+    VoiceProvider = "auto", -- auto, yaca, pma, saltychat
+    DefaultVolume = 50,
+    HistoryLimit = 8,
+    FrequencyMin = 0.1,
+    FrequencyMax = 999.9,
+    FrequencyDecimals = 1,
+    AllowSecondary = true,
+    Notifications = false,
+    AutoRejoin = false,
+    DisplayName = {
+        Enabled = true,
+        MaxLength = 32,
+        AllowedJobs = { -- Job name = minimum grade. Unlisted jobs cannot set a radio display name.
+            police = 0,
+            sheriff = 0,
+            fib = 0,
+            army = 0,
+            ambulance = 0,
+        },
+    },
+    Hud = {
+        Enabled = true,
+        Resource = "sa_hudv2",
+        BadgeUpdateEvent = "sky_phone:radio:badgeUpdated",
+        DisplayNameUpdateEvent = "sky_phone:radio:displayNameUpdated",
+    },
+    Badge = {
+        Enabled = true,
+        MaxLength = 8,
+        ForbiddenPatterns = { "88", "1488", "18", "14", "28", "198" },
+    },
+    LockedChannels = {
+        {
+            range = { 0.1, 100.0 },
+            jobs = {
+                police = true,
+                sheriff = true,
+                fib = true,
+                army = true,
+                ambulance = true,
+            },
+        },
+    },
+}
+
 Config.Mail = {
     Domain = "ifruit.com",
     LocalPartMinLength = 3,

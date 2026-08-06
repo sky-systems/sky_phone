@@ -14,6 +14,7 @@ import {
   MapPinned,
   NotebookPen,
   Phone,
+  RadioTower,
   Settings,
   ShoppingBag,
   CloudSun,
@@ -31,6 +32,7 @@ import calendarIcon from '@/assets/img/app-icons/calendar.svg'
 import mailIcon from '@/assets/img/app-icons/mail.webp'
 import mapIcon from '@/assets/img/app-icons/map.webp'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
+import radioIcon from '@/assets/img/app-icons/radio.svg'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
 import settingsIcon from '@/assets/img/app-icons/settings.webp'
@@ -76,6 +78,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'local-pages',
     labelKey: 'Apps.localPages.name',
     route: '/apps/local-pages',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/RadioApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 21,
+    icon: markRaw(RadioTower),
+    iconClass: 'app-icon--radio',
+    iconImage: radioIcon,
+    id: 'radio',
+    labelKey: 'Apps.radio.name',
+    route: '/apps/radio',
   },
   {
     component: markRaw(

@@ -10,6 +10,7 @@ export type PhoneAppId =
   | 'mail'
   | 'map'
   | 'notes'
+  | 'radio'
   | 'photos'
   | 'app-store'
   | 'settings'

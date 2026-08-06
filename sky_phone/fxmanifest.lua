@@ -25,7 +25,9 @@ client_scripts {
     'source/bridge/client/framework.lua',
     'source/bridge/client/callbacks.lua',
     'source/client/camera.lua',
+    'source/bridge/client/radio.lua',
     'source/client/main.lua',
+    'source/client/radio.lua',
 }
 
 server_scripts {
@@ -49,6 +51,7 @@ server_scripts {
     'source/server/pages.lua',
     'source/server/media.lua',
     'source/server/calendar.lua',
+    'source/server/radio.lua',
 }
 
 files {

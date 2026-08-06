@@ -15,6 +15,7 @@ An iFruit account is optional. Unlinked devices retain local settings, alarms, m
 - A FiveManage V3 Media API token for Camera photo/video uploads and Gallery deletion. Set the
   server-only `Config.Media.FiveManage.ApiKey` in `sky_phone/config/media.lua`; the token is never
   sent to NUI because clients receive temporary presigned upload URLs instead.
+- `yaca-voice`, `pma-voice`, or `saltychat` when the Radio app is enabled. `Config.Radio.VoiceProvider = "auto"` selects the first running provider in that order.
 
 Database migrations run automatically. Existing `sky_phone_mail_accounts` installations are renamed to `sky_phone_accounts` while preserving account IDs and mail foreign keys. iFruit passwords are intentional in-character credentials and remain plaintext `VARCHAR(64)` values; registration screens warn players never to reuse a real password.
 
@@ -26,6 +27,14 @@ and attempts to delete its remote FiveManage files, while account-owned media re
 For a fresh manual database installation, import `sky_phone/sql/install.sql`. It contains the complete current table, key, index, collation, and foreign-key schema. Runtime migrations remain authoritative for upgrading an existing installation and must stay enabled.
 
 Framework, inventory, callback, notification, and database integrations live under `sky_phone/source/bridge`. The resource has no dependency on any other Sky resource.
+
+## Radio app
+
+The built-in Radio app supports a primary frequency, volume, recent channels, participant lists, automatic rejoin, join/leave notifications, and an optional service number. YACA and SaltyChat support the configured secondary frequency; PMA Voice exposes one radio channel, so the secondary input is hidden automatically.
+
+Configure frequency bounds and precision, restricted channel ranges and allowed jobs, history length, defaults, badge validation, radio display-name permissions, and the optional HUD integration under `Config.Radio`. `Config.Radio.DisplayName.AllowedJobs` maps authoritative framework job names to their minimum grade. Unlisted jobs cannot change the name; an empty name restores the normal player or character name. Channel and display-name access are always checked server-side. Setting `Config.Radio.Hud.Enabled = false` disables external HUD notifications while the phone-owned `GetPlayerBadge` and `GetPlayerRadioDisplayName` server exports remain available.
+
+Radio profiles are stored in `sky_phone_radio_profiles`. Runtime migration creates the table automatically; fresh installations receive it through `sky_phone/sql/install.sql`.
 
 Inventory metadata has no framework-wide standard: providers differ in export names, callback payloads, slot handling, and whether metadata is called `metadata` or `info`. For that reason, `sky_phone` uses explicit provider adapters instead of guessing exports at runtime. Every supported adapter implements slot lookup, item lookup, metadata replacement, capacity handling, add/remove operations, and usable-item registration. Providers without a separate capacity export use their authoritative add operation as the final capacity gate.
 

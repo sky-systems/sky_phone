@@ -194,3 +194,15 @@ CREATE TABLE IF NOT EXISTS `sky_phone_calendar_events` (
     KEY `idx_sky_phone_calendar_reminders` (`reminded_at`, `starts_at`),
     FOREIGN KEY (`account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_radio_profiles` (
+    `identifier` VARCHAR(80) NOT NULL,
+    `history` LONGTEXT NOT NULL,
+    `settings` LONGTEXT NOT NULL,
+    `primary_frequency` DOUBLE NOT NULL DEFAULT 0,
+    `secondary_frequency` DOUBLE NOT NULL DEFAULT 0,
+    `badge` VARCHAR(32) NOT NULL DEFAULT '',
+    `display_name` VARCHAR(64) NOT NULL DEFAULT '',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`identifier`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

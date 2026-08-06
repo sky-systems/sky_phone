@@ -629,6 +629,24 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_radio_profiles",
+        columns = {
+            { name = "identifier", type = "VARCHAR(80) NOT NULL" },
+            { name = "history", type = "LONGTEXT NOT NULL" },
+            { name = "settings", type = "LONGTEXT NOT NULL" },
+            { name = "primary_frequency", type = "DOUBLE NOT NULL DEFAULT 0" },
+            { name = "secondary_frequency", type = "DOUBLE NOT NULL DEFAULT 0" },
+            { name = "badge", type = "VARCHAR(32) NOT NULL DEFAULT ''" },
+            { name = "display_name", type = "VARCHAR(64) NOT NULL DEFAULT ''" },
+            {
+                name = "updated_at",
+                type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+            },
+        },
+        primaryKey = "identifier",
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Bridge.Database.Migrate("sky_phone", schema)
