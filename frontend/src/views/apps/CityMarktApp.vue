@@ -22,6 +22,7 @@ import {
   MoreHorizontal,
   Search,
   Send,
+  Share2,
   Shirt,
   Tag,
   UserRound,
@@ -36,6 +37,7 @@ import CityMarktOfferCard from '@/components/citymarkt/CityMarktOfferCard.vue'
 import { useAccountStore } from '@/stores/account'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useMediaStore } from '@/stores/media'
+import { usePagesStore } from '@/stores/pages'
 import { usePhoneStore } from '@/stores/phone'
 import type {
   MarketplaceCategory,
@@ -59,6 +61,7 @@ const phone = usePhoneStore()
 const account = useAccountStore()
 const marketplace = useMarketplaceStore()
 const media = useMediaStore()
+const pages = usePagesStore()
 const tab = ref<Tab>('discover')
 const screen = ref<Screen>('main')
 const selectedListing = ref<MarketplaceListing | null>(null)
@@ -256,6 +259,14 @@ function setFeedback(key: string): void {
   window.setTimeout(() => {
     feedback.value = ''
   }, 2600)
+}
+
+async function shareToLocalPages(): Promise<void> {
+  if (!selectedListing.value) return
+  const response = await pages.shareCityMarkt(selectedListing.value.id)
+  setFeedback(response.success
+    ? 'Apps.localPages.cityMarktShared'
+    : `Apps.localPages.errors.${response.error ?? 'default'}`)
 }
 
 async function loadFeed(): Promise<void> {
@@ -695,6 +706,12 @@ onMounted(async () => {
         <div class="citymarkt__seller"><span>{{ selectedListing.seller_name.charAt(0).toUpperCase() }}</span><div><strong>{{ selectedListing.seller_name }}</strong><small>{{ selectedListing.seller_active }} {{ phone.t('Apps.citymarkt.activeListings') }}</small></div></div>
         <p v-if="selectedListing.phone_number" class="citymarkt__phone">{{ phone.t('Apps.citymarkt.phone') }}: {{ selectedListing.phone_number }}</p>
         <template v-if="selectedListing.is_owner">
+          <button
+            v-if="selectedListing.status === 'active' || selectedListing.status === 'reserved'"
+            class="citymarkt__pages-share"
+            type="button"
+            @click="shareToLocalPages"
+          ><Share2 :size="17" /><span><strong>{{ phone.t('Apps.localPages.cityMarktShare') }}</strong><small>{{ phone.t('Apps.localPages.cityMarktShareHint') }}</small></span></button>
           <div class="citymarkt__owner-actions"><button v-if="selectedListing.status !== 'sold' && selectedListing.status !== 'removed'" @click="editListing">{{ phone.t('Apps.citymarkt.edit') }}</button><button v-if="selectedListing.status === 'reserved' || selectedListing.status === 'expired'" @click="setListingStatus('active')">{{ phone.t('Apps.citymarkt.makeActive') }}</button><button v-if="selectedListing.status === 'active' || selectedListing.status === 'reserved'" @click="setListingStatus('sold')">{{ phone.t('Apps.citymarkt.markSold') }}</button><button v-if="selectedListing.status !== 'sold' && selectedListing.status !== 'removed'" class="danger" @click="setListingStatus('removed')">{{ phone.t('Apps.citymarkt.remove') }}</button></div>
         </template>
         <template v-else-if="isAuthenticated">
@@ -884,4 +901,5 @@ onMounted(async () => {
 :global(.citymarkt--light) .citymarkt__card-image--empty,:global(.citymarkt--light) .citymarkt__thumb--empty{background:linear-gradient(145deg,#ecece7,#dedfd8)!important}:global(.citymarkt--light) .citymarkt__photo-actions>button{border-color:#00000010}:global(.citymarkt--light) .citymarkt__selected-strip button{border-color:#00000018}
 .citymarkt__sell>header strong{font-size:13px}.citymarkt__sell>header small{font-size:10px}.citymarkt__sell>header>button:last-child{font-size:11px}.citymarkt__sell-body h2{font-size:23px;line-height:1.15}.citymarkt__sell-body>p{font-size:11px;line-height:1.45}.citymarkt__sell-body label{font-size:10.5px}.citymarkt__sell-body input:not([type=checkbox]),.citymarkt__sell-body textarea{padding:11px 12px;font-size:12px}.citymarkt__sell-body input:not([type=checkbox]){min-height:41px}.citymarkt__sell-body textarea{line-height:1.4}.citymarkt__switch{font-size:10.5px!important}.citymarkt__previous{font-size:11px}.citymarkt__photo-actions strong{font-size:11px}.citymarkt__photo-actions small{font-size:8.5px;line-height:1.4}.citymarkt__selected-heading strong{font-size:12px}.citymarkt__selected-heading span{font-size:9px}.citymarkt__sell-body h3{font-size:18px}.citymarkt__sell-body>small{font-size:10px}.citymarkt__sell :deep(.citymarkt-select__trigger){height:41px;padding:0 12px;font-size:12px}.citymarkt__sell :deep(.citymarkt-select__menu button){min-height:35px;padding:8px;font-size:11px}.citymarkt__sell :deep(.citymarkt-gallery__empty strong){font-size:13px}.citymarkt__sell :deep(.citymarkt-gallery__empty small){font-size:9px;line-height:1.4}
 .citymarkt__field-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.citymarkt__field-heading>small{color:#ff9c72;font-size:8.5px;font-weight:850;white-space:nowrap;transition:color .18s ease}.citymarkt__field-heading>small.valid{color:#62dc8e}
+.citymarkt__pages-share{width:100%;margin:4px 0 8px;padding:10px 12px;border:1px solid #ffc92855;border-radius:12px;display:flex;align-items:center;gap:8px;text-align:left;background:#ffc92816;color:var(--yellow)!important}.citymarkt__pages-share span{flex:1}.citymarkt__pages-share strong,.citymarkt__pages-share small{display:block}.citymarkt__pages-share strong{font-size:10px}.citymarkt__pages-share small{color:var(--muted);font-size:8px}
 </style>

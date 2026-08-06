@@ -44,6 +44,7 @@ server_scripts {
     'source/server/notes.lua',
     'source/server/mail.lua',
     'source/server/marketplace.lua',
+    'source/server/pages.lua',
 }
 
 files {

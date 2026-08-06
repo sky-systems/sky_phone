@@ -502,6 +502,75 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_pages_posts",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "source_type", type = "ENUM('personal', 'citymarkt') NOT NULL DEFAULT 'personal'" },
+            { name = "share_date", type = "DATE NULL" },
+            { name = "citymarkt_listing_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "title", type = "VARCHAR(80) NOT NULL" },
+            { name = "body", type = "TEXT NOT NULL" },
+            { name = "category", type = "VARCHAR(32) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "district", type = "VARCHAR(32) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_pages_citymarkt_listing", columns = "(`citymarkt_listing_id`)" },
+            { name = "uniq_sky_phone_pages_daily_share", columns = "(`account_id`, `source_type`, `share_date`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_pages_feed", columns = "(`created_at`)" },
+            { name = "idx_sky_phone_pages_category", columns = "(`category`, `created_at`)" },
+            { name = "idx_sky_phone_pages_owner", columns = "(`account_id`, `created_at`)" },
+            { name = "idx_sky_phone_pages_daily_share", columns = "(`account_id`, `source_type`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "citymarkt_listing_id", references = "`sky_phone_marketplace_listings` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_pages_images",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "post_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "media_id", type = "VARCHAR(64) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "gradient", type = "VARCHAR(160) NOT NULL" },
+            { name = "sort_order", type = "TINYINT UNSIGNED NOT NULL" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_pages_image_order", columns = "(`post_id`, `sort_order`)" },
+        },
+        foreignKeys = {
+            { column = "post_id", references = "`sky_phone_pages_posts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_pages_reactions",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "post_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "kind", type = "ENUM('like', 'save') NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_pages_reaction", columns = "(`post_id`, `account_id`, `kind`)" },
+        },
+        foreignKeys = {
+            { column = "post_id", references = "`sky_phone_pages_posts` (`id`) ON DELETE CASCADE" },
+            { column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Bridge.Database.Migrate("sky_phone", schema)

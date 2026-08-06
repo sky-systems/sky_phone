@@ -18,6 +18,7 @@ import {
   CloudSun,
   Wind,
   Tag,
+  MapPinHouse,
 } from 'lucide-vue-next'
 import { defineAsyncComponent, markRaw } from 'vue'
 
@@ -40,9 +41,23 @@ import skyFlappyIcon from '@/assets/img/app-icons/sky-flappy.webp'
 import neonDropIcon from '@/assets/img/app-icons/neon-drop.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
 import citymarktIcon from '@/assets/img/app-icons/citymarkt.webp'
+import localPagesIcon from '@/assets/img/app-icons/local-pages.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/LocalPagesApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 19,
+    icon: markRaw(MapPinHouse),
+    iconClass: 'app-icon--local-pages',
+    iconImage: localPagesIcon,
+    id: 'local-pages',
+    labelKey: 'Apps.localPages.name',
+    route: '/apps/local-pages',
+  },
   {
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/PhoneApp.vue')),

@@ -20,6 +20,7 @@ export type PhoneAppId =
   | 'sky-flappy'
   | 'neon-drop'
   | 'citymarkt'
+  | 'local-pages'
 
 export type AppLaunchOrigin = {
   borderRadius: number

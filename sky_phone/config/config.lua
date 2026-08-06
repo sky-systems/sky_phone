@@ -91,3 +91,14 @@ Config.Marketplace = {
         "linear-gradient(135deg, #ffc75f, #f96d80 48%, #4b4453)",
     },
 }
+
+Config.LocalPages = {
+    PageSize = 20,
+    MaxImages = 6,
+    TitleMinLength = 5,
+    TitleMaxLength = 80,
+    BodyMinLength = 10,
+    BodyMaxLength = 1500,
+    Categories = { "recommendation", "wanted", "service", "event", "place", "community" },
+    CityMarktSharesPerDay = 1,
+}

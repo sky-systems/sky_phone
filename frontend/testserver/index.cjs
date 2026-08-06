@@ -258,6 +258,38 @@ const marketplaceOffers = [
     updated_at: '2026-08-06 11:56:00',
   },
 ]
+const pagesPosts = [
+  {
+    id: 'pages-1', account_id: 2, author_name: 'morgan', source_type: 'personal', citymarkt_listing_id: null,
+    title: 'Best sunset view above Vinewood', body: 'Take the small trail behind the observatory shortly before sunset. The view across Los Santos is incredible and there is enough space to park two cars.',
+    category: 'recommendation', district: 'vinewood', created_at: '2026-08-06 12:20:00', like_count: 18,
+    images: [{ media_id: 'sunset-drive', gradient: 'linear-gradient(145deg, #ff9a62, #5f2c82 58%, #141e30)', sort_order: 1 }],
+  },
+  {
+    id: 'pages-2', account_id: 1, author_name: 'demo', source_type: 'personal', citymarkt_listing_id: null,
+    title: 'Looking for people for a beach cruise', body: 'Meeting at Vespucci Pier tonight. Bring a clean car and a good playlist. Everyone is welcome.',
+    category: 'community', district: 'vespucci', created_at: '2026-08-06 11:10:00', like_count: 7,
+    images: [{ media_id: 'ocean-air', gradient: 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', sort_order: 1 }],
+  },
+  {
+    id: 'pages-3', account_id: 3, author_name: 'jamie', source_type: 'personal', citymarkt_listing_id: null,
+    title: 'Mobile repair help around Sandy Shores', body: 'I can help with small repairs and jump starts around Sandy Shores this afternoon. Send me a message when you see me nearby.',
+    category: 'service', district: 'sandy_shores', created_at: '2026-08-05 19:40:00', like_count: 12, images: [],
+  },
+]
+const pagesReactions = [{ post_id: 'pages-1', account_id: 1, kind: 'like' }, { post_id: 'pages-3', account_id: 1, kind: 'save' }]
+
+function pageView(post) {
+  const listing = marketplaceListings.find((item) => item.id === post.citymarkt_listing_id)
+  return {
+    ...post,
+    citymarkt_price: listing?.price ?? null,
+    image: post.images[0]?.gradient ?? null,
+    is_liked: pagesReactions.some((item) => item.post_id === post.id && item.account_id === 1 && item.kind === 'like'),
+    is_owner: authenticated && post.account_id === 1,
+    is_saved: pagesReactions.some((item) => item.post_id === post.id && item.account_id === 1 && item.kind === 'save'),
+  }
+}
 
 function counts() {
   return {
@@ -338,6 +370,60 @@ app.post('/api/:endpoint', (request, response) => {
     linkedAccount = null
     mockNotes = []
     for (const key of Object.keys(deviceData)) delete deviceData[key]
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'pages:list') {
+    const query = String(request.body.search ?? '').toLowerCase()
+    let items = pagesPosts
+    if (request.body.category && request.body.category !== 'all') items = items.filter((item) => item.category === request.body.category)
+    if (query) items = items.filter((item) => `${item.title} ${item.body}`.toLowerCase().includes(query))
+    if (request.body.saved) items = items.filter((post) => pagesReactions.some((reaction) => reaction.post_id === post.id && reaction.account_id === 1 && reaction.kind === 'save'))
+    response.json({ success: true, data: { hasMore: false, items: items.map(pageView), offset: 0 } })
+    return
+  }
+  if (endpoint === 'pages:get') {
+    const post = pagesPosts.find((item) => item.id === request.body.id)
+    response.json(post ? { success: true, data: pageView(post) } : { success: false, error: 'post_not_found' })
+    return
+  }
+  if (endpoint.startsWith('pages:') && !authenticated) {
+    response.json({ success: false, error: 'not_authenticated' })
+    return
+  }
+  if (endpoint === 'pages:list-own') {
+    response.json({ success: true, data: { hasMore: false, items: pagesPosts.filter((item) => item.account_id === 1).map(pageView), offset: 0 } })
+    return
+  }
+  if (endpoint === 'pages:create') {
+    const gradients = { 'sunset-drive': 'linear-gradient(145deg, #ff9a62, #5f2c82 58%, #141e30)', 'ocean-air': 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', 'city-lights': 'linear-gradient(135deg, #fbc2eb, #a6c1ee 48%, #302b63)', 'desert-road': 'linear-gradient(150deg, #f6d365, #fda085 45%, #512b58)' }
+    const id = `pages-${Date.now()}`
+    const images = request.body.images.map((image, index) => ({ media_id: image.id, gradient: gradients[image.id] ?? 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)', sort_order: index + 1 }))
+    pagesPosts.unshift({ ...request.body, id, account_id: 1, author_name: 'demo', source_type: 'personal', citymarkt_listing_id: null, created_at: new Date().toISOString(), like_count: 0, images })
+    response.json({ success: true, data: { id } })
+    return
+  }
+  if (endpoint === 'pages:share-citymarkt') {
+    const listing = marketplaceListings.find((item) => item.id === request.body.listingId && item.seller_account_id === 1 && ['active', 'reserved'].includes(item.status))
+    if (!listing) { response.json({ success: false, error: 'citymarkt_not_found' }); return }
+    if (pagesPosts.some((item) => item.citymarkt_listing_id === listing.id)) { response.json({ success: false, error: 'citymarkt_already_shared' }); return }
+    if (pagesPosts.some((item) => item.account_id === 1 && item.source_type === 'citymarkt' && item.created_at.slice(0, 10) === '2026-08-06')) { response.json({ success: false, error: 'citymarkt_daily_limit' }); return }
+    const id = `pages-${Date.now()}`
+    pagesPosts.unshift({ id, account_id: 1, author_name: 'demo', source_type: 'citymarkt', citymarkt_listing_id: listing.id, title: listing.title, body: listing.description, category: 'citymarkt', district: listing.district, created_at: '2026-08-06 13:30:00', like_count: 0, images: listing.images })
+    response.json({ success: true, data: { id } })
+    return
+  }
+  if (endpoint === 'pages:react') {
+    const index = pagesReactions.findIndex((item) => item.post_id === request.body.id && item.account_id === 1 && item.kind === request.body.kind)
+    if (request.body.active && index < 0) pagesReactions.push({ post_id: request.body.id, account_id: 1, kind: request.body.kind })
+    if (!request.body.active && index >= 0) pagesReactions.splice(index, 1)
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'pages:delete') {
+    const index = pagesPosts.findIndex((item) => item.id === request.body.id && item.account_id === 1)
+    if (index < 0) { response.json({ success: false, error: 'post_not_found' }); return }
+    pagesPosts.splice(index, 1)
     response.json({ success: true })
     return
   }
