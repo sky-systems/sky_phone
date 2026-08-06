@@ -97,8 +97,11 @@ local function load_images(listing_id)
 end
 
 local function validate_images(source, imei, images)
-    if type(images) ~= "table" or #images < 1 or #images > Config.Marketplace.MaxImages then
+    if type(images) ~= "table" or #images > Config.Marketplace.MaxImages then
         return nil
+    end
+    if #images == 0 then
+        return {}
     end
 
     local owned_media = {

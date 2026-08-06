@@ -4,6 +4,7 @@ import {
   BadgeDollarSign,
   Bell,
   BriefcaseBusiness,
+  Camera,
   CarFront,
   ChevronRight,
   CirclePlus,
@@ -11,7 +12,9 @@ import {
   Hammer,
   Heart,
   House,
+  ImageOff,
   ImagePlus,
+  Images,
   Inbox,
   Laptop,
   MapPin,
@@ -28,6 +31,7 @@ import {
 import { computed, onMounted, ref } from 'vue'
 
 import CityMarktSelect from '@/components/citymarkt/CityMarktSelect.vue'
+import CityMarktGallery from '@/components/citymarkt/CityMarktGallery.vue'
 import CityMarktOfferCard from '@/components/citymarkt/CityMarktOfferCard.vue'
 import { useAccountStore } from '@/stores/account'
 import { useMarketplaceStore } from '@/stores/marketplace'
@@ -73,6 +77,8 @@ const feedback = ref('')
 const sellStep = ref(1)
 const submitting = ref(false)
 const selectedPhotoIds = ref<string[]>([])
+const photoSource = ref<'camera' | 'gallery' | null>(null)
+const cameraFlash = ref(false)
 const reportReason = ref('spam')
 const reportDetails = ref('')
 const editing = ref<{ id: string; revision: number } | null>(null)
@@ -158,6 +164,14 @@ const displayItems = computed(() => {
   }
   return marketplace.items
 })
+const draftImages = computed(() =>
+  selectedPhotoIds.value.flatMap((id, index) => {
+    const photo = media.photos.find((item) => item.id === id)
+    return photo
+      ? [{ gradient: photo.gradient, media_id: photo.id, sort_order: index + 1 }]
+      : []
+  }),
+)
 const chatTimeline = computed<ChatTimelineItem[]>(() => {
   if (!selectedChat.value) return []
   const messages: ChatTimelineItem[] = selectedChat.value.messages.map((item) => ({
@@ -196,7 +210,7 @@ const offerButtonLabel = computed(() =>
     : phone.t('Apps.citymarkt.makeOffer'),
 )
 const canContinueSell = computed(() => {
-  if (sellStep.value === 1) return selectedPhotoIds.value.length > 0
+  if (sellStep.value === 1) return true
   if (sellStep.value === 2)
     return draft.value.title.trim().length >= 5 && draft.value.description.trim().length >= 20
   if (sellStep.value === 3)
@@ -319,12 +333,25 @@ function togglePhoto(id: string): void {
   const index = selectedPhotoIds.value.indexOf(id)
   if (index >= 0) selectedPhotoIds.value.splice(index, 1)
   else if (selectedPhotoIds.value.length < 6) selectedPhotoIds.value.push(id)
+  else setFeedback('Apps.citymarkt.photoLimit')
+}
+
+function captureMarketplacePhoto(): void {
+  if (selectedPhotoIds.value.length >= 6) {
+    setFeedback('Apps.citymarkt.photoLimit')
+    return
+  }
+  cameraFlash.value = true
+  const photo = media.capture()
+  selectedPhotoIds.value.push(photo.id)
+  window.setTimeout(() => (cameraFlash.value = false), 120)
 }
 
 function resetSell(): void {
   editing.value = null
   sellStep.value = 1
   selectedPhotoIds.value = []
+  photoSource.value = null
   draft.value = {
     category: 'vehicles',
     condition: 'used',
@@ -586,7 +613,8 @@ onMounted(async () => {
         </div>
         <div v-else class="citymarkt__grid">
           <button v-for="item in displayItems" :key="item.id" type="button" @click="openListing(item)">
-            <span class="citymarkt__card-image" :style="{ background: item.image ?? '#303238' }">
+            <span class="citymarkt__card-image" :class="{ 'citymarkt__card-image--empty': !item.image }" :style="{ background: item.image ?? undefined }">
+              <span v-if="!item.image" class="citymarkt__image-placeholder"><ImageOff :size="20" /><small>{{ phone.t('Apps.citymarkt.noPhoto') }}</small></span>
               <i v-if="item.status === 'reserved'">{{ phone.t('Apps.citymarkt.status.reserved') }}</i>
               <Heart v-if="item.is_favorite" :size="15" fill="currentColor" />
             </span>
@@ -602,7 +630,7 @@ onMounted(async () => {
         <div v-else-if="!marketplace.inquiries.length" class="citymarkt__empty"><MessageCircle :size="36" /><strong>{{ phone.t('Apps.citymarkt.noMessages') }}</strong><span>{{ phone.t('Apps.citymarkt.noMessagesBody') }}</span></div>
         <div v-else class="citymarkt__inquiries">
           <button v-for="item in marketplace.inquiries" :key="item.id" type="button" @click="openChat(item.id)">
-            <span :style="{ background: item.image ?? '#303238' }" />
+            <span :class="{ 'citymarkt__thumb--empty': !item.image }" :style="{ background: item.image ?? undefined }"><ImageOff v-if="!item.image" :size="17" /></span>
             <div><strong>{{ item.other_name }}</strong><b>{{ item.title }}</b><small>{{ item.last_message }}</small></div>
             <i v-if="Number(item.unread)">{{ item.unread }}</i><ChevronRight :size="16" />
           </button>
@@ -635,7 +663,7 @@ onMounted(async () => {
           </div>
           <div v-if="!displayItems.length" class="citymarkt__empty"><Tag :size="34" /><strong>{{ phone.t('Apps.citymarkt.noProfileListings') }}</strong></div>
           <div v-else class="citymarkt__list">
-            <button v-for="item in displayItems" :key="item.id" @click="openListing(item)"><span :style="{ background: item.image ?? '#303238' }" /><div><strong>{{ item.title }}</strong><b>{{ formatPrice(item) }}</b><small>{{ label('status', item.status) }}</small></div><ChevronRight :size="17" /></button>
+            <button v-for="item in displayItems" :key="item.id" @click="openListing(item)"><span :class="{ 'citymarkt__thumb--empty': !item.image }" :style="{ background: item.image ?? undefined }"><ImageOff v-if="!item.image" :size="17" /></span><div><strong>{{ item.title }}</strong><b>{{ formatPrice(item) }}</b><small>{{ label('status', item.status) }}</small></div><ChevronRight :size="17" /></button>
           </div>
         </template>
       </template>
@@ -643,7 +671,15 @@ onMounted(async () => {
 
     <section v-else-if="screen === 'detail' && selectedListing" class="citymarkt__detail">
       <div class="citymarkt__top-actions"><button @click="screen = 'main'"><ArrowLeft :size="19" /></button><div><button v-if="!selectedListing.is_owner" @click="toggleFavorite"><Heart :size="19" :fill="selectedListing.is_favorite ? 'currentColor' : 'none'" /></button><button v-if="!selectedListing.is_owner" @click="screen = 'report'"><MoreHorizontal :size="20" /></button></div></div>
-      <div class="citymarkt__hero" :style="{ background: selectedListing.images[0]?.gradient ?? '#303238' }"><span>{{ selectedListing.images.length }} {{ phone.t('Apps.citymarkt.photos') }}</span></div>
+      <CityMarktGallery
+        class="citymarkt__hero"
+        :images="selectedListing.images"
+        :empty-title="phone.t('Apps.citymarkt.noPhoto')"
+        :empty-body="phone.t('Apps.citymarkt.noPhotoBody')"
+        :previous-label="phone.t('Apps.citymarkt.previousPhoto')"
+        :next-label="phone.t('Apps.citymarkt.nextPhoto')"
+        :photo-label="phone.t('Apps.citymarkt.photo')"
+      />
       <div class="citymarkt__detail-body">
         <div class="citymarkt__price-row"><div><h2>{{ formatPrice(selectedListing) }}</h2><span v-if="selectedListing.status !== 'active'">{{ label('status', selectedListing.status) }}</span></div><small>{{ relativeDate(selectedListing.created_at) }}</small></div>
         <h1>{{ selectedListing.title }}</h1>
@@ -665,12 +701,74 @@ onMounted(async () => {
       <header><button @click="resetSell(); screen = 'main'; tab = 'discover'"><X :size="20" /></button><div><strong>{{ phone.t(editing ? 'Apps.citymarkt.editListing' : 'Apps.citymarkt.createListing') }}</strong><small>{{ phone.t('Apps.citymarkt.step', { current: String(sellStep), total: '4' }) }}</small></div><button :disabled="!canContinueSell || submitting" @click="sellStep < 4 ? sellStep++ : publish()">{{ sellStep < 4 ? phone.t('Apps.citymarkt.next') : phone.t(editing ? 'Apps.citymarkt.save' : 'Apps.citymarkt.publish') }}</button></header>
       <div class="citymarkt__progress"><i :style="{ width: `${sellStep * 25}%` }" /></div>
       <div class="citymarkt__sell-body">
-        <template v-if="sellStep === 1"><ImagePlus :size="32" /><h2>{{ phone.t('Apps.citymarkt.addPhotos') }}</h2><p>{{ phone.t('Apps.citymarkt.addPhotosBody') }}</p><div class="citymarkt__photo-picker"><button v-for="photo in media.photos" :key="photo.id" :class="{ active: selectedPhotoIds.includes(photo.id) }" :style="{ background: photo.gradient }" @click="togglePhoto(photo.id)"><i>{{ selectedPhotoIds.indexOf(photo.id) + 1 }}</i></button></div></template>
+        <template v-if="sellStep === 1">
+          <ImagePlus :size="32" />
+          <h2>{{ phone.t('Apps.citymarkt.addPhotos') }}</h2>
+          <p>{{ phone.t('Apps.citymarkt.addPhotosBody') }}</p>
+          <div class="citymarkt__photo-actions">
+            <button type="button" @click="photoSource = 'gallery'">
+              <span><Images :size="20" /></span>
+              <strong>{{ phone.t('Apps.citymarkt.chooseGallery') }}</strong>
+              <small>{{ phone.t('Apps.citymarkt.chooseGalleryBody') }}</small>
+            </button>
+            <button type="button" @click="photoSource = 'camera'">
+              <span><Camera :size="20" /></span>
+              <strong>{{ phone.t('Apps.citymarkt.takePhotos') }}</strong>
+              <small>{{ phone.t('Apps.citymarkt.takePhotosBody') }}</small>
+            </button>
+          </div>
+          <div class="citymarkt__selected-heading">
+            <strong>{{ phone.t('Apps.citymarkt.selectedPhotos') }}</strong>
+            <span>{{ selectedPhotoIds.length }} / 6</span>
+          </div>
+          <CityMarktGallery
+            class="citymarkt__selection-gallery"
+            :images="draftImages"
+            :empty-title="phone.t('Apps.citymarkt.noPhoto')"
+            :empty-body="phone.t('Apps.citymarkt.noPhotoOptional')"
+            :previous-label="phone.t('Apps.citymarkt.previousPhoto')"
+            :next-label="phone.t('Apps.citymarkt.nextPhoto')"
+            :photo-label="phone.t('Apps.citymarkt.photo')"
+          />
+          <div v-if="draftImages.length" class="citymarkt__selected-strip">
+            <button
+              v-for="(photo, index) in draftImages"
+              :key="photo.media_id"
+              type="button"
+              :style="{ background: photo.gradient }"
+              :aria-label="phone.t('Apps.citymarkt.removePhoto', { number: String(index + 1) })"
+              @click="togglePhoto(photo.media_id)"
+            >
+              <i>{{ index + 1 }}</i><X :size="12" />
+            </button>
+          </div>
+        </template>
         <template v-else-if="sellStep === 2"><h2>{{ phone.t('Apps.citymarkt.describeOffer') }}</h2><label>{{ phone.t('Apps.citymarkt.title') }}<input v-model="draft.title" maxlength="70" /></label><label>{{ phone.t('Apps.citymarkt.description') }}<textarea v-model="draft.description" maxlength="2000" /></label><label>{{ phone.t('Apps.citymarkt.category') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.category" :options="sellCategoryOptions" @change="selectDraftCategory" /></label><label>{{ phone.t('Apps.citymarkt.condition') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.condition" :options="conditionOptions" @change="selectDraftCondition" /></label></template>
         <template v-else-if="sellStep === 3"><h2>{{ phone.t('Apps.citymarkt.priceAndPlace') }}</h2><label>{{ phone.t('Apps.citymarkt.priceType') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.priceType" :options="priceTypeOptions" @change="selectDraftPriceType" /></label><label v-if="draft.priceType !== 'free'">{{ phone.t('Apps.citymarkt.price') }}<input v-model="draft.price" inputmode="numeric" type="number" min="1" /></label><label>{{ phone.t('Apps.citymarkt.district') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.district" :options="sellDistrictOptions" @change="selectDraftDistrict" /></label><label class="citymarkt__switch"><input v-model="draft.showPhone" type="checkbox" /><span />{{ phone.t('Apps.citymarkt.showPhone') }}</label></template>
-        <template v-else><h2>{{ phone.t('Apps.citymarkt.preview') }}</h2><div class="citymarkt__preview-image" :style="{ background: media.photos.find((photo) => photo.id === selectedPhotoIds[0])?.gradient }" /><strong class="citymarkt__preview-price">{{ formatPrice({ price: draft.price, price_type: draft.priceType }) }}</strong><h3>{{ draft.title }}</h3><p>{{ draft.description }}</p><small><MapPin :size="13" /> {{ label('districts', draft.district) }}</small></template>
+        <template v-else><h2>{{ phone.t('Apps.citymarkt.preview') }}</h2><CityMarktGallery class="citymarkt__preview-image" :images="draftImages" :empty-title="phone.t('Apps.citymarkt.noPhoto')" :empty-body="phone.t('Apps.citymarkt.noPhotoBody')" :previous-label="phone.t('Apps.citymarkt.previousPhoto')" :next-label="phone.t('Apps.citymarkt.nextPhoto')" :photo-label="phone.t('Apps.citymarkt.photo')" /><strong class="citymarkt__preview-price">{{ formatPrice({ price: draft.price, price_type: draft.priceType }) }}</strong><h3>{{ draft.title }}</h3><p>{{ draft.description }}</p><small><MapPin :size="13" /> {{ label('districts', draft.district) }}</small></template>
       </div>
       <button v-if="sellStep > 1" class="citymarkt__previous" @click="sellStep--">{{ phone.t('Apps.citymarkt.previous') }}</button>
+      <div v-if="photoSource" class="citymarkt__photo-source">
+        <header>
+          <div>
+            <small>{{ phone.t('Apps.citymarkt.addPhotos') }}</small>
+            <strong>{{ phone.t(photoSource === 'gallery' ? 'Apps.citymarkt.gallery' : 'Apps.citymarkt.camera') }}</strong>
+          </div>
+          <span>{{ selectedPhotoIds.length }} / 6</span>
+          <button type="button" :aria-label="phone.t('Common.close')" @click="photoSource = null"><X :size="18" /></button>
+        </header>
+        <div v-if="photoSource === 'gallery'" class="citymarkt__photo-picker">
+          <button v-for="photo in media.photos" :key="photo.id" type="button" :class="{ active: selectedPhotoIds.includes(photo.id) }" :style="{ background: photo.gradient }" @click="togglePhoto(photo.id)"><i>{{ selectedPhotoIds.indexOf(photo.id) + 1 }}</i></button>
+        </div>
+        <div v-else class="citymarkt__capture">
+          <div class="citymarkt__viewfinder" :style="{ background: media.photos[0]?.gradient }">
+            <i v-for="corner in ['tl', 'tr', 'bl', 'br']" :key="corner" :class="`corner-${corner}`" />
+            <span class="citymarkt__camera-flash" :class="{ active: cameraFlash }" />
+          </div>
+          <p>{{ phone.t('Apps.citymarkt.cameraHint') }}</p>
+          <button class="citymarkt__shutter" type="button" :aria-label="phone.t('Apps.citymarkt.takePhoto')" @click="captureMarketplacePhoto"><Camera :size="23" /></button>
+        </div>
+      </div>
     </section>
 
     <section v-else-if="screen === 'chat' && selectedChat" class="citymarkt__chat">
@@ -755,4 +853,8 @@ onMounted(async () => {
 .citymarkt__offer-panel header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.citymarkt__offer-panel header div{min-width:0}.citymarkt__offer-panel header small,.citymarkt__offer-panel header strong{display:block}.citymarkt__offer-panel header small{color:var(--yellow);font-size:8px;font-weight:900;text-transform:uppercase}.citymarkt__offer-panel header strong{overflow:hidden;font-size:12px;white-space:nowrap;text-overflow:ellipsis}.citymarkt__offer-panel header button{width:27px;height:27px;flex:none;padding:0;border:0;border-radius:9px;display:grid;place-items:center;background:#ffffff0b}.citymarkt__offer-panel label{margin-top:9px;display:block;color:var(--muted);font-size:8px;font-weight:800}.citymarkt__offer-panel label>span{height:39px;margin-top:4px;padding:0 10px;border:1px solid #ffffff16;border-radius:11px;display:flex;align-items:center;gap:5px;background:#151613}.citymarkt__offer-panel label b{color:var(--yellow);font-size:16px}.citymarkt__offer-panel input{min-width:0;flex:1;border:0;outline:0;background:none;color:inherit;font-size:16px;font-weight:900}.citymarkt__offer-panel>button{width:100%;min-height:36px;margin-top:8px;border:0;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--yellow);color:#171816;font-size:9px;font-weight:900}.citymarkt__offer-panel>button:disabled{opacity:.45}
 :global(.citymarkt--light) .citymarkt__offer-panel{background:#fff;box-shadow:0 14px 35px #0003}:global(.citymarkt--light) .citymarkt__offer-panel label>span{border-color:#00000012;background:#f4f4ef}
 .citymarkt__form-select{margin-top:5px}
+.citymarkt__card-image--empty{background:linear-gradient(145deg,#2b2d28,#1e201d)!important}.citymarkt__image-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted)}.citymarkt__image-placeholder small{font-size:7px;font-weight:700}.citymarkt__thumb--empty{display:grid!important;place-items:center;background:linear-gradient(145deg,#2b2d28,#1e201d)!important;color:var(--muted)}
+.citymarkt__photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.citymarkt__photo-actions>button{min-width:0;padding:11px 9px;border:1px solid #ffffff12;border-radius:14px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:var(--panel)}.citymarkt__photo-actions>button>span{width:34px;height:34px;margin-bottom:8px;border-radius:11px;display:grid;place-items:center;background:#3d3621;color:var(--yellow)}.citymarkt__photo-actions strong{font-size:10px}.citymarkt__photo-actions small{margin-top:2px;color:var(--muted);font-size:7px;line-height:1.35}.citymarkt__selected-heading{margin:15px 1px 7px;display:flex;align-items:center;justify-content:space-between}.citymarkt__selected-heading strong{font-size:11px}.citymarkt__selected-heading span{padding:3px 6px;border-radius:7px;background:var(--panel);color:var(--yellow);font-size:8px;font-weight:900}.citymarkt__selection-gallery{height:142px;border-radius:14px}.citymarkt__selected-strip{margin-top:7px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.citymarkt__selected-strip button{position:relative;width:46px;height:46px;flex:none;border:1px solid #ffffff1d;border-radius:9px;background-position:center!important;background-size:cover!important}.citymarkt__selected-strip button i{position:absolute;left:3px;bottom:3px;width:15px;height:15px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#171816;font-size:7px;font-style:normal;font-weight:900}.citymarkt__selected-strip button svg{position:absolute;top:3px;right:3px;padding:2px;box-sizing:content-box;border-radius:50%;background:#11120fc7;color:#fff}
+.citymarkt__photo-source{position:absolute;z-index:8;inset:46px 0 0;padding:14px 14px 33px;background:#151613}.citymarkt--light .citymarkt__photo-source{background:#fafaf7}.citymarkt__photo-source>header{height:52px;display:flex;align-items:center;gap:8px}.citymarkt__photo-source>header>div{min-width:0;flex:1}.citymarkt__photo-source>header small,.citymarkt__photo-source>header strong{display:block}.citymarkt__photo-source>header small{color:var(--yellow);font-size:8px;font-weight:900;text-transform:uppercase}.citymarkt__photo-source>header strong{font-size:18px}.citymarkt__photo-source>header>span{padding:4px 7px;border-radius:8px;background:var(--panel);color:var(--yellow);font-size:8px;font-weight:900}.citymarkt__photo-source>header>button{width:31px;height:31px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:var(--panel)}.citymarkt__photo-source>.citymarkt__photo-picker{max-height:calc(100% - 58px);padding-bottom:12px;overflow-y:auto;scrollbar-width:none}.citymarkt__photo-source .citymarkt__photo-picker button{position:relative;background-position:center!important}.citymarkt__capture{height:calc(100% - 52px);display:flex;flex-direction:column;align-items:center}.citymarkt__viewfinder{position:relative;width:100%;min-height:305px;overflow:hidden;border-radius:18px;background-position:center!important;background-size:cover!important;box-shadow:inset 0 0 0 1px #ffffff1c}.citymarkt__viewfinder:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0001,#00000038)}.citymarkt__viewfinder>i{position:absolute;z-index:2;width:25px;height:25px;border-color:#fff;border-style:solid}.citymarkt__viewfinder .corner-tl{top:18px;left:18px;border-width:2px 0 0 2px}.citymarkt__viewfinder .corner-tr{top:18px;right:18px;border-width:2px 2px 0 0}.citymarkt__viewfinder .corner-bl{bottom:18px;left:18px;border-width:0 0 2px 2px}.citymarkt__viewfinder .corner-br{right:18px;bottom:18px;border-width:0 2px 2px 0}.citymarkt__camera-flash{position:absolute;z-index:4;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .12s}.citymarkt__camera-flash.active{opacity:.9}.citymarkt__capture p{max-width:230px;margin:9px 0;color:var(--muted);font-size:8px;text-align:center}.citymarkt__shutter{width:58px;height:58px;padding:0;border:5px solid #f5f5ee;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#171816;box-shadow:0 0 0 2px #ffffff42}.citymarkt__preview-image{overflow:hidden}
+:global(.citymarkt--light) .citymarkt__card-image--empty,:global(.citymarkt--light) .citymarkt__thumb--empty{background:linear-gradient(145deg,#ecece7,#dedfd8)!important}:global(.citymarkt--light) .citymarkt__photo-actions>button{border-color:#00000010}:global(.citymarkt--light) .citymarkt__selected-strip button{border-color:#00000018}
 </style>

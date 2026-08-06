@@ -81,7 +81,11 @@ const marketplaceListings = [
     district: 'vinewood', status: 'active', revision: 1, show_phone: 0, phone_number: null,
     created_at: '2026-08-06 09:20:00', updated_at: '2026-08-06 09:20:00', expires_at: '2026-08-13 09:20:00',
     image: 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)', is_favorite: false,
-    images: [{ media_id: 'capture-car', gradient: 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)', sort_order: 1 }],
+    images: [
+      { media_id: 'capture-car', gradient: 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)', sort_order: 1 },
+      { media_id: 'city-lights', gradient: 'linear-gradient(135deg, #fbc2eb, #a6c1ee 48%, #302b63)', sort_order: 2 },
+      { media_id: 'ocean-air', gradient: 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', sort_order: 3 },
+    ],
   },
   {
     id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf02', seller_account_id: 3, seller_name: 'jamie',
@@ -90,8 +94,8 @@ const marketplaceListings = [
     category: 'property', item_condition: 'very_good', price_type: 'fixed', price: 420000,
     district: 'vespucci', status: 'active', revision: 1, show_phone: 0, phone_number: null,
     created_at: '2026-08-05 17:10:00', updated_at: '2026-08-05 17:10:00', expires_at: '2026-08-12 17:10:00',
-    image: 'linear-gradient(150deg, #f6d365, #fda085 45%, #512b58)', is_favorite: true,
-    images: [{ media_id: 'desert-road', gradient: 'linear-gradient(150deg, #f6d365, #fda085 45%, #512b58)', sort_order: 1 }],
+    image: null, is_favorite: true,
+    images: [],
   },
   {
     id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf03', seller_account_id: 4, seller_name: 'citytech',
@@ -370,7 +374,7 @@ app.post('/api/:endpoint', (request, response) => {
       const photo = { 'sunset-drive': 'linear-gradient(145deg, #ff9a62, #5f2c82 58%, #141e30)', 'ocean-air': 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', 'city-lights': 'linear-gradient(135deg, #fbc2eb, #a6c1ee 48%, #302b63)', 'desert-road': 'linear-gradient(150deg, #f6d365, #fda085 45%, #512b58)' }[image.id] ?? 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)'
       return { media_id: image.id, gradient: photo, sort_order: 1 }
     })
-    marketplaceListings.unshift({ ...request.body, id, seller_account_id: 1, seller_name: 'demo', seller_since: '2026-08-04 12:00:00', seller_active: 1, item_condition: request.body.condition, price_type: request.body.priceType, show_phone: request.body.showPhone ? 1 : 0, phone_number: null, status: 'active', revision: 1, created_at: '2026-08-06 11:00:00', updated_at: '2026-08-06 11:00:00', expires_at: '2026-08-13 11:00:00', images: selected, image: selected[0]?.gradient, is_favorite: false })
+    marketplaceListings.unshift({ ...request.body, id, seller_account_id: 1, seller_name: 'demo', seller_since: '2026-08-04 12:00:00', seller_active: 1, item_condition: request.body.condition, price_type: request.body.priceType, show_phone: request.body.showPhone ? 1 : 0, phone_number: null, status: 'active', revision: 1, created_at: '2026-08-06 11:00:00', updated_at: '2026-08-06 11:00:00', expires_at: '2026-08-13 11:00:00', images: selected, image: selected[0]?.gradient ?? null, is_favorite: false })
     response.json({ success: true, data: { id } })
     return
   }
@@ -386,7 +390,7 @@ app.post('/api/:endpoint', (request, response) => {
       sort_order: index + 1,
     }))
     Object.assign(item, request.body, {
-      image: selected[0]?.gradient,
+      image: selected[0]?.gradient ?? null,
       images: selected,
       item_condition: request.body.condition,
       price_type: request.body.priceType,
