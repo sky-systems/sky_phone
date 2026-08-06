@@ -45,6 +45,7 @@ import VoiceMessageBubble from '@/components/VoiceMessageBubble.vue'
 import { useCallsStore } from '@/stores/calls'
 import { useMessagesStore } from '@/stores/messages'
 import { usePhoneStore } from '@/stores/phone'
+import { parseDatabaseDate, type DatabaseDateValue } from '@/utils/date'
 import type {
   GifSearchResult,
   SmsAttachmentType,
@@ -79,6 +80,7 @@ const contactNumberDraft = ref('')
 const gifQuery = ref('')
 const gifResults = ref<GifSearchResult[]>([])
 const gifLoading = ref(false)
+const gifError = ref<string | null>(null)
 const gifHasMore = ref(true)
 const gifNextOffset = ref(0)
 const recording = ref(false)
@@ -169,13 +171,9 @@ function avatarGlyph(number: string): string {
   return glyphs[hash % glyphs.length]
 }
 
-function parseDate(value: string): Date {
-  return new Date(value.replace(' ', 'T'))
-}
-
-function formatConversationDate(value: string): string {
-  const date = parseDate(value)
-  if (Number.isNaN(date.getTime())) return value
+function formatConversationDate(value: DatabaseDateValue): string {
+  const date = parseDatabaseDate(value)
+  if (Number.isNaN(date.getTime())) return String(value)
   const today = new Date()
   if (date.toDateString() === today.toDateString()) {
     return new Intl.DateTimeFormat(phone.lang, {
@@ -198,9 +196,9 @@ function formatConversationDate(value: string): string {
   }).format(date)
 }
 
-function dayLabel(value: string): string {
-  const date = parseDate(value)
-  if (Number.isNaN(date.getTime())) return value
+function dayLabel(value: DatabaseDateValue): string {
+  const date = parseDatabaseDate(value)
+  if (Number.isNaN(date.getTime())) return String(value)
   const today = new Date()
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
@@ -217,8 +215,8 @@ function dayLabel(value: string): string {
   }).format(date)
 }
 
-function timeLabel(value: string): string {
-  const date = parseDate(value)
+function timeLabel(value: DatabaseDateValue): string {
+  const date = parseDatabaseDate(value)
   if (Number.isNaN(date.getTime())) return ''
   return new Intl.DateTimeFormat(phone.lang, {
     hour: '2-digit',
@@ -234,8 +232,9 @@ function formatRecordingTime(milliseconds: number): string {
 function startsDay(message: SmsMessage, index: number): boolean {
   if (index === 0) return true
   return (
-    parseDate(messages.messages[index - 1].created_at).toDateString() !==
-    parseDate(message.created_at).toDateString()
+    parseDatabaseDate(
+      messages.messages[index - 1].created_at,
+    ).toDateString() !== parseDatabaseDate(message.created_at).toDateString()
   )
 }
 
@@ -273,6 +272,8 @@ function errorText(error?: string): string {
     'capture_provider_unavailable',
     'capture_failed',
     'gif_provider_unconfigured',
+    'gif_provider_unauthorized',
+    'gif_provider_rate_limited',
     'gif_provider_failed',
     'self_message',
     'recipient_not_found',
@@ -444,6 +445,7 @@ async function sendAttachment(
 
 async function loadGifs(reset = false): Promise<void> {
   if (gifLoading.value || (!reset && !gifHasMore.value)) return
+  gifError.value = null
   gifLoading.value = true
   const response = await messages.searchGifs(
     gifQuery.value,
@@ -452,6 +454,7 @@ async function loadGifs(reset = false): Promise<void> {
   gifLoading.value = false
   if (!response.success || !response.data) {
     if (reset) gifResults.value = []
+    gifError.value = response.error ?? 'gif_provider_failed'
     showToast(errorText(response.error))
     return
   }
@@ -1063,6 +1066,13 @@ onBeforeUnmount(() => {
         >
           {{ phone.t('Apps.messages.loadMore') }}
         </button>
+        <div v-if="gifError && !gifLoading" class="messages-gif-error">
+          <ImagePlay :size="24" />
+          <strong>{{ errorText(gifError) }}</strong>
+          <button type="button" @click="loadGifs(true)">
+            {{ phone.t('Apps.messages.retryGifs') }}
+          </button>
+        </div>
         <k-preloader v-if="gifLoading" class="messages-gif-loading" />
       </div>
     </section>
