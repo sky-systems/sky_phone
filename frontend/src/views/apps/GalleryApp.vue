@@ -56,11 +56,7 @@ const deleteButtonColors = {
   fillTextMaterial: 'text-white',
 }
 const filterBarColors = {
-  strongHighlightBgIos: 'bg-[#e5e5ea] dark:bg-[#2c2c2e]',
-}
-const filterNavbarColors = {
-  bgIos: 'bg-transparent',
-  bgMaterial: 'bg-transparent',
+  strongHighlightBgIos: 'bg-[#63636680]',
 }
 const deleting = ref(false)
 const toastOpened = ref(false)
@@ -212,9 +208,14 @@ function closeMedia(): void {
   stopDragging()
 }
 
-function orientToImage(event: Event): void {
-  const image = event.currentTarget as HTMLImageElement
-  const landscape = image.naturalWidth > image.naturalHeight
+function orientToMedia(event: Event): void {
+  const mediaElement = event.currentTarget as
+    | HTMLImageElement
+    | HTMLVideoElement
+  const landscape =
+    mediaElement instanceof HTMLVideoElement
+      ? mediaElement.videoWidth > mediaElement.videoHeight
+      : mediaElement.naturalWidth > mediaElement.naturalHeight
   landscapeViewer.value = landscape
   phone.setCameraLandscape(landscape)
 }
@@ -339,7 +340,11 @@ onBeforeUnmount(() => {
         <strong>{{ phone.t('Apps.photos.emptyTitle') }}</strong>
         <span>{{ phone.t('Apps.photos.emptyBody') }}</span>
       </div>
-      <div v-else class="gallery-grid">
+      <div
+        v-else
+        class="gallery-grid"
+        :class="{ 'gallery-grid--fill': media.length >= 13 }"
+      >
         <button
           v-for="entry in media"
           :key="entry.id"
@@ -382,20 +387,21 @@ onBeforeUnmount(() => {
     <k-navbar
       component="nav"
       class="gallery-filter-navbar"
-      bg-class="hidden"
-      inner-class="hidden"
-      subnavbar-class="!h-auto !p-0"
-      :colors="filterNavbarColors"
       :aria-label="phone.t('Apps.photos.name')"
     >
       <template #subnavbar>
-        <k-segmented strong rounded :colors="filterBarColors">
+        <k-segmented
+          strong
+          rounded
+          :colors="filterBarColors"
+          :data-active-filter="filter"
+        >
           <k-segmented-button
             v-for="item in filterItems"
             :key="item.id"
             large
             :active="filter === item.id"
-            :class="filter === item.id ? 'text-[#0a84ff]' : 'text-[#8e8e93]'"
+            :class="filter === item.id ? 'text-white' : 'text-[#8e8e93]'"
             :aria-pressed="filter === item.id"
             @click="filter = item.id"
           >
@@ -449,11 +455,18 @@ onBeforeUnmount(() => {
           :alt="phone.t('Apps.photos.photoAlt')"
           :style="imageStyle"
           draggable="false"
-          @load="orientToImage"
+          @load="orientToMedia"
           @pointerdown="startDragging"
           @dblclick="setZoom(imageZoom === 1 ? 2 : 1)"
         />
-        <video v-else :src="selected.url" controls autoplay playsinline></video>
+        <video
+          v-else
+          :src="selected.url"
+          controls
+          autoplay
+          playsinline
+          @loadedmetadata="orientToMedia"
+        ></video>
       </div>
     </div>
 
@@ -527,26 +540,24 @@ onBeforeUnmount(() => {
 .gallery-content {
   min-height: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
 }
 .gallery-filter-navbar {
   position: absolute !important;
-  z-index: 30;
   top: auto !important;
-  right: 16px;
-  bottom: 18px;
-  left: 16px;
-  width: auto;
-  padding-top: 0 !important;
-}
-:deep(.gallery-filter-navbar > div:first-child) {
-  display: none;
+  bottom: 24px;
 }
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2px;
-  padding: 8px 2px 30px;
+  padding: 8px 2px 0;
+}
+.gallery-grid--fill {
+  flex: 1;
+  grid-auto-rows: minmax(min-content, 1fr);
 }
 .gallery-tile {
   position: relative;
@@ -555,6 +566,9 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border: 0;
   background: #d1d1d6;
+}
+.gallery-grid--fill .gallery-tile {
+  height: 100%;
 }
 .gallery-tile img,
 .gallery-tile video {
