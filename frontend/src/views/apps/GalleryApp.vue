@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {
   kBlock,
+  kButton,
   kDialog,
-  kDialogButton,
   kLink,
   kNavbar,
   kNavbarBackLink,
@@ -34,6 +34,18 @@ const hasMore = ref(true)
 const loadError = ref('')
 const selected = ref<PhoneMedia | null>(null)
 const deleteDialogOpened = ref(false)
+const cancelButtonColors = {
+  fillBgIos: 'bg-[#8e8e93] active:bg-[#7a7a7f]',
+  fillBgMaterial: 'bg-[#8e8e93] active:bg-[#7a7a7f]',
+  fillTextIos: 'text-white',
+  fillTextMaterial: 'text-white',
+}
+const deleteButtonColors = {
+  fillBgIos: 'bg-[#ff3b30] active:bg-[#d9342b]',
+  fillBgMaterial: 'bg-[#ff3b30] active:bg-[#d9342b]',
+  fillTextIos: 'text-white',
+  fillTextMaterial: 'text-white',
+}
 const deleting = ref(false)
 const toastOpened = ref(false)
 const toastText = ref('')
@@ -443,12 +455,22 @@ onBeforeUnmount(() => {
     <template #title>{{ phone.t('Apps.photos.deleteTitle') }}</template>
     <p>{{ phone.t('Apps.photos.deleteBody') }}</p>
     <template #buttons>
-      <k-dialog-button @click="deleteDialogOpened = false">
+      <k-button
+        large
+        rounded
+        :colors="cancelButtonColors"
+        @click="deleteDialogOpened = false"
+      >
         {{ phone.t('Common.cancel') }}
-      </k-dialog-button>
-      <k-dialog-button strong class="text-red-500" @click="deleteSelected">
+      </k-button>
+      <k-button
+        large
+        rounded
+        :colors="deleteButtonColors"
+        @click="deleteSelected"
+      >
         {{ phone.t('Common.delete') }}
-      </k-dialog-button>
+      </k-button>
     </template>
   </k-dialog>
 
