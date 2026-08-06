@@ -12,6 +12,7 @@ gibt keine gemeinsame Arcade-App.
 4. [Minesweeper](04-minesweeper.md) – Schwierigkeitsgrade und sichere Feldgenerierung.
 5. [Tower Stack](05-tower-stack.md) – Timing-Spiel mit kurzer aktiver Animationsschleife.
 6. [Sky Flappy](06-sky-flappy.md) – Flappy-Bird-artiges Spiel mit eigener Gestaltung.
+7. [Neon Drop](07-neon-drop.md) – schnelles Blockpuzzle mit steigender Fallgeschwindigkeit.
 
 ## Gemeinsame technische Leitlinien
 
@@ -41,4 +42,3 @@ gibt keine gemeinsame Arcade-App.
 - Alle sichtbaren Texte laufen über `phone.t(...)`.
 - Spiellogik besitzt fokussierte Vitest-Tests; `pnpm test`, `pnpm typecheck`, `pnpm lint` und der
   echte Frontend-Build sind erfolgreich.
-

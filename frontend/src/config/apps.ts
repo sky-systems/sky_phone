@@ -1,6 +1,7 @@
 import {
   Calculator,
   Bomb,
+  Blocks,
   Camera,
   Clock3,
   Gamepad2,
@@ -35,6 +36,7 @@ import numberMergeIcon from '@/assets/img/app-icons/number-merge.webp'
 import minesweeperIcon from '@/assets/img/app-icons/minesweeper.webp'
 import towerStackIcon from '@/assets/img/app-icons/tower-stack.webp'
 import skyFlappyIcon from '@/assets/img/app-icons/sky-flappy.webp'
+import neonDropIcon from '@/assets/img/app-icons/neon-drop.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
@@ -259,6 +261,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'sky-flappy',
     labelKey: 'Apps.skyFlappy.name',
     route: '/apps/sky-flappy',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/NeonDropApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 17,
+    icon: markRaw(Blocks),
+    iconClass: 'app-icon--neon-drop',
+    iconImage: neonDropIcon,
+    id: 'neon-drop',
+    labelKey: 'Apps.neonDrop.name',
+    route: '/apps/neon-drop',
   },
 ]
 

@@ -62,6 +62,12 @@ describe('app registry', () => {
       labelKey: 'Apps.skyFlappy.name',
       route: '/apps/sky-flappy',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'neon-drop')).toMatchObject({
+      dockOrder: null,
+      gridOrder: 17,
+      labelKey: 'Apps.neonDrop.name',
+      route: '/apps/neon-drop',
+    })
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))

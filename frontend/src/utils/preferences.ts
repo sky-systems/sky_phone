@@ -56,6 +56,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   minesweeper: { enabled: true, sounds: true },
   'tower-stack': { enabled: true, sounds: true },
   'sky-flappy': { enabled: true, sounds: true },
+  'neon-drop': { enabled: true, sounds: true },
   camera: { enabled: true, sounds: true },
   clock: { enabled: true, sounds: true },
   weather: { enabled: true, sounds: true },

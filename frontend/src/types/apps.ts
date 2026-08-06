@@ -18,6 +18,7 @@ export type PhoneAppId =
   | 'minesweeper'
   | 'tower-stack'
   | 'sky-flappy'
+  | 'neon-drop'
 
 export type AppLaunchOrigin = {
   borderRadius: number
