@@ -61,7 +61,7 @@ const pendingCount = computed(
     captures.value.filter((capture) => capture.status === 'uploading').length,
 )
 const controlColors = {
-  bgIos: 'bg-ios-light-glass dark:bg-ios-dark-glass',
+  bgIos: 'bg-ios-light-glass/75 dark:bg-ios-dark-glass/75',
   activeBgIos: 'active:bg-white/90 dark:active:bg-white/20',
   textIos: 'text-black/80 dark:text-white/80',
 }
@@ -614,7 +614,7 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 .camera-control {
-  --color-primary: #636366;
+  --color-primary: rgb(99 99 102 / 75%);
 }
 .camera-control svg {
   width: 21px;
