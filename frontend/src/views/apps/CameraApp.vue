@@ -538,12 +538,12 @@ onBeforeUnmount(() => {
   transform: translateY(-50%);
 }
 .camera-page--landscape .camera-viewport {
-  top: 0;
+  top: 50%;
   left: 50%;
-  width: auto;
-  height: 100%;
+  width: calc(100% * 16 / 9);
+  height: auto;
   aspect-ratio: 16 / 9;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%) rotate(-90deg);
 }
 .camera-game-view,
 .camera-dev-view,
