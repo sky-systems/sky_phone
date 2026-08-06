@@ -52,6 +52,7 @@ const toastText = ref('')
 const loadTrigger = ref<HTMLElement | null>(null)
 const imageZoom = ref(1)
 const imagePan = ref({ x: 0, y: 0 })
+const landscapeViewer = ref(false)
 const dragging = ref(false)
 const dragStart = ref({ panX: 0, panY: 0, x: 0, y: 0 })
 let observer: IntersectionObserver | null = null
@@ -72,8 +73,11 @@ function buildMockPhoto(
   label: string,
   first: string,
   second: string,
+  landscape = false,
 ): PhoneMedia {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${first}"/><stop offset="1" stop-color="${second}"/></linearGradient></defs><rect width="900" height="1200" fill="url(#g)"/><circle cx="680" cy="290" r="180" fill="#ffffff20"/><path d="M0 930 230 650l190 190 120-130 360 300v190H0z" fill="#08131d66"/><text x="70" y="1080" fill="white" font-size="54" font-family="sans-serif">${label}</text></svg>`
+  const width = landscape ? 1600 : 900
+  const height = landscape ? 900 : 1200
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${first}"/><stop offset="1" stop-color="${second}"/></linearGradient></defs><rect width="${width}" height="${height}" fill="url(#g)"/><circle cx="${width * 0.76}" cy="${height * 0.24}" r="${height * 0.15}" fill="#ffffff20"/><path d="M0 ${height * 0.82} ${width * 0.26} ${height * 0.56}l${width * 0.2} ${height * 0.18} ${width * 0.14}-${height * 0.11} ${width * 0.4} ${height * 0.27}v${height * 0.18}H0z" fill="#08131d66"/><text x="${width * 0.08}" y="${height * 0.9}" fill="white" font-size="${height * 0.05}" font-family="sans-serif">${label}</text></svg>`
   return {
     createdAt: Date.now() - id * 3_600_000,
     id,
@@ -84,7 +88,7 @@ function buildMockPhoto(
 
 function mockMedia(): PhoneMedia[] {
   const photos = [
-    buildMockPhoto(1, 'Vespucci', '#23567b', '#e08d5c'),
+    buildMockPhoto(1, 'Vespucci', '#23567b', '#e08d5c', true),
     buildMockPhoto(2, 'Downtown', '#442c69', '#c86a77'),
     buildMockPhoto(3, 'Paleto Bay', '#1f6653', '#d1a85b'),
     buildMockPhoto(4, 'Mirror Park', '#355c7d', '#6c5b7b'),
@@ -180,15 +184,26 @@ function observeMore(): void {
 }
 
 function openMedia(entry: PhoneMedia): void {
+  landscapeViewer.value = false
+  phone.setCameraLandscape(false)
   selected.value = entry
   imageZoom.value = 1
   imagePan.value = { x: 0, y: 0 }
 }
 
 function closeMedia(): void {
+  landscapeViewer.value = false
+  phone.setCameraLandscape(false)
   selected.value = null
   deleteDialogOpened.value = false
   stopDragging()
+}
+
+function orientToImage(event: Event): void {
+  const image = event.currentTarget as HTMLImageElement
+  const landscape = image.naturalWidth > image.naturalHeight
+  landscapeViewer.value = landscape
+  phone.setCameraLandscape(landscape)
 }
 
 function setZoom(value: number): void {
@@ -283,6 +298,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  phone.setCameraLandscape(false)
   observer?.disconnect()
   stopDragging()
   if (toastTimer !== undefined) window.clearTimeout(toastTimer)
@@ -375,7 +391,11 @@ onBeforeUnmount(() => {
     </div>
   </k-page>
 
-  <k-page v-else class="gallery-detail !pt-[44px] !pb-[25px]">
+  <k-page
+    v-else
+    class="gallery-detail !pt-[44px] !pb-[25px]"
+    :class="{ 'gallery-detail--landscape': landscapeViewer }"
+  >
     <k-navbar
       :title="
         phone.t(
@@ -413,6 +433,7 @@ onBeforeUnmount(() => {
         :alt="phone.t('Apps.photos.photoAlt')"
         :style="imageStyle"
         draggable="false"
+        @load="orientToImage"
         @pointerdown="startDragging"
         @dblclick="setZoom(imageZoom === 1 ? 2 : 1)"
       />
@@ -547,6 +568,15 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+.gallery-detail--landscape {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 100cqh !important;
+  height: 100cqw !important;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center;
 }
 .gallery-detail-stage {
   min-height: 0;
