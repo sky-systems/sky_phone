@@ -13,7 +13,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { usePhoneStore } from '@/stores/phone'
 
 const emit = defineEmits<{
-  unlock: [destination?: 'camera']
+  unlock: []
 }>()
 
 const phone = usePhoneStore()
@@ -172,7 +172,6 @@ onBeforeUnmount(() => {
             :colors="whiteNavbarLinkColors"
             :link-props="{ type: 'button' }"
             :aria-label="phone.t('LockScreen.camera')"
-            @click="emit('unlock', 'camera')"
           >
             <Camera :stroke-width="1.4" aria-hidden="true" />
           </k-link>
