@@ -106,7 +106,6 @@ function handleApp(app: PhoneAppDefinition): void {
             <k-preloader
               v-if="appStore.installingApps[app.id]"
               class="store-installing"
-              :size="16"
             />
             <template v-else>
               {{

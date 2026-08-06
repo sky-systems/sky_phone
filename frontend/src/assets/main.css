@@ -1836,6 +1836,8 @@ button {
   cursor: wait;
 }
 .store-installing {
+  width: 14px;
+  height: 14px;
   color: #0a84ff;
 }
 .store-empty {
