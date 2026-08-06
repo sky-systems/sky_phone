@@ -13,6 +13,7 @@ import {
   Mail,
   MapPinned,
   MessageCircle,
+  ShieldCheck,
   NotebookPen,
   Phone,
   Settings,
@@ -32,6 +33,7 @@ import calendarIcon from '@/assets/img/app-icons/calendar.svg'
 import mailIcon from '@/assets/img/app-icons/mail.webp'
 import mapIcon from '@/assets/img/app-icons/map.webp'
 import messagesIcon from '@/assets/img/app-icons/sms.webp'
+import darkChatIcon from '@/assets/img/app-icons/darkchat.svg'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
@@ -104,6 +106,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'messages',
     labelKey: 'Apps.messages.name',
     route: '/apps/messages',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/DarkChatApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 22,
+    icon: markRaw(ShieldCheck),
+    iconClass: 'app-icon--darkchat',
+    iconImage: darkChatIcon,
+    id: 'darkchat',
+    labelKey: 'Apps.darkchat.name',
+    route: '/apps/darkchat',
   },
   {
     component: markRaw(

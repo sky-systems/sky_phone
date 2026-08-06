@@ -29,6 +29,27 @@ const namespaceQueues = new Map<string, Promise<void>>()
 
 const defaultLocales: LocaleTree = {
   Apps: {
+    darkchat: {
+      name: 'DarkChat', newMessage: 'New DarkChat message from {sender}', privateNotification: 'New DarkChat message',
+      signInBody: 'DarkChat identities are linked to your private iFruit account.', signInHint: 'Sign in through Settings to continue.',
+      security: 'Security', privateNetwork: 'Private invitation-only network', noResults: 'No Results', noResultsBody: 'Try another alias or Dark-ID.',
+      noChats: 'No Private Chats', noChatsBody: 'Connect with a Dark-ID or invitation code. There is no public search.', newChat: 'New Chat',
+      connectPrivately: 'Connect privately', newChatBody: 'Enter an exact Dark-ID or invitation code. Unknown identities require confirmation.', darkIdOrInvite: 'Dark-ID or invitation code', continue: 'Continue', contacts: 'DarkChat Contacts', shareIdentity: 'Tap to share your private identity',
+      message: 'Dark message', activeNow: 'Activity shared', encryptedSession: 'Private session', serverPrivate: 'Private server-stored conversation',
+      emoji: 'Emoji', gif: 'GIF', gifs: 'GIFs', searchGifs: 'Search GIFs', loadMore: 'Load More', photosLater: 'Photos · coming later', videosLater: 'Videos · coming later',
+      voiceMessage: 'Voice message', sending: 'Sending', failed: 'Not delivered', delivered: 'Delivered', read: 'Read', replying: 'Replying to',
+      messageDeleted: 'Message deleted', securityUpdate: 'Security settings updated', timerChanged: 'Disappearing messages: {timer}',
+      timerOff: 'Off', timerAfterRead: 'After reading', timerMinute: '1 minute', timerFiveMinutes: '5 minutes', timerHour: '1 hour', timerDay: '24 hours', timerWeek: '7 days',
+      copied: 'Copied', reply: 'Reply', copy: 'Copy', deleteForMe: 'Delete for me', deleteForBoth: 'Delete for both', report: 'Report',
+      contactSecurity: 'Contact & Security', chatSince: 'Private chat since {date}', notifications: 'Notifications', readReceipts: 'Read receipts', disappearing: 'Disappearing messages', contactAlias: 'Contact alias', saveContact: 'Save Contact', addContact: 'Add Contact', contactSaved: 'Contact saved', removeContact: 'Remove Contact', block: 'Block User', unblock: 'Unblock User', clearChat: 'Clear Chat', chatCleared: 'Chat cleared',
+      myIdentity: 'My Dark Identity', alias: 'Alias', notificationPrivacy: 'Notification privacy', notificationFull: 'Full · alias and message', notificationPrivate: 'Private · generic message', notificationHidden: 'Invisible · badge only', shareActivity: 'Share activity status', inviteCode: 'Private invitation code', copyInvite: 'Copy Invite', privacyDisclaimer: 'DarkChat stores messages on the server and does not claim end-to-end encryption.',
+      unknownIdentity: 'Unknown Identity', unknownIdentityBody: 'Only continue if you expected this identity. The account is not discoverable through public search.', openSecureChat: 'Open Private Chat',
+      reportUser: 'Report User', reportSpam: 'Spam', reportHarassment: 'Harassment', reportThreats: 'Threats', reportIllegal: 'Illegal content', reportOther: 'Other', reportDetails: 'Optional details', submitReport: 'Submit Report', reported: 'Report submitted',
+      microphoneUnavailable: 'The microphone is unavailable.', recordingTooLarge: 'The voice message is too large.',
+      errors: {
+        not_authenticated: 'Sign in to your iFruit account first.', invalid_dark_id: 'Enter a valid Dark-ID or invitation code.', profile_not_found: 'This private identity was not found.', self_chat: 'You cannot message your own identity.', conversation_not_found: 'This conversation is unavailable.', blocked: 'Messages are blocked in this conversation.', invalid_message: 'Enter a valid message.', invalid_gif: 'This GIF is invalid.', invalid_voice: 'This voice message is invalid.', invalid_profile: 'Check your alias and privacy settings.', rate_limited: 'Too many requests. Try again shortly.', gif_provider_unconfigured: 'GIF search is not configured.', gif_provider_unauthorized: 'The GIF provider key is invalid.', gif_provider_rate_limited: 'GIF search is busy. Try again shortly.', gif_provider_failed: 'GIFs are temporarily unavailable.', default: 'DarkChat could not complete the request.',
+      },
+    },
     messages: {
       name: 'Messages',
       newMessage: 'New message from {sender}',
