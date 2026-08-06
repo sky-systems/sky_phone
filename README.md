@@ -13,6 +13,18 @@ An iFruit account is optional. Unlinked devices retain local settings, alarms, m
 - `oxmysql` with MySQL/MariaDB.
 - `pma-voice` when `Config.Calls.VoiceProvider` is set to `"pma"`.
 
+## Messages GIF provider
+
+GIF search keeps its credential server-side. Add this convar to `server.cfg`:
+
+```cfg
+set sky_phone_giphy_api_key "YOUR_GIPHY_API_KEY"
+```
+
+GIPHY provides trending and searched GIFs through a paginated server-side proxy, so the API key is
+not included in the NUI bundle. Photo and video actions in Messages are intentionally inactive
+until their dedicated implementation is available.
+
 Database migrations run automatically. Existing `sky_phone_mail_accounts` installations are renamed to `sky_phone_accounts` while preserving account IDs and mail foreign keys. iFruit passwords are intentional in-character credentials and remain plaintext `VARCHAR(64)` values; registration screens warn players never to reuse a real password.
 
 For a fresh manual database installation, import `sky_phone/sql/install.sql`. It contains the complete current table, key, index, collation, and foreign-key schema. Runtime migrations remain authoritative for upgrading an existing installation and must stay enabled.
