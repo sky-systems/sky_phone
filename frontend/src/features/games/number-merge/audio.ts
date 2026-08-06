@@ -9,10 +9,10 @@ type Tone = {
 }
 
 const sounds: Record<NumberMergeSound, Tone[]> = {
-  move: [{ duration: 0.05, frequency: 260, offset: 0, type: 'sine', volume: 0.045 }],
+  move: [{ duration: 0.065, frequency: 290, offset: 0, type: 'sine', volume: 0.085 }],
   merge: [
-    { duration: 0.09, frequency: 390, offset: 0, type: 'sine', volume: 0.065 },
-    { duration: 0.12, frequency: 520, offset: 0.055, type: 'sine', volume: 0.075 },
+    { duration: 0.1, frequency: 390, offset: 0, type: 'sine', volume: 0.1 },
+    { duration: 0.14, frequency: 540, offset: 0.055, type: 'sine', volume: 0.12 },
   ],
   win: [
     { duration: 0.16, frequency: 523.25, offset: 0, type: 'sine', volume: 0.08 },
@@ -35,24 +35,43 @@ export function playNumberMergeSound(
 ): void {
   if (!enabled) return
 
-  audioContext ??= new AudioContext()
-  if (audioContext.state === 'suspended') void audioContext.resume()
-
-  const now = audioContext.currentTime
-  for (const tone of sounds[sound]) {
-    const oscillator = audioContext.createOscillator()
-    const gain = audioContext.createGain()
-    const start = now + tone.offset
-    const end = start + tone.duration
-
-    oscillator.type = tone.type
-    oscillator.frequency.setValueAtTime(tone.frequency, start)
-    gain.gain.setValueAtTime(0.0001, start)
-    gain.gain.exponentialRampToValueAtTime(tone.volume, start + 0.012)
-    gain.gain.exponentialRampToValueAtTime(0.0001, end)
-    oscillator.connect(gain)
-    gain.connect(audioContext.destination)
-    oscillator.start(start)
-    oscillator.stop(end)
+  const AudioContextConstructor =
+    window.AudioContext ??
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+      .webkitAudioContext
+  if (!AudioContextConstructor) {
+    console.error('[2048 audio] Web Audio is unavailable')
+    return
   }
+
+  audioContext ??= new AudioContextConstructor()
+  const context = audioContext
+
+  const scheduleSound = (): void => {
+    const now = context.currentTime + 0.02
+    for (const tone of sounds[sound]) {
+      const oscillator = context.createOscillator()
+      const gain = context.createGain()
+      const start = now + tone.offset
+      const end = start + tone.duration
+
+      oscillator.type = tone.type
+      oscillator.frequency.setValueAtTime(tone.frequency, start)
+      gain.gain.setValueAtTime(0.0001, start)
+      gain.gain.linearRampToValueAtTime(tone.volume, start + 0.012)
+      gain.gain.exponentialRampToValueAtTime(0.0001, end)
+      oscillator.connect(gain).connect(context.destination)
+      oscillator.start(start)
+      oscillator.stop(end + 0.01)
+    }
+  }
+
+  if (context.state === 'running') {
+    scheduleSound()
+    return
+  }
+
+  void context.resume().then(scheduleSound).catch((error: unknown) => {
+    console.error('[2048 audio] Failed to start sound', error)
+  })
 }

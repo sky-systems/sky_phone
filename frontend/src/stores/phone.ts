@@ -197,6 +197,8 @@ const defaultLocales: LocaleTree = {
       gameOverTitle: 'No more moves',
       highest: 'Highest Tile',
       howToBody: 'Swipe to combine matching tiles. Each pair becomes one larger tile.',
+      howToExample: '2 + 2 = 4  ·  4 + 4 = 8  ·  …  ·  1024 + 1024 = 2048',
+      howToGoal: 'Goal: create the 2048 tile before the board has no moves left.',
       howToTitle: 'How to play',
       keepPlaying: 'Keep Playing',
       mainMenu: 'Main Menu',

@@ -213,6 +213,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
       <div class="number-merge-how-to">
         <strong>{{ phone.t('Apps.numberMerge.howToTitle') }}</strong>
         <p>{{ phone.t('Apps.numberMerge.howToBody') }}</p>
+        <div>{{ phone.t('Apps.numberMerge.howToExample') }}</div>
+        <small>{{ phone.t('Apps.numberMerge.howToGoal') }}</small>
       </div>
     </section>
 
@@ -497,6 +499,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 
 .number-merge-how-to strong { font-size: 10px; text-transform: uppercase; }
 .number-merge-how-to p { margin: 3px 0 0; font-size: 9px; line-height: 1.35; }
+.number-merge-how-to div {
+  margin: 6px 0 3px;
+  color: #a7472d;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: -0.2px;
+}
+.number-merge-how-to small { display: block; color: #8b6559; font-size: 8px; line-height: 1.25; }
 
 .number-merge-game { padding-top: 5px; }
 
