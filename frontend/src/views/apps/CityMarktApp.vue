@@ -123,6 +123,24 @@ const sortOptions = computed(() => [
   { label: phone.t('Apps.citymarkt.sortPriceAsc'), value: 'price_asc' },
   { label: phone.t('Apps.citymarkt.sortPriceDesc'), value: 'price_desc' },
 ])
+const sellCategoryOptions = computed(() =>
+  categories.map((item) => ({ label: label('categories', item.id), value: item.id })),
+)
+const conditionOptions = computed(() =>
+  conditions.map((item) => ({ label: label('conditions', item), value: item })),
+)
+const priceTypeOptions = computed(() =>
+  priceTypes.map((item) => ({ label: label('priceTypes', item), value: item })),
+)
+const sellDistrictOptions = computed(() =>
+  districts.map((item) => ({ label: label('districts', item), value: item })),
+)
+const reportReasonOptions = computed(() =>
+  ['prohibited', 'fraud', 'spam', 'offensive', 'other'].map((item) => ({
+    label: label('reportReasons', item),
+    value: item,
+  })),
+)
 const tabs = [
   { icon: House, id: 'discover' },
   { icon: Search, id: 'search' },
@@ -241,6 +259,26 @@ async function selectDistrict(value: string): Promise<void> {
 async function selectSort(value: string): Promise<void> {
   sort.value = value
   await loadFeed()
+}
+
+function selectDraftCategory(value: string): void {
+  draft.value.category = value as MarketplaceCategory
+}
+
+function selectDraftCondition(value: string): void {
+  draft.value.condition = value as MarketplaceCondition
+}
+
+function selectDraftPriceType(value: string): void {
+  draft.value.priceType = value as MarketplacePriceType
+}
+
+function selectDraftDistrict(value: string): void {
+  draft.value.district = value
+}
+
+function selectReportReason(value: string): void {
+  reportReason.value = value
 }
 
 async function selectTab(next: Tab): Promise<void> {
@@ -628,8 +666,8 @@ onMounted(async () => {
       <div class="citymarkt__progress"><i :style="{ width: `${sellStep * 25}%` }" /></div>
       <div class="citymarkt__sell-body">
         <template v-if="sellStep === 1"><ImagePlus :size="32" /><h2>{{ phone.t('Apps.citymarkt.addPhotos') }}</h2><p>{{ phone.t('Apps.citymarkt.addPhotosBody') }}</p><div class="citymarkt__photo-picker"><button v-for="photo in media.photos" :key="photo.id" :class="{ active: selectedPhotoIds.includes(photo.id) }" :style="{ background: photo.gradient }" @click="togglePhoto(photo.id)"><i>{{ selectedPhotoIds.indexOf(photo.id) + 1 }}</i></button></div></template>
-        <template v-else-if="sellStep === 2"><h2>{{ phone.t('Apps.citymarkt.describeOffer') }}</h2><label>{{ phone.t('Apps.citymarkt.title') }}<input v-model="draft.title" maxlength="70" /></label><label>{{ phone.t('Apps.citymarkt.description') }}<textarea v-model="draft.description" maxlength="2000" /></label><label>{{ phone.t('Apps.citymarkt.category') }}<select v-model="draft.category"><option v-for="item in categories" :key="item.id" :value="item.id">{{ label('categories', item.id) }}</option></select></label><label>{{ phone.t('Apps.citymarkt.condition') }}<select v-model="draft.condition"><option v-for="item in conditions" :key="item" :value="item">{{ label('conditions', item) }}</option></select></label></template>
-        <template v-else-if="sellStep === 3"><h2>{{ phone.t('Apps.citymarkt.priceAndPlace') }}</h2><label>{{ phone.t('Apps.citymarkt.priceType') }}<select v-model="draft.priceType"><option v-for="item in priceTypes" :key="item" :value="item">{{ label('priceTypes', item) }}</option></select></label><label v-if="draft.priceType !== 'free'">{{ phone.t('Apps.citymarkt.price') }}<input v-model="draft.price" inputmode="numeric" type="number" min="1" /></label><label>{{ phone.t('Apps.citymarkt.district') }}<select v-model="draft.district"><option v-for="item in districts" :key="item" :value="item">{{ label('districts', item) }}</option></select></label><label class="citymarkt__switch"><input v-model="draft.showPhone" type="checkbox" /><span />{{ phone.t('Apps.citymarkt.showPhone') }}</label></template>
+        <template v-else-if="sellStep === 2"><h2>{{ phone.t('Apps.citymarkt.describeOffer') }}</h2><label>{{ phone.t('Apps.citymarkt.title') }}<input v-model="draft.title" maxlength="70" /></label><label>{{ phone.t('Apps.citymarkt.description') }}<textarea v-model="draft.description" maxlength="2000" /></label><label>{{ phone.t('Apps.citymarkt.category') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.category" :options="sellCategoryOptions" @change="selectDraftCategory" /></label><label>{{ phone.t('Apps.citymarkt.condition') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.condition" :options="conditionOptions" @change="selectDraftCondition" /></label></template>
+        <template v-else-if="sellStep === 3"><h2>{{ phone.t('Apps.citymarkt.priceAndPlace') }}</h2><label>{{ phone.t('Apps.citymarkt.priceType') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.priceType" :options="priceTypeOptions" @change="selectDraftPriceType" /></label><label v-if="draft.priceType !== 'free'">{{ phone.t('Apps.citymarkt.price') }}<input v-model="draft.price" inputmode="numeric" type="number" min="1" /></label><label>{{ phone.t('Apps.citymarkt.district') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.district" :options="sellDistrictOptions" @change="selectDraftDistrict" /></label><label class="citymarkt__switch"><input v-model="draft.showPhone" type="checkbox" /><span />{{ phone.t('Apps.citymarkt.showPhone') }}</label></template>
         <template v-else><h2>{{ phone.t('Apps.citymarkt.preview') }}</h2><div class="citymarkt__preview-image" :style="{ background: media.photos.find((photo) => photo.id === selectedPhotoIds[0])?.gradient }" /><strong class="citymarkt__preview-price">{{ formatPrice({ price: draft.price, price_type: draft.priceType }) }}</strong><h3>{{ draft.title }}</h3><p>{{ draft.description }}</p><small><MapPin :size="13" /> {{ label('districts', draft.district) }}</small></template>
       </div>
       <button v-if="sellStep > 1" class="citymarkt__previous" @click="sellStep--">{{ phone.t('Apps.citymarkt.previous') }}</button>
@@ -686,7 +724,7 @@ onMounted(async () => {
 
     <section v-else-if="screen === 'report' && selectedListing" class="citymarkt__report">
       <header><button @click="screen = 'detail'"><ArrowLeft :size="19" /></button><strong>{{ phone.t('Apps.citymarkt.reportListing') }}</strong></header>
-      <div><h2>{{ phone.t('Apps.citymarkt.reportWhy') }}</h2><select v-model="reportReason"><option v-for="item in ['prohibited', 'fraud', 'spam', 'offensive', 'other']" :key="item" :value="item">{{ label('reportReasons', item) }}</option></select><textarea v-model="reportDetails" maxlength="500" :placeholder="phone.t('Apps.citymarkt.reportDetails')" /><button @click="submitReport">{{ phone.t('Apps.citymarkt.sendReport') }}</button><button class="secondary" @click="blockSeller">{{ phone.t('Apps.citymarkt.blockSeller') }}</button></div>
+      <div><h2>{{ phone.t('Apps.citymarkt.reportWhy') }}</h2><CityMarktSelect class="citymarkt__form-select" :model-value="reportReason" :options="reportReasonOptions" @change="selectReportReason" /><textarea v-model="reportDetails" maxlength="500" :placeholder="phone.t('Apps.citymarkt.reportDetails')" /><button @click="submitReport">{{ phone.t('Apps.citymarkt.sendReport') }}</button><button class="secondary" @click="blockSeller">{{ phone.t('Apps.citymarkt.blockSeller') }}</button></div>
     </section>
 
     <nav v-if="screen === 'main'" class="citymarkt__tabbar">
@@ -716,4 +754,5 @@ onMounted(async () => {
 .citymarkt__offer-panel{position:absolute;z-index:6;right:9px;bottom:75px;left:9px;padding:11px;border:1px solid #ffc92840;border-radius:15px;background:#292a27;box-shadow:0 14px 35px #000b}
 .citymarkt__offer-panel header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.citymarkt__offer-panel header div{min-width:0}.citymarkt__offer-panel header small,.citymarkt__offer-panel header strong{display:block}.citymarkt__offer-panel header small{color:var(--yellow);font-size:8px;font-weight:900;text-transform:uppercase}.citymarkt__offer-panel header strong{overflow:hidden;font-size:12px;white-space:nowrap;text-overflow:ellipsis}.citymarkt__offer-panel header button{width:27px;height:27px;flex:none;padding:0;border:0;border-radius:9px;display:grid;place-items:center;background:#ffffff0b}.citymarkt__offer-panel label{margin-top:9px;display:block;color:var(--muted);font-size:8px;font-weight:800}.citymarkt__offer-panel label>span{height:39px;margin-top:4px;padding:0 10px;border:1px solid #ffffff16;border-radius:11px;display:flex;align-items:center;gap:5px;background:#151613}.citymarkt__offer-panel label b{color:var(--yellow);font-size:16px}.citymarkt__offer-panel input{min-width:0;flex:1;border:0;outline:0;background:none;color:inherit;font-size:16px;font-weight:900}.citymarkt__offer-panel>button{width:100%;min-height:36px;margin-top:8px;border:0;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--yellow);color:#171816;font-size:9px;font-weight:900}.citymarkt__offer-panel>button:disabled{opacity:.45}
 :global(.citymarkt--light) .citymarkt__offer-panel{background:#fff;box-shadow:0 14px 35px #0003}:global(.citymarkt--light) .citymarkt__offer-panel label>span{border-color:#00000012;background:#f4f4ef}
+.citymarkt__form-select{margin-top:5px}
 </style>
