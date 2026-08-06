@@ -383,6 +383,7 @@ const defaultLocales: LocaleTree = {
       previousPhoto: 'Previous photo', nextPhoto: 'Next photo', photo: 'Photo',
       removePhoto: 'Remove photo {number}', photoLimit: 'You can add up to six photos.',
       describeOffer: 'Describe your offer', title: 'Title', description: 'Description', category: 'Category', condition: 'Condition',
+      characterCount: '{current} / {maximum} characters', minimumCharacters: 'min. {minimum}',
       priceAndPlace: 'Price and location', priceType: 'Price type', price: 'Price', district: 'District',
       showPhone: 'Show my current phone number', preview: 'Preview', published: 'Your listing is live.',
       writeMessage: 'Write a message', reserveForBuyer: 'Reserve for this buyer', statusChanged: 'Listing updated.',

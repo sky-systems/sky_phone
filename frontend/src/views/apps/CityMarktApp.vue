@@ -82,6 +82,10 @@ const cameraFlash = ref(false)
 const reportReason = ref('spam')
 const reportDetails = ref('')
 const editing = ref<{ id: string; revision: number } | null>(null)
+const listingTextLimits = {
+  description: { maximum: 2000, minimum: 20 },
+  title: { maximum: 70, minimum: 5 },
+} as const
 const draft = ref({
   category: 'vehicles' as MarketplaceCategory,
   condition: 'used' as MarketplaceCondition,
@@ -212,7 +216,10 @@ const offerButtonLabel = computed(() =>
 const canContinueSell = computed(() => {
   if (sellStep.value === 1) return true
   if (sellStep.value === 2)
-    return draft.value.title.trim().length >= 5 && draft.value.description.trim().length >= 20
+    return (
+      draft.value.title.trim().length >= listingTextLimits.title.minimum &&
+      draft.value.description.trim().length >= listingTextLimits.description.minimum
+    )
   if (sellStep.value === 3)
     return draft.value.priceType === 'free' || Number(draft.value.price) > 0
   return true
@@ -743,7 +750,25 @@ onMounted(async () => {
             </button>
           </div>
         </template>
-        <template v-else-if="sellStep === 2"><h2>{{ phone.t('Apps.citymarkt.describeOffer') }}</h2><label>{{ phone.t('Apps.citymarkt.title') }}<input v-model="draft.title" maxlength="70" /></label><label>{{ phone.t('Apps.citymarkt.description') }}<textarea v-model="draft.description" maxlength="2000" /></label><label>{{ phone.t('Apps.citymarkt.category') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.category" :options="sellCategoryOptions" @change="selectDraftCategory" /></label><label>{{ phone.t('Apps.citymarkt.condition') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.condition" :options="conditionOptions" @change="selectDraftCondition" /></label></template>
+        <template v-else-if="sellStep === 2">
+          <h2>{{ phone.t('Apps.citymarkt.describeOffer') }}</h2>
+          <label>
+            <span class="citymarkt__field-heading">
+              <span>{{ phone.t('Apps.citymarkt.title') }}</span>
+              <small :class="{ valid: draft.title.trim().length >= listingTextLimits.title.minimum }" aria-live="polite">{{ phone.t('Apps.citymarkt.characterCount', { current: String(draft.title.trim().length), maximum: String(listingTextLimits.title.maximum) }) }} · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: String(listingTextLimits.title.minimum) }) }}</small>
+            </span>
+            <input v-model="draft.title" :maxlength="listingTextLimits.title.maximum" />
+          </label>
+          <label>
+            <span class="citymarkt__field-heading">
+              <span>{{ phone.t('Apps.citymarkt.description') }}</span>
+              <small :class="{ valid: draft.description.trim().length >= listingTextLimits.description.minimum }" aria-live="polite">{{ phone.t('Apps.citymarkt.characterCount', { current: String(draft.description.trim().length), maximum: String(listingTextLimits.description.maximum) }) }} · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: String(listingTextLimits.description.minimum) }) }}</small>
+            </span>
+            <textarea v-model="draft.description" :maxlength="listingTextLimits.description.maximum" />
+          </label>
+          <label>{{ phone.t('Apps.citymarkt.category') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.category" :options="sellCategoryOptions" @change="selectDraftCategory" /></label>
+          <label>{{ phone.t('Apps.citymarkt.condition') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.condition" :options="conditionOptions" @change="selectDraftCondition" /></label>
+        </template>
         <template v-else-if="sellStep === 3"><h2>{{ phone.t('Apps.citymarkt.priceAndPlace') }}</h2><label>{{ phone.t('Apps.citymarkt.priceType') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.priceType" :options="priceTypeOptions" @change="selectDraftPriceType" /></label><label v-if="draft.priceType !== 'free'">{{ phone.t('Apps.citymarkt.price') }}<input v-model="draft.price" inputmode="numeric" type="number" min="1" /></label><label>{{ phone.t('Apps.citymarkt.district') }}<CityMarktSelect class="citymarkt__form-select" :model-value="draft.district" :options="sellDistrictOptions" @change="selectDraftDistrict" /></label><label class="citymarkt__switch"><input v-model="draft.showPhone" type="checkbox" /><span />{{ phone.t('Apps.citymarkt.showPhone') }}</label></template>
         <template v-else><h2>{{ phone.t('Apps.citymarkt.preview') }}</h2><CityMarktGallery class="citymarkt__preview-image" :images="draftImages" :empty-title="phone.t('Apps.citymarkt.noPhoto')" :empty-body="phone.t('Apps.citymarkt.noPhotoBody')" :previous-label="phone.t('Apps.citymarkt.previousPhoto')" :next-label="phone.t('Apps.citymarkt.nextPhoto')" :photo-label="phone.t('Apps.citymarkt.photo')" /><strong class="citymarkt__preview-price">{{ formatPrice({ price: draft.price, price_type: draft.priceType }) }}</strong><h3>{{ draft.title }}</h3><p>{{ draft.description }}</p><small><MapPin :size="13" /> {{ label('districts', draft.district) }}</small></template>
       </div>
@@ -858,4 +883,5 @@ onMounted(async () => {
 .citymarkt__photo-source{position:absolute;z-index:8;inset:46px 0 0;padding:14px 14px 33px;background:#151613}.citymarkt--light .citymarkt__photo-source{background:#fafaf7}.citymarkt__photo-source>header{height:52px;display:flex;align-items:center;gap:8px}.citymarkt__photo-source>header>div{min-width:0;flex:1}.citymarkt__photo-source>header small,.citymarkt__photo-source>header strong{display:block}.citymarkt__photo-source>header small{color:var(--yellow);font-size:8px;font-weight:900;text-transform:uppercase}.citymarkt__photo-source>header strong{font-size:18px}.citymarkt__photo-source>header>span{padding:4px 7px;border-radius:8px;background:var(--panel);color:var(--yellow);font-size:8px;font-weight:900}.citymarkt__photo-source>header>button{width:31px;height:31px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:var(--panel)}.citymarkt__photo-source>.citymarkt__photo-picker{max-height:calc(100% - 58px);padding-bottom:12px;overflow-y:auto;scrollbar-width:none}.citymarkt__photo-source .citymarkt__photo-picker button{position:relative;background-position:center!important}.citymarkt__capture{height:calc(100% - 52px);display:flex;flex-direction:column;align-items:center}.citymarkt__viewfinder{position:relative;width:100%;min-height:305px;overflow:hidden;border-radius:18px;background-position:center!important;background-size:cover!important;box-shadow:inset 0 0 0 1px #ffffff1c}.citymarkt__viewfinder:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0001,#00000038)}.citymarkt__viewfinder>i{position:absolute;z-index:2;width:25px;height:25px;border-color:#fff;border-style:solid}.citymarkt__viewfinder .corner-tl{top:18px;left:18px;border-width:2px 0 0 2px}.citymarkt__viewfinder .corner-tr{top:18px;right:18px;border-width:2px 2px 0 0}.citymarkt__viewfinder .corner-bl{bottom:18px;left:18px;border-width:0 0 2px 2px}.citymarkt__viewfinder .corner-br{right:18px;bottom:18px;border-width:0 2px 2px 0}.citymarkt__camera-flash{position:absolute;z-index:4;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .12s}.citymarkt__camera-flash.active{opacity:.9}.citymarkt__capture p{max-width:230px;margin:9px 0;color:var(--muted);font-size:8px;text-align:center}.citymarkt__shutter{width:58px;height:58px;padding:0;border:5px solid #f5f5ee;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#171816;box-shadow:0 0 0 2px #ffffff42}.citymarkt__preview-image{overflow:hidden}
 :global(.citymarkt--light) .citymarkt__card-image--empty,:global(.citymarkt--light) .citymarkt__thumb--empty{background:linear-gradient(145deg,#ecece7,#dedfd8)!important}:global(.citymarkt--light) .citymarkt__photo-actions>button{border-color:#00000010}:global(.citymarkt--light) .citymarkt__selected-strip button{border-color:#00000018}
 .citymarkt__sell>header strong{font-size:13px}.citymarkt__sell>header small{font-size:10px}.citymarkt__sell>header>button:last-child{font-size:11px}.citymarkt__sell-body h2{font-size:23px;line-height:1.15}.citymarkt__sell-body>p{font-size:11px;line-height:1.45}.citymarkt__sell-body label{font-size:10.5px}.citymarkt__sell-body input:not([type=checkbox]),.citymarkt__sell-body textarea{padding:11px 12px;font-size:12px}.citymarkt__sell-body input:not([type=checkbox]){min-height:41px}.citymarkt__sell-body textarea{line-height:1.4}.citymarkt__switch{font-size:10.5px!important}.citymarkt__previous{font-size:11px}.citymarkt__photo-actions strong{font-size:11px}.citymarkt__photo-actions small{font-size:8.5px;line-height:1.4}.citymarkt__selected-heading strong{font-size:12px}.citymarkt__selected-heading span{font-size:9px}.citymarkt__sell-body h3{font-size:18px}.citymarkt__sell-body>small{font-size:10px}.citymarkt__sell :deep(.citymarkt-select__trigger){height:41px;padding:0 12px;font-size:12px}.citymarkt__sell :deep(.citymarkt-select__menu button){min-height:35px;padding:8px;font-size:11px}.citymarkt__sell :deep(.citymarkt-gallery__empty strong){font-size:13px}.citymarkt__sell :deep(.citymarkt-gallery__empty small){font-size:9px;line-height:1.4}
+.citymarkt__field-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.citymarkt__field-heading>small{color:#ff9c72;font-size:8.5px;font-weight:850;white-space:nowrap;transition:color .18s ease}.citymarkt__field-heading>small.valid{color:#62dc8e}
 </style>
