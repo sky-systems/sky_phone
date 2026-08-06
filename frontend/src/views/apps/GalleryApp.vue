@@ -14,7 +14,9 @@ import {
 } from 'konsta/vue'
 import { Play, RotateCcw, Trash2, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
+import { useMessageMediaStore } from '@/stores/messageMedia'
 import { usePhoneStore } from '@/stores/phone'
 import type { DeleteResult, GalleryFilter, PhoneMedia } from '@/types/media'
 import {
@@ -35,8 +37,15 @@ const filterItems = [
   { id: 'video', label: 'videos' },
 ] as const
 const phone = usePhoneStore()
+const messageMedia = useMessageMediaStore()
+const route = useRoute()
+const router = useRouter()
+const requestedMessageMedia = computed<GalleryFilter | null>(() => {
+  const value = route.query.messageAttachment
+  return value === 'photo' || value === 'video' ? value : null
+})
 const media = ref<PhoneMedia[]>([])
-const filter = ref<GalleryFilter>('all')
+const filter = ref<GalleryFilter>(requestedMessageMedia.value ?? 'all')
 const loading = ref(true)
 const fetching = ref(false)
 const hasMore = ref(true)
@@ -193,11 +202,21 @@ function observeMore(): void {
 }
 
 function openMedia(entry: PhoneMedia): void {
+  if (requestedMessageMedia.value) {
+    messageMedia.complete(entry)
+    void router.replace('/apps/messages')
+    return
+  }
   landscapeViewer.value = false
   phone.setCameraLandscape(false)
   selected.value = entry
   imageZoom.value = 1
   imagePan.value = { x: 0, y: 0 }
+}
+
+function cancelMessageSelection(): void {
+  messageMedia.cancel()
+  void router.replace('/apps/messages')
 }
 
 function closeMedia(): void {
@@ -326,7 +345,15 @@ onBeforeUnmount(() => {
     class="gallery-page !pt-[44px]"
     :aria-label="phone.t('Apps.photos.name')"
   >
-    <k-navbar :title="phone.t('Apps.photos.name')" />
+    <k-navbar :title="phone.t('Apps.photos.name')">
+      <template v-if="requestedMessageMedia" #left>
+        <k-navbar-back-link
+          component="button"
+          :text="phone.t('Common.back')"
+          @click="cancelMessageSelection"
+        />
+      </template>
+    </k-navbar>
 
     <div class="gallery-content">
       <div v-if="loading" class="gallery-state">
@@ -385,6 +412,7 @@ onBeforeUnmount(() => {
     </div>
 
     <k-navbar
+      v-if="!requestedMessageMedia"
       component="nav"
       class="gallery-filter-navbar"
       :aria-label="phone.t('Apps.photos.name')"

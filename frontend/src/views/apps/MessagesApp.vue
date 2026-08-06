@@ -38,12 +38,14 @@ import {
   X,
 } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import MessageAttachmentBubble from '@/components/MessageAttachmentBubble.vue'
 import FullEmojiPicker from '@/components/FullEmojiPicker.vue'
 import VoiceMessageBubble from '@/components/VoiceMessageBubble.vue'
 import { useCallsStore } from '@/stores/calls'
 import { useMessagesStore } from '@/stores/messages'
+import { useMessageMediaStore } from '@/stores/messageMedia'
 import { usePhoneStore } from '@/stores/phone'
 import { parseDatabaseDate, type DatabaseDateValue } from '@/utils/date'
 import type {
@@ -60,6 +62,8 @@ const WAVEFORM_SAMPLES = 48
 const phone = usePhoneStore()
 const calls = useCallsStore()
 const messages = useMessagesStore()
+const messageMedia = useMessageMediaStore()
+const router = useRouter()
 const search = ref('')
 const showUnreadOnly = ref(false)
 const editingList = ref(false)
@@ -427,6 +431,16 @@ function openEmojiPicker(): void {
   emojiOpen.value = true
 }
 
+function openMediaApp(app: 'camera' | 'photos', mediaType: 'photo' | 'video'): void {
+  if (!messages.activeNumber) return
+  attachmentMenuOpen.value = false
+  messageMedia.begin(messages.activeNumber, mediaType)
+  void router.push({
+    path: `/apps/${app}`,
+    query: { messageAttachment: mediaType },
+  })
+}
+
 async function sendAttachment(
   messageType: SmsAttachmentType,
   mediaAssetId: string,
@@ -652,6 +666,15 @@ async function finishVoiceRecording(): Promise<void> {
 onMounted(() => {
   void messages.loadConversations()
   void calls.loadContacts()
+  if (messages.activeNumber) {
+    const media = messageMedia.consume(messages.activeNumber)
+    if (media) {
+      void sendAttachment(
+        media.mediaType === 'photo' ? 'image' : 'video',
+        import.meta.env.DEV ? media.url : String(media.id),
+      )
+    }
+  }
 })
 
 onBeforeUnmount(() => {
@@ -1035,11 +1058,11 @@ onBeforeUnmount(() => {
     </k-messages>
 
     <section v-if="attachmentMenuOpen" class="messages-attachment-menu">
-      <button type="button" aria-disabled="true">
+      <button type="button" @click="openMediaApp('photos', 'photo')">
         <span><Images :size="20" /></span>
         {{ phone.t('Apps.messages.attachPhoto') }}
       </button>
-      <button type="button" aria-disabled="true">
+      <button type="button" @click="openMediaApp('camera', 'photo')">
         <span><Camera :size="20" /></span>
         {{ phone.t('Apps.messages.takePhoto') }}
       </button>
@@ -1051,7 +1074,7 @@ onBeforeUnmount(() => {
         <span><ImagePlay :size="20" /></span>
         {{ phone.t('Apps.messages.attachGif') }}
       </button>
-      <button type="button" aria-disabled="true">
+      <button type="button" @click="openMediaApp('photos', 'video')">
         <span><Video :size="20" /></span>
         {{ phone.t('Apps.messages.attachVideo') }}
       </button>

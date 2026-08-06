@@ -956,14 +956,19 @@ app.post('/api/:endpoint', (request, response) => {
     const phoneNumber = String(request.body.phoneNumber ?? '')
     const messageType = request.body.messageType ?? 'text'
     const isAttachment = ['image', 'gif', 'video'].includes(messageType)
-    const attachmentId = String(request.body.mediaAssetId ?? '')
+    const requestedAttachmentId = String(request.body.mediaAssetId ?? '')
+    const selectedMedia = /^\d+$/.test(requestedAttachmentId)
+      ? mockMedia.find((item) => String(item.id) === requestedAttachmentId)
+      : null
+    const attachmentId = selectedMedia?.url ?? requestedAttachmentId
     if (
       !phoneNumber ||
       (messageType === 'text' && !body) ||
       (messageType === 'voice' && !request.body.mediaPayload) ||
       (isAttachment &&
         !attachmentAssets[messageType].has(attachmentId) &&
-        !attachmentId.startsWith('https://'))
+        !attachmentId.startsWith('https://') &&
+        !attachmentId.startsWith('data:image/'))
     ) {
       response.json({ success: false, error: 'invalid_message' })
       return

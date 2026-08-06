@@ -57,6 +57,16 @@ local function valid_attachment_asset(message_type, value)
         or message_type == "gif" and allowed_media_url(value)
 end
 
+local function valid_stored_attachment(message_type, value)
+    if valid_attachment_asset(message_type, value) then
+        return true
+    end
+    return (message_type == "image" or message_type == "video")
+        and type(value) == "string"
+        and #value <= Config.Media.UrlMaxLength
+        and value:match("^https://") ~= nil
+end
+
 local function uuid()
     local rows = Bridge.Database.Query("SELECT UUID() AS `id`", {})
     if not rows[1] or type(rows[1].id) ~= "string" then
@@ -98,7 +108,7 @@ local function format_message(row)
         row.media_waveform = waveform
         row.media_payload = nil
     elseif attachment_assets[row.message_type] then
-        if not valid_attachment_asset(row.message_type, row.media_payload) then
+        if not valid_stored_attachment(row.message_type, row.media_payload) then
             error(("[sky_phone] Message %s has an invalid attachment asset."):format(tostring(row.id)))
         end
         row.media_asset_id = row.media_payload
@@ -116,12 +126,47 @@ local function format_message(row)
     return row
 end
 
-local function validate_attachment(message_type, data)
-    if type(data.mediaAssetId) ~= "string" or not valid_attachment_asset(message_type, data.mediaAssetId) then
+local function validate_attachment(source, device, message_type, data)
+    if type(data.mediaAssetId) ~= "string" then
         return nil
     end
+    local payload = data.mediaAssetId
+    if not valid_attachment_asset(message_type, payload) then
+        if message_type == "gif" then
+            return nil
+        end
+        local media_id = tonumber(payload)
+        if not media_id or media_id < 1 or media_id ~= math.floor(media_id) then
+            return nil
+        end
+        local condition
+        local params
+        if device.account_id then
+            condition = "`account_id` = ?"
+            params = { media_id, tonumber(device.account_id) }
+        else
+            condition = "`account_id` IS NULL AND `device_imei` = ?"
+            params = { media_id, device.imei }
+        end
+        local rows = Bridge.Database.Query(([[
+            SELECT `url`, `media_type` FROM `sky_phone_media`
+            WHERE `id` = ? AND %s
+            LIMIT 1
+        ]]):format(condition), params)
+        local media = rows[1]
+        local expected_type = message_type == "image" and "photo" or "video"
+        if not media or media.media_type ~= expected_type
+            or type(media.url) ~= "string"
+            or #media.url > Config.Media.UrlMaxLength
+            or not media.url:match("^https://")
+        then
+            Bridge.Debug("warn", ("[sky_phone] Rejected unowned SMS media from source %s."):format(tostring(source)))
+            return nil
+        end
+        payload = media.url
+    end
     local duration = nil
-    if message_type == "video" then
+    if message_type == "video" and data.mediaDurationMs ~= nil then
         duration = tonumber(data.mediaDurationMs)
         if not duration or duration < 1000 or duration > Config.Messages.VideoMaxDurationMs then
             return nil
@@ -131,7 +176,7 @@ local function validate_attachment(message_type, data)
     return {
         duration = duration,
         mime = attachment_mimes[message_type],
-        payload = data.mediaAssetId,
+        payload = payload,
     }
 end
 
@@ -380,7 +425,7 @@ Bridge.Callbacks.Register("sky_phone:messages:send", function(source, data)
         end
         body = ""
     elseif attachment_assets[message_type] then
-        attachment = validate_attachment(message_type, data)
+        attachment = validate_attachment(source, device, message_type, data)
         if not attachment then
             return { success = false, error = "invalid_attachment" }
         end
