@@ -251,6 +251,10 @@ button {
   height: 844px;
   zoom: var(--phone-zoom, 1);
 }
+.phone-stage--landscape .phone-resolution-wrapper--primary {
+  width: 844px;
+  height: 390px;
+}
 .phone-device-row {
   display: flex;
   align-items: flex-end;
@@ -281,6 +285,11 @@ button {
   transition: transform 0.25s ease;
   box-shadow: none;
   filter: drop-shadow(0 40px 100px #0009);
+}
+.phone-stage--landscape .phone-resolution-wrapper--primary .phone-device {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
 }
 .phone-device__frame {
   position: absolute;
@@ -496,6 +505,18 @@ button {
   right: 0;
   bottom: 25px;
   left: 0;
+}
+.lock-screen__shortcuts {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 48px;
+}
+.lock-screen__shortcut {
+  --color-primary: transparent;
+}
+.lock-screen__shortcut svg {
+  width: 21px;
+  height: 21px;
 }
 .lock-screen__swipe {
   width: 100%;
@@ -1026,6 +1047,35 @@ button {
   opacity: 1;
   border-radius: 0;
 }
+.app-switch-enter-active,
+.app-switch-leave-active {
+  transition:
+    transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.28s ease,
+    border-radius 0.38s ease;
+}
+.app-switch-enter-active {
+  z-index: 51;
+}
+.app-switch-leave-active {
+  z-index: 50;
+}
+.app-switch-enter-from {
+  transform: translateX(100%) scale(0.98);
+  opacity: 0.75;
+  border-radius: 24px;
+}
+.app-switch-leave-to {
+  transform: translateX(-22%) scale(0.96);
+  opacity: 0.35;
+  border-radius: 18px;
+}
+.app-switch-enter-to,
+.app-switch-leave-from {
+  transform: none;
+  opacity: 1;
+  border-radius: 0;
+}
 .native-app {
   position: absolute;
   inset: 0;
@@ -1076,7 +1126,12 @@ button {
 .weather-app--rain .weather-app__backdrop,
 .weather-app--thunder .weather-app__backdrop {
   background:
-    repeating-linear-gradient(104deg, transparent 0 22px, #bcecff17 23px 25px, transparent 26px 49px),
+    repeating-linear-gradient(
+      104deg,
+      transparent 0 22px,
+      #bcecff17 23px 25px,
+      transparent 26px 49px
+    ),
     linear-gradient(165deg, #354b69 0%, #253952 46%, #101b2d 100%);
 }
 .weather-app--thunder .weather-app__backdrop {
@@ -1705,173 +1760,8 @@ button {
 .clock-timer {
   padding-bottom: 28px;
 }
-.camera-app {
-  padding: 45px 0 25px;
-  background: #080808;
-}
-.camera-viewfinder {
-  position: relative;
-  height: 510px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 66% 25%, #ffc66c99, transparent 18%),
-    linear-gradient(145deg, #193641, #443354 55%, #0c1b20);
-}
-.camera-facing--front {
-  background:
-    radial-gradient(circle at 48% 32%, #ffb58f99, transparent 16%),
-    linear-gradient(145deg, #56394e, #172f48);
-}
-.camera-grid {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(
-      transparent 33%,
-      #ffffff30 33.2%,
-      transparent 33.5%,
-      transparent 66%,
-      #ffffff30 66.2%,
-      transparent 66.5%
-    ),
-    linear-gradient(
-      90deg,
-      transparent 33%,
-      #ffffff30 33.2%,
-      transparent 33.5%,
-      transparent 66%,
-      #ffffff30 66.2%,
-      transparent 66.5%
-    );
-}
-.camera-flash {
-  position: absolute;
-  z-index: 3;
-  inset: 0;
-  background: white;
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-.camera-flash.active {
-  opacity: 1;
-}
-.camera-zoom {
-  position: absolute;
-  bottom: 14px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  gap: 7px;
-}
-.camera-zoom button {
-  width: 34px;
-  height: 34px;
-  border: 0;
-  border-radius: 50%;
-  background: #0009;
-  color: white;
-  font-size: 11px;
-}
-.camera-zoom button.active {
-  color: #ffcc00;
-}
-.camera-modes {
-  height: 35px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-}
-.camera-modes button {
-  border: 0;
-  background: none;
-  color: white;
-  text-transform: uppercase;
-  font-size: 10px;
-}
-.camera-modes button.active {
-  color: #ffcc00;
-}
-.camera-controls {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: center;
-  text-align: center;
-}
-.camera-controls > button {
-  justify-self: center;
-  width: 43px;
-  height: 43px;
-  border: 0;
-  border-radius: 50%;
-  background: #29292b;
-  color: white;
-}
-.camera-controls .shutter {
-  width: 65px;
-  height: 65px;
-  border: 4px solid white;
-  background: #fff;
-  color: #111;
-  box-shadow: inset 0 0 0 3px #000;
-}
-.photos-app,
 .store-app {
   background: #000;
-}
-.photo-grid {
-  height: calc(100% - 115px);
-  overflow: auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: 111px;
-  gap: 2px;
-  padding-bottom: 65px;
-}
-.photo-tile {
-  min-height: 100px;
-}
-.album-cards {
-  padding: 12px 17px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-.album-cards article {
-  display: flex;
-  flex-direction: column;
-}
-.album-cards .photo-tile {
-  height: 145px;
-  border-radius: 13px;
-}
-.album-cards small {
-  color: #888;
-}
-.album-cards .favorites {
-  background: linear-gradient(145deg, #ff4777, #7f42db);
-}
-.featured-photo {
-  padding: 12px 17px;
-}
-.featured-photo p {
-  text-transform: uppercase;
-  color: #aaa;
-  font-size: 12px;
-  font-weight: 700;
-}
-.featured-photo div {
-  height: 390px;
-  border-radius: 19px;
-  display: flex;
-  align-items: flex-end;
-  padding: 18px;
-}
-.featured-photo span {
-  font-size: 25px;
-  font-weight: 700;
-  text-shadow: 0 2px 8px #000;
 }
 .store-app {
   overflow-y: auto;
@@ -1951,165 +1841,6 @@ button {
   font-weight: 400;
 }
 
-.reference-camera {
-  display: grid;
-  grid-template-rows: 83px minmax(0, 1fr) 190px;
-  padding: 0 0 24px;
-  background: #020202;
-}
-.camera-topbar {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: end;
-  padding: 45px 15px 11px;
-}
-.camera-topbar > div {
-  display: flex;
-  gap: 17px;
-}
-.camera-topbar > svg {
-  justify-self: end;
-}
-.camera-topbar button {
-  border: 0;
-  background: transparent;
-  color: inherit;
-}
-.camera-topbar .camera-chevron {
-  width: 34px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: 20px;
-  background: #262629;
-}
-.reference-viewfinder {
-  position: relative;
-  min-height: 0;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 66% 21%, #ffd88baa, transparent 15%),
-    radial-gradient(circle at 45% 52%, #6d8ca5 0 6%, transparent 7%),
-    linear-gradient(150deg, #173542, #5b3e5b 56%, #13191c);
-}
-.reference-viewfinder::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    115deg,
-    transparent 45%,
-    #ffffff0f 46%,
-    transparent 48%
-  );
-}
-.focus-corner {
-  position: absolute;
-  z-index: 2;
-  width: 24px;
-  height: 24px;
-  border-color: white;
-}
-.focus-corner--tl {
-  top: 1px;
-  left: 1px;
-  border-top: 1px solid;
-  border-left: 1px solid;
-}
-.focus-corner--tr {
-  top: 1px;
-  right: 1px;
-  border-top: 1px solid;
-  border-right: 1px solid;
-}
-.focus-corner--bl {
-  bottom: 1px;
-  left: 1px;
-  border-bottom: 1px solid;
-  border-left: 1px solid;
-}
-.focus-corner--br {
-  right: 1px;
-  bottom: 1px;
-  border-right: 1px solid;
-  border-bottom: 1px solid;
-}
-.reference-viewfinder .camera-zoom {
-  z-index: 3;
-  bottom: 13px;
-}
-.reference-viewfinder .camera-zoom button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #0008;
-  font-weight: 700;
-}
-.reference-viewfinder .camera-zoom small {
-  margin-left: 1px;
-  font-size: 8px;
-}
-.reference-camera-footer {
-  display: grid;
-  grid-template-rows: 43px 1fr;
-  background: #020202;
-}
-.camera-mode-strip {
-  display: flex;
-  align-items: center;
-  gap: 21px;
-  padding: 0 148px;
-  overflow: hidden;
-}
-.camera-mode-strip button {
-  flex: none;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: white;
-  font-size: 10px;
-  font-weight: 650;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.camera-mode-strip button.active {
-  color: #ffd60a;
-}
-.camera-shutter-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: center;
-  padding: 0 31px 12px;
-}
-.camera-thumbnail {
-  width: 44px;
-  height: 44px;
-  border-radius: 4px;
-}
-.reference-shutter {
-  justify-self: center;
-  width: 62px;
-  height: 62px;
-  display: grid;
-  place-items: center;
-  border: 3px solid white;
-  border-radius: 50%;
-  background: white;
-  color: #111;
-  box-shadow: inset 0 0 0 3px #020202;
-}
-.reference-flip {
-  justify-self: end;
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: #1c1c1e;
-  color: white;
-}
-
 .reference-tabbar {
   position: absolute;
   z-index: 6;
@@ -2158,169 +1889,6 @@ button {
 }
 .phone-app--light .time-wheel-picker__value--selected {
   color: #000;
-}
-
-.reference-photos {
-  padding: 0 0 79px;
-  background: #020202;
-}
-.photos-library,
-.photos-scroll {
-  height: 100%;
-  overflow-y: auto;
-}
-.photos-floating-header {
-  position: sticky;
-  z-index: 3;
-  top: 0;
-  height: 95px;
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 47px 17px 14px;
-  background: linear-gradient(#000 55%, transparent);
-}
-.photos-floating-header > div {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-}
-.photos-floating-header strong {
-  font-size: 17px;
-}
-.photos-floating-header span {
-  font-size: 12px;
-  font-weight: 600;
-}
-.photos-floating-header button {
-  height: 27px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 18px;
-  background: #ffffff1d;
-  color: white;
-  font-size: 11px;
-  font-weight: 650;
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-}
-.photos-floating-header button:last-child {
-  width: 28px;
-  padding: 0;
-  border-radius: 50%;
-}
-.reference-photo-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 2px;
-}
-.reference-photo-grid article {
-  aspect-ratio: 1;
-}
-.photos-count {
-  padding: 15px;
-  text-align: center;
-  font-size: 11px;
-}
-.photos-period {
-  position: sticky;
-  bottom: 5px;
-  width: max-content;
-  margin: 0 auto;
-  display: flex;
-  padding: 3px;
-  border-radius: 22px;
-  background: #303033aa;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
-.photos-period button {
-  padding: 5px 12px;
-  border: 0;
-  border-radius: 18px;
-  background: transparent;
-  color: #ddd;
-  font-size: 10px;
-  font-weight: 650;
-}
-.photos-period button.active {
-  background: #ffffff25;
-  color: white;
-}
-.photos-scroll {
-  padding: 82px 16px 20px;
-}
-.photos-scroll > h1 {
-  margin: 0 0 28px;
-  font-size: 34px;
-}
-.photos-section-title {
-  margin-top: 22px;
-  padding-top: 13px;
-  display: flex;
-  align-items: end;
-  border-top: 1px solid #ffffff1b;
-}
-.photos-section-title h2 {
-  flex: 1;
-  margin: 0;
-  font-size: 22px;
-}
-.photos-section-title button {
-  border: 0;
-  background: transparent;
-  color: #0a84ff;
-}
-.memory-card {
-  position: relative;
-  height: 410px;
-  margin-top: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  border-radius: 17px;
-  box-shadow: inset 0 -160px 100px #0008;
-}
-.memory-card > svg {
-  margin-left: auto;
-}
-.memory-card > div {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-}
-.memory-card strong {
-  font-size: 26px;
-}
-.memory-card span {
-  font-size: 11px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-.featured-row {
-  display: flex;
-  gap: 9px;
-  margin-top: 12px;
-  overflow-x: auto;
-}
-.featured-row article {
-  width: 88%;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-}
-.featured-row article > div {
-  aspect-ratio: 1;
-  border-radius: 10px;
-}
-.featured-row article span {
-  color: #777;
-  font-size: 12px;
-}
-.reference-photos .photo-grid {
-  height: auto;
-  margin-top: 13px;
-  padding-bottom: 10px;
 }
 
 .reference-store {
@@ -2476,13 +2044,6 @@ button {
 *::-webkit-scrollbar {
   display: none;
 }
-.camera-mode-strip {
-  padding: 0;
-}
-.camera-mode-strip button:first-child {
-  margin-left: -205px;
-}
-
 .messages-page {
   background: #fff !important;
   color: #111;

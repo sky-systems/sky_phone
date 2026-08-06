@@ -24,12 +24,14 @@ client_scripts {
     'config/locales/*.lua',
     'source/bridge/client/framework.lua',
     'source/bridge/client/callbacks.lua',
+    'source/client/camera.lua',
     'source/client/main.lua',
 }
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'config/config.lua',
+    'config/media.lua',
     'source/bridge/server/database.lua',
     'source/bridge/server/migrations.lua',
     'source/bridge/server/callbacks.lua',
@@ -45,6 +47,9 @@ server_scripts {
     'source/server/messages.lua',
     'source/server/notes.lua',
     'source/server/mail.lua',
+    'source/server/marketplace.lua',
+    'source/server/pages.lua',
+    'source/server/calendar.lua',
 }
 
 files {

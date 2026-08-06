@@ -109,6 +109,21 @@ CREATE TABLE IF NOT EXISTS `sky_phone_notes` (
     FOREIGN KEY (`device_imei`) REFERENCES `sky_phone_devices` (`imei`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_media` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `account_id` BIGINT UNSIGNED NULL,
+    `device_imei` CHAR(15) CHARACTER SET ascii COLLATE ascii_bin NULL,
+    `url` TEXT NOT NULL,
+    `remote_id` VARCHAR(128) NOT NULL,
+    `media_type` ENUM('photo', 'video') NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_media_account` (`account_id`, `created_at`, `id`),
+    KEY `idx_sky_phone_media_device` (`device_imei`, `created_at`, `id`),
+    FOREIGN KEY (`account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`device_imei`) REFERENCES `sky_phone_devices` (`imei`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_contacts` (
     `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     `contact_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
@@ -181,4 +196,22 @@ CREATE TABLE IF NOT EXISTS `sky_phone_sms_messages` (
     KEY `idx_sky_phone_sms_recipient` (`recipient_sim_id`, `created_at`),
     FOREIGN KEY (`sender_sim_id`) REFERENCES `sky_phone_sims` (`id`) ON DELETE SET NULL,
     FOREIGN KEY (`recipient_sim_id`) REFERENCES `sky_phone_sims` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_calendar_events` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `account_id` BIGINT UNSIGNED NOT NULL,
+    `title` VARCHAR(120) NOT NULL,
+    `note` TEXT NOT NULL,
+    `starts_at` DATETIME NOT NULL,
+    `ends_at` DATETIME NOT NULL,
+    `reminder_minutes` SMALLINT UNSIGNED NULL,
+    `reminded_at` DATETIME NULL,
+    `revision` INT UNSIGNED NOT NULL DEFAULT 1,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_calendar_account` (`account_id`, `starts_at`),
+    KEY `idx_sky_phone_calendar_reminders` (`reminded_at`, `starts_at`),
+    FOREIGN KEY (`account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

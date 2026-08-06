@@ -7,11 +7,14 @@ An iFruit account is optional. Unlinked devices retain local settings, alarms, m
 ## Requirements
 
 - ESX Legacy (`es_extended`), Qbox (`qbx_core`), or QBCore (`qb-core`). The bridge selects a running supported framework when `Config.Bridge.Framework` is set to `"auto"`.
-- A supported metadata inventory: `ox_inventory`, `qb-inventory`, `lj-inventory`, `qs-inventory`, `codem-inventory`, `core_inventory`, or `mf-inventory`. The bridge auto-detects a running provider and normalizes `metadata`/`info`, slots, counts, item mutations, and usable-item callbacks. `mf-inventory` requires ESX.
+- A supported inventory: `ox_inventory`, `qb-inventory`, `lj-inventory`, `qs-inventory`, `codem-inventory`, `core_inventory`, `mf-inventory`, or `smx-inventory`. The bridge auto-detects a running provider and normalizes metadata, slots, counts, item mutations, and usable-item callbacks. `mf-inventory` and `smx-inventory` require ESX. Because SMX stores standard ESX items as stacks, its adapter persists one active Phone/SIM metadata record per player and item type in ESX player metadata.
 - A non-stackable inventory item named `sky_phone`.
 - Two unique, non-stackable inventory items named `sky_phone_sim_registered` and `sky_phone_sim_anonymous`. Their metadata is initialized automatically on first use, so shops and crafting recipes add plain items without supplying a number.
 - `oxmysql` with MySQL/MariaDB.
 - `pma-voice` when `Config.Calls.VoiceProvider` is set to `"pma"`.
+- A FiveManage V3 Media API token for Camera photo/video uploads and Gallery deletion. Set the
+  server-only `Config.Media.FiveManage.ApiKey` in `sky_phone/config/media.lua`; the token is never
+  sent to NUI because clients receive temporary presigned upload URLs instead.
 
 ## Messages GIF provider
 
@@ -27,6 +30,11 @@ only the server uses the GIPHY key. Photo and video actions in Messages are inte
 until their dedicated implementation is available.
 
 Database migrations run automatically. Existing `sky_phone_mail_accounts` installations are renamed to `sky_phone_accounts` while preserving account IDs and mail foreign keys. iFruit passwords are intentional in-character credentials and remain plaintext `VARCHAR(64)` values; registration screens warn players never to reuse a real password.
+
+Camera and Gallery media is stored in `sky_phone_media`. Signed-out captures belong to the current
+IMEI; linking an iFruit account moves those rows into the account gallery so every linked phone sees
+them. Signing out hides cloud media without deleting it. Factory reset removes device-local media
+and attempts to delete its remote FiveManage files, while account-owned media remains in the cloud.
 
 For a fresh manual database installation, import `sky_phone/sql/install.sql`. It contains the complete current table, key, index, collation, and foreign-key schema. Runtime migrations remain authoritative for upgrading an existing installation and must stay enabled.
 

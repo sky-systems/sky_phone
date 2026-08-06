@@ -17,6 +17,7 @@ describe('preferences', () => {
           notificationDurationSeconds: 14,
           notifications: {
             messages: { enabled: false, sounds: false },
+            clock: { enabled: false, sounds: false },
           },
           phoneScale: 110,
           wallpaper: 'ember',
@@ -30,7 +31,10 @@ describe('preferences', () => {
       enabled: false,
       sounds: false,
     })
-    expect(value.settings.notifications.clock.enabled).toBe(true)
+    expect(value.settings.notifications.clock).toEqual({
+      enabled: false,
+      sounds: false,
+    })
     expect(value.settings.notifications.mail).toEqual({
       enabled: true,
       sounds: true,

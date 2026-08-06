@@ -43,11 +43,18 @@ import {
 } from 'vue'
 
 import { PHONE_FRAME_COLORS } from '@/config/appearance'
-import { PHONE_APPS } from '@/config/apps'
+import { isLaunchablePhoneApp, PHONE_APPS } from '@/config/apps'
 import { IFRUIT_AUTH_INPUT_COLORS } from '@/config/ifruit'
 import { usePhoneStore } from '@/stores/phone'
 import { useAccountStore } from '@/stores/account'
-import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
+import type {
+  LaunchablePhoneAppDefinition,
+  LaunchablePhoneAppId,
+} from '@/types/apps'
+import {
+  filterMailAddressInput,
+  MAIL_ADDRESS_INPUT_MAX_LENGTH,
+} from '@/utils/mail'
 import { nuiCall } from '@/utils/nui'
 import { formatPhoneNumber } from '@/utils/phone'
 import {
@@ -88,7 +95,7 @@ const phone = usePhoneStore()
 const account = useAccountStore()
 const query = ref('')
 const activeView = ref<SettingsView>('root')
-const selectedNotificationAppId = ref<PhoneAppId>('calculator')
+const selectedNotificationAppId = ref<LaunchablePhoneAppId>('calculator')
 const settingsPage = ref<ComponentPublicInstance | null>(null)
 const framePickerButton = ref<ComponentPublicInstance | null>(null)
 const framePickerOpened = ref(false)
@@ -177,12 +184,15 @@ const visiblePreferenceRows = computed(() =>
   preferenceRows.filter((row) => matchesSearch(row.key)),
 )
 const notificationApps = computed(() =>
-  [...PHONE_APPS].sort((left, right) => left.gridOrder - right.gridOrder),
+  PHONE_APPS.filter(isLaunchablePhoneApp).sort(
+    (left, right) => left.gridOrder - right.gridOrder,
+  ),
 )
 const selectedNotificationApp = computed(
   () =>
-    PHONE_APPS.find((app) => app.id === selectedNotificationAppId.value) ??
-    PHONE_APPS[0],
+    notificationApps.value.find(
+      (app) => app.id === selectedNotificationAppId.value,
+    ) ?? notificationApps.value[0],
 )
 const activeTitle = computed(() => {
   if (activeView.value === 'account') {
@@ -215,7 +225,7 @@ function openView(view: SubmenuView): void {
   scrollPageToTop()
 }
 
-function openNotificationApp(app: PhoneAppDefinition): void {
+function openNotificationApp(app: LaunchablePhoneAppDefinition): void {
   selectedNotificationAppId.value = app.id
   activeView.value = 'notification-detail'
   scrollPageToTop()
@@ -318,6 +328,23 @@ function selectNotificationSound(sound: NotificationSoundId): void {
 
 function eventValue(event: Event): string {
   return (event.target as HTMLInputElement).value
+}
+
+function updateAccountEmail(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const original = input.value
+  const selectionStart = input.selectionStart ?? original.length
+  const filtered = filterMailAddressInput(original)
+
+  if (filtered !== original) {
+    const nextSelection = filterMailAddressInput(
+      original.slice(0, selectionStart),
+    ).length
+    input.value = filtered
+    input.setSelectionRange(nextSelection, nextSelection)
+  }
+
+  accountEmail.value = filtered
 }
 
 function accountError(error?: string): string {
@@ -587,9 +614,13 @@ onBeforeUnmount(() => {
               :input-class="accountMode === 'register' ? 'pr-20' : undefined"
               autocomplete="username"
               autocapitalize="none"
+              autocorrect="off"
+              inputmode="email"
+              :maxlength="MAIL_ADDRESS_INPUT_MAX_LENGTH"
+              pattern="[A-Za-z0-9@._-]*"
               spellcheck="false"
               :clear-button="accountMode === 'login'"
-              @input="accountEmail = eventValue($event)"
+              @input="updateAccountEmail"
               @clear="accountEmail = ''"
             >
               <span

@@ -4,7 +4,9 @@ export type PhoneAppId =
   | 'phone'
   | 'messages'
   | 'calculator'
+  | 'camera'
   | 'clock'
+  | 'calendar'
   | 'weather'
   | 'mail'
   | 'map'
@@ -12,6 +14,17 @@ export type PhoneAppId =
   | 'photos'
   | 'app-store'
   | 'settings'
+  | 'snake'
+  | 'memory'
+  | 'number-merge'
+  | 'minesweeper'
+  | 'tower-stack'
+  | 'sky-flappy'
+  | 'neon-drop'
+  | 'citymarkt'
+  | 'local-pages'
+
+export type LaunchablePhoneAppId = PhoneAppId
 
 export type AppLaunchOrigin = {
   borderRadius: number
@@ -22,7 +35,7 @@ export type AppLaunchOrigin = {
 }
 
 export type PhoneAppDefinition = {
-  component: Component
+  component: Component | null
   dockOrder: number | null
   gridOrder: number
   icon: Component
@@ -30,5 +43,11 @@ export type PhoneAppDefinition = {
   iconImage: string
   id: PhoneAppId
   labelKey: string
-  route: `/apps/${PhoneAppId}`
+  route: `/apps/${LaunchablePhoneAppId}` | null
+}
+
+export type LaunchablePhoneAppDefinition = PhoneAppDefinition & {
+  component: Component
+  id: LaunchablePhoneAppId
+  route: `/apps/${LaunchablePhoneAppId}`
 }
