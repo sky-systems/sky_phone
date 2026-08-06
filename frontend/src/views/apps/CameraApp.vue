@@ -477,6 +477,7 @@ onBeforeUnmount(() => {
       <k-navbar
         component="nav"
         class="camera-mode-navbar"
+        inner-class="hidden"
         :colors="modeNavbarColors"
         :aria-label="phone.t('Apps.camera.name')"
       >
@@ -734,6 +735,7 @@ onBeforeUnmount(() => {
 .camera-mode-navbar {
   position: relative;
   top: auto;
+  padding-bottom: 18px;
   padding-top: 0;
 }
 </style>
