@@ -22,8 +22,10 @@ erhält die Figur einen kurzen Aufwärtsimpuls und muss zwischen Hindernissen hi
 
 ## MVP
 
-- Eigene abstrakte Sky-Figur, eigene Hindernisse und eigene Sounds; keine übernommenen Namen,
-  Grafiken oder Audiodateien des bekannten Vorbilds.
+- Eigener natürlich gezeichneter Sky-Vogel mit getrennten Flügeln, eigene Hindernisse und eigene
+  Sounds; keine übernommenen Namen, Grafiken oder Audiodateien des bekannten Vorbilds.
+- Jeder Druck startet einen klar sichtbaren Flügelschlag neu; im Hauptmenü fliegt der Vogel in
+  einer ruhigen, dauerhaft wiederholten Bewegung.
 - Zufällige, aber spielbare Öffnungshöhen mit Mindestabständen.
 - Langsam ansteigende Geschwindigkeit, ohne unfaire Sprünge.
 - Eine aktive `requestAnimationFrame`-Schleife mit zeitbasierter Bewegung statt frameabhängiger
@@ -37,4 +39,3 @@ erhält die Figur einen kurzen Aufwärtsimpuls und muss zwischen Hindernissen hi
 - Ein Hindernispaar kann nur einmal gewertet werden.
 - Kollisionen berücksichtigen die tatsächlichen Hitboxen und nicht nur den Mittelpunkt.
 - Nach App-Wechsel laufen weder Physik noch Hindernisgenerierung weiter.
-

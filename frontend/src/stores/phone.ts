@@ -1,3 +1,4 @@
+
 import { defineStore } from 'pinia'
 
 import type { AppLaunchOrigin, PhoneAppId } from '@/types/apps'
@@ -286,7 +287,7 @@ const defaultLocales: LocaleTree = {
       highScore: 'High Score',
       mainMenu: 'Main Menu',
       menuBody:
-        'Guide the Sky Glider through every tower opening without touching the edges.',
+        'Guide the sky bird through every tower opening without touching the edges.',
       menuTitle: 'Fly between the towers',
       mute: 'Mute game sounds',
       pause: 'Pause or resume game',
@@ -297,7 +298,7 @@ const defaultLocales: LocaleTree = {
       resume: 'Continue Flight',
       score: 'Score',
       start: 'Start Flight',
-      tapHint: 'Tap to rise · gravity pulls the glider down',
+      tapHint: 'Tap to flap · gravity pulls the bird down',
       unmute: 'Turn on game sounds',
     },
     neonDrop: {

@@ -130,11 +130,11 @@ Locales["en"] = {
                 designs = { dawn = "Dawn", neon = "Neon", storm = "Storm" }, eyebrow = "Sky challenge",
                 firstTap = "Tap to launch", flap = "Fly upward", gameHint = "Tap anywhere in the sky to fly upward",
                 gameOver = "Flight ended", highScore = "High Score", mainMenu = "Main Menu",
-                menuBody = "Guide the Sky Glider through every tower opening without touching the edges.",
+                menuBody = "Guide the sky bird through every tower opening without touching the edges.",
                 menuTitle = "Fly between the towers", mute = "Mute game sounds", pause = "Pause or resume game",
                 paused = "Paused", playAgain = "Fly Again", points = "Points", ready = "Ready for takeoff?",
                 resume = "Continue Flight", score = "Score", start = "Start Flight",
-                tapHint = "Tap to rise · gravity pulls the glider down", unmute = "Turn on game sounds",
+                tapHint = "Tap to flap · gravity pulls the bird down", unmute = "Turn on game sounds",
             },
             neonDrop = {
                 name = "Neon Drop", backToMenu = "Back to game menu", bestLines = "Best Lines",
