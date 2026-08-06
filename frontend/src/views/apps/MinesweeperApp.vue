@@ -188,7 +188,8 @@ onBeforeUnmount(() => {
           type="button"
           class="minesweeper-toolbar__icon"
           :aria-label="phone.t('Apps.minesweeper.backToMenu')"
-          @click="minesweeper.showMenu"
+          @pointerup.stop="minesweeper.showMenu()"
+          @click.stop="minesweeper.showMenu()"
         >
           <ChevronLeft :size="19" :stroke-width="2.7" aria-hidden="true" />
         </button>
@@ -261,7 +262,12 @@ onBeforeUnmount(() => {
           <button type="button" class="minesweeper-primary" @click="restart">
             {{ phone.t('Apps.minesweeper.playAgain') }}
           </button>
-          <button type="button" class="minesweeper-secondary" @click="minesweeper.showMenu">
+          <button
+            type="button"
+            class="minesweeper-secondary"
+            @pointerup.stop="minesweeper.showMenu()"
+            @click.stop="minesweeper.showMenu()"
+          >
             {{ phone.t('Apps.minesweeper.mainMenu') }}
           </button>
         </div>
@@ -461,7 +467,7 @@ onBeforeUnmount(() => {
 .minesweeper-overlay h2 { margin: 0; font-size: 24px; }
 .minesweeper-overlay p { max-width: 220px; margin: -2px 0 4px; color: #bee1dc; font-size: 10px; line-height: 1.35; }
 .minesweeper-primary,
-.minesweeper-secondary { min-width: 155px; min-height: 40px; border-radius: 13px; font-size: 11px; font-weight: 850; }
+.minesweeper-secondary { position: relative; z-index: 1; min-width: 155px; min-height: 40px; border-radius: 13px; font-size: 11px; font-weight: 850; pointer-events: auto; }
 .minesweeper-primary { border: 0; color: #104d51; background: #8ce3d2; }
 .minesweeper-secondary { border: 1px solid rgb(255 255 255 / 13%); color: #e6faf5; background: rgb(255 255 255 / 7%); }
 .minesweeper-game__hint { margin: 9px 0 0; color: #668c8c; font-size: 9px; text-align: center; }
