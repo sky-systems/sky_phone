@@ -329,6 +329,7 @@ onBeforeUnmount(() => {
       class="phone-stage"
       :class="{
         'phone-stage--dev': isDevelopment,
+        'phone-stage--landscape': phone.cameraLandscape,
         'phone-stage--peek': notifications.isPeeking,
       }"
       :style="phoneResolutionStyle"

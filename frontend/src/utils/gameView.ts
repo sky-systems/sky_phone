@@ -21,11 +21,42 @@ export interface GameView {
   dispose(): void
   isLost(): boolean
   render(): void
-  resize(width: number, height: number): void
+  resize(
+    width: number,
+    height: number,
+    sourceWidth?: number,
+    sourceHeight?: number,
+  ): void
 }
 
 export interface GameViewOptions {
   preserveDrawingBuffer?: boolean
+}
+
+export function coverTextureCoordinates(
+  sourceWidth: number,
+  sourceHeight: number,
+  targetWidth: number,
+  targetHeight: number,
+): Float32Array {
+  const sourceAspect = sourceWidth / sourceHeight
+  const targetAspect = targetWidth / targetHeight
+  let left = 0
+  let right = 1
+  let top = 0
+  let bottom = 1
+
+  if (sourceAspect > targetAspect) {
+    const visibleWidth = targetAspect / sourceAspect
+    left = (1 - visibleWidth) / 2
+    right = 1 - left
+  } else if (sourceAspect < targetAspect) {
+    const visibleHeight = sourceAspect / targetAspect
+    top = (1 - visibleHeight) / 2
+    bottom = 1 - top
+  }
+
+  return new Float32Array([left, top, right, top, left, bottom, right, bottom])
 }
 
 function compileShader(
@@ -127,9 +158,6 @@ export function createGameView(
   gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
   gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
   gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-  gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT)
-  gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-  gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
   gl.uniform1i(gl.getUniformLocation(program, 'u_texture'), 0)
 
   return {
@@ -150,10 +178,21 @@ export function createGameView(
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       gl.finish()
     },
-    resize(width: number, height: number) {
+    resize(
+      width: number,
+      height: number,
+      sourceWidth = window.innerWidth,
+      sourceHeight = window.innerHeight,
+    ) {
       if (disposed || lost) return
       canvas.width = width
       canvas.height = height
+      gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer)
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        coverTextureCoordinates(sourceWidth, sourceHeight, width, height),
+        gl.DYNAMIC_DRAW,
+      )
       gl.viewport(0, 0, width, height)
     },
   }

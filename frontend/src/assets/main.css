@@ -251,6 +251,10 @@ button {
   height: 844px;
   zoom: var(--phone-zoom, 1);
 }
+.phone-stage--landscape .phone-resolution-wrapper--primary {
+  width: 844px;
+  height: 390px;
+}
 .phone-device-row {
   display: flex;
   align-items: flex-end;
@@ -282,6 +286,10 @@ button {
   box-shadow: none;
   filter: drop-shadow(0 40px 100px #0009);
 }
+.phone-stage--landscape .phone-resolution-wrapper--primary .phone-device {
+  width: 844px;
+  height: 390px;
+}
 .phone-device__frame {
   position: absolute;
   z-index: 100;
@@ -290,6 +298,16 @@ button {
   height: 100%;
   object-fit: fill;
   pointer-events: none;
+}
+.phone-stage--landscape
+  .phone-resolution-wrapper--primary
+  .phone-device__frame {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: 390px;
+  height: 844px;
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 .phone-screen {
   position: relative;
@@ -301,6 +319,11 @@ button {
   overflow: hidden;
   background: #08080a;
   border-radius: 40px;
+}
+.phone-stage--landscape .phone-resolution-wrapper--primary .phone-screen {
+  width: 98%;
+  height: 94.5%;
+  margin: auto;
 }
 .phone-app {
   position: absolute !important;

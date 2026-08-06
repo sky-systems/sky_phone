@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { kFab, kPage, kSegmented, kSegmentedButton, kToast } from 'konsta/vue'
+import { kFab, kPage, kTabbar, kTabbarLink, kToast } from 'konsta/vue'
 import {
-  Camera as CameraIcon,
   Images,
+  RectangleHorizontal,
+  RectangleVertical,
   RefreshCw,
   Video,
   Zap,
@@ -13,6 +14,7 @@ import { useRouter } from 'vue-router'
 
 import { usePhoneStore } from '@/stores/phone'
 import type { MediaType, PhoneMedia, UploadResult } from '@/types/media'
+import { createGameView, type GameView } from '@/utils/gameView'
 import { formatRecordingDuration, mediaErrorKey } from '@/utils/media'
 import { nuiCall } from '@/utils/nui'
 
@@ -37,25 +39,39 @@ const recordingStartedAt = ref(0)
 const elapsed = ref('00:00')
 const captures = ref<CaptureItem[]>([])
 const latestMedia = ref<PhoneMedia | null>(null)
+const gameCanvas = ref<HTMLCanvasElement | null>(null)
 const toastOpened = ref(false)
 const toastText = ref('')
 const videoBitrateKbps = ref(1500)
 let shutterTimer: number | undefined
 let toastTimer: number | undefined
 let recordingTimer: number | undefined
+let gameView: GameView | null = null
+let renderFrameId: number | undefined
+let resizeObserver: ResizeObserver | null = null
 
 const pendingCount = computed(
   () =>
     captures.value.filter((capture) => capture.status === 'uploading').length,
 )
 const controlColors = {
-  bgIos: 'bg-black/40',
-  textIos: 'text-white',
+  bgIos: 'bg-ios-light-glass dark:bg-ios-dark-glass',
+  activeBgIos: 'active:bg-white/90 dark:active:bg-white/20',
+  textIos: 'text-black dark:text-white',
 }
 const flashColors = computed(() => ({
   ...controlColors,
-  textIos: flashEnabled.value ? 'text-yellow-300' : 'text-white',
+  textIos: flashEnabled.value
+    ? 'text-yellow-500 dark:text-yellow-300'
+    : controlColors.textIos,
 }))
+const tabbarColors = {
+  bgIos: 'bg-gradient-to-t from-black via-black/90 to-transparent',
+}
+const tabColors = {
+  textActiveIos: 'text-yellow-300',
+  textIos: 'text-white/55',
+}
 
 function correlationId(): string {
   return `${Date.now()}-${crypto.randomUUID()}`
@@ -175,6 +191,11 @@ function capture(): void {
   void requestPhoto()
 }
 
+function setMode(nextMode: MediaType): void {
+  if (recording.value || savingVideo.value) return
+  mode.value = nextMode
+}
+
 async function toggleFlash(): Promise<void> {
   flashEnabled.value = !flashEnabled.value
   await nuiCall('camera:setFlash', { enabled: flashEnabled.value })
@@ -183,6 +204,47 @@ async function toggleFlash(): Promise<void> {
 async function toggleFacing(): Promise<void> {
   frontCamera.value = !frontCamera.value
   await nuiCall('camera:setFacing', { front: frontCamera.value })
+}
+
+function toggleOrientation(): void {
+  if (recording.value || savingVideo.value) return
+  phone.setCameraLandscape(!phone.cameraLandscape)
+  window.postMessage(
+    {
+      data: { landscape: phone.cameraLandscape },
+      type: 'camera:orientation',
+    },
+    '*',
+  )
+}
+
+function resizeGameView(): void {
+  if (!gameCanvas.value || !gameView) return
+  const bounds = gameCanvas.value.getBoundingClientRect()
+  const renderScale = Math.min(window.devicePixelRatio, 2)
+  gameView.resize(
+    Math.max(1, Math.round(bounds.width * renderScale)),
+    Math.max(1, Math.round(bounds.height * renderScale)),
+    window.innerWidth,
+    window.innerHeight,
+  )
+}
+
+function startGameView(): void {
+  if (isDevelopment || !gameCanvas.value) return
+  gameView = createGameView(gameCanvas.value)
+  resizeObserver = new ResizeObserver(resizeGameView)
+  resizeObserver.observe(gameCanvas.value)
+  resizeGameView()
+  const render = () => {
+    if (!gameView || gameView.isLost()) {
+      renderFrameId = undefined
+      return
+    }
+    gameView.render()
+    renderFrameId = window.requestAnimationFrame(render)
+  }
+  renderFrameId = window.requestAnimationFrame(render)
 }
 
 function updateRecordingTimer(): void {
@@ -253,6 +315,11 @@ async function loadLatest(): Promise<void> {
 }
 
 onMounted(() => {
+  phone.setCameraLandscape(false)
+  window.postMessage(
+    { data: { landscape: false }, type: 'camera:orientation' },
+    '*',
+  )
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('message', onMessage)
   void nuiCall('camera:setActive', { active: true })
@@ -264,6 +331,7 @@ onMounted(() => {
     },
   )
   void loadLatest()
+  startGameView()
 })
 
 onBeforeUnmount(() => {
@@ -272,6 +340,14 @@ onBeforeUnmount(() => {
   if (recordingTimer !== undefined) window.clearInterval(recordingTimer)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('message', onMessage)
+  if (renderFrameId !== undefined) window.cancelAnimationFrame(renderFrameId)
+  resizeObserver?.disconnect()
+  gameView?.dispose()
+  phone.setCameraLandscape(false)
+  window.postMessage(
+    { data: { landscape: false }, type: 'camera:orientation' },
+    '*',
+  )
   window.postMessage({ type: 'camera:recordCancel' }, '*')
   void nuiCall('camera:setFlash', { enabled: false })
   void nuiCall('camera:setActive', { active: false })
@@ -279,19 +355,25 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <k-page class="camera-page" :aria-label="phone.t('Apps.camera.name')">
-    <object
-      v-if="!isDevelopment"
-      class="camera-game-view"
-      type="application/x-cfx-game-view"
-      aria-hidden="true"
-    ></object>
-    <div v-else class="camera-dev-view" aria-hidden="true">
-      <span class="camera-dev-sun"></span>
-      <span class="camera-dev-horizon"></span>
+  <k-page
+    class="camera-page"
+    :class="{ 'camera-page--landscape': phone.cameraLandscape }"
+    :aria-label="phone.t('Apps.camera.name')"
+  >
+    <div class="camera-viewport">
+      <canvas
+        v-if="!isDevelopment"
+        ref="gameCanvas"
+        class="camera-game-view"
+        aria-hidden="true"
+      ></canvas>
+      <div v-else class="camera-dev-view" aria-hidden="true">
+        <span class="camera-dev-sun"></span>
+        <span class="camera-dev-horizon"></span>
+      </div>
+      <div class="camera-shade"></div>
+      <div class="camera-flash" :class="{ active: shutterActive }"></div>
     </div>
-    <div class="camera-shade"></div>
-    <div class="camera-flash" :class="{ active: shutterActive }"></div>
 
     <header class="camera-topbar">
       <k-fab
@@ -333,23 +415,6 @@ onBeforeUnmount(() => {
     </div>
 
     <footer class="camera-controls">
-      <k-segmented class="camera-mode-picker">
-        <k-segmented-button
-          :active="mode === 'photo'"
-          :disabled="recording || savingVideo"
-          @click="mode = 'photo'"
-        >
-          {{ phone.t('Apps.camera.photo') }}
-        </k-segmented-button>
-        <k-segmented-button
-          :active="mode === 'video'"
-          :disabled="recording || savingVideo"
-          @click="mode = 'video'"
-        >
-          {{ phone.t('Apps.camera.video') }}
-        </k-segmented-button>
-      </k-segmented>
-
       <div class="camera-capture-row">
         <button
           class="camera-latest"
@@ -385,10 +450,56 @@ onBeforeUnmount(() => {
           <span></span>
         </button>
 
-        <span class="camera-row-spacer" aria-hidden="true">
-          <CameraIcon :size="22" />
-        </span>
+        <button
+          class="camera-orientation"
+          type="button"
+          :disabled="recording || savingVideo"
+          :aria-label="
+            phone.t(
+              phone.cameraLandscape
+                ? 'Apps.camera.portrait'
+                : 'Apps.camera.landscape',
+            )
+          "
+          @click="toggleOrientation"
+        >
+          <RectangleVertical v-if="phone.cameraLandscape" :size="22" />
+          <RectangleHorizontal v-else :size="22" />
+        </button>
       </div>
+
+      <k-tabbar labels class="camera-mode-tabbar" :colors="tabbarColors">
+        <k-tabbar-link
+          component="button"
+          :active="mode === 'photo'"
+          :class="{
+            'pointer-events-none opacity-50': recording || savingVideo,
+          }"
+          :colors="tabColors"
+          :label="phone.t('Apps.camera.photo')"
+          :link-props="{
+            component: 'button',
+            type: 'button',
+            'aria-disabled': recording || savingVideo,
+          }"
+          @click="setMode('photo')"
+        />
+        <k-tabbar-link
+          component="button"
+          :active="mode === 'video'"
+          :class="{
+            'pointer-events-none opacity-50': recording || savingVideo,
+          }"
+          :colors="tabColors"
+          :label="phone.t('Apps.camera.video')"
+          :link-props="{
+            component: 'button',
+            type: 'button',
+            'aria-disabled': recording || savingVideo,
+          }"
+          @click="setMode('video')"
+        />
+      </k-tabbar>
     </footer>
 
     <k-toast
@@ -407,6 +518,23 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: #000;
   color: #fff;
+}
+.camera-viewport {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  transform: translateY(-50%);
+}
+.camera-page--landscape .camera-viewport {
+  top: 0;
+  left: 50%;
+  width: auto;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  transform: translateX(-50%);
 }
 .camera-game-view,
 .camera-dev-view,
@@ -481,10 +609,11 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 .camera-control {
-  width: 42px;
-  height: 42px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  --color-primary: #8e8e93;
+}
+.camera-control svg {
+  width: 21px;
+  height: 21px;
 }
 .camera-focus-pill,
 .camera-upload-pill {
@@ -528,29 +657,24 @@ onBeforeUnmount(() => {
   position: absolute;
   z-index: 4;
   right: 0;
-  bottom: 35px;
+  bottom: 0;
   left: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 0 24px;
-}
-.camera-mode-picker {
-  align-self: center;
-  width: 188px;
-  padding: 2px;
-  border-radius: 10px;
-  background: #0007;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  gap: 0;
+  padding: 0;
 }
 .camera-capture-row {
   display: grid;
   grid-template-columns: 54px 1fr 54px;
   align-items: center;
+  padding: 0 24px 4px;
+}
+.camera-mode-tabbar {
+  width: 100%;
 }
 .camera-latest,
-.camera-row-spacer {
+.camera-orientation {
   width: 50px;
   height: 50px;
   overflow: hidden;
@@ -561,14 +685,16 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
 }
+.camera-orientation {
+  justify-self: end;
+}
+.camera-orientation:disabled {
+  opacity: 0.5;
+}
 .camera-latest img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-.camera-row-spacer {
-  justify-self: end;
-  visibility: hidden;
 }
 .camera-shutter {
   justify-self: center;

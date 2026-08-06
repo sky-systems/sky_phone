@@ -186,6 +186,8 @@ const defaultLocales: LocaleTree = {
       name: 'Camera',
       flash: 'Flash',
       flip: 'Flip camera',
+      landscape: 'Switch to landscape',
+      portrait: 'Switch to portrait',
       photo: 'Photo',
       video: 'Video',
       focusHelp: 'Space for movement',
@@ -585,6 +587,7 @@ function getByPath(source: LocaleTree, path: string): unknown {
 
 export const usePhoneStore = defineStore('phone', {
   state: () => ({
+    cameraLandscape: false,
     currentPage: 1,
     device: null as PhoneDevice | null,
     deviceRevisions: {} as Record<string, number>,
@@ -604,6 +607,7 @@ export const usePhoneStore = defineStore('phone', {
   },
   actions: {
     close(): void {
+      this.cameraLandscape = false
       this.isOpen = false
     },
     open(payload: PhoneOpenPayload = {}): void {
@@ -644,6 +648,9 @@ export const usePhoneStore = defineStore('phone', {
     },
     setCurrentPage(page: number): void {
       this.currentPage = clampPage(page)
+    },
+    setCameraLandscape(landscape: boolean): void {
+      this.cameraLandscape = landscape
     },
     setLaunchOrigin(origin: AppLaunchOrigin | null): void {
       this.launchOrigin = origin

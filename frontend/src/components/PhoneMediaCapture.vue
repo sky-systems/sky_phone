@@ -12,8 +12,11 @@ type PendingVideo = { blob: Blob; fileName: string }
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const pendingVideos = new Map<string, PendingVideo>()
 const captureFps = 30
-const maxCaptureHeight = 720
+const maxCaptureEdge = 720
+const portraitAspect = 3 / 4
+const landscapeAspect = 16 / 9
 let bitrateBps = 1_500_000
+let landscape = false
 let gameView: GameView | null = null
 let renderFrameId: number | undefined
 let lastRenderAt = 0
@@ -23,6 +26,18 @@ let chunks: RecordingChunk[] = []
 let lastChunkAt = 0
 let lastChunkTimecode: number | null = null
 let flushTimer: number | undefined
+
+function captureDimensions(): { height: number; width: number } {
+  return landscape
+    ? {
+        height: Math.round(maxCaptureEdge / landscapeAspect),
+        width: maxCaptureEdge,
+      }
+    : {
+        height: maxCaptureEdge,
+        width: Math.round(maxCaptureEdge * portraitAspect),
+      }
+}
 
 function postRecordState(active: boolean, saving = false): void {
   window.postMessage(
@@ -35,11 +50,13 @@ function ensureGameView(): GameView {
   if (!canvasRef.value) throw new Error('capture_failed')
   if (gameView && !gameView.isLost()) return gameView
   gameView?.dispose()
-  const scale = Math.min(1, maxCaptureHeight / window.innerHeight)
+  const dimensions = captureDimensions()
   gameView = createGameView(canvasRef.value)
   gameView.resize(
-    Math.round(window.innerWidth * scale),
-    Math.round(window.innerHeight * scale),
+    dimensions.width,
+    dimensions.height,
+    window.innerWidth,
+    window.innerHeight,
   )
   return gameView
 }
@@ -186,14 +203,13 @@ async function renderFrames(view: GameView, count: number): Promise<void> {
 }
 
 async function capturePhotoBlob(ready: UploadReady): Promise<Blob> {
-  const width = window.innerWidth
-  const height = window.innerHeight
+  const { height, width } = captureDimensions()
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   const view = createGameView(canvas, { preserveDrawingBuffer: true })
   try {
-    view.resize(width, height)
+    view.resize(width, height, window.innerWidth, window.innerHeight)
     await renderFrames(view, 3)
     const output = document.createElement('canvas')
     output.width = width
@@ -298,6 +314,17 @@ function onMessage(event: MessageEvent): void {
     void stopRecording(message.data ?? {})
   } else if (message.type === 'camera:recordCancel') {
     cleanupRecording()
+  } else if (message.type === 'camera:orientation') {
+    landscape = message.data?.landscape === true
+    if (gameView && !gameView.isLost()) {
+      const dimensions = captureDimensions()
+      gameView.resize(
+        dimensions.width,
+        dimensions.height,
+        window.innerWidth,
+        window.innerHeight,
+      )
+    }
   } else if (message.type === 'media:uploadReady') {
     void uploadReady(message.data as UploadReady)
   }

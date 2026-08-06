@@ -62,7 +62,8 @@ Locales["en"] = {
             },
             calculator = { name = "Calculator" },
             camera = {
-                name = "Camera", flash = "Flash", flip = "Flip camera", photo = "Photo", video = "Video",
+                name = "Camera", flash = "Flash", flip = "Flip camera", landscape = "Switch to landscape",
+                portrait = "Switch to portrait", photo = "Photo", video = "Video",
                 focusHelp = "Space for movement", returnHelp = "Space to return", uploading = "{count} uploading",
                 saving = "Saving video...", openGallery = "Open Gallery", takePhoto = "Take photo",
                 startRecording = "Start recording", stopRecording = "Stop recording", saved = "Saved to Gallery.",
