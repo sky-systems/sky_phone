@@ -75,6 +75,40 @@ const messages = [
     trashed_at: '2026-08-04 08:00:00',
   },
 ]
+const marketplaceListings = [
+  {
+    id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf01', seller_account_id: 2, seller_name: 'morgan',
+    seller_since: '2026-07-02 10:00:00', seller_active: 2, title: 'Sultan RS in excellent condition',
+    description: 'Clean Sultan RS with fresh service, tidy interior and no known damage. Viewing and test drive available in Vinewood.',
+    category: 'vehicles', item_condition: 'very_good', price_type: 'negotiable', price: 185000,
+    district: 'vinewood', status: 'active', revision: 1, show_phone: 0, phone_number: null,
+    created_at: '2026-08-06 09:20:00', updated_at: '2026-08-06 09:20:00', expires_at: '2026-08-13 09:20:00',
+    image: 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)', is_favorite: false,
+    images: [{ media_id: 'capture-car', gradient: 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)', sort_order: 1 }],
+  },
+  {
+    id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf02', seller_account_id: 3, seller_name: 'jamie',
+    seller_since: '2026-06-14 10:00:00', seller_active: 1, title: 'Modern apartment near Vespucci',
+    description: 'Bright apartment with a city view, underground parking and modern furniture. Available immediately after viewing.',
+    category: 'property', item_condition: 'very_good', price_type: 'fixed', price: 420000,
+    district: 'vespucci', status: 'active', revision: 1, show_phone: 0, phone_number: null,
+    created_at: '2026-08-05 17:10:00', updated_at: '2026-08-05 17:10:00', expires_at: '2026-08-12 17:10:00',
+    image: 'linear-gradient(150deg, #f6d365, #fda085 45%, #512b58)', is_favorite: true,
+    images: [{ media_id: 'desert-road', gradient: 'linear-gradient(150deg, #f6d365, #fda085 45%, #512b58)', sort_order: 1 }],
+  },
+  {
+    id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf03', seller_account_id: 4, seller_name: 'citytech',
+    seller_since: '2026-05-22 10:00:00', seller_active: 3, title: 'Nearly new gaming laptop',
+    description: 'Fast gaming laptop including charger and carrying bag. Runs quietly and can be tested before purchase.',
+    category: 'electronics', item_condition: 'very_good', price_type: 'fixed', price: 3500,
+    district: 'los_santos', status: 'reserved', revision: 2, show_phone: 0, phone_number: null,
+    created_at: '2026-08-05 12:30:00', updated_at: '2026-08-06 08:00:00', expires_at: '2026-08-12 12:30:00',
+    image: 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', is_favorite: false,
+    images: [{ media_id: 'ocean-air', gradient: 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', sort_order: 1 }],
+  },
+]
+const marketplaceInquiries = []
+const marketplaceMessages = []
 
 function counts() {
   return {
@@ -154,6 +188,102 @@ app.post('/api/:endpoint', (request, response) => {
     linkedAccount = null
     mockNotes = []
     for (const key of Object.keys(deviceData)) delete deviceData[key]
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'marketplace:list') {
+    const query = String(request.body.search ?? '').toLowerCase()
+    let items = marketplaceListings.filter((item) => ['active', 'reserved'].includes(item.status))
+    if (request.body.category && request.body.category !== 'all') items = items.filter((item) => item.category === request.body.category)
+    if (request.body.district && request.body.district !== 'all') items = items.filter((item) => item.district === request.body.district)
+    if (query) items = items.filter((item) => `${item.title} ${item.description}`.toLowerCase().includes(query))
+    if (request.body.favorites) items = items.filter((item) => item.is_favorite)
+    response.json({ success: true, data: { hasMore: false, items, offset: 0 } })
+    return
+  }
+  if (endpoint === 'marketplace:get') {
+    const item = marketplaceListings.find((listing) => listing.id === request.body.id)
+    response.json(item ? { success: true, data: { ...item, is_owner: authenticated && item.seller_account_id === 1 } } : { success: false, error: 'listing_not_found' })
+    return
+  }
+  if (endpoint.startsWith('marketplace:') && !authenticated) {
+    response.json({ success: false, error: 'not_authenticated' })
+    return
+  }
+  if (endpoint === 'marketplace:counts') {
+    response.json({ success: true, data: { active: marketplaceListings.filter((item) => item.seller_account_id === 1 && ['active', 'reserved'].includes(item.status)).length, unread: 0 } })
+    return
+  }
+  if (endpoint === 'marketplace:list-own') {
+    response.json({ success: true, data: { hasMore: false, items: marketplaceListings.filter((item) => item.seller_account_id === 1), offset: 0 } })
+    return
+  }
+  if (endpoint === 'marketplace:create') {
+    const id = `81bc9d37-20e1-4d8a-82f8-${String(Date.now()).slice(-12)}`
+    const selected = request.body.images.map((image) => {
+      const photo = { 'sunset-drive': 'linear-gradient(145deg, #ff9a62, #5f2c82 58%, #141e30)', 'ocean-air': 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', 'city-lights': 'linear-gradient(135deg, #fbc2eb, #a6c1ee 48%, #302b63)', 'desert-road': 'linear-gradient(150deg, #f6d365, #fda085 45%, #512b58)' }[image.id] ?? 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)'
+      return { media_id: image.id, gradient: photo, sort_order: 1 }
+    })
+    marketplaceListings.unshift({ ...request.body, id, seller_account_id: 1, seller_name: 'demo', seller_since: '2026-08-04 12:00:00', seller_active: 1, item_condition: request.body.condition, price_type: request.body.priceType, show_phone: request.body.showPhone ? 1 : 0, phone_number: null, status: 'active', revision: 1, created_at: '2026-08-06 11:00:00', updated_at: '2026-08-06 11:00:00', expires_at: '2026-08-13 11:00:00', images: selected, image: selected[0]?.gradient, is_favorite: false })
+    response.json({ success: true, data: { id } })
+    return
+  }
+  if (endpoint === 'marketplace:update') {
+    const item = marketplaceListings.find((listing) => listing.id === request.body.id)
+    if (!item) {
+      response.json({ success: false, error: 'listing_not_found' })
+      return
+    }
+    const selected = request.body.images.map((image, index) => ({
+      media_id: image.id,
+      gradient: { 'sunset-drive': 'linear-gradient(145deg, #ff9a62, #5f2c82 58%, #141e30)', 'ocean-air': 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', 'city-lights': 'linear-gradient(135deg, #fbc2eb, #a6c1ee 48%, #302b63)', 'desert-road': 'linear-gradient(150deg, #f6d365, #fda085 45%, #512b58)' }[image.id] ?? item.image,
+      sort_order: index + 1,
+    }))
+    Object.assign(item, request.body, {
+      image: selected[0]?.gradient,
+      images: selected,
+      item_condition: request.body.condition,
+      price_type: request.body.priceType,
+      revision: item.revision + 1,
+    })
+    response.json({ success: true, data: { revision: item.revision } })
+    return
+  }
+  if (endpoint === 'marketplace:favorite') {
+    const item = marketplaceListings.find((listing) => listing.id === request.body.id)
+    if (item) item.is_favorite = request.body.favorite
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'marketplace:set-status') {
+    const item = marketplaceListings.find((listing) => listing.id === request.body.id)
+    if (item) item.status = request.body.status
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'marketplace:list-inquiries') {
+    response.json({ success: true, data: marketplaceInquiries })
+    return
+  }
+  if (endpoint === 'marketplace:send-message') {
+    let inquiry = marketplaceInquiries.find((item) => item.id === request.body.inquiryId || item.listing_id === request.body.listingId)
+    if (!inquiry) {
+      const listing = marketplaceListings.find((item) => item.id === request.body.listingId)
+      inquiry = { id: '4903b923-409a-437e-971f-b7a2b10e9e31', listing_id: listing.id, seller_account_id: listing.seller_account_id, buyer_account_id: 1, title: listing.title, price: listing.price, price_type: listing.price_type, status: listing.status, image: listing.image, other_name: listing.seller_name, last_message: request.body.body, unread: 0, updated_at: '2026-08-06 11:30:00' }
+      marketplaceInquiries.push(inquiry)
+    }
+    marketplaceMessages.push({ id: marketplaceMessages.length + 1, sender_account_id: 1, body: request.body.body, created_at: '2026-08-06 11:30:00', read_at: null })
+    inquiry.last_message = request.body.body
+    response.json({ success: true, data: { id: inquiry.id } })
+    return
+  }
+  if (endpoint === 'marketplace:get-inquiry') {
+    const inquiry = marketplaceInquiries.find((item) => item.id === request.body.id)
+    const listing = inquiry && marketplaceListings.find((item) => item.id === inquiry.listing_id)
+    response.json(inquiry ? { success: true, data: { accountId: 1, inquiry: { ...inquiry, seller_name: listing.seller_name, buyer_name: 'demo', reserved_account_id: null }, messages: marketplaceMessages } } : { success: false, error: 'inquiry_not_found' })
+    return
+  }
+  if (endpoint === 'marketplace:report' || endpoint === 'marketplace:block') {
     response.json({ success: true })
     return
   }

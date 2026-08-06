@@ -33,6 +33,19 @@ local server_callbacks = {
     "mail:restore",
     "mail:delete-forever",
     "mail:empty-trash",
+    "marketplace:list",
+    "marketplace:get",
+    "marketplace:list-own",
+    "marketplace:create",
+    "marketplace:update",
+    "marketplace:set-status",
+    "marketplace:favorite",
+    "marketplace:counts",
+    "marketplace:list-inquiries",
+    "marketplace:get-inquiry",
+    "marketplace:send-message",
+    "marketplace:report",
+    "marketplace:block",
     "sim:insert",
     "sim:eject",
     "contacts:list",
@@ -261,6 +274,17 @@ RegisterNetEvent("sky_phone:mail:new", function(data)
     data.title = mail_locale.name
     data.text = mail_locale.newMessage:gsub("{sender}", tostring(data.sender))
     SendNUIMessage({ type = "mail:new", data = data })
+end)
+
+RegisterNetEvent("sky_phone:marketplace:changed", function(data)
+    SendNUIMessage({ type = "marketplace:changed", data = data })
+end)
+
+RegisterNetEvent("sky_phone:marketplace:new-message", function(data)
+    local marketplace_locale = get_locale().Nui.Apps.citymarkt
+    data.title = marketplace_locale.name
+    data.text = marketplace_locale.newMessage:gsub("{sender}", tostring(data.sender))
+    SendNUIMessage({ type = "marketplace:new-message", data = data })
 end)
 
 RegisterNetEvent("sky_phone:sim:picker", function(data)

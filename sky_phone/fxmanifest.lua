@@ -43,6 +43,7 @@ server_scripts {
     'source/server/calls.lua',
     'source/server/notes.lua',
     'source/server/mail.lua',
+    'source/server/marketplace.lua',
 }
 
 files {

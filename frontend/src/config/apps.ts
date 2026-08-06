@@ -17,6 +17,7 @@ import {
   ShoppingBag,
   CloudSun,
   Wind,
+  Tag,
 } from 'lucide-vue-next'
 import { defineAsyncComponent, markRaw } from 'vue'
 
@@ -38,6 +39,7 @@ import towerStackIcon from '@/assets/img/app-icons/tower-stack.webp'
 import skyFlappyIcon from '@/assets/img/app-icons/sky-flappy.webp'
 import neonDropIcon from '@/assets/img/app-icons/neon-drop.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
+import citymarktIcon from '@/assets/img/app-icons/citymarkt.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
@@ -261,6 +263,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'sky-flappy',
     labelKey: 'Apps.skyFlappy.name',
     route: '/apps/sky-flappy',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/CityMarktApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 18,
+    icon: markRaw(Tag),
+    iconClass: 'app-icon--citymarkt',
+    iconImage: citymarktIcon,
+    id: 'citymarkt',
+    labelKey: 'Apps.citymarkt.name',
+    route: '/apps/citymarkt',
   },
   {
     component: markRaw(

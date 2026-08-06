@@ -318,6 +318,160 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_marketplace_listings",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "seller_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "reserved_account_id", type = "BIGINT UNSIGNED NULL" },
+            { name = "title", type = "VARCHAR(70) NOT NULL" },
+            { name = "description", type = "TEXT NOT NULL" },
+            { name = "category", type = "VARCHAR(32) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "item_condition", type = "ENUM('new', 'very_good', 'used', 'defective') NOT NULL" },
+            { name = "price_type", type = "ENUM('fixed', 'negotiable', 'free') NOT NULL" },
+            { name = "price", type = "BIGINT UNSIGNED NULL" },
+            { name = "district", type = "VARCHAR(32) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "show_phone", type = "TINYINT(1) NOT NULL DEFAULT 0" },
+            { name = "phone_number", type = "VARCHAR(24) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "status", type = "ENUM('active', 'reserved', 'sold', 'expired', 'removed') NOT NULL DEFAULT 'active'" },
+            { name = "revision", type = "INT UNSIGNED NOT NULL DEFAULT 1" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+            { name = "expires_at", type = "DATETIME NOT NULL" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_marketplace_feed", columns = "(`status`, `created_at`)" },
+            { name = "idx_sky_phone_marketplace_category", columns = "(`category`, `status`, `created_at`)" },
+            { name = "idx_sky_phone_marketplace_seller", columns = "(`seller_account_id`, `updated_at`)" },
+        },
+        foreignKeys = {
+            { column = "seller_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "reserved_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE SET NULL" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_marketplace_images",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "listing_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "media_id", type = "VARCHAR(64) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "gradient", type = "VARCHAR(160) NOT NULL" },
+            { name = "sort_order", type = "TINYINT UNSIGNED NOT NULL" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_marketplace_image_order", columns = "(`listing_id`, `sort_order`)" },
+        },
+        foreignKeys = {
+            { column = "listing_id", references = "`sky_phone_marketplace_listings` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_marketplace_favorites",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "listing_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_marketplace_favorite", columns = "(`account_id`, `listing_id`)" },
+        },
+        foreignKeys = {
+            { column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "listing_id", references = "`sky_phone_marketplace_listings` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_marketplace_inquiries",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "listing_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "seller_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "buyer_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_marketplace_inquiry", columns = "(`listing_id`, `buyer_account_id`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_marketplace_inquiry_seller", columns = "(`seller_account_id`, `updated_at`)" },
+            { name = "idx_sky_phone_marketplace_inquiry_buyer", columns = "(`buyer_account_id`, `updated_at`)" },
+        },
+        foreignKeys = {
+            { column = "listing_id", references = "`sky_phone_marketplace_listings` (`id`) ON DELETE CASCADE" },
+            { column = "seller_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "buyer_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_marketplace_messages",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "inquiry_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "sender_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "body", type = "VARCHAR(1000) NOT NULL" },
+            { name = "read_at", type = "DATETIME NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_marketplace_messages", columns = "(`inquiry_id`, `id`)" },
+            { name = "idx_sky_phone_marketplace_unread", columns = "(`inquiry_id`, `read_at`, `sender_account_id`)" },
+        },
+        foreignKeys = {
+            { column = "inquiry_id", references = "`sky_phone_marketplace_inquiries` (`id`) ON DELETE CASCADE" },
+            { column = "sender_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_marketplace_blocks",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "blocker_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "blocked_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_marketplace_block", columns = "(`blocker_account_id`, `blocked_account_id`)" },
+        },
+        foreignKeys = {
+            { column = "blocker_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "blocked_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_marketplace_reports",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "reporter_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "listing_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "reason", type = "ENUM('prohibited', 'fraud', 'spam', 'offensive', 'other') NOT NULL" },
+            { name = "details", type = "VARCHAR(500) NOT NULL DEFAULT ''" },
+            { name = "status", type = "ENUM('open', 'reviewed', 'dismissed') NOT NULL DEFAULT 'open'" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_marketplace_report", columns = "(`reporter_account_id`, `listing_id`)" },
+        },
+        foreignKeys = {
+            { column = "reporter_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "listing_id", references = "`sky_phone_marketplace_listings` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Bridge.Database.Migrate("sky_phone", schema)

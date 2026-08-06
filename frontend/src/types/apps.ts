@@ -19,6 +19,7 @@ export type PhoneAppId =
   | 'tower-stack'
   | 'sky-flappy'
   | 'neon-drop'
+  | 'citymarkt'
 
 export type AppLaunchOrigin = {
   borderRadius: number

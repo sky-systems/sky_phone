@@ -25,6 +25,7 @@ import { useCallsStore } from '@/stores/calls'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
 import { useMediaStore } from '@/stores/media'
+import { useMarketplaceStore } from '@/stores/marketplace'
 import { useNotesStore } from '@/stores/notes'
 import { useWeatherStore } from '@/stores/weather'
 import {
@@ -34,6 +35,7 @@ import {
 import { usePhoneStore, type PhoneOpenPayload } from '@/stores/phone'
 import type { PhoneNotificationDevicePayload } from '@/types/device'
 import type { MailCounts } from '@/types/mail'
+import type { MarketplaceCounts } from '@/types/marketplace'
 import type { PhoneCall } from '@/types/phone'
 import { nuiCall } from '@/utils/nui'
 import { formatTimer } from '@/utils/clock'
@@ -42,7 +44,7 @@ import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
   type?: string
-  data?: MailEventData | PhoneCall | PhoneNotificationInput | PhoneOpenPayload
+  data?: MailEventData | MarketplaceEventData | PhoneCall | PhoneNotificationInput | PhoneOpenPayload
 }
 
 type SimPickerPayload = {
@@ -59,6 +61,16 @@ type MailEventData = {
   title?: string
 }
 
+type MarketplaceEventData = {
+  counts?: MarketplaceCounts
+  device?: PhoneNotificationDevicePayload
+  inquiryId?: string
+  listingId?: string
+  sender?: string
+  text?: string
+  title?: string
+}
+
 const REFERENCE_VIEWPORT_WIDTH = 1920
 const REFERENCE_VIEWPORT_HEIGHT = 1080
 const PHONE_BASE_SCALE = 0.69
@@ -71,6 +83,7 @@ const games = useGamesStore()
 const calls = useCallsStore()
 const mail = useMailStore()
 const media = useMediaStore()
+const marketplace = useMarketplaceStore()
 const notes = useNotesStore()
 const weather = useWeatherStore()
 const notifications = useNotificationsStore()
@@ -111,6 +124,8 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
   void mail.bootstrap(payload.account?.email ?? '')
+  if (payload.account?.email) void marketplace.loadCounts()
+  else marketplace.setCounts({ active: 0, unread: 0 })
   void calls.bootstrap()
 }
 
@@ -154,6 +169,26 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       }
     }
     notifications.show(notification)
+  } else if (event.data?.type === 'marketplace:changed' && event.data.data) {
+    const data = event.data.data as MarketplaceEventData
+    if (data.counts) marketplace.setCounts(data.counts)
+  } else if (event.data?.type === 'marketplace:new-message' && event.data.data) {
+    const data = event.data.data as MarketplaceEventData
+    const notification: PhoneNotificationInput = {
+      appId: 'citymarkt',
+      subtitle: data.sender,
+      text: data.text ?? phone.t('Apps.citymarkt.newMessage', { sender: data.sender ?? '' }),
+      title: data.title ?? phone.t('Apps.citymarkt.name'),
+    }
+    if (data.device && (!phone.isOpen || data.device.imei !== phone.device?.imei)) {
+      notification.device = {
+        imei: data.device.imei,
+        name: data.device.name,
+        preferences: parsePhonePreferences(data.device.settings ?? null),
+      }
+    }
+    notifications.show(notification)
+    void marketplace.loadCounts()
   } else if (event.data?.type === 'contacts:changed') {
     void calls.loadContacts()
   } else if (event.data?.type === 'calls:changed') {
