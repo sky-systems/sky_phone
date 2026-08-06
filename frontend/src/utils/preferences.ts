@@ -52,6 +52,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   calculator: { enabled: true, sounds: true },
   snake: { enabled: true, sounds: true },
   memory: { enabled: true, sounds: true },
+  'number-merge': { enabled: true, sounds: true },
   camera: { enabled: true, sounds: true },
   clock: { enabled: true, sounds: true },
   weather: { enabled: true, sounds: true },

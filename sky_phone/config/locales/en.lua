@@ -80,6 +80,23 @@ Locales["en"] = {
                 noBest = "No best score yet", playAgain = "Play Again", restart = "Restart",
                 revealedCard = "Revealed card", time = "Time", unmute = "Turn on game sounds",
             },
+            numberMerge = {
+                name = "2048", backToMenu = "Back to game menu", best = "Best", board = "2048 game board",
+                cancel = "Keep Current Game", confirmBody = "Your current board will be replaced. This cannot be undone.",
+                confirmNew = "Start New Game", confirmTitle = "Replace current game?", continueGame = "Continue Game",
+                controls = "Move controls", directions = {
+                    down = "Move tiles down", left = "Move tiles left", right = "Move tiles right", up = "Move tiles up",
+                },
+                eyebrow = "Number puzzle", gameOverBody = "No empty spaces or matching neighbours remain.",
+                gameOverTitle = "No more moves", highest = "Highest Tile",
+                howToBody = "Swipe to combine matching tiles. Each pair becomes one larger tile.", howToTitle = "How to play",
+                keepPlaying = "Keep Playing", mainMenu = "Main Menu",
+                menuBody = "Slide matching numbers together and work your way up to 2048.", menuTitle = "Build the 2048 tile",
+                mute = "Mute game sounds", newGame = "New Game", score = "Score",
+                swipeHint = "Swipe the board, use the buttons, or press arrow keys / WASD",
+                unmute = "Turn on game sounds",
+                wonBody = "You reached the legendary tile. Continue climbing or begin again.", wonTitle = "You made 2048!",
+            },
             camera = {
                 name = "Camera", shutter = "Take photo", flip = "Flip camera", flash = "Toggle flash", controls = "Camera controls",
                 modes = { timelapse = "Timelapse", slowMo = "Slow-Mo", cinematic = "Cinematic", video = "Video", photo = "Photo", portrait = "Portrait", pano = "Pano" },

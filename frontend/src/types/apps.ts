@@ -14,6 +14,7 @@ export type PhoneAppId =
   | 'settings'
   | 'snake'
   | 'memory'
+  | 'number-merge'
 
 export type AppLaunchOrigin = {
   borderRadius: number

@@ -38,6 +38,12 @@ describe('app registry', () => {
       labelKey: 'Apps.memory.name',
       route: '/apps/memory',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'number-merge')).toMatchObject({
+      dockOrder: null,
+      gridOrder: 13,
+      labelKey: 'Apps.numberMerge.name',
+      route: '/apps/number-merge',
+    })
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))

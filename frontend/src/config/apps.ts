@@ -3,6 +3,7 @@ import {
   Camera,
   Clock3,
   Gamepad2,
+  Grid2X2,
   Brain,
   Images,
   Mail,
@@ -27,6 +28,7 @@ import phoneIcon from '@/assets/img/app-icons/phone.webp'
 import settingsIcon from '@/assets/img/app-icons/settings.webp'
 import snakeIcon from '@/assets/img/app-icons/snake.webp'
 import memoryIcon from '@/assets/img/app-icons/memory.webp'
+import numberMergeIcon from '@/assets/img/app-icons/number-merge.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
@@ -199,6 +201,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'memory',
     labelKey: 'Apps.memory.name',
     route: '/apps/memory',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/NumberMergeApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 13,
+    icon: markRaw(Grid2X2),
+    iconClass: 'app-icon--number-merge',
+    iconImage: numberMergeIcon,
+    id: 'number-merge',
+    labelKey: 'Apps.numberMerge.name',
+    route: '/apps/number-merge',
   },
 ]
 
