@@ -1,6 +1,7 @@
-# AGENTS — sky_phone
+# AGENTS - sky_phone
 
-Standalone FiveM phone resource built on `sky_base`, with a Vue 3 and Konsta UI frontend.
+Standalone FiveM phone resource with a Vue 3 and Konsta UI frontend. It must not depend on or
+interact with `sky_base`, `sky_jobs_base`, or any other Sky resource.
 
 > The shared conventions in the monorepo-root `AGENTS.md` apply to this resource. Read them first.
 
@@ -31,8 +32,9 @@ Run commands from `frontend/`:
 - `pnpm lint` runs ESLint without rewriting files.
 - `pnpm build` validates and publishes the NUI into `sky_phone/source/html/`.
 
-After frontend changes, run the monorepo-root `build_frontend.bat`. Local servers consume the
-workspace resource through symlinks, so Lua/config-only changes require no deployment copy step.
+After frontend changes, run the workspace-root `build_frontend.bat`; it builds the NUI and copies
+`sky_phone` to the configured local servers. After Lua/config-only changes, run the workspace-root
+`build_copy.bat`.
 
 ## Commits
 
