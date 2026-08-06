@@ -45,6 +45,7 @@ const galleryIndex = ref(0)
 const search = ref('')
 const category = ref<string>('all')
 const feedback = ref('')
+const reactionPending = ref(false)
 const photoSource = ref<'camera' | 'gallery' | null>(null)
 const cameraFlash = ref(false)
 const draft = ref({
@@ -185,6 +186,21 @@ async function react(kind: 'like' | 'save'): Promise<void> {
   }
 }
 
+async function reactToPost(post: PagesPost, kind: 'like' | 'save'): Promise<void> {
+  if (!isAuthenticated.value) {
+    showFeedback('Apps.localPages.errors.not_authenticated')
+    return
+  }
+  if (reactionPending.value) return
+  const active = kind === 'like' ? !Boolean(post.is_liked) : !Boolean(post.is_saved)
+  reactionPending.value = true
+  try {
+    await pages.react(post.id, kind, active)
+  } finally {
+    reactionPending.value = false
+  }
+}
+
 async function removePost(): Promise<void> {
   if (!selected.value || !(await pages.remove(selected.value.id))) return
   selected.value = null
@@ -239,12 +255,18 @@ onMounted(() => void loadFeed())
 
         <div v-if="pages.isLoading" class="pages__empty">{{ phone.t('Common.loading') }}</div>
         <div v-else-if="isAuthenticated || tab === 'feed'" class="pages__feed">
-          <button v-for="post in displayedPosts" :key="post.id" class="pages__post" @click="openPost(post)">
-            <div class="pages__post-head"><span>{{ post.author_name.charAt(0).toUpperCase() }}</span><div><strong>@{{ post.author_name }}</strong><small><MapPin :size="10" /> {{ post.district ? phone.t(`Apps.citymarkt.districts.${post.district}`) : phone.t('Apps.localPages.allLosSantos') }} · {{ relativeDate(post.created_at) }}</small></div><i>{{ label('categories', post.category) }}</i></div>
-            <div v-if="post.image" class="pages__cover" :style="{ background: post.image }"><b v-if="post.images.length > 1">1 / {{ post.images.length }}</b></div>
-            <h2>{{ post.title }}</h2><p>{{ post.body }}</p>
-            <div class="pages__post-foot"><span><Heart :size="14" :fill="post.is_liked ? 'currentColor' : 'none'" /> {{ post.like_count }}</span><span v-if="post.source_type === 'citymarkt'"><Store :size="14" /> CityMarkt</span><Bookmark :size="14" :fill="post.is_saved ? 'currentColor' : 'none'" /></div>
-          </button>
+          <article v-for="post in displayedPosts" :key="post.id" class="pages__post">
+            <button class="pages__post-open" type="button" @click="openPost(post)">
+              <div class="pages__post-head"><span>{{ post.author_name.charAt(0).toUpperCase() }}</span><div><strong>@{{ post.author_name }}</strong><small><MapPin :size="10" /> {{ post.district ? phone.t(`Apps.citymarkt.districts.${post.district}`) : phone.t('Apps.localPages.allLosSantos') }} · {{ relativeDate(post.created_at) }}</small></div><i>{{ label('categories', post.category) }}</i></div>
+              <div v-if="post.image" class="pages__cover" :style="{ background: post.image }"><b v-if="post.images.length > 1">1 / {{ post.images.length }}</b></div>
+              <h2>{{ post.title }}</h2><p>{{ post.body }}</p>
+            </button>
+            <div class="pages__post-foot">
+              <button type="button" :class="{ active: post.is_liked }" :disabled="reactionPending" :aria-label="phone.t('Apps.localPages.likes')" @click="reactToPost(post, 'like')"><Heart :size="15" :fill="post.is_liked ? 'currentColor' : 'none'" /> {{ post.like_count }}</button>
+              <span v-if="post.source_type === 'citymarkt'"><Store :size="14" /> CityMarkt</span>
+              <button type="button" :class="{ active: post.is_saved }" :disabled="reactionPending" :aria-label="phone.t('Apps.localPages.save')" @click="reactToPost(post, 'save')"><Bookmark :size="15" :fill="post.is_saved ? 'currentColor' : 'none'" /> {{ phone.t('Apps.localPages.save') }}</button>
+            </div>
+          </article>
           <div v-if="!displayedPosts.length" class="pages__empty"><Compass :size="38" /><strong>{{ phone.t('Apps.localPages.noPosts') }}</strong><span>{{ phone.t('Apps.localPages.noPostsBody') }}</span></div>
         </div>
       </section>
@@ -341,6 +363,7 @@ onMounted(() => void loadFeed())
 .pages__header h1{margin:1px 0 0;font-size:25px;line-height:1}
 .pages__content{height:calc(100% - 64px - 58px)}
 .pages__segmented button{min-height:34px;padding:8px 10px;font-size:12px;font-weight:700}
+.pages__post-open{width:100%;padding:0;text-align:left;background:none}.pages__post-foot{gap:6px}.pages__post-foot button{min-height:28px;padding:5px 8px;border-radius:9px;display:flex;align-items:center;gap:4px;background:#ffffff08;color:var(--muted);font-size:9px;font-weight:800}.pages__post-foot button:last-child{margin-left:auto}.pages__post-foot button:first-child.active{background:#ff647318;color:#ff6473}.pages__post-foot button:last-child.active{background:#ffd63e1c;color:var(--yellow)}.pages__post-foot button:disabled{opacity:.55}.pages__post-foot button svg:last-child{margin-left:0}.pages--light .pages__post-foot button{background:#00000008}
 .pages__photos{margin-top:5px}.pages__photos>svg{color:var(--yellow)}.pages__photos>h2{margin:7px 0 3px;font-size:19px}.pages__photos>p{margin:0 0 11px;color:var(--muted);font-size:9px;line-height:1.4}.pages__photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pages__photo-actions>button{min-width:0;padding:11px 9px;border:1px solid #ffffff12;border-radius:14px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:var(--panel)}.pages__photo-actions>button>span{width:34px;height:34px;margin-bottom:8px;border-radius:11px;display:grid;place-items:center;background:#ffd63e1c;color:var(--yellow)}.pages__photo-actions strong{font-size:11px}.pages__photo-actions small{margin-top:2px;color:var(--muted);font-size:8px;line-height:1.35}.pages__selected-heading{margin:15px 1px 7px;display:flex;align-items:center;justify-content:space-between}.pages__selected-heading strong{font-size:12px}.pages__selected-heading span{padding:3px 6px;border-radius:7px;background:var(--panel);color:var(--yellow);font-size:9px;font-weight:900}.pages__selection-gallery{height:142px;border-radius:14px}.pages__selected-strip{margin-top:7px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.pages__selected-strip button{position:relative;width:46px;height:46px;flex:none;border:1px solid #ffffff1d;border-radius:9px;background-position:center!important;background-size:cover!important}.pages__selected-strip button i{position:absolute;left:3px;bottom:3px;width:15px;height:15px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#17191a;font-size:7px;font-style:normal;font-weight:900}.pages__selected-strip button svg{position:absolute;top:3px;right:3px;padding:2px;box-sizing:content-box;border-radius:50%;background:#11120fc7;color:#fff}
 .pages__photo-source{position:absolute;z-index:8;inset:47px 0 0;padding:14px 14px 33px;background:#12171b}.pages--light .pages__photo-source{background:#fbfbf6}.pages__photo-source>header{height:52px;display:flex;align-items:center;gap:8px}.pages__photo-source>header>div{min-width:0;flex:1}.pages__photo-source>header small,.pages__photo-source>header strong{display:block}.pages__photo-source>header small{color:var(--yellow);font-size:8px;font-weight:900;text-transform:uppercase}.pages__photo-source>header strong{font-size:18px}.pages__photo-source>header>span{padding:4px 7px;border-radius:8px;background:var(--panel);color:var(--yellow);font-size:8px;font-weight:900}.pages__photo-source>header>button{width:31px;height:31px;padding:0;border-radius:50%;display:grid;place-items:center;background:var(--panel)}.pages__photo-picker{max-height:calc(100% - 58px);display:grid;grid-template-columns:repeat(3,1fr);gap:7px;overflow-y:auto;scrollbar-width:none}.pages__photo-picker button{position:relative;aspect-ratio:1;border:2px solid transparent;border-radius:11px;background-position:center!important;background-size:cover!important}.pages__photo-picker button.active{border-color:var(--yellow)}.pages__photo-picker i{width:19px;height:19px;margin:5px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#17191a;font-size:9px;font-style:normal;font-weight:900}.pages__capture{height:calc(100% - 52px);display:flex;flex-direction:column;align-items:center}.pages__viewfinder{position:relative;width:100%;min-height:305px;overflow:hidden;border-radius:18px;background-position:center!important;background-size:cover!important;box-shadow:inset 0 0 0 1px #ffffff1c}.pages__viewfinder:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0001,#00000038)}.pages__viewfinder>i{position:absolute;z-index:2;width:25px;height:25px;border-color:#fff;border-style:solid}.pages__viewfinder .corner-tl{top:18px;left:18px;border-width:2px 0 0 2px}.pages__viewfinder .corner-tr{top:18px;right:18px;border-width:2px 2px 0 0}.pages__viewfinder .corner-bl{bottom:18px;left:18px;border-width:0 0 2px 2px}.pages__viewfinder .corner-br{right:18px;bottom:18px;border-width:0 2px 2px 0}.pages__camera-flash{position:absolute;z-index:4;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .12s}.pages__camera-flash.active{opacity:.9}.pages__capture p{max-width:230px;margin:9px 0;color:var(--muted);font-size:8px;text-align:center}.pages__shutter{width:58px;height:58px;padding:0;border:5px solid #f5f5ee;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#17191a;box-shadow:0 0 0 2px #ffffff42}.pages--light .pages__photo-actions>button,.pages--light .pages__selected-strip button{border-color:#00000012}
 </style>
