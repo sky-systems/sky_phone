@@ -16,6 +16,7 @@ export type PhoneAppId =
   | 'memory'
   | 'number-merge'
   | 'minesweeper'
+  | 'tower-stack'
 
 export type AppLaunchOrigin = {
   borderRadius: number

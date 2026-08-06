@@ -50,6 +50,12 @@ describe('app registry', () => {
       labelKey: 'Apps.minesweeper.name',
       route: '/apps/minesweeper',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'tower-stack')).toMatchObject({
+      dockOrder: null,
+      gridOrder: 15,
+      labelKey: 'Apps.towerStack.name',
+      route: '/apps/tower-stack',
+    })
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))

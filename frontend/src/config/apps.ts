@@ -7,6 +7,7 @@ import {
   Grid2X2,
   Brain,
   Images,
+  Layers3,
   Mail,
   MapPinned,
   NotebookPen,
@@ -31,6 +32,7 @@ import snakeIcon from '@/assets/img/app-icons/snake.webp'
 import memoryIcon from '@/assets/img/app-icons/memory.webp'
 import numberMergeIcon from '@/assets/img/app-icons/number-merge.webp'
 import minesweeperIcon from '@/assets/img/app-icons/minesweeper.webp'
+import towerStackIcon from '@/assets/img/app-icons/tower-stack.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
@@ -229,6 +231,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'minesweeper',
     labelKey: 'Apps.minesweeper.name',
     route: '/apps/minesweeper',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/TowerStackApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 15,
+    icon: markRaw(Layers3),
+    iconClass: 'app-icon--tower-stack',
+    iconImage: towerStackIcon,
+    id: 'tower-stack',
+    labelKey: 'Apps.towerStack.name',
+    route: '/apps/tower-stack',
   },
 ]
 
