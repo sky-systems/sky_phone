@@ -78,6 +78,26 @@ describe('messages store', () => {
     expect(messages.messages[0].delivery_status).toBe('failed')
   })
 
+  it('normalizes numeric phone data from the NUI boundary', async () => {
+    mockNuiCall.mockResolvedValueOnce({
+      data: [
+        {
+          lastMessage: 'Hello',
+          lastMessageAt: 1_786_034_600,
+          lastMessageType: 'text',
+          phoneNumber: 4_205_550_196,
+          unread: 0,
+        },
+      ],
+      success: true,
+    })
+
+    const messages = useMessagesStore()
+    await messages.loadConversations()
+
+    expect(messages.conversations[0].phoneNumber).toBe('4205550196')
+  })
+
   it('loads protected voice media once and caches the data URI', async () => {
     mockNuiCall.mockResolvedValueOnce({
       data: { mime: 'audio/webm;codecs=opus', payload: 'ZmFrZQ==' },
