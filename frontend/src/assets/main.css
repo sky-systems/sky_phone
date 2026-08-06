@@ -854,6 +854,9 @@ button {
 }
 .springboard-page--library {
   padding-top: 62px;
+  padding-bottom: 25px;
+  display: flex;
+  flex-direction: column;
 }
 .app-library-search,
 .app-search {
@@ -882,13 +885,21 @@ button {
   color: white;
 }
 .app-library-groups {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 13px 12px;
   margin-top: 16px;
+  padding-bottom: 24px;
+  overflow-y: auto;
+  scrollbar-width: none;
   transition:
     transform 0.35s ease,
     opacity 0.35s ease;
+}
+.app-library-groups::-webkit-scrollbar {
+  display: none;
 }
 .app-library-groups--behind {
   transform: scale(0.95);

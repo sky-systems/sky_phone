@@ -5,12 +5,21 @@ import { computed, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import SpringboardWidgets from '@/components/SpringboardWidgets.vue'
 import { PHONE_APPS } from '@/config/apps'
+import { useAppStoreStore } from '@/stores/app-store'
 import { usePhoneStore } from '@/stores/phone'
-import type { PhoneAppDefinition } from '@/types/apps'
+import type { PhoneAppCategory, PhoneAppDefinition } from '@/types/apps'
 import { paginateItems } from '@/utils/pages'
 
 const APPS_PER_HOME_PAGE = 16
+const APP_LIBRARY_CATEGORIES: PhoneAppCategory[] = [
+  'games',
+  'productivity',
+  'social',
+  'utilities',
+  'shopping',
+]
 const phone = usePhoneStore()
+const appStore = useAppStoreStore()
 const searchQuery = ref('')
 const searchFocused = ref(false)
 const showAllApps = ref(false)
@@ -43,13 +52,28 @@ const filteredApps = computed(() => {
   )
 })
 const appGroups = computed(() => {
-  const groups: PhoneAppDefinition[][] = []
-  for (let index = 0; index < gridApps.value.length; index += 3) {
-    groups.push(gridApps.value.slice(index, index + 3))
-  }
-  return groups.map((apps, index) => ({
-    apps,
-    moreApps: groups[(index + 1) % groups.length] ?? [],
+  const suggestions = [...gridApps.value]
+    .sort(
+      (a, b) =>
+        (appStore.launchCounts[b.id] ?? 0) -
+          (appStore.launchCounts[a.id] ?? 0) || a.gridOrder - b.gridOrder,
+    )
+    .slice(0, 7)
+  const recentlyAdded = [...gridApps.value]
+    .sort((a, b) => b.gridOrder - a.gridOrder)
+    .slice(0, 7)
+  const groups = [
+    { apps: suggestions, key: 'suggestions' },
+    { apps: recentlyAdded, key: 'recentlyAdded' },
+    ...APP_LIBRARY_CATEGORIES.map((category) => ({
+      apps: gridApps.value.filter((app) => app.category === category),
+      key: category,
+    })),
+  ]
+  return groups.map((group) => ({
+    ...group,
+    apps: group.apps.slice(0, 3),
+    moreApps: group.apps.slice(3),
   }))
 })
 const alphabeticalGroups = computed(() => {
@@ -179,8 +203,8 @@ function openAllApps(): void {
           :class="{ 'app-library-groups--behind': showAllApps }"
         >
           <article
-            v-for="(group, index) in appGroups"
-            :key="index"
+            v-for="group in appGroups"
+            :key="group.key"
             class="app-library-group"
           >
             <div class="app-library-group__icons">
@@ -192,6 +216,7 @@ function openAllApps(): void {
                 :show-label="false"
               />
               <button
+                v-if="group.moreApps.length"
                 class="app-library-more"
                 type="button"
                 :aria-label="phone.t('Home.allApps')"
@@ -206,9 +231,7 @@ function openAllApps(): void {
                 />
               </button>
             </div>
-            <span>{{
-              phone.t(index < 2 ? `Home.groups.${index}` : 'Home.groups.other')
-            }}</span>
+            <span>{{ phone.t(`Home.groups.${group.key}`) }}</span>
           </article>
         </div>
 

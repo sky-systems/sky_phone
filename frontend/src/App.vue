@@ -28,6 +28,7 @@ import { useMailStore } from '@/stores/mail'
 import { useMediaStore } from '@/stores/media'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAppStoreStore } from '@/stores/app-store'
+import { isPhoneAppId } from '@/config/apps'
 import { useNotesStore } from '@/stores/notes'
 import { useWeatherStore } from '@/stores/weather'
 import {
@@ -376,6 +377,15 @@ onMounted(() => {
     }
   }
 })
+
+watch(
+  () => route.params.appId,
+  (appId) => {
+    if (typeof appId === 'string' && isPhoneAppId(appId)) {
+      appStore.recordLaunch(appId)
+    }
+  },
+)
 
 watch(
   [() => notifications.requiresAttention, () => calls.activeCall],
