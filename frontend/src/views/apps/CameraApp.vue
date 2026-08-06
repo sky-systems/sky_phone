@@ -223,13 +223,14 @@ function toggleOrientation(): void {
   )
 }
 
-function resizeGameView(): void {
+function resizeGameView(entry?: ResizeObserverEntry): void {
   if (!gameCanvas.value || !gameView) return
-  const bounds = gameCanvas.value.getBoundingClientRect()
+  const width = entry?.contentRect.width ?? gameCanvas.value.offsetWidth
+  const height = entry?.contentRect.height ?? gameCanvas.value.offsetHeight
   const renderScale = Math.min(window.devicePixelRatio, 2)
   gameView.resize(
-    Math.max(1, Math.round(bounds.width * renderScale)),
-    Math.max(1, Math.round(bounds.height * renderScale)),
+    Math.max(1, Math.round(width * renderScale)),
+    Math.max(1, Math.round(height * renderScale)),
     window.innerWidth,
     window.innerHeight,
   )
@@ -238,7 +239,7 @@ function resizeGameView(): void {
 function startGameView(): void {
   if (isDevelopment || !gameCanvas.value) return
   gameView = createGameView(gameCanvas.value)
-  resizeObserver = new ResizeObserver(resizeGameView)
+  resizeObserver = new ResizeObserver((entries) => resizeGameView(entries[0]))
   resizeObserver.observe(gameCanvas.value)
   resizeGameView()
   const render = () => {
