@@ -17,12 +17,12 @@ describe('app registry', () => {
       route: '/apps/phone',
     })
     expect(PHONE_APPS.find((app) => app.id === 'mail')).toMatchObject({
-      gridOrder: 5,
+      gridOrder: 6,
       labelKey: 'Apps.mail.name',
       route: '/apps/mail',
     })
     expect(PHONE_APPS.find((app) => app.id === 'weather')).toMatchObject({
-      gridOrder: 4,
+      gridOrder: 5,
       labelKey: 'Apps.weather.name',
       route: '/apps/weather',
     })
@@ -30,6 +30,6 @@ describe('app registry', () => {
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))
         .map((app) => app.id),
-    ).toEqual(['phone', 'calculator', 'camera', 'clock'])
+    ).toEqual(['phone', 'messages', 'calculator'])
   })
 })
