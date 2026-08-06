@@ -203,9 +203,10 @@ onMounted(() => void loadFeed())
   <main class="pages" :class="{ 'pages--light': !phone.isDarkMode }">
     <template v-if="screen === 'main'">
       <header class="pages__header">
-        <button type="button" :aria-label="phone.t('Common.back')" @click="router.push('/')"><ChevronLeft :size="21" /></button>
-        <div><span>{{ phone.t('Apps.localPages.eyebrow') }}</span><h1>Local Pages</h1></div>
-        <button type="button" :aria-label="phone.t('Apps.localPages.create')" @click="selectTab('create')"><Plus :size="21" /></button>
+        <div>
+          <span class="pages__brand"><MapPin :size="14" /> Local Pages</span>
+          <h1>{{ phone.t(`Apps.localPages.${tab === 'feed' ? 'discover' : tab}`) }}</h1>
+        </div>
       </header>
 
       <section class="pages__content">
@@ -274,4 +275,9 @@ onMounted(() => void loadFeed())
 .pages__tabbar button{width:54px;gap:2px}
 .pages__tabbar button>span{position:relative}
 .pages__tabbar .create span{width:37px;height:30px;margin-top:-4px;border-radius:10px;box-shadow:none}
+.pages__header{height:64px;padding:6px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+.pages__header>div{text-align:left}
+.pages__header .pages__brand{display:flex;align-items:center;gap:4px;color:var(--yellow);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.pages__header h1{margin:1px 0 0;font-size:25px;line-height:1}
+.pages__content{height:calc(100% - 64px - 58px)}
 </style>
