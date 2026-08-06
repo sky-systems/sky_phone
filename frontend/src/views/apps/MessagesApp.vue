@@ -885,9 +885,14 @@ onBeforeUnmount(() => {
       <div class="messages-chat-header__contact">
         <span
           class="messages-avatar messages-avatar--header"
+          :class="{ 'messages-avatar--unknown': !activeContact }"
           :style="avatarStyle(messages.activeNumber ?? '')"
         >
-          <span class="messages-avatar__glyph">{{ avatarGlyph(messages.activeNumber ?? '') }}</span>
+          <span v-if="activeContact" class="messages-avatar__glyph">{{ avatarGlyph(messages.activeNumber ?? '') }}</span>
+          <span v-else class="messages-avatar__placeholder" aria-hidden="true">
+            <i />
+            <b />
+          </span>
         </span>
         <button
           type="button"
@@ -924,9 +929,14 @@ onBeforeUnmount(() => {
       <div class="messages-contact-details__hero">
         <span
           class="messages-avatar messages-avatar--contact"
+          :class="{ 'messages-avatar--unknown': !activeContact }"
           :style="avatarStyle(messages.activeNumber ?? '')"
         >
-          <span class="messages-avatar__glyph">{{ avatarGlyph(messages.activeNumber ?? '') }}</span>
+          <span v-if="activeContact" class="messages-avatar__glyph">{{ avatarGlyph(messages.activeNumber ?? '') }}</span>
+          <span v-else class="messages-avatar__placeholder" aria-hidden="true">
+            <i />
+            <b />
+          </span>
         </span>
         <h2>{{ activeTitle }}</h2>
         <small>{{ messages.activeNumber }}</small>
