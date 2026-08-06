@@ -709,7 +709,7 @@ onBeforeUnmount(() => {
 .camera-zoom-row {
   position: absolute;
   z-index: 4;
-  bottom: 174px;
+  bottom: 164px;
   left: 50%;
   display: flex;
   gap: 6px;
