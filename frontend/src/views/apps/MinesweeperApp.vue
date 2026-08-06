@@ -36,6 +36,8 @@ const minesRemaining = computed(() =>
 )
 const roundEffect = ref<'explosion' | 'victory' | null>(null)
 const resultVisible = ref(true)
+const markerEffectCellId = ref<number | null>(null)
+const markerEffectKey = ref(0)
 const blastStyle = computed<CSSProperties>(() => {
   const currentGame = minesweeper.game
   const explodedCell = currentGame?.cells.find(
@@ -48,11 +50,24 @@ const blastStyle = computed<CSSProperties>(() => {
     '--blast-top': `${((explodedCell.row + 0.5) / currentGame.height) * 100}%`,
   } as CSSProperties
 })
+const markerStyle = computed<CSSProperties>(() => {
+  const currentGame = minesweeper.game
+  const markedCell = currentGame?.cells.find(
+    (cell) => cell.id === markerEffectCellId.value,
+  )
+  if (!currentGame || !markedCell) return {}
+
+  return {
+    '--marker-left': `${((markedCell.column + 0.5) / currentGame.width) * 100}%`,
+    '--marker-top': `${((markedCell.row + 0.5) / currentGame.height) * 100}%`,
+  } as CSSProperties
+})
 let clockTimer: ReturnType<typeof setInterval> | undefined
 let longPressTimer: ReturnType<typeof setTimeout> | undefined
 let suppressNextClick = false
 let suppressTimer: ReturnType<typeof setTimeout> | undefined
 let effectTimer: ReturnType<typeof setTimeout> | undefined
+let markerEffectTimer: ReturnType<typeof setTimeout> | undefined
 
 function formatTime(milliseconds: number): string {
   const seconds = Math.floor(milliseconds / 1000)
@@ -113,7 +128,21 @@ function startRoundEffect(
 
 function toggleFlag(cellId: number): void {
   const result = minesweeper.toggleFlag(cellId)
-  if (result?.changed) playMinesweeperSound('flag', minesweeper.soundEnabled)
+  if (!result?.changed) return
+
+  const markedCell = result.state.cells.find((cell) => cell.id === cellId)
+  if (markedCell?.isFlagged) {
+    if (markerEffectTimer) clearTimeout(markerEffectTimer)
+    markerEffectCellId.value = cellId
+    markerEffectKey.value += 1
+    playMinesweeperSound('place', minesweeper.soundEnabled)
+    markerEffectTimer = setTimeout(() => {
+      markerEffectCellId.value = null
+      markerEffectTimer = undefined
+    }, 720)
+  } else {
+    playMinesweeperSound('flag', minesweeper.soundEnabled)
+  }
 }
 
 function beginLongPress(cellId: number): void {
@@ -143,8 +172,11 @@ function restart(): void {
   if (!minesweeper.game) return
 
   if (effectTimer) clearTimeout(effectTimer)
+  if (markerEffectTimer) clearTimeout(markerEffectTimer)
   effectTimer = undefined
+  markerEffectTimer = undefined
   roundEffect.value = null
+  markerEffectCellId.value = null
   resultVisible.value = true
   minesweeper.start(minesweeper.game.difficulty)
 }
@@ -159,6 +191,7 @@ onBeforeUnmount(() => {
   if (longPressTimer) clearTimeout(longPressTimer)
   if (suppressTimer) clearTimeout(suppressTimer)
   if (effectTimer) clearTimeout(effectTimer)
+  if (markerEffectTimer) clearTimeout(markerEffectTimer)
   minesweeper.pause()
   minesweeper.persist()
 })
@@ -281,6 +314,7 @@ onBeforeUnmount(() => {
             'minesweeper-cell--flagged': cell.isFlagged,
             'minesweeper-cell--mine': cell.isMine && cell.isRevealed,
             'minesweeper-cell--exploded': game.explodedCellId === cell.id,
+            'minesweeper-cell--marking': markerEffectCellId === cell.id,
             [`minesweeper-cell--number-${cell.adjacentMines}`]:
               cell.isRevealed && !cell.isMine && cell.adjacentMines > 0,
           }"
@@ -296,6 +330,20 @@ onBeforeUnmount(() => {
           <Bomb v-else-if="cell.isMine && cell.isRevealed" :size="16" aria-hidden="true" />
           <strong v-else-if="cell.isRevealed && cell.adjacentMines > 0">{{ cell.adjacentMines }}</strong>
         </button>
+
+        <div
+          v-if="markerEffectCellId !== null"
+          :key="markerEffectKey"
+          class="minesweeper-marker-drop"
+          :style="markerStyle"
+          aria-hidden="true"
+        >
+          <span class="minesweeper-marker-drop__trail"></span>
+          <span class="minesweeper-marker-drop__bomb">
+            <Bomb :size="24" fill="currentColor" />
+          </span>
+          <span class="minesweeper-marker-drop__impact"></span>
+        </div>
 
         <div
           v-if="roundEffect === 'explosion'"
@@ -512,6 +560,7 @@ onBeforeUnmount(() => {
 .minesweeper-board--expert .minesweeper-cell { border-radius: 6px; font-size: 11px; }
 .minesweeper-cell--revealed { color: #477078; background: #eef5e9; box-shadow: inset 0 1px 3px rgb(39 83 80 / 12%); animation: minesweeper-reveal 170ms ease-out; }
 .minesweeper-cell--flagged { color: #f35f58; background: linear-gradient(145deg, #5bcec5, #2ca5a4); }
+.minesweeper-cell--marking > svg { animation: minesweeper-marker-flag 720ms ease-out; }
 .minesweeper-cell--mine { color: #263c51; background: #dce5dd; }
 .minesweeper-cell--exploded { color: #fff; background: radial-gradient(circle, #263238 0 31%, #743e37 34% 55%, #df584e 58%); box-shadow: inset 0 0 9px #050b0c, 0 0 12px #ff5a3c; animation: minesweeper-explode 720ms ease-out; }
 .minesweeper-cell--number-1 { color: #3275ce; }
@@ -549,6 +598,58 @@ onBeforeUnmount(() => {
   width: 0;
   height: 0;
   pointer-events: none;
+}
+
+.minesweeper-marker-drop {
+  position: absolute;
+  z-index: 11;
+  top: var(--marker-top);
+  left: var(--marker-left);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.minesweeper-marker-drop__bomb {
+  position: absolute;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  margin: -19px;
+  border: 2px solid #667985;
+  border-radius: 50%;
+  color: #172c36;
+  background: radial-gradient(circle at 35% 28%, #687b83, #263c45 48%, #12272f 75%);
+  box-shadow: inset -4px -5px 8px rgb(0 0 0 / 35%), 0 5px 9px rgb(11 42 45 / 42%);
+  animation: minesweeper-bomb-drop 720ms cubic-bezier(0.2, 0.8, 0.35, 1) forwards;
+}
+
+.minesweeper-marker-drop__trail {
+  position: absolute;
+  z-index: 1;
+  width: 7px;
+  height: 95px;
+  margin: -87px 0 0 27px;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, transparent, #ffe38a 45%, #ff6c42 83%, transparent);
+  filter: blur(2px);
+  transform: rotate(35deg);
+  transform-origin: bottom;
+  animation: minesweeper-bomb-trail 570ms ease-out forwards;
+}
+
+.minesweeper-marker-drop__impact {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  margin: -17px;
+  border: 4px solid #8df3df;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #4bc4bd;
+  opacity: 0;
+  animation: minesweeper-marker-impact 720ms ease-out forwards;
 }
 
 .minesweeper-blast__flash,
@@ -675,6 +776,33 @@ onBeforeUnmount(() => {
   82% { transform: translate(2px, 1px); }
 }
 
+@keyframes minesweeper-bomb-drop {
+  0% { opacity: 0; transform: translate(105px, -185px) scale(0.55) rotate(160deg); }
+  12% { opacity: 1; }
+  66% { transform: translate(0, 0) scale(1) rotate(355deg); }
+  78% { transform: translate(0, -13px) scale(0.9) rotate(370deg); }
+  90% { opacity: 1; transform: translate(0, 0) scale(0.78) rotate(380deg); }
+  100% { opacity: 0; transform: translate(0, 0) scale(0.35) rotate(390deg); }
+}
+
+@keyframes minesweeper-bomb-trail {
+  0% { opacity: 0; scale: 0.4; }
+  18% { opacity: 0.9; }
+  72%, 100% { opacity: 0; scale: 1; }
+}
+
+@keyframes minesweeper-marker-impact {
+  0%, 62% { opacity: 0; transform: scale(0.2); }
+  68% { opacity: 1; }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+
+@keyframes minesweeper-marker-flag {
+  0%, 68% { opacity: 0; transform: scale(0.35) rotate(-18deg); }
+  82% { opacity: 1; transform: scale(1.28) rotate(5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
 @keyframes minesweeper-screen-flash {
   0% { opacity: 0.82; }
   18% { opacity: 0.22; }
@@ -746,6 +874,8 @@ button:active { transform: scale(0.96); }
   .minesweeper-game--exploding .minesweeper-board,
   .minesweeper-game--exploding::after,
   .minesweeper-blast > *,
+  .minesweeper-marker-drop > *,
+  .minesweeper-cell--marking > svg,
   .minesweeper-celebration i,
   .minesweeper-game--victory .minesweeper-cell--flagged,
   .minesweeper-cell--revealed,

@@ -1,15 +1,23 @@
 import flagUrl from '@/assets/audio/minesweeper/flag.wav?url'
 import clearUrl from '@/assets/audio/minesweeper/clear.wav?url'
 import mineUrl from '@/assets/audio/minesweeper/mine.wav?url'
+import placeUrl from '@/assets/audio/minesweeper/place.wav?url'
 import revealUrl from '@/assets/audio/minesweeper/reveal.wav?url'
 import winUrl from '@/assets/audio/minesweeper/win.wav?url'
 
-export type MinesweeperSound = 'clear' | 'flag' | 'mine' | 'reveal' | 'win'
+export type MinesweeperSound =
+  | 'clear'
+  | 'flag'
+  | 'mine'
+  | 'place'
+  | 'reveal'
+  | 'win'
 
 const soundUrls: Record<MinesweeperSound, string> = {
   clear: clearUrl,
   flag: flagUrl,
   mine: mineUrl,
+  place: placeUrl,
   reveal: revealUrl,
   win: winUrl,
 }
