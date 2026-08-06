@@ -632,15 +632,15 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 7px;
+  gap: 5px;
 }
 .neon-board {
-  width: 200px;
-  height: 360px;
+  width: 230px;
+  height: 414px;
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   grid-template-rows: repeat(18, 1fr);
-  gap: 2px;
+  gap: 1.5px;
   padding: 5px;
   border: 1px solid #65f4e43b;
   border-radius: 13px;
@@ -699,19 +699,23 @@ onBeforeUnmount(() => {
   animation: neon-clear 0.24s ease-out;
 }
 .neon-side {
-  width: 49px;
+  width: 47px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding-top: 4px;
+  gap: 7px;
+  padding: 7px 3px 9px;
+  border: 1px solid #65f4e41f;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #1420478f, #090d24a3);
+  box-shadow: inset 0 0 16px #53e8d90a;
 }
 .neon-side > strong {
   font-size: 22px;
 }
 .neon-preview {
-  width: 49px;
-  height: 49px;
+  width: 43px;
+  height: 43px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(4, 1fr);
@@ -730,7 +734,7 @@ onBeforeUnmount(() => {
 .neon-level {
   position: relative;
   width: 7px;
-  height: 190px;
+  height: 246px;
   overflow: hidden;
   border-radius: 8px;
   background: #ffffff0c;
@@ -749,10 +753,10 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 5px;
-  margin-top: 7px;
+  margin-top: 9px;
 }
 .neon-controls button {
-  height: 39px;
+  height: 41px;
   display: grid;
   place-items: center;
   padding: 0;
