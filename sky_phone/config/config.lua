@@ -34,6 +34,26 @@ Config.Calls = {
     RecentPageSize = 100,
 }
 
+Config.Messages = {
+    BodyMaxLength = 2000,
+    ConversationScanLimit = 1000,
+    ThreadPageSize = 200,
+    SendsPerMinute = 30,
+    MediaLoadsPerMinute = 120,
+    VoiceMaxDurationMs = 30000,
+    VoiceMaxBase64Length = 180000,
+    VoiceWaveformSamples = 48,
+    VideoMaxDurationMs = 30000,
+    DeleteBatchSize = 20,
+}
+
+Config.Media = {
+    GifPageSize = 24,
+    GifRating = "pg-13",
+    UrlMaxLength = 2048,
+    AllowedGifHosts = { "giphy.com" },
+}
+
 Config.Mail = {
     Domain = "ifruit.com",
     LocalPartMinLength = 3,
