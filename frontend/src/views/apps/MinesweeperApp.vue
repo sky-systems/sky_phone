@@ -7,7 +7,13 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-vue-next'
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  type CSSProperties,
+} from 'vue'
 
 import { playMinesweeperSound } from '@/features/games/minesweeper/audio'
 import { MINESWEEPER_DIFFICULTIES } from '@/features/games/minesweeper/engine'
@@ -28,10 +34,25 @@ const flagsPlaced = computed(
 const minesRemaining = computed(() =>
   Math.max(0, (minesweeper.game?.mineCount ?? 0) - flagsPlaced.value),
 )
+const roundEffect = ref<'explosion' | 'victory' | null>(null)
+const resultVisible = ref(true)
+const blastStyle = computed<CSSProperties>(() => {
+  const currentGame = minesweeper.game
+  const explodedCell = currentGame?.cells.find(
+    (cell) => cell.id === currentGame.explodedCellId,
+  )
+  if (!currentGame || !explodedCell) return {}
+
+  return {
+    '--blast-left': `${((explodedCell.column + 0.5) / currentGame.width) * 100}%`,
+    '--blast-top': `${((explodedCell.row + 0.5) / currentGame.height) * 100}%`,
+  } as CSSProperties
+})
 let clockTimer: ReturnType<typeof setInterval> | undefined
 let longPressTimer: ReturnType<typeof setTimeout> | undefined
 let suppressNextClick = false
 let suppressTimer: ReturnType<typeof setTimeout> | undefined
+let effectTimer: ReturnType<typeof setTimeout> | undefined
 
 function formatTime(milliseconds: number): string {
   const seconds = Math.floor(milliseconds / 1000)
@@ -64,11 +85,30 @@ function reveal(cellId: number): void {
   if (!result?.changed) return
   if (result.state.status === 'lost') {
     playMinesweeperSound('mine', minesweeper.soundEnabled)
+    startRoundEffect('explosion', 1050)
   } else if (result.state.status === 'won') {
     playMinesweeperSound('win', minesweeper.soundEnabled)
+    startRoundEffect('victory', 900)
   } else {
-    playMinesweeperSound('reveal', minesweeper.soundEnabled)
+    playMinesweeperSound(
+      result.revealedCount >= 5 ? 'clear' : 'reveal',
+      minesweeper.soundEnabled,
+    )
   }
+}
+
+function startRoundEffect(
+  effect: 'explosion' | 'victory',
+  duration: number,
+): void {
+  if (effectTimer) clearTimeout(effectTimer)
+  roundEffect.value = effect
+  resultVisible.value = false
+  effectTimer = setTimeout(() => {
+    roundEffect.value = null
+    resultVisible.value = true
+    effectTimer = undefined
+  }, duration)
 }
 
 function toggleFlag(cellId: number): void {
@@ -100,7 +140,13 @@ function toggleSound(): void {
 }
 
 function restart(): void {
-  if (minesweeper.game) minesweeper.start(minesweeper.game.difficulty)
+  if (!minesweeper.game) return
+
+  if (effectTimer) clearTimeout(effectTimer)
+  effectTimer = undefined
+  roundEffect.value = null
+  resultVisible.value = true
+  minesweeper.start(minesweeper.game.difficulty)
 }
 
 minesweeper.hydrate()
@@ -112,6 +158,7 @@ onBeforeUnmount(() => {
   if (clockTimer) clearInterval(clockTimer)
   if (longPressTimer) clearTimeout(longPressTimer)
   if (suppressTimer) clearTimeout(suppressTimer)
+  if (effectTimer) clearTimeout(effectTimer)
   minesweeper.pause()
   minesweeper.persist()
 })
@@ -182,7 +229,14 @@ onBeforeUnmount(() => {
       <p class="minesweeper-long-press">{{ phone.t('Apps.minesweeper.longPressHint') }}</p>
     </section>
 
-    <section v-else-if="game" class="minesweeper-game">
+    <section
+      v-else-if="game"
+      class="minesweeper-game"
+      :class="{
+        'minesweeper-game--exploding': roundEffect === 'explosion',
+        'minesweeper-game--victory': roundEffect === 'victory',
+      }"
+    >
       <div class="minesweeper-toolbar">
         <button
           type="button"
@@ -243,7 +297,32 @@ onBeforeUnmount(() => {
           <strong v-else-if="cell.isRevealed && cell.adjacentMines > 0">{{ cell.adjacentMines }}</strong>
         </button>
 
-        <div v-if="game.status === 'won' || game.status === 'lost'" class="minesweeper-overlay">
+        <div
+          v-if="roundEffect === 'explosion'"
+          class="minesweeper-blast"
+          :style="blastStyle"
+          aria-hidden="true"
+        >
+          <span class="minesweeper-blast__flash"></span>
+          <span class="minesweeper-blast__ring"></span>
+          <span class="minesweeper-blast__core"><Bomb :size="25" fill="currentColor" /></span>
+          <i v-for="particle in 12" :key="particle"></i>
+        </div>
+
+        <div
+          v-if="roundEffect === 'victory'"
+          class="minesweeper-celebration"
+          aria-hidden="true"
+        >
+          <i v-for="particle in 18" :key="particle"></i>
+        </div>
+
+        <div
+          v-if="
+            resultVisible && (game.status === 'won' || game.status === 'lost')
+          "
+          class="minesweeper-overlay"
+        >
           <span class="minesweeper-overlay__icon">
             <Flag v-if="game.status === 'won'" :size="30" fill="currentColor" />
             <Bomb v-else :size="30" />
@@ -397,7 +476,7 @@ onBeforeUnmount(() => {
 .minesweeper-difficulties small { align-self: start; color: #658a89; font-size: 8px; }
 .minesweeper-long-press { margin: 0; color: #628887; font-size: 9px; }
 
-.minesweeper-game { padding-top: 5px; }
+.minesweeper-game { position: relative; padding-top: 5px; }
 .minesweeper-toolbar { height: 46px; display: grid; grid-template-columns: 36px 1fr 1fr 36px; align-items: center; gap: 7px; }
 .minesweeper-toolbar div { display: grid; justify-items: center; line-height: 1.05; }
 .minesweeper-toolbar span { color: #5a8484; font-size: 8px; font-weight: 800; text-transform: uppercase; }
@@ -434,7 +513,7 @@ onBeforeUnmount(() => {
 .minesweeper-cell--revealed { color: #477078; background: #eef5e9; box-shadow: inset 0 1px 3px rgb(39 83 80 / 12%); animation: minesweeper-reveal 170ms ease-out; }
 .minesweeper-cell--flagged { color: #f35f58; background: linear-gradient(145deg, #5bcec5, #2ca5a4); }
 .minesweeper-cell--mine { color: #263c51; background: #dce5dd; }
-.minesweeper-cell--exploded { color: #fff; background: #ed6459; animation: minesweeper-explode 350ms ease-out; }
+.minesweeper-cell--exploded { color: #fff; background: radial-gradient(circle, #263238 0 31%, #743e37 34% 55%, #df584e 58%); box-shadow: inset 0 0 9px #050b0c, 0 0 12px #ff5a3c; animation: minesweeper-explode 720ms ease-out; }
 .minesweeper-cell--number-1 { color: #3275ce; }
 .minesweeper-cell--number-2 { color: #188569; }
 .minesweeper-cell--number-3 { color: #dd574b; }
@@ -445,7 +524,196 @@ onBeforeUnmount(() => {
 .minesweeper-cell--number-8 { color: #9b4e34; }
 
 @keyframes minesweeper-reveal { from { opacity: 0.45; transform: scale(0.84); } to { opacity: 1; transform: scale(1); } }
-@keyframes minesweeper-explode { 0% { transform: scale(0.8); } 48% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes minesweeper-explode { 0% { filter: brightness(4); transform: scale(0.7); } 28% { filter: brightness(2); transform: scale(1.32); } 62% { transform: scale(0.9); } 100% { filter: brightness(0.8); transform: scale(1); } }
+
+.minesweeper-game--exploding .minesweeper-board {
+  animation: minesweeper-board-shake 680ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+.minesweeper-game--exploding::after {
+  position: absolute;
+  z-index: 9;
+  inset: 46px 0 0;
+  border-radius: 18px;
+  background: #ffb341;
+  content: "";
+  pointer-events: none;
+  animation: minesweeper-screen-flash 520ms ease-out forwards;
+}
+
+.minesweeper-blast {
+  position: absolute;
+  z-index: 12;
+  top: var(--blast-top);
+  left: var(--blast-left);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.minesweeper-blast__flash,
+.minesweeper-blast__ring,
+.minesweeper-blast__core,
+.minesweeper-blast i {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.minesweeper-blast__flash {
+  width: 112px;
+  height: 112px;
+  margin: -56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 7%, #ffdf68 12%, #ff713d 32%, transparent 68%);
+  animation: minesweeper-blast-flash 560ms ease-out forwards;
+}
+
+.minesweeper-blast__ring {
+  width: 32px;
+  height: 32px;
+  margin: -16px;
+  border: 6px solid #ffd166;
+  border-radius: 50%;
+  box-shadow: 0 0 18px #ff713d;
+  animation: minesweeper-blast-ring 720ms ease-out forwards;
+}
+
+.minesweeper-blast__core {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  margin: -22px;
+  border-radius: 50%;
+  color: #202a32;
+  background: #f6b846;
+  filter: drop-shadow(0 0 8px #fff0a6);
+  animation: minesweeper-blast-core 620ms ease-out forwards;
+}
+
+.minesweeper-blast i {
+  --particle-x: 58px;
+  --particle-y: 0;
+  width: 7px;
+  height: 7px;
+  margin: -3px;
+  border-radius: 2px;
+  background: #ffcf55;
+  box-shadow: 0 0 7px #ff743d;
+  animation: minesweeper-debris 760ms ease-out forwards;
+}
+
+.minesweeper-blast i:nth-of-type(2) { --particle-x: 51px; --particle-y: 30px; }
+.minesweeper-blast i:nth-of-type(3) { --particle-x: 29px; --particle-y: 54px; }
+.minesweeper-blast i:nth-of-type(4) { --particle-x: 0; --particle-y: 66px; }
+.minesweeper-blast i:nth-of-type(5) { --particle-x: -34px; --particle-y: 58px; }
+.minesweeper-blast i:nth-of-type(6) { --particle-x: -61px; --particle-y: 28px; }
+.minesweeper-blast i:nth-of-type(7) { --particle-x: -68px; --particle-y: -5px; }
+.minesweeper-blast i:nth-of-type(8) { --particle-x: -49px; --particle-y: -43px; }
+.minesweeper-blast i:nth-of-type(9) { --particle-x: -12px; --particle-y: -65px; }
+.minesweeper-blast i:nth-of-type(10) { --particle-x: 28px; --particle-y: -60px; }
+.minesweeper-blast i:nth-of-type(11) { --particle-x: 61px; --particle-y: -36px; }
+.minesweeper-blast i:nth-of-type(12) { --particle-x: 72px; --particle-y: 10px; }
+
+.minesweeper-celebration {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 17px;
+  pointer-events: none;
+}
+
+.minesweeper-celebration i {
+  --confetti-x: 10%;
+  --confetti-delay: 0ms;
+  --confetti-color: #ffcf55;
+  position: absolute;
+  top: -14px;
+  left: var(--confetti-x);
+  width: 7px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--confetti-color);
+  animation: minesweeper-confetti 850ms var(--confetti-delay) ease-in forwards;
+}
+
+.minesweeper-celebration i:nth-child(3n + 1) { --confetti-color: #ff7065; transform: rotate(22deg); }
+.minesweeper-celebration i:nth-child(3n + 2) { --confetti-color: #9cf0d9; transform: rotate(-31deg); }
+.minesweeper-celebration i:nth-child(2n) { --confetti-delay: 90ms; }
+.minesweeper-celebration i:nth-child(1) { --confetti-x: 4%; }
+.minesweeper-celebration i:nth-child(2) { --confetti-x: 10%; }
+.minesweeper-celebration i:nth-child(3) { --confetti-x: 17%; }
+.minesweeper-celebration i:nth-child(4) { --confetti-x: 24%; }
+.minesweeper-celebration i:nth-child(5) { --confetti-x: 31%; }
+.minesweeper-celebration i:nth-child(6) { --confetti-x: 38%; }
+.minesweeper-celebration i:nth-child(7) { --confetti-x: 45%; }
+.minesweeper-celebration i:nth-child(8) { --confetti-x: 52%; }
+.minesweeper-celebration i:nth-child(9) { --confetti-x: 59%; }
+.minesweeper-celebration i:nth-child(10) { --confetti-x: 66%; }
+.minesweeper-celebration i:nth-child(11) { --confetti-x: 73%; }
+.minesweeper-celebration i:nth-child(12) { --confetti-x: 80%; }
+.minesweeper-celebration i:nth-child(13) { --confetti-x: 87%; }
+.minesweeper-celebration i:nth-child(14) { --confetti-x: 94%; }
+.minesweeper-celebration i:nth-child(15) { --confetti-x: 14%; }
+.minesweeper-celebration i:nth-child(16) { --confetti-x: 42%; }
+.minesweeper-celebration i:nth-child(17) { --confetti-x: 70%; }
+.minesweeper-celebration i:nth-child(18) { --confetti-x: 90%; }
+
+.minesweeper-game--victory .minesweeper-cell--flagged {
+  animation: minesweeper-flag-celebrate 520ms ease-out alternate 2;
+}
+
+@keyframes minesweeper-board-shake {
+  0%, 100% { transform: translate(0); }
+  12% { transform: translate(-7px, 3px) rotate(-1deg); }
+  24% { transform: translate(6px, -4px) rotate(1deg); }
+  38% { transform: translate(-5px, -2px); }
+  52% { transform: translate(4px, 3px); }
+  68% { transform: translate(-2px, -2px); }
+  82% { transform: translate(2px, 1px); }
+}
+
+@keyframes minesweeper-screen-flash {
+  0% { opacity: 0.82; }
+  18% { opacity: 0.22; }
+  100% { opacity: 0; }
+}
+
+@keyframes minesweeper-blast-flash {
+  0% { opacity: 1; transform: scale(0.18); }
+  45% { opacity: 0.88; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.7); }
+}
+
+@keyframes minesweeper-blast-ring {
+  0% { opacity: 1; transform: scale(0.15); }
+  100% { opacity: 0; transform: scale(4.2); }
+}
+
+@keyframes minesweeper-blast-core {
+  0% { opacity: 1; transform: scale(0.35) rotate(-18deg); }
+  48% { opacity: 1; transform: scale(1.2) rotate(12deg); }
+  100% { opacity: 0; transform: scale(0.6) rotate(55deg); }
+}
+
+@keyframes minesweeper-debris {
+  0% { opacity: 1; transform: translate(0) rotate(0); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--particle-x), var(--particle-y)) rotate(260deg); }
+}
+
+@keyframes minesweeper-confetti {
+  0% { opacity: 0; translate: 0 0; rotate: 0deg; }
+  10% { opacity: 1; }
+  100% { opacity: 0; translate: 16px 380px; rotate: 520deg; }
+}
+
+@keyframes minesweeper-flag-celebrate {
+  from { filter: brightness(1); transform: scale(1); }
+  to { filter: brightness(1.3); transform: scale(1.12) rotate(3deg); }
+}
 
 .minesweeper-overlay {
   position: absolute;
@@ -475,6 +743,11 @@ onBeforeUnmount(() => {
 button:active { transform: scale(0.96); }
 
 @media (prefers-reduced-motion: reduce) {
+  .minesweeper-game--exploding .minesweeper-board,
+  .minesweeper-game--exploding::after,
+  .minesweeper-blast > *,
+  .minesweeper-celebration i,
+  .minesweeper-game--victory .minesweeper-cell--flagged,
   .minesweeper-cell--revealed,
   .minesweeper-cell--exploded { animation: none; }
 }
