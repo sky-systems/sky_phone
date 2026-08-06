@@ -616,7 +616,7 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 .camera-control {
-  --color-primary: rgb(99 99 102 / 75%);
+  --color-primary: transparent;
 }
 .camera-control svg {
   width: 21px;
