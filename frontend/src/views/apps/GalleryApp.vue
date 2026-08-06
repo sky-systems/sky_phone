@@ -67,9 +67,6 @@ let observer: IntersectionObserver | null = null
 let toastTimer: number | undefined
 let pendingDeleteCorrelation = ''
 
-const countLabel = computed(() =>
-  phone.t('Apps.photos.count', { count: String(media.value.length) }),
-)
 const imageStyle = computed(() => ({
   cursor:
     imageZoom.value > 1 ? (dragging.value ? 'grabbing' : 'grab') : 'zoom-in',
@@ -320,11 +317,7 @@ onBeforeUnmount(() => {
     class="gallery-page !pt-[44px] !pb-[25px]"
     :aria-label="phone.t('Apps.photos.name')"
   >
-    <k-navbar large transparent :title="phone.t('Apps.photos.name')">
-      <template #right>
-        <span class="gallery-count">{{ countLabel }}</span>
-      </template>
-    </k-navbar>
+    <k-navbar :title="phone.t('Apps.photos.name')" />
 
     <div class="gallery-content">
       <div v-if="loading" class="gallery-state">
@@ -507,10 +500,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.gallery-count {
-  color: #8e8e93;
-  font-size: 12px;
-}
 .gallery-page {
   display: flex;
   flex-direction: column;
