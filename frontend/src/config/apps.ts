@@ -3,6 +3,7 @@ import {
   Bomb,
   Blocks,
   Camera,
+  CalendarDays,
   Clock3,
   Gamepad2,
   Grid2X2,
@@ -26,6 +27,7 @@ import appStoreIcon from '@/assets/img/app-icons/apps.webp'
 import calculatorIcon from '@/assets/img/app-icons/calculator.webp'
 import cameraIcon from '@/assets/img/app-icons/camera.webp'
 import clockIcon from '@/assets/img/app-icons/clock.webp'
+import calendarIcon from '@/assets/img/app-icons/calendar.svg'
 import mailIcon from '@/assets/img/app-icons/mail.webp'
 import mapIcon from '@/assets/img/app-icons/map.webp'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
@@ -49,6 +51,19 @@ import type {
 } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/CalendarApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 20,
+    icon: markRaw(CalendarDays),
+    iconClass: 'app-icon--calendar',
+    iconImage: calendarIcon,
+    id: 'calendar',
+    labelKey: 'Apps.calendar.name',
+    route: '/apps/calendar',
+  },
   {
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/LocalPagesApp.vue')),

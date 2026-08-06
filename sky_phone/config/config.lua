@@ -102,3 +102,13 @@ Config.LocalPages = {
     Categories = { "recommendation", "wanted", "service", "event", "place", "community" },
     CityMarktSharesPerDay = 1,
 }
+
+Config.Calendar = {
+    TitleMaxLength = 120,
+    NoteMaxLength = 2000,
+    MaximumDurationSeconds = 7 * 24 * 60 * 60,
+    MaximumQuerySeconds = 370 * 24 * 60 * 60,
+    PastEditSeconds = 365 * 24 * 60 * 60,
+    FutureSeconds = 5 * 365 * 24 * 60 * 60,
+    ReminderPollSeconds = 15,
+}

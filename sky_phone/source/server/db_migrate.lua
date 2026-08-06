@@ -604,6 +604,31 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_calendar_events",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "title", type = "VARCHAR(120) NOT NULL" },
+            { name = "note", type = "TEXT NOT NULL" },
+            { name = "starts_at", type = "DATETIME NOT NULL" },
+            { name = "ends_at", type = "DATETIME NOT NULL" },
+            { name = "reminder_minutes", type = "SMALLINT UNSIGNED NULL" },
+            { name = "reminded_at", type = "DATETIME NULL" },
+            { name = "revision", type = "INT UNSIGNED NOT NULL DEFAULT 1" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_calendar_account", columns = "(`account_id`, `starts_at`)" },
+            { name = "idx_sky_phone_calendar_reminders", columns = "(`reminded_at`, `starts_at`)" },
+        },
+        foreignKeys = {
+            { column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Bridge.Database.Migrate("sky_phone", schema)

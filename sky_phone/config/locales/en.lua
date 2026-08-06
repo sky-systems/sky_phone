@@ -167,6 +167,9 @@ Locales["en"] = {
                     upload_failed = "The media upload failed.", upload_timeout = "The media upload timed out.",
                 },
             },
+            calendar = {
+                name = "Calendar", reminder = "Upcoming: {title}",
+            },
             clock = {
                 name = "Clock", lap = "Lap", minutes = "Minutes", add = "Add alarm", location = "Los Santos",
                 tabs = { world = "Clock", alarm = "Alarm", stopwatch = "Stopwatch", timer = "Timer" },

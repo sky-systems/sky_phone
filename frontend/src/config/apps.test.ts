@@ -10,9 +10,11 @@ describe('app registry', () => {
         (app) => app.route === null || app.route === `/apps/${app.id}`,
       ),
     ).toBe(true)
-    expect(PHONE_APPS.every((app) => app.iconImage.endsWith('.webp'))).toBe(
-      true,
-    )
+    expect(
+      PHONE_APPS.every(
+        (app) => typeof app.iconImage === 'string' && app.iconImage.length > 0,
+      ),
+    ).toBe(true)
     expect(PHONE_APPS.find((app) => app.id === 'phone')).toMatchObject({
       dockOrder: 0,
       labelKey: 'Apps.phone.name',
@@ -27,6 +29,11 @@ describe('app registry', () => {
       gridOrder: 4,
       labelKey: 'Apps.weather.name',
       route: '/apps/weather',
+    })
+    expect(PHONE_APPS.find((app) => app.id === 'calendar')).toMatchObject({
+      gridOrder: 20,
+      labelKey: 'Apps.calendar.name',
+      route: '/apps/calendar',
     })
     expect(PHONE_APPS.find((app) => app.id === 'snake')).toMatchObject({
       dockOrder: null,

@@ -48,6 +48,7 @@ server_scripts {
     'source/server/marketplace.lua',
     'source/server/pages.lua',
     'source/server/media.lua',
+    'source/server/calendar.lua',
 }
 
 files {

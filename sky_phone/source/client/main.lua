@@ -55,6 +55,10 @@ local server_callbacks = {
     "pages:share-citymarkt",
     "pages:react",
     "pages:delete",
+    "calendar:list",
+    "calendar:create",
+    "calendar:update",
+    "calendar:delete",
     "sim:insert",
     "sim:eject",
     "contacts:list",
@@ -311,6 +315,13 @@ RegisterNetEvent("sky_phone:marketplace:new-message", function(data)
         data.text = marketplace_locale.newMessage:gsub("{sender}", tostring(data.sender))
     end
     SendNUIMessage({ type = "marketplace:new-message", data = data })
+end)
+
+RegisterNetEvent("sky_phone:calendar:reminder", function(data)
+    local calendar_locale = get_locale().Nui.Apps.calendar
+    data.title = calendar_locale.name
+    data.text = calendar_locale.reminder:gsub("{title}", tostring(data.eventTitle))
+    SendNUIMessage({ type = "calendar:reminder", data = data })
 end)
 
 RegisterNetEvent("sky_phone:sim:picker", function(data)

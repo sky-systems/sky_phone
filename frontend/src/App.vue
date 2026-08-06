@@ -46,7 +46,13 @@ import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
   type?: string
-  data?: MailEventData | MarketplaceEventData | PhoneCall | PhoneNotificationInput | PhoneOpenPayload
+  data?:
+    | CalendarReminderData
+    | MailEventData
+    | MarketplaceEventData
+    | PhoneCall
+    | PhoneNotificationInput
+    | PhoneOpenPayload
 }
 
 type SimPickerPayload = {
@@ -69,6 +75,15 @@ type MarketplaceEventData = {
   inquiryId?: string
   listingId?: string
   sender?: string
+  text?: string
+  title?: string
+}
+
+type CalendarReminderData = {
+  device?: PhoneNotificationDevicePayload
+  eventId?: string
+  eventTitle?: string
+  startsAt?: number
   text?: string
   title?: string
 }
@@ -195,6 +210,30 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     }
     notifications.show(notification)
     void marketplace.loadCounts()
+  } else if (event.data?.type === 'calendar:reminder' && event.data.data) {
+    const data = event.data.data as CalendarReminderData
+    const startsAt = Number(data.startsAt) || Date.now()
+    const notification: PhoneNotificationInput = {
+      appId: 'calendar',
+      subtitle: new Intl.DateTimeFormat(phone.lang, {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(startsAt),
+      text:
+        data.text ??
+        phone.t('Apps.calendar.reminderNotification', {
+          title: data.eventTitle ?? '',
+        }),
+      title: data.title ?? phone.t('Apps.calendar.name'),
+    }
+    if (data.device && (!phone.isOpen || data.device.imei !== phone.device?.imei)) {
+      notification.device = {
+        imei: data.device.imei,
+        name: data.device.name,
+        preferences: parsePhonePreferences(data.device.settings ?? null),
+      }
+    }
+    notifications.show(notification)
   } else if (event.data?.type === 'contacts:changed') {
     void calls.loadContacts()
   } else if (event.data?.type === 'calls:changed') {

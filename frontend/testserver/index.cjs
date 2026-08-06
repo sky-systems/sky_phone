@@ -134,6 +134,7 @@ let mockNotes = [
     updatedAt: Date.now() - 3_600_000,
   },
 ]
+let calendarEvents = []
 const deviceData = {}
 let mockMedia = [
   {
@@ -430,7 +431,62 @@ app.post('/api/:endpoint', (request, response) => {
     linkedAccount = null
     mockNotes = []
     mockMedia = []
+    calendarEvents = []
     for (const key of Object.keys(deviceData)) delete deviceData[key]
+    response.json({ success: true })
+    return
+  }
+  if (endpoint.startsWith('calendar:') && !authenticated) {
+    response.json({ success: false, error: 'not_authenticated' })
+    return
+  }
+  if (endpoint === 'calendar:list') {
+    const startsAt = Number(request.body.startsAt) * 1000
+    const endsAt = Number(request.body.endsAt) * 1000
+    response.json({
+      success: true,
+      data: calendarEvents.filter(
+        (event) => event.endsAt >= startsAt && event.startsAt < endsAt,
+      ),
+    })
+    return
+  }
+  if (endpoint === 'calendar:create') {
+    const id = `calendar-${Date.now()}`
+    calendarEvents.push({
+      ...request.body,
+      endsAt: Number(request.body.endsAt) * 1000,
+      id,
+      remindedAt: null,
+      revision: 1,
+      startsAt: Number(request.body.startsAt) * 1000,
+    })
+    response.json({ success: true, data: { id } })
+    return
+  }
+  if (endpoint === 'calendar:update') {
+    const index = calendarEvents.findIndex(
+      (event) => event.id === request.body.id,
+    )
+    if (index < 0 || calendarEvents[index].revision !== request.body.revision) {
+      response.json({ success: false, error: 'conflict' })
+      return
+    }
+    calendarEvents[index] = {
+      ...calendarEvents[index],
+      ...request.body,
+      endsAt: Number(request.body.endsAt) * 1000,
+      remindedAt: null,
+      revision: calendarEvents[index].revision + 1,
+      startsAt: Number(request.body.startsAt) * 1000,
+    }
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'calendar:delete') {
+    calendarEvents = calendarEvents.filter(
+      (event) => event.id !== request.body.id,
+    )
     response.json({ success: true })
     return
   }
