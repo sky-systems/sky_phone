@@ -736,6 +736,8 @@ onBeforeUnmount(() => {
 .camera-mode-navbar {
   position: relative;
   top: auto;
+  width: 50%;
+  align-self: center;
   padding-bottom: 18px;
   padding-top: 0;
 }
