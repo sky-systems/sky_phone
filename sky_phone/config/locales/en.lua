@@ -67,6 +67,7 @@ Locales["en"] = {
                 focusHelp = "Space for movement", returnHelp = "Space to return", uploading = "{count} uploading",
                 saving = "Saving video...", openGallery = "Open Gallery", takePhoto = "Take photo",
                 startRecording = "Start recording", stopRecording = "Stop recording", saved = "Saved to Gallery.",
+                zoom = "Set camera zoom to {zoom}",
                 errors = {
                     cancelled = "Capture cancelled.", capture_failed = "Unable to capture the game view.",
                     invalid_media_type = "The uploaded media type is invalid.", invalid_upload = "The upload could not be verified.",

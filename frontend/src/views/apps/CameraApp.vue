@@ -32,9 +32,11 @@ type CaptureItem = {
 }
 
 const isDevelopment = import.meta.env.DEV
+const zoomLevels = [0.5, 1, 2, 3] as const
 const phone = usePhoneStore()
 const router = useRouter()
 const mode = ref<MediaType>('photo')
+const selectedZoom = ref<(typeof zoomLevels)[number]>(1)
 const flashEnabled = ref(false)
 const frontCamera = ref(false)
 const shutterActive = ref(false)
@@ -223,6 +225,12 @@ function toggleOrientation(): void {
   )
 }
 
+function setZoom(zoom: (typeof zoomLevels)[number]): void {
+  selectedZoom.value = zoom
+  resizeGameView()
+  window.postMessage({ data: { zoom }, type: 'camera:zoom' }, '*')
+}
+
 function resizeGameView(entry?: ResizeObserverEntry): void {
   if (!gameCanvas.value || !gameView) return
   const width = entry?.contentRect.width ?? gameCanvas.value.offsetWidth
@@ -233,6 +241,7 @@ function resizeGameView(entry?: ResizeObserverEntry): void {
     Math.max(1, Math.round(height * renderScale)),
     window.innerWidth,
     window.innerHeight,
+    selectedZoom.value,
   )
 }
 
@@ -326,6 +335,10 @@ onMounted(() => {
     { data: { landscape: false }, type: 'camera:orientation' },
     '*',
   )
+  window.postMessage(
+    { data: { zoom: selectedZoom.value }, type: 'camera:zoom' },
+    '*',
+  )
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('message', onMessage)
   void nuiCall('camera:setActive', { active: true })
@@ -373,7 +386,12 @@ onBeforeUnmount(() => {
         class="camera-game-view"
         aria-hidden="true"
       ></canvas>
-      <div v-else class="camera-dev-view" aria-hidden="true">
+      <div
+        v-else
+        class="camera-dev-view"
+        :style="{ transform: `scale(${selectedZoom})` }"
+        aria-hidden="true"
+      >
         <span class="camera-dev-sun"></span>
         <span class="camera-dev-horizon"></span>
       </div>
@@ -425,6 +443,21 @@ onBeforeUnmount(() => {
     <div v-if="recording || savingVideo" class="camera-record-status">
       <span class="camera-record-dot"></span>
       {{ savingVideo ? phone.t('Apps.camera.saving') : elapsed }}
+    </div>
+
+    <div class="camera-zoom-row">
+      <button
+        v-for="zoom in zoomLevels"
+        :key="zoom"
+        class="camera-zoom-pill"
+        :class="{ active: selectedZoom === zoom }"
+        type="button"
+        :aria-label="phone.t('Apps.camera.zoom', { zoom: `${zoom}x` })"
+        :aria-pressed="selectedZoom === zoom"
+        @click="setZoom(zoom)"
+      >
+        {{ zoom }}x
+      </button>
     </div>
 
     <footer class="camera-controls">
@@ -667,6 +700,37 @@ onBeforeUnmount(() => {
   height: 8px;
   border-radius: 50%;
   background: #ff3b30;
+}
+.camera-zoom-row {
+  position: absolute;
+  z-index: 4;
+  bottom: 154px;
+  left: 50%;
+  display: flex;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+.camera-zoom-pill {
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 999px;
+  background: rgb(28 28 28 / 90%);
+  color: rgb(255 255 255 / 75%);
+  font-size: 10px;
+  text-align: center;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.camera-zoom-pill.active {
+  border-color: rgb(255 255 255 / 60%);
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 8px 16px rgb(0 0 0 / 30%);
+  color: #111;
 }
 .camera-controls {
   position: absolute;

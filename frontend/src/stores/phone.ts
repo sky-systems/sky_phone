@@ -199,6 +199,7 @@ const defaultLocales: LocaleTree = {
       startRecording: 'Start recording',
       stopRecording: 'Stop recording',
       saved: 'Saved to Gallery.',
+      zoom: 'Set camera zoom to {zoom}',
       errors: {
         cancelled: 'Capture cancelled.',
         capture_failed: 'Unable to capture the game view.',

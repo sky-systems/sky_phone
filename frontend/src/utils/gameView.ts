@@ -26,6 +26,7 @@ export interface GameView {
     height: number,
     sourceWidth?: number,
     sourceHeight?: number,
+    zoom?: number,
   ): void
 }
 
@@ -33,12 +34,13 @@ export interface GameViewOptions {
   preserveDrawingBuffer?: boolean
 }
 
-export function coverTextureCoordinates(
+export function gameViewGeometry(
   sourceWidth: number,
   sourceHeight: number,
   targetWidth: number,
   targetHeight: number,
-): Float32Array {
+  zoom = 1,
+): { positions: Float32Array; textureCoordinates: Float32Array } {
   const sourceAspect = sourceWidth / sourceHeight
   const targetAspect = targetWidth / targetHeight
   let left = 0
@@ -56,7 +58,47 @@ export function coverTextureCoordinates(
     bottom = 1 - top
   }
 
-  return new Float32Array([left, top, right, top, left, bottom, right, bottom])
+  const baseWidth = right - left
+  const baseHeight = bottom - top
+  const normalizedZoom = Math.min(3, Math.max(0.5, zoom))
+  const centerX = (left + right) / 2
+  const centerY = (top + bottom) / 2
+  left = Math.max(0, centerX + (left - centerX) / normalizedZoom)
+  right = Math.min(1, centerX + (right - centerX) / normalizedZoom)
+  top = Math.max(0, centerY + (top - centerY) / normalizedZoom)
+  bottom = Math.min(1, centerY + (bottom - centerY) / normalizedZoom)
+
+  const positionScaleX = Math.min(
+    1,
+    (normalizedZoom * (right - left)) / baseWidth,
+  )
+  const positionScaleY = Math.min(
+    1,
+    (normalizedZoom * (bottom - top)) / baseHeight,
+  )
+
+  return {
+    positions: new Float32Array([
+      -positionScaleX,
+      -positionScaleY,
+      positionScaleX,
+      -positionScaleY,
+      -positionScaleX,
+      positionScaleY,
+      positionScaleX,
+      positionScaleY,
+    ]),
+    textureCoordinates: new Float32Array([
+      left,
+      top,
+      right,
+      top,
+      left,
+      bottom,
+      right,
+      bottom,
+    ]),
+  }
 }
 
 function compileShader(
@@ -126,7 +168,7 @@ export function createGameView(
   gl.bufferData(
     gl.ARRAY_BUFFER,
     new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-    gl.STATIC_DRAW,
+    gl.DYNAMIC_DRAW,
   )
   gl.enableVertexAttribArray(positionLocation)
   gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
@@ -188,14 +230,24 @@ export function createGameView(
       height: number,
       sourceWidth = window.innerWidth,
       sourceHeight = window.innerHeight,
+      zoom = 1,
     ) {
       if (disposed || lost) return
       canvas.width = width
       canvas.height = height
+      const geometry = gameViewGeometry(
+        sourceWidth,
+        sourceHeight,
+        width,
+        height,
+        zoom,
+      )
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+      gl.bufferData(gl.ARRAY_BUFFER, geometry.positions, gl.DYNAMIC_DRAW)
       gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer)
       gl.bufferData(
         gl.ARRAY_BUFFER,
-        coverTextureCoordinates(sourceWidth, sourceHeight, width, height),
+        geometry.textureCoordinates,
         gl.DYNAMIC_DRAW,
       )
       gl.viewport(0, 0, width, height)

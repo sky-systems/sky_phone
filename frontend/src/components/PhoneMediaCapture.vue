@@ -17,6 +17,7 @@ const portraitAspect = 3 / 4
 const landscapeAspect = 16 / 9
 let bitrateBps = 1_500_000
 let landscape = false
+let zoom = 1
 let gameView: GameView | null = null
 let renderFrameId: number | undefined
 let lastRenderAt = 0
@@ -57,6 +58,7 @@ function ensureGameView(): GameView {
     dimensions.height,
     window.innerWidth,
     window.innerHeight,
+    zoom,
   )
   return gameView
 }
@@ -209,7 +211,7 @@ async function capturePhotoBlob(ready: UploadReady): Promise<Blob> {
   canvas.height = height
   const view = createGameView(canvas, { preserveDrawingBuffer: true })
   try {
-    view.resize(width, height, window.innerWidth, window.innerHeight)
+    view.resize(width, height, window.innerWidth, window.innerHeight, zoom)
     await renderFrames(view, 3)
     const output = document.createElement('canvas')
     output.width = width
@@ -323,6 +325,21 @@ function onMessage(event: MessageEvent): void {
         dimensions.height,
         window.innerWidth,
         window.innerHeight,
+        zoom,
+      )
+    }
+  } else if (message.type === 'camera:zoom') {
+    const nextZoom = Number(message.data?.zoom)
+    if (![0.5, 1, 2, 3].includes(nextZoom)) return
+    zoom = nextZoom
+    if (gameView && !gameView.isLost()) {
+      const dimensions = captureDimensions()
+      gameView.resize(
+        dimensions.width,
+        dimensions.height,
+        window.innerWidth,
+        window.innerHeight,
+        zoom,
       )
     }
   } else if (message.type === 'media:uploadReady') {
