@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Compass,
   Heart,
-  ImageOff,
   MapPin,
   Plus,
   Search,
@@ -218,7 +217,6 @@ onMounted(() => void loadFeed())
           <button v-for="post in displayedPosts" :key="post.id" class="pages__post" @click="openPost(post)">
             <div class="pages__post-head"><span>{{ post.author_name.charAt(0).toUpperCase() }}</span><div><strong>@{{ post.author_name }}</strong><small><MapPin :size="10" /> {{ post.district ? phone.t(`Apps.citymarkt.districts.${post.district}`) : phone.t('Apps.localPages.allLosSantos') }} · {{ relativeDate(post.created_at) }}</small></div><i>{{ label('categories', post.category) }}</i></div>
             <div v-if="post.image" class="pages__cover" :style="{ background: post.image }"><b v-if="post.images.length > 1">1 / {{ post.images.length }}</b></div>
-            <div v-else class="pages__cover pages__cover--empty"><ImageOff :size="25" /><span>{{ phone.t('Apps.localPages.noPhoto') }}</span></div>
             <h2>{{ post.title }}</h2><p>{{ post.body }}</p>
             <div class="pages__post-foot"><span><Heart :size="14" :fill="post.is_liked ? 'currentColor' : 'none'" /> {{ post.like_count }}</span><span v-if="post.source_type === 'citymarkt'"><Store :size="14" /> CityMarkt</span><Bookmark :size="14" :fill="post.is_saved ? 'currentColor' : 'none'" /></div>
           </button>
@@ -233,7 +231,6 @@ onMounted(() => void loadFeed())
       <header><button @click="screen = 'main'"><ArrowLeft :size="20" /></button><strong>{{ phone.t('Apps.localPages.post') }}</strong><button v-if="selected.is_owner" class="danger" @click="removePost"><Trash2 :size="18" /></button><button v-else @click="react('save')"><Bookmark :size="18" :fill="selected.is_saved ? 'currentColor' : 'none'" /></button></header>
       <div class="pages__detail-scroll">
         <div v-if="selected.images.length" class="pages__gallery" :style="{ background: selected.images[galleryIndex]?.gradient }"><button v-if="selected.images.length > 1" @click="moveGallery(-1)"><ChevronLeft /></button><button v-if="selected.images.length > 1" @click="moveGallery(1)"><ChevronRight /></button><span>{{ galleryIndex + 1 }} / {{ selected.images.length }}</span></div>
-        <div v-else class="pages__gallery pages__cover--empty"><ImageOff :size="31" /><span>{{ phone.t('Apps.localPages.noPhoto') }}</span></div>
         <article><div class="pages__author"><span>{{ selected.author_name.charAt(0).toUpperCase() }}</span><div><strong>@{{ selected.author_name }}</strong><small>{{ relativeDate(selected.created_at) }}</small></div><i>{{ label('categories', selected.category) }}</i></div><h1>{{ selected.title }}</h1><p>{{ selected.body }}</p><div class="pages__location"><MapPin :size="17" /><div><small>{{ phone.t('Apps.localPages.location') }}</small><strong>{{ selected.district ? phone.t(`Apps.citymarkt.districts.${selected.district}`) : phone.t('Apps.localPages.allLosSantos') }}</strong></div></div><button v-if="selected.source_type === 'citymarkt'" class="pages__market-link" @click="router.push('/apps/citymarkt')"><Store :size="18" /><span><small>{{ phone.t('Apps.localPages.sharedFrom') }}</small><strong>{{ phone.t('Apps.localPages.openCityMarkt') }}</strong></span><b v-if="selected.citymarkt_price">${{ Number(selected.citymarkt_price).toLocaleString() }}</b></button></article>
       </div>
       <div class="pages__detail-actions"><button :class="{ active: selected.is_liked }" @click="react('like')"><Heart :size="19" :fill="selected.is_liked ? 'currentColor' : 'none'" />{{ selected.like_count }} {{ phone.t('Apps.localPages.likes') }}</button><button @click="react('save')"><Bookmark :size="19" :fill="selected.is_saved ? 'currentColor' : 'none'" />{{ phone.t('Apps.localPages.save') }}</button></div>
