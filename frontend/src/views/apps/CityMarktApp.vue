@@ -30,6 +30,7 @@ import {
   X,
 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import CityMarktSelect from '@/components/citymarkt/CityMarktSelect.vue'
 import CityMarktGallery from '@/components/citymarkt/CityMarktGallery.vue'
@@ -58,6 +59,7 @@ type ChatTimelineItem =
   | { createdAt: string; isCounter: boolean; key: string; kind: 'offer'; value: MarketplaceOffer }
 
 const phone = usePhoneStore()
+const route = useRoute()
 const account = useAccountStore()
 const marketplace = useMarketplaceStore()
 const media = useMediaStore()
@@ -328,7 +330,7 @@ async function selectTab(next: Tab): Promise<void> {
   }
 }
 
-async function openListing(item: MarketplaceListingSummary): Promise<void> {
+async function openListing(item: Pick<MarketplaceListingSummary, 'id'>): Promise<void> {
   const response = await marketplace.get(item.id)
   if (!response.success || !response.data) {
     setFeedback('Apps.citymarkt.errors.listing_not_found')
@@ -565,6 +567,9 @@ async function blockSeller(): Promise<void> {
 onMounted(async () => {
   await loadFeed()
   if (isAuthenticated.value) await marketplace.loadCounts()
+  if (typeof route.query.listingId === 'string') {
+    await openListing({ id: route.query.listingId })
+  }
 })
 </script>
 

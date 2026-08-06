@@ -260,6 +260,14 @@ const marketplaceOffers = [
 ]
 const pagesPosts = [
   {
+    id: 'pages-citymarkt-1', account_id: 2, author_name: 'morgan', source_type: 'citymarkt',
+    citymarkt_listing_id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf01',
+    title: 'Sultan RS in excellent condition',
+    body: 'Clean Sultan RS with fresh service, tidy interior and no known damage. Viewing and test drive available in Vinewood.',
+    category: 'citymarkt', district: 'vinewood', created_at: '2026-08-06 12:50:00', like_count: 24,
+    images: [{ media_id: 'capture-car', gradient: 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)', sort_order: 1 }],
+  },
+  {
     id: 'pages-1', account_id: 2, author_name: 'morgan', source_type: 'personal', citymarkt_listing_id: null,
     title: 'Best sunset view above Vinewood', body: 'Take the small trail behind the observatory shortly before sunset. The view across Los Santos is incredible and there is enough space to park two cars.',
     category: 'recommendation', district: 'vinewood', created_at: '2026-08-06 12:20:00', like_count: 18,
