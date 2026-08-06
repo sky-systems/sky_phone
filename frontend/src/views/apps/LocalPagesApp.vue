@@ -7,6 +7,8 @@ import {
   ChevronRight,
   Compass,
   Heart,
+  ImagePlus,
+  Images,
   MapPin,
   Plus,
   Search,
@@ -20,6 +22,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import CityMarktSelect from '@/components/citymarkt/CityMarktSelect.vue'
+import CityMarktGallery from '@/components/citymarkt/CityMarktGallery.vue'
 import { useAccountStore } from '@/stores/account'
 import { useMediaStore } from '@/stores/media'
 import { usePagesStore } from '@/stores/pages'
@@ -42,6 +45,8 @@ const galleryIndex = ref(0)
 const search = ref('')
 const category = ref<string>('all')
 const feedback = ref('')
+const photoSource = ref<'camera' | 'gallery' | null>(null)
+const cameraFlash = ref(false)
 const draft = ref({
   body: '',
   category: 'recommendation' as Exclude<PagesCategory, 'citymarkt'>,
@@ -72,6 +77,11 @@ const isAuthenticated = computed(() => Boolean(account.email))
 const selectedPhotos = computed(() => draft.value.images
   .map((id) => media.photos.find((photo) => photo.id === id))
   .filter((photo) => photo !== undefined))
+const selectedImages = computed(() => selectedPhotos.value.map((photo, index) => ({
+  gradient: photo.gradient,
+  media_id: photo.id,
+  sort_order: index + 1,
+})))
 const canPublish = computed(() => {
   const title = draft.value.title.trim().length
   const body = draft.value.body.trim().length
@@ -133,7 +143,9 @@ function capturePhoto(): void {
     showFeedback('Apps.localPages.photoLimit')
     return
   }
+  cameraFlash.value = true
   draft.value.images.push(media.capture().id)
+  window.setTimeout(() => (cameraFlash.value = false), 120)
 }
 
 async function publish(): Promise<void> {
@@ -153,6 +165,7 @@ async function publish(): Promise<void> {
     return
   }
   draft.value = { body: '', category: 'recommendation', district: 'los_santos', images: [], title: '' }
+  photoSource.value = null
   tab.value = 'feed'
   screen.value = 'main'
   showFeedback('Apps.localPages.published')
@@ -258,10 +271,57 @@ onMounted(() => void loadFeed())
         <label>{{ phone.t('Apps.localPages.title') }} <span :class="{ valid: draft.title.trim().length >= 5 }">{{ draft.title.trim().length }}/80 · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: '5' }) }}</span><input v-model="draft.title" maxlength="80" :placeholder="phone.t('Apps.localPages.titlePlaceholder')" /></label>
         <label>{{ phone.t('Apps.localPages.body') }} <span :class="{ valid: draft.body.trim().length >= 10 }">{{ draft.body.trim().length }}/1500 · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: '10' }) }}</span><textarea v-model="draft.body" maxlength="1500" :placeholder="phone.t('Apps.localPages.bodyPlaceholder')" /></label>
         <div class="pages__form-row"><label>{{ phone.t('Apps.localPages.category') }}<CityMarktSelect :model-value="draft.category" :options="composeCategoryOptions" @change="(value) => draft.category = value as typeof draft.category" /></label><label>{{ phone.t('Apps.localPages.location') }}<CityMarktSelect :model-value="draft.district" :options="districtOptions" @change="(value) => draft.district = value" /></label></div>
-        <div class="pages__photo-title"><div><strong>{{ phone.t('Apps.localPages.photos') }}</strong><small>{{ draft.images.length }}/6 · {{ phone.t('Apps.localPages.optional') }}</small></div><button @click="capturePhoto"><Camera :size="16" />{{ phone.t('Apps.localPages.camera') }}</button></div>
-        <div v-if="selectedPhotos.length" class="pages__selected"><button v-for="photo in selectedPhotos" :key="photo.id" :style="{ background: photo.gradient }" @click="togglePhoto(photo.id)"><X :size="14" /></button></div>
-        <strong class="pages__gallery-label">{{ phone.t('Apps.localPages.gallery') }}</strong>
-        <div class="pages__picker"><button v-for="photo in media.photos" :key="photo.id" :class="{ active: draft.images.includes(photo.id) }" :style="{ background: photo.gradient }" @click="togglePhoto(photo.id)"><i v-if="draft.images.includes(photo.id)">{{ draft.images.indexOf(photo.id) + 1 }}</i></button></div>
+        <section class="pages__photos">
+          <ImagePlus :size="30" />
+          <h2>{{ phone.t('Apps.citymarkt.addPhotos') }}</h2>
+          <p>{{ phone.t('Apps.citymarkt.addPhotosBody') }}</p>
+          <div class="pages__photo-actions">
+            <button type="button" @click="photoSource = 'gallery'">
+              <span><Images :size="20" /></span>
+              <strong>{{ phone.t('Apps.citymarkt.chooseGallery') }}</strong>
+              <small>{{ phone.t('Apps.citymarkt.chooseGalleryBody') }}</small>
+            </button>
+            <button type="button" @click="photoSource = 'camera'">
+              <span><Camera :size="20" /></span>
+              <strong>{{ phone.t('Apps.citymarkt.takePhotos') }}</strong>
+              <small>{{ phone.t('Apps.citymarkt.takePhotosBody') }}</small>
+            </button>
+          </div>
+          <div class="pages__selected-heading">
+            <strong>{{ phone.t('Apps.citymarkt.selectedPhotos') }}</strong>
+            <span>{{ draft.images.length }} / 6</span>
+          </div>
+          <CityMarktGallery
+            class="pages__selection-gallery"
+            :images="selectedImages"
+            :empty-title="phone.t('Apps.citymarkt.noPhoto')"
+            :empty-body="phone.t('Apps.citymarkt.noPhotoOptional')"
+            :previous-label="phone.t('Apps.citymarkt.previousPhoto')"
+            :next-label="phone.t('Apps.citymarkt.nextPhoto')"
+            :photo-label="phone.t('Apps.citymarkt.photo')"
+          />
+          <div v-if="selectedImages.length" class="pages__selected-strip">
+            <button v-for="(photo, index) in selectedImages" :key="photo.media_id" type="button" :style="{ background: photo.gradient }" :aria-label="phone.t('Apps.citymarkt.removePhoto', { number: String(index + 1) })" @click="togglePhoto(photo.media_id)"><i>{{ index + 1 }}</i><X :size="12" /></button>
+          </div>
+        </section>
+      </div>
+      <div v-if="photoSource" class="pages__photo-source">
+        <header>
+          <div><small>{{ phone.t('Apps.citymarkt.addPhotos') }}</small><strong>{{ phone.t(photoSource === 'gallery' ? 'Apps.citymarkt.gallery' : 'Apps.citymarkt.camera') }}</strong></div>
+          <span>{{ draft.images.length }} / 6</span>
+          <button type="button" :aria-label="phone.t('Common.close')" @click="photoSource = null"><X :size="18" /></button>
+        </header>
+        <div v-if="photoSource === 'gallery'" class="pages__photo-picker">
+          <button v-for="photo in media.photos" :key="photo.id" type="button" :class="{ active: draft.images.includes(photo.id) }" :style="{ background: photo.gradient }" @click="togglePhoto(photo.id)"><i v-if="draft.images.includes(photo.id)">{{ draft.images.indexOf(photo.id) + 1 }}</i></button>
+        </div>
+        <div v-else class="pages__capture">
+          <div class="pages__viewfinder" :style="{ background: media.photos[0]?.gradient }">
+            <i v-for="corner in ['tl', 'tr', 'bl', 'br']" :key="corner" :class="`corner-${corner}`" />
+            <span class="pages__camera-flash" :class="{ active: cameraFlash }" />
+          </div>
+          <p>{{ phone.t('Apps.citymarkt.cameraHint') }}</p>
+          <button class="pages__shutter" type="button" :aria-label="phone.t('Apps.citymarkt.takePhoto')" @click="capturePhoto"><Camera :size="23" /></button>
+        </div>
       </div>
     </section>
     <Transition name="toast"><div v-if="feedback" class="pages__toast">{{ feedback }}</div></Transition>
@@ -281,4 +341,6 @@ onMounted(() => void loadFeed())
 .pages__header h1{margin:1px 0 0;font-size:25px;line-height:1}
 .pages__content{height:calc(100% - 64px - 58px)}
 .pages__segmented button{min-height:34px;padding:8px 10px;font-size:12px;font-weight:700}
+.pages__photos{margin-top:5px}.pages__photos>svg{color:var(--yellow)}.pages__photos>h2{margin:7px 0 3px;font-size:19px}.pages__photos>p{margin:0 0 11px;color:var(--muted);font-size:9px;line-height:1.4}.pages__photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pages__photo-actions>button{min-width:0;padding:11px 9px;border:1px solid #ffffff12;border-radius:14px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:var(--panel)}.pages__photo-actions>button>span{width:34px;height:34px;margin-bottom:8px;border-radius:11px;display:grid;place-items:center;background:#ffd63e1c;color:var(--yellow)}.pages__photo-actions strong{font-size:11px}.pages__photo-actions small{margin-top:2px;color:var(--muted);font-size:8px;line-height:1.35}.pages__selected-heading{margin:15px 1px 7px;display:flex;align-items:center;justify-content:space-between}.pages__selected-heading strong{font-size:12px}.pages__selected-heading span{padding:3px 6px;border-radius:7px;background:var(--panel);color:var(--yellow);font-size:9px;font-weight:900}.pages__selection-gallery{height:142px;border-radius:14px}.pages__selected-strip{margin-top:7px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.pages__selected-strip button{position:relative;width:46px;height:46px;flex:none;border:1px solid #ffffff1d;border-radius:9px;background-position:center!important;background-size:cover!important}.pages__selected-strip button i{position:absolute;left:3px;bottom:3px;width:15px;height:15px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#17191a;font-size:7px;font-style:normal;font-weight:900}.pages__selected-strip button svg{position:absolute;top:3px;right:3px;padding:2px;box-sizing:content-box;border-radius:50%;background:#11120fc7;color:#fff}
+.pages__photo-source{position:absolute;z-index:8;inset:47px 0 0;padding:14px 14px 33px;background:#12171b}.pages--light .pages__photo-source{background:#fbfbf6}.pages__photo-source>header{height:52px;display:flex;align-items:center;gap:8px}.pages__photo-source>header>div{min-width:0;flex:1}.pages__photo-source>header small,.pages__photo-source>header strong{display:block}.pages__photo-source>header small{color:var(--yellow);font-size:8px;font-weight:900;text-transform:uppercase}.pages__photo-source>header strong{font-size:18px}.pages__photo-source>header>span{padding:4px 7px;border-radius:8px;background:var(--panel);color:var(--yellow);font-size:8px;font-weight:900}.pages__photo-source>header>button{width:31px;height:31px;padding:0;border-radius:50%;display:grid;place-items:center;background:var(--panel)}.pages__photo-picker{max-height:calc(100% - 58px);display:grid;grid-template-columns:repeat(3,1fr);gap:7px;overflow-y:auto;scrollbar-width:none}.pages__photo-picker button{position:relative;aspect-ratio:1;border:2px solid transparent;border-radius:11px;background-position:center!important;background-size:cover!important}.pages__photo-picker button.active{border-color:var(--yellow)}.pages__photo-picker i{width:19px;height:19px;margin:5px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#17191a;font-size:9px;font-style:normal;font-weight:900}.pages__capture{height:calc(100% - 52px);display:flex;flex-direction:column;align-items:center}.pages__viewfinder{position:relative;width:100%;min-height:305px;overflow:hidden;border-radius:18px;background-position:center!important;background-size:cover!important;box-shadow:inset 0 0 0 1px #ffffff1c}.pages__viewfinder:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0001,#00000038)}.pages__viewfinder>i{position:absolute;z-index:2;width:25px;height:25px;border-color:#fff;border-style:solid}.pages__viewfinder .corner-tl{top:18px;left:18px;border-width:2px 0 0 2px}.pages__viewfinder .corner-tr{top:18px;right:18px;border-width:2px 2px 0 0}.pages__viewfinder .corner-bl{bottom:18px;left:18px;border-width:0 0 2px 2px}.pages__viewfinder .corner-br{right:18px;bottom:18px;border-width:0 2px 2px 0}.pages__camera-flash{position:absolute;z-index:4;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .12s}.pages__camera-flash.active{opacity:.9}.pages__capture p{max-width:230px;margin:9px 0;color:var(--muted);font-size:8px;text-align:center}.pages__shutter{width:58px;height:58px;padding:0;border:5px solid #f5f5ee;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#17191a;box-shadow:0 0 0 2px #ffffff42}.pages--light .pages__photo-actions>button,.pages--light .pages__selected-strip button{border-color:#00000012}
 </style>
