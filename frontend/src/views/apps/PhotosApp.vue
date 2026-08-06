@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 
 import { useMediaStore } from '@/stores/media'
 import { usePhoneStore } from '@/stores/phone'
+import type { PhonePhoto } from '@/stores/media'
 
 const media = useMediaStore()
 const phone = usePhoneStore()
@@ -26,6 +27,20 @@ const filtered = computed(() =>
     phone.t(photo.titleKey).toLowerCase().includes(query.value.toLowerCase()),
   ),
 )
+
+function photoStyle(photo?: PhonePhoto): Record<string, string> {
+  if (!photo) return {}
+  return {
+    background: photo.gradient,
+    ...(photo.url
+      ? {
+          backgroundImage: `url(${photo.url})`,
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+        }
+      : {}),
+  }
+}
 </script>
 
 <template>
@@ -43,7 +58,7 @@ const filtered = computed(() =>
         <article
           v-for="(photo, index) in gallery"
           :key="`${photo.id}-${index}`"
-          :style="{ background: photo.gradient }"
+          :style="photoStyle(photo)"
         />
       </div>
       <p class="photos-count">{{ phone.t('Apps.photos.count') }}</p>
@@ -62,7 +77,7 @@ const filtered = computed(() =>
       </div>
       <article
         class="memory-card"
-        :style="{ background: media.photos[1]?.gradient }"
+        :style="photoStyle(media.photos[1])"
       >
         <Heart :size="25" />
         <div>
@@ -75,7 +90,7 @@ const filtered = computed(() =>
       </div>
       <div class="featured-row">
         <article v-for="photo in media.photos.slice(0, 2)" :key="photo.id">
-          <div :style="{ background: photo.gradient }" />
+          <div :style="photoStyle(photo)" />
           <strong>{{ phone.t(photo.titleKey) }}</strong
           ><span>{{ phone.t('Apps.photos.featuredDate') }}</span>
         </article>
@@ -87,7 +102,7 @@ const filtered = computed(() =>
         <article>
           <div
             class="photo-tile"
-            :style="{ background: media.photos[0]?.gradient }"
+            :style="photoStyle(media.photos[0])"
           />
           <strong>{{ phone.t('Apps.photos.recents') }}</strong
           ><small
@@ -114,7 +129,7 @@ const filtered = computed(() =>
           v-for="photo in filtered"
           :key="photo.id"
           class="photo-tile"
-          :style="{ background: photo.gradient }"
+          :style="photoStyle(photo)"
         />
       </div>
     </section>
