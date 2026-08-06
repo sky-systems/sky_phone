@@ -2,10 +2,18 @@
 import {
   kButton,
   kCard,
+  kGlass,
+  kIcon,
+  kList,
+  kListInput,
+  kListItem,
+  kNavbar,
   kPage,
   kPreloader,
+  kSheet,
   kTabbar,
   kTabbarLink,
+  kToolbarPane,
 } from 'konsta/vue'
 import {
   ArrowDownLeft,
@@ -162,27 +170,29 @@ onMounted(() => void banking.load())
 <template>
   <k-page
     component="main"
-    class="banking-app"
+    class="banking-app pb-safe-24"
     :colors="{ bgIos: 'bg-transparent' }"
   >
     <div class="banking-app__aurora" aria-hidden="true"></div>
 
-    <header class="banking-header">
-      <div>
-        <span>{{ phone.t('Apps.banking.welcome') }}</span>
-        <h1>{{ banking.overview?.playerName ?? phone.t('Common.loading') }}</h1>
-      </div>
-      <button
-        type="button"
-        class="banking-profile"
-        :aria-label="phone.t('Apps.banking.refresh')"
-        :disabled="banking.isLoading"
-        @click="banking.load()"
-      >
-        <Landmark :size="20" />
-        <RefreshCw v-if="banking.isLoading" class="banking-spin" :size="10" />
-      </button>
-    </header>
+    <k-navbar
+      class="banking-navbar"
+      :subtitle="phone.t('Apps.banking.welcome')"
+      :title="banking.overview?.playerName ?? phone.t('Common.loading')"
+    >
+      <template #right>
+        <button
+          type="button"
+          class="banking-profile"
+          :aria-label="phone.t('Apps.banking.refresh')"
+          :disabled="banking.isLoading"
+          @click="banking.load()"
+        >
+          <Landmark :size="20" />
+          <RefreshCw v-if="banking.isLoading" class="banking-spin" :size="10" />
+        </button>
+      </template>
+    </k-navbar>
 
     <div v-if="!banking.overview && banking.isLoading" class="banking-loading">
       <k-preloader />
@@ -200,7 +210,7 @@ onMounted(() => void banking.load())
 
     <div v-else class="banking-scroll">
       <template v-if="activeTab === 'home'">
-        <section class="banking-balance">
+        <k-glass class="banking-balance">
           <div class="banking-balance__label">
             <span>{{ phone.t('Apps.banking.totalBalance') }}</span>
             <small>#{{ banking.overview.playerId }}</small>
@@ -210,43 +220,57 @@ onMounted(() => void banking.load())
             <span>{{ formatMoney(totals.incoming - totals.outgoing, true) }}</span>
             {{ phone.t('Apps.banking.recentPeriod') }}
           </div>
-        </section>
+        </k-glass>
 
         <section class="banking-actions" :aria-label="phone.t('Apps.banking.actions')">
-          <button type="button" @click="openAction('transfer')">
-            <span><Send :size="20" /></span>
-            {{ phone.t('Apps.banking.send') }}
-          </button>
-          <button type="button" @click="openAction('deposit')">
-            <span><ArrowDownLeft :size="20" /></span>
-            {{ phone.t('Apps.banking.deposit') }}
-          </button>
-          <button type="button" @click="openAction('withdraw')">
-            <span><ArrowUpRight :size="20" /></span>
-            {{ phone.t('Apps.banking.withdraw') }}
-          </button>
+          <k-glass
+            component="button"
+            type="button"
+            class="banking-action banking-action--primary"
+            @click="openAction('transfer')"
+          >
+            <span class="banking-action__icon"><Send :size="20" /></span>
+            <b>{{ phone.t('Apps.banking.send') }}</b>
+            <ChevronRight :size="16" aria-hidden="true" />
+          </k-glass>
+          <k-glass
+            component="button"
+            type="button"
+            class="banking-action banking-action--secondary"
+            @click="openAction('deposit')"
+          >
+            <span class="banking-action__icon"><ArrowDownLeft :size="20" /></span>
+            <b>{{ phone.t('Apps.banking.deposit') }}</b>
+          </k-glass>
+          <k-glass
+            component="button"
+            type="button"
+            class="banking-action banking-action--secondary"
+            @click="openAction('withdraw')"
+          >
+            <span class="banking-action__icon"><ArrowUpRight :size="20" /></span>
+            <b>{{ phone.t('Apps.banking.withdraw') }}</b>
+          </k-glass>
         </section>
 
-        <k-card :content-wrap="false" class="banking-card banking-accounts">
+        <k-card class="banking-card banking-accounts">
           <div class="banking-section-title">
             <h2>{{ phone.t('Apps.banking.accounts') }}</h2>
-            <ChevronRight :size="17" />
           </div>
-          <div class="banking-account-row banking-account-row--primary">
-            <span><WalletCards :size="18" /></span>
-            <div>
-              <small>{{ phone.t('Apps.banking.bankAccount') }}</small>
-              <strong>{{ formatMoney(banking.overview.bank) }}</strong>
-            </div>
-            <span class="banking-card-mark" aria-hidden="true"></span>
-          </div>
-          <div class="banking-account-row">
-            <span><CircleDollarSign :size="18" /></span>
-            <div>
-              <small>{{ phone.t('Apps.banking.cash') }}</small>
-              <strong>{{ formatMoney(banking.overview.cash) }}</strong>
-            </div>
-          </div>
+          <k-list inset strong class="banking-account-list">
+            <k-list-item
+              :title="phone.t('Apps.banking.bankAccount')"
+              :after="formatMoney(banking.overview.bank)"
+            >
+              <template #media><WalletCards :size="18" /></template>
+            </k-list-item>
+            <k-list-item
+              :title="phone.t('Apps.banking.cash')"
+              :after="formatMoney(banking.overview.cash)"
+            >
+              <template #media><CircleDollarSign :size="18" /></template>
+            </k-list-item>
+          </k-list>
         </k-card>
 
         <section class="banking-transactions">
@@ -256,24 +280,29 @@ onMounted(() => void banking.load())
               {{ phone.t('Apps.banking.viewAll') }}
             </button>
           </div>
-          <div v-if="banking.overview.transactions.length" class="banking-transaction-list">
-            <article
+          <k-card
+            v-if="banking.overview.transactions.length"
+            :content-wrap="false"
+            class="banking-card banking-transaction-card"
+          >
+            <k-list inset strong class="banking-transaction-list">
+              <k-list-item
               v-for="transaction in banking.overview.transactions.slice(0, 5)"
               :key="transaction.id"
-              class="banking-transaction"
-            >
-              <span :class="{ 'is-incoming': isIncoming(transaction.kind) }">
-                <component :is="transactionIcons[transaction.kind]" :size="17" />
-              </span>
-              <div>
-                <strong>{{ transactionTitle(transaction) }}</strong>
-                <small>{{ formatDate(transaction.createdAt) }}</small>
-              </div>
-              <b :class="{ 'is-incoming': isIncoming(transaction.kind) }">
-                {{ formatMoney(isIncoming(transaction.kind) ? transaction.amount : -transaction.amount, true) }}
-              </b>
-            </article>
-          </div>
+                :subtitle="formatDate(transaction.createdAt)"
+                :title="transactionTitle(transaction)"
+              >
+                <template #media>
+                  <component :is="transactionIcons[transaction.kind]" :size="17" />
+                </template>
+                <template #after>
+                  <b :class="{ 'is-incoming': isIncoming(transaction.kind) }">
+                    {{ formatMoney(isIncoming(transaction.kind) ? transaction.amount : -transaction.amount, true) }}
+                  </b>
+                </template>
+              </k-list-item>
+            </k-list>
+          </k-card>
           <p v-else class="banking-no-transactions">
             {{ phone.t('Apps.banking.noTransactions') }}
           </p>
@@ -307,24 +336,25 @@ onMounted(() => void banking.load())
           <div class="banking-section-title">
             <h2>{{ phone.t('Apps.banking.allTransactions') }}</h2>
           </div>
-          <div class="banking-transaction-list">
-            <article
-              v-for="transaction in banking.overview.transactions"
-              :key="transaction.id"
-              class="banking-transaction"
-            >
-              <span :class="{ 'is-incoming': isIncoming(transaction.kind) }">
-                <component :is="transactionIcons[transaction.kind]" :size="17" />
-              </span>
-              <div>
-                <strong>{{ transactionTitle(transaction) }}</strong>
-                <small>{{ formatDate(transaction.createdAt) }}</small>
-              </div>
-              <b :class="{ 'is-incoming': isIncoming(transaction.kind) }">
-                {{ formatMoney(isIncoming(transaction.kind) ? transaction.amount : -transaction.amount, true) }}
-              </b>
-            </article>
-          </div>
+          <k-card :content-wrap="false" class="banking-card banking-transaction-card">
+            <k-list inset strong class="banking-transaction-list">
+              <k-list-item
+                v-for="transaction in banking.overview.transactions"
+                :key="transaction.id"
+                :subtitle="formatDate(transaction.createdAt)"
+                :title="transactionTitle(transaction)"
+              >
+                <template #media>
+                  <component :is="transactionIcons[transaction.kind]" :size="17" />
+                </template>
+                <template #after>
+                  <b :class="{ 'is-incoming': isIncoming(transaction.kind) }">
+                    {{ formatMoney(isIncoming(transaction.kind) ? transaction.amount : -transaction.amount, true) }}
+                  </b>
+                </template>
+              </k-list-item>
+            </k-list>
+          </k-card>
         </section>
       </template>
     </div>
@@ -334,33 +364,37 @@ onMounted(() => void banking.load())
       component="nav"
       icons
       labels
-      class="banking-tabbar"
-      bg-class="banking-tabbar__background"
-      inner-class="banking-tabbar__inner"
+      class="bottom-0 left-0 fixed"
       :aria-label="phone.t('Apps.banking.navigation')"
     >
-      <k-tabbar-link
-        component="button"
-        :active="activeTab === 'home'"
-        :label="phone.t('Apps.banking.home')"
-        :link-props="{ type: 'button' }"
-        @click="activeTab = 'home'"
-      >
-        <template #icon><House :size="19" /></template>
-      </k-tabbar-link>
-      <k-tabbar-link
-        component="button"
-        :active="activeTab === 'activity'"
-        :label="phone.t('Apps.banking.activity')"
-        :link-props="{ type: 'button' }"
-        @click="activeTab = 'activity'"
-      >
-        <template #icon><BarChart3 :size="19" /></template>
-      </k-tabbar-link>
+      <k-toolbar-pane>
+        <k-tabbar-link
+          component="button"
+          :active="activeTab === 'home'"
+          :link-props="{ type: 'button' }"
+          @click="activeTab = 'home'"
+        >
+          <template #label>{{ phone.t('Apps.banking.home') }}</template>
+          <template #icon>
+            <k-icon><House class="w-7 h-7" /></k-icon>
+          </template>
+        </k-tabbar-link>
+        <k-tabbar-link
+          component="button"
+          :active="activeTab === 'activity'"
+          :link-props="{ type: 'button' }"
+          @click="activeTab = 'activity'"
+        >
+          <template #label>{{ phone.t('Apps.banking.activity') }}</template>
+          <template #icon>
+            <k-icon><BarChart3 class="w-7 h-7" /></k-icon>
+          </template>
+        </k-tabbar-link>
+      </k-toolbar-pane>
     </k-tabbar>
 
-    <div v-if="action" class="banking-modal-backdrop" @click.self="closeAction">
-      <section class="banking-modal" role="dialog" aria-modal="true">
+    <k-sheet :opened="Boolean(action)" class="banking-sheet" @backdropclick="closeAction">
+      <section v-if="action" class="banking-sheet__content" role="dialog" aria-modal="true">
         <button
           type="button"
           class="banking-modal__close"
@@ -376,30 +410,30 @@ onMounted(() => void banking.load())
         </span>
         <h2>{{ phone.t(`Apps.banking.forms.${action}.title`) }}</h2>
         <p>{{ phone.t(`Apps.banking.forms.${action}.body`) }}</p>
-        <label v-if="action === 'transfer'">
-          <span>{{ phone.t('Apps.banking.playerId') }}</span>
-          <input
-            v-model="target"
+        <k-list inset strong class="banking-form-list">
+          <k-list-input
+            v-if="action === 'transfer'"
+            :label="phone.t('Apps.banking.playerId')"
             inputmode="numeric"
             min="1"
-            type="number"
+            outline
             :placeholder="phone.t('Apps.banking.playerIdPlaceholder')"
+            type="number"
+            :value="target"
+            @input="target = $event"
           />
-        </label>
-        <label>
-          <span>{{ phone.t('Apps.banking.amount') }}</span>
-          <div class="banking-amount-input">
-            <i>{{ banking.overview?.currency }}</i>
-            <input
-              v-model="amount"
-              inputmode="numeric"
-              min="1"
-              type="number"
-              :placeholder="phone.t('Apps.banking.amountPlaceholder')"
-              @keydown.enter="submitAction"
-            />
-          </div>
-        </label>
+          <k-list-input
+            :label="phone.t('Apps.banking.amount')"
+            inputmode="numeric"
+            min="1"
+            outline
+            :placeholder="phone.t('Apps.banking.amountPlaceholder')"
+            type="number"
+            :value="amount"
+            @input="amount = $event"
+            @keydown.enter="submitAction"
+          />
+        </k-list>
         <p v-if="formError" class="banking-form-error">{{ formError }}</p>
         <k-button
           large
@@ -414,6 +448,6 @@ onMounted(() => void banking.load())
           </template>
         </k-button>
       </section>
-    </div>
+    </k-sheet>
   </k-page>
 </template>

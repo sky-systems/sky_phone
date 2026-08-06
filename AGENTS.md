@@ -117,7 +117,8 @@ SetEntityCoords(ped, coords.x, coords.y, coords.z) -- valid with OAL
 
 ## Commits
 
-- Format: `TAG - short imperative summary`.
+- Use the monorepo commit format: `TAG - short imperative summary`.
+- If no monorepo commit convention is available, fall back to the format listed here: `TAG - short imperative summary`.
 - Tags: `ENH`, `ADD`, `FIX`, `DOC`, `BLD`, `PERF`, `CLN`, `TRY`.
 - Keep commits focused and call out required config, SQL, or locale migrations.
 - Stage only files belonging to the task; never use broad staging that captures unrelated work.
