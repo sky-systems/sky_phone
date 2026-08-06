@@ -56,7 +56,7 @@ Bridge.Callbacks.Register("sky_phone:messages:gifs", function(source, data)
     if #query > 60 or offset < 0 or offset > 500 then
         return { success = false, error = "invalid_request" }
     end
-    local api_key = GetConvar("sky_phone_giphy_api_key", "")
+    local api_key = Config.Media.GiphyApiKey
     if api_key == "" then
         return { success = false, error = "gif_provider_unconfigured" }
     end
@@ -72,6 +72,14 @@ Bridge.Callbacks.Register("sky_phone:messages:gifs", function(source, data)
         url = url .. "&q=" .. url_encode(query)
     end
     local response = await_http(url, "GET")
+    if response.status == 401 or response.status == 403 then
+        Bridge.Debug("error", "[sky_phone] GIPHY rejected the configured API key with HTTP %s.", tostring(response.status))
+        return { success = false, error = "gif_provider_unauthorized" }
+    end
+    if response.status == 429 then
+        Bridge.Debug("error", "[sky_phone] GIPHY rate limit reached.")
+        return { success = false, error = "gif_provider_rate_limited" }
+    end
     if response.status < 200 or response.status >= 300 then
         Bridge.Debug("error", "[sky_phone] GIPHY request failed with HTTP %s.", tostring(response.status))
         return { success = false, error = "gif_provider_failed" }
