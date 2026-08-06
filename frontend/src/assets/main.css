@@ -2833,9 +2833,9 @@ button {
   gap: 8px;
 }
 .messages-thread-page {
-  padding: 206px 0 84px !important;
+  padding: 218px 0 84px !important;
   overflow-y: auto;
-  scroll-padding-top: 206px;
+  scroll-padding-top: 218px;
   transition: padding-bottom 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .messages-thread-page--emoji {
@@ -2918,7 +2918,7 @@ button {
 }
 .messages-bubbles {
   min-height: calc(100% - 12px);
-  padding: 5px 12px 20px;
+  padding: 10px 12px 20px;
 }
 .messages-bubbles [class*='message-bubble'] {
   max-width: 248px;
@@ -2961,17 +2961,19 @@ button {
   clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 .messages-thread-timestamp {
-  margin: 0 auto 8px;
+  min-height: 34px;
+  margin: 0 auto 12px;
+  padding: 3px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   color: #89898e;
-  font-size: 11px;
-  font-weight: 450;
-  line-height: 1.3;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 .messages-thread-timestamp b {
-  font-weight: 500;
+  font-weight: 550;
 }
 .messages-message--sending {
   animation: messages-send-in 0.44s cubic-bezier(0.22, 1.35, 0.36, 1) both;
@@ -3681,6 +3683,29 @@ button {
 .messages-media-picker__gifs button img { width: 100%; height: 100%; object-fit: cover; }
 .messages-media-picker__gifs .messages-gif-more { min-height: 36px; grid-column: 1 / -1; color: var(--ios-blue); font-size: 12px; font-weight: 650; }
 .messages-gif-loading { grid-column: 1 / -1; justify-self: center; }
+.messages-gif-error {
+  grid-column: 1 / -1;
+  min-height: 150px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #8e8e93;
+  text-align: center;
+}
+.messages-gif-error strong { max-width: 220px; font-size: 12px; font-weight: 550; }
+.messages-media-picker__gifs .messages-gif-error button {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: rgb(0 122 255 / 13%);
+  box-shadow: none;
+  color: var(--ios-blue);
+  font-size: 12px;
+  font-weight: 650;
+}
 .messages-media-picker__videos button { position: relative; overflow: hidden; min-height: 92px; padding: 0; grid-template-columns: 1fr; }
 .messages-media-picker__videos button video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .messages-media-picker__videos button > span { position: relative; z-index: 1; justify-self: center; }
@@ -3719,6 +3744,127 @@ button {
 .messages-attachment--video > span,
 .messages-attachment--video small { z-index: 2; }
 .messages-attachment--gif:has(img) { background: #e9e9ed; }
+
+/* Konsta's k-app dark state drives the complete iOS Messages palette. */
+.phone-app.dark:has(.messages-page) {
+  --ios-glass: rgb(28 28 30 / 76%);
+  --ios-glass-strong: rgb(36 36 38 / 90%);
+  --ios-glass-border: rgb(255 255 255 / 12%);
+  color-scheme: dark;
+}
+.phone-app.dark:has(.messages-page)::before { background: #000; }
+.phone-app.dark:has(.messages-page) .phone-status-bar {
+  color: #fff;
+  text-shadow: none;
+}
+.phone-app.dark .messages-page {
+  background: #000 !important;
+  color: #f5f5f7;
+  color-scheme: dark;
+}
+.phone-app.dark .messages-inbox-header,
+.phone-app.dark .messages-chat-header,
+.phone-app.dark .messages-contact-details > header {
+  border-color: rgb(84 84 88 / 55%);
+  background: linear-gradient(180deg, rgb(28 28 30 / 90%), rgb(0 0 0 / 78%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 9%);
+}
+.phone-app.dark .messages-inbox-header > span,
+.phone-app.dark .messages-inbox-header > strong,
+.phone-app.dark .messages-conversation,
+.phone-app.dark .messages-chat-header__name,
+.phone-app.dark .messages-empty-state h2,
+.phone-app.dark .messages-contact-details,
+.phone-app.dark .messages-contact-details__fields input {
+  color: #f5f5f7;
+}
+.phone-app.dark .messages-inbox-header > button:not(.messages-inbox-header__edit),
+.phone-app.dark .messages-chat-header__back,
+.phone-app.dark .messages-inbox-toolbar > button,
+.phone-app.dark .messages-messagebar__tools button,
+.phone-app.dark .messages-attachment-menu > button {
+  border-color: rgb(255 255 255 / 10%);
+  background: linear-gradient(145deg, rgb(58 58 60 / 92%), rgb(28 28 30 / 78%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 7px 22px rgb(0 0 0 / 32%);
+  color: #f5f5f7;
+}
+.phone-app.dark .messages-conversation::after,
+.phone-app.dark .messages-contact-details__fields label,
+.phone-app.dark .messages-media-picker > header,
+.phone-app.dark .messages-full-emoji-picker nav {
+  border-color: rgb(84 84 88 / 55%);
+}
+.phone-app.dark .messages-conversation:active,
+.phone-app.dark .messages-conversation--selected { background: #1c1c1e; }
+.phone-app.dark .messages-conversation__selection {
+  border-color: #636366;
+  background: #1c1c1e;
+}
+.phone-app.dark .messages-conversation--selected .messages-conversation__selection {
+  border-color: #0a84ff;
+  background: #0a84ff;
+}
+.phone-app.dark .messages-conversation__headline time,
+.phone-app.dark .messages-conversation__headline svg,
+.phone-app.dark .messages-conversation__preview,
+.phone-app.dark .messages-thread-timestamp,
+.phone-app.dark .messages-empty-state p,
+.phone-app.dark .messages-contact-details__hero small,
+.phone-app.dark .messages-contact-details__fields span {
+  color: #98989f;
+}
+.phone-app.dark .messages-inbox-toolbar label,
+.phone-app.dark .messages-edit-toolbar,
+.phone-app.dark .messages-messagebar,
+.phone-app.dark .messages-chat-header__name {
+  border-color: rgb(255 255 255 / 11%);
+  background: linear-gradient(145deg, rgb(48 48 50 / 92%), rgb(28 28 30 / 80%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 8px 26px rgb(0 0 0 / 32%);
+}
+.phone-app.dark .messages-inbox-toolbar input,
+.phone-app.dark .messages-messagebar textarea,
+.phone-app.dark .messages-gif-search input,
+.phone-app.dark .messages-full-emoji-picker__search input {
+  color: #f5f5f7 !important;
+}
+.phone-app.dark .messages-bubbles .k-message:not(.self-end) > div > div {
+  background: #2c2c2e !important;
+  color: #fff !important;
+}
+.phone-app.dark .messages-bubbles .k-message:not(.self-end) > div > div::after { background: #2c2c2e; }
+.phone-app.dark .messages-media-picker,
+.phone-app.dark .messages-full-emoji-picker,
+.phone-app.dark .messages-emoji-picker {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(28 28 30 / 91%);
+  box-shadow: 0 -10px 34px rgb(0 0 0 / 38%);
+  color: #f5f5f7;
+}
+.phone-app.dark .messages-gif-search,
+.phone-app.dark .messages-full-emoji-picker__search,
+.phone-app.dark .messages-full-emoji-picker > header button,
+.phone-app.dark .messages-full-emoji-picker nav button.active {
+  background: rgb(118 118 128 / 28%);
+}
+.phone-app.dark .messages-media-picker__gifs button { background: #2c2c2e; }
+.phone-app.dark .messages-media-picker__gifs .messages-gif-more,
+.phone-app.dark .messages-media-picker__gifs .messages-gif-error button {
+  background: rgb(10 132 255 / 20%);
+  color: #0a84ff;
+}
+.phone-app.dark .messages-recorder {
+  border-color: rgb(255 255 255 / 11%);
+  background: rgb(36 36 38 / 94%);
+  color: #f5f5f7;
+}
+.phone-app.dark .messages-contact-details { background: #000; }
+.phone-app.dark .messages-contact-details__actions button,
+.phone-app.dark .messages-contact-details__fields,
+.phone-app.dark .messages-contact-details__primary,
+.phone-app.dark .messages-contact-details__delete {
+  background: #1c1c1e;
+}
+.phone-app.dark .messages-avatar--header { border-color: #2c2c2e; }
 @keyframes messages-panel-in {
   from {
     opacity: 0;
