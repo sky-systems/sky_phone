@@ -3452,10 +3452,18 @@ button {
   top: 16px;
   width: 46px;
   height: 46px;
+  padding: 0;
+  display: grid;
+  place-items: center;
   border-color: var(--messages-thread-control-border);
   background: var(--messages-thread-control);
   box-shadow: var(--messages-thread-control-shadow);
   color: var(--messages-thread-primary);
+  line-height: 0;
+}
+.messages-thread-page .messages-chat-header__back svg {
+  display: block;
+  margin: 0;
 }
 .messages-thread-page .messages-chat-header__contact { top: 4px; }
 .messages-thread-page .messages-avatar--header {
@@ -3467,14 +3475,23 @@ button {
   min-width: 0;
   max-width: 230px;
   height: 32px;
-  padding: 0 11px 0 14px;
+  padding: 0 11px;
+  justify-content: center;
   border-color: var(--messages-thread-control-border);
   border-radius: 18px;
   background: var(--messages-thread-control);
   box-shadow: var(--messages-thread-control-shadow);
   color: var(--messages-thread-primary);
+  line-height: 1;
 }
-.messages-thread-page .messages-chat-header__name strong { font-size: 16px; }
+.messages-thread-page .messages-chat-header__name strong {
+  font-size: 16px;
+  line-height: 1;
+}
+.messages-thread-page .messages-chat-header__name svg {
+  display: block;
+  margin: 0;
+}
 .messages-avatar--unknown {
   background: linear-gradient(145deg, #a8bee4, #7e98ca) !important;
 }
@@ -3552,6 +3569,9 @@ button {
 }
 .messages-thread-page .messages-messagebar textarea { color: var(--messages-thread-primary) !important; }
 .messages-thread-page .messages-messagebar__tools button {
+  padding: 0;
+  display: grid;
+  place-items: center;
   border-color: var(--messages-thread-control-border);
   background: var(--messages-thread-control);
   box-shadow: var(--messages-thread-control-shadow);
@@ -3612,6 +3632,25 @@ button {
   border-radius: 50%;
   background: var(--messages-thread-control);
   box-shadow: var(--messages-thread-control-shadow);
+  line-height: 0;
+}
+.messages-thread-page .messages-messagebar__tools button svg {
+  display: block;
+  margin: 0;
+}
+.messages-thread-page .messages-attachment-menu > button {
+  padding-right: 8px;
+  padding-left: 8px;
+  justify-content: center;
+  line-height: 1;
+}
+.messages-thread-page .messages-attachment-menu > button > span {
+  flex: none;
+  line-height: 1;
+}
+.messages-thread-page .messages-attachment-menu > button > span svg {
+  display: block;
+  margin: 0;
 }
 .messages-thread-page .messages-messagebar > .k-toolbar > div:nth-child(2) > .k-glass {
   width: 100%;
@@ -3633,11 +3672,221 @@ button {
   place-items: center;
   transform: translateY(-50%);
 }
+.messages-thread-page .messages-messagebar > .k-toolbar > div:nth-child(2) > div:last-child .k-toolbar-pane,
+.messages-thread-page .messages-messagebar > .k-toolbar > div:nth-child(2) > div:last-child .k-link {
+  width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  line-height: 0;
+}
+.messages-thread-page .messages-messagebar > .k-toolbar > div:nth-child(2) > div:last-child svg {
+  display: block;
+  margin: 0;
+  transform: none;
+}
 .messages-thread-page .messages-messagebar textarea {
   height: 44px !important;
   padding: 13px 42px 7px 15px !important;
   border: 0 !important;
   background: transparent !important;
+}
+
+/* Native iOS Messages conversation list in matching light and dark palettes. */
+.messages-inbox-page {
+  --messages-inbox-background: #fff;
+  --messages-inbox-control: #fff;
+  --messages-inbox-control-border: rgb(60 60 67 / 9%);
+  --messages-inbox-control-shadow: 0 8px 24px rgb(0 0 0 / 9%);
+  --messages-inbox-primary: #111;
+  --messages-inbox-secondary: #8e8e93;
+  --messages-inbox-separator: #e5e5ea;
+  padding: 112px 0 92px !important;
+  background: var(--messages-inbox-background) !important;
+  color: var(--messages-inbox-primary);
+}
+.messages-inbox-page .messages-inbox-header {
+  height: 68px;
+  padding: 0 14px;
+  border: 0;
+  background: var(--messages-inbox-background);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.messages-inbox-page .messages-inbox-header > strong {
+  color: var(--messages-inbox-primary);
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+.messages-inbox-page .messages-inbox-header > button {
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--messages-inbox-control-border);
+  background: var(--messages-inbox-control);
+  box-shadow: var(--messages-inbox-control-shadow);
+  color: var(--messages-inbox-primary);
+  line-height: 1;
+}
+.messages-inbox-page .messages-inbox-header > button svg {
+  display: block;
+  flex: none;
+}
+.messages-inbox-page .messages-inbox-header > button.active {
+  border-color: rgb(10 132 255 / 30%);
+  background: rgb(10 132 255 / 16%);
+  color: #0a84ff;
+}
+.messages-inbox-page .messages-inbox-header__edit {
+  width: 76px !important;
+  height: 44px !important;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22px !important;
+  color: var(--messages-inbox-primary) !important;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+}
+.messages-inbox-page .messages-inbox-header__edit > span {
+  display: block;
+  transform: translateY(1px);
+}
+.messages-inbox-page .messages-conversation-list { padding: 4px 14px 18px; }
+.messages-inbox-page .messages-conversation {
+  min-height: 88px;
+  padding: 10px 0 10px 8px;
+  gap: 13px;
+  color: var(--messages-inbox-primary);
+}
+.messages-inbox-page .messages-conversation::after {
+  left: 65px;
+  background: var(--messages-inbox-separator);
+}
+.messages-inbox-page .messages-conversation:active,
+.messages-inbox-page .messages-conversation--selected {
+  background: color-mix(in srgb, var(--messages-inbox-control) 86%, #0a84ff 14%);
+}
+.messages-inbox-page .messages-conversation__dot {
+  left: -9px;
+  width: 9px;
+  height: 9px;
+  background: #0a84ff;
+}
+.messages-inbox-page .messages-avatar {
+  width: 50px;
+  height: 50px;
+}
+.messages-inbox-page .messages-avatar__glyph {
+  padding-top: 6px;
+  font-size: 34px;
+}
+.messages-inbox-page .messages-conversation__body { gap: 3px; }
+.messages-inbox-page .messages-conversation__headline {
+  grid-template-columns: minmax(0, 1fr) auto 16px;
+  gap: 5px;
+}
+.messages-inbox-page .messages-conversation__headline strong {
+  color: var(--messages-inbox-primary);
+  font-size: 17px;
+  font-weight: 650;
+}
+.messages-inbox-page .messages-conversation--unread .messages-conversation__headline strong {
+  font-weight: 780;
+}
+.messages-inbox-page .messages-conversation__headline time,
+.messages-inbox-page .messages-conversation__headline svg,
+.messages-inbox-page .messages-conversation__preview {
+  color: var(--messages-inbox-secondary);
+}
+.messages-inbox-page .messages-conversation__headline time { font-size: 13px; }
+.messages-inbox-page .messages-conversation__headline svg {
+  width: 16px;
+  height: 16px;
+}
+.messages-inbox-page .messages-conversation__preview {
+  min-height: 36px;
+  font-size: 14px;
+  line-height: 1.32;
+}
+.messages-inbox-page .messages-inbox-toolbar {
+  right: 13px;
+  bottom: 29px;
+  left: 13px;
+  height: 50px;
+  gap: 10px;
+}
+.messages-inbox-page .messages-inbox-toolbar label {
+  height: 48px;
+  padding: 0 14px;
+  border-color: var(--messages-inbox-control-border);
+  border-radius: 25px;
+  background: var(--messages-inbox-control);
+  box-shadow: var(--messages-inbox-control-shadow);
+  color: var(--messages-inbox-secondary);
+}
+.messages-inbox-page .messages-inbox-toolbar label > svg:first-child {
+  width: 22px;
+  height: 22px;
+  color: var(--messages-inbox-primary);
+}
+.messages-inbox-page .messages-inbox-toolbar label > svg:last-child {
+  width: 21px;
+  height: 21px;
+  color: var(--messages-inbox-primary);
+}
+.messages-inbox-page .messages-inbox-toolbar input {
+  color: var(--messages-inbox-primary);
+  font-size: 16px;
+}
+.messages-inbox-page .messages-inbox-toolbar > button {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-color: var(--messages-inbox-control-border);
+  background: var(--messages-inbox-control);
+  box-shadow: var(--messages-inbox-control-shadow);
+  color: var(--messages-inbox-primary);
+}
+.messages-inbox-page .messages-inbox-toolbar > button svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+  flex: none;
+}
+.messages-inbox-page .messages-inbox-header > button:not(.messages-inbox-header__edit) svg,
+.messages-inbox-page .messages-inbox-toolbar > button svg {
+  transform: translateY(1px);
+}
+.phone-app.dark .messages-inbox-page {
+  --messages-inbox-background: #000;
+  --messages-inbox-control: #1c1c1e;
+  --messages-inbox-control-border: #38383a;
+  --messages-inbox-control-shadow: none;
+  --messages-inbox-primary: #f5f5f7;
+  --messages-inbox-secondary: #8e8e93;
+  --messages-inbox-separator: #2c2c2e;
+}
+.phone-app.dark .messages-inbox-page .messages-inbox-header,
+.phone-app.dark .messages-inbox-page .messages-inbox-header > button,
+.phone-app.dark .messages-inbox-page .messages-inbox-toolbar label,
+.phone-app.dark .messages-inbox-page .messages-inbox-toolbar > button {
+  background: var(--messages-inbox-control);
+  box-shadow: none;
+}
+.phone-app.dark .messages-inbox-page .messages-inbox-header { background: #000; }
+.phone-app.dark .messages-inbox-page .messages-avatar--unknown {
+  border-color: #000;
+  background: linear-gradient(145deg, #625c79, #3f3a55) !important;
 }
 @keyframes messages-panel-in {
   from {
