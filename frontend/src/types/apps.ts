@@ -3,6 +3,7 @@ import type { Component } from 'vue'
 export type PhoneAppId =
   | 'phone'
   | 'messages'
+  | 'darkchat'
   | 'calculator'
   | 'camera'
   | 'clock'

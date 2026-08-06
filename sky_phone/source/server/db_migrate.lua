@@ -657,12 +657,171 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_darkchat_profiles",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "dark_id", type = "CHAR(14) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "invite_code", type = "CHAR(11) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "alias", type = "VARCHAR(32) NOT NULL" },
+            { name = "avatar_seed", type = "INT UNSIGNED NOT NULL" },
+            { name = "notification_mode", type = "ENUM('full', 'private', 'hidden') NOT NULL DEFAULT 'private'" },
+            { name = "activity_visible", type = "TINYINT(1) NOT NULL DEFAULT 0" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_darkchat_profile_account", columns = "(`account_id`)" },
+            { name = "uniq_sky_phone_darkchat_profile_dark_id", columns = "(`dark_id`)" },
+            { name = "uniq_sky_phone_darkchat_profile_invite", columns = "(`invite_code`)" },
+        },
+        foreignKeys = {
+            { column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_darkchat_contacts",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "contact_profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "alias_override", type = "VARCHAR(32) NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_darkchat_contact", columns = "(`profile_id`, `contact_profile_id`)" },
+        },
+        foreignKeys = {
+            { column = "profile_id", references = "`sky_phone_darkchat_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "contact_profile_id", references = "`sky_phone_darkchat_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_darkchat_conversations",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "disappearing_seconds", type = "INT NOT NULL DEFAULT 0" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_darkchat_conversation_updated", columns = "(`updated_at`)" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_darkchat_members",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "conversation_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "notifications_enabled", type = "TINYINT(1) NOT NULL DEFAULT 1" },
+            { name = "read_receipts", type = "TINYINT(1) NOT NULL DEFAULT 1" },
+            { name = "last_read_at", type = "DATETIME NULL" },
+            { name = "cleared_at", type = "DATETIME NULL" },
+            { name = "joined_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_darkchat_member", columns = "(`conversation_id`, `profile_id`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_darkchat_member_profile", columns = "(`profile_id`, `conversation_id`)" },
+        },
+        foreignKeys = {
+            { column = "conversation_id", references = "`sky_phone_darkchat_conversations` (`id`) ON DELETE CASCADE" },
+            { column = "profile_id", references = "`sky_phone_darkchat_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_darkchat_messages",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "conversation_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "sender_profile_id", type = "BIGINT UNSIGNED NULL" },
+            { name = "message_type", type = "ENUM('text', 'emoji', 'gif', 'voice', 'image', 'video', 'system') NOT NULL DEFAULT 'text'" },
+            { name = "body", type = "TEXT NOT NULL" },
+            { name = "media_payload", type = "LONGTEXT NULL" },
+            { name = "media_mime", type = "VARCHAR(80) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "media_duration_ms", type = "INT UNSIGNED NULL" },
+            { name = "media_waveform", type = "JSON NULL" },
+            { name = "reply_to_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "reactions", type = "JSON NULL" },
+            { name = "deleted_for_profiles", type = "JSON NULL" },
+            { name = "deleted_for_everyone", type = "TINYINT(1) NOT NULL DEFAULT 0" },
+            { name = "expires_at", type = "DATETIME NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_darkchat_message_thread", columns = "(`conversation_id`, `created_at`, `id`)" },
+            { name = "idx_sky_phone_darkchat_message_expiry", columns = "(`expires_at`)" },
+        },
+        foreignKeys = {
+            { column = "conversation_id", references = "`sky_phone_darkchat_conversations` (`id`) ON DELETE CASCADE" },
+            { column = "sender_profile_id", references = "`sky_phone_darkchat_profiles` (`id`) ON DELETE SET NULL" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_darkchat_blocks",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "blocker_profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "blocked_profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_darkchat_block", columns = "(`blocker_profile_id`, `blocked_profile_id`)" },
+        },
+        foreignKeys = {
+            { column = "blocker_profile_id", references = "`sky_phone_darkchat_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "blocked_profile_id", references = "`sky_phone_darkchat_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_darkchat_reports",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "reporter_profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "reported_profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "conversation_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "message_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "reason", type = "ENUM('spam', 'harassment', 'threats', 'illegal', 'other') NOT NULL" },
+            { name = "details", type = "VARCHAR(500) NOT NULL DEFAULT ''" },
+            { name = "status", type = "ENUM('open', 'reviewed', 'dismissed') NOT NULL DEFAULT 'open'" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_darkchat_report_target", columns = "(`reported_profile_id`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "reporter_profile_id", references = "`sky_phone_darkchat_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "reported_profile_id", references = "`sky_phone_darkchat_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "conversation_id", references = "`sky_phone_darkchat_conversations` (`id`) ON DELETE SET NULL" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Bridge.Database.Migrate("sky_phone", schema)
 Bridge.Database.Query([[
     ALTER TABLE `sky_phone_sms_messages`
     MODIFY COLUMN `message_type` ENUM('text', 'voice', 'image', 'gif', 'video') NOT NULL DEFAULT 'text'
+]], {})
+Bridge.Database.Query([[
+    ALTER TABLE `sky_phone_darkchat_messages`
+    MODIFY COLUMN `message_type` ENUM('text', 'emoji', 'gif', 'voice', 'image', 'video', 'system') NOT NULL DEFAULT 'text'
 ]], {})
 Bridge.Database.EnsureIndex("sky_phone_devices", "uniq_sky_phone_devices_sim", "(`sim_id`)", { unique = true })
 Bridge.Database.Query("UPDATE `sky_phone_contacts` SET `contact_id` = `id` WHERE `contact_id` IS NULL", {})

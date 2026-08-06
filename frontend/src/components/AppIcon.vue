@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 import { useMailStore } from '@/stores/mail'
 import { useMarketplaceStore } from '@/stores/marketplace'
+import { useDarkChatStore } from '@/stores/darkchat'
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppDefinition } from '@/types/apps'
 
@@ -23,11 +24,13 @@ const props = withDefaults(
 const phone = usePhoneStore()
 const mail = useMailStore()
 const marketplace = useMarketplaceStore()
+const darkchat = useDarkChatStore()
 const router = useRouter()
 const iconFailed = ref(false)
 const unreadCount = computed(() => {
   if (props.app.id === 'mail') return mail.counts.unread
   if (props.app.id === 'citymarkt') return marketplace.counts.unread
+  if (props.app.id === 'darkchat') return darkchat.unreadCount
   return 0
 })
 const notificationBadgeColors = {

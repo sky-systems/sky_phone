@@ -45,6 +45,7 @@ server_scripts {
     'source/server/calls.lua',
     'source/server/media.lua',
     'source/server/messages.lua',
+    'source/server/darkchat.lua',
     'source/server/notes.lua',
     'source/server/mail.lua',
     'source/server/marketplace.lua',

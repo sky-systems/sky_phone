@@ -203,8 +203,8 @@ function observeMore(): void {
 
 function openMedia(entry: PhoneMedia): void {
   if (requestedMessageMedia.value) {
-    messageMedia.complete(entry)
-    void router.replace('/apps/messages')
+    const returnPath = messageMedia.complete(entry)
+    if (returnPath) void router.replace(returnPath)
     return
   }
   landscapeViewer.value = false
@@ -215,8 +215,7 @@ function openMedia(entry: PhoneMedia): void {
 }
 
 function cancelMessageSelection(): void {
-  messageMedia.cancel()
-  void router.replace('/apps/messages')
+  void router.replace(messageMedia.cancel())
 }
 
 function closeMedia(): void {
