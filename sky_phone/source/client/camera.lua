@@ -5,6 +5,8 @@ local front_camera_fov = 25.0
 local front_camera_distance = 0.75
 local front_camera_height = 0.05
 local front_camera_target_height = 0.03
+local camera_emote = "malemirrorselfie3"
+local camera_emote_texture_variation = 8
 local camera_state = {
     active = false,
     enforcing = false,
@@ -18,6 +20,16 @@ local camera_state = {
     previous_radar_hidden = nil,
     previous_vehicle_view = nil,
 }
+
+local function start_camera_emote()
+    exports.rpemotes:EmoteCommandStart(camera_emote, camera_emote_texture_variation)
+end
+
+local function stop_camera_emote()
+    if LocalPlayer.state.currentEmote == camera_emote then
+        exports.rpemotes:EmoteCancel(true)
+    end
+end
 
 local function rotation_to_direction(rotation)
     local z = math.rad(rotation.z)
@@ -138,6 +150,7 @@ local function set_camera_active(active)
     end
     camera_state.active = active
     if active then
+        start_camera_emote()
         camera_state.front_camera = false
         clear_front_camera()
         camera_state.previous_ped_view = GetFollowPedCamViewMode()
@@ -179,6 +192,7 @@ local function set_camera_active(active)
     end
     camera_state.flash_enabled = false
     camera_state.front_camera = false
+    stop_camera_emote()
     clear_front_camera()
     restore_camera_view()
     if not camera_state.nui_focused then

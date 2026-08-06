@@ -57,3 +57,4 @@ files {
 ui_page 'source/html/index.html'
 
 dependency 'oxmysql'
+dependency 'rpemotes'
