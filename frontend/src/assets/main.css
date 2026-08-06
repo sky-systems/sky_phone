@@ -3865,6 +3865,219 @@ button {
   background: #1c1c1e;
 }
 .phone-app.dark .messages-avatar--header { border-color: #2c2c2e; }
+
+/* Native iOS Messages thread treatment shared by light and dark appearances. */
+.messages-thread-page {
+  --messages-thread-background: #fff;
+  --messages-thread-control: #fff;
+  --messages-thread-control-border: rgb(60 60 67 / 9%);
+  --messages-thread-control-shadow: 0 8px 24px rgb(0 0 0 / 8%);
+  --messages-thread-field: #fff;
+  --messages-thread-field-border: #e5e5ea;
+  --messages-thread-received: #e9e9eb;
+  --messages-thread-primary: #111;
+  --messages-thread-secondary: #8e8e93;
+  background: var(--messages-thread-background) !important;
+}
+.messages-thread-page .messages-chat-header {
+  height: 148px;
+  border-bottom: 0;
+  background: var(--messages-thread-background);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.messages-thread-page .messages-chat-header__back {
+  top: 16px;
+  width: 46px;
+  height: 46px;
+  border-color: var(--messages-thread-control-border);
+  background: var(--messages-thread-control);
+  box-shadow: var(--messages-thread-control-shadow);
+  color: var(--messages-thread-primary);
+}
+.messages-thread-page .messages-chat-header__contact { top: 4px; }
+.messages-thread-page .messages-avatar--header {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 6px;
+}
+.messages-thread-page .messages-chat-header__name {
+  min-width: 0;
+  max-width: 230px;
+  height: 32px;
+  padding: 0 11px 0 14px;
+  border-color: var(--messages-thread-control-border);
+  border-radius: 18px;
+  background: var(--messages-thread-control);
+  box-shadow: var(--messages-thread-control-shadow);
+  color: var(--messages-thread-primary);
+}
+.messages-thread-page .messages-chat-header__name strong { font-size: 16px; }
+.messages-avatar--unknown {
+  background: linear-gradient(145deg, #a8bee4, #7e98ca) !important;
+}
+.messages-avatar__placeholder {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.messages-avatar__placeholder i {
+  position: absolute;
+  top: 19%;
+  left: 50%;
+  width: 35%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  transform: translateX(-50%);
+}
+.messages-avatar__placeholder b {
+  position: absolute;
+  right: 17%;
+  bottom: 8%;
+  left: 17%;
+  height: 37%;
+  border-radius: 50% 50% 44% 44%;
+  background: #fff;
+}
+.messages-thread-page .messages-bubbles {
+  padding-right: 16px;
+  padding-left: 16px;
+}
+.messages-thread-page .messages-bubbles [class*='message-bubble'] {
+  max-width: 270px;
+  padding: 9px 13px;
+  border-radius: 22px;
+  font-size: 16px;
+  line-height: 1.28;
+}
+.messages-thread-page .messages-bubbles .k-message { max-width: 86% !important; }
+.messages-thread-page .messages-bubbles .k-message:not(.self-end) > div > div {
+  background: var(--messages-thread-received) !important;
+  color: var(--messages-thread-primary) !important;
+}
+.messages-thread-page .messages-bubbles .k-message:not(.self-end) > div > div::after {
+  background: var(--messages-thread-received);
+}
+.messages-thread-page .messages-thread-timestamp { color: var(--messages-thread-secondary); }
+.messages-thread-page .messages-message--failed { position: relative; }
+.messages-thread-page .messages-message--failed.self-end::after {
+  content: '!';
+  position: absolute;
+  top: 50%;
+  right: -29px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #ff3b30;
+  border-radius: 50%;
+  color: #ff3b30;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+.messages-thread-page .messages-message--failed [class*='message-footer'] {
+  color: #ff3b30 !important;
+  font-weight: 650;
+}
+.messages-thread-page .messages-messagebar {
+  border-color: var(--messages-thread-field-border);
+  background: var(--messages-thread-field);
+  box-shadow: var(--messages-thread-control-shadow);
+}
+.messages-thread-page .messages-messagebar textarea { color: var(--messages-thread-primary) !important; }
+.messages-thread-page .messages-messagebar__tools button {
+  border-color: var(--messages-thread-control-border);
+  background: var(--messages-thread-control);
+  box-shadow: var(--messages-thread-control-shadow);
+  color: var(--messages-thread-primary);
+}
+.phone-app.dark .messages-thread-page {
+  --messages-thread-background: #000;
+  --messages-thread-control: #1c1c1e;
+  --messages-thread-control-border: #38383a;
+  --messages-thread-control-shadow: none;
+  --messages-thread-field: #1c1c1e;
+  --messages-thread-field-border: #38383a;
+  --messages-thread-received: #29292c;
+  --messages-thread-primary: #f5f5f7;
+  --messages-thread-secondary: #8e8e93;
+}
+.phone-app.dark .messages-thread-page .messages-chat-header,
+.phone-app.dark .messages-thread-page .messages-chat-header__name,
+.phone-app.dark .messages-thread-page .messages-chat-header__back,
+.phone-app.dark .messages-thread-page .messages-messagebar,
+.phone-app.dark .messages-thread-page .messages-messagebar__tools button {
+  background: var(--messages-thread-control);
+  box-shadow: none;
+}
+.phone-app.dark .messages-thread-page .messages-chat-header { background: #000; }
+.phone-app.dark .messages-thread-page .messages-avatar--unknown {
+  border-color: #000;
+  background: linear-gradient(145deg, #625c79, #3f3a55) !important;
+}
+.messages-thread-page .messages-messagebar,
+.phone-app.dark .messages-thread-page .messages-messagebar {
+  min-height: 46px;
+  padding: 0 !important;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.messages-thread-page .messages-messagebar > .k-toolbar { background: transparent; }
+.messages-thread-page .messages-messagebar > .k-toolbar > div:nth-child(2) {
+  position: relative;
+  width: 100%;
+  height: 46px !important;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px !important;
+}
+.messages-thread-page .messages-messagebar > .k-toolbar > div:nth-child(2) > div:first-child,
+.messages-thread-page .messages-messagebar__tools,
+.messages-thread-page .messages-messagebar__tools button {
+  width: 46px;
+  height: 46px;
+}
+.messages-thread-page .messages-messagebar__tools button {
+  border-color: var(--messages-thread-control-border);
+  border-radius: 50%;
+  background: var(--messages-thread-control);
+  box-shadow: var(--messages-thread-control-shadow);
+}
+.messages-thread-page .messages-messagebar > .k-toolbar > div:nth-child(2) > .k-glass {
+  width: 100%;
+  height: 46px;
+  grid-column: 2;
+  border: 1px solid var(--messages-thread-field-border) !important;
+  border-radius: 24px;
+  background: var(--messages-thread-field) !important;
+  box-shadow: var(--messages-thread-control-shadow) !important;
+}
+.messages-thread-page .messages-messagebar > .k-toolbar > div:nth-child(2) > div:last-child {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 6px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+}
+.messages-thread-page .messages-messagebar textarea {
+  height: 44px !important;
+  padding: 13px 42px 7px 15px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
 @keyframes messages-panel-in {
   from {
     opacity: 0;
