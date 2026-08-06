@@ -94,6 +94,11 @@ function syncGameTimer(): void {
   }
 }
 
+function returnToMenu(): void {
+  stopGameTimer()
+  snake.showMenu()
+}
+
 function handleKeydown(event: KeyboardEvent): void {
   const directionByKey: Partial<Record<string, SnakeDirection>> = {
     ArrowDown: 'down',
@@ -168,8 +173,42 @@ onBeforeUnmount(() => {
 
     <section v-if="!game" class="snake-menu">
       <div class="snake-mark" aria-hidden="true">
-        <span class="snake-mark__eye"></span>
-        <span class="snake-mark__fruit"></span>
+        <svg viewBox="0 0 150 128" role="presentation">
+          <defs>
+            <linearGradient id="snake-menu-body" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stop-color="#58b957" />
+              <stop offset="0.55" stop-color="#72d267" />
+              <stop offset="1" stop-color="#94e879" />
+            </linearGradient>
+            <filter id="snake-menu-shadow" x="-30%" y="-30%" width="160%" height="170%">
+              <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#000" flood-opacity="0.28" />
+            </filter>
+          </defs>
+          <g filter="url(#snake-menu-shadow)">
+            <path
+              class="snake-mark__body"
+              d="M25 96 C17 70 35 55 58 61 C78 67 89 79 108 68 C123 59 122 42 112 31"
+              fill="none"
+              stroke="url(#snake-menu-body)"
+              stroke-linecap="round"
+              stroke-width="22"
+            />
+            <circle cx="25" cy="96" r="7" fill="#4fae51" />
+            <g class="snake-mark__head" transform="translate(111 29) rotate(-35)">
+              <rect x="-13" y="-13" width="34" height="27" rx="13" fill="#91e678" />
+              <circle cx="12" cy="-6" r="3.3" fill="#f4ffe9" />
+              <circle cx="12" cy="7" r="3.3" fill="#f4ffe9" />
+              <circle cx="13" cy="-6" r="1.7" fill="#10241e" />
+              <circle cx="13" cy="7" r="1.7" fill="#10241e" />
+            </g>
+          </g>
+          <g class="snake-mark__fruit" transform="translate(126 87)">
+            <circle r="12" fill="#ff6256" />
+            <path d="M0 -11 C1 -17 5 -19 8 -20" fill="none" stroke="#6fbe58" stroke-linecap="round" stroke-width="3" />
+            <ellipse cx="8" cy="-17" rx="6" ry="3" fill="#8adb67" transform="rotate(-22 8 -17)" />
+            <circle cx="-4" cy="-4" r="2.5" fill="#ff9b8f" opacity="0.72" />
+          </g>
+        </svg>
       </div>
       <div>
         <h1>{{ phone.t('Apps.snake.readyTitle') }}</h1>
@@ -195,11 +234,21 @@ onBeforeUnmount(() => {
 
     <section v-else class="snake-game">
       <div class="snake-game__meta">
+        <button
+          type="button"
+          class="snake-game__back"
+          :aria-label="phone.t('Apps.snake.backToMenu')"
+          :title="phone.t('Apps.snake.backToMenu')"
+          @click="returnToMenu"
+        >
+          <ChevronLeft :size="18" :stroke-width="2.7" aria-hidden="true" />
+        </button>
         <span>{{ phone.t('Apps.snake.score') }}</span>
         <strong>{{ game.score }}</strong>
         <button
           v-if="game.status !== 'game-over'"
           type="button"
+          class="snake-game__pause"
           :aria-label="
             phone.t(
               game.status === 'paused'
@@ -260,7 +309,7 @@ onBeforeUnmount(() => {
             <button type="button" class="snake-primary" @click="snake.start">
               {{ phone.t('Apps.snake.restart') }}
             </button>
-            <button type="button" class="snake-secondary" @click="snake.showMenu">
+            <button type="button" class="snake-secondary" @click="returnToMenu">
               {{ phone.t('Apps.snake.menu') }}
             </button>
           </template>
@@ -350,46 +399,43 @@ onBeforeUnmount(() => {
 
 .snake-mark {
   position: relative;
-  width: 118px;
-  height: 118px;
-  border: 22px solid #65c85d;
-  border-top-color: #84df6d;
-  border-radius: 50%;
-  filter: drop-shadow(0 14px 18px rgb(0 0 0 / 26%));
+  width: 174px;
+  height: 148px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(180 242 164 / 9%);
+  border-radius: 35px;
+  background:
+    radial-gradient(circle at 75% 20%, rgb(138 226 118 / 14%), transparent 34%),
+    rgb(255 255 255 / 4%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 18px 32px rgb(0 0 0 / 19%);
 }
 
-.snake-mark::after {
-  content: "";
-  position: absolute;
-  right: -25px;
-  top: -20px;
-  width: 39px;
-  height: 29px;
-  border-radius: 55% 60% 55% 45%;
-  background: #85df6e;
-  transform: rotate(13deg);
+.snake-mark svg {
+  width: 157px;
+  height: 134px;
+  overflow: visible;
 }
 
-.snake-mark__eye {
-  position: absolute;
-  z-index: 2;
-  right: -13px;
-  top: -10px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #142b25;
+.snake-mark__body {
+  animation: snake-menu-breathe 2.8s ease-in-out infinite;
+  transform-origin: center;
 }
 
 .snake-mark__fruit {
-  position: absolute;
-  right: -43px;
-  bottom: -17px;
-  width: 25px;
-  height: 25px;
-  border-radius: 48% 52% 55% 45%;
-  background: #ff5f52;
-  box-shadow: inset -4px -4px 0 rgb(139 21 22 / 22%);
+  animation: snake-menu-fruit 1.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes snake-menu-breathe {
+  0%, 100% { opacity: 0.94; transform: scale(0.985); }
+  50% { opacity: 1; transform: scale(1.01); }
+}
+
+@keyframes snake-menu-fruit {
+  0%, 100% { transform: translate(126px, 87px) scale(0.94); }
+  50% { transform: translate(126px, 87px) scale(1.05); }
 }
 
 .snake-menu h1,
@@ -486,12 +532,14 @@ onBeforeUnmount(() => {
   height: 34px;
   display: grid;
   place-items: center;
-  margin-left: auto;
   border: 1px solid rgb(255 255 255 / 9%);
   border-radius: 50%;
   color: #dff6d9;
   background: rgb(255 255 255 / 7%);
 }
+
+.snake-game__meta .snake-game__pause { margin-left: auto; }
+.snake-game__meta .snake-game__back { flex: 0 0 auto; }
 
 .snake-board {
   position: relative;
@@ -663,5 +711,10 @@ onBeforeUnmount(() => {
 
 button:active {
   transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snake-mark__body,
+  .snake-mark__fruit { animation: none; }
 }
 </style>

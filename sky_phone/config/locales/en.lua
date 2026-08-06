@@ -62,7 +62,8 @@ Locales["en"] = {
             },
             calculator = { name = "Calculator" },
             snake = {
-                name = "Snake", board = "Snake game board", controls = "Direction controls",
+                name = "Snake", backToMenu = "Back to game menu", board = "Snake game board",
+                controls = "Direction controls",
                 directions = { down = "Move down", left = "Move left", right = "Move right", up = "Move up" },
                 gameOver = "Game Over", highScore = "High Score", menu = "Main Menu", pause = "Pause game", paused = "Paused",
                 readyBody = "Collect fruit, grow longer, and stay clear of every wall.", readyTitle = "Ready to play?",

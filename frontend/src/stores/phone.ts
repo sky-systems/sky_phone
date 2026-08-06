@@ -130,6 +130,7 @@ const defaultLocales: LocaleTree = {
     calculator: { name: 'Calculator' },
     snake: {
       name: 'Snake',
+      backToMenu: 'Back to game menu',
       board: 'Snake game board',
       controls: 'Direction controls',
       directions: {
