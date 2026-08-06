@@ -114,41 +114,17 @@ const defaultLocales: LocaleTree = {
     },
     appStore: {
       name: 'App Store',
-      eyebrow: 'Discover',
-      featured: 'Featured',
-      heroTitle: 'Apps for every day',
-      heroBody: 'Fresh ideas, built for your life in the city.',
       get: 'GET',
       open: 'OPEN',
-      searchPlaceholder: 'Games, Apps, Stories and More',
-      communityTitle: 'Black Voices and Creators',
-      communityBody: 'Apps and games from the community',
-      playing: "What We're Playing",
-      recommended: 'Recommended for You',
-      selected: 'Great apps selected by our editors',
+      installing: 'Installing',
+      searchPlaceholder: 'Search apps and games',
+      appsTitle: 'Built-in Apps',
+      gamesTitle: 'Games',
+      selected: 'Apps available for your Sky Phone',
       tabs: {
-        today: 'Today',
         apps: 'Apps',
         games: 'Games',
-        arcade: 'Arcade',
         search: 'Search',
-      },
-      catalog: {
-        orbit: 'Plan your day',
-        studio: 'Create something new',
-        trail: 'Explore nearby',
-        prism: 'A colorful puzzle',
-      },
-      card: {
-        oneEyebrow: 'App of the Day',
-        oneTitle: 'A universe in your pocket',
-        oneBody: 'Explore something extraordinary today.',
-        twoEyebrow: 'Now Trending',
-        twoTitle: 'Turn up your afternoon',
-        twoBody: 'Fresh sounds and stories picked for you.',
-        threeEyebrow: "Editors' Choice",
-        threeTitle: 'Play without limits',
-        threeBody: 'A new world is waiting.',
       },
     },
     phone: {
@@ -1018,7 +994,15 @@ const defaultLocales: LocaleTree = {
     noApps: 'No apps found',
     page: 'Page',
     pages: 'Home screen pages',
-    groups: { 0: 'Suggestions', 1: 'Recently Added', other: 'Other' },
+    groups: {
+      suggestions: 'Suggestions',
+      recentlyAdded: 'Recently Added',
+      games: 'Games',
+      productivity: 'Productivity',
+      shopping: 'Shopping',
+      social: 'Social Networks',
+      utilities: 'Utilities',
+    },
     widgets: {
       label: 'Widgets',
       weather: { city: 'Los Santos', condition: 'Partly Cloudy' },
@@ -1107,8 +1091,8 @@ export const usePhoneStore = defineStore('phone', {
       })
       namespaceQueues.set(namespace, tracked)
     },
-    setCurrentPage(page: number): void {
-      this.currentPage = clampPage(page)
+    setCurrentPage(page: number, pageCount?: number): void {
+      this.currentPage = clampPage(page, pageCount)
     },
     setCameraLandscape(landscape: boolean): void {
       this.cameraLandscape = landscape

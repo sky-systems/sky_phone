@@ -26,6 +26,13 @@ export type PhoneAppId =
 
 export type LaunchablePhoneAppId = PhoneAppId
 
+export type PhoneAppCategory =
+  | 'games'
+  | 'productivity'
+  | 'shopping'
+  | 'social'
+  | 'utilities'
+
 export type AppLaunchOrigin = {
   borderRadius: number
   scaleX: number
@@ -35,6 +42,7 @@ export type AppLaunchOrigin = {
 }
 
 export type PhoneAppDefinition = {
+  category: PhoneAppCategory
   component: Component | null
   dockOrder: number | null
   gridOrder: number

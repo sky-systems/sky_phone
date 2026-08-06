@@ -54,6 +54,7 @@ import type {
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CalendarApp.vue')),
     ),
@@ -67,6 +68,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/calendar',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/LocalPagesApp.vue')),
     ),
@@ -80,6 +82,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/local-pages',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/PhoneApp.vue')),
     ),
@@ -93,6 +96,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/phone',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MessagesApp.vue')),
     ),
@@ -119,6 +123,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/map',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MailApp.vue')),
     ),
@@ -132,6 +137,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/mail',
   },
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/NotesApp.vue')),
     ),
@@ -145,6 +151,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/notes',
   },
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CalculatorApp.vue')),
     ),
@@ -158,6 +165,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/calculator',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CameraApp.vue')),
     ),
@@ -171,6 +179,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/camera',
   },
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/ClockApp.vue')),
     ),
@@ -184,6 +193,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/clock',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/WeatherApp.vue')),
     ),
@@ -197,6 +207,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/weather',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/GalleryApp.vue')),
     ),
@@ -210,6 +221,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/photos',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/AppStoreApp.vue')),
     ),
@@ -223,6 +235,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/app-store',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/SettingsApp.vue')),
     ),
@@ -236,6 +249,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/settings',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/SnakeApp.vue')),
     ),
@@ -249,6 +263,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/snake',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MemoryApp.vue')),
     ),
@@ -262,6 +277,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/memory',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/NumberMergeApp.vue')),
     ),
@@ -275,6 +291,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/number-merge',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MinesweeperApp.vue')),
     ),
@@ -288,6 +305,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/minesweeper',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/TowerStackApp.vue')),
     ),
@@ -301,6 +319,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/tower-stack',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/SkyFlappyApp.vue')),
     ),
@@ -314,6 +333,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/sky-flappy',
   },
   {
+    category: 'shopping',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CityMarktApp.vue')),
     ),
@@ -327,6 +347,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/citymarkt',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/NeonDropApp.vue')),
     ),

@@ -344,13 +344,13 @@ button {
   left: 0;
   width: 100%;
   height: 45px;
-  padding: 11px 26px 0;
+  padding: 11px 42px 0;
   color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 500;
   text-shadow: 0 1px 3px #0009;
   pointer-events: none;
 }
@@ -583,13 +583,10 @@ button {
   }
 }
 .springboard-track {
-  width: 300%;
   height: 100%;
   display: flex;
   touch-action: pan-y;
-  transform: translateX(
-    calc(var(--springboard-page) * -33.333333% + var(--drag-offset))
-  );
+  transform: translateX(calc(var(--springboard-offset) + var(--drag-offset)));
   transition: transform 0.46s cubic-bezier(0.22, 0.9, 0.24, 1);
 }
 .springboard--dragging .springboard-track {
@@ -597,7 +594,6 @@ button {
 }
 .springboard-page {
   position: relative;
-  width: 33.333333%;
   flex: none;
   padding: 61px 22px 138px;
 }
@@ -858,6 +854,9 @@ button {
 }
 .springboard-page--library {
   padding-top: 62px;
+  padding-bottom: 25px;
+  display: flex;
+  flex-direction: column;
 }
 .app-library-search,
 .app-search {
@@ -886,13 +885,21 @@ button {
   color: white;
 }
 .app-library-groups {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 13px 12px;
   margin-top: 16px;
+  padding-bottom: 24px;
+  overflow-y: auto;
+  scrollbar-width: none;
   transition:
     transform 0.35s ease,
     opacity 0.35s ease;
+}
+.app-library-groups::-webkit-scrollbar {
+  display: none;
 }
 .app-library-groups--behind {
   transform: scale(0.95);
@@ -1801,11 +1808,9 @@ button {
 .store-icon {
   width: 49px;
   height: 49px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-size: 24px;
-  font-weight: 700;
+  flex: 0 0 49px;
+  border-radius: 11px;
+  object-fit: cover;
 }
 .store-list article > div:nth-child(2) {
   display: flex;
@@ -1816,12 +1821,30 @@ button {
   color: #888;
 }
 .store-list button {
+  width: 67px;
+  height: 28px;
+  display: grid;
+  place-items: center;
   border: 0;
   border-radius: 20px;
-  padding: 5px 15px;
+  padding: 0 12px;
   background: #222;
   color: #0a84ff;
   font-weight: 700;
+}
+.store-list button:disabled {
+  cursor: wait;
+}
+.store-installing {
+  width: 14px;
+  height: 14px;
+  color: #0a84ff;
+}
+.store-empty {
+  margin: 32px 0;
+  color: #777;
+  text-align: center;
+  font-size: 13px;
 }
 /* Reference-accurate app surfaces. These remain scoped to the phone resource. */
 .calculator-app {
@@ -1901,31 +1924,11 @@ button {
   overflow-y: auto;
 }
 .store-title {
-  display: flex;
-  align-items: center;
   margin-bottom: 20px;
-}
-.store-title > div {
-  flex: 1;
-  display: flex;
-  align-items: baseline;
-  gap: 11px;
 }
 .store-title h1 {
   margin: 0;
   font-size: 34px;
-}
-.store-title strong {
-  color: #777;
-  font-size: 18px;
-}
-.store-title > span {
-  width: 37px;
-  height: 37px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #3a3c46, #1b1c22);
 }
 .editorial-card {
   position: relative;
