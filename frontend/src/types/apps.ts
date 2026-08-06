@@ -13,7 +13,7 @@ export type PhoneAppId =
   | 'app-store'
   | 'settings'
 
-export type LaunchablePhoneAppId = Exclude<PhoneAppId, 'camera' | 'photos'>
+export type LaunchablePhoneAppId = PhoneAppId
 
 export type AppLaunchOrigin = {
   borderRadius: number

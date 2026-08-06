@@ -50,11 +50,13 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   phone: { enabled: true, sounds: true },
   'app-store': { enabled: true, sounds: true },
   calculator: { enabled: true, sounds: true },
+  camera: { enabled: true, sounds: true },
   clock: { enabled: true, sounds: true },
   weather: { enabled: true, sounds: true },
   mail: { enabled: true, sounds: true },
   map: { enabled: true, sounds: true },
   notes: { enabled: true, sounds: true },
+  photos: { enabled: true, sounds: true },
   settings: { enabled: true, sounds: true },
 }
 

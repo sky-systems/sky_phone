@@ -43,6 +43,8 @@ local server_callbacks = {
     "calls:answer",
     "calls:decline",
     "calls:hangup",
+    "gallery:list",
+    "media:config",
 }
 
 local function get_locale()
@@ -80,6 +82,7 @@ local function close_phone()
     end
 
     is_open = false
+    TriggerEvent("sky_phone:nuiClosed")
     SetNuiFocus(notification_focus or sim_picker_open, notification_focus or sim_picker_open)
     SendNUIMessage({ type = "app:close" })
     Bridge.Callbacks.Trigger("sky_phone:device:close", {})

@@ -13,6 +13,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { usePhoneStore } from '@/stores/phone'
 
 const emit = defineEmits<{
+  camera: []
   unlock: []
 }>()
 
@@ -167,6 +168,7 @@ onBeforeUnmount(() => {
           class="lock-screen__shortcut"
           :colors="shortcutColors"
           :aria-label="phone.t('LockScreen.camera')"
+          @click="emit('camera')"
         >
           <template #icon>
             <Camera :stroke-width="1.4" aria-hidden="true" />

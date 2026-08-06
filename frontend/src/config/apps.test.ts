@@ -29,15 +29,13 @@ describe('app registry', () => {
       route: '/apps/weather',
     })
     expect(PHONE_APPS.find((app) => app.id === 'camera')).toMatchObject({
-      component: null,
-      route: null,
+      route: '/apps/camera',
     })
     expect(PHONE_APPS.find((app) => app.id === 'photos')).toMatchObject({
-      component: null,
-      route: null,
+      route: '/apps/photos',
     })
-    expect(isPhoneAppId('camera')).toBe(false)
-    expect(isPhoneAppId('photos')).toBe(false)
+    expect(isPhoneAppId('camera')).toBe(true)
+    expect(isPhoneAppId('photos')).toBe(true)
     expect(isPhoneAppId('clock')).toBe(true)
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)

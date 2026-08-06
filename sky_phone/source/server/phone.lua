@@ -356,6 +356,14 @@ local function link_account(source, account)
             ]],
             params = { account.id, session.imei },
         },
+        {
+            query = [[
+                UPDATE `sky_phone_media`
+                SET `account_id` = ?, `device_imei` = NULL
+                WHERE `device_imei` = ? AND `account_id` IS NULL
+            ]],
+            params = { account.id, session.imei },
+        },
     }) then
         return { success = false, error = "request_failed" }
     end
@@ -752,6 +760,7 @@ Bridge.Callbacks.Register("sky_phone:device:factory-reset", function(source)
     if not session then
         return error_response
     end
+    local media_remote_ids = SkyPhoneMedia.GetDeviceRemoteIds(session.imei)
     if not Bridge.Database.Transaction({
         {
             query = "DELETE FROM `sky_phone_device_data` WHERE `device_imei` = ?",
@@ -759,6 +768,10 @@ Bridge.Callbacks.Register("sky_phone:device:factory-reset", function(source)
         },
         {
             query = "DELETE FROM `sky_phone_notes` WHERE `device_imei` = ? AND `account_id` IS NULL",
+            params = { session.imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_media` WHERE `device_imei` = ? AND `account_id` IS NULL",
             params = { session.imei },
         },
         {
@@ -776,6 +789,7 @@ Bridge.Callbacks.Register("sky_phone:device:factory-reset", function(source)
     }) then
         return { success = false, error = "request_failed" }
     end
+    SkyPhoneMedia.CleanupRemoteFiles(media_remote_ids)
     refresh_source(source)
     return { success = true }
 end)

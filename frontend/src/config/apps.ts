@@ -97,7 +97,9 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/calculator',
   },
   {
-    component: null,
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/CameraApp.vue')),
+    ),
     dockOrder: 2,
     gridOrder: 2,
     icon: markRaw(Camera),
@@ -105,7 +107,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     iconImage: cameraIcon,
     id: 'camera',
     labelKey: 'Apps.camera.name',
-    route: null,
+    route: '/apps/camera',
   },
   {
     component: markRaw(
@@ -134,7 +136,9 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/weather',
   },
   {
-    component: null,
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/GalleryApp.vue')),
+    ),
     dockOrder: null,
     gridOrder: 7,
     icon: markRaw(Images),
@@ -142,7 +146,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     iconImage: photosIcon,
     id: 'photos',
     labelKey: 'Apps.photos.name',
-    route: null,
+    route: '/apps/photos',
   },
   {
     component: markRaw(

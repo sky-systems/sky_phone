@@ -11,6 +11,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
+import PhoneMediaCapture from '@/components/PhoneMediaCapture.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import NotificationPhonePreview from '@/components/NotificationPhonePreview.vue'
@@ -194,6 +195,11 @@ function unlockPhone(): void {
   }, 720)
 }
 
+function unlockCamera(): void {
+  unlockPhone()
+  window.setTimeout(() => void router.push('/apps/camera'), 0)
+}
+
 onMounted(() => {
   window.addEventListener('message', onMessage)
   window.addEventListener('keydown', onKeydown)
@@ -305,6 +311,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <PhoneMediaCapture />
   <SimPhonePicker
     v-if="simPicker"
     :choices="simPicker.choices"
@@ -367,7 +374,11 @@ onBeforeUnmount(() => {
                 </RouterView>
                 <PhoneHomeIndicator v-if="!isLocked" />
                 <Transition name="lock-screen">
-                  <PhoneLockScreen v-if="isLocked" @unlock="unlockPhone" />
+                  <PhoneLockScreen
+                    v-if="isLocked"
+                    @camera="unlockCamera"
+                    @unlock="unlockPhone"
+                  />
                 </Transition>
                 <PhoneNotifications
                   :notification="notifications.current"
