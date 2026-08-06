@@ -17,20 +17,20 @@ import {
   kToolbarPane,
 } from 'konsta/vue'
 import {
-  ArrowLeft,
   ArrowUpCircle,
   Camera,
   Check,
+  ChevronLeft,
   ChevronRight,
   ImagePlay,
   Images,
+  ListFilter,
   MessageCircle,
   Mic,
   Pencil,
   Phone as PhoneIcon,
   Plus,
   Search,
-  SlidersHorizontal,
   SquarePen,
   Trash2,
   UserPlus,
@@ -110,6 +110,9 @@ const filteredConversations = computed(() => {
       .includes(query)
   })
 })
+const knownContactNumbers = computed(
+  () => new Set(calls.contacts.map((contact) => contact.phone_number)),
+)
 const contactSuggestions = computed(() => {
   const query = composerNumber.value.trim().toLocaleLowerCase(phone.lang)
   if (!query) return calls.contacts.slice(0, 8)
@@ -684,7 +687,7 @@ onBeforeUnmount(() => {
         class="messages-inbox-header__edit"
         @click="toggleListEditing"
       >
-        {{ phone.t(editingList ? 'Common.done' : 'Common.edit') }}
+        <span>{{ phone.t(editingList ? 'Common.done' : 'Common.edit') }}</span>
       </button>
       <strong>
         {{
@@ -702,7 +705,7 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Apps.messages.filterUnread')"
         @click="showUnreadOnly = !showUnreadOnly"
       >
-        <SlidersHorizontal :size="19" />
+        <ListFilter :size="24" :stroke-width="2.25" />
       </button>
       <button
         v-else
@@ -745,10 +748,24 @@ onBeforeUnmount(() => {
         />
         <span
           class="messages-avatar"
+          :class="{
+            'messages-avatar--unknown': !knownContactNumbers.has(
+              conversation.phoneNumber,
+            ),
+          }"
           :style="avatarStyle(conversation.phoneNumber)"
           aria-hidden="true"
         >
-          <span class="messages-avatar__glyph">{{ avatarGlyph(conversation.phoneNumber) }}</span>
+          <span
+            v-if="knownContactNumbers.has(conversation.phoneNumber)"
+            class="messages-avatar__glyph"
+          >
+            {{ avatarGlyph(conversation.phoneNumber) }}
+          </span>
+          <span v-else class="messages-avatar__placeholder">
+            <i />
+            <b />
+          </span>
         </span>
         <span class="messages-conversation__body">
           <span class="messages-conversation__headline">
@@ -880,7 +897,7 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Apps.messages.name')"
         @click="goBack"
       >
-        <ArrowLeft :size="21" />
+        <ChevronLeft :size="28" :stroke-width="2.35" />
       </button>
       <div class="messages-chat-header__contact">
         <span
@@ -913,7 +930,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Common.back')"
           @click="contactDetailsOpen = false"
         >
-          <ArrowLeft :size="20" />
+          <ChevronLeft :size="24" :stroke-width="2.35" />
         </button>
         <strong>{{ phone.t('Apps.messages.contactDetails') }}</strong>
         <button
