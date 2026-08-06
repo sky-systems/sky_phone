@@ -1,5 +1,6 @@
 import {
   Calculator,
+  Bomb,
   Camera,
   Clock3,
   Gamepad2,
@@ -29,6 +30,7 @@ import settingsIcon from '@/assets/img/app-icons/settings.webp'
 import snakeIcon from '@/assets/img/app-icons/snake.webp'
 import memoryIcon from '@/assets/img/app-icons/memory.webp'
 import numberMergeIcon from '@/assets/img/app-icons/number-merge.webp'
+import minesweeperIcon from '@/assets/img/app-icons/minesweeper.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
@@ -214,6 +216,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'number-merge',
     labelKey: 'Apps.numberMerge.name',
     route: '/apps/number-merge',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/MinesweeperApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 14,
+    icon: markRaw(Bomb),
+    iconClass: 'app-icon--minesweeper',
+    iconImage: minesweeperIcon,
+    id: 'minesweeper',
+    labelKey: 'Apps.minesweeper.name',
+    route: '/apps/minesweeper',
   },
 ]
 

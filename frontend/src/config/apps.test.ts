@@ -44,6 +44,12 @@ describe('app registry', () => {
       labelKey: 'Apps.numberMerge.name',
       route: '/apps/number-merge',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'minesweeper')).toMatchObject({
+      dockOrder: null,
+      gridOrder: 14,
+      labelKey: 'Apps.minesweeper.name',
+      route: '/apps/minesweeper',
+    })
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))
