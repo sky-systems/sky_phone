@@ -29,7 +29,9 @@ let pointerStart = 0
 let pointerStartedAt = 0
 
 const gridApps = computed(() =>
-  [...PHONE_APPS].sort((a, b) => a.gridOrder - b.gridOrder),
+  PHONE_APPS.filter(
+    (app) => app.category !== 'games' || appStore.claimedApps.includes(app.id),
+  ).sort((a, b) => a.gridOrder - b.gridOrder),
 )
 const appPages = computed(() =>
   paginateItems(gridApps.value, APPS_PER_HOME_PAGE),
@@ -70,11 +72,13 @@ const appGroups = computed(() => {
       key: category,
     })),
   ]
-  return groups.map((group) => ({
-    ...group,
-    apps: group.apps.slice(0, 3),
-    moreApps: group.apps.slice(3),
-  }))
+  return groups
+    .filter((group) => group.apps.length > 0)
+    .map((group) => ({
+      ...group,
+      apps: group.apps.slice(0, 3),
+      moreApps: group.apps.slice(3),
+    }))
 })
 const alphabeticalGroups = computed(() => {
   const groups: Array<{ apps: PhoneAppDefinition[]; letter: string }> = []

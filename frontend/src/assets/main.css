@@ -1808,11 +1808,9 @@ button {
 .store-icon {
   width: 49px;
   height: 49px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-size: 24px;
-  font-weight: 700;
+  flex: 0 0 49px;
+  border-radius: 11px;
+  object-fit: cover;
 }
 .store-list article > div:nth-child(2) {
   display: flex;
@@ -1823,12 +1821,28 @@ button {
   color: #888;
 }
 .store-list button {
+  width: 67px;
+  height: 28px;
+  display: grid;
+  place-items: center;
   border: 0;
   border-radius: 20px;
-  padding: 5px 15px;
+  padding: 0 12px;
   background: #222;
   color: #0a84ff;
   font-weight: 700;
+}
+.store-list button:disabled {
+  cursor: wait;
+}
+.store-installing {
+  color: #0a84ff;
+}
+.store-empty {
+  margin: 32px 0;
+  color: #777;
+  text-align: center;
+  font-size: 13px;
 }
 /* Reference-accurate app surfaces. These remain scoped to the phone resource. */
 .calculator-app {
@@ -1908,31 +1922,11 @@ button {
   overflow-y: auto;
 }
 .store-title {
-  display: flex;
-  align-items: center;
   margin-bottom: 20px;
-}
-.store-title > div {
-  flex: 1;
-  display: flex;
-  align-items: baseline;
-  gap: 11px;
 }
 .store-title h1 {
   margin: 0;
   font-size: 34px;
-}
-.store-title strong {
-  color: #777;
-  font-size: 18px;
-}
-.store-title > span {
-  width: 37px;
-  height: 37px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #3a3c46, #1b1c22);
 }
 .editorial-card {
   position: relative;
