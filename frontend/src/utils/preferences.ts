@@ -1,4 +1,4 @@
-import type { PhoneAppId } from '@/types/apps'
+import type { LaunchablePhoneAppId } from '@/types/apps'
 
 export const APPEARANCE_MODE_IDS = ['automatic', 'light', 'dark'] as const
 export const PHONE_FRAME_IDS = [
@@ -33,7 +33,7 @@ export type PhonePreferencesV1 = {
     notificationSound: NotificationSoundId
     notificationDurationSeconds: number
     notificationVolume: number
-    notifications: Record<PhoneAppId, AppNotificationPreferences>
+    notifications: Record<LaunchablePhoneAppId, AppNotificationPreferences>
     phoneScale: number
     ringtone: RingtoneId
     ringtoneVolume: number
@@ -44,19 +44,17 @@ export type PhonePreferencesV1 = {
 }
 
 const DEFAULT_APP_NOTIFICATIONS: Record<
-  PhoneAppId,
+  LaunchablePhoneAppId,
   AppNotificationPreferences
 > = {
   phone: { enabled: true, sounds: true },
   'app-store': { enabled: true, sounds: true },
   calculator: { enabled: true, sounds: true },
-  camera: { enabled: true, sounds: true },
   clock: { enabled: true, sounds: true },
   weather: { enabled: true, sounds: true },
   mail: { enabled: true, sounds: true },
   map: { enabled: true, sounds: true },
   notes: { enabled: true, sounds: true },
-  photos: { enabled: true, sounds: true },
   settings: { enabled: true, sounds: true },
 }
 
@@ -105,16 +103,16 @@ function readChoice<T extends string>(
 
 function readNotifications(
   value: unknown,
-): Record<PhoneAppId, AppNotificationPreferences> {
+): Record<LaunchablePhoneAppId, AppNotificationPreferences> {
   const source =
     value && typeof value === 'object'
       ? (value as Partial<
-          Record<PhoneAppId, Partial<AppNotificationPreferences>>
+          Record<LaunchablePhoneAppId, Partial<AppNotificationPreferences>>
         >)
       : {}
   const notifications = structuredClone(DEFAULT_APP_NOTIFICATIONS)
 
-  for (const appId of Object.keys(notifications) as PhoneAppId[]) {
+  for (const appId of Object.keys(notifications) as LaunchablePhoneAppId[]) {
     notifications[appId] = {
       enabled: readBoolean(
         source[appId]?.enabled,

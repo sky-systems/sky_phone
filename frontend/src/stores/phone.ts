@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-import type { AppLaunchOrigin, PhoneAppId } from '@/types/apps'
+import type { AppLaunchOrigin, LaunchablePhoneAppId } from '@/types/apps'
 import type { DeviceBootstrap, PhoneDevice } from '@/types/device'
 import { clampPage } from '@/utils/pages'
 import { nuiCall } from '@/utils/nui'
@@ -182,22 +182,7 @@ const defaultLocales: LocaleTree = {
         snow: 'Cold conditions with snow across the region.',
       },
     },
-    camera: {
-      name: 'Camera',
-      shutter: 'Take photo',
-      flip: 'Flip camera',
-      flash: 'Toggle flash',
-      controls: 'Camera controls',
-      modes: {
-        timelapse: 'Timelapse',
-        slowMo: 'Slow-Mo',
-        cinematic: 'Cinematic',
-        video: 'Video',
-        photo: 'Photo',
-        portrait: 'Portrait',
-        pano: 'Pano',
-      },
-    },
+    camera: { name: 'Camera' },
     clock: {
       name: 'Clock',
       lap: 'Lap',
@@ -354,41 +339,7 @@ const defaultLocales: LocaleTree = {
       unpin: 'Unpin note',
       deleteNote: 'Delete note',
     },
-    photos: {
-      name: 'Photos',
-      searchPlaceholder: 'Photos, people, places...',
-      recents: 'Recents',
-      favorites: 'Favorites',
-      items: 'items',
-      memories: 'Memories',
-      featured: 'City colors',
-      dateRange: '19 Apr–7 May 2024',
-      place: 'Los Santos & more',
-      select: 'Select',
-      count: '3,042 Photos, 125 Videos',
-      years: 'Years',
-      months: 'Months',
-      days: 'Days',
-      allPhotos: 'All Photos',
-      seeAll: 'See All',
-      onThisDay: 'On This Day',
-      trip: 'MAR 2024 TRIP',
-      featuredPhotos: 'Featured Photos',
-      featuredDate: '30 Mar 2024',
-      tabs: {
-        library: 'Library',
-        forYou: 'For You',
-        albums: 'Albums',
-        search: 'Search',
-      },
-      samples: {
-        sunset: 'Sunset drive',
-        ocean: 'Ocean air',
-        city: 'City lights',
-        desert: 'Desert road',
-        capture: 'Camera capture',
-      },
-    },
+    photos: { name: 'Photos' },
     settings: {
       name: 'Settings',
       searchPlaceholder: 'Search',
@@ -629,7 +580,7 @@ export const usePhoneStore = defineStore('phone', {
       this.launchOrigin = origin
     },
     setAppNotification(
-      appId: PhoneAppId,
+      appId: LaunchablePhoneAppId,
       key: keyof AppNotificationPreferences,
       value: boolean,
     ): void {

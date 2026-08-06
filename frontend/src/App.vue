@@ -23,7 +23,7 @@ import { useClockStore } from '@/stores/clock'
 import { useCallsStore } from '@/stores/calls'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
-import { useMediaStore } from '@/stores/media'
+import { useAppStoreStore } from '@/stores/app-store'
 import { useNotesStore } from '@/stores/notes'
 import { useWeatherStore } from '@/stores/weather'
 import {
@@ -68,7 +68,7 @@ const account = useAccountStore()
 const clock = useClockStore()
 const calls = useCallsStore()
 const mail = useMailStore()
-const media = useMediaStore()
+const appStore = useAppStoreStore()
 const notes = useNotesStore()
 const weather = useWeatherStore()
 const notifications = useNotificationsStore()
@@ -92,7 +92,6 @@ const phoneFrameImage = computed(
 )
 let clockTicker: ReturnType<typeof setInterval> | undefined
 let unlockTimer: number | undefined
-let cameraTimer: number | undefined
 
 function getViewportScale(): number {
   const heightScale = window.innerHeight / REFERENCE_VIEWPORT_HEIGHT
@@ -106,7 +105,7 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   account.hydrate(payload.account ?? null)
   notes.hydrate(payload.notes ?? [])
   clock.hydrate(payload.device?.data.alarms?.payload)
-  media.hydrate(payload.device?.data.media?.payload)
+  appStore.hydrate(payload.device?.data.apps?.payload)
   void mail.bootstrap(payload.account?.email ?? '')
   void calls.bootstrap()
 }
@@ -185,16 +184,10 @@ function updateViewportScale(): void {
   viewportScale.value = getViewportScale()
 }
 
-function unlockPhone(destination?: 'camera'): void {
+function unlockPhone(): void {
   if (!isLocked.value) return
   isUnlocking.value = true
   isLocked.value = false
-
-  if (destination === 'camera') {
-    cameraTimer = window.setTimeout(() => {
-      void router.push('/apps/camera')
-    }, 260)
-  }
 
   unlockTimer = window.setTimeout(() => {
     isUnlocking.value = false
@@ -286,7 +279,6 @@ watch(
   () => phone.isOpen,
   (isOpen) => {
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
-    if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
     if (!isOpen) {
       weather.stop()
       isLocked.value = false
@@ -305,7 +297,6 @@ onBeforeUnmount(() => {
   weather.stop()
   if (clockTicker) clearInterval(clockTicker)
   if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
-  if (cameraTimer !== undefined) window.clearTimeout(cameraTimer)
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', updateViewportScale)

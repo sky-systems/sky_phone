@@ -24,7 +24,11 @@ import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
 import settingsIcon from '@/assets/img/app-icons/settings.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
-import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
+import type {
+  LaunchablePhoneAppDefinition,
+  LaunchablePhoneAppId,
+  PhoneAppDefinition,
+} from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
   {
@@ -93,9 +97,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/calculator',
   },
   {
-    component: markRaw(
-      defineAsyncComponent(() => import('@/views/apps/CameraApp.vue')),
-    ),
+    component: null,
     dockOrder: 2,
     gridOrder: 2,
     icon: markRaw(Camera),
@@ -103,7 +105,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     iconImage: cameraIcon,
     id: 'camera',
     labelKey: 'Apps.camera.name',
-    route: '/apps/camera',
+    route: null,
   },
   {
     component: markRaw(
@@ -132,9 +134,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/weather',
   },
   {
-    component: markRaw(
-      defineAsyncComponent(() => import('@/views/apps/PhotosApp.vue')),
-    ),
+    component: null,
     dockOrder: null,
     gridOrder: 7,
     icon: markRaw(Images),
@@ -142,7 +142,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     iconImage: photosIcon,
     id: 'photos',
     labelKey: 'Apps.photos.name',
-    route: '/apps/photos',
+    route: null,
   },
   {
     component: markRaw(
@@ -181,6 +181,13 @@ export function getPhoneApp(
   return PHONE_APPS.find((app) => app.id === appId)
 }
 
-export function isPhoneAppId(value: string): value is PhoneAppId {
-  return PHONE_APP_IDS.includes(value as PhoneAppId)
+export function isPhoneAppId(value: string): value is LaunchablePhoneAppId {
+  const app = getPhoneApp(value)
+  return !!app && isLaunchablePhoneApp(app)
+}
+
+export function isLaunchablePhoneApp(
+  app: PhoneAppDefinition,
+): app is LaunchablePhoneAppDefinition {
+  return app.component !== null && app.route !== null
 }

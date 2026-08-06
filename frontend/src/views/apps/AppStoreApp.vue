@@ -9,11 +9,11 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
-import { useMediaStore } from '@/stores/media'
+import { useAppStoreStore } from '@/stores/app-store'
 import { usePhoneStore } from '@/stores/phone'
 
 const phone = usePhoneStore()
-const media = useMediaStore()
+const appStore = useAppStoreStore()
 const tab = ref<'today' | 'apps' | 'games' | 'arcade' | 'search'>('today')
 const query = ref('')
 const tabs = [
@@ -126,10 +126,10 @@ const date = new Intl.DateTimeFormat(phone.lang, {
               <strong>{{ item.title }}</strong
               ><small>{{ phone.t(item.subtitle) }}</small>
             </div>
-            <button type="button" @click="media.claimApp(item.id)">
+            <button type="button" @click="appStore.claimApp(item.id)">
               {{
                 phone.t(
-                  media.claimedApps.includes(item.id)
+                  appStore.claimedApps.includes(item.id)
                     ? 'Apps.appStore.open'
                     : 'Apps.appStore.get',
                 )

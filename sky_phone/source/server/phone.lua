@@ -12,7 +12,6 @@ local allowed_device_namespaces = {
     notifications = true,
     wallpaper = true,
     alarms = true,
-    media = true,
     apps = true,
 }
 

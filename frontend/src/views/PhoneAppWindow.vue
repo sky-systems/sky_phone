@@ -21,7 +21,7 @@ const launchStyle = computed(() => {
 </script>
 
 <template>
-  <div v-if="app" class="app-window" :style="launchStyle">
+  <div v-if="app?.component" class="app-window" :style="launchStyle">
     <Suspense>
       <component :is="app.component" />
       <template #fallback>
