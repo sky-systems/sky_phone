@@ -2,6 +2,8 @@ import {
   Calculator,
   Camera,
   Clock3,
+  Gamepad2,
+  Brain,
   Images,
   Mail,
   MapPinned,
@@ -23,6 +25,8 @@ import notesIcon from '@/assets/img/app-icons/notes.webp'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
 import settingsIcon from '@/assets/img/app-icons/settings.webp'
+import snakeIcon from '@/assets/img/app-icons/snake.webp'
+import memoryIcon from '@/assets/img/app-icons/memory.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
@@ -169,6 +173,32 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'settings',
     labelKey: 'Apps.settings.name',
     route: '/apps/settings',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/SnakeApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 11,
+    icon: markRaw(Gamepad2),
+    iconClass: 'app-icon--snake',
+    iconImage: snakeIcon,
+    id: 'snake',
+    labelKey: 'Apps.snake.name',
+    route: '/apps/snake',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/MemoryApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 12,
+    icon: markRaw(Brain),
+    iconClass: 'app-icon--memory',
+    iconImage: memoryIcon,
+    id: 'memory',
+    labelKey: 'Apps.memory.name',
+    route: '/apps/memory',
   },
 ]
 

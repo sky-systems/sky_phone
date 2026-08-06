@@ -20,6 +20,7 @@ import SimPhonePicker, {
 } from '@/components/SimPhonePicker.vue'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { useClockStore } from '@/stores/clock'
+import { useGamesStore } from '@/features/games/store'
 import { useCallsStore } from '@/stores/calls'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
@@ -66,6 +67,7 @@ const isDevelopment = import.meta.env.DEV
 const phone = usePhoneStore()
 const account = useAccountStore()
 const clock = useClockStore()
+const games = useGamesStore()
 const calls = useCallsStore()
 const mail = useMailStore()
 const media = useMediaStore()
@@ -106,6 +108,7 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   account.hydrate(payload.account ?? null)
   notes.hydrate(payload.notes ?? [])
   clock.hydrate(payload.device?.data.alarms?.payload)
+  games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
   void mail.bootstrap(payload.account?.email ?? '')
   void calls.bootstrap()

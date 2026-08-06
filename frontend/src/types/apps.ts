@@ -12,6 +12,8 @@ export type PhoneAppId =
   | 'photos'
   | 'app-store'
   | 'settings'
+  | 'snake'
+  | 'memory'
 
 export type AppLaunchOrigin = {
   borderRadius: number

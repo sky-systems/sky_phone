@@ -26,6 +26,18 @@ describe('app registry', () => {
       labelKey: 'Apps.weather.name',
       route: '/apps/weather',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'snake')).toMatchObject({
+      dockOrder: null,
+      gridOrder: 11,
+      labelKey: 'Apps.snake.name',
+      route: '/apps/snake',
+    })
+    expect(PHONE_APPS.find((app) => app.id === 'memory')).toMatchObject({
+      dockOrder: null,
+      gridOrder: 12,
+      labelKey: 'Apps.memory.name',
+      route: '/apps/memory',
+    })
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))
