@@ -58,6 +58,10 @@ const deleteButtonColors = {
 const filterBarColors = {
   strongHighlightBgIos: 'bg-[#e5e5ea] dark:bg-[#2c2c2e]',
 }
+const filterNavbarColors = {
+  bgIos: 'bg-transparent',
+  bgMaterial: 'bg-transparent',
+}
 const deleting = ref(false)
 const toastOpened = ref(false)
 const toastText = ref('')
@@ -375,7 +379,15 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <k-navbar component="nav" :aria-label="phone.t('Apps.photos.name')">
+    <k-navbar
+      component="nav"
+      class="gallery-filter-navbar"
+      bg-class="hidden"
+      inner-class="hidden"
+      subnavbar-class="!h-auto !p-0"
+      :colors="filterNavbarColors"
+      :aria-label="phone.t('Apps.photos.name')"
+    >
       <template #subnavbar>
         <k-segmented strong rounded :colors="filterBarColors">
           <k-segmented-button
@@ -507,6 +519,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .gallery-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -515,6 +528,19 @@ onBeforeUnmount(() => {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
+}
+.gallery-filter-navbar {
+  position: absolute !important;
+  z-index: 30;
+  top: auto !important;
+  right: 16px;
+  bottom: 18px;
+  left: 16px;
+  width: auto;
+  padding-top: 0 !important;
+}
+:deep(.gallery-filter-navbar > div:first-child) {
+  display: none;
 }
 .gallery-grid {
   display: grid;
