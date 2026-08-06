@@ -70,6 +70,12 @@ local server_callbacks = {
     "calls:answer",
     "calls:decline",
     "calls:hangup",
+    "messages:conversations",
+    "messages:thread",
+    "messages:send",
+    "messages:media",
+    "messages:delete",
+    "messages:gifs",
     "gallery:list",
     "media:config",
 }
@@ -362,6 +368,17 @@ end)
 
 RegisterNetEvent("sky_phone:calls:changed", function()
     SendNUIMessage({ type = "calls:changed" })
+end)
+
+RegisterNetEvent("sky_phone:messages:changed", function(data)
+    SendNUIMessage({ type = "messages:changed", data = data })
+end)
+
+RegisterNetEvent("sky_phone:messages:new", function(data)
+    local messages_locale = get_locale().Nui.Apps.messages
+    data.title = messages_locale.name
+    data.text = messages_locale.newMessage:gsub("{sender}", tostring(data.sender))
+    SendNUIMessage({ type = "messages:new", data = data })
 end)
 
 RegisterNetEvent("sky_phone:call:incoming", function(data)

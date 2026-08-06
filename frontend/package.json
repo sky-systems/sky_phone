@@ -14,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "emoji-picker-element-data": "^1.8.0",
     "@tiptap/core": "^3.29.2",
     "@tiptap/extension-placeholder": "^3.29.2",
     "@tiptap/markdown": "^3.29.2",

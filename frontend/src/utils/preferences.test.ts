@@ -16,6 +16,7 @@ describe('preferences', () => {
           notificationVolume: 45,
           notificationDurationSeconds: 14,
           notifications: {
+            messages: { enabled: false, sounds: false },
             clock: { enabled: false, sounds: false },
           },
           phoneScale: 110,
@@ -26,6 +27,10 @@ describe('preferences', () => {
     expect(value.settings.appearanceMode).toBe('light')
     expect(value.settings.notificationVolume).toBe(45)
     expect(value.settings.notificationDurationSeconds).toBe(14)
+    expect(value.settings.notifications.messages).toEqual({
+      enabled: false,
+      sounds: false,
+    })
     expect(value.settings.notifications.clock).toEqual({
       enabled: false,
       sounds: false,

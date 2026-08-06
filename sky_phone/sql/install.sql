@@ -177,6 +177,27 @@ CREATE TABLE IF NOT EXISTS `sky_phone_call_entries` (
     FOREIGN KEY (`device_imei`) REFERENCES `sky_phone_devices` (`imei`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_sms_messages` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `sender_sim_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
+    `recipient_sim_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
+    `sender_number` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `recipient_number` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `message_type` ENUM('text', 'voice', 'image', 'gif', 'video') NOT NULL DEFAULT 'text',
+    `body` VARCHAR(2000) NOT NULL,
+    `media_payload` MEDIUMTEXT NULL,
+    `media_mime` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+    `media_duration_ms` INT UNSIGNED NULL,
+    `media_waveform` TEXT NULL,
+    `read_at` DATETIME NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_sms_sender` (`sender_sim_id`, `created_at`),
+    KEY `idx_sky_phone_sms_recipient` (`recipient_sim_id`, `created_at`),
+    FOREIGN KEY (`sender_sim_id`) REFERENCES `sky_phone_sims` (`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`recipient_sim_id`) REFERENCES `sky_phone_sims` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_calendar_events` (
     `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     `account_id` BIGINT UNSIGNED NOT NULL,

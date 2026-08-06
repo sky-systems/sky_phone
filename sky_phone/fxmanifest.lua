@@ -45,11 +45,12 @@ server_scripts {
     'source/server/phone.lua',
     'source/server/sim.lua',
     'source/server/calls.lua',
+    'source/server/media.lua',
+    'source/server/messages.lua',
     'source/server/notes.lua',
     'source/server/mail.lua',
     'source/server/marketplace.lua',
     'source/server/pages.lua',
-    'source/server/media.lua',
     'source/server/calendar.lua',
     'source/server/radio.lua',
 }

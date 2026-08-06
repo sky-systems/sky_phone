@@ -12,6 +12,7 @@ import {
   Layers3,
   Mail,
   MapPinned,
+  MessageCircle,
   NotebookPen,
   Phone,
   RadioTower,
@@ -31,6 +32,7 @@ import clockIcon from '@/assets/img/app-icons/clock.webp'
 import calendarIcon from '@/assets/img/app-icons/calendar.svg'
 import mailIcon from '@/assets/img/app-icons/mail.webp'
 import mapIcon from '@/assets/img/app-icons/map.webp'
+import messagesIcon from '@/assets/img/app-icons/sms.webp'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
 import radioIcon from '@/assets/img/app-icons/radio.svg'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
@@ -54,11 +56,12 @@ import type {
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CalendarApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 20,
+    gridOrder: 21,
     icon: markRaw(CalendarDays),
     iconClass: 'app-icon--calendar',
     iconImage: calendarIcon,
@@ -67,11 +70,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/calendar',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/LocalPagesApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 19,
+    gridOrder: 20,
     icon: markRaw(MapPinHouse),
     iconClass: 'app-icon--local-pages',
     iconImage: localPagesIcon,
@@ -80,6 +84,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/local-pages',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/RadioApp.vue')),
     ),
@@ -93,6 +98,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/radio',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/PhoneApp.vue')),
     ),
@@ -106,11 +112,26 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/phone',
   },
   {
+    category: 'utilities',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/MessagesApp.vue')),
+    ),
+    dockOrder: 1,
+    gridOrder: 1,
+    icon: markRaw(MessageCircle),
+    iconClass: '',
+    iconImage: messagesIcon,
+    id: 'messages',
+    labelKey: 'Apps.messages.name',
+    route: '/apps/messages',
+  },
+  {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MapApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 10,
+    gridOrder: 11,
     icon: markRaw(MapPinned),
     iconClass: '',
     iconImage: mapIcon,
@@ -119,11 +140,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/map',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MailApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 5,
+    gridOrder: 6,
     icon: markRaw(Mail),
     iconClass: '',
     iconImage: mailIcon,
@@ -132,11 +154,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/mail',
   },
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/NotesApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 6,
+    gridOrder: 7,
     icon: markRaw(NotebookPen),
     iconClass: '',
     iconImage: notesIcon,
@@ -145,11 +168,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/notes',
   },
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CalculatorApp.vue')),
     ),
-    dockOrder: 1,
-    gridOrder: 1,
+    dockOrder: null,
+    gridOrder: 2,
     icon: markRaw(Calculator),
     iconClass: 'app-icon--calculator',
     iconImage: calculatorIcon,
@@ -158,11 +182,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/calculator',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CameraApp.vue')),
     ),
     dockOrder: 2,
-    gridOrder: 2,
+    gridOrder: 3,
     icon: markRaw(Camera),
     iconClass: 'app-icon--camera',
     iconImage: cameraIcon,
@@ -171,11 +196,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/camera',
   },
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/ClockApp.vue')),
     ),
     dockOrder: 3,
-    gridOrder: 3,
+    gridOrder: 4,
     icon: markRaw(Clock3),
     iconClass: 'app-icon--clock',
     iconImage: clockIcon,
@@ -184,11 +210,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/clock',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/WeatherApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 4,
+    gridOrder: 5,
     icon: markRaw(CloudSun),
     iconClass: 'app-icon--weather',
     iconImage: weatherIcon,
@@ -197,11 +224,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/weather',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/GalleryApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 7,
+    gridOrder: 8,
     icon: markRaw(Images),
     iconClass: 'app-icon--photos',
     iconImage: photosIcon,
@@ -210,11 +238,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/photos',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/AppStoreApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 8,
+    gridOrder: 9,
     icon: markRaw(ShoppingBag),
     iconClass: 'app-icon--store',
     iconImage: appStoreIcon,
@@ -223,11 +252,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/app-store',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/SettingsApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 9,
+    gridOrder: 10,
     icon: markRaw(Settings),
     iconClass: 'app-icon--settings',
     iconImage: settingsIcon,
@@ -236,11 +266,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/settings',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/SnakeApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 11,
+    gridOrder: 12,
     icon: markRaw(Gamepad2),
     iconClass: 'app-icon--snake',
     iconImage: snakeIcon,
@@ -249,11 +280,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/snake',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MemoryApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 12,
+    gridOrder: 13,
     icon: markRaw(Brain),
     iconClass: 'app-icon--memory',
     iconImage: memoryIcon,
@@ -262,11 +294,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/memory',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/NumberMergeApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 13,
+    gridOrder: 14,
     icon: markRaw(Grid2X2),
     iconClass: 'app-icon--number-merge',
     iconImage: numberMergeIcon,
@@ -275,11 +308,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/number-merge',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MinesweeperApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 14,
+    gridOrder: 15,
     icon: markRaw(Bomb),
     iconClass: 'app-icon--minesweeper',
     iconImage: minesweeperIcon,
@@ -288,11 +322,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/minesweeper',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/TowerStackApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 15,
+    gridOrder: 16,
     icon: markRaw(Layers3),
     iconClass: 'app-icon--tower-stack',
     iconImage: towerStackIcon,
@@ -301,11 +336,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/tower-stack',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/SkyFlappyApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 16,
+    gridOrder: 17,
     icon: markRaw(Wind),
     iconClass: 'app-icon--sky-flappy',
     iconImage: skyFlappyIcon,
@@ -314,11 +350,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/sky-flappy',
   },
   {
+    category: 'shopping',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CityMarktApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 18,
+    gridOrder: 19,
     icon: markRaw(Tag),
     iconClass: 'app-icon--citymarkt',
     iconImage: citymarktIcon,
@@ -327,11 +364,12 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/citymarkt',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/NeonDropApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 17,
+    gridOrder: 18,
     icon: markRaw(Blocks),
     iconClass: 'app-icon--neon-drop',
     iconImage: neonDropIcon,

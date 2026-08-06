@@ -15,8 +15,9 @@ import {
   ZapOff,
 } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
+import { useMessageMediaStore } from '@/stores/messageMedia'
 import { usePhoneStore } from '@/stores/phone'
 import type { MediaType, PhoneMedia, UploadResult } from '@/types/media'
 import { createGameView, type GameView } from '@/utils/gameView'
@@ -33,8 +34,14 @@ type CaptureItem = {
 const isDevelopment = import.meta.env.DEV
 const zoomLevels = [0.5, 1, 2, 3] as const
 const phone = usePhoneStore()
+const messageMedia = useMessageMediaStore()
+const route = useRoute()
 const router = useRouter()
-const mode = ref<MediaType>('photo')
+const requestedMessageMedia = computed<MediaType | null>(() => {
+  const value = route.query.messageAttachment
+  return value === 'photo' || value === 'video' ? value : null
+})
+const mode = ref<MediaType>(requestedMessageMedia.value ?? 'photo')
 const selectedZoom = ref<(typeof zoomLevels)[number]>(1)
 const flashEnabled = ref(false)
 const frontCamera = ref(false)
@@ -307,6 +314,11 @@ function onMessage(event: MessageEvent): void {
     if (result.success && result.media) {
       latestMedia.value = result.media
       updateCapture(result.correlationId, { status: 'success' })
+      if (requestedMessageMedia.value === result.media.mediaType) {
+        messageMedia.complete(result.media)
+        void router.replace('/apps/messages')
+        return
+      }
       showCameraNotice(phone.t('Apps.camera.saved'))
       window.setTimeout(() => {
         captures.value = captures.value.filter(
@@ -473,7 +485,14 @@ onBeforeUnmount(() => {
           class="camera-latest"
           type="button"
           :aria-label="phone.t('Apps.camera.openGallery')"
-          @click="router.push('/apps/photos')"
+          @click="
+            router.push({
+              path: '/apps/photos',
+              query: requestedMessageMedia
+                ? { messageAttachment: requestedMessageMedia }
+                : undefined,
+            })
+          "
         >
           <img
             v-if="latestMedia?.mediaType === 'photo'"

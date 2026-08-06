@@ -2,7 +2,7 @@ Config.Bridge = {
     Framework = "auto", -- auto, esx, qbox, qb
     Inventory = "auto", -- auto, ox, qb, lj, qs, codem, core, mf, smx
     Locale = "en",
-    CallbackTimeout = 5000,
+    CallbackTimeout = 15000,
     Debug = false,
     DebugLevels = {
         info = true,
@@ -82,6 +82,19 @@ Config.Radio = {
             },
         },
     },
+}
+
+Config.Messages = {
+    BodyMaxLength = 2000,
+    ConversationScanLimit = 1000,
+    ThreadPageSize = 200,
+    SendsPerMinute = 30,
+    MediaLoadsPerMinute = 120,
+    VoiceMaxDurationMs = 30000,
+    VoiceMaxBase64Length = 180000,
+    VoiceWaveformSamples = 48,
+    VideoMaxDurationMs = 30000,
+    DeleteBatchSize = 20,
 }
 
 Config.Mail = {

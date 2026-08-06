@@ -352,6 +352,34 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_sms_messages",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "sender_sim_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "recipient_sim_id", type = "CHAR(36) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "sender_number", type = "VARCHAR(24) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "recipient_number", type = "VARCHAR(24) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "message_type", type = "ENUM('text', 'voice', 'image', 'gif', 'video') NOT NULL DEFAULT 'text'" },
+            { name = "body", type = "VARCHAR(2000) NOT NULL" },
+            { name = "media_payload", type = "MEDIUMTEXT NULL" },
+            { name = "media_mime", type = "VARCHAR(64) NULL", characterSet = "ascii", collation = "ascii_general_ci" },
+            { name = "media_duration_ms", type = "INT UNSIGNED NULL" },
+            { name = "media_waveform", type = "TEXT NULL" },
+            { name = "read_at", type = "DATETIME NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_sms_sender", columns = "(`sender_sim_id`, `created_at`)" },
+            { name = "idx_sky_phone_sms_recipient", columns = "(`recipient_sim_id`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "sender_sim_id", references = "`sky_phone_sims` (`id`) ON DELETE SET NULL" },
+            { column = "recipient_sim_id", references = "`sky_phone_sims` (`id`) ON DELETE SET NULL" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
         name = "sky_phone_marketplace_listings",
         columns = {
             { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
@@ -650,6 +678,10 @@ local schema = {
 }
 
 Bridge.Database.Migrate("sky_phone", schema)
+Bridge.Database.Query([[
+    ALTER TABLE `sky_phone_sms_messages`
+    MODIFY COLUMN `message_type` ENUM('text', 'voice', 'image', 'gif', 'video') NOT NULL DEFAULT 'text'
+]], {})
 Bridge.Database.EnsureIndex("sky_phone_devices", "uniq_sky_phone_devices_sim", "(`sim_id`)", { unique = true })
 Bridge.Database.Query("UPDATE `sky_phone_contacts` SET `contact_id` = `id` WHERE `contact_id` IS NULL", {})
 Bridge.Database.EnsureIndex("sky_phone_contacts", "uniq_sky_phone_contacts_account_contact", "(`account_id`, `contact_id`)", { unique = true })

@@ -1,4 +1,9 @@
 Config.Media = {
+    GiphyApiKey = "",
+    GifPageSize = 24,
+    GifRating = "pg-13",
+    UrlMaxLength = 2048,
+    AllowedGifHosts = { "giphy.com" },
     FiveManage = {
         ApiKey = "e4UZ9y39JfkxHoZMAgRUVK6KMQsNCKPJ", -- Dashboard -> Tokens -> create a token with Media access.
         BaseUrl = "https://api.fivemanage.com/api/v3/file",
