@@ -15,6 +15,7 @@ import {
   Settings,
   ShoppingBag,
   CloudSun,
+  Wind,
 } from 'lucide-vue-next'
 import { defineAsyncComponent, markRaw } from 'vue'
 
@@ -33,6 +34,7 @@ import memoryIcon from '@/assets/img/app-icons/memory.webp'
 import numberMergeIcon from '@/assets/img/app-icons/number-merge.webp'
 import minesweeperIcon from '@/assets/img/app-icons/minesweeper.webp'
 import towerStackIcon from '@/assets/img/app-icons/tower-stack.webp'
+import skyFlappyIcon from '@/assets/img/app-icons/sky-flappy.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
 
@@ -244,6 +246,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'tower-stack',
     labelKey: 'Apps.towerStack.name',
     route: '/apps/tower-stack',
+  },
+  {
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/SkyFlappyApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 16,
+    icon: markRaw(Wind),
+    iconClass: 'app-icon--sky-flappy',
+    iconImage: skyFlappyIcon,
+    id: 'sky-flappy',
+    labelKey: 'Apps.skyFlappy.name',
+    route: '/apps/sky-flappy',
   },
 ]
 

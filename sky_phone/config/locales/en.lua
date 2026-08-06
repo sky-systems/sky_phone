@@ -125,6 +125,17 @@ Locales["en"] = {
                 tapHint = "Every tap places one block · perfect hits earn bonus points",
                 unmute = "Turn on game sounds",
             },
+            skyFlappy = {
+                name = "Sky Flappy", backToMenu = "Back to game menu", best = "Best", design = "Sky design",
+                designs = { dawn = "Dawn", neon = "Neon", storm = "Storm" }, eyebrow = "Sky challenge",
+                firstTap = "Tap to launch", flap = "Fly upward", gameHint = "Tap anywhere in the sky to fly upward",
+                gameOver = "Flight ended", highScore = "High Score", mainMenu = "Main Menu",
+                menuBody = "Guide the Sky Glider through every tower opening without touching the edges.",
+                menuTitle = "Fly between the towers", mute = "Mute game sounds", pause = "Pause or resume game",
+                paused = "Paused", playAgain = "Fly Again", points = "Points", ready = "Ready for takeoff?",
+                resume = "Continue Flight", score = "Score", start = "Start Flight",
+                tapHint = "Tap to rise · gravity pulls the glider down", unmute = "Turn on game sounds",
+            },
             camera = {
                 name = "Camera", shutter = "Take photo", flip = "Flip camera", flash = "Toggle flash", controls = "Camera controls",
                 modes = { timelapse = "Timelapse", slowMo = "Slow-Mo", cinematic = "Cinematic", video = "Video", photo = "Photo", portrait = "Portrait", pano = "Pano" },

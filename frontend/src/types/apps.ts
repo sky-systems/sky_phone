@@ -17,6 +17,7 @@ export type PhoneAppId =
   | 'number-merge'
   | 'minesweeper'
   | 'tower-stack'
+  | 'sky-flappy'
 
 export type AppLaunchOrigin = {
   borderRadius: number

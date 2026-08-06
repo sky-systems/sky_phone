@@ -56,6 +56,12 @@ describe('app registry', () => {
       labelKey: 'Apps.towerStack.name',
       route: '/apps/tower-stack',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'sky-flappy')).toMatchObject({
+      dockOrder: null,
+      gridOrder: 16,
+      labelKey: 'Apps.skyFlappy.name',
+      route: '/apps/sky-flappy',
+    })
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))
