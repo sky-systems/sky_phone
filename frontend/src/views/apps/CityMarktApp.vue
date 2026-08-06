@@ -284,6 +284,7 @@ async function openChat(id: string): Promise<void> {
     selectedChat.value = response.data
     message.value = ''
     screen.value = 'chat'
+    await Promise.all([marketplace.loadInquiries(), marketplace.loadCounts()])
   }
 }
 
@@ -350,7 +351,13 @@ onMounted(async () => {
         <span class="citymarkt__brand"><Tag :size="14" /> CityMarkt</span>
         <h1>{{ phone.t(`Apps.citymarkt.tabs.${tab}`) }}</h1>
       </div>
-      <button v-if="isAuthenticated" class="citymarkt__round" type="button" aria-label="Notifications">
+      <button
+        v-if="isAuthenticated"
+        class="citymarkt__round"
+        type="button"
+        :aria-label="phone.t('Apps.citymarkt.tabs.inbox')"
+        @click="selectTab('inbox')"
+      >
         <Bell :size="18" />
         <i v-if="marketplace.counts.unread" />
       </button>
