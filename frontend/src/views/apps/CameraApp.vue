@@ -9,8 +9,7 @@ import {
 } from 'konsta/vue'
 import {
   Images,
-  RectangleHorizontal,
-  RectangleVertical,
+  RefreshCw,
   RotateCcwSquare,
   Video,
   Zap,
@@ -418,10 +417,7 @@ onBeforeUnmount(() => {
         "
         @click="toggleOrientation"
       >
-        <template #icon>
-          <RectangleVertical v-if="phone.cameraLandscape" :size="19" />
-          <RectangleHorizontal v-else :size="19" />
-        </template>
+        <template #icon><RotateCcwSquare :size="19" /></template>
       </k-fab>
     </header>
 
@@ -474,7 +470,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.camera.flip')"
           @click="toggleFacing"
         >
-          <template #icon><RotateCcwSquare :size="20" /></template>
+          <template #icon><RefreshCw :size="20" /></template>
         </k-fab>
       </div>
 
