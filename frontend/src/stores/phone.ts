@@ -1,7 +1,7 @@
 
 import { defineStore } from 'pinia'
 
-import type { AppLaunchOrigin, PhoneAppId } from '@/types/apps'
+import type { AppLaunchOrigin, LaunchablePhoneAppId } from '@/types/apps'
 import type { DeviceBootstrap, PhoneDevice } from '@/types/device'
 import { clampPage } from '@/utils/pages'
 import { nuiCall } from '@/utils/nui'
@@ -470,18 +470,38 @@ const defaultLocales: LocaleTree = {
     },
     camera: {
       name: 'Camera',
-      shutter: 'Take photo',
+      flash: 'Flash',
       flip: 'Flip camera',
-      flash: 'Toggle flash',
-      controls: 'Camera controls',
-      modes: {
-        timelapse: 'Timelapse',
-        slowMo: 'Slow-Mo',
-        cinematic: 'Cinematic',
-        video: 'Video',
-        photo: 'Photo',
-        portrait: 'Portrait',
-        pano: 'Pano',
+      landscape: 'Switch to landscape',
+      portrait: 'Switch to portrait',
+      photo: 'Photo',
+      video: 'Video',
+      focusHelp: 'Space for movement',
+      returnHelp: 'Space to return',
+      uploading: '{count} uploading',
+      saving: 'Saving video...',
+      openGallery: 'Open Gallery',
+      takePhoto: 'Take photo',
+      startRecording: 'Start recording',
+      stopRecording: 'Stop recording',
+      saved: 'Saved to Gallery.',
+      errors: {
+        cancelled: 'Capture cancelled.',
+        capture_failed: 'Unable to capture the game view.',
+        invalid_media_type: 'The uploaded media type is invalid.',
+        invalid_upload: 'The upload could not be verified.',
+        invalid_upload_token: 'The upload session is no longer valid.',
+        missing_config: 'Camera uploads are not configured.',
+        not_found: 'The media item no longer exists.',
+        operation_in_progress:
+          'Another media operation is already in progress.',
+        owner_changed: 'The active phone account changed during upload.',
+        rate_limited: 'Too many media actions. Try again shortly.',
+        request_failed: 'The camera request failed.',
+        request_timeout: 'The media service timed out.',
+        unsupported: 'Video recording is not supported.',
+        upload_failed: 'The media upload failed.',
+        upload_timeout: 'The media upload timed out.',
       },
     },
     clock: {
@@ -641,38 +661,40 @@ const defaultLocales: LocaleTree = {
       deleteNote: 'Delete note',
     },
     photos: {
-      name: 'Photos',
-      searchPlaceholder: 'Photos, people, places...',
-      recents: 'Recents',
-      favorites: 'Favorites',
-      items: 'items',
-      memories: 'Memories',
-      featured: 'City colors',
-      dateRange: '19 Apr–7 May 2024',
-      place: 'Los Santos & more',
-      select: 'Select',
-      count: '3,042 Photos, 125 Videos',
-      years: 'Years',
-      months: 'Months',
-      days: 'Days',
-      allPhotos: 'All Photos',
-      seeAll: 'See All',
-      onThisDay: 'On This Day',
-      trip: 'MAR 2024 TRIP',
-      featuredPhotos: 'Featured Photos',
-      featuredDate: '30 Mar 2024',
-      tabs: {
-        library: 'Library',
-        forYou: 'For You',
-        albums: 'Albums',
-        search: 'Search',
-      },
-      samples: {
-        sunset: 'Sunset drive',
-        ocean: 'Ocean air',
-        city: 'City lights',
-        desert: 'Desert road',
-        capture: 'Camera capture',
+      name: 'Gallery',
+      count: '{count} items',
+      loading: 'Loading Gallery...',
+      emptyTitle: 'No Photos or Videos',
+      emptyBody: 'Captures from Camera will appear here.',
+      photo: 'Photo',
+      video: 'Video',
+      photoAlt: 'Gallery photo',
+      videoAlt: 'Gallery video',
+      delete: 'Delete media',
+      deleteTitle: 'Delete Media?',
+      deleteBody: 'This photo or video will be permanently deleted.',
+      deleted: 'Media deleted.',
+      zoomIn: 'Zoom in',
+      zoomOut: 'Zoom out',
+      resetZoom: 'Reset zoom',
+      filters: { all: 'All', photos: 'Photos', videos: 'Videos' },
+      errors: {
+        cancelled: 'The media action was cancelled.',
+        capture_failed: 'Unable to capture the game view.',
+        invalid_media_type: 'The media type is invalid.',
+        invalid_upload: 'The upload could not be verified.',
+        invalid_upload_token: 'The upload session is no longer valid.',
+        missing_config: 'Gallery uploads are not configured.',
+        not_found: 'The media item no longer exists.',
+        operation_in_progress:
+          'Another media operation is already in progress.',
+        owner_changed: 'The active phone account changed.',
+        rate_limited: 'Too many media actions. Try again shortly.',
+        request_failed: 'The Gallery request failed.',
+        request_timeout: 'The media service timed out.',
+        unsupported: 'This media format is not supported.',
+        upload_failed: 'The media upload failed.',
+        upload_timeout: 'The media upload timed out.',
       },
     },
     settings: {
@@ -851,6 +873,7 @@ function getByPath(source: LocaleTree, path: string): unknown {
 
 export const usePhoneStore = defineStore('phone', {
   state: () => ({
+    cameraLandscape: false,
     currentPage: 1,
     device: null as PhoneDevice | null,
     deviceRevisions: {} as Record<string, number>,
@@ -870,6 +893,7 @@ export const usePhoneStore = defineStore('phone', {
   },
   actions: {
     close(): void {
+      this.cameraLandscape = false
       this.isOpen = false
     },
     open(payload: PhoneOpenPayload = {}): void {
@@ -911,11 +935,14 @@ export const usePhoneStore = defineStore('phone', {
     setCurrentPage(page: number): void {
       this.currentPage = clampPage(page)
     },
+    setCameraLandscape(landscape: boolean): void {
+      this.cameraLandscape = landscape
+    },
     setLaunchOrigin(origin: AppLaunchOrigin | null): void {
       this.launchOrigin = origin
     },
     setAppNotification(
-      appId: PhoneAppId,
+      appId: LaunchablePhoneAppId,
       key: keyof AppNotificationPreferences,
       value: boolean,
     ): void {

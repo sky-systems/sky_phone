@@ -135,6 +135,20 @@ let mockNotes = [
   },
 ]
 const deviceData = {}
+let mockMedia = [
+  {
+    createdAt: Date.now() - 60_000,
+    id: 1,
+    mediaType: 'photo',
+    url: 'https://picsum.photos/seed/sky-phone-1/600/800',
+  },
+  {
+    createdAt: Date.now() - 120_000,
+    id: 2,
+    mediaType: 'video',
+    url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+  },
+]
 const marketplaceInquiries = [
   {
     id: '4903b923-409a-437e-971f-b7a2b10e9e31',
@@ -297,6 +311,44 @@ app.post('/api/:endpoint', (request, response) => {
     })
     return
   }
+  if (endpoint === 'media:config') {
+    response.json({ success: true, data: { videoBitrateKbps: 1500 } })
+    return
+  }
+  if (endpoint === 'gallery:list') {
+    if (request.body.mockState === 'error') {
+      response.json({ success: false, error: 'service_unavailable' })
+      return
+    }
+    if (request.body.mockState === 'empty') {
+      response.json({ success: true, data: [] })
+      return
+    }
+    const filtered = request.body.mediaType
+      ? mockMedia.filter((item) => item.mediaType === request.body.mediaType)
+      : mockMedia
+    const offset = Number(request.body.offset) || 0
+    const limit = Number(request.body.limit) || 36
+    response.json({
+      success: true,
+      data: filtered.slice(offset, offset + limit),
+    })
+    return
+  }
+  if (
+    endpoint === 'media:requestUpload' ||
+    endpoint === 'media:completeUpload' ||
+    endpoint === 'media:failUpload' ||
+    endpoint === 'media:cancelUpload'
+  ) {
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'gallery:delete') {
+    mockMedia = mockMedia.filter((item) => item.id !== Number(request.body.id))
+    response.json({ success: true })
+    return
+  }
   if (endpoint === 'account:login' || endpoint === 'account:register') {
     authenticated = true
     linkedAccount = {
@@ -337,6 +389,7 @@ app.post('/api/:endpoint', (request, response) => {
     authenticated = false
     linkedAccount = null
     mockNotes = []
+    mockMedia = []
     for (const key of Object.keys(deviceData)) delete deviceData[key]
     response.json({ success: true })
     return

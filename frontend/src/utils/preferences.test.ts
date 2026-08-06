@@ -16,7 +16,7 @@ describe('preferences', () => {
           notificationVolume: 45,
           notificationDurationSeconds: 14,
           notifications: {
-            camera: { enabled: false, sounds: false },
+            clock: { enabled: false, sounds: false },
           },
           phoneScale: 110,
           wallpaper: 'ember',
@@ -26,11 +26,10 @@ describe('preferences', () => {
     expect(value.settings.appearanceMode).toBe('light')
     expect(value.settings.notificationVolume).toBe(45)
     expect(value.settings.notificationDurationSeconds).toBe(14)
-    expect(value.settings.notifications.camera).toEqual({
+    expect(value.settings.notifications.clock).toEqual({
       enabled: false,
       sounds: false,
     })
-    expect(value.settings.notifications.clock.enabled).toBe(true)
     expect(value.settings.notifications.mail).toEqual({
       enabled: true,
       sounds: true,
