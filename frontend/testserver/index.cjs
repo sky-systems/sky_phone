@@ -11,20 +11,18 @@ let authenticated = false
 let draft = null
 let linkedAccount = null
 let mockNotes = []
-let mockMedia = [
-  {
-    createdAt: Date.now() - 60_000,
-    id: 1,
-    mediaType: 'photo',
-    url: 'https://picsum.photos/seed/sky-phone-1/600/800',
-  },
-  {
-    createdAt: Date.now() - 120_000,
-    id: 2,
-    mediaType: 'video',
-    url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-  },
-]
+let mockMedia = Array.from({ length: 65 }, (_, index) => {
+  const id = index + 1
+  const video = id % 10 === 0
+  return {
+    createdAt: Date.now() - id * 60_000,
+    id,
+    mediaType: video ? 'video' : 'photo',
+    url: video
+      ? 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+      : `https://picsum.photos/seed/sky-phone-${id}/600/800`,
+  }
+})
 const deviceData = {}
 const accountDevices = [
   {
@@ -145,7 +143,7 @@ app.post('/api/:endpoint', (request, response) => {
       ? mockMedia.filter((item) => item.mediaType === request.body.mediaType)
       : mockMedia
     const offset = Number(request.body.offset) || 0
-    const limit = Number(request.body.limit) || 36
+    const limit = Number(request.body.limit) || 30
     response.json({
       success: true,
       data: filtered.slice(offset, offset + limit),

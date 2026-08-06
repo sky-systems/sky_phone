@@ -1,5 +1,7 @@
 import type { GalleryFilter, MediaType, PhoneMedia } from '@/types/media'
 
+export const MEDIA_PAGE_SIZE = 30
+
 export function isMediaType(value: unknown): value is MediaType {
   return value === 'photo' || value === 'video'
 }
@@ -22,6 +24,10 @@ export function mergeMedia(
   return [...byId.values()].sort(
     (left, right) => right.createdAt - left.createdAt || right.id - left.id,
   )
+}
+
+export function hasNextMediaPage(pageLength: number): boolean {
+  return pageLength === MEDIA_PAGE_SIZE
 }
 
 export function formatRecordingDuration(elapsedMs: number): string {

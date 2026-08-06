@@ -13,5 +13,5 @@ Config.Media = {
         BitrateKbps = 1500,
     },
     UploadSessionTimeoutMs = 60000,
-    PageSize = 36,
+    PageSize = 30,
 }

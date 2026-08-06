@@ -17,14 +17,18 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { usePhoneStore } from '@/stores/phone'
 import type { DeleteResult, GalleryFilter, PhoneMedia } from '@/types/media'
-import { mediaErrorKey, mergeMedia } from '@/utils/media'
+import {
+  hasNextMediaPage,
+  MEDIA_PAGE_SIZE,
+  mediaErrorKey,
+  mergeMedia,
+} from '@/utils/media'
 import { nuiCall } from '@/utils/nui'
 
 const isDevelopment = import.meta.env.DEV
 const developmentGalleryState = isDevelopment
   ? new URLSearchParams(window.location.search).get('galleryMock')
   : null
-const pageSize = 36
 const filterItems = [
   { id: 'all', label: 'all' },
   { id: 'photo', label: 'photos' },
@@ -135,14 +139,14 @@ async function fetchMore(): Promise<void> {
   fetching.value = true
   const offset = media.value.length
   const response = await nuiCall<PhoneMedia[]>('gallery:list', {
-    limit: pageSize,
+    limit: MEDIA_PAGE_SIZE,
     mediaType: filter.value === 'all' ? undefined : filter.value,
     mockState: developmentGalleryState ?? undefined,
     offset,
   })
   if (response.success && Array.isArray(response.data)) {
     media.value = mergeMedia(media.value, response.data)
-    hasMore.value = response.data.length === pageSize
+    hasMore.value = hasNextMediaPage(response.data.length)
   } else if (
     isDevelopment &&
     developmentGalleryState !== 'error' &&

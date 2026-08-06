@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   filterMedia,
   formatRecordingDuration,
+  hasNextMediaPage,
   mediaErrorKey,
   mergeMedia,
 } from './media'
@@ -30,6 +31,12 @@ describe('media utilities', () => {
       [3, 'new'],
       [2, 'video'],
     ])
+  })
+
+  it('loads another gallery page only after a full 30-item batch', () => {
+    expect(hasNextMediaPage(30)).toBe(true)
+    expect(hasNextMediaPage(29)).toBe(false)
+    expect(hasNextMediaPage(0)).toBe(false)
   })
 
   it('formats unlimited recording durations', () => {
