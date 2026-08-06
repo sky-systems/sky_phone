@@ -529,4 +529,5 @@ onMounted(async () => {
 .citymarkt__categories{margin-right:0;margin-left:0;padding-right:0;padding-left:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;overflow-x:visible}
 .citymarkt__categories button{width:auto;min-width:0}
 .citymarkt__filters .citymarkt-select:last-child{grid-column:1/-1}
+.citymarkt__segmented button{min-height:32px;padding:8px 7px;font-size:11px;font-weight:700}
 </style>
