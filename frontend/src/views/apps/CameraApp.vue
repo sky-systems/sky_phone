@@ -619,6 +619,14 @@ onBeforeUnmount(() => {
 .camera-control svg {
   width: 21px;
   height: 21px;
+  transition: transform 0.25s ease;
+}
+.camera-latest svg {
+  transition: transform 0.25s ease;
+}
+.camera-page--landscape .camera-control svg,
+.camera-page--landscape .camera-latest svg {
+  transform: rotate(90deg);
 }
 .camera-focus-pill,
 .camera-upload-pill {
