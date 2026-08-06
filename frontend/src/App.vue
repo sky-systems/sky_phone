@@ -275,7 +275,19 @@ onMounted(() => {
   }, 1000)
   if (isDevelopment) {
     hydratePhone({
-      account: null,
+      account: {
+        devices: [
+          {
+            created_at: '2026-08-04 12:00:00',
+            current: true,
+            device_name: 'iFruit Phone',
+            imei: '356938035643809',
+            updated_at: '2026-08-06 12:00:00',
+          },
+        ],
+        email: 'demo@ifruit.com',
+        id: 1,
+      },
       device: {
         data: {},
         imei: '356938035643809',
@@ -287,7 +299,17 @@ onMounted(() => {
           type: 'registered',
         },
       },
-      notes: [],
+      notes: [
+        {
+          body: 'Meet Morgan in Vinewood and inspect the Sultan RS.',
+          createdAt: Date.now() - 3_600_000,
+          id: 'demo-note-marketplace',
+          pinned: true,
+          revision: 1,
+          title: 'CityMarkt viewing',
+          updatedAt: Date.now() - 3_600_000,
+        },
+      ],
       token: 'development',
     })
     if (new URLSearchParams(window.location.search).has('simPickerPreview')) {

@@ -7,11 +7,8 @@ const port = Number(process.argv[2]) || 3001
 app.use(cors())
 app.use(express.json())
 
-let authenticated = false
+let authenticated = true
 let draft = null
-let linkedAccount = null
-let mockNotes = []
-const deviceData = {}
 const accountDevices = [
   {
     created_at: '2026-08-04 12:00:00',
@@ -106,9 +103,112 @@ const marketplaceListings = [
     image: 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', is_favorite: false,
     images: [{ media_id: 'ocean-air', gradient: 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)', sort_order: 1 }],
   },
+  {
+    id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf04', seller_account_id: 1, seller_name: 'demo',
+    seller_since: '2026-08-04 12:00:00', seller_active: 1, title: 'Complete mechanic tool set',
+    description: 'Complete mechanic tool set with trolley, sockets and diagnostic equipment. Everything is clean and ready for work.',
+    category: 'tools', item_condition: 'very_good', price_type: 'fixed', price: 7800,
+    district: 'south_los_santos', status: 'active', revision: 1, show_phone: 1, phone_number: '5551234567',
+    created_at: '2026-08-06 10:45:00', updated_at: '2026-08-06 10:45:00', expires_at: '2026-08-13 10:45:00',
+    image: 'linear-gradient(135deg, #ffc75f, #f96d80 48%, #4b4453)', is_favorite: false,
+    images: [{ media_id: 'capture-tools', gradient: 'linear-gradient(135deg, #ffc75f, #f96d80 48%, #4b4453)', sort_order: 1 }],
+  },
 ]
-const marketplaceInquiries = []
-const marketplaceMessages = []
+let linkedAccount = {
+  devices: accountDevices,
+  email: 'demo@ifruit.com',
+  id: 1,
+}
+let mockNotes = [
+  {
+    body: 'Meet Morgan in Vinewood and inspect the Sultan RS.',
+    createdAt: Date.now() - 3_600_000,
+    id: 'demo-note-marketplace',
+    pinned: true,
+    revision: 1,
+    title: 'CityMarkt viewing',
+    updatedAt: Date.now() - 3_600_000,
+  },
+]
+const deviceData = {}
+const marketplaceInquiries = [
+  {
+    id: '4903b923-409a-437e-971f-b7a2b10e9e31',
+    listing_id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf01',
+    seller_account_id: 2,
+    buyer_account_id: 1,
+    seller_name: 'morgan',
+    buyer_name: 'demo',
+    title: 'Sultan RS in excellent condition',
+    price: 185000,
+    price_type: 'negotiable',
+    status: 'active',
+    image: 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)',
+    other_name: 'morgan',
+    last_message: 'Sure, come by the Vinewood garage around 8 PM.',
+    unread: 1,
+    updated_at: '2026-08-06 11:42:00',
+  },
+  {
+    id: '4903b923-409a-437e-971f-b7a2b10e9e32',
+    listing_id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf04',
+    seller_account_id: 1,
+    buyer_account_id: 3,
+    seller_name: 'demo',
+    buyer_name: 'jamie',
+    title: 'Complete mechanic tool set',
+    price: 7800,
+    price_type: 'fixed',
+    status: 'active',
+    image: 'linear-gradient(135deg, #ffc75f, #f96d80 48%, #4b4453)',
+    other_name: 'jamie',
+    last_message: 'I can collect it today and pay the full price.',
+    unread: 2,
+    updated_at: '2026-08-06 11:55:00',
+  },
+]
+const marketplaceMessages = [
+  {
+    id: 1,
+    inquiry_id: '4903b923-409a-437e-971f-b7a2b10e9e31',
+    sender_account_id: 1,
+    body: 'Hi, is the Sultan still available?',
+    created_at: '2026-08-06 11:35:00',
+    read_at: '2026-08-06 11:36:00',
+  },
+  {
+    id: 2,
+    inquiry_id: '4903b923-409a-437e-971f-b7a2b10e9e31',
+    sender_account_id: 2,
+    body: 'Yes, it is. You can also take it for a short test drive.',
+    created_at: '2026-08-06 11:38:00',
+    read_at: '2026-08-06 11:39:00',
+  },
+  {
+    id: 3,
+    inquiry_id: '4903b923-409a-437e-971f-b7a2b10e9e31',
+    sender_account_id: 2,
+    body: 'Sure, come by the Vinewood garage around 8 PM.',
+    created_at: '2026-08-06 11:42:00',
+    read_at: null,
+  },
+  {
+    id: 4,
+    inquiry_id: '4903b923-409a-437e-971f-b7a2b10e9e32',
+    sender_account_id: 3,
+    body: 'Hello, does the diagnostic equipment work with every vehicle?',
+    created_at: '2026-08-06 11:51:00',
+    read_at: null,
+  },
+  {
+    id: 5,
+    inquiry_id: '4903b923-409a-437e-971f-b7a2b10e9e32',
+    sender_account_id: 3,
+    body: 'I can collect it today and pay the full price.',
+    created_at: '2026-08-06 11:55:00',
+    read_at: null,
+  },
+]
 
 function counts() {
   return {
@@ -155,6 +255,7 @@ app.post('/api/:endpoint', (request, response) => {
       email: request.body.email.includes('@')
         ? request.body.email
         : `${request.body.email}@ifruit.com`,
+      id: 1,
     }
     response.json({ success: true, data: linkedAccount })
     return
@@ -211,7 +312,7 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'marketplace:counts') {
-    response.json({ success: true, data: { active: marketplaceListings.filter((item) => item.seller_account_id === 1 && ['active', 'reserved'].includes(item.status)).length, unread: 0 } })
+    response.json({ success: true, data: { active: marketplaceListings.filter((item) => item.seller_account_id === 1 && ['active', 'reserved'].includes(item.status)).length, unread: marketplaceInquiries.reduce((total, item) => total + item.unread, 0) } })
     return
   }
   if (endpoint === 'marketplace:list-own') {
@@ -272,15 +373,17 @@ app.post('/api/:endpoint', (request, response) => {
       inquiry = { id: '4903b923-409a-437e-971f-b7a2b10e9e31', listing_id: listing.id, seller_account_id: listing.seller_account_id, buyer_account_id: 1, title: listing.title, price: listing.price, price_type: listing.price_type, status: listing.status, image: listing.image, other_name: listing.seller_name, last_message: request.body.body, unread: 0, updated_at: '2026-08-06 11:30:00' }
       marketplaceInquiries.push(inquiry)
     }
-    marketplaceMessages.push({ id: marketplaceMessages.length + 1, sender_account_id: 1, body: request.body.body, created_at: '2026-08-06 11:30:00', read_at: null })
+    marketplaceMessages.push({ id: marketplaceMessages.length + 1, inquiry_id: inquiry.id, sender_account_id: 1, body: request.body.body, created_at: '2026-08-06 12:00:00', read_at: null })
     inquiry.last_message = request.body.body
+    inquiry.unread = 0
+    inquiry.updated_at = '2026-08-06 12:00:00'
     response.json({ success: true, data: { id: inquiry.id } })
     return
   }
   if (endpoint === 'marketplace:get-inquiry') {
     const inquiry = marketplaceInquiries.find((item) => item.id === request.body.id)
-    const listing = inquiry && marketplaceListings.find((item) => item.id === inquiry.listing_id)
-    response.json(inquiry ? { success: true, data: { accountId: 1, inquiry: { ...inquiry, seller_name: listing.seller_name, buyer_name: 'demo', reserved_account_id: null }, messages: marketplaceMessages } } : { success: false, error: 'inquiry_not_found' })
+    if (inquiry) inquiry.unread = 0
+    response.json(inquiry ? { success: true, data: { accountId: 1, inquiry: { ...inquiry, reserved_account_id: null }, messages: marketplaceMessages.filter((message) => message.inquiry_id === inquiry.id) } } : { success: false, error: 'inquiry_not_found' })
     return
   }
   if (endpoint === 'marketplace:report' || endpoint === 'marketplace:block') {
@@ -326,6 +429,7 @@ app.post('/api/:endpoint', (request, response) => {
     linkedAccount = {
       devices: accountDevices,
       email: 'demo@ifruit.com',
+      id: 1,
     }
     response.json({ success: true, data: linkedAccount })
     return
