@@ -112,6 +112,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/messages',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/DarkChatApp.vue')),
     ),
@@ -125,6 +126,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/darkchat',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MapApp.vue')),
     ),
