@@ -25,6 +25,11 @@ const developmentGalleryState = isDevelopment
   ? new URLSearchParams(window.location.search).get('galleryMock')
   : null
 const pageSize = 36
+const filterItems = [
+  { id: 'all', label: 'all' },
+  { id: 'photo', label: 'photos' },
+  { id: 'video', label: 'videos' },
+] as const
 const phone = usePhoneStore()
 const media = ref<PhoneMedia[]>([])
 const filter = ref<GalleryFilter>('all')
@@ -45,6 +50,9 @@ const deleteButtonColors = {
   fillBgMaterial: 'bg-[#ff3b30] active:bg-[#d9342b]',
   fillTextIos: 'text-white',
   fillTextMaterial: 'text-white',
+}
+const filterBarColors = {
+  strongHighlightBgIos: 'bg-[#e5e5ea] dark:bg-[#2c2c2e]',
 }
 const deleting = ref(false)
 const toastOpened = ref(false)
@@ -316,79 +324,77 @@ onBeforeUnmount(() => {
       <template #right>
         <span class="gallery-count">{{ countLabel }}</span>
       </template>
+    </k-navbar>
+
+    <div class="gallery-content">
+      <div v-if="loading" class="gallery-state">
+        <k-preloader />
+        <span>{{ phone.t('Apps.photos.loading') }}</span>
+      </div>
+      <k-block v-else-if="loadError" strong inset class="gallery-error">
+        {{ loadError }}
+      </k-block>
+      <div v-else-if="!media.length" class="gallery-state gallery-empty">
+        <strong>{{ phone.t('Apps.photos.emptyTitle') }}</strong>
+        <span>{{ phone.t('Apps.photos.emptyBody') }}</span>
+      </div>
+      <div v-else class="gallery-grid">
+        <button
+          v-for="entry in media"
+          :key="entry.id"
+          class="gallery-tile"
+          type="button"
+          :aria-label="
+            phone.t(
+              entry.mediaType === 'video'
+                ? 'Apps.photos.videoAlt'
+                : 'Apps.photos.photoAlt',
+            )
+          "
+          @click="openMedia(entry)"
+        >
+          <img
+            v-if="entry.mediaType === 'photo'"
+            :src="entry.url"
+            alt=""
+            loading="lazy"
+          />
+          <video
+            v-else
+            :src="entry.url"
+            muted
+            playsinline
+            preload="metadata"
+          ></video>
+          <span v-if="entry.mediaType === 'video'" class="gallery-video-badge">
+            <Play :size="16" fill="currentColor" />
+          </span>
+        </button>
+        <span
+          v-if="hasMore"
+          ref="loadTrigger"
+          class="gallery-load-trigger"
+        ></span>
+      </div>
+    </div>
+
+    <k-navbar component="nav" :aria-label="phone.t('Apps.photos.name')">
       <template #subnavbar>
-        <k-segmented class="gallery-filter">
+        <k-segmented strong rounded :colors="filterBarColors">
           <k-segmented-button
-            :active="filter === 'all'"
-            @click="filter = 'all'"
+            v-for="item in filterItems"
+            :key="item.id"
+            large
+            :active="filter === item.id"
+            :class="filter === item.id ? 'text-[#0a84ff]' : 'text-[#8e8e93]'"
+            :aria-pressed="filter === item.id"
+            @click="filter = item.id"
           >
-            {{ phone.t('Apps.photos.filters.all') }}
-          </k-segmented-button>
-          <k-segmented-button
-            :active="filter === 'photo'"
-            @click="filter = 'photo'"
-          >
-            {{ phone.t('Apps.photos.filters.photos') }}
-          </k-segmented-button>
-          <k-segmented-button
-            :active="filter === 'video'"
-            @click="filter = 'video'"
-          >
-            {{ phone.t('Apps.photos.filters.videos') }}
+            {{ phone.t(`Apps.photos.filters.${item.label}`) }}
           </k-segmented-button>
         </k-segmented>
       </template>
     </k-navbar>
-
-    <div v-if="loading" class="gallery-state">
-      <k-preloader />
-      <span>{{ phone.t('Apps.photos.loading') }}</span>
-    </div>
-    <k-block v-else-if="loadError" strong inset class="gallery-error">
-      {{ loadError }}
-    </k-block>
-    <div v-else-if="!media.length" class="gallery-state gallery-empty">
-      <strong>{{ phone.t('Apps.photos.emptyTitle') }}</strong>
-      <span>{{ phone.t('Apps.photos.emptyBody') }}</span>
-    </div>
-    <div v-else class="gallery-grid">
-      <button
-        v-for="entry in media"
-        :key="entry.id"
-        class="gallery-tile"
-        type="button"
-        :aria-label="
-          phone.t(
-            entry.mediaType === 'video'
-              ? 'Apps.photos.videoAlt'
-              : 'Apps.photos.photoAlt',
-          )
-        "
-        @click="openMedia(entry)"
-      >
-        <img
-          v-if="entry.mediaType === 'photo'"
-          :src="entry.url"
-          alt=""
-          loading="lazy"
-        />
-        <video
-          v-else
-          :src="entry.url"
-          muted
-          playsinline
-          preload="metadata"
-        ></video>
-        <span v-if="entry.mediaType === 'video'" class="gallery-video-badge">
-          <Play :size="16" fill="currentColor" />
-        </span>
-      </button>
-      <span
-        v-if="hasMore"
-        ref="loadTrigger"
-        class="gallery-load-trigger"
-      ></span>
-    </div>
   </k-page>
 
   <k-page
@@ -505,9 +511,15 @@ onBeforeUnmount(() => {
   color: #8e8e93;
   font-size: 12px;
 }
-.gallery-filter {
-  width: calc(100% - 24px);
-  margin: 0 12px 8px;
+.gallery-page {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.gallery-content {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
 }
 .gallery-grid {
   display: grid;
