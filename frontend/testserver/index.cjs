@@ -23,13 +23,14 @@ const accountDevices = [
 ]
 const messages = [
   {
-    body: 'Welcome to iFruit Mail. Your shared mailbox is ready to use.',
+    body: '## Welcome to iFruit Mail\n\nYour shared mailbox is **ready to use**.\n\n- Send formatted messages\n- Keep drafts on every linked device\n- Reply without losing the conversation\n\n> Tip: use the small formatting bar while composing.',
     created_at: '2026-08-04 11:30:00',
     folder: 'inbox',
     id: 1,
     is_read: false,
     message_id: 'b73f3872-54cc-4d74-a058-6caa24f0dfff',
-    preview: 'Welcome to iFruit Mail. Your shared mailbox is ready to use.',
+    preview:
+      'Your shared mailbox is **ready to use**. Send formatted messages and keep drafts on every linked device.',
     recipients: ['demo@ifruit.com'],
     sender: 'support@ifruit.com',
     subject: 'Welcome to iFruit Mail',

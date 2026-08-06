@@ -48,6 +48,10 @@ import { IFRUIT_AUTH_INPUT_COLORS } from '@/config/ifruit'
 import { usePhoneStore } from '@/stores/phone'
 import { useAccountStore } from '@/stores/account'
 import type { PhoneAppDefinition, PhoneAppId } from '@/types/apps'
+import {
+  filterMailAddressInput,
+  MAIL_ADDRESS_INPUT_MAX_LENGTH,
+} from '@/utils/mail'
 import { nuiCall } from '@/utils/nui'
 import { formatPhoneNumber } from '@/utils/phone'
 import {
@@ -320,6 +324,23 @@ function eventValue(event: Event): string {
   return (event.target as HTMLInputElement).value
 }
 
+function updateAccountEmail(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const original = input.value
+  const selectionStart = input.selectionStart ?? original.length
+  const filtered = filterMailAddressInput(original)
+
+  if (filtered !== original) {
+    const nextSelection = filterMailAddressInput(
+      original.slice(0, selectionStart),
+    ).length
+    input.value = filtered
+    input.setSelectionRange(nextSelection, nextSelection)
+  }
+
+  accountEmail.value = filtered
+}
+
 function accountError(error?: string): string {
   const known = [
     'invalid_email',
@@ -587,9 +608,13 @@ onBeforeUnmount(() => {
               :input-class="accountMode === 'register' ? 'pr-20' : undefined"
               autocomplete="username"
               autocapitalize="none"
+              autocorrect="off"
+              inputmode="email"
+              :maxlength="MAIL_ADDRESS_INPUT_MAX_LENGTH"
+              pattern="[A-Za-z0-9@._-]*"
               spellcheck="false"
               :clear-button="accountMode === 'login'"
-              @input="accountEmail = eventValue($event)"
+              @input="updateAccountEmail"
               @clear="accountEmail = ''"
             >
               <span
