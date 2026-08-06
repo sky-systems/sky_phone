@@ -232,6 +232,7 @@ function setZoom(zoom: (typeof zoomLevels)[number]): void {
   selectedZoom.value = zoom
   resizeGameView()
   window.postMessage({ data: { zoom }, type: 'camera:zoom' }, '*')
+  void nuiCall('camera:setZoom', { zoom })
 }
 
 function resizeGameView(entry?: ResizeObserverEntry): void {
@@ -392,7 +393,7 @@ onBeforeUnmount(() => {
       <div
         v-else
         class="camera-dev-view"
-        :style="{ transform: `scale(${selectedZoom})` }"
+        :style="{ transform: `scale(${Math.max(1, selectedZoom)})` }"
         aria-hidden="true"
       >
         <span class="camera-dev-sun"></span>

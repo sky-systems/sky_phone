@@ -31,20 +31,20 @@ describe('gameViewGeometry', () => {
     ])
   })
 
-  it('uses the tablet camera zoom levels around the crop center', () => {
+  it('keeps 0.5x full-frame while higher zoom levels crop around the center', () => {
     const wideGeometry = gameViewGeometry(1920, 1080, 540, 720, 0.5)
     expect(Array.from(wideGeometry.textureCoordinates)).toEqual([
-      expect.closeTo(0.08, 2),
+      expect.closeTo(0.29, 2),
       0,
-      expect.closeTo(0.92, 2),
+      expect.closeTo(0.71, 2),
       0,
-      expect.closeTo(0.08, 2),
+      expect.closeTo(0.29, 2),
       1,
-      expect.closeTo(0.92, 2),
+      expect.closeTo(0.71, 2),
       1,
     ])
     expect(Array.from(wideGeometry.positions)).toEqual([
-      -1, -0.5, 1, -0.5, -1, 0.5, 1, 0.5,
+      -1, -1, 1, -1, -1, 1, 1, 1,
     ])
 
     const zoomedGeometry = gameViewGeometry(1920, 1080, 540, 720, 2)

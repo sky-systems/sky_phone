@@ -58,9 +58,7 @@ export function gameViewGeometry(
     bottom = 1 - top
   }
 
-  const baseWidth = right - left
-  const baseHeight = bottom - top
-  const normalizedZoom = Math.min(3, Math.max(0.5, zoom))
+  const normalizedZoom = Math.min(3, Math.max(1, zoom))
   const centerX = (left + right) / 2
   const centerY = (top + bottom) / 2
   left = Math.max(0, centerX + (left - centerX) / normalizedZoom)
@@ -68,26 +66,8 @@ export function gameViewGeometry(
   top = Math.max(0, centerY + (top - centerY) / normalizedZoom)
   bottom = Math.min(1, centerY + (bottom - centerY) / normalizedZoom)
 
-  const positionScaleX = Math.min(
-    1,
-    (normalizedZoom * (right - left)) / baseWidth,
-  )
-  const positionScaleY = Math.min(
-    1,
-    (normalizedZoom * (bottom - top)) / baseHeight,
-  )
-
   return {
-    positions: new Float32Array([
-      -positionScaleX,
-      -positionScaleY,
-      positionScaleX,
-      -positionScaleY,
-      -positionScaleX,
-      positionScaleY,
-      positionScaleX,
-      positionScaleY,
-    ]),
+    positions: new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
     textureCoordinates: new Float32Array([
       left,
       top,

@@ -2,6 +2,7 @@ local first_person_view_mode = 4
 local third_person_view_mode = 1
 local front_camera_view_mode = 0
 local front_camera_fov = 25.0
+local ultrawide_fov_multiplier = 2.0
 local front_camera_distance = 0.75
 local front_camera_height = 0.05
 local front_camera_target_height = 0.03
@@ -13,10 +14,12 @@ local camera_state = {
     focus_watcher = false,
     front_camera = false,
     front_camera_handle = nil,
+    ultrawide_camera_handle = nil,
     nui_focused = true,
     previous_ped_view = nil,
     previous_radar_hidden = nil,
     previous_vehicle_view = nil,
+    zoom = 1.0,
 }
 
 local function rotation_to_direction(rotation)
@@ -77,9 +80,48 @@ local function ensure_front_camera(ped)
         return
     end
     camera_state.front_camera_handle = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
-    SetCamFov(camera_state.front_camera_handle, front_camera_fov)
+    SetCamFov(
+        camera_state.front_camera_handle,
+        camera_state.zoom == 0.5 and front_camera_fov * ultrawide_fov_multiplier or front_camera_fov
+    )
     SetCamActive(camera_state.front_camera_handle, true)
     RenderScriptCams(true, false, 0, true, true)
+end
+
+local function ensure_ultrawide_camera()
+    if camera_state.ultrawide_camera_handle and DoesCamExist(camera_state.ultrawide_camera_handle) then
+        return
+    end
+    local camera_coords = GetGameplayCamCoord()
+    local camera_rotation = GetGameplayCamRot(2)
+    camera_state.ultrawide_camera_handle = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
+    SetCamCoord(
+        camera_state.ultrawide_camera_handle,
+        camera_coords.x,
+        camera_coords.y,
+        camera_coords.z
+    )
+    SetCamRot(
+        camera_state.ultrawide_camera_handle,
+        camera_rotation.x,
+        camera_rotation.y,
+        camera_rotation.z,
+        2
+    )
+    SetCamFov(
+        camera_state.ultrawide_camera_handle,
+        math.min(GetGameplayCamFov() * ultrawide_fov_multiplier, 120.0)
+    )
+    SetCamActive(camera_state.ultrawide_camera_handle, true)
+    RenderScriptCams(true, false, 0, true, true)
+end
+
+local function clear_ultrawide_camera()
+    if camera_state.ultrawide_camera_handle and DoesCamExist(camera_state.ultrawide_camera_handle) then
+        RenderScriptCams(false, false, 0, true, true)
+        DestroyCam(camera_state.ultrawide_camera_handle, false)
+    end
+    camera_state.ultrawide_camera_handle = nil
 end
 
 local function clear_front_camera()
@@ -139,7 +181,9 @@ local function set_camera_active(active)
     camera_state.active = active
     if active then
         camera_state.front_camera = false
+        camera_state.zoom = 1.0
         clear_front_camera()
+        clear_ultrawide_camera()
         camera_state.previous_ped_view = GetFollowPedCamViewMode()
         camera_state.previous_vehicle_view = GetFollowVehicleCamViewMode()
         camera_state.previous_radar_hidden = IsRadarHidden()
@@ -165,6 +209,23 @@ local function set_camera_active(active)
                         camera_position.z
                     )
                     PointCamAtCoord(camera_state.front_camera_handle, target.x, target.y, target.z)
+                elseif camera_state.zoom == 0.5 then
+                    ensure_ultrawide_camera()
+                    local camera_coords = GetGameplayCamCoord()
+                    local camera_rotation = GetGameplayCamRot(2)
+                    SetCamCoord(
+                        camera_state.ultrawide_camera_handle,
+                        camera_coords.x,
+                        camera_coords.y,
+                        camera_coords.z
+                    )
+                    SetCamRot(
+                        camera_state.ultrawide_camera_handle,
+                        camera_rotation.x,
+                        camera_rotation.y,
+                        camera_rotation.z,
+                        2
+                    )
                 end
                 local now = GetGameTimer()
                 if now >= next_apply then
@@ -180,6 +241,7 @@ local function set_camera_active(active)
     camera_state.flash_enabled = false
     camera_state.front_camera = false
     clear_front_camera()
+    clear_ultrawide_camera()
     restore_camera_view()
     if not camera_state.nui_focused then
         camera_state.nui_focused = true
@@ -197,11 +259,37 @@ local function set_front_camera(active)
         return
     end
     if active then
+        clear_ultrawide_camera()
         ensure_front_camera(PlayerPedId())
     else
         clear_front_camera()
+        if camera_state.zoom == 0.5 then
+            ensure_ultrawide_camera()
+        end
     end
     apply_camera_view()
+end
+
+local function set_camera_zoom(zoom)
+    if zoom ~= 0.5 and zoom ~= 1.0 and zoom ~= 2.0 and zoom ~= 3.0 then
+        return false
+    end
+    camera_state.zoom = zoom
+    if not camera_state.active then
+        return true
+    end
+    if camera_state.front_camera then
+        ensure_front_camera(PlayerPedId())
+        SetCamFov(
+            camera_state.front_camera_handle,
+            zoom == 0.5 and front_camera_fov * ultrawide_fov_multiplier or front_camera_fov
+        )
+    elseif zoom == 0.5 then
+        ensure_ultrawide_camera()
+    else
+        clear_ultrawide_camera()
+    end
+    return true
 end
 
 RegisterNUICallback("camera:setActive", function(data, cb)
@@ -224,6 +312,10 @@ end)
 RegisterNUICallback("camera:setFacing", function(data, cb)
     set_front_camera(data and data.front == true)
     cb({ success = true })
+end)
+
+RegisterNUICallback("camera:setZoom", function(data, cb)
+    cb({ success = set_camera_zoom(tonumber(data and data.zoom)) })
 end)
 
 RegisterNUICallback("media:requestUpload", function(data, cb)
