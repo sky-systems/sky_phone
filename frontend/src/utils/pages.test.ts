@@ -11,11 +11,11 @@ describe('page clamping', () => {
     expect(
       paginateItems(
         Array.from({ length: 21 }, (_, index) => index),
-        16,
+        20,
       ),
     ).toEqual([
-      Array.from({ length: 16 }, (_, index) => index),
-      [16, 17, 18, 19, 20],
+      Array.from({ length: 20 }, (_, index) => index),
+      [20],
     ])
   })
 })

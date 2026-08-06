@@ -10,7 +10,7 @@ import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppCategory, PhoneAppDefinition } from '@/types/apps'
 import { paginateItems } from '@/utils/pages'
 
-const APPS_PER_HOME_PAGE = 16
+const APPS_PER_HOME_PAGE = 20
 const APP_LIBRARY_CATEGORIES: PhoneAppCategory[] = [
   'games',
   'productivity',
