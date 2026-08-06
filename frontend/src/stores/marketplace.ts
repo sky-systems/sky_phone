@@ -100,6 +100,25 @@ export const useMarketplaceStore = defineStore('marketplace', {
       if (response.success) await Promise.all([this.loadInquiries(), this.loadCounts()])
       return response
     },
+    async makeOffer(
+      inquiryId: string,
+      amount: number,
+    ): Promise<NuiResponse<{ id: number }>> {
+      const response = await nuiCall<{ id: number }>('marketplace:make-offer', {
+        amount,
+        inquiryId,
+      })
+      if (response.success) await Promise.all([this.loadInquiries(), this.loadCounts()])
+      return response
+    },
+    async respondOffer(
+      inquiryId: string,
+      action: 'accepted' | 'rejected',
+    ): Promise<NuiResponse> {
+      const response = await nuiCall('marketplace:respond-offer', { action, inquiryId })
+      if (response.success) await Promise.all([this.loadInquiries(), this.loadCounts()])
+      return response
+    },
     report(id: string, reason: string, details = ''): Promise<NuiResponse> {
       return nuiCall('marketplace:report', { details, id, reason })
     },

@@ -5,6 +5,7 @@ local photo_gradients = {}
 local item_conditions = { new = true, very_good = true, used = true, defective = true }
 local price_types = { fixed = true, negotiable = true, free = true }
 local report_reasons = { prohibited = true, fraud = true, spam = true, offensive = true, other = true }
+local offer_responses = { accepted = true, rejected = true }
 local public_statuses = { active = true, reserved = true }
 local seller_statuses = { active = true, reserved = true, sold = true, removed = true }
 
@@ -35,6 +36,13 @@ local function affected_rows(result)
         return result
     end
     return type(result) == "table" and tonumber(result.affectedRows) or 0
+end
+
+local function insert_id(result)
+    if type(result) == "number" then
+        return result
+    end
+    return type(result) == "table" and tonumber(result.insertId) or nil
 end
 
 local function new_id()
@@ -201,13 +209,23 @@ end
 local function marketplace_counts(account_id)
     local rows = Bridge.Database.Query([[
         SELECT
-            (SELECT COUNT(*) FROM `sky_phone_marketplace_messages` m
+            ((SELECT COUNT(*) FROM `sky_phone_marketplace_messages` m
                 JOIN `sky_phone_marketplace_inquiries` q ON q.`id` = m.`inquiry_id`
                 WHERE (q.`seller_account_id` = ? OR q.`buyer_account_id` = ?)
-                    AND m.`sender_account_id` <> ? AND m.`read_at` IS NULL) AS `unread`,
+                    AND m.`sender_account_id` <> ? AND m.`read_at` IS NULL)
+            + (SELECT COUNT(*) FROM `sky_phone_marketplace_offers` o
+                JOIN `sky_phone_marketplace_inquiries` q ON q.`id` = o.`inquiry_id`
+                WHERE (q.`seller_account_id` = ? OR q.`buyer_account_id` = ?)
+                    AND ((o.`proposer_account_id` <> ? AND o.`read_at` IS NULL)
+                        OR (o.`proposer_account_id` = ? AND o.`status` IN ('accepted', 'rejected')
+                            AND o.`response_read_at` IS NULL)))) AS `unread`,
             (SELECT COUNT(*) FROM `sky_phone_marketplace_listings`
                 WHERE `seller_account_id` = ? AND `status` IN ('active', 'reserved')) AS `active`
-    ]], { account_id, account_id, account_id, account_id })
+    ]], {
+        account_id, account_id, account_id,
+        account_id, account_id, account_id, account_id,
+        account_id,
+    })
     return {
         unread = tonumber(rows[1] and rows[1].unread) or 0,
         active = tonumber(rows[1] and rows[1].active) or 0,
@@ -558,9 +576,15 @@ Bridge.Callbacks.Register("sky_phone:marketplace:list-inquiries", function(sourc
             SUBSTRING_INDEX(other_account.`email`, '@', 1) AS `other_name`,
             (SELECT message.`body` FROM `sky_phone_marketplace_messages` message
                 WHERE message.`inquiry_id` = q.`id` ORDER BY message.`id` DESC LIMIT 1) AS `last_message`,
-            (SELECT COUNT(*) FROM `sky_phone_marketplace_messages` unread
+            ((SELECT COUNT(*) FROM `sky_phone_marketplace_messages` unread
                 WHERE unread.`inquiry_id` = q.`id` AND unread.`sender_account_id` <> ?
-                    AND unread.`read_at` IS NULL) AS `unread`
+                    AND unread.`read_at` IS NULL)
+            + (SELECT COUNT(*) FROM `sky_phone_marketplace_offers` unread_offer
+                WHERE unread_offer.`inquiry_id` = q.`id`
+                    AND ((unread_offer.`proposer_account_id` <> ? AND unread_offer.`read_at` IS NULL)
+                        OR (unread_offer.`proposer_account_id` = ?
+                            AND unread_offer.`status` IN ('accepted', 'rejected')
+                            AND unread_offer.`response_read_at` IS NULL)))) AS `unread`
         FROM `sky_phone_marketplace_inquiries` q
         JOIN `sky_phone_marketplace_listings` l ON l.`id` = q.`listing_id`
         JOIN `sky_phone_accounts` other_account ON other_account.`id` =
@@ -568,7 +592,7 @@ Bridge.Callbacks.Register("sky_phone:marketplace:list-inquiries", function(sourc
         WHERE q.`seller_account_id` = ? OR q.`buyer_account_id` = ?
         ORDER BY q.`updated_at` DESC
         LIMIT 100
-    ]], { account.id, account.id, account.id, account.id })
+    ]], { account.id, account.id, account.id, account.id, account.id, account.id })
     return { success = true, data = rows }
 end)
 
@@ -597,6 +621,17 @@ Bridge.Callbacks.Register("sky_phone:marketplace:get-inquiry", function(source, 
         SET `read_at` = CURRENT_TIMESTAMP
         WHERE `inquiry_id` = ? AND `sender_account_id` <> ? AND `read_at` IS NULL
     ]], { data.id, account.id })
+    Bridge.Database.Query([[
+        UPDATE `sky_phone_marketplace_offers`
+        SET `read_at` = CURRENT_TIMESTAMP
+        WHERE `inquiry_id` = ? AND `proposer_account_id` <> ? AND `read_at` IS NULL
+    ]], { data.id, account.id })
+    Bridge.Database.Query([[
+        UPDATE `sky_phone_marketplace_offers`
+        SET `response_read_at` = CURRENT_TIMESTAMP
+        WHERE `inquiry_id` = ? AND `proposer_account_id` = ?
+            AND `status` IN ('accepted', 'rejected') AND `response_read_at` IS NULL
+    ]], { data.id, account.id })
     local messages = Bridge.Database.Query([[
         SELECT `id`, `sender_account_id`, `body`, `created_at`, `read_at`
         FROM `sky_phone_marketplace_messages`
@@ -604,8 +639,19 @@ Bridge.Callbacks.Register("sky_phone:marketplace:get-inquiry", function(source, 
         ORDER BY `id` ASC
         LIMIT ?
     ]], { data.id, Config.Marketplace.MessagePageSize })
+    local offers = Bridge.Database.Query([[
+        SELECT `id`, `proposer_account_id`, `amount`, `status`, `read_at`, `response_read_at`,
+            `created_at`, `updated_at`
+        FROM `sky_phone_marketplace_offers`
+        WHERE `inquiry_id` = ?
+        ORDER BY `id` ASC
+        LIMIT ?
+    ]], { data.id, Config.Marketplace.OfferHistorySize })
     notify_changed(account.id)
-    return { success = true, data = { inquiry = inquiries[1], messages = messages, accountId = account.id } }
+    return {
+        success = true,
+        data = { inquiry = inquiries[1], messages = messages, offers = offers, accountId = account.id },
+    }
 end)
 
 Bridge.Callbacks.Register("sky_phone:marketplace:send-message", function(source, data)
@@ -693,6 +739,177 @@ Bridge.Callbacks.Register("sky_phone:marketplace:send-message", function(source,
     })
     notify_changed(other_account_id)
     return { success = true, data = { id = inquiry.id } }
+end)
+
+Bridge.Callbacks.Register("sky_phone:marketplace:make-offer", function(source, data)
+    local account, error_response = require_account(source)
+    if not account then return error_response end
+    if not SkyPhone.AllowOperation(source, "marketplace:offer", 10, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    data = require_payload(source, "make-offer", data)
+    local amount = data and tonumber(data.amount) or nil
+    if not data or type(data.inquiryId) ~= "string" or #data.inquiryId ~= 36
+        or not amount or amount ~= math.floor(amount) or amount < 1
+        or amount > Config.Marketplace.MaximumPrice
+    then
+        return { success = false, error = "invalid_offer" }
+    end
+
+    local rows = Bridge.Database.Query([[
+        SELECT q.*, l.`status` AS `listing_status`, l.`reserved_account_id`
+        FROM `sky_phone_marketplace_inquiries` q
+        JOIN `sky_phone_marketplace_listings` l ON l.`id` = q.`listing_id`
+        WHERE q.`id` = ? AND (q.`seller_account_id` = ? OR q.`buyer_account_id` = ?)
+        LIMIT 1
+    ]], { data.inquiryId, account.id, account.id })
+    local inquiry = rows[1]
+    if not inquiry then return { success = false, error = "inquiry_not_found" } end
+
+    local buyer_account_id = tonumber(inquiry.buyer_account_id)
+    local seller_account_id = tonumber(inquiry.seller_account_id)
+    local reserved_account_id = tonumber(inquiry.reserved_account_id)
+    if inquiry.listing_status ~= "active"
+        and (inquiry.listing_status ~= "reserved" or reserved_account_id ~= buyer_account_id)
+    then
+        return { success = false, error = "offer_listing_unavailable" }
+    end
+    if inquiry.offer_status == "accepted" then
+        return { success = false, error = "offer_closed" }
+    end
+
+    local current_proposer_account_id = tonumber(inquiry.offer_proposer_account_id)
+    if inquiry.offer_status == "pending" and current_proposer_account_id == account.id then
+        return { success = false, error = "offer_waiting" }
+    end
+    if inquiry.offer_status ~= "pending" and account.id ~= buyer_account_id then
+        return { success = false, error = "offer_not_allowed" }
+    end
+
+    local other_account_id = account.id == seller_account_id and buyer_account_id or seller_account_id
+    local blocked = Bridge.Database.Query([[
+        SELECT 1 FROM `sky_phone_marketplace_blocks`
+        WHERE (`blocker_account_id` = ? AND `blocked_account_id` = ?)
+            OR (`blocker_account_id` = ? AND `blocked_account_id` = ?)
+        LIMIT 1
+    ]], { account.id, other_account_id, other_account_id, account.id })
+    if blocked[1] then return { success = false, error = "blocked" } end
+
+    local offer_result = Bridge.Database.Query([[
+        INSERT INTO `sky_phone_marketplace_offers` (`inquiry_id`, `proposer_account_id`, `amount`)
+        VALUES (?, ?, ?)
+    ]], { inquiry.id, account.id, amount })
+    local offer_id = insert_id(offer_result)
+    if not offer_id then
+        error("[sky_phone] Database did not return a marketplace offer id.")
+    end
+
+    local revision = tonumber(inquiry.offer_revision) or 0
+    local update_result = Bridge.Database.Query([[
+        UPDATE `sky_phone_marketplace_inquiries`
+        SET `offer_id` = ?, `offer_amount` = ?, `offer_proposer_account_id` = ?,
+            `offer_status` = 'pending', `offer_revision` = `offer_revision` + 1,
+            `updated_at` = CURRENT_TIMESTAMP
+        WHERE `id` = ? AND `offer_revision` = ?
+    ]], { offer_id, amount, account.id, inquiry.id, revision })
+    if affected_rows(update_result) == 0 then
+        Bridge.Database.Query(
+            "UPDATE `sky_phone_marketplace_offers` SET `status` = 'countered' WHERE `id` = ?",
+            { offer_id }
+        )
+        return { success = false, error = "offer_conflict" }
+    end
+
+    local previous_offer_id = tonumber(inquiry.offer_id)
+    if previous_offer_id then
+        Bridge.Database.Query([[
+            UPDATE `sky_phone_marketplace_offers`
+            SET `status` = 'countered'
+            WHERE `id` = ? AND `status` = 'pending'
+        ]], { previous_offer_id })
+    end
+
+    notify_changed(account.id)
+    SkyPhone.NotifyAccountDevices(other_account_id, "sky_phone:marketplace:new-message", {
+        amount = amount,
+        inquiryId = inquiry.id,
+        kind = "offer",
+        listingId = inquiry.listing_id,
+        sender = account.email:match("^([^@]+)") or account.email,
+    })
+    notify_changed(other_account_id)
+    return { success = true, data = { id = offer_id } }
+end)
+
+Bridge.Callbacks.Register("sky_phone:marketplace:respond-offer", function(source, data)
+    local account, error_response = require_account(source)
+    if not account then return error_response end
+    if not SkyPhone.AllowOperation(source, "marketplace:offer-response", 10, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    data = require_payload(source, "respond-offer", data)
+    if not data or type(data.inquiryId) ~= "string" or #data.inquiryId ~= 36
+        or not offer_responses[data.action]
+    then
+        return { success = false, error = "invalid_offer_response" }
+    end
+
+    local rows = Bridge.Database.Query([[
+        SELECT q.*, l.`status` AS `listing_status`, l.`reserved_account_id`
+        FROM `sky_phone_marketplace_inquiries` q
+        JOIN `sky_phone_marketplace_listings` l ON l.`id` = q.`listing_id`
+        WHERE q.`id` = ? AND (q.`seller_account_id` = ? OR q.`buyer_account_id` = ?)
+        LIMIT 1
+    ]], { data.inquiryId, account.id, account.id })
+    local inquiry = rows[1]
+    if not inquiry then return { success = false, error = "inquiry_not_found" } end
+
+    local offer_id = tonumber(inquiry.offer_id)
+    local proposer_account_id = tonumber(inquiry.offer_proposer_account_id)
+    if inquiry.offer_status ~= "pending" or not offer_id or proposer_account_id == account.id then
+        return { success = false, error = "offer_not_actionable" }
+    end
+
+    local buyer_account_id = tonumber(inquiry.buyer_account_id)
+    if data.action == "accepted" then
+        local reservation_result = Bridge.Database.Query([[
+            UPDATE `sky_phone_marketplace_listings`
+            SET `status` = 'reserved', `reserved_account_id` = ?, `revision` = `revision` + 1
+            WHERE `id` = ? AND (`status` = 'active'
+                OR (`status` = 'reserved' AND `reserved_account_id` = ?))
+        ]], { buyer_account_id, inquiry.listing_id, buyer_account_id })
+        if affected_rows(reservation_result) == 0 then
+            return { success = false, error = "offer_listing_unavailable" }
+        end
+    end
+
+    local revision = tonumber(inquiry.offer_revision) or 0
+    local update_result = Bridge.Database.Query([[
+        UPDATE `sky_phone_marketplace_inquiries`
+        SET `offer_status` = ?, `offer_revision` = `offer_revision` + 1,
+            `updated_at` = CURRENT_TIMESTAMP
+        WHERE `id` = ? AND `offer_id` = ? AND `offer_revision` = ? AND `offer_status` = 'pending'
+    ]], { data.action, inquiry.id, offer_id, revision })
+    if affected_rows(update_result) == 0 then
+        return { success = false, error = "offer_conflict" }
+    end
+    Bridge.Database.Query([[
+        UPDATE `sky_phone_marketplace_offers`
+        SET `status` = ?
+        WHERE `id` = ? AND `status` = 'pending'
+    ]], { data.action, offer_id })
+
+    notify_changed(account.id)
+    SkyPhone.NotifyAccountDevices(proposer_account_id, "sky_phone:marketplace:new-message", {
+        action = data.action,
+        amount = tonumber(inquiry.offer_amount),
+        inquiryId = inquiry.id,
+        kind = "offer-response",
+        listingId = inquiry.listing_id,
+        sender = account.email:match("^([^@]+)") or account.email,
+    })
+    notify_changed(proposer_account_id)
+    return { success = true }
 end)
 
 Bridge.Callbacks.Register("sky_phone:marketplace:report", function(source, data)

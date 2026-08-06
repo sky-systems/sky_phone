@@ -44,6 +44,8 @@ local server_callbacks = {
     "marketplace:list-inquiries",
     "marketplace:get-inquiry",
     "marketplace:send-message",
+    "marketplace:make-offer",
+    "marketplace:respond-offer",
     "marketplace:report",
     "marketplace:block",
     "sim:insert",
@@ -283,7 +285,21 @@ end)
 RegisterNetEvent("sky_phone:marketplace:new-message", function(data)
     local marketplace_locale = get_locale().Nui.Apps.citymarkt
     data.title = marketplace_locale.name
-    data.text = marketplace_locale.newMessage:gsub("{sender}", tostring(data.sender))
+    if data.kind == "offer" then
+        data.text = marketplace_locale.newOffer
+            :gsub("{sender}", tostring(data.sender))
+            :gsub("{price}", tostring(data.amount))
+    elseif data.kind == "offer-response" and data.action == "accepted" then
+        data.text = marketplace_locale.offerAcceptedNotification
+            :gsub("{sender}", tostring(data.sender))
+            :gsub("{price}", tostring(data.amount))
+    elseif data.kind == "offer-response" and data.action == "rejected" then
+        data.text = marketplace_locale.offerRejectedNotification
+            :gsub("{sender}", tostring(data.sender))
+            :gsub("{price}", tostring(data.amount))
+    else
+        data.text = marketplace_locale.newMessage:gsub("{sender}", tostring(data.sender))
+    end
     SendNUIMessage({ type = "marketplace:new-message", data = data })
 end)
 

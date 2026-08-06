@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   ArrowLeft,
+  BadgeDollarSign,
   Bell,
   BriefcaseBusiness,
   CarFront,
@@ -27,6 +28,7 @@ import {
 import { computed, onMounted, ref } from 'vue'
 
 import CityMarktSelect from '@/components/citymarkt/CityMarktSelect.vue'
+import CityMarktOfferCard from '@/components/citymarkt/CityMarktOfferCard.vue'
 import { useAccountStore } from '@/stores/account'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useMediaStore } from '@/stores/media'
@@ -38,11 +40,16 @@ import type {
   MarketplaceListing,
   MarketplaceListingDraft,
   MarketplaceListingSummary,
+  MarketplaceMessage,
+  MarketplaceOffer,
   MarketplacePriceType,
 } from '@/types/marketplace'
 
 type Tab = 'discover' | 'search' | 'sell' | 'inbox' | 'profile'
 type Screen = 'main' | 'detail' | 'sell' | 'chat' | 'report'
+type ChatTimelineItem =
+  | { createdAt: string; key: string; kind: 'message'; value: MarketplaceMessage }
+  | { createdAt: string; isCounter: boolean; key: string; kind: 'offer'; value: MarketplaceOffer }
 
 const phone = usePhoneStore()
 const account = useAccountStore()
@@ -59,6 +66,9 @@ const sort = ref('newest')
 const profileMode = ref<'own' | 'favorites'>('own')
 const message = ref('')
 const firstMessage = ref('')
+const offerAmount = ref('')
+const offerPanelOpen = ref(false)
+const offerSubmitting = ref(false)
 const feedback = ref('')
 const sellStep = ref(1)
 const submitting = ref(false)
@@ -130,6 +140,43 @@ const displayItems = computed(() => {
   }
   return marketplace.items
 })
+const chatTimeline = computed<ChatTimelineItem[]>(() => {
+  if (!selectedChat.value) return []
+  const messages: ChatTimelineItem[] = selectedChat.value.messages.map((item) => ({
+    createdAt: item.created_at,
+    key: `message-${item.id}`,
+    kind: 'message',
+    value: item,
+  }))
+  const offers: ChatTimelineItem[] = (selectedChat.value.offers ?? []).map((item, index) => ({
+    createdAt: item.created_at,
+    isCounter: index > 0,
+    key: `offer-${item.id}`,
+    kind: 'offer',
+    value: item,
+  }))
+  return [...messages, ...offers].sort(
+    (left, right) =>
+      new Date(left.createdAt.replace(' ', 'T')).getTime() -
+      new Date(right.createdAt.replace(' ', 'T')).getTime(),
+  )
+})
+const canMakeOffer = computed(() => {
+  if (!selectedChat.value || !['active', 'reserved'].includes(selectedChat.value.inquiry.status)) {
+    return false
+  }
+  const inquiry = selectedChat.value.inquiry
+  if (inquiry.offer_status === 'accepted') return false
+  if (inquiry.offer_status === 'pending') {
+    return Number(inquiry.offer_proposer_account_id) !== selectedChat.value.accountId
+  }
+  return Number(inquiry.buyer_account_id) === selectedChat.value.accountId
+})
+const offerButtonLabel = computed(() =>
+  selectedChat.value?.inquiry.offer_status === 'pending'
+    ? phone.t('Apps.citymarkt.negotiateOffer')
+    : phone.t('Apps.citymarkt.makeOffer'),
+)
 const canContinueSell = computed(() => {
   if (sellStep.value === 1) return selectedPhotoIds.value.length > 0
   if (sellStep.value === 2)
@@ -157,6 +204,12 @@ function relativeDate(value: string): string {
   const hours = Math.max(1, Math.floor((Date.now() - timestamp) / 3_600_000))
   if (hours < 24) return phone.t('Apps.citymarkt.hoursAgo', { count: String(hours) })
   return phone.t('Apps.citymarkt.daysAgo', { count: String(Math.floor(hours / 24)) })
+}
+
+function messageTime(value: string): string {
+  return new Intl.DateTimeFormat(phone.lang, { hour: '2-digit', minute: '2-digit' }).format(
+    new Date(value.replace(' ', 'T')),
+  )
 }
 
 function setFeedback(key: string): void {
@@ -312,9 +365,68 @@ async function openChat(id: string): Promise<void> {
   if (response.success && response.data) {
     selectedChat.value = response.data
     message.value = ''
+    offerPanelOpen.value = false
     screen.value = 'chat'
     await Promise.all([marketplace.loadInquiries(), marketplace.loadCounts()])
   }
+}
+
+function isOfferActionable(offer: MarketplaceOffer): boolean {
+  if (!selectedChat.value) return false
+  return (
+    offer.status === 'pending' &&
+    Number(selectedChat.value.inquiry.offer_id) === Number(offer.id) &&
+    Number(offer.proposer_account_id) !== selectedChat.value.accountId
+  )
+}
+
+function openOfferPanel(): void {
+  if (!selectedChat.value || !canMakeOffer.value) return
+  const suggestedAmount = Number(
+    selectedChat.value.inquiry.offer_amount ?? selectedChat.value.inquiry.price ?? 0,
+  )
+  offerAmount.value = suggestedAmount > 0 ? String(suggestedAmount) : ''
+  offerPanelOpen.value = true
+}
+
+async function refreshChat(): Promise<void> {
+  if (!selectedChat.value) return
+  const response = await marketplace.getInquiry(selectedChat.value.inquiry.id)
+  if (response.success && response.data) selectedChat.value = response.data
+}
+
+async function submitOffer(): Promise<void> {
+  if (!selectedChat.value || offerSubmitting.value) return
+  const amount = Number(offerAmount.value)
+  if (!Number.isInteger(amount) || amount < 1) {
+    setFeedback('Apps.citymarkt.errors.invalid_offer')
+    return
+  }
+  offerSubmitting.value = true
+  const response = await marketplace.makeOffer(selectedChat.value.inquiry.id, amount)
+  offerSubmitting.value = false
+  if (!response.success) {
+    setFeedback(`Apps.citymarkt.errors.${response.error ?? 'default'}`)
+    return
+  }
+  offerPanelOpen.value = false
+  await refreshChat()
+  setFeedback('Apps.citymarkt.offerSent')
+}
+
+async function respondOffer(action: 'accepted' | 'rejected'): Promise<void> {
+  if (!selectedChat.value || offerSubmitting.value) return
+  offerSubmitting.value = true
+  const response = await marketplace.respondOffer(selectedChat.value.inquiry.id, action)
+  offerSubmitting.value = false
+  if (!response.success) {
+    setFeedback(`Apps.citymarkt.errors.${response.error ?? 'default'}`)
+    return
+  }
+  await refreshChat()
+  setFeedback(
+    action === 'accepted' ? 'Apps.citymarkt.offerAccepted' : 'Apps.citymarkt.offerDeclined',
+  )
 }
 
 async function sendChatMessage(): Promise<void> {
@@ -526,8 +638,49 @@ onMounted(async () => {
     <section v-else-if="screen === 'chat' && selectedChat" class="citymarkt__chat">
       <header><button @click="screen = 'main'; tab = 'inbox'"><ArrowLeft :size="19" /></button><div><strong>{{ selectedChat.inquiry.seller_account_id === selectedChat.accountId ? selectedChat.inquiry.buyer_name : selectedChat.inquiry.seller_name }}</strong><small>{{ selectedChat.inquiry.title }}</small></div></header>
       <div class="citymarkt__chat-listing"><div><strong>{{ formatPrice(selectedChat.inquiry) }}</strong><span>{{ selectedChat.inquiry.title }}</span></div><i>{{ label('status', selectedChat.inquiry.status) }}</i></div>
-      <div class="citymarkt__messages"><article v-for="item in selectedChat.messages" :key="item.id" :class="{ own: item.sender_account_id === selectedChat.accountId }"><p>{{ item.body }}</p><small>{{ new Intl.DateTimeFormat(phone.lang, { hour: '2-digit', minute: '2-digit' }).format(new Date(item.created_at.replace(' ', 'T'))) }}</small></article></div>
-      <button v-if="selectedChat.inquiry.seller_account_id === selectedChat.accountId && selectedChat.inquiry.status === 'active'" class="citymarkt__reserve" @click="setListingStatus('reserved', selectedChat.inquiry.id)">{{ phone.t('Apps.citymarkt.reserveForBuyer') }}</button>
+      <div class="citymarkt__messages">
+        <template v-for="item in chatTimeline" :key="item.key">
+          <article
+            v-if="item.kind === 'message'"
+            :class="{ own: item.value.sender_account_id === selectedChat.accountId }"
+          >
+            <p>{{ item.value.body }}</p>
+            <small>{{ messageTime(item.value.created_at) }}</small>
+          </article>
+          <CityMarktOfferCard
+            v-else
+            :account-id="selectedChat.accountId"
+            :actionable="isOfferActionable(item.value)"
+            :is-counter="item.isCounter"
+            :offer="item.value"
+            @accept="respondOffer('accepted')"
+            @counter="openOfferPanel"
+            @reject="respondOffer('rejected')"
+          />
+        </template>
+      </div>
+      <form v-if="offerPanelOpen" class="citymarkt__offer-panel" @submit.prevent="submitOffer">
+        <header>
+          <div>
+            <small>{{ phone.t('Apps.citymarkt.offerFor') }}</small>
+            <strong>{{ selectedChat.inquiry.title }}</strong>
+          </div>
+          <button type="button" @click="offerPanelOpen = false"><X :size="16" /></button>
+        </header>
+        <label>
+          {{ phone.t('Apps.citymarkt.offerAmount') }}
+          <span><b>$</b><input v-model="offerAmount" inputmode="numeric" min="1" type="number" /></span>
+        </label>
+        <button type="submit" :disabled="offerSubmitting || !offerAmount">
+          <BadgeDollarSign :size="16" />{{ phone.t('Apps.citymarkt.sendOffer') }}
+        </button>
+      </form>
+      <div v-if="canMakeOffer || (selectedChat.inquiry.seller_account_id === selectedChat.accountId && selectedChat.inquiry.status === 'active')" class="citymarkt__chat-actions">
+        <button v-if="canMakeOffer" type="button" @click="openOfferPanel">
+          <BadgeDollarSign :size="14" />{{ offerButtonLabel }}
+        </button>
+        <button v-if="selectedChat.inquiry.seller_account_id === selectedChat.accountId && selectedChat.inquiry.status === 'active'" type="button" @click="setListingStatus('reserved', selectedChat.inquiry.id)">{{ phone.t('Apps.citymarkt.reserveForBuyer') }}</button>
+      </div>
       <form class="citymarkt__chat-composer" @submit.prevent="sendChatMessage"><input v-model="message" maxlength="1000" :placeholder="phone.t('Apps.citymarkt.writeMessage')" /><button :disabled="!message.trim()"><Send :size="17" /></button></form>
     </section>
 
@@ -556,4 +709,11 @@ onMounted(async () => {
 .citymarkt__segmented button.active span{background:#17181626}
 :global(.citymarkt--light) .citymarkt__segmented{border-color:#0000000b}
 :global(.citymarkt--light) .citymarkt__segmented button span{background:#0000000b}
+.citymarkt__messages{position:absolute;top:158px;right:0;bottom:116px;left:0;height:auto}
+.citymarkt__messages .citymarkt-offer{width:92%;max-width:92%}
+.citymarkt__chat-actions{position:absolute;right:9px;bottom:75px;left:9px;display:flex;gap:5px}
+.citymarkt__chat-actions button{min-height:34px;flex:1;padding:6px 8px;border:1px solid #ffc92831;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:4px;background:#3d3621;color:var(--yellow);font-size:8px;font-weight:900}
+.citymarkt__offer-panel{position:absolute;z-index:6;right:9px;bottom:75px;left:9px;padding:11px;border:1px solid #ffc92840;border-radius:15px;background:#292a27;box-shadow:0 14px 35px #000b}
+.citymarkt__offer-panel header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.citymarkt__offer-panel header div{min-width:0}.citymarkt__offer-panel header small,.citymarkt__offer-panel header strong{display:block}.citymarkt__offer-panel header small{color:var(--yellow);font-size:8px;font-weight:900;text-transform:uppercase}.citymarkt__offer-panel header strong{overflow:hidden;font-size:12px;white-space:nowrap;text-overflow:ellipsis}.citymarkt__offer-panel header button{width:27px;height:27px;flex:none;padding:0;border:0;border-radius:9px;display:grid;place-items:center;background:#ffffff0b}.citymarkt__offer-panel label{margin-top:9px;display:block;color:var(--muted);font-size:8px;font-weight:800}.citymarkt__offer-panel label>span{height:39px;margin-top:4px;padding:0 10px;border:1px solid #ffffff16;border-radius:11px;display:flex;align-items:center;gap:5px;background:#151613}.citymarkt__offer-panel label b{color:var(--yellow);font-size:16px}.citymarkt__offer-panel input{min-width:0;flex:1;border:0;outline:0;background:none;color:inherit;font-size:16px;font-weight:900}.citymarkt__offer-panel>button{width:100%;min-height:36px;margin-top:8px;border:0;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--yellow);color:#171816;font-size:9px;font-weight:900}.citymarkt__offer-panel>button:disabled{opacity:.45}
+:global(.citymarkt--light) .citymarkt__offer-panel{background:#fff;box-shadow:0 14px 35px #0003}:global(.citymarkt--light) .citymarkt__offer-panel label>span{border-color:#00000012;background:#f4f4ef}
 </style>

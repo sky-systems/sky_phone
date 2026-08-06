@@ -50,6 +50,7 @@ Config.Mail = {
 Config.Marketplace = {
     PageSize = 20,
     MessagePageSize = 50,
+    OfferHistorySize = 50,
     MaxActiveListings = 15,
     MaxImages = 6,
     TitleMinLength = 5,

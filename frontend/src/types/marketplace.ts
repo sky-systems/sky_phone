@@ -13,6 +13,7 @@ export type MarketplaceCategory =
 export type MarketplaceCondition = 'new' | 'very_good' | 'used' | 'defective'
 export type MarketplacePriceType = 'fixed' | 'negotiable' | 'free'
 export type MarketplaceStatus = 'active' | 'reserved' | 'sold' | 'expired' | 'removed'
+export type MarketplaceOfferStatus = 'pending' | 'accepted' | 'rejected' | 'countered'
 
 export type MarketplaceImage = {
   gradient: string
@@ -85,11 +86,27 @@ export type MarketplaceMessage = {
   sender_account_id: number
 }
 
+export type MarketplaceOffer = {
+  amount: number | string
+  created_at: string
+  id: number
+  proposer_account_id: number
+  read_at: string | null
+  response_read_at: string | null
+  status: MarketplaceOfferStatus
+  updated_at: string
+}
+
 export type MarketplaceInquiry = {
   buyer_account_id: number
   buyer_name: string
   id: string
   listing_id: string
+  offer_amount: number | string | null
+  offer_id: number | null
+  offer_proposer_account_id: number | null
+  offer_revision: number
+  offer_status: Exclude<MarketplaceOfferStatus, 'countered'> | null
   price: number | string | null
   price_type: MarketplacePriceType
   reserved_account_id: number | null
@@ -103,6 +120,7 @@ export type MarketplaceChat = {
   accountId: number
   inquiry: MarketplaceInquiry
   messages: MarketplaceMessage[]
+  offers: MarketplaceOffer[]
 }
 
 export type MarketplaceCounts = { active: number; unread: number }

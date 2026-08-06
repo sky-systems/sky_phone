@@ -146,7 +146,12 @@ const marketplaceInquiries = [
     image: 'linear-gradient(145deg, #ff6b6b, #845ec2 52%, #0f2027)',
     other_name: 'morgan',
     last_message: 'Sure, come by the Vinewood garage around 8 PM.',
-    unread: 1,
+    offer_id: 2,
+    offer_amount: 178000,
+    offer_proposer_account_id: 2,
+    offer_status: 'pending',
+    offer_revision: 2,
+    unread: 2,
     updated_at: '2026-08-06 11:42:00',
   },
   {
@@ -163,7 +168,12 @@ const marketplaceInquiries = [
     image: 'linear-gradient(135deg, #ffc75f, #f96d80 48%, #4b4453)',
     other_name: 'jamie',
     last_message: 'I can collect it today and pay the full price.',
-    unread: 2,
+    offer_id: 3,
+    offer_amount: 7000,
+    offer_proposer_account_id: 3,
+    offer_status: 'pending',
+    offer_revision: 1,
+    unread: 3,
     updated_at: '2026-08-06 11:55:00',
   },
 ]
@@ -207,6 +217,41 @@ const marketplaceMessages = [
     body: 'I can collect it today and pay the full price.',
     created_at: '2026-08-06 11:55:00',
     read_at: null,
+  },
+]
+const marketplaceOffers = [
+  {
+    id: 1,
+    inquiry_id: '4903b923-409a-437e-971f-b7a2b10e9e31',
+    proposer_account_id: 1,
+    amount: 170000,
+    status: 'countered',
+    read_at: '2026-08-06 11:43:00',
+    response_read_at: null,
+    created_at: '2026-08-06 11:40:00',
+    updated_at: '2026-08-06 11:44:00',
+  },
+  {
+    id: 2,
+    inquiry_id: '4903b923-409a-437e-971f-b7a2b10e9e31',
+    proposer_account_id: 2,
+    amount: 178000,
+    status: 'pending',
+    read_at: null,
+    response_read_at: null,
+    created_at: '2026-08-06 11:44:00',
+    updated_at: '2026-08-06 11:44:00',
+  },
+  {
+    id: 3,
+    inquiry_id: '4903b923-409a-437e-971f-b7a2b10e9e32',
+    proposer_account_id: 3,
+    amount: 7000,
+    status: 'pending',
+    read_at: null,
+    response_read_at: null,
+    created_at: '2026-08-06 11:56:00',
+    updated_at: '2026-08-06 11:56:00',
   },
 ]
 
@@ -370,7 +415,7 @@ app.post('/api/:endpoint', (request, response) => {
     let inquiry = marketplaceInquiries.find((item) => item.id === request.body.inquiryId || item.listing_id === request.body.listingId)
     if (!inquiry) {
       const listing = marketplaceListings.find((item) => item.id === request.body.listingId)
-      inquiry = { id: '4903b923-409a-437e-971f-b7a2b10e9e31', listing_id: listing.id, seller_account_id: listing.seller_account_id, buyer_account_id: 1, title: listing.title, price: listing.price, price_type: listing.price_type, status: listing.status, image: listing.image, other_name: listing.seller_name, last_message: request.body.body, unread: 0, updated_at: '2026-08-06 11:30:00' }
+      inquiry = { id: '4903b923-409a-437e-971f-b7a2b10e9e31', listing_id: listing.id, seller_account_id: listing.seller_account_id, buyer_account_id: 1, title: listing.title, price: listing.price, price_type: listing.price_type, status: listing.status, image: listing.image, other_name: listing.seller_name, last_message: request.body.body, offer_id: null, offer_amount: null, offer_proposer_account_id: null, offer_status: null, offer_revision: 0, unread: 0, updated_at: '2026-08-06 11:30:00' }
       marketplaceInquiries.push(inquiry)
     }
     marketplaceMessages.push({ id: marketplaceMessages.length + 1, inquiry_id: inquiry.id, sender_account_id: 1, body: request.body.body, created_at: '2026-08-06 12:00:00', read_at: null })
@@ -382,8 +427,78 @@ app.post('/api/:endpoint', (request, response) => {
   }
   if (endpoint === 'marketplace:get-inquiry') {
     const inquiry = marketplaceInquiries.find((item) => item.id === request.body.id)
-    if (inquiry) inquiry.unread = 0
-    response.json(inquiry ? { success: true, data: { accountId: 1, inquiry: { ...inquiry, reserved_account_id: null }, messages: marketplaceMessages.filter((message) => message.inquiry_id === inquiry.id) } } : { success: false, error: 'inquiry_not_found' })
+    if (inquiry) {
+      inquiry.unread = 0
+      for (const offer of marketplaceOffers) {
+        if (offer.inquiry_id === inquiry.id && offer.proposer_account_id !== 1) offer.read_at = '2026-08-06 12:01:00'
+        if (offer.inquiry_id === inquiry.id && offer.proposer_account_id === 1 && ['accepted', 'rejected'].includes(offer.status)) offer.response_read_at = '2026-08-06 12:01:00'
+      }
+    }
+    const listing = inquiry && marketplaceListings.find((item) => item.id === inquiry.listing_id)
+    response.json(inquiry ? { success: true, data: { accountId: 1, inquiry: { ...inquiry, reserved_account_id: listing.reserved_account_id ?? null, status: listing.status }, messages: marketplaceMessages.filter((message) => message.inquiry_id === inquiry.id), offers: marketplaceOffers.filter((offer) => offer.inquiry_id === inquiry.id) } } : { success: false, error: 'inquiry_not_found' })
+    return
+  }
+  if (endpoint === 'marketplace:make-offer') {
+    const inquiry = marketplaceInquiries.find((item) => item.id === request.body.inquiryId)
+    const amount = Number(request.body.amount)
+    if (!inquiry || !Number.isInteger(amount) || amount < 1) {
+      response.json({ success: false, error: 'invalid_offer' })
+      return
+    }
+    if (inquiry.offer_status === 'accepted') {
+      response.json({ success: false, error: 'offer_closed' })
+      return
+    }
+    if (inquiry.offer_status === 'pending' && inquiry.offer_proposer_account_id === 1) {
+      response.json({ success: false, error: 'offer_waiting' })
+      return
+    }
+    const previous = marketplaceOffers.find((offer) => offer.id === inquiry.offer_id)
+    if (previous?.status === 'pending') previous.status = 'countered'
+    const offer = {
+      id: marketplaceOffers.length + 1,
+      inquiry_id: inquiry.id,
+      proposer_account_id: 1,
+      amount,
+      status: 'pending',
+      read_at: null,
+      response_read_at: null,
+      created_at: '2026-08-06 12:02:00',
+      updated_at: '2026-08-06 12:02:00',
+    }
+    marketplaceOffers.push(offer)
+    inquiry.offer_id = offer.id
+    inquiry.offer_amount = amount
+    inquiry.offer_proposer_account_id = 1
+    inquiry.offer_status = 'pending'
+    inquiry.offer_revision += 1
+    inquiry.updated_at = offer.updated_at
+    response.json({ success: true, data: { id: offer.id } })
+    return
+  }
+  if (endpoint === 'marketplace:respond-offer') {
+    const inquiry = marketplaceInquiries.find((item) => item.id === request.body.inquiryId)
+    const offer = inquiry && marketplaceOffers.find((item) => item.id === inquiry.offer_id)
+    if (!inquiry || !offer || offer.status !== 'pending' || offer.proposer_account_id === 1) {
+      response.json({ success: false, error: 'offer_not_actionable' })
+      return
+    }
+    if (!['accepted', 'rejected'].includes(request.body.action)) {
+      response.json({ success: false, error: 'invalid_offer_response' })
+      return
+    }
+    offer.status = request.body.action
+    offer.updated_at = '2026-08-06 12:03:00'
+    inquiry.offer_status = request.body.action
+    inquiry.offer_revision += 1
+    inquiry.updated_at = offer.updated_at
+    if (request.body.action === 'accepted') {
+      const listing = marketplaceListings.find((item) => item.id === inquiry.listing_id)
+      listing.status = 'reserved'
+      listing.reserved_account_id = inquiry.buyer_account_id
+      inquiry.status = 'reserved'
+    }
+    response.json({ success: true })
     return
   }
   if (endpoint === 'marketplace:report' || endpoint === 'marketplace:block') {
