@@ -340,6 +340,7 @@ const defaultLocales: LocaleTree = {
     },
     citymarkt: {
       name: 'CityMarkt',
+      eyebrow: 'Los Santos marketplace',
       tabs: { discover: 'Discover', search: 'Search', sell: 'Sell', inbox: 'Inbox', profile: 'Me' },
       categories: {
         vehicles: 'Vehicles', property: 'Property', electronics: 'Electronics', clothing: 'Clothing',

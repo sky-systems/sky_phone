@@ -577,8 +577,8 @@ onMounted(async () => {
   <main class="citymarkt" :class="{ 'citymarkt--light': !phone.isDarkMode }">
     <header v-if="screen === 'main'" class="citymarkt__header">
       <div>
-        <span class="citymarkt__brand"><Tag :size="14" /> CityMarkt</span>
-        <h1>{{ phone.t(`Apps.citymarkt.tabs.${tab}`) }}</h1>
+        <span class="citymarkt__brand"><Tag :size="14" /> {{ phone.t('Apps.citymarkt.eyebrow') }}</span>
+        <h1>{{ phone.t('Apps.citymarkt.name') }}</h1>
       </div>
       <button
         v-if="isAuthenticated"
