@@ -477,17 +477,7 @@ const deviceData = {
   },
   apps: {
     payload: {
-      claimedApps: [
-        'snake',
-        'memory',
-        'number-merge',
-        'minesweeper',
-        'tower-stack',
-        'sky-flappy',
-        'neon-drop',
-        'citymarkt',
-        'local-pages',
-      ],
+      claimedApps: [],
     },
     revision: 2,
   },
