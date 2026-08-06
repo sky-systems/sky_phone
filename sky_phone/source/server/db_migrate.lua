@@ -746,7 +746,7 @@ local schema = {
             { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "conversation_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "sender_profile_id", type = "BIGINT UNSIGNED NULL" },
-            { name = "message_type", type = "ENUM('text', 'emoji', 'gif', 'voice', 'system') NOT NULL DEFAULT 'text'" },
+            { name = "message_type", type = "ENUM('text', 'emoji', 'gif', 'voice', 'image', 'video', 'system') NOT NULL DEFAULT 'text'" },
             { name = "body", type = "TEXT NOT NULL" },
             { name = "media_payload", type = "LONGTEXT NULL" },
             { name = "media_mime", type = "VARCHAR(80) NULL", characterSet = "ascii", collation = "ascii_bin" },
@@ -818,6 +818,10 @@ Bridge.Database.Migrate("sky_phone", schema)
 Bridge.Database.Query([[
     ALTER TABLE `sky_phone_sms_messages`
     MODIFY COLUMN `message_type` ENUM('text', 'voice', 'image', 'gif', 'video') NOT NULL DEFAULT 'text'
+]], {})
+Bridge.Database.Query([[
+    ALTER TABLE `sky_phone_darkchat_messages`
+    MODIFY COLUMN `message_type` ENUM('text', 'emoji', 'gif', 'voice', 'image', 'video', 'system') NOT NULL DEFAULT 'text'
 ]], {})
 Bridge.Database.EnsureIndex("sky_phone_devices", "uniq_sky_phone_devices_sim", "(`sim_id`)", { unique = true })
 Bridge.Database.Query("UPDATE `sky_phone_contacts` SET `contact_id` = `id` WHERE `contact_id` IS NULL", {})

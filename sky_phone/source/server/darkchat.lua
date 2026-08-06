@@ -490,6 +490,9 @@ Bridge.Callbacks.Register("sky_phone:darkchat:send", function(source, data)
     if not SkyPhone.AllowOperation(source, "darkchat_send", Config.DarkChat.SendsPerMinute, 60) then
         return { success = false, error = "rate_limited" }
     end
+    if type(data) ~= "table" then
+        return { success = false, error = "invalid_request" }
+    end
     local profile, _, error_response = require_profile(source)
     if not profile then
         return error_response
@@ -527,6 +530,14 @@ Bridge.Callbacks.Register("sky_phone:darkchat:send", function(source, data)
         media_mime = voice.mime
         media_duration = voice.duration
         media_waveform = voice.waveform
+    elseif message_type == "image" or message_type == "video" then
+        local media_type = message_type == "image" and "photo" or "video"
+        local media_url, media_error = SkyPhoneMedia.ResolveOwnedMedia(source, data.mediaAssetId, media_type)
+        if not media_url then
+            return { success = false, error = media_error }
+        end
+        media_payload = media_url
+        media_mime = message_type == "image" and "image/jpeg" or "video/mp4"
     else
         return { success = false, error = "invalid_message" }
     end

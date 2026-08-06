@@ -67,6 +67,33 @@ describe('darkchat store', () => {
     expect(store.messages[0].deliveryStatus).toBe('failed')
   })
 
+  it('uses a local media preview without sending that URL to the server', async () => {
+    mockNuiCall
+      .mockResolvedValueOnce({ data: { conversation, messages: [] }, success: true })
+      .mockResolvedValueOnce({ data: { contacts: [], conversations: [], profile: null }, success: true })
+      .mockResolvedValueOnce({ data: { ...message('media-id'), messageType: 'image' }, success: true })
+      .mockResolvedValueOnce({ data: { contacts: [], conversations: [], profile: null }, success: true })
+
+    const store = useDarkChatStore()
+    await store.openThread(conversation.id)
+    const sending = store.send({
+      mediaAssetId: '17',
+      mediaPreviewUrl: 'https://media.example/photo.jpg',
+      messageType: 'image',
+    })
+
+    expect(store.messages[0]).toMatchObject({
+      mediaPayload: 'https://media.example/photo.jpg',
+      messageType: 'image',
+    })
+    expect(mockNuiCall).toHaveBeenNthCalledWith(3, 'darkchat:send', {
+      conversationId: conversation.id,
+      mediaAssetId: '17',
+      messageType: 'image',
+    })
+    await sending
+  })
+
   it('loads protected voice data once', async () => {
     mockNuiCall.mockResolvedValueOnce({
       data: { mime: 'audio/webm;codecs=opus', payload: 'ZmFrZQ==' },

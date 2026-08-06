@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import {
-  ArrowLeft,
   ArrowUpCircle,
   Bell,
   BellOff,
+  Camera,
   Check,
+  ChevronLeft,
   ChevronRight,
   Clock3,
   Copy,
   ImagePlay,
+  Images,
   LockKeyhole,
   MessageCirclePlus,
   Mic,
@@ -21,18 +23,26 @@ import {
   Trash2,
   UserMinus,
   UserPlus,
+  Video,
   X,
 } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import DarkChatVoiceMessage from '@/components/DarkChatVoiceMessage.vue'
+import DarkChatSelect, {
+  type DarkChatSelectOption,
+} from '@/components/DarkChatSelect.vue'
 import FullEmojiPicker from '@/components/FullEmojiPicker.vue'
 import { useAccountStore } from '@/stores/account'
 import { useDarkChatStore } from '@/stores/darkchat'
 import { useMessagesStore } from '@/stores/messages'
+import { useMessageMediaStore } from '@/stores/messageMedia'
 import { usePhoneStore } from '@/stores/phone'
 import type { DarkChatConversationSummary, DarkChatMessage, DarkChatNotificationMode } from '@/types/darkchat'
 import type { GifSearchResult } from '@/types/messages'
+import type { MediaType, PhoneMedia } from '@/types/media'
+import { copyText } from '@/utils/clipboard'
 import { parseDatabaseDate, type DatabaseDateValue } from '@/utils/date'
 
 const VOICE_MAX_DURATION_MS = 60_000
@@ -42,7 +52,9 @@ const WAVEFORM_SAMPLES = 48
 const account = useAccountStore()
 const darkchat = useDarkChatStore()
 const sms = useMessagesStore()
+const messageMedia = useMessageMediaStore()
 const phone = usePhoneStore()
+const router = useRouter()
 const screen = ref<'inbox' | 'new' | 'thread' | 'contact' | 'profile'>('inbox')
 const search = ref('')
 const identifier = ref('')
@@ -124,6 +136,8 @@ function preview(conversation: DarkChatConversationSummary): string {
   if (conversation.lastMessage === 'message_deleted') return t('messageDeleted')
   if (conversation.lastMessageType === 'voice') return `🎙 ${t('voiceMessage')}`
   if (conversation.lastMessageType === 'gif') return `GIF · ${t('gif')}`
+  if (conversation.lastMessageType === 'image') return `📷 ${t('photo')}`
+  if (conversation.lastMessageType === 'video') return `▶ ${t('video')}`
   if (conversation.lastMessageType === 'system') return t('securityUpdate')
   return conversation.lastMessage
 }
@@ -156,6 +170,22 @@ function timerLabel(seconds: number): string {
   }
   return t(keys[seconds] ?? 'timerOff')
 }
+
+const disappearingOptions = computed<DarkChatSelectOption[]>(() =>
+  timerOptions.map((value) => ({ label: timerLabel(value), value })),
+)
+const notificationOptions = computed<DarkChatSelectOption[]>(() => [
+  { label: t('notificationFull'), value: 'full' },
+  { label: t('notificationPrivate'), value: 'private' },
+  { label: t('notificationHidden'), value: 'hidden' },
+])
+const reportOptions = computed<DarkChatSelectOption[]>(() => [
+  { label: t('reportSpam'), value: 'spam' },
+  { label: t('reportHarassment'), value: 'harassment' },
+  { label: t('reportThreats'), value: 'threats' },
+  { label: t('reportIllegal'), value: 'illegal' },
+  { label: t('reportOther'), value: 'other' },
+])
 
 function systemText(body: string): string {
   if (body === 'message_deleted') return t('messageDeleted')
@@ -266,10 +296,37 @@ async function sendGif(gif: GifSearchResult): Promise<void> {
   await scrollBottom()
 }
 
-async function copyMessage(message: DarkChatMessage): Promise<void> {
-  await navigator.clipboard.writeText(message.body)
+function openMediaApp(app: 'camera' | 'photos', mediaType: MediaType): void {
+  if (!active.value) {
+    console.error('[DarkChat] Cannot attach media without an active conversation.')
+    return
+  }
+  attachmentOpen.value = false
+  emojiOpen.value = false
+  gifOpen.value = false
+  messageMedia.begin(`darkchat:${active.value.id}`, mediaType, '/apps/darkchat')
+  void router.push({
+    path: `/apps/${app}`,
+    query: { messageAttachment: mediaType },
+  })
+}
+
+async function sendAttachment(media: PhoneMedia): Promise<void> {
+  if (!active.value || sending.value) return
+  sending.value = true
+  const response = await darkchat.send({
+    mediaAssetId: import.meta.env.DEV ? media.url : String(media.id),
+    mediaPreviewUrl: media.url,
+    messageType: media.mediaType === 'photo' ? 'image' : 'video',
+  })
+  sending.value = false
+  if (!response.success) showToast(errorText(response.error))
+  await scrollBottom()
+}
+
+function copyMessage(message: DarkChatMessage): void {
   selectedMessage.value = null
-  showToast(t('copied'))
+  showToast(copyText(message.body) ? t('copied') : errorText())
 }
 
 async function react(message: DarkChatMessage, reaction: string): Promise<void> {
@@ -381,9 +438,25 @@ async function saveProfile(): Promise<void> {
   }
 }
 
-async function copyIdentity(value: string): Promise<void> {
-  await navigator.clipboard.writeText(value)
-  showToast(t('copied'))
+function selectDisappearing(value: number | string): void {
+  if (!active.value) {
+    console.error('[DarkChat] Cannot update the timer without an active conversation.')
+    return
+  }
+  active.value.disappearingSeconds = Number(value)
+  void updateConversation()
+}
+
+function selectNotificationMode(value: number | string): void {
+  notificationMode.value = value as DarkChatNotificationMode
+}
+
+function selectReportReason(value: number | string): void {
+  reportReason.value = String(value)
+}
+
+function copyIdentity(value: string): void {
+  showToast(copyText(value) ? t('copied') : errorText())
 }
 
 function recordingMime(): string | null {
@@ -526,8 +599,12 @@ function recordingTime(): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
-onMounted(() => {
-  if (signedIn.value) void darkchat.bootstrap()
+onMounted(async () => {
+  if (signedIn.value) await darkchat.bootstrap()
+  if (!active.value) return
+  screen.value = 'thread'
+  const media = messageMedia.consume(`darkchat:${active.value.id}`)
+  if (media) await sendAttachment(media)
 })
 
 onBeforeUnmount(() => {
@@ -599,7 +676,7 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else-if="screen === 'new'" class="darkchat-sheet-page">
-        <header><button type="button" class="darkchat-round" @click="back"><ArrowLeft :size="19" /></button><strong>{{ t('newChat') }}</strong><i /></header>
+        <header><button type="button" class="darkchat-round darkchat-back" :aria-label="phone.t('Common.back')" @click="back"><ChevronLeft :size="28" :stroke-width="2.35" /></button><strong>{{ t('newChat') }}</strong><i /></header>
         <div class="darkchat-new-hero">
           <span><QrCode :size="28" /></span>
           <h2>{{ t('connectPrivately') }}</h2>
@@ -621,7 +698,7 @@ onBeforeUnmount(() => {
 
       <section v-else-if="screen === 'thread' && active" class="darkchat-thread" :class="{ 'darkchat-thread--panel': attachmentPanelOpen }">
         <header class="darkchat-thread__header">
-          <button type="button" class="darkchat-round" @click="back"><ArrowLeft :size="19" /></button>
+          <button type="button" class="darkchat-round darkchat-back" :aria-label="phone.t('Common.back')" @click="back"><ChevronLeft :size="28" :stroke-width="2.35" /></button>
           <button type="button" class="darkchat-thread__identity" @click="openContact">
             <span class="darkchat-avatar darkchat-avatar--header" :style="{ background: avatarGradient(active.peer.avatarSeed) }">{{ avatarGlyph(active.peer.avatarSeed) }}</span>
             <span><strong>{{ active.peer.alias }}</strong><small>{{ active.peer.activityVisible ? t('activeNow') : t('encryptedSession') }}</small></span>
@@ -641,7 +718,8 @@ onBeforeUnmount(() => {
               @click="selectedMessage = message"
             >
               <span v-if="message.replyBody" class="darkchat-reply-preview"><Reply :size="10" />{{ message.replyBody }}</span>
-              <img v-if="message.messageType === 'gif'" :src="message.mediaPayload || undefined" alt="GIF" />
+              <img v-if="message.messageType === 'gif' || message.messageType === 'image'" :src="message.mediaPayload || undefined" :alt="message.messageType === 'gif' ? 'GIF' : t('photo')" />
+              <video v-else-if="message.messageType === 'video'" :src="message.mediaPayload || undefined" controls playsinline preload="metadata" />
               <DarkChatVoiceMessage v-else-if="message.messageType === 'voice'" :message="message" />
               <span v-else>{{ message.body }}</span>
               <span v-if="Object.keys(message.reactions).length" class="darkchat-reactions">{{ Object.values(message.reactions).join(' ') }}</span>
@@ -652,10 +730,11 @@ onBeforeUnmount(() => {
 
         <div v-if="replyTo" class="darkchat-replying"><Reply :size="14" /><span><small>{{ t('replying') }}</small><strong>{{ replyTo.body || t(replyTo.messageType) }}</strong></span><button type="button" @click="replyTo = null"><X :size="15" /></button></div>
         <div v-if="attachmentOpen" class="darkchat-actions-bubbles">
+          <button type="button" @click="openMediaApp('photos', 'photo')"><span><Images :size="18" /></span>{{ t('attachPhoto') }}</button>
+          <button type="button" @click="openMediaApp('camera', 'photo')"><span><Camera :size="18" /></span>{{ t('takePhoto') }}</button>
           <button type="button" @click="attachmentOpen = false; emojiOpen = true"><span>😀</span>{{ t('emoji') }}</button>
-          <button type="button" @click="attachmentOpen = false; gifOpen = true; loadGifs(true)"><span><ImagePlay :size="17" /></span>{{ t('gif') }}</button>
-          <button type="button" disabled><span>📷</span>{{ t('photosLater') }}</button>
-          <button type="button" disabled><span>🎥</span>{{ t('videosLater') }}</button>
+          <button type="button" @click="attachmentOpen = false; gifOpen = true; loadGifs(true)"><span><ImagePlay :size="18" /></span>{{ t('attachGif') }}</button>
+          <button type="button" @click="openMediaApp('photos', 'video')"><span><Video :size="18" /></span>{{ t('attachVideo') }}</button>
         </div>
         <div v-if="gifOpen" class="darkchat-gif-panel">
           <header><strong>{{ t('gifs') }}</strong><button type="button" @click="gifOpen = false">{{ phone.t('Common.done') }}</button></header>
@@ -677,7 +756,7 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else-if="screen === 'contact' && active" class="darkchat-sheet-page darkchat-contact-settings">
-        <header><button type="button" class="darkchat-round" @click="back"><ArrowLeft :size="19" /></button><strong>{{ t('contactSecurity') }}</strong><i /></header>
+        <header><button type="button" class="darkchat-round darkchat-back" :aria-label="phone.t('Common.back')" @click="back"><ChevronLeft :size="28" :stroke-width="2.35" /></button><strong>{{ t('contactSecurity') }}</strong><i /></header>
         <div class="darkchat-profile-hero">
           <span class="darkchat-avatar" :style="{ background: avatarGradient(active.peer.avatarSeed) }">{{ avatarGlyph(active.peer.avatarSeed) }}</span>
           <h2>{{ active.peer.alias }}</h2><button type="button" @click="copyIdentity(active.peer.darkId)">{{ active.peer.darkId }} <Copy :size="12" /></button>
@@ -686,7 +765,7 @@ onBeforeUnmount(() => {
         <div class="darkchat-settings-group">
           <label><span><Bell :size="17" />{{ t('notifications') }}</span><input v-model="active.notificationsEnabled" type="checkbox" @change="updateConversation" /></label>
           <label><span><Check :size="17" />{{ t('readReceipts') }}</span><input v-model="active.readReceipts" type="checkbox" @change="updateConversation" /></label>
-          <label class="darkchat-select"><span><Clock3 :size="17" />{{ t('disappearing') }}</span><select v-model.number="active.disappearingSeconds" @change="updateConversation"><option v-for="timer in timerOptions" :key="timer" :value="timer">{{ timerLabel(timer) }}</option></select></label>
+          <div class="darkchat-select"><span><Clock3 :size="17" />{{ t('disappearing') }}</span><DarkChatSelect :model-value="active.disappearingSeconds" :options="disappearingOptions" :label="t('disappearing')" @update:model-value="selectDisappearing" /></div>
         </div>
         <label class="darkchat-input"><span>{{ t('contactAlias') }}</span><input v-model="contactAliasDraft" maxlength="32" /></label>
         <button type="button" class="darkchat-primary" @click="saveContact"><UserPlus :size="16" />{{ active.peer.isContact ? t('saveContact') : t('addContact') }}</button>
@@ -699,14 +778,14 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else-if="screen === 'profile'" class="darkchat-sheet-page darkchat-profile-settings">
-        <header><button type="button" class="darkchat-round" @click="back"><ArrowLeft :size="19" /></button><strong>{{ t('myIdentity') }}</strong><button type="button" class="darkchat-save" @click="saveProfile">{{ phone.t('Common.done') }}</button></header>
+        <header><button type="button" class="darkchat-round darkchat-back" :aria-label="phone.t('Common.back')" @click="back"><ChevronLeft :size="28" :stroke-width="2.35" /></button><strong>{{ t('myIdentity') }}</strong><button type="button" class="darkchat-save" @click="saveProfile">{{ phone.t('Common.done') }}</button></header>
         <div class="darkchat-profile-hero">
           <span class="darkchat-avatar" :style="{ background: avatarGradient(darkchat.profile.avatarSeed) }">{{ avatarGlyph(darkchat.profile.avatarSeed) }}</span>
           <h2>{{ darkchat.profile.alias }}</h2><button type="button" @click="copyIdentity(darkchat.profile.darkId)">{{ darkchat.profile.darkId }} <Copy :size="12" /></button>
         </div>
         <label class="darkchat-input"><span>{{ t('alias') }}</span><input v-model="aliasDraft" maxlength="32" /></label>
         <div class="darkchat-settings-group">
-          <label class="darkchat-select"><span><Bell :size="17" />{{ t('notificationPrivacy') }}</span><select v-model="notificationMode"><option value="full">{{ t('notificationFull') }}</option><option value="private">{{ t('notificationPrivate') }}</option><option value="hidden">{{ t('notificationHidden') }}</option></select></label>
+          <div class="darkchat-select"><span><Bell :size="17" />{{ t('notificationPrivacy') }}</span><DarkChatSelect :model-value="notificationMode" :options="notificationOptions" :label="t('notificationPrivacy')" @update:model-value="selectNotificationMode" /></div>
           <label><span><ShieldCheck :size="17" />{{ t('shareActivity') }}</span><input v-model="activityVisible" type="checkbox" /></label>
         </div>
         <div class="darkchat-qr-card">
@@ -735,7 +814,7 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-if="reportOpen" class="darkchat-modal-backdrop">
-      <section class="darkchat-modal"><span class="darkchat-modal__icon darkchat-modal__icon--danger"><ShieldOff :size="25" /></span><h2>{{ t('reportUser') }}</h2><select v-model="reportReason"><option value="spam">{{ t('reportSpam') }}</option><option value="harassment">{{ t('reportHarassment') }}</option><option value="threats">{{ t('reportThreats') }}</option><option value="illegal">{{ t('reportIllegal') }}</option><option value="other">{{ t('reportOther') }}</option></select><textarea v-model="reportDetails" maxlength="500" :placeholder="t('reportDetails')" /><button type="button" class="darkchat-danger" @click="submitReport">{{ t('submitReport') }}</button><button type="button" @click="reportOpen = false; selectedMessage = null">{{ phone.t('Common.cancel') }}</button></section>
+      <section class="darkchat-modal"><span class="darkchat-modal__icon darkchat-modal__icon--danger"><ShieldOff :size="25" /></span><h2>{{ t('reportUser') }}</h2><DarkChatSelect class="darkchat-report-select" :model-value="reportReason" :options="reportOptions" :label="t('reportUser')" @update:model-value="selectReportReason" /><textarea v-model="reportDetails" maxlength="500" :placeholder="t('reportDetails')" /><button type="button" class="darkchat-danger" @click="submitReport">{{ t('submitReport') }}</button><button type="button" @click="reportOpen = false; selectedMessage = null">{{ phone.t('Common.cancel') }}</button></section>
     </div>
 
     <Transition name="darkchat-toast"><div v-if="toast" class="darkchat-toast">{{ toast }}</div></Transition>

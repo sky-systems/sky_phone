@@ -34,7 +34,7 @@ local function http_request(url, method, body, headers, timeout_ms)
         settled = true
         request:resolve({ status = 0, body = "request_timeout" })
     end)
-    return Await(request)
+    return Citizen.Await(request)
 end
 
 local function decode_response(response)
@@ -134,6 +134,45 @@ end
 
 local function owners_match(left, right)
     return left.imei == right.imei and left.account_id == right.account_id
+end
+
+function SkyPhoneMedia.ResolveOwnedMedia(source, media_id, media_type)
+    local id = tonumber(media_id)
+    if not id or id < 1 or id ~= math.floor(id)
+        or (media_type ~= "photo" and media_type ~= "video")
+    then
+        return nil, "invalid_attachment"
+    end
+    local owner, error_response = session_owner(source)
+    if not owner then
+        return nil, error_response.error
+    end
+    local condition, owner_params = owner_condition(owner)
+    local params = { id }
+    for _, value in ipairs(owner_params) do
+        params[#params + 1] = value
+    end
+    local rows = Bridge.Database.Query(([[
+        SELECT `url`, `media_type` FROM `sky_phone_media`
+        WHERE `id` = ? AND %s
+        LIMIT 1
+    ]]):format(condition), params)
+    local media = rows[1]
+    if not media or media.media_type ~= media_type
+        or type(media.url) ~= "string"
+        or #media.url > Config.Media.UrlMaxLength
+        or not media.url:match("^https://")
+    then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone] Rejected unowned %s media %s from source %s.",
+            media_type,
+            tostring(media_id),
+            tostring(source)
+        )
+        return nil, "invalid_attachment"
+    end
+    return media.url
 end
 
 local function upload_result(source, correlation_id, success, error_code, media)
@@ -268,7 +307,7 @@ local function await_giphy_http(url)
             status = status,
         })
     end, "GET", "", {})
-    return Await(request)
+    return Citizen.Await(request)
 end
 
 local function parse_giphy_json(value)

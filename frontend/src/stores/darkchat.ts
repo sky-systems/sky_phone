@@ -76,6 +76,7 @@ export const useDarkChatStore = defineStore('darkchat', () => {
   async function send(outgoing: DarkChatOutgoing): Promise<NuiResponse<DarkChatMessage>> {
     if (!activeConversation.value) return { success: false, error: 'invalid_conversation' }
     const clientId = `dark-pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const { mediaPreviewUrl, ...request } = outgoing
     const optimistic: DarkChatMessage = {
       body: outgoing.body ?? '',
       clientId,
@@ -86,6 +87,10 @@ export const useDarkChatStore = defineStore('darkchat', () => {
       id: clientId,
       mediaDurationMs: outgoing.mediaDurationMs,
       mediaMime: outgoing.mediaMime,
+      mediaPayload:
+        outgoing.messageType === 'image' || outgoing.messageType === 'video'
+          ? mediaPreviewUrl
+          : outgoing.mediaPayload,
       mediaWaveform: outgoing.mediaWaveform,
       messageType: outgoing.messageType,
       reactions: {},
@@ -96,7 +101,7 @@ export const useDarkChatStore = defineStore('darkchat', () => {
       mediaSources.value[clientId] = `data:${outgoing.mediaMime};base64,${outgoing.mediaPayload}`
     }
     const response = await nuiCall<DarkChatMessage>('darkchat:send', {
-      ...outgoing,
+      ...request,
       conversationId: activeConversation.value.id,
     })
     const index = messages.value.findIndex((message) => message.clientId === clientId)

@@ -1,6 +1,13 @@
 import type { DatabaseDateValue } from '@/utils/date'
 
-export type DarkChatMessageType = 'text' | 'emoji' | 'gif' | 'voice' | 'system'
+export type DarkChatMessageType =
+  | 'text'
+  | 'emoji'
+  | 'gif'
+  | 'voice'
+  | 'image'
+  | 'video'
+  | 'system'
 export type DarkChatNotificationMode = 'full' | 'private' | 'hidden'
 
 export type DarkChatIdentity = {
@@ -81,8 +88,10 @@ export type DarkChatThread = {
 
 export type DarkChatOutgoing = {
   body?: string
-  messageType: 'text' | 'emoji' | 'gif' | 'voice'
+  messageType: 'text' | 'emoji' | 'gif' | 'voice' | 'image' | 'video'
+  mediaAssetId?: string
   mediaPayload?: string
+  mediaPreviewUrl?: string
   mediaMime?: string
   mediaDurationMs?: number
   mediaWaveform?: number[]
