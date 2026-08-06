@@ -5,7 +5,6 @@ import {
   kPage,
   kSegmented,
   kSegmentedButton,
-  kToast,
 } from 'konsta/vue'
 import {
   Images,
@@ -48,11 +47,10 @@ const elapsed = ref('00:00')
 const captures = ref<CaptureItem[]>([])
 const latestMedia = ref<PhoneMedia | null>(null)
 const gameCanvas = ref<HTMLCanvasElement | null>(null)
-const toastOpened = ref(false)
-const toastText = ref('')
+const noticeText = ref('')
 const videoBitrateKbps = ref(1500)
 let shutterTimer: number | undefined
-let toastTimer: number | undefined
+let noticeTimer: number | undefined
 let recordingTimer: number | undefined
 let gameView: GameView | null = null
 let renderFrameId: number | undefined
@@ -87,12 +85,11 @@ function correlationId(): string {
   return `${Date.now()}-${crypto.randomUUID()}`
 }
 
-function showToast(text: string): void {
-  if (toastTimer !== undefined) window.clearTimeout(toastTimer)
-  toastText.value = text
-  toastOpened.value = true
-  toastTimer = window.setTimeout(() => {
-    toastOpened.value = false
+function showCameraNotice(text: string): void {
+  if (noticeTimer !== undefined) window.clearTimeout(noticeTimer)
+  noticeText.value = text
+  noticeTimer = window.setTimeout(() => {
+    noticeText.value = ''
   }, 3000)
 }
 
@@ -298,7 +295,7 @@ function onMessage(event: MessageEvent): void {
       recordingTimer = undefined
     }
   } else if (message.type === 'camera:recordError') {
-    showToast(
+    showCameraNotice(
       phone.t(
         `Apps.camera.errors.${mediaErrorKey(String(message.data?.error ?? ''))}`,
       ),
@@ -310,7 +307,7 @@ function onMessage(event: MessageEvent): void {
     if (result.success && result.media) {
       latestMedia.value = result.media
       updateCapture(result.correlationId, { status: 'success' })
-      showToast(phone.t('Apps.camera.saved'))
+      showCameraNotice(phone.t('Apps.camera.saved'))
       window.setTimeout(() => {
         captures.value = captures.value.filter(
           (captureItem) => captureItem.id !== result.correlationId,
@@ -319,7 +316,7 @@ function onMessage(event: MessageEvent): void {
     } else {
       const error = mediaErrorKey(result.error)
       updateCapture(result.correlationId, { error, status: 'error' })
-      showToast(phone.t(`Apps.camera.errors.${error}`))
+      showCameraNotice(phone.t(`Apps.camera.errors.${error}`))
     }
   }
 }
@@ -359,7 +356,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (shutterTimer !== undefined) window.clearTimeout(shutterTimer)
-  if (toastTimer !== undefined) window.clearTimeout(toastTimer)
+  if (noticeTimer !== undefined) window.clearTimeout(noticeTimer)
   if (recordingTimer !== undefined) window.clearInterval(recordingTimer)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('message', onMessage)
@@ -417,7 +414,13 @@ onBeforeUnmount(() => {
           <ZapOff v-else :size="19" />
         </template>
       </k-fab>
-      <span v-if="pendingCount" class="camera-upload-pill">
+      <span
+        v-if="noticeText"
+        class="camera-focus-pill camera-focus-pill--notice"
+      >
+        {{ noticeText }}
+      </span>
+      <span v-else-if="pendingCount" class="camera-upload-pill">
         {{ phone.t('Apps.camera.uploading', { count: String(pendingCount) }) }}
       </span>
       <span v-else class="camera-focus-pill">
@@ -547,14 +550,6 @@ onBeforeUnmount(() => {
         </template>
       </k-navbar>
     </footer>
-
-    <k-toast
-      :opened="toastOpened"
-      position="center"
-      @click="toastOpened = false"
-    >
-      {{ toastText }}
-    </k-toast>
   </k-page>
 </template>
 
@@ -684,6 +679,9 @@ onBeforeUnmount(() => {
   -webkit-backdrop-filter: blur(16px);
 }
 .camera-upload-pill {
+  color: #ffd60a;
+}
+.camera-focus-pill--notice {
   color: #ffd60a;
 }
 .camera-record-status {
