@@ -14,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "emoji-picker-element-data": "^1.8.0",
     "konsta": "~5.2.0",
     "lucide-vue-next": "^0.525.0",
     "pinia": "^3.0.3",
