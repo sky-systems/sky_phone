@@ -12,6 +12,7 @@ import {
   Layers3,
   Mail,
   MapPinned,
+  MessageCircle,
   NotebookPen,
   Phone,
   Settings,
@@ -31,6 +32,7 @@ import clockIcon from '@/assets/img/app-icons/clock.webp'
 import calendarIcon from '@/assets/img/app-icons/calendar.svg'
 import mailIcon from '@/assets/img/app-icons/mail.webp'
 import mapIcon from '@/assets/img/app-icons/map.webp'
+import messagesIcon from '@/assets/img/app-icons/sms.webp'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
@@ -94,6 +96,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
   },
   {
     component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/MessagesApp.vue')),
+    ),
+    dockOrder: 1,
+    gridOrder: 1,
+    icon: markRaw(MessageCircle),
+    iconClass: '',
+    iconImage: messagesIcon,
+    id: 'messages',
+    labelKey: 'Apps.messages.name',
+    route: '/apps/messages',
+  },
+  {
+    component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MapApp.vue')),
     ),
     dockOrder: null,
@@ -148,8 +163,8 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CalculatorApp.vue')),
     ),
-    dockOrder: 1,
-    gridOrder: 1,
+    dockOrder: null,
+    gridOrder: 2,
     icon: markRaw(Calculator),
     iconClass: 'app-icon--calculator',
     iconImage: calculatorIcon,
@@ -162,7 +177,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/CameraApp.vue')),
     ),
     dockOrder: 2,
-    gridOrder: 2,
+    gridOrder: 3,
     icon: markRaw(Camera),
     iconClass: 'app-icon--camera',
     iconImage: cameraIcon,
@@ -175,7 +190,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/ClockApp.vue')),
     ),
     dockOrder: 3,
-    gridOrder: 3,
+    gridOrder: 4,
     icon: markRaw(Clock3),
     iconClass: 'app-icon--clock',
     iconImage: clockIcon,
@@ -188,7 +203,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
       defineAsyncComponent(() => import('@/views/apps/WeatherApp.vue')),
     ),
     dockOrder: null,
-    gridOrder: 4,
+    gridOrder: 5,
     icon: markRaw(CloudSun),
     iconClass: 'app-icon--weather',
     iconImage: weatherIcon,

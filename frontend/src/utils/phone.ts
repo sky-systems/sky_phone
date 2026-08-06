@@ -5,8 +5,8 @@ export function normalizePhoneNumber(value: string): string | null {
   return digits.length === PHONE_NUMBER_LENGTH ? digits : null
 }
 
-export function formatPhoneNumber(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, PHONE_NUMBER_LENGTH)
+export function formatPhoneNumber(value: string | number): string {
+  const digits = String(value).replace(/\D/g, '').slice(0, PHONE_NUMBER_LENGTH)
   const groups = [digits.slice(0, 3), digits.slice(3, 6), digits.slice(6, 10)]
   return groups.filter(Boolean).join(' ')
 }

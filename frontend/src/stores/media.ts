@@ -3,32 +3,38 @@ import { defineStore } from 'pinia'
 import { usePhoneStore } from '@/stores/phone'
 
 export type PhonePhoto = {
+  attachmentId: string
   capturedAt: number
   gradient: string
   id: string
   titleKey: string
+  url?: string
 }
 
 const samplePhotos: PhonePhoto[] = [
   {
+    attachmentId: 'sunset-drive',
     capturedAt: Date.now() - 86_400_000,
     gradient: 'linear-gradient(145deg, #ff9a62, #5f2c82 58%, #141e30)',
     id: 'sunset-drive',
     titleKey: 'Apps.photos.samples.sunset',
   },
   {
+    attachmentId: 'ocean-air',
     capturedAt: Date.now() - 172_800_000,
     gradient: 'linear-gradient(160deg, #67d5b5, #26648e 55%, #0b132b)',
     id: 'ocean-air',
     titleKey: 'Apps.photos.samples.ocean',
   },
   {
+    attachmentId: 'city-lights',
     capturedAt: Date.now() - 259_200_000,
     gradient: 'linear-gradient(135deg, #fbc2eb, #a6c1ee 48%, #302b63)',
     id: 'city-lights',
     titleKey: 'Apps.photos.samples.city',
   },
   {
+    attachmentId: 'desert-road',
     capturedAt: Date.now() - 345_600_000,
     gradient: 'linear-gradient(150deg, #f6d365, #fda085 45%, #512b58)',
     id: 'desert-road',
@@ -55,10 +61,12 @@ export const useMediaStore = defineStore('media', {
         'linear-gradient(135deg, #ffc75f, #f96d80 48%, #4b4453)',
       ]
       const captureNumber = this.captures.length
+      const id = `capture-${Date.now()}-${captureNumber + 1}`
       const photo: PhonePhoto = {
+        attachmentId: id,
         capturedAt: Date.now(),
         gradient: gradients[captureNumber % gradients.length],
-        id: `capture-${Date.now()}-${captureNumber + 1}`,
+        id,
         titleKey: 'Apps.photos.samples.capture',
       }
       this.captures.unshift(photo)
@@ -76,7 +84,14 @@ export const useMediaStore = defineStore('media', {
         captures: PhonePhoto[]
         claimedApps: string[]
       }> | null
-      this.captures = Array.isArray(data?.captures) ? data.captures : []
+      this.captures = Array.isArray(data?.captures)
+        ? data.captures.filter(
+            (photo) =>
+              typeof photo.id === 'string' &&
+              typeof photo.url === 'string' &&
+              photo.url.startsWith('https://'),
+          )
+        : []
       this.claimedApps = Array.isArray(data?.claimedApps)
         ? data.claimedApps.filter((id): id is string => typeof id === 'string')
         : []

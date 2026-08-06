@@ -49,6 +49,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   AppNotificationPreferences
 > = {
   phone: { enabled: true, sounds: true },
+  messages: { enabled: true, sounds: true },
   'app-store': { enabled: true, sounds: true },
   calculator: { enabled: true, sounds: true },
   snake: { enabled: true, sounds: true },

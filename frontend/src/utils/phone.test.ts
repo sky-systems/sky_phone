@@ -11,5 +11,6 @@ describe('phone numbers', () => {
   it('formats keypad input incrementally', () => {
     expect(formatPhoneNumber('5551234567')).toBe('555 123 4567')
     expect(formatPhoneNumber('5551')).toBe('555 1')
+    expect(formatPhoneNumber(5551234567)).toBe('555 123 4567')
   })
 })

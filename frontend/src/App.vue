@@ -26,6 +26,7 @@ import { useCallsStore } from '@/stores/calls'
 import { useBankingStore } from '@/stores/banking'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
+import { useMessagesStore } from '@/stores/messages'
 import { useMediaStore } from '@/stores/media'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAppStoreStore } from '@/stores/app-store'
@@ -51,6 +52,7 @@ type AppMessage = {
     | CalendarReminderData
     | MailEventData
     | MarketplaceEventData
+    | MessagesEventData
     | PhoneCall
     | PhoneNotificationInput
     | PhoneOpenPayload
@@ -66,6 +68,14 @@ type MailEventData = {
   device?: PhoneNotificationDevicePayload
   sender?: string
   subject?: string
+  text?: string
+  title?: string
+}
+
+type MessagesEventData = {
+  device?: PhoneNotificationDevicePayload
+  phoneNumber?: string
+  sender?: string
   text?: string
   title?: string
 }
@@ -88,7 +98,6 @@ type CalendarReminderData = {
   text?: string
   title?: string
 }
-
 const REFERENCE_VIEWPORT_WIDTH = 1920
 const REFERENCE_VIEWPORT_HEIGHT = 1080
 const PHONE_BASE_SCALE = 0.69
@@ -101,6 +110,7 @@ const games = useGamesStore()
 const calls = useCallsStore()
 const banking = useBankingStore()
 const mail = useMailStore()
+const messages = useMessagesStore()
 const media = useMediaStore()
 const marketplace = useMarketplaceStore()
 const appStore = useAppStoreStore()
@@ -150,6 +160,7 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   if (payload.account?.email) void marketplace.loadCounts()
   else marketplace.setCounts({ active: 0, unread: 0 })
   void calls.bootstrap()
+  void messages.loadConversations()
 }
 
 async function hydrateDevelopmentPhone(): Promise<void> {
@@ -275,6 +286,35 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     notifications.show(notification)
   } else if (event.data?.type === 'contacts:changed') {
     void calls.loadContacts()
+  } else if (event.data?.type === 'messages:changed') {
+    void messages.loadConversations()
+    if (messages.activeNumber) void messages.openThread(messages.activeNumber)
+  } else if (event.data?.type === 'messages:new' && event.data.data) {
+    const data = event.data.data as MessagesEventData
+    void messages.loadConversations()
+    if (messages.activeNumber === data.phoneNumber) {
+      void messages.openThread(messages.activeNumber)
+    }
+
+    const notification: PhoneNotificationInput = {
+      appId: 'messages',
+      subtitle: data.phoneNumber,
+      text:
+        data.text ??
+        phone.t('Apps.messages.newMessage', { sender: data.sender ?? '' }),
+      title: data.title ?? phone.t('Apps.messages.name'),
+    }
+    if (
+      data.device &&
+      (!phone.isOpen || data.device.imei !== phone.device?.imei)
+    ) {
+      notification.device = {
+        imei: data.device.imei,
+        name: data.device.name,
+        preferences: parsePhonePreferences(data.device.settings ?? null),
+      }
+    }
+    notifications.show(notification)
   } else if (event.data?.type === 'calls:changed') {
     void calls.loadRecents()
   } else if (event.data?.type === 'banking:changed') {
