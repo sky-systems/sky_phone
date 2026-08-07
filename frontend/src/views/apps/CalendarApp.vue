@@ -17,6 +17,7 @@ import {
   UserRound,
   X,
 } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 
 import { useAccountStore } from '@/stores/account'
@@ -444,7 +445,10 @@ onMounted(async () => {
         class="calendar__toolbar"
         :class="{ 'calendar__toolbar--year': yearOverviewOpen }"
       >
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           v-if="!yearOverviewOpen"
           class="calendar__year-button"
           type="button"
@@ -453,9 +457,12 @@ onMounted(async () => {
         >
           <ChevronLeft :size="22" />
           <span>{{ visibleYear }}</span>
-        </button>
+        </k-button>
         <div class="calendar__toolbar-pill">
-          <button
+          <k-button
+            component="button"
+            clear
+            rounded
             v-if="!yearOverviewOpen"
             :class="{ active: viewMenuOpen }"
             :aria-label="phone.t(`Apps.calendar.views.${viewMode}`)"
@@ -466,23 +473,29 @@ onMounted(async () => {
               :is="viewModes.find((mode) => mode.id === viewMode)?.icon"
               :size="19"
             />
-          </button>
-          <button
+          </k-button>
+          <k-button
+            component="button"
+            clear
+            rounded
             :aria-label="phone.t('Common.search')"
             type="button"
             @click="toggleSearch"
           >
             <X v-if="searchOpen" :size="19" />
             <Search v-else :size="19" />
-          </button>
-          <button
+          </k-button>
+          <k-button
+            component="button"
+            clear
+            rounded
             v-if="isAuthenticated"
             :aria-label="phone.t('Apps.calendar.newEvent')"
             type="button"
             @click="openCreate"
           >
             <Plus :size="22" />
-          </button>
+          </k-button>
         </div>
 
         <Transition name="calendar-popover">
@@ -703,9 +716,9 @@ onMounted(async () => {
       </div>
 
       <footer v-if="isAuthenticated" class="calendar__footer">
-        <button class="calendar__today-button" type="button" @click="goToday">
+        <k-button component="button" tonal rounded class="calendar__today-button" type="button" @click="goToday">
           {{ phone.t('Apps.calendar.today') }}
-        </button>
+        </k-button>
       </footer>
     </template>
 
@@ -714,14 +727,14 @@ onMounted(async () => {
       class="calendar__detail"
     >
       <header class="calendar__sheet-header">
-        <button type="button" @click="screen = 'main'">
+        <k-button component="button" clear rounded type="button" @click="screen = 'main'">
           <ChevronLeft :size="20" />
           {{ phone.t('Apps.calendar.name') }}
-        </button>
+        </k-button>
         <strong>{{ phone.t('Apps.calendar.event') }}</strong>
-        <button type="button" @click="openEdit">
+        <k-button component="button" clear rounded type="button" @click="openEdit">
           {{ phone.t('Common.edit') }}
-        </button>
+        </k-button>
       </header>
       <div class="calendar__sheet-scroll">
         <section class="calendar__detail-title">
@@ -764,9 +777,9 @@ onMounted(async () => {
 
     <section v-else class="calendar__form">
       <header class="calendar__sheet-header">
-        <button type="button" @click="closeForm">
+        <k-button component="button" clear rounded type="button" @click="closeForm">
           {{ phone.t('Common.cancel') }}
-        </button>
+        </k-button>
         <strong>
           {{
             editingEvent
@@ -774,9 +787,9 @@ onMounted(async () => {
               : phone.t('Apps.calendar.newEvent')
           }}
         </strong>
-        <button :disabled="saving" type="button" @click="saveEvent">
+        <k-button component="button" clear rounded :disabled="saving" type="button" @click="saveEvent">
           {{ editingEvent ? phone.t('Common.save') : phone.t('Common.add') }}
-        </button>
+        </k-button>
       </header>
       <form class="calendar__sheet-scroll" @submit.prevent="saveEvent">
         <section class="calendar__group calendar__group--fields">
@@ -865,13 +878,13 @@ onMounted(async () => {
           :aria-label="timePickerTitle"
         >
           <header>
-            <button type="button" @click="timePickerField = null">
+            <k-button component="button" clear rounded type="button" @click="timePickerField = null">
               {{ phone.t('Common.cancel') }}
-            </button>
+            </k-button>
             <strong>{{ timePickerTitle }}</strong>
-            <button type="button" @click="confirmTimePicker">
+            <k-button component="button" clear rounded type="button" @click="confirmTimePicker">
               {{ phone.t('Common.done') }}
-            </button>
+            </k-button>
           </header>
 
           <div class="calendar__time-preview">
