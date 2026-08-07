@@ -156,6 +156,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/banking',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MailApp.vue')),
     ),
