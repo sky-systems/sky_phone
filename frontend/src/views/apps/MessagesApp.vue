@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   kBlock,
+  kGlass,
   kLink,
   kList,
   kListInput,
@@ -705,13 +706,14 @@ onBeforeUnmount(() => {
     :aria-label="phone.t('Apps.messages.name')"
   >
     <header class="messages-inbox-header">
-      <button
+      <k-glass
+        component="button"
         type="button"
         class="messages-inbox-header__edit"
         @click="toggleListEditing"
       >
         <span>{{ phone.t(editingList ? 'Common.done' : 'Common.edit') }}</span>
-      </button>
+      </k-glass>
       <strong>
         {{
           editingList
@@ -721,17 +723,19 @@ onBeforeUnmount(() => {
             : phone.t('Apps.messages.name')
         }}
       </strong>
-      <button
+      <k-glass
         v-if="!editingList"
+        component="button"
         type="button"
         :class="{ active: showUnreadOnly }"
         :aria-label="phone.t('Apps.messages.filterUnread')"
         @click="showUnreadOnly = !showUnreadOnly"
       >
         <ListFilter :size="24" :stroke-width="2.25" />
-      </button>
-      <button
+      </k-glass>
+      <k-glass
         v-else
+        component="button"
         type="button"
         class="messages-inbox-header__delete"
         :disabled="!selectedNumbers.length"
@@ -739,7 +743,7 @@ onBeforeUnmount(() => {
         @click="deleteSelectedConversations"
       >
         <Trash2 :size="18" />
-      </button>
+      </k-glass>
     </header>
 
     <div
@@ -829,13 +833,14 @@ onBeforeUnmount(() => {
         />
         <Mic :size="16" />
       </label>
-      <button
+      <k-glass
+        component="button"
         type="button"
         :aria-label="phone.t('Apps.messages.compose')"
         @click="beginCompose"
       >
         <SquarePen :size="20" />
-      </button>
+      </k-glass>
     </footer>
     <footer v-else class="messages-edit-toolbar">
       <span>{{ phone.t('Apps.messages.selectedCount', { count: String(selectedNumbers.length) }) }}</span>

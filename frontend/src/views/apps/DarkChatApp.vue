@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kGlass } from 'konsta/vue'
 import {
   ArrowUpCircle,
   Bell,
@@ -48,6 +49,10 @@ import { parseDatabaseDate, type DatabaseDateValue } from '@/utils/date'
 const VOICE_MAX_DURATION_MS = 60_000
 const VOICE_MAX_BYTES = 270_000
 const WAVEFORM_SAMPLES = 48
+const darkGlassColors = {
+  bgIos: 'bg-ios-dark-glass',
+  shadowIos: 'shadow-ios-dark-glass',
+}
 
 const account = useAccountStore()
 const darkchat = useDarkChatStore()
@@ -632,11 +637,11 @@ onBeforeUnmount(() => {
     <template v-else-if="darkchat.profile">
       <section v-if="screen === 'inbox'" class="darkchat-inbox">
         <header class="darkchat-inbox__header">
-          <button type="button" class="darkchat-pill" @click="openProfile">{{ phone.t('Common.edit') }}</button>
+          <k-glass component="button" type="button" class="darkchat-glass-action darkchat-glass-action--pill" :colors="darkGlassColors" @click="openProfile">{{ phone.t('Common.edit') }}</k-glass>
           <strong>{{ t('name') }}</strong>
-          <button type="button" class="darkchat-round" :aria-label="t('security')" @click="openProfile">
+          <k-glass component="button" type="button" class="darkchat-glass-action" :colors="darkGlassColors" :aria-label="t('security')" @click="openProfile">
             <ShieldCheck :size="19" />
-          </button>
+          </k-glass>
         </header>
         <div class="darkchat-security-strip">
           <LockKeyhole :size="12" />
@@ -669,9 +674,9 @@ onBeforeUnmount(() => {
         </div>
         <footer class="darkchat-inbox__toolbar">
           <label><Search :size="18" /><input v-model="search" type="search" :placeholder="phone.t('Common.search')" /></label>
-          <button type="button" class="darkchat-round darkchat-round--large" :aria-label="t('newChat')" @click="screen = 'new'">
+          <k-glass component="button" type="button" class="darkchat-glass-action darkchat-glass-action--large" :colors="darkGlassColors" :aria-label="t('newChat')" @click="screen = 'new'">
             <MessageCirclePlus :size="20" />
-          </button>
+          </k-glass>
         </footer>
       </section>
 

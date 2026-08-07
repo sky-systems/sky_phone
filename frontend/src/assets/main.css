@@ -635,6 +635,26 @@ button {
 }
 .darkchat-round--large { width: 43px; height: 43px; }
 .darkchat-round.active { background: var(--dc-purple); border-color: var(--dc-purple); }
+.darkchat-glass-action {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  color: #f5f5f7;
+  line-height: 0;
+  transition: transform .14s ease;
+}
+.darkchat-glass-action--large { width: 48px; height: 48px; }
+.darkchat-glass-action--pill {
+  width: 68px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
 .darkchat-back {
   width: 46px;
   height: 46px;
@@ -3019,9 +3039,7 @@ button {
   margin-left: auto;
   display: grid;
   place-items: center;
-  border: 0;
   border-radius: 50%;
-  background: transparent;
   color: #181818;
   transition: background 0.18s ease, color 0.18s ease;
 }
@@ -3184,10 +3202,7 @@ button {
   height: 40px;
   display: grid;
   place-items: center;
-  border: 1px solid #ededf0;
   border-radius: 50%;
-  background: rgb(255 255 255 / 96%);
-  box-shadow: 0 7px 25px rgb(0 0 0 / 9%);
   color: #111;
 }
 .messages-edit-toolbar {
@@ -4111,9 +4126,7 @@ button {
   backdrop-filter: blur(30px) saturate(190%);
   -webkit-backdrop-filter: blur(30px) saturate(190%);
 }
-.messages-inbox-header > button:not(.messages-inbox-header__edit),
 .messages-chat-header__back,
-.messages-inbox-toolbar > button,
 .messages-messagebar__tools button {
   border: 1px solid rgb(255 255 255 / 78%);
   background: linear-gradient(145deg, rgb(255 255 255 / 90%), rgb(236 238 244 / 68%));
@@ -4256,9 +4269,7 @@ button {
 .phone-app.dark .messages-contact-details__fields input {
   color: #f5f5f7;
 }
-.phone-app.dark .messages-inbox-header > button:not(.messages-inbox-header__edit),
 .phone-app.dark .messages-chat-header__back,
-.phone-app.dark .messages-inbox-toolbar > button,
 .phone-app.dark .messages-messagebar__tools button,
 .phone-app.dark .messages-attachment-menu > button {
   border-color: rgb(255 255 255 / 10%);
@@ -4644,9 +4655,6 @@ button {
   padding: 0;
   display: grid;
   place-items: center;
-  border: 1px solid var(--messages-inbox-control-border);
-  background: var(--messages-inbox-control);
-  box-shadow: var(--messages-inbox-control-shadow);
   color: var(--messages-inbox-primary);
   line-height: 1;
 }
@@ -4769,9 +4777,6 @@ button {
   padding: 0;
   display: grid;
   place-items: center;
-  border-color: var(--messages-inbox-control-border);
-  background: var(--messages-inbox-control);
-  box-shadow: var(--messages-inbox-control-shadow);
   color: var(--messages-inbox-primary);
 }
 .messages-inbox-page .messages-inbox-toolbar > button svg {
@@ -4794,9 +4799,7 @@ button {
   --messages-inbox-separator: #2c2c2e;
 }
 .phone-app.dark .messages-inbox-page .messages-inbox-header,
-.phone-app.dark .messages-inbox-page .messages-inbox-header > button,
-.phone-app.dark .messages-inbox-page .messages-inbox-toolbar label,
-.phone-app.dark .messages-inbox-page .messages-inbox-toolbar > button {
+.phone-app.dark .messages-inbox-page .messages-inbox-toolbar label {
   background: var(--messages-inbox-control);
   box-shadow: none;
 }
