@@ -379,6 +379,17 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
   },
 ]
 
+export const NON_REMOVABLE_PHONE_APP_IDS: ReadonlySet<LaunchablePhoneAppId> =
+  new Set([
+    'app-store',
+    'settings',
+    'camera',
+    'photos',
+    'phone',
+    'messages',
+    'mail',
+  ])
+
 export const PHONE_APP_IDS = PHONE_APPS.map((app) => app.id)
 
 export function getPhoneApp(

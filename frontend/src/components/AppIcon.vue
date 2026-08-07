@@ -4,6 +4,7 @@ import { Minus } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { NON_REMOVABLE_PHONE_APP_IDS } from '@/config/apps'
 import { useMailStore } from '@/stores/mail'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useDarkChatStore } from '@/stores/darkchat'
@@ -229,7 +230,7 @@ onBeforeUnmount(() => {
       }}</span>
     </button>
     <button
-      v-if="editMode"
+      v-if="editMode && !NON_REMOVABLE_PHONE_APP_IDS.has(app.id)"
       class="app-icon-remove"
       type="button"
       :aria-label="phone.t('Home.removeApp', { app: phone.t(app.labelKey) })"

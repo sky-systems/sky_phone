@@ -1,7 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { NON_REMOVABLE_PHONE_APP_IDS } from '@/config/apps'
 import { useAppStoreStore } from '@/stores/app-store'
+import { removeHomeApp } from '@/utils/homeLayout'
 
 const mocks = vi.hoisted(() => ({ saveDeviceNamespace: vi.fn() }))
 vi.mock('@/stores/phone', () => ({
@@ -77,37 +79,74 @@ describe('app store', () => {
     const apps = useAppStoreStore()
 
     apps.hydrate({ claimedApps: ['memory'] })
-    apps.removeHomeApp('mail')
+    apps.removeHomeApp('notes')
     apps.removeHomeApp('memory')
     mocks.saveDeviceNamespace.mockClear()
 
-    apps.installApp('mail')
+    apps.installApp('notes')
     apps.installApp('memory')
 
-    expect(apps.installingApps).toEqual({ mail: true, memory: true })
-    expect(apps.homeLayout.hidden).toEqual(['mail', 'memory'])
+    expect(apps.installingApps).toEqual({ notes: true, memory: true })
+    expect(apps.homeLayout.hidden).toEqual(['notes', 'memory'])
 
     vi.advanceTimersByTime(3000)
 
     expect(apps.installingApps).toEqual({})
     expect(apps.homeLayout.hidden).toEqual([])
-    expect(apps.homeLayout.grid).toContain('mail')
+    expect(apps.homeLayout.grid).toContain('notes')
     expect(apps.homeLayout.grid).toContain('memory')
     expect(apps.claimedApps).toEqual(['memory'])
     expect(mocks.saveDeviceNamespace).toHaveBeenCalledTimes(2)
+  })
+
+  it('prevents protected apps from being removed from the Home Screen', () => {
+    const apps = useAppStoreStore()
+    apps.hydrate(null)
+    mocks.saveDeviceNamespace.mockClear()
+
+    expect([...NON_REMOVABLE_PHONE_APP_IDS]).toEqual([
+      'app-store',
+      'settings',
+      'camera',
+      'photos',
+      'phone',
+      'messages',
+      'mail',
+    ])
+    for (const appId of NON_REMOVABLE_PHONE_APP_IDS) {
+      apps.removeHomeApp(appId)
+      expect(apps.homeLayout.hidden).not.toContain(appId)
+    }
+
+    expect(mocks.saveDeviceNamespace).not.toHaveBeenCalled()
+  })
+
+  it('restores protected apps hidden by older persisted layouts', () => {
+    const apps = useAppStoreStore()
+    const legacyLayout = removeHomeApp(apps.homeLayout, 'mail')
+
+    apps.hydrate({ homeLayout: legacyLayout })
+
+    expect(apps.homeLayout.hidden).not.toContain('mail')
+    expect(apps.homeLayout.grid).toContain('mail')
+    expect(mocks.saveDeviceNamespace).toHaveBeenCalledWith('apps', {
+      claimedApps: [],
+      homeLayout: apps.homeLayout,
+      launchCounts: {},
+    })
   })
 
   it('persists home reordering and removal independently from installation', () => {
     const apps = useAppStoreStore()
     apps.hydrate(null)
 
-    const mailIndex = apps.homeLayout.grid.indexOf('mail')
-    apps.moveHomeApp('grid', mailIndex, 'grid', 0)
-    expect(apps.homeLayout.grid[0]).toBe('mail')
+    const notesIndex = apps.homeLayout.grid.indexOf('notes')
+    apps.moveHomeApp('grid', notesIndex, 'grid', 0)
+    expect(apps.homeLayout.grid[0]).toBe('notes')
 
-    apps.removeHomeApp('mail')
-    expect(apps.homeLayout.grid).not.toContain('mail')
-    expect(apps.homeLayout.hidden).toContain('mail')
+    apps.removeHomeApp('notes')
+    expect(apps.homeLayout.grid).not.toContain('notes')
+    expect(apps.homeLayout.hidden).toContain('notes')
     expect(mocks.saveDeviceNamespace).toHaveBeenLastCalledWith('apps', {
       claimedApps: [],
       homeLayout: apps.homeLayout,

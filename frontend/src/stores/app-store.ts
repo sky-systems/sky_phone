@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 
-import { isPhoneAppId, PHONE_APPS } from '@/config/apps'
+import {
+  isPhoneAppId,
+  NON_REMOVABLE_PHONE_APP_IDS,
+  PHONE_APPS,
+} from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
 import type { LaunchablePhoneAppId } from '@/types/apps'
 import {
@@ -85,6 +89,12 @@ export const useAppStoreStore = defineStore('app-store', {
         defaults,
         installedIds,
       )
+      const protectedHiddenAppIds = this.homeLayout.hidden.filter((id) =>
+        NON_REMOVABLE_PHONE_APP_IDS.has(id),
+      )
+      for (const appId of protectedHiddenAppIds) {
+        this.homeLayout = restoreHomeApp(this.homeLayout, appId)
+      }
       this.installingApps = {}
       this.launchCounts = {}
       if (data?.launchCounts && typeof data.launchCounts === 'object') {
@@ -99,6 +109,7 @@ export const useAppStoreStore = defineStore('app-store', {
           }
         }
       }
+      if (protectedHiddenAppIds.length) this.persist()
     },
     recordLaunch(appId: LaunchablePhoneAppId): void {
       this.launchCounts[appId] = (this.launchCounts[appId] ?? 0) + 1
@@ -120,6 +131,8 @@ export const useAppStoreStore = defineStore('app-store', {
       this.persist()
     },
     removeHomeApp(appId: LaunchablePhoneAppId): void {
+      if (NON_REMOVABLE_PHONE_APP_IDS.has(appId)) return
+
       this.homeLayout = removeHomeApp(this.homeLayout, appId)
       this.persist()
     },
