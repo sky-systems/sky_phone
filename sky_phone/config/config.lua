@@ -14,8 +14,8 @@ Config.Bridge = {
 Config.Command = "phone"
 
 Config.Phone = {
-    Item = "sky_phone",
-    DevelopmentCommand = false,
+    Item = "phone",
+    DevelopmentCommand = true,
     DeviceName = "iFruit Phone",
 }
 
@@ -97,6 +97,28 @@ Config.Messages = {
     DeleteBatchSize = 20,
 }
 
+Config.DarkChat = {
+    AliasMaxLength = 32,
+    BodyMaxLength = 2000,
+    ThreadPageSize = 200,
+    SendsPerMinute = 30,
+    ActionsPerMinute = 60,
+    ReportsPerDay = 10,
+    VoiceMaxDurationMs = 60000,
+    VoiceMaxBase64Length = 360000,
+    VoiceWaveformSamples = 48,
+    CleanupIntervalSeconds = 30,
+    AllowedDisappearTimers = {
+        [0] = true,
+        [-1] = true, -- after reading
+        [60] = true,
+        [300] = true,
+        [3600] = true,
+        [86400] = true,
+        [604800] = true,
+    },
+}
+
 Config.Mail = {
     Domain = "ifruit.com",
     LocalPartMinLength = 3,
@@ -108,6 +130,14 @@ Config.Mail = {
     MaxRecipients = 10,
     PageSize = 50,
     AuthAttemptsPerMinute = 5,
+}
+
+Config.Banking = {
+    Currency = "$",
+    MinimumAmount = 1,
+    MaximumAmount = 1000000,
+    ActionsPerMinute = 12,
+    HistoryLimit = 50,
 }
 
 Config.Marketplace = {

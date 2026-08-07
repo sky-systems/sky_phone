@@ -21,6 +21,27 @@ function Bridge.Framework.GetIdentifier(source)
     return player and player.PlayerData and tostring(player.PlayerData.citizenid) or nil
 end
 
+function Bridge.Framework.GetMoney(source, account)
+    local player = get_player(source)
+    return player and player.PlayerData and player.PlayerData.money[account] or nil
+end
+
+function Bridge.Framework.AddMoney(source, account, amount)
+    local player = get_player(source)
+    if not player then
+        return false
+    end
+    return player.Functions.AddMoney(account, amount)
+end
+
+function Bridge.Framework.RemoveMoney(source, account, amount)
+    local player = get_player(source)
+    if not player or not player.PlayerData.money[account] or player.PlayerData.money[account] < amount then
+        return false
+    end
+    return player.Functions.RemoveMoney(account, amount)
+end
+
 local function get_character_info(source)
     local player = get_player(source)
     return player and player.PlayerData and player.PlayerData.charinfo or nil

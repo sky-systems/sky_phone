@@ -50,6 +50,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
 > = {
   phone: { enabled: true, sounds: true },
   messages: { enabled: true, sounds: true },
+  darkchat: { enabled: true, sounds: true },
   'app-store': { enabled: true, sounds: true },
   calculator: { enabled: true, sounds: true },
   snake: { enabled: true, sounds: true },
@@ -65,6 +66,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   clock: { enabled: true, sounds: true },
   calendar: { enabled: true, sounds: true },
   weather: { enabled: true, sounds: true },
+  banking: { enabled: true, sounds: true },
   mail: { enabled: true, sounds: true },
   map: { enabled: true, sounds: true },
   notes: { enabled: true, sounds: true },

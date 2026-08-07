@@ -177,6 +177,19 @@ CREATE TABLE IF NOT EXISTS `sky_phone_call_entries` (
     FOREIGN KEY (`device_imei`) REFERENCES `sky_phone_devices` (`imei`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_bank_transactions` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `owner_identifier` VARCHAR(80) NOT NULL,
+    `kind` ENUM('deposit', 'withdrawal', 'transfer_in', 'transfer_out') NOT NULL,
+    `amount` BIGINT UNSIGNED NOT NULL,
+    `label` VARCHAR(160) NOT NULL DEFAULT '',
+    `reference` VARCHAR(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_bank_owner` (`owner_identifier`, `id`),
+    KEY `idx_sky_phone_bank_reference` (`reference`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_sms_messages` (
     `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     `sender_sim_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,

@@ -1,4 +1,6 @@
 node_modules/
 dist/
+.vite/
 *.local
+dev-server*.log
 

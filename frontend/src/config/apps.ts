@@ -13,12 +13,14 @@ import {
   Mail,
   MapPinned,
   MessageCircle,
+  ShieldCheck,
   NotebookPen,
   Phone,
   RadioTower,
   Settings,
   ShoppingBag,
   CloudSun,
+  Landmark,
   Wind,
   Tag,
   MapPinHouse,
@@ -33,6 +35,7 @@ import calendarIcon from '@/assets/img/app-icons/calendar.svg'
 import mailIcon from '@/assets/img/app-icons/mail.webp'
 import mapIcon from '@/assets/img/app-icons/map.webp'
 import messagesIcon from '@/assets/img/app-icons/sms.webp'
+import darkChatIcon from '@/assets/img/app-icons/darkchat.svg'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
 import radioIcon from '@/assets/img/app-icons/radio.svg'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
@@ -46,6 +49,7 @@ import towerStackIcon from '@/assets/img/app-icons/tower-stack.webp'
 import skyFlappyIcon from '@/assets/img/app-icons/sky-flappy.webp'
 import neonDropIcon from '@/assets/img/app-icons/neon-drop.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
+import bankingIcon from '@/assets/img/app-icons/banking.svg'
 import citymarktIcon from '@/assets/img/app-icons/citymarkt.webp'
 import localPagesIcon from '@/assets/img/app-icons/local-pages.webp'
 import type {
@@ -126,6 +130,20 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/messages',
   },
   {
+    category: 'social',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/DarkChatApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 22,
+    icon: markRaw(ShieldCheck),
+    iconClass: 'app-icon--darkchat',
+    iconImage: darkChatIcon,
+    id: 'darkchat',
+    labelKey: 'Apps.darkchat.name',
+    route: '/apps/darkchat',
+  },
+  {
     category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MapApp.vue')),
@@ -138,6 +156,20 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'map',
     labelKey: 'Apps.map.name',
     route: '/apps/map',
+  },
+  {
+    category: 'utilities',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/BankingApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 5,
+    icon: markRaw(Landmark),
+    iconClass: 'app-icon--banking',
+    iconImage: bankingIcon,
+    id: 'banking',
+    labelKey: 'Apps.banking.name',
+    route: '/apps/banking',
   },
   {
     category: 'social',
@@ -378,6 +410,17 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/neon-drop',
   },
 ]
+
+export const NON_REMOVABLE_PHONE_APP_IDS: ReadonlySet<LaunchablePhoneAppId> =
+  new Set([
+    'app-store',
+    'settings',
+    'camera',
+    'photos',
+    'phone',
+    'messages',
+    'mail',
+  ])
 
 export const PHONE_APP_IDS = PHONE_APPS.map((app) => app.id)
 

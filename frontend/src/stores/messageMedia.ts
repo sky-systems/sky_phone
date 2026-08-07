@@ -4,7 +4,8 @@ import type { MediaType, PhoneMedia } from '@/types/media'
 
 type MessageMediaRequest = {
   mediaType: MediaType
-  phoneNumber: string
+  returnPath: string
+  target: string
 }
 
 type MessageMediaResult = MessageMediaRequest & {
@@ -17,20 +18,28 @@ export const useMessageMediaStore = defineStore('message-media', {
     result: null as MessageMediaResult | null,
   }),
   actions: {
-    begin(phoneNumber: string, mediaType: MediaType): void {
-      this.request = { mediaType, phoneNumber }
+    begin(
+      target: string,
+      mediaType: MediaType,
+      returnPath = '/apps/messages',
+    ): void {
+      this.request = { mediaType, returnPath, target }
       this.result = null
     },
-    cancel(): void {
+    cancel(): string {
+      const returnPath = this.request?.returnPath ?? '/apps/messages'
       this.request = null
+      return returnPath
     },
-    complete(media: PhoneMedia): void {
-      if (!this.request || this.request.mediaType !== media.mediaType) return
+    complete(media: PhoneMedia): string | null {
+      if (!this.request || this.request.mediaType !== media.mediaType) return null
+      const returnPath = this.request.returnPath
       this.result = { ...this.request, media }
       this.request = null
+      return returnPath
     },
-    consume(phoneNumber: string): PhoneMedia | null {
-      if (!this.result || this.result.phoneNumber !== phoneNumber) return null
+    consume(target: string): PhoneMedia | null {
+      if (!this.result || this.result.target !== target) return null
       const media = this.result.media
       this.result = null
       return media

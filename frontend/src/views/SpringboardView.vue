@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Search, X } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { kGlass } from 'konsta/vue'
+import { computed, ref, watch } from 'vue'
 
 import AppIcon from '@/components/AppIcon.vue'
 import SpringboardWidgets from '@/components/SpringboardWidgets.vue'
@@ -8,9 +9,10 @@ import { PHONE_APPS } from '@/config/apps'
 import { useAppStoreStore } from '@/stores/app-store'
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppCategory, PhoneAppDefinition } from '@/types/apps'
+import type { LaunchablePhoneAppId } from '@/types/apps'
+import { HOME_GRID_PAGE_SIZE, type HomeArea } from '@/utils/homeLayout'
 import { paginateItems } from '@/utils/pages'
 
-const APPS_PER_HOME_PAGE = 20
 const APP_LIBRARY_CATEGORIES: PhoneAppCategory[] = [
   'games',
   'productivity',
@@ -23,52 +25,65 @@ const appStore = useAppStoreStore()
 const searchQuery = ref('')
 const searchFocused = ref(false)
 const showAllApps = ref(false)
+const editMode = ref(false)
 const dragOffset = ref(0)
 const dragging = ref(false)
+const draggingHomeApp = ref<{
+  area: HomeArea
+  index: number
+} | null>(null)
 let pointerStart = 0
 let pointerStartedAt = 0
 
-const gridApps = computed(() =>
+const installedApps = computed(() =>
   PHONE_APPS.filter(
     (app) => app.category !== 'games' || appStore.claimedApps.includes(app.id),
-  ).sort((a, b) => a.gridOrder - b.gridOrder),
+  ),
+)
+const installedAppsById = computed(
+  () => new Map(installedApps.value.map((app) => [app.id, app])),
+)
+const gridSlots = computed(() =>
+  appStore.homeLayout.grid.map((id) =>
+    id ? (installedAppsById.value.get(id) ?? null) : null,
+  ),
 )
 const appPages = computed(() =>
-  paginateItems(gridApps.value, APPS_PER_HOME_PAGE),
+  paginateItems(gridSlots.value, HOME_GRID_PAGE_SIZE),
 )
 const pageCount = computed(() => appPages.value.length + 2)
 const libraryPage = computed(() => pageCount.value - 1)
 const isAppPage = computed(
   () => phone.currentPage > 0 && phone.currentPage < libraryPage.value,
 )
-const dockApps = computed(() =>
-  PHONE_APPS.filter((app) => app.dockOrder !== null).sort(
-    (a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0),
+const dockSlots = computed(() =>
+  appStore.homeLayout.dock.map((id) =>
+    id ? (installedAppsById.value.get(id) ?? null) : null,
   ),
 )
 const filteredApps = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase(phone.lang)
-  if (!query) return gridApps.value
-  return gridApps.value.filter((app) =>
+  if (!query) return installedApps.value
+  return installedApps.value.filter((app) =>
     phone.t(app.labelKey).toLocaleLowerCase(phone.lang).includes(query),
   )
 })
 const appGroups = computed(() => {
-  const suggestions = [...gridApps.value]
+  const suggestions = [...installedApps.value]
     .sort(
       (a, b) =>
         (appStore.launchCounts[b.id] ?? 0) -
           (appStore.launchCounts[a.id] ?? 0) || a.gridOrder - b.gridOrder,
     )
     .slice(0, 7)
-  const recentlyAdded = [...gridApps.value]
+  const recentlyAdded = [...installedApps.value]
     .sort((a, b) => b.gridOrder - a.gridOrder)
     .slice(0, 7)
   const groups = [
     { apps: suggestions, key: 'suggestions' },
     { apps: recentlyAdded, key: 'recentlyAdded' },
     ...APP_LIBRARY_CATEGORIES.map((category) => ({
-      apps: gridApps.value.filter((app) => app.category === category),
+      apps: installedApps.value.filter((app) => app.category === category),
       key: category,
     })),
   ]
@@ -100,6 +115,7 @@ const trackStyle = computed(() => ({
 const pageStyle = computed(() => ({ width: `${100 / pageCount.value}%` }))
 
 function onPointerDown(event: PointerEvent): void {
+  if (editMode.value) return
   const target = event.target as HTMLElement
   if (target.closest('button, input')) return
   pointerStart = event.clientX
@@ -128,6 +144,60 @@ function finishPointer(event: PointerEvent): void {
   dragOffset.value = 0
 }
 
+function enterEditMode(): void {
+  editMode.value = true
+  dragging.value = false
+  dragOffset.value = 0
+}
+
+function startHomeDrag(area: HomeArea, index: number): void {
+  draggingHomeApp.value = { area, index }
+}
+
+function finishHomeDrag(event: PointerEvent): void {
+  const dragged = draggingHomeApp.value
+  if (!dragged) return
+  const target = document
+    .elementsFromPoint(event.clientX, event.clientY)
+    .find((element) => !element.closest('.app-icon-item--dragging'))
+  const targetArea = target?.closest<HTMLElement>('[data-home-area]')
+  let targetItem = target?.closest<HTMLElement>('[data-home-index]')
+  if (!targetItem && targetArea) {
+    const slotItems = Array.from(
+      targetArea.querySelectorAll<HTMLElement>('[data-home-index]'),
+    )
+    targetItem = slotItems.reduce<HTMLElement | undefined>((closest, slot) => {
+      if (!closest) return slot
+      const slotBounds = slot.getBoundingClientRect()
+      const closestBounds = closest.getBoundingClientRect()
+      const slotDistance = Math.hypot(
+        event.clientX - (slotBounds.left + slotBounds.width / 2),
+        event.clientY - (slotBounds.top + slotBounds.height / 2),
+      )
+      const closestDistance = Math.hypot(
+        event.clientX - (closestBounds.left + closestBounds.width / 2),
+        event.clientY - (closestBounds.top + closestBounds.height / 2),
+      )
+      return slotDistance < closestDistance ? slot : closest
+    }, undefined)
+  }
+  const area = (targetItem?.dataset.homeArea ??
+    targetArea?.dataset.homeArea) as HomeArea | undefined
+  if ((area === 'grid' || area === 'dock') && targetItem) {
+    const targetIndex = Number.parseInt(targetItem.dataset.homeIndex ?? '', 10)
+    appStore.moveHomeApp(dragged.area, dragged.index, area, targetIndex)
+  }
+  draggingHomeApp.value = null
+}
+
+function stopHomeDrag(): void {
+  draggingHomeApp.value = null
+}
+
+function removeHomeApp(appId: LaunchablePhoneAppId): void {
+  appStore.removeHomeApp(appId)
+}
+
 function clearSearch(): void {
   searchQuery.value = ''
   searchFocused.value = false
@@ -138,6 +208,10 @@ function openAllApps(): void {
   searchFocused.value = true
   showAllApps.value = true
 }
+
+watch(isAppPage, (visible) => {
+  if (!visible) editMode.value = false
+})
 </script>
 
 <template>
@@ -145,7 +219,10 @@ function openAllApps(): void {
     class="springboard"
     :class="[
       `wallpaper--${phone.preferences.settings.wallpaper}`,
-      { 'springboard--dragging': dragging },
+      {
+        'springboard--dragging': dragging,
+        'springboard--editing': editMode,
+      },
     ]"
   >
     <div
@@ -171,8 +248,39 @@ function openAllApps(): void {
         :style="pageStyle"
         :aria-label="phone.t('Home.apps')"
       >
-        <div class="app-grid">
-          <AppIcon v-for="app in apps" :key="app.id" :app="app" />
+        <div class="app-grid" data-home-area="grid">
+          <template
+            v-for="(app, appIndex) in apps"
+            :key="
+              app?.id ??
+              `grid-empty-${pageIndex * HOME_GRID_PAGE_SIZE + appIndex}`
+            "
+          >
+            <AppIcon
+              v-if="app"
+              :app="app"
+              data-home-area="grid"
+              :data-home-index="pageIndex * HOME_GRID_PAGE_SIZE + appIndex"
+              :edit-mode="editMode"
+              @dragcancel="stopHomeDrag"
+              @dragend="finishHomeDrag"
+              @dragstart="
+                startHomeDrag(
+                  'grid',
+                  pageIndex * HOME_GRID_PAGE_SIZE + appIndex,
+                )
+              "
+              @edit="enterEditMode"
+              @remove="removeHomeApp(app.id)"
+            />
+            <div
+              v-else
+              class="app-grid-slot"
+              data-home-area="grid"
+              :data-home-index="pageIndex * HOME_GRID_PAGE_SIZE + appIndex"
+              aria-hidden="true"
+            ></div>
+          </template>
         </div>
       </section>
 
@@ -268,14 +376,51 @@ function openAllApps(): void {
       </section>
     </div>
 
+    <Transition name="edit-done">
+      <k-glass
+        v-if="editMode && isAppPage"
+        component="button"
+        class="springboard-edit-done"
+        type="button"
+        @click="editMode = false"
+      >
+        {{ phone.t('Common.done') }}
+      </k-glass>
+    </Transition>
+
     <Transition name="dock">
-      <nav v-if="isAppPage" class="app-dock" :aria-label="phone.t('Home.dock')">
-        <AppIcon
-          v-for="app in dockApps"
-          :key="app.id"
-          :app="app"
-          :show-label="false"
-        />
+      <nav
+        v-if="isAppPage"
+        class="app-dock"
+        :class="{ 'app-dock--editing': editMode }"
+        :aria-label="phone.t('Home.dock')"
+        data-home-area="dock"
+      >
+        <template
+          v-for="(app, appIndex) in dockSlots"
+          :key="app?.id ?? `dock-empty-${appIndex}`"
+        >
+          <AppIcon
+            v-if="app"
+            :app="app"
+            data-home-area="dock"
+            :data-home-index="appIndex"
+            :edit-mode="editMode"
+            :show-label="false"
+            @dragcancel="stopHomeDrag"
+            @dragend="finishHomeDrag"
+            @dragstart="startHomeDrag('dock', appIndex)"
+            @edit="enterEditMode"
+            @remove="removeHomeApp(app.id)"
+          />
+          <div
+            v-else
+            class="app-dock-slot"
+            data-home-area="dock"
+            :data-home-index="appIndex"
+            aria-hidden="true"
+          ></div>
+        </template>
       </nav>
     </Transition>
 

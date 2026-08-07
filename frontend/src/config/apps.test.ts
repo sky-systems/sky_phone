@@ -30,6 +30,11 @@ describe('app registry', () => {
       labelKey: 'Apps.weather.name',
       route: '/apps/weather',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'banking')).toMatchObject({
+      gridOrder: 5,
+      labelKey: 'Apps.banking.name',
+      route: '/apps/banking',
+    })
     expect(PHONE_APPS.find((app) => app.id === 'calendar')).toMatchObject({
       gridOrder: 21,
       labelKey: 'Apps.calendar.name',
@@ -113,7 +118,7 @@ describe('app registry', () => {
       PHONE_APPS.filter((app) => app.category === 'social').map(
         (app) => app.id,
       ),
-    ).toEqual(['local-pages', 'radio', 'phone', 'mail'])
+    ).toEqual(['local-pages', 'radio', 'phone', 'darkchat', 'mail'])
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))
