@@ -1192,7 +1192,7 @@ onMounted(async () => {
 
 .calendar__year-month {
   scroll-margin-top: 8px;
-  margin-bottom: 22px;
+  margin-bottom: 30px;
 }
 
 .calendar__year-month h1 {
@@ -1231,25 +1231,25 @@ onMounted(async () => {
 
 .calendar__year-grid button,
 .calendar__blank-day {
-  height: 62px;
+  height: 92px;
   border-top: 1px solid var(--line) !important;
 }
 
 .calendar__year-grid--compact > * {
-  height: 46px;
+  height: 72px;
 }
 
 .calendar__year-grid--stacked > * {
-  height: 55px;
+  height: 88px;
 }
 
 .calendar__year-grid--details > * {
-  height: 70px;
+  height: 112px;
 }
 
 .calendar__year-grid button {
   min-width: 0;
-  padding: 8px 1px 4px;
+  padding: 11px 1px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
