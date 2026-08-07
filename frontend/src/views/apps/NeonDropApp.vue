@@ -9,6 +9,7 @@ import {
   VolumeX,
   Zap,
 } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { playNeonDropSound } from '@/features/games/neon-drop/audio'
@@ -206,7 +207,10 @@ onBeforeUnmount(() => {
         <span>{{ phone.t('Apps.neonDrop.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.neonDrop.name') }}</h1>
       </div>
-      <button
+      <k-button
+        component="button"
+        clear
+        rounded
         type="button"
         :aria-label="
           phone.t(
@@ -219,7 +223,7 @@ onBeforeUnmount(() => {
           v-else
           :size="18"
         />
-      </button>
+      </k-button>
     </header>
 
     <section v-if="neon.menuOpen" class="neon-menu">
@@ -274,13 +278,16 @@ onBeforeUnmount(() => {
 
     <section v-else-if="game" class="neon-game">
       <div class="neon-toolbar">
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           :aria-label="phone.t('Apps.neonDrop.backToMenu')"
           @click="neon.showMenu()"
         >
           <ChevronLeft :size="19" />
-        </button>
+        </k-button>
         <div>
           <span>{{ phone.t('Apps.neonDrop.score') }}</span
           ><strong>{{ game.score }}</strong>
@@ -289,7 +296,10 @@ onBeforeUnmount(() => {
           <span>{{ phone.t('Apps.neonDrop.lines') }}</span
           ><strong>{{ game.lines }}</strong>
         </div>
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           :aria-label="phone.t('Apps.neonDrop.pause')"
           @click="togglePause"
@@ -299,7 +309,7 @@ onBeforeUnmount(() => {
             :size="16"
             fill="currentColor"
           /><Play v-else :size="16" fill="currentColor" />
-        </button>
+        </k-button>
       </div>
 
       <div class="neon-play-area">

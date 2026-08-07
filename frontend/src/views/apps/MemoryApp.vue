@@ -16,6 +16,7 @@ import {
   VolumeX,
   Zap,
 } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 
 import { playMemorySound } from '@/features/games/memory/audio'
@@ -135,7 +136,10 @@ onBeforeUnmount(() => {
       </div>
       <div class="memory-header__actions">
         <Sparkles :size="23" aria-hidden="true" />
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           :aria-label="phone.t(memory.soundEnabled ? 'Apps.memory.mute' : 'Apps.memory.unmute')"
           :title="phone.t(memory.soundEnabled ? 'Apps.memory.mute' : 'Apps.memory.unmute')"
@@ -143,7 +147,7 @@ onBeforeUnmount(() => {
         >
           <Volume2 v-if="memory.soundEnabled" :size="18" aria-hidden="true" />
           <VolumeX v-else :size="18" aria-hidden="true" />
-        </button>
+        </k-button>
       </div>
     </header>
 
@@ -182,7 +186,10 @@ onBeforeUnmount(() => {
 
     <section v-else class="memory-game">
       <div class="memory-stats">
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           class="memory-menu-button"
           :aria-label="phone.t('Apps.memory.backToMenu')"
@@ -190,7 +197,7 @@ onBeforeUnmount(() => {
           @click="returnToMenu"
         >
           <ChevronLeft :size="18" :stroke-width="2.6" aria-hidden="true" />
-        </button>
+        </k-button>
         <div>
           <span>{{ phone.t('Apps.memory.time') }}</span>
           <strong>{{ formatTime(memory.elapsedMs) }}</strong>
@@ -199,9 +206,9 @@ onBeforeUnmount(() => {
           <span>{{ phone.t('Apps.memory.moves') }}</span>
           <strong>{{ game.moves }}</strong>
         </div>
-        <button type="button" @click="restart">
+        <k-button component="button" clear rounded type="button" @click="restart">
           {{ phone.t('Apps.memory.restart') }}
-        </button>
+        </k-button>
       </div>
 
       <div

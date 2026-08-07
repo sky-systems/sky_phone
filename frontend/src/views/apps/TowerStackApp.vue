@@ -8,6 +8,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import {
   computed,
   onBeforeUnmount,
@@ -185,14 +186,17 @@ onBeforeUnmount(() => {
         <span>{{ phone.t('Apps.towerStack.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.towerStack.name') }}</h1>
       </div>
-      <button
+      <k-button
+        component="button"
+        clear
+        rounded
         type="button"
         :aria-label="phone.t(tower.soundEnabled ? 'Apps.towerStack.mute' : 'Apps.towerStack.unmute')"
         @click="toggleSound"
       >
         <Volume2 v-if="tower.soundEnabled" :size="18" aria-hidden="true" />
         <VolumeX v-else :size="18" aria-hidden="true" />
-      </button>
+      </k-button>
     </header>
 
     <section v-if="tower.menuOpen" class="tower-menu">
@@ -232,18 +236,21 @@ onBeforeUnmount(() => {
 
     <section v-else-if="game" class="tower-game">
       <div class="tower-toolbar">
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           :aria-label="phone.t('Apps.towerStack.backToMenu')"
           @pointerdown.stop="tower.showMenu()"
           @click.stop="tower.showMenu()"
-        ><ChevronLeft :size="19" /></button>
+        ><ChevronLeft :size="19" /></k-button>
         <div><span>{{ phone.t('Apps.towerStack.height') }}</span><strong>{{ game.blocks.length - 1 }}</strong></div>
         <div><span>{{ phone.t('Apps.towerStack.score') }}</span><strong>{{ game.score }}</strong></div>
-        <button type="button" :aria-label="phone.t('Apps.towerStack.pause')" @click="togglePause">
+        <k-button component="button" clear rounded type="button" :aria-label="phone.t('Apps.towerStack.pause')" @click="togglePause">
           <Pause v-if="game.status === 'playing'" :size="17" fill="currentColor" />
           <Play v-else :size="17" fill="currentColor" />
-        </button>
+        </k-button>
       </div>
 
       <button

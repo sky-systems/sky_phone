@@ -5,6 +5,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import { computed, onBeforeUnmount, onMounted, ref, type CSSProperties } from 'vue'
 
 import { playNumberMergeSound } from '@/features/games/number-merge/audio'
@@ -135,7 +136,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
         <span>{{ phone.t('Apps.numberMerge.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.numberMerge.name') }}</h1>
       </div>
-      <button
+      <k-button
+        component="button"
+        clear
+        rounded
         type="button"
         :aria-label="
           phone.t(
@@ -155,7 +159,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
       >
         <Volume2 v-if="numberMerge.soundEnabled" :size="18" aria-hidden="true" />
         <VolumeX v-else :size="18" aria-hidden="true" />
-      </button>
+      </k-button>
     </header>
 
     <section v-if="numberMerge.menuOpen" class="number-merge-menu">
@@ -210,7 +214,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 
     <section v-else-if="game" class="number-merge-game">
       <div class="number-merge-toolbar">
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           class="number-merge-toolbar__icon"
           :aria-label="phone.t('Apps.numberMerge.backToMenu')"
@@ -218,7 +225,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
           @click="numberMerge.showMenu"
         >
           <ChevronLeft :size="19" :stroke-width="2.7" aria-hidden="true" />
-        </button>
+        </k-button>
         <div>
           <span>{{ phone.t('Apps.numberMerge.score') }}</span>
           <strong>{{ formatScore(game.score) }}</strong>
@@ -227,7 +234,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
           <span>{{ phone.t('Apps.numberMerge.best') }}</span>
           <strong>{{ formatScore(numberMerge.bestScore) }}</strong>
         </div>
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           class="number-merge-toolbar__icon number-merge-toolbar__restart"
           :aria-label="phone.t('Apps.numberMerge.newGame')"
@@ -235,7 +245,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
           @click="requestNewGame"
         >
           <RotateCcw :size="17" :stroke-width="2.5" aria-hidden="true" />
-        </button>
+        </k-button>
       </div>
 
       <div

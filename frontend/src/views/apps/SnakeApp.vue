@@ -4,6 +4,7 @@ import {
   Pause,
   Play,
 } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 
 import {
@@ -205,7 +206,10 @@ onBeforeUnmount(() => {
 
     <section v-else class="snake-game">
       <div class="snake-game__meta">
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           class="snake-game__back"
           :aria-label="phone.t('Apps.snake.backToMenu')"
@@ -213,12 +217,15 @@ onBeforeUnmount(() => {
           @click="returnToMenu"
         >
           <ChevronLeft :size="18" :stroke-width="2.7" aria-hidden="true" />
-        </button>
+        </k-button>
         <div>
           <span>{{ phone.t('Apps.snake.score') }}</span>
           <strong>{{ game.score }}</strong>
         </div>
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           v-if="game.status !== 'game-over'"
           type="button"
           class="snake-game__pause"
@@ -233,7 +240,7 @@ onBeforeUnmount(() => {
         >
           <Play v-if="game.status === 'paused'" :size="18" fill="currentColor" />
           <Pause v-else :size="18" fill="currentColor" />
-        </button>
+        </k-button>
       </div>
 
       <div

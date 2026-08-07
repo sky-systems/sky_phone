@@ -2,6 +2,7 @@
 
 <script setup lang="ts">
 import { ChevronLeft, Pause, Play, RotateCcw, Volume2, VolumeX, Wind } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import { computed, onBeforeUnmount, ref, watch, type CSSProperties } from 'vue'
 
 import { playSkyFlappySound } from '@/features/games/sky-flappy/audio'
@@ -116,9 +117,9 @@ onBeforeUnmount(() => {
   >
     <header v-if="flappy.menuOpen" class="flappy-header">
       <div><span>{{ phone.t('Apps.skyFlappy.eyebrow') }}</span><h1>{{ phone.t('Apps.skyFlappy.name') }}</h1></div>
-      <button type="button" :aria-label="phone.t(flappy.soundEnabled ? 'Apps.skyFlappy.mute' : 'Apps.skyFlappy.unmute')" @click="toggleSound">
+      <k-button component="button" clear rounded type="button" :aria-label="phone.t(flappy.soundEnabled ? 'Apps.skyFlappy.mute' : 'Apps.skyFlappy.unmute')" @click="toggleSound">
         <Volume2 v-if="flappy.soundEnabled" :size="18" /><VolumeX v-else :size="18" />
-      </button>
+      </k-button>
     </header>
 
     <section v-if="flappy.menuOpen" class="flappy-menu">
@@ -141,10 +142,10 @@ onBeforeUnmount(() => {
 
     <section v-else-if="game" class="flappy-game">
       <div class="flappy-toolbar">
-        <button type="button" :aria-label="phone.t('Apps.skyFlappy.backToMenu')" @pointerdown.stop="flappy.showMenu()" @click.stop="flappy.showMenu()"><ChevronLeft :size="19" /></button>
+        <k-button component="button" clear rounded type="button" :aria-label="phone.t('Apps.skyFlappy.backToMenu')" @pointerdown.stop="flappy.showMenu()" @click.stop="flappy.showMenu()"><ChevronLeft :size="19" /></k-button>
         <div><span>{{ phone.t('Apps.skyFlappy.score') }}</span><strong>{{ game.score }}</strong></div>
         <div><span>{{ phone.t('Apps.skyFlappy.best') }}</span><strong>{{ flappy.highScore }}</strong></div>
-        <button type="button" :aria-label="phone.t('Apps.skyFlappy.pause')" @click="togglePause"><Pause v-if="game.status === 'playing'" :size="16" fill="currentColor" /><Play v-else :size="16" fill="currentColor" /></button>
+        <k-button component="button" clear rounded type="button" :aria-label="phone.t('Apps.skyFlappy.pause')" @click="togglePause"><Pause v-if="game.status === 'playing'" :size="16" fill="currentColor" /><Play v-else :size="16" fill="currentColor" /></k-button>
       </div>
 
       <button type="button" class="flappy-stage" :class="{ 'flappy-stage--crashed': game.status === 'over' && !gameOverVisible }" :aria-label="phone.t('Apps.skyFlappy.flap')" @pointerdown.stop.prevent="flap">

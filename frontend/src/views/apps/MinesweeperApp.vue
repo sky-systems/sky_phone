@@ -7,6 +7,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import {
   computed,
   onBeforeUnmount,
@@ -208,7 +209,10 @@ onBeforeUnmount(() => {
         <span>{{ phone.t('Apps.minesweeper.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.minesweeper.name') }}</h1>
       </div>
-      <button
+      <k-button
+        component="button"
+        clear
+        rounded
         type="button"
         :aria-label="
           phone.t(
@@ -221,7 +225,7 @@ onBeforeUnmount(() => {
       >
         <Volume2 v-if="minesweeper.soundEnabled" :size="18" aria-hidden="true" />
         <VolumeX v-else :size="18" aria-hidden="true" />
-      </button>
+      </k-button>
     </header>
 
     <section v-if="minesweeper.menuOpen" class="minesweeper-menu">
@@ -275,7 +279,10 @@ onBeforeUnmount(() => {
       }"
     >
       <div class="minesweeper-toolbar">
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           class="minesweeper-toolbar__icon"
           :aria-label="phone.t('Apps.minesweeper.backToMenu')"
@@ -283,7 +290,7 @@ onBeforeUnmount(() => {
           @click.stop="minesweeper.showMenu()"
         >
           <ChevronLeft :size="19" :stroke-width="2.7" aria-hidden="true" />
-        </button>
+        </k-button>
         <div>
           <span>{{ phone.t('Apps.minesweeper.mines') }}</span>
           <strong>{{ minesRemaining }}</strong>
@@ -292,14 +299,17 @@ onBeforeUnmount(() => {
           <span>{{ phone.t('Apps.minesweeper.time') }}</span>
           <strong>{{ formatTime(minesweeper.elapsedMs) }}</strong>
         </div>
-        <button
+        <k-button
+          component="button"
+          clear
+          rounded
           type="button"
           class="minesweeper-toolbar__icon"
           :aria-label="phone.t('Apps.minesweeper.restart')"
           @click="restart"
         >
           <RotateCcw :size="17" :stroke-width="2.5" aria-hidden="true" />
-        </button>
+        </k-button>
       </div>
 
       <div
