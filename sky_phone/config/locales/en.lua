@@ -117,6 +117,32 @@ Locales["en"] = {
                     default = "The phone request failed.",
                 },
             },
+            banking = {
+                name = "Banking", welcome = "Welcome back", totalBalance = "Total Balance", recentPeriod = "in recent activity",
+                actions = "Banking actions", send = "Send",
+                accounts = "Accounts", bankAccount = "Bank account", cash = "Cash",
+                latestTransactions = "Latest Transactions", allTransactions = "All Transactions", viewAll = "View all",
+                noTransactions = "Your banking activity will appear here.", home = "Home", activity = "Activity",
+                chartDaySummary = "{day}: {incoming} incoming, {outgoing} outgoing",
+                navigation = "Banking navigation", incoming = "Incoming", outgoing = "Outgoing",
+                refresh = "Refresh banking data", unavailable = "Banking unavailable", tryAgain = "Try Again",
+                playerId = "Player ID", playerIdPlaceholder = "Enter the recipient ID",
+                amount = "Amount", amountPlaceholder = "Enter an amount",
+                transactions = {
+                    deposit = "Cash deposit", withdrawal = "Cash withdrawal",
+                    transfer_in = "Incoming transfer", transfer_out = "Outgoing transfer",
+                },
+                forms = {
+                    transfer = { title = "Send money", body = "Transfer money from your bank account to an online player.", submit = "Send transfer" },
+                },
+                errors = {
+                    invalid_request = "Enter a valid whole amount and player ID.", insufficient_funds = "There is not enough money in this account.",
+                    target_not_found = "The recipient is not online.", self_transfer = "You cannot send money to yourself.",
+                    rate_limited = "Please wait before making another transaction.", transfer_failed = "The transfer could not be completed.",
+                    banking_unavailable = "Banking is currently unavailable.", request_failed = "The banking request failed.",
+                    default = "The banking request failed.",
+                },
+            },
             calculator = { name = "Calculator" },
             snake = {
                 name = "Snake", backToMenu = "Back to game menu", board = "Snake game board",

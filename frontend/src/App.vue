@@ -23,6 +23,7 @@ import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { useClockStore } from '@/stores/clock'
 import { useGamesStore } from '@/features/games/store'
 import { useCallsStore } from '@/stores/calls'
+import { useBankingStore } from '@/stores/banking'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
 import { useMessagesStore } from '@/stores/messages'
@@ -120,6 +121,7 @@ const account = useAccountStore()
 const clock = useClockStore()
 const games = useGamesStore()
 const calls = useCallsStore()
+const banking = useBankingStore()
 const mail = useMailStore()
 const messages = useMessagesStore()
 const darkchat = useDarkChatStore()
@@ -357,6 +359,8 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     }
   } else if (event.data?.type === 'calls:changed') {
     void calls.loadRecents()
+  } else if (event.data?.type === 'banking:changed') {
+    void banking.load()
   } else if (
     (event.data?.type === 'call:incoming' ||
       event.data?.type === 'call:state') &&

@@ -19,6 +19,7 @@ import {
   Settings,
   ShoppingBag,
   CloudSun,
+  Landmark,
   Wind,
   Tag,
   MapPinHouse,
@@ -46,6 +47,7 @@ import towerStackIcon from '@/assets/img/app-icons/tower-stack.webp'
 import skyFlappyIcon from '@/assets/img/app-icons/sky-flappy.webp'
 import neonDropIcon from '@/assets/img/app-icons/neon-drop.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
+import bankingIcon from '@/assets/img/app-icons/banking.svg'
 import citymarktIcon from '@/assets/img/app-icons/citymarkt.webp'
 import localPagesIcon from '@/assets/img/app-icons/local-pages.webp'
 import type {
@@ -141,6 +143,19 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
   },
   {
     category: 'social',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/BankingApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 5,
+    icon: markRaw(Landmark),
+    iconClass: 'app-icon--banking',
+    iconImage: bankingIcon,
+    id: 'banking',
+    labelKey: 'Apps.banking.name',
+    route: '/apps/banking',
+  },
+  {
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MailApp.vue')),
     ),

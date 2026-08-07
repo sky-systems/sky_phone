@@ -70,6 +70,8 @@ local server_callbacks = {
     "calls:answer",
     "calls:decline",
     "calls:hangup",
+    "banking:overview",
+    "banking:transfer",
     "messages:conversations",
     "messages:thread",
     "messages:send",
@@ -381,6 +383,10 @@ end)
 
 RegisterNetEvent("sky_phone:calls:changed", function()
     SendNUIMessage({ type = "calls:changed" })
+end)
+
+RegisterNetEvent("sky_phone:banking:changed", function()
+    SendNUIMessage({ type = "banking:changed" })
 end)
 
 RegisterNetEvent("sky_phone:messages:changed", function(data)

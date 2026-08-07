@@ -14,8 +14,8 @@ Config.Bridge = {
 Config.Command = "phone"
 
 Config.Phone = {
-    Item = "sky_phone",
-    DevelopmentCommand = false,
+    Item = "phone",
+    DevelopmentCommand = true,
     DeviceName = "iFruit Phone",
 }
 
@@ -80,6 +80,14 @@ Config.Mail = {
     MaxRecipients = 10,
     PageSize = 50,
     AuthAttemptsPerMinute = 5,
+}
+
+Config.Banking = {
+    Currency = "$",
+    MinimumAmount = 1,
+    MaximumAmount = 1000000,
+    ActionsPerMinute = 12,
+    HistoryLimit = 50,
 }
 
 Config.Marketplace = {

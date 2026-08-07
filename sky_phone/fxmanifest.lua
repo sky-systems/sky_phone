@@ -48,6 +48,7 @@ server_scripts {
     'source/server/darkchat.lua',
     'source/server/notes.lua',
     'source/server/mail.lua',
+    'source/server/banking.lua',
     'source/server/marketplace.lua',
     'source/server/pages.lua',
     'source/server/calendar.lua',

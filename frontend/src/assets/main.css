@@ -1663,14 +1663,415 @@ button {
     linear-gradient(165deg, #7897b5 0%, #536d8b 48%, #283c58 100%);
 }
 .weather-navbar {
+  --k-safe-area-top: 46px;
   --tw-bg-opacity: 0;
   position: absolute;
   z-index: 3;
-  top: 46px;
+  top: 0;
   right: 0;
   left: 0;
   background: transparent !important;
   color: #fff;
+}
+
+/* Banking */
+.banking-app {
+  --bank-blue: #2d76ff;
+  --bank-cyan: #57d5ff;
+  --bank-green: #4ee6a4;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 4%, rgb(45 118 255 / 28%), transparent 32%),
+    linear-gradient(160deg, #0c1834 0%, #080d1d 44%, #050710 100%) !important;
+  color: #fff;
+  isolation: isolate;
+}
+
+.banking-app::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 2.4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 2.4%) 1px, transparent 1px);
+  background-size: 42px 42px;
+  content: '';
+  mask-image: linear-gradient(to bottom, #000, transparent 66%);
+}
+
+.banking-app__aurora {
+  position: absolute;
+  z-index: -1;
+  width: 240px;
+  height: 180px;
+  top: 160px;
+  left: -145px;
+  border-radius: 50%;
+  background: #215dea;
+  filter: blur(78px);
+  opacity: 0.2;
+}
+
+.banking-navbar {
+  --k-safe-area-top: 46px;
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  right: 0;
+  left: 0;
+  color: #fff;
+}
+
+.banking-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 108px 17px 112px;
+  scrollbar-width: none;
+}
+
+.banking-scroll::-webkit-scrollbar { display: none; }
+
+.banking-pull-refresh {
+  position: absolute;
+  z-index: 4;
+  top: 78px;
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.banking-pull-refresh.is-visible { opacity: 1; }
+
+.banking-loading,
+.banking-empty {
+  position: absolute;
+  inset: 100px 24px 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: rgb(226 235 255 / 72%);
+  text-align: center;
+}
+
+.banking-empty p {
+  margin: 0 0 8px;
+  color: rgb(208 220 248 / 58%);
+  font-size: 12px;
+}
+
+.banking-balance {
+  padding: 22px 20px 20px;
+  border-radius: 27px;
+}
+
+.banking-balance__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgb(226 235 255 / 67%);
+  font-size: 12px;
+}
+
+.banking-balance__label small {
+  padding: 4px 8px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 99px;
+  background: rgb(0 0 0 / 12%);
+  font-size: 9px;
+}
+
+.banking-balance > strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.055em;
+}
+
+.banking-balance__trend {
+  margin-top: 8px;
+  color: rgb(208 220 248 / 57%);
+  font-size: 10px;
+}
+
+.banking-balance__trend span {
+  margin-right: 4px;
+  color: var(--bank-green);
+  font-weight: 650;
+}
+
+.banking-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+  margin: 13px 0 18px;
+}
+
+.banking-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 64px;
+  padding: 11px 12px;
+  border-radius: 19px;
+  color: rgb(237 243 255 / 82%);
+  font-size: 10px;
+}
+
+.banking-action__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 11px;
+  background: linear-gradient(145deg, rgb(60 129 255 / 34%), rgb(25 54 115 / 25%));
+  color: #8fb8ff;
+}
+
+.banking-action b {
+  font-size: 11px;
+  font-weight: 610;
+}
+
+.banking-action--primary {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+  min-height: 58px;
+  padding: 10px 13px;
+  color: #fff;
+}
+
+.banking-action--primary .banking-action__icon {
+  background: rgb(255 255 255 / 15%);
+  color: #fff;
+}
+
+.banking-action--primary svg:last-child {
+  margin-left: auto;
+  opacity: 0.78;
+}
+
+.banking-action--secondary {
+  justify-content: flex-start;
+}
+
+.banking-card {
+  margin: 0 0 18px !important;
+}
+
+.banking-transaction-card {
+  overflow: hidden;
+}
+
+.banking-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 11px;
+}
+
+.banking-section-title h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 630;
+  letter-spacing: -0.025em;
+}
+
+.banking-section-title > svg { color: rgb(220 232 255 / 43%); }
+
+.banking-section-title button {
+  color: #7ca8ff;
+  font-size: 10px;
+}
+
+.banking-account-list,
+.banking-transaction-list {
+  margin: 0 !important;
+}
+
+.banking-transactions { padding: 0 3px; }
+.banking-transactions--all { margin-top: 18px; }
+
+.banking-transaction-list b {
+  flex: 0 0 auto;
+  color: #f2a0a8;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.banking-transaction-list b.is-incoming { color: var(--bank-green); }
+
+.banking-no-transactions {
+  padding: 24px 12px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 22px;
+  background: rgb(255 255 255 / 3%);
+  color: rgb(213 225 248 / 47%);
+  font-size: 11px;
+  text-align: center;
+}
+
+.banking-activity-hero {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 16px 0 20px;
+  text-align: center;
+}
+
+.banking-activity-hero span {
+  color: rgb(214 225 250 / 55%);
+  font-size: 11px;
+}
+
+.banking-activity-hero strong {
+  margin: 5px 0;
+  color: var(--bank-green);
+  font-size: 31px;
+  font-weight: 590;
+  letter-spacing: -0.045em;
+}
+
+.banking-activity-hero small {
+  color: rgb(214 225 250 / 38%);
+  font-size: 9px;
+}
+
+.banking-chart-card { padding: 18px 14px 15px !important; }
+
+.banking-chart-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  color: rgb(218 229 251 / 50%);
+  font-size: 8px;
+}
+
+.banking-chart-legend span { display: flex; align-items: center; gap: 4px; }
+
+.banking-chart-legend i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #58647f;
+}
+
+.banking-chart-legend i.is-incoming { background: var(--bank-blue); }
+
+.banking-chart {
+  display: grid;
+  height: 145px;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.banking-chart__day {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.banking-chart__day > div {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 116px;
+  gap: 3px;
+}
+
+.banking-chart__day i {
+  width: 7px;
+  min-height: 5px;
+  border-radius: 6px;
+  background: linear-gradient(to top, #343e57, #65718d);
+  transition: height 0.35s ease;
+}
+
+.banking-chart__day i.is-incoming {
+  background: linear-gradient(to top, #1d55d8, #3d87ff);
+  box-shadow: 0 0 14px rgb(45 118 255 / 33%);
+}
+
+.banking-chart__day span {
+  color: rgb(217 227 249 / 45%);
+  font-size: 8px;
+}
+
+.banking-sheet__content {
+  position: relative;
+  width: 100%;
+  padding: 22px 18px 18px;
+}
+
+.banking-modal__close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 8%);
+  color: rgb(226 235 255 / 65%);
+}
+
+.banking-modal__icon {
+  display: grid;
+  width: 45px;
+  height: 45px;
+  place-items: center;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #3c83ff, #1849b6);
+  box-shadow: 0 12px 28px rgb(22 76 196 / 36%), inset 0 1px rgb(255 255 255 / 28%);
+}
+
+.banking-sheet__content h2 {
+  margin: 14px 0 4px;
+  font-size: 20px;
+  letter-spacing: -0.035em;
+}
+
+.banking-sheet__content > p {
+  margin: 0 0 15px;
+  color: rgb(213 225 248 / 52%);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.banking-form-list { margin: 12px 0 0 !important; }
+
+.banking-sheet__content .banking-form-error {
+  margin: 10px 3px 0;
+  color: #ff8b98;
+  font-size: 9px;
+}
+
+.banking-sheet__content > button:last-child { margin-top: 15px; }
+
+.banking-sheet__content > button:last-child > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .weather-navbar::after {
   opacity: 0;

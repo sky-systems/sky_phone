@@ -22,6 +22,23 @@ state with `sky_base`, `sky_jobs_base`, or any other Sky resource.
 Third-party integrations are allowed only when they are part of the phone's own documented design.
 Keep each one explicit and isolated so disabling it does not create an implicit Sky dependency.
 
+## Frontend conventions
+
+- Use Vue 3 Composition API with TypeScript, Pinia for state, and Vue Router for views.
+- Use 2-space indentation, single quotes, PascalCase component names, and kebab-case filenames.
+- All user-facing copy must resolve through the frontend language store and originate in
+  `sky_phone/config/locales/`.
+- The phone intentionally uses Konsta UI's iOS liquid-glass styling. Any `backdrop-filter` or
+  `-webkit-backdrop-filter` prohibition inherited from sibling-resource conventions does not apply
+  anywhere in `sky_phone`; these effects are explicitly allowed here.
+- For every design implementation, prefer Konsta UI's native iOS components (for example Navbar,
+  Tabbar, Sheet, Dialog, List, Card, Button, and Glass) over custom equivalents. Preserve their
+  built-in iOS interaction, motion, active, and glass behavior so the phone feels native; add
+  scoped styling only where the product design requires it.
+- Before creating or substantially changing phone UI, read `docs/konsta-ui/README.md` and the
+  linked project patterns. Treat the installed Konsta package and its Vue type declarations as the
+  API source of truth for the locked version; do not guess props from examples for another version.
+
 ## Working method
 
 1. Trace the real client, server, NUI, config, persistence, and event flow before changing code.
@@ -103,7 +120,8 @@ SetEntityCoords(ped, coords.x, coords.y, coords.z) -- valid with OAL
 
 ## Commits
 
-- Format: `TAG - short imperative summary`.
+- Use the monorepo commit format: `TAG - short imperative summary`.
+- If no monorepo commit convention is available, fall back to the format listed here: `TAG - short imperative summary`.
 - Tags: `ENH`, `ADD`, `FIX`, `DOC`, `BLD`, `PERF`, `CLN`, `TRY`.
 - Keep commits focused and call out required config, SQL, or locale migrations.
 - Stage only files belonging to the task; never use broad staging that captures unrelated work.

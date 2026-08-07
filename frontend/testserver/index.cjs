@@ -20,6 +20,18 @@ function isoTime(offsetMilliseconds) {
 
 let authenticated = true
 let draft = null
+let mockBankBalance = 24787
+let mockCashBalance = 2350
+let nextBankTransactionId = 7
+const mockBankTransactions = [
+  { id: 1, kind: 'transfer_in', amount: 3200, label: 'Sofia Turner', reference: 'mock-1', createdAt: Date.now() - 45 * 60 * 1000 },
+  { id: 2, kind: 'transfer_out', amount: 680, label: 'Vincent Cole', reference: 'mock-2', createdAt: Date.now() - 5 * 60 * 60 * 1000 },
+  { id: 3, kind: 'deposit', amount: 1250, label: '', reference: 'mock-3', createdAt: Date.now() - 25 * 60 * 60 * 1000 },
+  { id: 4, kind: 'transfer_out', amount: 420, label: 'Maya Brooks', reference: 'mock-4', createdAt: Date.now() - 50 * 60 * 60 * 1000 },
+  { id: 5, kind: 'withdrawal', amount: 300, label: '', reference: 'mock-5', createdAt: Date.now() - 76 * 60 * 60 * 1000 },
+  { id: 6, kind: 'transfer_in', amount: 950, label: 'Noah Bennett', reference: 'mock-6', createdAt: Date.now() - 120 * 60 * 60 * 1000 },
+]
+
 let contactSequence = 2
 const contacts = [
   {
@@ -880,6 +892,41 @@ function counts() {
 app.post('/api/:endpoint', (request, response) => {
   console.log(`[NUI] ${request.params.endpoint}`, request.body)
   const endpoint = request.params.endpoint
+  const bankingOverview = () => ({
+    bank: mockBankBalance,
+    cash: mockCashBalance,
+    currency: '$',
+    playerId: 42,
+    playerName: 'Alex Morgan',
+    transactions: mockBankTransactions,
+  })
+  if (endpoint === 'banking:overview') {
+    response.json({ success: true, data: bankingOverview() })
+    return
+  }
+    if (endpoint === 'banking:transfer') {
+    const amount = Number(request.body.amount)
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
+      response.json({ success: false, error: 'invalid_request' })
+      return
+    }
+      if (mockBankBalance < amount) {
+        response.json({ success: false, error: 'insufficient_funds' })
+        return
+      }
+      const kind = 'transfer_out'
+      mockBankBalance -= amount
+    mockBankTransactions.unshift({
+      amount,
+      createdAt: Date.now(),
+      id: nextBankTransactionId++,
+      kind,
+      label: kind === 'transfer_out' ? `Player #${request.body.target}` : '',
+      reference: `mock-${Date.now()}`,
+    })
+    response.json({ success: true, data: bankingOverview() })
+    return
+  }
   if (endpoint === 'weather:get') {
     response.json({
       success: true,

@@ -19,6 +19,18 @@ function Bridge.Framework.GetIdentifier(source)
     return player and player.PlayerData and tostring(player.PlayerData.citizenid) or nil
 end
 
+function Bridge.Framework.GetMoney(source, account)
+    return exports.qbx_core:GetMoney(tonumber(source), account)
+end
+
+function Bridge.Framework.AddMoney(source, account, amount)
+    return exports.qbx_core:AddMoney(tonumber(source), account, amount)
+end
+
+function Bridge.Framework.RemoveMoney(source, account, amount)
+    return exports.qbx_core:RemoveMoney(tonumber(source), account, amount)
+end
+
 local function get_character_info(source)
     local player = get_player(source)
     return player and player.PlayerData and player.PlayerData.charinfo or nil

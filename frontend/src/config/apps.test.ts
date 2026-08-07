@@ -30,6 +30,11 @@ describe('app registry', () => {
       labelKey: 'Apps.weather.name',
       route: '/apps/weather',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'banking')).toMatchObject({
+      gridOrder: 5,
+      labelKey: 'Apps.banking.name',
+      route: '/apps/banking',
+    })
     expect(PHONE_APPS.find((app) => app.id === 'calendar')).toMatchObject({
       gridOrder: 21,
       labelKey: 'Apps.calendar.name',
