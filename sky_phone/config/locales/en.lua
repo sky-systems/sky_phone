@@ -126,7 +126,7 @@ Locales["en"] = {
                 readyBody = "Collect fruit, grow longer, and stay clear of every wall.", readyTitle = "Ready to play?",
                 restart = "Play Again", resume = "Resume game", score = "Score", speed = "Speed",
                 speeds = { fast = "Fast", normal = "Normal", relaxed = "Relaxed" }, start = "Start Game",
-                swipeHint = "Swipe, tap the controls, or use arrow keys / WASD",
+                swipeHint = "Use the arrow keys to steer",
             },
             memory = {
                 name = "Memory", backToMenu = "Back to board selection", board = "Memory card board",
