@@ -91,52 +91,6 @@ Bridge.Callbacks.Register("sky_phone:banking:overview", function(source)
     return { success = true, data = overview(source, identifier) }
 end)
 
-Bridge.Callbacks.Register("sky_phone:banking:deposit", function(source, data)
-    if not SkyPhone.AllowOperation(source, "banking_transaction", Config.Banking.ActionsPerMinute, 60) then
-        return { success = false, error = "rate_limited" }
-    end
-    local identifier, error_response = require_banking_session(source)
-    if not identifier then
-        return error_response
-    end
-    local amount = valid_amount(data and data.amount)
-    if not amount then
-        return { success = false, error = "invalid_request" }
-    end
-    if not Bridge.Framework.RemoveMoney(source, "cash", amount) then
-        return { success = false, error = "insufficient_funds" }
-    end
-    if not Bridge.Framework.AddMoney(source, "bank", amount) then
-        Bridge.Framework.AddMoney(source, "cash", amount)
-        return { success = false, error = "transfer_failed" }
-    end
-    record_transaction(identifier, "deposit", amount, "", "cash-deposit")
-    return { success = true, data = overview(source, identifier) }
-end)
-
-Bridge.Callbacks.Register("sky_phone:banking:withdraw", function(source, data)
-    if not SkyPhone.AllowOperation(source, "banking_transaction", Config.Banking.ActionsPerMinute, 60) then
-        return { success = false, error = "rate_limited" }
-    end
-    local identifier, error_response = require_banking_session(source)
-    if not identifier then
-        return error_response
-    end
-    local amount = valid_amount(data and data.amount)
-    if not amount then
-        return { success = false, error = "invalid_request" }
-    end
-    if not Bridge.Framework.RemoveMoney(source, "bank", amount) then
-        return { success = false, error = "insufficient_funds" }
-    end
-    if not Bridge.Framework.AddMoney(source, "cash", amount) then
-        Bridge.Framework.AddMoney(source, "bank", amount)
-        return { success = false, error = "transfer_failed" }
-    end
-    record_transaction(identifier, "withdrawal", amount, "", "cash-withdrawal")
-    return { success = true, data = overview(source, identifier) }
-end)
-
 Bridge.Callbacks.Register("sky_phone:banking:transfer", function(source, data)
     if not SkyPhone.AllowOperation(source, "banking_transaction", Config.Banking.ActionsPerMinute, 60) then
         return { success = false, error = "rate_limited" }

@@ -35,6 +35,9 @@ Keep each one explicit and isolated so disabling it does not create an implicit 
   Tabbar, Sheet, Dialog, List, Card, Button, and Glass) over custom equivalents. Preserve their
   built-in iOS interaction, motion, active, and glass behavior so the phone feels native; add
   scoped styling only where the product design requires it.
+- Before creating or substantially changing phone UI, read `docs/konsta-ui/README.md` and the
+  linked project patterns. Treat the installed Konsta package and its Vue type declarations as the
+  API source of truth for the locked version; do not guess props from examples for another version.
 
 ## Working method
 

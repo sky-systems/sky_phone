@@ -71,8 +71,6 @@ local server_callbacks = {
     "calls:decline",
     "calls:hangup",
     "banking:overview",
-    "banking:deposit",
-    "banking:withdraw",
     "banking:transfer",
     "messages:conversations",
     "messages:thread",

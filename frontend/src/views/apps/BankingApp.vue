@@ -24,7 +24,6 @@ import {
   CircleDollarSign,
   House,
   Landmark,
-  RefreshCw,
   Send,
   WalletCards,
   X,
@@ -48,6 +47,14 @@ const action = ref<BankingAction | null>(null)
 const amount = ref('')
 const target = ref('')
 const formError = ref('')
+const bankingScroll = ref<HTMLElement | null>(null)
+const isRefreshing = ref(false)
+const pullDistance = ref(0)
+
+const pullThreshold = 56
+let pullStartY = 0
+let isPulling = false
+let wheelRefreshTimeout: ReturnType<typeof setTimeout> | undefined
 
 const transactionIcons: Record<BankingTransactionKind, typeof Send> = {
   deposit: ArrowDownLeft,
@@ -136,6 +143,55 @@ function closeAction(): void {
   action.value = null
 }
 
+async function refresh(): Promise<void> {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  pullDistance.value = pullThreshold
+  await banking.load()
+  isRefreshing.value = false
+  pullDistance.value = 0
+}
+
+function atTop(): boolean {
+  return (bankingScroll.value?.scrollTop ?? 0) <= 0
+}
+
+function startPull(event: TouchEvent): void {
+  if (!atTop() || isRefreshing.value) return
+  pullStartY = event.touches[0]?.clientY ?? 0
+  isPulling = true
+}
+
+function movePull(event: TouchEvent): void {
+  if (!isPulling || isRefreshing.value) return
+  const distance = (event.touches[0]?.clientY ?? pullStartY) - pullStartY
+  if (distance <= 0) {
+    pullDistance.value = 0
+    return
+  }
+  pullDistance.value = Math.min(pullThreshold + 20, distance * 0.45)
+}
+
+function finishPull(): void {
+  if (!isPulling && pullDistance.value === 0) return
+  isPulling = false
+  if (pullDistance.value >= pullThreshold) {
+    void refresh()
+    return
+  }
+  pullDistance.value = 0
+}
+
+function pullWithWheel(event: WheelEvent): void {
+  if (!atTop() || isRefreshing.value || event.deltaY >= 0) return
+  pullDistance.value = Math.min(
+    pullThreshold + 20,
+    pullDistance.value + Math.abs(event.deltaY) * 0.18,
+  )
+  if (wheelRefreshTimeout) clearTimeout(wheelRefreshTimeout)
+  wheelRefreshTimeout = setTimeout(finishPull, 130)
+}
+
 function errorMessage(code: string): string {
   return phone.t(`Apps.banking.errors.${code}`) ===
     `Apps.banking.errors.${code}`
@@ -179,20 +235,7 @@ onMounted(() => void banking.load())
       class="banking-navbar"
       :subtitle="phone.t('Apps.banking.welcome')"
       :title="banking.overview?.playerName ?? phone.t('Common.loading')"
-    >
-      <template #right>
-        <button
-          type="button"
-          class="banking-profile"
-          :aria-label="phone.t('Apps.banking.refresh')"
-          :disabled="banking.isLoading"
-          @click="banking.load()"
-        >
-          <Landmark :size="20" />
-          <RefreshCw v-if="banking.isLoading" class="banking-spin" :size="10" />
-        </button>
-      </template>
-    </k-navbar>
+    />
 
     <div v-if="!banking.overview && banking.isLoading" class="banking-loading">
       <k-preloader />
@@ -208,7 +251,23 @@ onMounted(() => void banking.load())
       </k-button>
     </div>
 
-    <div v-else class="banking-scroll">
+    <div
+      v-else
+      ref="bankingScroll"
+      class="banking-scroll"
+      @touchend="finishPull"
+      @touchmove.passive="movePull"
+      @touchstart.passive="startPull"
+      @wheel="pullWithWheel"
+    >
+      <div
+        class="banking-pull-refresh"
+        :class="{ 'is-visible': pullDistance > 0 }"
+        :style="{ transform: `translateY(${pullDistance - pullThreshold}px)` }"
+        aria-live="polite"
+      >
+        <k-preloader />
+      </div>
       <template v-if="activeTab === 'home'">
         <k-glass class="banking-balance">
           <div class="banking-balance__label">
@@ -232,24 +291,6 @@ onMounted(() => void banking.load())
             <span class="banking-action__icon"><Send :size="20" /></span>
             <b>{{ phone.t('Apps.banking.send') }}</b>
             <ChevronRight :size="16" aria-hidden="true" />
-          </k-glass>
-          <k-glass
-            component="button"
-            type="button"
-            class="banking-action banking-action--secondary"
-            @click="openAction('deposit')"
-          >
-            <span class="banking-action__icon"><ArrowDownLeft :size="20" /></span>
-            <b>{{ phone.t('Apps.banking.deposit') }}</b>
-          </k-glass>
-          <k-glass
-            component="button"
-            type="button"
-            class="banking-action banking-action--secondary"
-            @click="openAction('withdraw')"
-          >
-            <span class="banking-action__icon"><ArrowUpRight :size="20" /></span>
-            <b>{{ phone.t('Apps.banking.withdraw') }}</b>
           </k-glass>
         </section>
 
@@ -404,15 +445,12 @@ onMounted(() => void banking.load())
           <X :size="17" />
         </button>
         <span class="banking-modal__icon">
-          <Send v-if="action === 'transfer'" :size="23" />
-          <ArrowDownLeft v-else-if="action === 'deposit'" :size="23" />
-          <ArrowUpRight v-else :size="23" />
+          <Send :size="23" />
         </span>
         <h2>{{ phone.t(`Apps.banking.forms.${action}.title`) }}</h2>
         <p>{{ phone.t(`Apps.banking.forms.${action}.body`) }}</p>
         <k-list inset strong class="banking-form-list">
           <k-list-input
-            v-if="action === 'transfer'"
             :label="phone.t('Apps.banking.playerId')"
             inputmode="numeric"
             min="1"

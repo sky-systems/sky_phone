@@ -1724,32 +1724,6 @@ button {
   color: #fff;
 }
 
-.banking-profile {
-  position: relative;
-  display: grid;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  background: transparent;
-  color: #dce9ff;
-}
-
-.banking-profile .banking-spin {
-  position: absolute;
-  right: -2px;
-  bottom: -2px;
-  padding: 3px;
-  border-radius: 50%;
-  background: var(--bank-blue);
-  box-sizing: content-box;
-}
-
-.banking-spin { animation: banking-spin 0.75s linear infinite; }
-
-@keyframes banking-spin { to { transform: rotate(360deg); } }
-
 .banking-scroll {
   position: absolute;
   inset: 0;
@@ -1760,6 +1734,23 @@ button {
 }
 
 .banking-scroll::-webkit-scrollbar { display: none; }
+
+.banking-pull-refresh {
+  position: absolute;
+  z-index: 4;
+  top: 78px;
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.banking-pull-refresh.is-visible { opacity: 1; }
 
 .banking-loading,
 .banking-empty {

@@ -216,8 +216,6 @@ const defaultLocales: LocaleTree = {
       recentPeriod: 'in recent activity',
       actions: 'Banking actions',
       send: 'Send',
-      deposit: 'Deposit',
-      withdraw: 'Withdraw',
       accounts: 'Accounts',
       bankAccount: 'Bank account',
       cash: 'Cash',
@@ -248,16 +246,6 @@ const defaultLocales: LocaleTree = {
           title: 'Send money',
           body: 'Transfer money from your bank account to an online player.',
           submit: 'Send transfer',
-        },
-        deposit: {
-          title: 'Deposit cash',
-          body: 'Move cash from your wallet into your bank account.',
-          submit: 'Deposit cash',
-        },
-        withdraw: {
-          title: 'Withdraw cash',
-          body: 'Move money from your bank account into your wallet.',
-          submit: 'Withdraw cash',
         },
       },
       errors: {

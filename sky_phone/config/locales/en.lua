@@ -119,7 +119,7 @@ Locales["en"] = {
             },
             banking = {
                 name = "Banking", welcome = "Welcome back", totalBalance = "Total Balance", recentPeriod = "in recent activity",
-                actions = "Banking actions", send = "Send", deposit = "Deposit", withdraw = "Withdraw",
+                actions = "Banking actions", send = "Send",
                 accounts = "Accounts", bankAccount = "Bank account", cash = "Cash",
                 latestTransactions = "Latest Transactions", allTransactions = "All Transactions", viewAll = "View all",
                 noTransactions = "Your banking activity will appear here.", home = "Home", activity = "Activity",
@@ -133,8 +133,6 @@ Locales["en"] = {
                 },
                 forms = {
                     transfer = { title = "Send money", body = "Transfer money from your bank account to an online player.", submit = "Send transfer" },
-                    deposit = { title = "Deposit cash", body = "Move cash from your wallet into your bank account.", submit = "Deposit cash" },
-                    withdraw = { title = "Withdraw cash", body = "Move money from your bank account into your wallet.", submit = "Withdraw cash" },
                 },
                 errors = {
                     invalid_request = "Enter a valid whole amount and player ID.", insufficient_funds = "There is not enough money in this account.",

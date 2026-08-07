@@ -55,7 +55,7 @@ describe('banking store', () => {
     const banking = useBankingStore()
     banking.overview = overview
 
-    await banking.perform('withdraw', 50000)
+    await banking.perform('transfer', 50000, 17)
 
     expect(banking.overview).toEqual(overview)
     expect(banking.error).toBe('insufficient_funds')

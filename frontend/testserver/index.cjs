@@ -904,38 +904,18 @@ app.post('/api/:endpoint', (request, response) => {
     response.json({ success: true, data: bankingOverview() })
     return
   }
-  if (
-    endpoint === 'banking:deposit' ||
-    endpoint === 'banking:withdraw' ||
-    endpoint === 'banking:transfer'
-  ) {
+    if (endpoint === 'banking:transfer') {
     const amount = Number(request.body.amount)
     if (!Number.isSafeInteger(amount) || amount <= 0) {
       response.json({ success: false, error: 'invalid_request' })
       return
     }
-    if (endpoint === 'banking:deposit' && mockCashBalance < amount) {
-      response.json({ success: false, error: 'insufficient_funds' })
-      return
-    }
-    if (endpoint !== 'banking:deposit' && mockBankBalance < amount) {
-      response.json({ success: false, error: 'insufficient_funds' })
-      return
-    }
-    const kind = endpoint === 'banking:deposit'
-      ? 'deposit'
-      : endpoint === 'banking:withdraw'
-        ? 'withdrawal'
-        : 'transfer_out'
-    if (kind === 'deposit') {
-      mockCashBalance -= amount
-      mockBankBalance += amount
-    } else if (kind === 'withdrawal') {
+      if (mockBankBalance < amount) {
+        response.json({ success: false, error: 'insufficient_funds' })
+        return
+      }
+      const kind = 'transfer_out'
       mockBankBalance -= amount
-      mockCashBalance += amount
-    } else {
-      mockBankBalance -= amount
-    }
     mockBankTransactions.unshift({
       amount,
       createdAt: Date.now(),

@@ -22,4 +22,4 @@ export type BankingOverview = {
   transactions: BankingTransaction[]
 }
 
-export type BankingAction = 'deposit' | 'withdraw' | 'transfer'
+export type BankingAction = 'transfer'
