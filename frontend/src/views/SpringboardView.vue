@@ -10,10 +10,9 @@ import { useAppStoreStore } from '@/stores/app-store'
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppCategory, PhoneAppDefinition } from '@/types/apps'
 import type { LaunchablePhoneAppId } from '@/types/apps'
-import type { HomeArea } from '@/utils/homeLayout'
+import { HOME_GRID_PAGE_SIZE, type HomeArea } from '@/utils/homeLayout'
 import { paginateItems } from '@/utils/pages'
 
-const APPS_PER_HOME_PAGE = 20
 const APP_LIBRARY_CATEGORIES: PhoneAppCategory[] = [
   'games',
   'productivity',
@@ -44,25 +43,23 @@ const installedApps = computed(() =>
 const installedAppsById = computed(
   () => new Map(installedApps.value.map((app) => [app.id, app])),
 )
-const gridApps = computed(() =>
-  appStore.homeLayout.grid.flatMap((id) => {
-    const app = installedAppsById.value.get(id)
-    return app ? [app] : []
-  }),
+const gridSlots = computed(() =>
+  appStore.homeLayout.grid.map((id) =>
+    id ? (installedAppsById.value.get(id) ?? null) : null,
+  ),
 )
 const appPages = computed(() =>
-  paginateItems(gridApps.value, APPS_PER_HOME_PAGE),
+  paginateItems(gridSlots.value, HOME_GRID_PAGE_SIZE),
 )
 const pageCount = computed(() => appPages.value.length + 2)
 const libraryPage = computed(() => pageCount.value - 1)
 const isAppPage = computed(
   () => phone.currentPage > 0 && phone.currentPage < libraryPage.value,
 )
-const dockApps = computed(() =>
-  appStore.homeLayout.dock.flatMap((id) => {
-    const app = installedAppsById.value.get(id)
-    return app ? [app] : []
-  }),
+const dockSlots = computed(() =>
+  appStore.homeLayout.dock.map((id) =>
+    id ? (installedAppsById.value.get(id) ?? null) : null,
+  ),
 )
 const filteredApps = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase(phone.lang)
@@ -240,19 +237,33 @@ watch(isAppPage, (visible) => {
         :aria-label="phone.t('Home.apps')"
       >
         <div class="app-grid" data-home-area="grid">
-          <AppIcon
+          <template
             v-for="(app, appIndex) in apps"
-            :key="app.id"
-            :app="app"
-            data-home-area="grid"
-            :data-home-index="pageIndex * APPS_PER_HOME_PAGE + appIndex"
-            :edit-mode="editMode"
-            @dragcancel="stopHomeDrag"
-            @dragend="finishHomeDrag"
-            @dragstart="startHomeDrag(app.id, 'grid')"
-            @edit="enterEditMode"
-            @remove="removeHomeApp(app.id)"
-          />
+            :key="
+              app?.id ??
+              `grid-empty-${pageIndex * HOME_GRID_PAGE_SIZE + appIndex}`
+            "
+          >
+            <AppIcon
+              v-if="app"
+              :app="app"
+              data-home-area="grid"
+              :data-home-index="pageIndex * HOME_GRID_PAGE_SIZE + appIndex"
+              :edit-mode="editMode"
+              @dragcancel="stopHomeDrag"
+              @dragend="finishHomeDrag"
+              @dragstart="startHomeDrag(app.id, 'grid')"
+              @edit="enterEditMode"
+              @remove="removeHomeApp(app.id)"
+            />
+            <div
+              v-else
+              class="app-grid-slot"
+              data-home-area="grid"
+              :data-home-index="pageIndex * HOME_GRID_PAGE_SIZE + appIndex"
+              aria-hidden="true"
+            ></div>
+          </template>
         </div>
       </section>
 
@@ -368,20 +379,31 @@ watch(isAppPage, (visible) => {
         :aria-label="phone.t('Home.dock')"
         data-home-area="dock"
       >
-        <AppIcon
-          v-for="(app, appIndex) in dockApps"
-          :key="app.id"
-          :app="app"
-          data-home-area="dock"
-          :data-home-index="appIndex"
-          :edit-mode="editMode"
-          :show-label="false"
-          @dragcancel="stopHomeDrag"
-          @dragend="finishHomeDrag"
-          @dragstart="startHomeDrag(app.id, 'dock')"
-          @edit="enterEditMode"
-          @remove="removeHomeApp(app.id)"
-        />
+        <template
+          v-for="(app, appIndex) in dockSlots"
+          :key="app?.id ?? `dock-empty-${appIndex}`"
+        >
+          <AppIcon
+            v-if="app"
+            :app="app"
+            data-home-area="dock"
+            :data-home-index="appIndex"
+            :edit-mode="editMode"
+            :show-label="false"
+            @dragcancel="stopHomeDrag"
+            @dragend="finishHomeDrag"
+            @dragstart="startHomeDrag(app.id, 'dock')"
+            @edit="enterEditMode"
+            @remove="removeHomeApp(app.id)"
+          />
+          <div
+            v-else
+            class="app-dock-slot"
+            data-home-area="dock"
+            :data-home-index="appIndex"
+            aria-hidden="true"
+          ></div>
+        </template>
       </nav>
     </Transition>
 

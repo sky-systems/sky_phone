@@ -1017,6 +1017,9 @@ button {
   grid-template-columns: repeat(4, 1fr);
   gap: 28px 15px;
 }
+.app-grid-slot {
+  min-height: 73px;
+}
 .app-icon-item {
   position: relative;
   min-width: 0;
@@ -1171,6 +1174,10 @@ button {
     0 8px 28px #0004;
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+.app-dock-slot {
+  min-width: 0;
+  height: 56px;
 }
 .springboard-edit-done {
   position: absolute;

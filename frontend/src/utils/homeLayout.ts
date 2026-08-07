@@ -1,19 +1,22 @@
 import type { LaunchablePhoneAppId } from '@/types/apps'
 
 export const HOME_DOCK_CAPACITY = 4
+export const HOME_GRID_PAGE_SIZE = 20
+const MAX_HOME_GRID_PAGES = 5
 
 export type HomeArea = 'dock' | 'grid'
+export type HomeSlot = LaunchablePhoneAppId | null
 
 export type HomeLayout = {
-  dock: LaunchablePhoneAppId[]
-  grid: LaunchablePhoneAppId[]
+  dock: HomeSlot[]
+  grid: HomeSlot[]
   hidden: LaunchablePhoneAppId[]
+  version: 2
 }
 
 function readAppIds(
   value: unknown,
   availableIds: Set<LaunchablePhoneAppId>,
-  maximum = Number.POSITIVE_INFINITY,
 ): LaunchablePhoneAppId[] {
   if (!Array.isArray(value)) return []
 
@@ -26,9 +29,56 @@ function readAppIds(
     ) {
       ids.push(valueId as LaunchablePhoneAppId)
     }
-    if (ids.length === maximum) break
   }
   return ids
+}
+
+function createSlots(length: number): HomeSlot[] {
+  return Array.from({ length }, () => null)
+}
+
+function getGridCapacity(itemCount: number): number {
+  return Math.max(
+    HOME_GRID_PAGE_SIZE,
+    Math.ceil(itemCount / HOME_GRID_PAGE_SIZE) * HOME_GRID_PAGE_SIZE,
+  )
+}
+
+function readSlots(
+  value: unknown,
+  availableIds: Set<LaunchablePhoneAppId>,
+  length: number,
+): HomeSlot[] {
+  const slots = createSlots(length)
+  if (!Array.isArray(value)) return slots
+
+  const usedIds = new Set<LaunchablePhoneAppId>()
+  for (let index = 0; index < Math.min(value.length, length); index += 1) {
+    const valueId = value[index]
+    if (
+      typeof valueId === 'string' &&
+      availableIds.has(valueId as LaunchablePhoneAppId) &&
+      !usedIds.has(valueId as LaunchablePhoneAppId)
+    ) {
+      slots[index] = valueId as LaunchablePhoneAppId
+      usedIds.add(valueId as LaunchablePhoneAppId)
+    }
+  }
+  return slots
+}
+
+function placeInFirstEmptySlot(
+  slots: HomeSlot[],
+  appId: LaunchablePhoneAppId,
+): void {
+  const emptyIndex = slots.indexOf(null)
+  if (emptyIndex !== -1) {
+    slots[emptyIndex] = appId
+    return
+  }
+
+  slots.push(...createSlots(HOME_GRID_PAGE_SIZE))
+  slots[slots.length - HOME_GRID_PAGE_SIZE] = appId
 }
 
 export function createDefaultHomeLayout(
@@ -37,13 +87,21 @@ export function createDefaultHomeLayout(
   defaultDockIds: LaunchablePhoneAppId[],
 ): HomeLayout {
   const installed = new Set(installedIds)
-  return {
-    dock: defaultDockIds
-      .filter((id) => installed.has(id))
-      .slice(0, HOME_DOCK_CAPACITY),
-    grid: defaultGridIds.filter((id) => installed.has(id)),
-    hidden: [],
+  const gridIds = defaultGridIds.filter((id) => installed.has(id))
+  const grid = createSlots(getGridCapacity(gridIds.length))
+  for (let index = 0; index < gridIds.length; index += 1) {
+    grid[index] = gridIds[index]
   }
+
+  const dock = createSlots(HOME_DOCK_CAPACITY)
+  for (const [index, id] of defaultDockIds
+    .filter((id) => installed.has(id))
+    .slice(0, HOME_DOCK_CAPACITY)
+    .entries()) {
+    dock[index] = id
+  }
+
+  return { dock, grid, hidden: [], version: 2 }
 }
 
 export function parseHomeLayout(
@@ -57,28 +115,48 @@ export function parseHomeLayout(
   const availableIds = new Set(installedIds)
   const hidden = readAppIds(source.hidden, availableIds)
   const hiddenIds = new Set(hidden)
-  const dock = readAppIds(source.dock, availableIds, HOME_DOCK_CAPACITY).filter(
-    (id) => !hiddenIds.has(id),
+  const persistedGridLength = Array.isArray(source.grid)
+    ? Math.min(source.grid.length, HOME_GRID_PAGE_SIZE * MAX_HOME_GRID_PAGES)
+    : 0
+  const gridLength = Math.max(
+    defaults.grid.length,
+    getGridCapacity(persistedGridLength),
   )
-  const grid = readAppIds(source.grid, availableIds).filter(
-    (id) => !hiddenIds.has(id),
+  let grid: HomeSlot[]
+  let dock: HomeSlot[]
+
+  if (source.version === 2) {
+    grid = readSlots(source.grid, availableIds, gridLength)
+    dock = readSlots(source.dock, availableIds, HOME_DOCK_CAPACITY)
+  } else {
+    grid = createSlots(gridLength)
+    for (const id of readAppIds(source.grid, availableIds)) {
+      placeInFirstEmptySlot(grid, id)
+    }
+    dock = createSlots(HOME_DOCK_CAPACITY)
+    for (const [index, id] of readAppIds(source.dock, availableIds)
+      .slice(0, HOME_DOCK_CAPACITY)
+      .entries()) {
+      dock[index] = id
+    }
+  }
+
+  grid = grid.map((id) => (id && !hiddenIds.has(id) ? id : null))
+  dock = dock.map((id) => (id && !hiddenIds.has(id) ? id : null))
+  const placedIds = new Set(
+    [...grid, ...dock, ...hidden].filter(
+      (id): id is LaunchablePhoneAppId => id !== null,
+    ),
   )
-  const placedIds = new Set([...dock, ...grid, ...hidden])
 
   for (const id of defaults.grid) {
-    if (!placedIds.has(id)) {
-      grid.push(id)
-      placedIds.add(id)
-    }
-  }
-  for (const id of defaults.dock) {
-    if (!placedIds.has(id) && dock.length < HOME_DOCK_CAPACITY) {
-      dock.push(id)
+    if (id && !placedIds.has(id)) {
+      placeInFirstEmptySlot(grid, id)
       placedIds.add(id)
     }
   }
 
-  return { dock, grid, hidden }
+  return { dock, grid, hidden, version: 2 }
 }
 
 export function removeHomeApp(
@@ -86,11 +164,12 @@ export function removeHomeApp(
   appId: LaunchablePhoneAppId,
 ): HomeLayout {
   return {
-    dock: layout.dock.filter((id) => id !== appId),
-    grid: layout.grid.filter((id) => id !== appId),
+    dock: layout.dock.map((id) => (id === appId ? null : id)),
+    grid: layout.grid.map((id) => (id === appId ? null : id)),
     hidden: layout.hidden.includes(appId)
       ? [...layout.hidden]
       : [...layout.hidden, appId],
+    version: 2,
   }
 }
 
@@ -99,10 +178,13 @@ export function restoreHomeApp(
   appId: LaunchablePhoneAppId,
 ): HomeLayout {
   if (layout.grid.includes(appId) || layout.dock.includes(appId)) return layout
+  const grid = [...layout.grid]
+  placeInFirstEmptySlot(grid, appId)
   return {
     dock: [...layout.dock],
-    grid: [...layout.grid, appId],
+    grid,
     hidden: layout.hidden.filter((id) => id !== appId),
+    version: 2,
   }
 }
 
@@ -117,30 +199,34 @@ export function moveHomeApp(
     dock: [...layout.dock],
     grid: [...layout.grid],
     hidden: layout.hidden.filter((id) => id !== appId),
+    version: 2,
   }
   const source = next[from]
   const sourceIndex = source.indexOf(appId)
-  if (sourceIndex === -1) return layout
-
-  source.splice(sourceIndex, 1)
   const target = next[to]
-  const duplicateIndex = target.indexOf(appId)
-  if (duplicateIndex !== -1) target.splice(duplicateIndex, 1)
+  if (sourceIndex === -1 || targetIndex < 0 || targetIndex >= target.length) {
+    return layout
+  }
 
-  const insertionIndex = Math.max(0, Math.min(targetIndex, target.length))
-  if (to === 'dock' && target.length >= HOME_DOCK_CAPACITY) {
-    const displacedIndex = Math.min(insertionIndex, target.length - 1)
-    const [displacedApp] = target.splice(displacedIndex, 1, appId)
-    if (
-      from === 'grid' &&
-      displacedApp !== undefined &&
-      !source.includes(displacedApp)
-    ) {
-      source.splice(Math.min(sourceIndex, source.length), 0, displacedApp)
-    }
+  if (from === to) {
+    const displacedApp = source[targetIndex]
+    source[targetIndex] = appId
+    source[sourceIndex] = displacedApp
     return next
   }
 
-  target.splice(insertionIndex, 0, appId)
+  const duplicateIndex = target.indexOf(appId)
+  if (duplicateIndex !== -1) {
+    target[duplicateIndex] = null
+  }
+
+  const displacedApp = target[targetIndex]
+  source[sourceIndex] =
+    displacedApp &&
+    displacedApp !== appId &&
+    !source.some((id, index) => id === displacedApp && index !== sourceIndex)
+      ? displacedApp
+      : null
+  target[targetIndex] = appId
   return next
 }
