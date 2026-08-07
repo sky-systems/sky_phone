@@ -72,6 +72,31 @@ describe('app store', () => {
     expect(mocks.saveDeviceNamespace).toHaveBeenCalledTimes(1)
   })
 
+  it('reinstalls core and claimed apps removed from the Home Screen', () => {
+    vi.useFakeTimers()
+    const apps = useAppStoreStore()
+
+    apps.hydrate({ claimedApps: ['memory'] })
+    apps.removeHomeApp('mail')
+    apps.removeHomeApp('memory')
+    mocks.saveDeviceNamespace.mockClear()
+
+    apps.installApp('mail')
+    apps.installApp('memory')
+
+    expect(apps.installingApps).toEqual({ mail: true, memory: true })
+    expect(apps.homeLayout.hidden).toEqual(['mail', 'memory'])
+
+    vi.advanceTimersByTime(3000)
+
+    expect(apps.installingApps).toEqual({})
+    expect(apps.homeLayout.hidden).toEqual([])
+    expect(apps.homeLayout.grid).toContain('mail')
+    expect(apps.homeLayout.grid).toContain('memory')
+    expect(apps.claimedApps).toEqual(['memory'])
+    expect(mocks.saveDeviceNamespace).toHaveBeenCalledTimes(2)
+  })
+
   it('persists home reordering and removal independently from installation', () => {
     const apps = useAppStoreStore()
     apps.hydrate(null)

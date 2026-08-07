@@ -9,16 +9,22 @@ import {
 } from 'konsta/vue'
 import { Gamepad2, Grid2X2, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { PHONE_APPS } from '@/config/apps'
 import { useAppStoreStore } from '@/stores/app-store'
 import { usePhoneStore } from '@/stores/phone'
-import type { LaunchablePhoneAppDefinition } from '@/types/apps'
+import type {
+  LaunchablePhoneAppDefinition,
+  LaunchablePhoneAppId,
+} from '@/types/apps'
 
 const phone = usePhoneStore()
 const appStore = useAppStoreStore()
+const router = useRouter()
 const tab = ref<'apps' | 'games' | 'search'>('apps')
 const query = ref('')
+const installedDuringVisit = ref<LaunchablePhoneAppId[]>([])
 const tabs = [
   { id: 'apps', icon: Grid2X2 },
   { id: 'games', icon: Gamepad2 },
@@ -28,13 +34,23 @@ const tabBarColors = {
   strongHighlightBgIos: 'bg-[#e5e5ea] dark:bg-[#2c2c2e]',
 }
 const catalog = computed(() =>
-  PHONE_APPS.filter(
-    (app): app is LaunchablePhoneAppDefinition =>
-      app.component !== null &&
-      app.route !== null &&
-      app.category === 'games' &&
-      !appStore.claimedApps.includes(app.id),
-  ).sort((a, b) => a.gridOrder - b.gridOrder),
+  PHONE_APPS.filter((app): app is LaunchablePhoneAppDefinition => {
+    if (
+      app.component === null ||
+      app.route === null ||
+      app.id === 'app-store'
+    ) {
+      return false
+    }
+
+    const installed =
+      app.category !== 'games' || appStore.claimedApps.includes(app.id)
+    return (
+      !installed ||
+      appStore.homeLayout.hidden.includes(app.id) ||
+      installedDuringVisit.value.includes(app.id)
+    )
+  }).sort((a, b) => a.gridOrder - b.gridOrder),
 )
 const shownApps = computed(() => {
   if (tab.value === 'games') {
@@ -55,7 +71,33 @@ function updateSearch(event: Event): void {
   query.value = (event.target as HTMLInputElement).value
 }
 
-function installApp(app: LaunchablePhoneAppDefinition): void {
+function appAction(
+  app: LaunchablePhoneAppDefinition,
+): 'get' | 'installing' | 'open' {
+  if (appStore.installingApps[app.id]) return 'installing'
+
+  const installed =
+    app.category !== 'games' || appStore.claimedApps.includes(app.id)
+  if (
+    installed &&
+    !appStore.homeLayout.hidden.includes(app.id) &&
+    installedDuringVisit.value.includes(app.id)
+  ) {
+    return 'open'
+  }
+
+  return 'get'
+}
+
+function handleApp(app: LaunchablePhoneAppDefinition): void {
+  if (appAction(app) === 'open') {
+    void router.push(app.route)
+    return
+  }
+
+  if (!installedDuringVisit.value.includes(app.id)) {
+    installedDuringVisit.value.push(app.id)
+  }
   appStore.installApp(app.id)
 }
 </script>
@@ -95,18 +137,16 @@ function installApp(app: LaunchablePhoneAppDefinition): void {
             type="button"
             :disabled="appStore.installingApps[app.id]"
             :aria-label="`${phone.t(app.labelKey)} ${phone.t(
-              appStore.installingApps[app.id]
-                ? 'Apps.appStore.installing'
-                : 'Apps.appStore.get',
+              `Apps.appStore.${appAction(app)}`,
             )}`"
-            @click="installApp(app)"
+            @click="handleApp(app)"
           >
             <k-preloader
               v-if="appStore.installingApps[app.id]"
               class="store-installing"
             />
             <template v-else>
-              {{ phone.t('Apps.appStore.get') }}
+              {{ phone.t(`Apps.appStore.${appAction(app)}`) }}
             </template>
           </button>
         </article>

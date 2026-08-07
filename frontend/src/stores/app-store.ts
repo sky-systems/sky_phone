@@ -43,11 +43,22 @@ export const useAppStoreStore = defineStore('app-store', {
       }
     },
     installApp(id: LaunchablePhoneAppId): void {
-      if (this.claimedApps.includes(id) || this.installingApps[id]) return
+      const installed =
+        CORE_APP_IDS.includes(id) || this.claimedApps.includes(id)
+      if (
+        this.installingApps[id] ||
+        (installed && !this.homeLayout.hidden.includes(id))
+      ) {
+        return
+      }
 
       this.installingApps[id] = true
       globalThis.setTimeout(() => {
-        this.claimApp(id)
+        if (CORE_APP_IDS.includes(id) || this.claimedApps.includes(id)) {
+          this.restoreHomeApp(id)
+        } else {
+          this.claimApp(id)
+        }
         delete this.installingApps[id]
       }, INSTALL_DURATION_MS)
     },
