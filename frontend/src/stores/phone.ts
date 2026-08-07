@@ -225,6 +225,7 @@ const defaultLocales: LocaleTree = {
       noTransactions: 'Your banking activity will appear here.',
       home: 'Home',
       activity: 'Activity',
+      chartDaySummary: '{day}: {incoming} incoming, {outgoing} outgoing',
       navigation: 'Banking navigation',
       incoming: 'Incoming',
       outgoing: 'Outgoing',

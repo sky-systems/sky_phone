@@ -123,6 +123,7 @@ Locales["en"] = {
                 accounts = "Accounts", bankAccount = "Bank account", cash = "Cash",
                 latestTransactions = "Latest Transactions", allTransactions = "All Transactions", viewAll = "View all",
                 noTransactions = "Your banking activity will appear here.", home = "Home", activity = "Activity",
+                chartDaySummary = "{day}: {incoming} incoming, {outgoing} outgoing",
                 navigation = "Banking navigation", incoming = "Incoming", outgoing = "Outgoing",
                 refresh = "Refresh banking data", unavailable = "Banking unavailable", tryAgain = "Try Again",
                 playerId = "Player ID", playerIdPlaceholder = "Enter the recipient ID",

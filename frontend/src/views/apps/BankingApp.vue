@@ -4,6 +4,7 @@ import {
   kCard,
   kGlass,
   kIcon,
+  kLink,
   kList,
   kListInput,
   kListItem,
@@ -28,7 +29,7 @@ import {
   WalletCards,
   X,
 } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { useBankingStore } from '@/stores/banking'
 import { usePhoneStore } from '@/stores/phone'
@@ -55,6 +56,7 @@ const pullThreshold = 56
 let pullStartY = 0
 let isPulling = false
 let wheelRefreshTimeout: ReturnType<typeof setTimeout> | undefined
+let previousFocus: HTMLElement | null = null
 
 const transactionIcons: Record<BankingTransactionKind, typeof Send> = {
   deposit: ArrowDownLeft,
@@ -143,6 +145,24 @@ function closeAction(): void {
   action.value = null
 }
 
+function updateTarget(event: Event): void {
+  if (!(event.target instanceof HTMLInputElement)) {
+    console.error('[banking] Player ID input emitted without an input target.')
+    return
+  }
+  target.value = event.target.value
+  formError.value = ''
+}
+
+function updateAmount(event: Event): void {
+  if (!(event.target instanceof HTMLInputElement)) {
+    console.error('[banking] Amount input emitted without an input target.')
+    return
+  }
+  amount.value = event.target.value
+  formError.value = ''
+}
+
 async function refresh(): Promise<void> {
   if (isRefreshing.value) return
   isRefreshing.value = true
@@ -192,6 +212,40 @@ function pullWithWheel(event: WheelEvent): void {
   wheelRefreshTimeout = setTimeout(finishPull, 130)
 }
 
+function focusableSheetElements(): HTMLElement[] {
+  const sheet = document.querySelector<HTMLElement>('.banking-sheet__content')
+  if (!sheet) return []
+  return Array.from(
+    sheet.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), input:not(:disabled), [href], [tabindex]:not([tabindex="-1"])',
+    ),
+  )
+}
+
+function handleSheetKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeAction()
+    return
+  }
+  if (event.key !== 'Tab') return
+
+  const focusable = focusableSheetElements()
+  if (!focusable.length) {
+    event.preventDefault()
+    return
+  }
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 function errorMessage(code: string): string {
   return phone.t(`Apps.banking.errors.${code}`) ===
     `Apps.banking.errors.${code}`
@@ -221,6 +275,24 @@ async function submitAction(): Promise<void> {
 }
 
 onMounted(() => void banking.load())
+
+watch(action, async (currentAction) => {
+  if (currentAction) {
+    previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+    await nextTick()
+    document.getElementById('banking-transfer-target')?.focus()
+    return
+  }
+  previousFocus?.focus()
+  previousFocus = null
+})
+
+onBeforeUnmount(() => {
+  if (wheelRefreshTimeout) clearTimeout(wheelRefreshTimeout)
+  previousFocus?.focus()
+})
 </script>
 
 <template>
@@ -233,16 +305,28 @@ onMounted(() => void banking.load())
 
     <k-navbar
       class="banking-navbar"
+      :aria-hidden="Boolean(action)"
+      :inert="Boolean(action)"
       :subtitle="phone.t('Apps.banking.welcome')"
       :title="banking.overview?.playerName ?? phone.t('Common.loading')"
     />
 
-    <div v-if="!banking.overview && banking.isLoading" class="banking-loading">
+    <div
+      v-if="!banking.overview && banking.isLoading"
+      class="banking-loading"
+      :aria-hidden="Boolean(action)"
+      :inert="Boolean(action)"
+    >
       <k-preloader />
       <span>{{ phone.t('Common.loading') }}</span>
     </div>
 
-    <div v-else-if="!banking.overview" class="banking-empty">
+    <div
+      v-else-if="!banking.overview"
+      class="banking-empty"
+      :aria-hidden="Boolean(action)"
+      :inert="Boolean(action)"
+    >
       <Landmark :size="34" />
       <strong>{{ phone.t('Apps.banking.unavailable') }}</strong>
       <p>{{ errorMessage(banking.error) }}</p>
@@ -255,6 +339,8 @@ onMounted(() => void banking.load())
       v-else
       ref="bankingScroll"
       class="banking-scroll"
+      :aria-hidden="Boolean(action)"
+      :inert="Boolean(action)"
       @touchend="finishPull"
       @touchmove.passive="movePull"
       @touchstart.passive="startPull"
@@ -317,9 +403,13 @@ onMounted(() => void banking.load())
         <section class="banking-transactions">
           <div class="banking-section-title">
             <h2>{{ phone.t('Apps.banking.latestTransactions') }}</h2>
-            <button type="button" @click="activeTab = 'activity'">
+            <k-link
+              component="button"
+              :link-props="{ type: 'button' }"
+              @click="activeTab = 'activity'"
+            >
               {{ phone.t('Apps.banking.viewAll') }}
-            </button>
+            </k-link>
           </div>
           <k-card
             v-if="banking.overview.transactions.length"
@@ -363,7 +453,17 @@ onMounted(() => void banking.load())
             <span><i></i>{{ phone.t('Apps.banking.outgoing') }}</span>
           </div>
           <div class="banking-chart">
-            <div v-for="day in chart" :key="day.date.getTime()" class="banking-chart__day">
+            <div
+              v-for="day in chart"
+              :key="day.date.getTime()"
+              class="banking-chart__day"
+              role="img"
+              :aria-label="phone.t('Apps.banking.chartDaySummary', {
+                day: day.label,
+                incoming: formatMoney(day.incoming),
+                outgoing: formatMoney(day.outgoing),
+              })"
+            >
               <div>
                 <i class="is-incoming" :style="{ height: `${day.incomingHeight}%` }"></i>
                 <i :style="{ height: `${day.outgoingHeight}%` }"></i>
@@ -406,7 +506,9 @@ onMounted(() => void banking.load())
       icons
       labels
       class="bottom-0 left-0 fixed"
+      :aria-hidden="Boolean(action)"
       :aria-label="phone.t('Apps.banking.navigation')"
+      :inert="Boolean(action)"
     >
       <k-toolbar-pane>
         <k-tabbar-link
@@ -435,44 +537,59 @@ onMounted(() => void banking.load())
     </k-tabbar>
 
     <k-sheet :opened="Boolean(action)" class="banking-sheet" @backdropclick="closeAction">
-      <section v-if="action" class="banking-sheet__content" role="dialog" aria-modal="true">
-        <button
-          type="button"
+      <section
+        v-if="action"
+        class="banking-sheet__content"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="`banking-${action}-title`"
+        @keydown="handleSheetKeydown"
+      >
+        <k-link
+          component="button"
           class="banking-modal__close"
           :aria-label="phone.t('Common.close')"
+          :link-props="{ type: 'button' }"
           @click="closeAction"
         >
           <X :size="17" />
-        </button>
+        </k-link>
         <span class="banking-modal__icon">
           <Send :size="23" />
         </span>
-        <h2>{{ phone.t(`Apps.banking.forms.${action}.title`) }}</h2>
+        <h2 :id="`banking-${action}-title`">
+          {{ phone.t(`Apps.banking.forms.${action}.title`) }}
+        </h2>
         <p>{{ phone.t(`Apps.banking.forms.${action}.body`) }}</p>
         <k-list inset strong class="banking-form-list">
           <k-list-input
             :label="phone.t('Apps.banking.playerId')"
+            input-id="banking-transfer-target"
             inputmode="numeric"
             min="1"
             outline
             :placeholder="phone.t('Apps.banking.playerIdPlaceholder')"
             type="number"
             :value="target"
-            @input="target = $event"
+            @input="updateTarget"
           />
           <k-list-input
             :label="phone.t('Apps.banking.amount')"
+            :error="formError || undefined"
+            input-id="banking-transfer-amount"
             inputmode="numeric"
             min="1"
             outline
             :placeholder="phone.t('Apps.banking.amountPlaceholder')"
             type="number"
             :value="amount"
-            @input="amount = $event"
+            @input="updateAmount"
             @keydown.enter="submitAction"
           />
         </k-list>
-        <p v-if="formError" class="banking-form-error">{{ formError }}</p>
+        <p v-if="formError" class="banking-form-error" role="alert">
+          {{ formError }}
+        </p>
         <k-button
           large
           rounded
