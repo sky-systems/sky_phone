@@ -94,15 +94,15 @@ export const useAppStoreStore = defineStore('app-store', {
       this.persist()
     },
     moveHomeApp(
-      appId: LaunchablePhoneAppId,
       from: HomeArea,
+      sourceIndex: number,
       to: HomeArea,
       targetIndex: number,
     ): void {
       this.homeLayout = moveHomeApp(
         this.homeLayout,
-        appId,
         from,
+        sourceIndex,
         to,
         targetIndex,
       )

@@ -76,7 +76,8 @@ describe('app store', () => {
     const apps = useAppStoreStore()
     apps.hydrate(null)
 
-    apps.moveHomeApp('mail', 'grid', 'grid', 0)
+    const mailIndex = apps.homeLayout.grid.indexOf('mail')
+    apps.moveHomeApp('grid', mailIndex, 'grid', 0)
     expect(apps.homeLayout.grid[0]).toBe('mail')
 
     apps.removeHomeApp('mail')

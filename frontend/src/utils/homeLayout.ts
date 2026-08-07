@@ -52,16 +52,13 @@ function readSlots(
   const slots = createSlots(length)
   if (!Array.isArray(value)) return slots
 
-  const usedIds = new Set<LaunchablePhoneAppId>()
   for (let index = 0; index < Math.min(value.length, length); index += 1) {
     const valueId = value[index]
     if (
       typeof valueId === 'string' &&
-      availableIds.has(valueId as LaunchablePhoneAppId) &&
-      !usedIds.has(valueId as LaunchablePhoneAppId)
+      availableIds.has(valueId as LaunchablePhoneAppId)
     ) {
       slots[index] = valueId as LaunchablePhoneAppId
-      usedIds.add(valueId as LaunchablePhoneAppId)
     }
   }
   return slots
@@ -226,21 +223,27 @@ export function restoreHomeApp(
 
 export function moveHomeApp(
   layout: HomeLayout,
-  appId: LaunchablePhoneAppId,
   from: HomeArea,
+  sourceIndex: number,
   to: HomeArea,
   targetIndex: number,
 ): HomeLayout {
   const next: HomeLayout = {
     dock: [...layout.dock],
     grid: [...layout.grid],
-    hidden: layout.hidden.filter((id) => id !== appId),
+    hidden: [...layout.hidden],
     version: 2,
   }
   const source = next[from]
-  const sourceIndex = source.indexOf(appId)
   const target = next[to]
-  if (sourceIndex === -1 || targetIndex < 0 || targetIndex >= target.length) {
+  const appId = source[sourceIndex]
+  if (
+    !appId ||
+    sourceIndex < 0 ||
+    sourceIndex >= source.length ||
+    targetIndex < 0 ||
+    targetIndex >= target.length
+  ) {
     return layout
   }
 
@@ -249,11 +252,6 @@ export function moveHomeApp(
     source[sourceIndex] = null
     insertIntoSlot(source, targetIndex, appId)
     return next
-  }
-
-  const duplicateIndex = target.indexOf(appId)
-  if (duplicateIndex !== -1) {
-    target[duplicateIndex] = null
   }
 
   source[sourceIndex] = insertIntoSlot(target, targetIndex, appId)

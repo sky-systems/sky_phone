@@ -29,8 +29,8 @@ const editMode = ref(false)
 const dragOffset = ref(0)
 const dragging = ref(false)
 const draggingHomeApp = ref<{
-  appId: LaunchablePhoneAppId
   area: HomeArea
+  index: number
 } | null>(null)
 let pointerStart = 0
 let pointerStartedAt = 0
@@ -150,8 +150,8 @@ function enterEditMode(): void {
   dragOffset.value = 0
 }
 
-function startHomeDrag(appId: LaunchablePhoneAppId, area: HomeArea): void {
-  draggingHomeApp.value = { appId, area }
+function startHomeDrag(area: HomeArea, index: number): void {
+  draggingHomeApp.value = { area, index }
 }
 
 function finishHomeDrag(event: PointerEvent): void {
@@ -160,20 +160,32 @@ function finishHomeDrag(event: PointerEvent): void {
   const target = document
     .elementsFromPoint(event.clientX, event.clientY)
     .find((element) => !element.closest('.app-icon-item--dragging'))
-  const targetItem = target?.closest<HTMLElement>('[data-home-index]')
   const targetArea = target?.closest<HTMLElement>('[data-home-area]')
+  let targetItem = target?.closest<HTMLElement>('[data-home-index]')
+  if (!targetItem && targetArea) {
+    const slotItems = Array.from(
+      targetArea.querySelectorAll<HTMLElement>('[data-home-index]'),
+    )
+    targetItem = slotItems.reduce<HTMLElement | undefined>((closest, slot) => {
+      if (!closest) return slot
+      const slotBounds = slot.getBoundingClientRect()
+      const closestBounds = closest.getBoundingClientRect()
+      const slotDistance = Math.hypot(
+        event.clientX - (slotBounds.left + slotBounds.width / 2),
+        event.clientY - (slotBounds.top + slotBounds.height / 2),
+      )
+      const closestDistance = Math.hypot(
+        event.clientX - (closestBounds.left + closestBounds.width / 2),
+        event.clientY - (closestBounds.top + closestBounds.height / 2),
+      )
+      return slotDistance < closestDistance ? slot : closest
+    }, undefined)
+  }
   const area = (targetItem?.dataset.homeArea ??
     targetArea?.dataset.homeArea) as HomeArea | undefined
-  if (area === 'grid' || area === 'dock') {
-    const fallbackIndex =
-      area === 'dock'
-        ? appStore.homeLayout.dock.length
-        : appStore.homeLayout.grid.length
-    const targetIndex = Number.parseInt(
-      targetItem?.dataset.homeIndex ?? `${fallbackIndex}`,
-      10,
-    )
-    appStore.moveHomeApp(dragged.appId, dragged.area, area, targetIndex)
+  if ((area === 'grid' || area === 'dock') && targetItem) {
+    const targetIndex = Number.parseInt(targetItem.dataset.homeIndex ?? '', 10)
+    appStore.moveHomeApp(dragged.area, dragged.index, area, targetIndex)
   }
   draggingHomeApp.value = null
 }
@@ -252,7 +264,12 @@ watch(isAppPage, (visible) => {
               :edit-mode="editMode"
               @dragcancel="stopHomeDrag"
               @dragend="finishHomeDrag"
-              @dragstart="startHomeDrag(app.id, 'grid')"
+              @dragstart="
+                startHomeDrag(
+                  'grid',
+                  pageIndex * HOME_GRID_PAGE_SIZE + appIndex,
+                )
+              "
               @edit="enterEditMode"
               @remove="removeHomeApp(app.id)"
             />
@@ -392,7 +409,7 @@ watch(isAppPage, (visible) => {
             :show-label="false"
             @dragcancel="stopHomeDrag"
             @dragend="finishHomeDrag"
-            @dragstart="startHomeDrag(app.id, 'dock')"
+            @dragstart="startHomeDrag('dock', appIndex)"
             @edit="enterEditMode"
             @remove="removeHomeApp(app.id)"
           />
