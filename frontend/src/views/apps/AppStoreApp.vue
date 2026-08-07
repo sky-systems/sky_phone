@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import { kPreloader } from 'konsta/vue'
+import {
+  kNavbar,
+  kPage,
+  kPreloader,
+  kSearchbar,
+  kSegmented,
+  kSegmentedButton,
+} from 'konsta/vue'
 import { Gamepad2, Grid2X2, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import { PHONE_APPS } from '@/config/apps'
 import { useAppStoreStore } from '@/stores/app-store'
 import { usePhoneStore } from '@/stores/phone'
-import type { PhoneAppDefinition } from '@/types/apps'
+import type { LaunchablePhoneAppDefinition } from '@/types/apps'
 
 const phone = usePhoneStore()
 const appStore = useAppStoreStore()
-const router = useRouter()
 const tab = ref<'apps' | 'games' | 'search'>('apps')
 const query = ref('')
 const tabs = [
@@ -19,66 +24,61 @@ const tabs = [
   { id: 'games', icon: Gamepad2 },
   { id: 'search', icon: Search },
 ] as const
-const catalog = PHONE_APPS.filter((app) => app.id !== 'app-store').sort(
-  (a, b) => a.gridOrder - b.gridOrder,
+const tabBarColors = {
+  strongHighlightBgIos: 'bg-[#e5e5ea] dark:bg-[#2c2c2e]',
+}
+const catalog = computed(() =>
+  PHONE_APPS.filter(
+    (app): app is LaunchablePhoneAppDefinition =>
+      app.component !== null &&
+      app.route !== null &&
+      app.category === 'games' &&
+      !appStore.claimedApps.includes(app.id),
+  ).sort((a, b) => a.gridOrder - b.gridOrder),
 )
 const shownApps = computed(() => {
   if (tab.value === 'games') {
-    return catalog.filter((app) => app.category === 'games')
+    return catalog.value.filter((app) => app.category === 'games')
   }
   if (tab.value === 'apps') {
-    return catalog.filter((app) => app.category !== 'games')
+    return catalog.value.filter((app) => app.category !== 'games')
   }
 
   const search = query.value.trim().toLocaleLowerCase(phone.lang)
-  if (!search) return catalog
-  return catalog.filter((app) =>
+  if (!search) return catalog.value
+  return catalog.value.filter((app) =>
     phone.t(app.labelKey).toLocaleLowerCase(phone.lang).includes(search),
   )
 })
 
-function isInstalled(app: PhoneAppDefinition): boolean {
-  return app.category !== 'games' || appStore.claimedApps.includes(app.id)
+function updateSearch(event: Event): void {
+  query.value = (event.target as HTMLInputElement).value
 }
 
-function handleApp(app: PhoneAppDefinition): void {
-  if (isInstalled(app)) {
-    if (app.route) void router.push(app.route)
-    return
-  }
-
+function installApp(app: LaunchablePhoneAppDefinition): void {
   appStore.installApp(app.id)
 }
 </script>
 
 <template>
-  <main class="native-app reference-store">
-    <section class="store-scroll">
-      <header class="store-title">
-        <h1>{{ phone.t(`Apps.appStore.tabs.${tab}`) }}</h1>
-      </header>
-
-      <div v-if="tab === 'search'" class="app-search">
-        <Search :size="17" />
-        <input
-          v-model="query"
+  <k-page component="main" class="native-app app-store-page">
+    <k-navbar
+      large
+      transparent
+      :title="phone.t('Apps.appStore.name')"
+      class="top-0 sticky"
+    >
+      <template v-if="tab === 'search'" #subnavbar>
+        <k-searchbar
+          :value="query"
           :placeholder="phone.t('Apps.appStore.searchPlaceholder')"
+          @input="updateSearch"
+          @clear="query = ''"
         />
-      </div>
+      </template>
+    </k-navbar>
 
-      <div class="store-section-title">
-        <h2>
-          {{
-            phone.t(
-              tab === 'games'
-                ? 'Apps.appStore.gamesTitle'
-                : 'Apps.appStore.appsTitle',
-            )
-          }}
-        </h2>
-        <p>{{ phone.t('Apps.appStore.selected') }}</p>
-      </div>
-
+    <section class="store-scroll">
       <section class="store-list">
         <article v-for="app in shownApps" :key="app.id">
           <img
@@ -97,22 +97,16 @@ function handleApp(app: PhoneAppDefinition): void {
             :aria-label="`${phone.t(app.labelKey)} ${phone.t(
               appStore.installingApps[app.id]
                 ? 'Apps.appStore.installing'
-                : isInstalled(app)
-                  ? 'Apps.appStore.open'
-                  : 'Apps.appStore.get',
+                : 'Apps.appStore.get',
             )}`"
-            @click="handleApp(app)"
+            @click="installApp(app)"
           >
             <k-preloader
               v-if="appStore.installingApps[app.id]"
               class="store-installing"
             />
             <template v-else>
-              {{
-                phone.t(
-                  isInstalled(app) ? 'Apps.appStore.open' : 'Apps.appStore.get',
-                )
-              }}
+              {{ phone.t('Apps.appStore.get') }}
             </template>
           </button>
         </article>
@@ -122,17 +116,33 @@ function handleApp(app: PhoneAppDefinition): void {
       </section>
     </section>
 
-    <nav class="reference-tabbar">
-      <button
-        v-for="item in tabs"
-        :key="item.id"
-        :class="{ active: tab === item.id }"
-        type="button"
-        @click="tab = item.id"
-      >
-        <component :is="item.icon" :size="21" />
-        <span>{{ phone.t(`Apps.appStore.tabs.${item.id}`) }}</span>
-      </button>
-    </nav>
-  </main>
+    <k-navbar component="nav" :aria-label="phone.t('Apps.appStore.name')">
+      <template #subnavbar>
+        <k-segmented
+          strong
+          rounded
+          :colors="tabBarColors"
+          :data-active-tab="tab"
+        >
+          <k-segmented-button
+            v-for="item in tabs"
+            :key="item.id"
+            large
+            :active="tab === item.id"
+            :class="tab === item.id ? 'text-primary' : 'text-[#8e8e93]'"
+            :aria-label="phone.t(`Apps.appStore.tabs.${item.id}`)"
+            :aria-pressed="tab === item.id"
+            @click="tab = item.id"
+          >
+            <span
+              class="flex flex-col items-center gap-0.5 text-[10px] leading-none"
+            >
+              <component :is="item.icon" class="h-5 w-5" aria-hidden="true" />
+              <span>{{ phone.t(`Apps.appStore.tabs.${item.id}`) }}</span>
+            </span>
+          </k-segmented-button>
+        </k-segmented>
+      </template>
+    </k-navbar>
+  </k-page>
 </template>

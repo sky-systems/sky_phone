@@ -2419,13 +2419,21 @@ button {
   color: #000;
 }
 
-.reference-store {
-  padding: 0 0 79px;
-  background: #0e0e0e;
+.app-store-page {
+  display: flex;
+  flex-direction: column;
+  padding: 44px 0 24px;
+  background: #020202;
+  color: #fff;
+}
+.phone-app--light .app-store-page {
+  background: #f2f2f7;
+  color: #000;
 }
 .store-scroll {
-  height: 100%;
-  padding: 52px 19px 26px;
+  min-height: 0;
+  flex: 1;
+  padding: 0 19px 26px;
   overflow-y: auto;
 }
 .store-title {
@@ -2539,7 +2547,7 @@ button {
 .reference-store .store-feature {
   margin: 0 0 20px;
 }
-.reference-store .store-list {
+.app-store-page .store-list {
   padding: 0;
 }
 
