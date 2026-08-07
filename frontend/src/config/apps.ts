@@ -13,6 +13,7 @@ import {
   Mail,
   MapPinned,
   MessageCircle,
+  ShieldCheck,
   NotebookPen,
   Phone,
   Settings,
@@ -33,6 +34,7 @@ import calendarIcon from '@/assets/img/app-icons/calendar.svg'
 import mailIcon from '@/assets/img/app-icons/mail.webp'
 import mapIcon from '@/assets/img/app-icons/map.webp'
 import messagesIcon from '@/assets/img/app-icons/sms.webp'
+import darkChatIcon from '@/assets/img/app-icons/darkchat.svg'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
@@ -56,6 +58,7 @@ import type {
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CalendarApp.vue')),
     ),
@@ -69,6 +72,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/calendar',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/LocalPagesApp.vue')),
     ),
@@ -82,6 +86,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/local-pages',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/PhoneApp.vue')),
     ),
@@ -95,6 +100,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/phone',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MessagesApp.vue')),
     ),
@@ -108,6 +114,21 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/messages',
   },
   {
+    category: 'social',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/DarkChatApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 22,
+    icon: markRaw(ShieldCheck),
+    iconClass: 'app-icon--darkchat',
+    iconImage: darkChatIcon,
+    id: 'darkchat',
+    labelKey: 'Apps.darkchat.name',
+    route: '/apps/darkchat',
+  },
+  {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MapApp.vue')),
     ),
@@ -121,6 +142,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/map',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/BankingApp.vue')),
     ),
@@ -147,6 +169,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/mail',
   },
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/NotesApp.vue')),
     ),
@@ -160,6 +183,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/notes',
   },
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CalculatorApp.vue')),
     ),
@@ -173,6 +197,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/calculator',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CameraApp.vue')),
     ),
@@ -186,6 +211,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/camera',
   },
   {
+    category: 'productivity',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/ClockApp.vue')),
     ),
@@ -199,6 +225,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/clock',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/WeatherApp.vue')),
     ),
@@ -212,6 +239,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/weather',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/GalleryApp.vue')),
     ),
@@ -225,6 +253,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/photos',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/AppStoreApp.vue')),
     ),
@@ -238,6 +267,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/app-store',
   },
   {
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/SettingsApp.vue')),
     ),
@@ -251,6 +281,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/settings',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/SnakeApp.vue')),
     ),
@@ -264,6 +295,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/snake',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MemoryApp.vue')),
     ),
@@ -277,6 +309,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/memory',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/NumberMergeApp.vue')),
     ),
@@ -290,6 +323,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/number-merge',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MinesweeperApp.vue')),
     ),
@@ -303,6 +337,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/minesweeper',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/TowerStackApp.vue')),
     ),
@@ -316,6 +351,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/tower-stack',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/SkyFlappyApp.vue')),
     ),
@@ -329,6 +365,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/sky-flappy',
   },
   {
+    category: 'shopping',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/CityMarktApp.vue')),
     ),
@@ -342,6 +379,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/citymarkt',
   },
   {
+    category: 'games',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/NeonDropApp.vue')),
     ),
@@ -355,6 +393,17 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/neon-drop',
   },
 ]
+
+export const NON_REMOVABLE_PHONE_APP_IDS: ReadonlySet<LaunchablePhoneAppId> =
+  new Set([
+    'app-store',
+    'settings',
+    'camera',
+    'photos',
+    'phone',
+    'messages',
+    'mail',
+  ])
 
 export const PHONE_APP_IDS = PHONE_APPS.map((app) => app.id)
 

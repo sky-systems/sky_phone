@@ -27,9 +27,11 @@ import { useBankingStore } from '@/stores/banking'
 import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
 import { useMessagesStore } from '@/stores/messages'
+import { useDarkChatStore } from '@/stores/darkchat'
 import { useMediaStore } from '@/stores/media'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAppStoreStore } from '@/stores/app-store'
+import { isPhoneAppId } from '@/config/apps'
 import { useNotesStore } from '@/stores/notes'
 import { useWeatherStore } from '@/stores/weather'
 import {
@@ -53,6 +55,7 @@ type AppMessage = {
     | MailEventData
     | MarketplaceEventData
     | MessagesEventData
+    | DarkChatEventData
     | PhoneCall
     | PhoneNotificationInput
     | PhoneOpenPayload
@@ -75,6 +78,16 @@ type MailEventData = {
 type MessagesEventData = {
   device?: PhoneNotificationDevicePayload
   phoneNumber?: string
+  sender?: string
+  text?: string
+  title?: string
+}
+
+type DarkChatEventData = {
+  conversationId?: string
+  device?: PhoneNotificationDevicePayload
+  notificationMode?: 'full' | 'private' | 'hidden'
+  preview?: string
   sender?: string
   text?: string
   title?: string
@@ -111,6 +124,7 @@ const calls = useCallsStore()
 const banking = useBankingStore()
 const mail = useMailStore()
 const messages = useMessagesStore()
+const darkchat = useDarkChatStore()
 const media = useMediaStore()
 const marketplace = useMarketplaceStore()
 const appStore = useAppStoreStore()
@@ -161,6 +175,7 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   else marketplace.setCounts({ active: 0, unread: 0 })
   void calls.bootstrap()
   void messages.loadConversations()
+  if (payload.account?.email) void darkchat.bootstrap()
 }
 
 async function hydrateDevelopmentPhone(): Promise<void> {
@@ -315,6 +330,33 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       }
     }
     notifications.show(notification)
+  } else if (event.data?.type === 'darkchat:changed') {
+    void darkchat.refreshInbox()
+    if (darkchat.activeConversation) {
+      void darkchat.openThread(darkchat.activeConversation.id)
+    }
+  } else if (event.data?.type === 'darkchat:new' && event.data.data) {
+    const data = event.data.data as DarkChatEventData
+    void darkchat.refreshInbox()
+    if (data.conversationId && darkchat.activeConversation?.id === data.conversationId) {
+      void darkchat.openThread(data.conversationId)
+    }
+    if (data.notificationMode !== 'hidden') {
+      const notification: PhoneNotificationInput = {
+        appId: 'darkchat',
+        subtitle: data.sender,
+        text: data.text ?? data.preview ?? phone.t('Apps.darkchat.privateNotification'),
+        title: data.title ?? phone.t('Apps.darkchat.name'),
+      }
+      if (data.device && (!phone.isOpen || data.device.imei !== phone.device?.imei)) {
+        notification.device = {
+          imei: data.device.imei,
+          name: data.device.name,
+          preferences: parsePhonePreferences(data.device.settings ?? null),
+        }
+      }
+      notifications.show(notification)
+    }
   } else if (event.data?.type === 'calls:changed') {
     void calls.loadRecents()
   } else if (event.data?.type === 'banking:changed') {
@@ -420,6 +462,15 @@ onMounted(() => {
     }
   }
 })
+
+watch(
+  () => route.params.appId,
+  (appId) => {
+    if (typeof appId === 'string' && isPhoneAppId(appId)) {
+      appStore.recordLaunch(appId)
+    }
+  },
+)
 
 watch(
   [() => notifications.requiresAttention, () => calls.activeCall],

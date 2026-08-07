@@ -166,6 +166,69 @@ const smsMessages = [
     sender_number: '5551234567',
   },
 ]
+const darkChatProfile = {
+  id: 1,
+  darkId: 'dark:7X4K-P92D',
+  inviteCode: 'DC-7X4K-NOVA',
+  alias: 'Nightshade',
+  avatarSeed: 267,
+  notificationMode: 'private',
+  activityVisible: false,
+  createdAt: '2026-08-01 21:20:00',
+}
+const darkChatPeers = [
+  { id: 2, darkId: 'dark:N0VA-41KQ', alias: 'Nova', originalAlias: 'Nova', avatarSeed: 142, activityVisible: true, isContact: true, blocked: false },
+  { id: 3, darkId: 'dark:ECH0-77LM', alias: 'Echo', originalAlias: 'Echo', avatarSeed: 311, activityVisible: false, isContact: true, blocked: false },
+]
+const darkChatConversations = [
+  {
+    id: 'dc-conversation-nova-0000-000000000001',
+    peer: darkChatPeers[0],
+    disappearingSeconds: 3600,
+    notificationsEnabled: true,
+    readReceipts: true,
+    blockedByPeer: false,
+    createdAt: '2026-08-03 22:12:00',
+  },
+]
+const darkChatMessages = [
+  {
+    id: 'dc-message-00000000-0000-000000000001', conversationId: darkChatConversations[0].id,
+    direction: 'received', senderProfileId: 2, messageType: 'text', body: 'The east gate is clear. Are you close?',
+    reactions: {}, createdAt: '2026-08-06 22:42:00', readAt: '2026-08-06 22:43:00',
+  },
+  {
+    id: 'dc-message-00000000-0000-000000000002', conversationId: darkChatConversations[0].id,
+    direction: 'sent', senderProfileId: 1, messageType: 'text', body: 'Two minutes. Keep this channel quiet. 🟣',
+    reactions: { 2: '👍' }, createdAt: '2026-08-06 22:43:00', readAt: '2026-08-06 22:43:30',
+  },
+  {
+    id: 'dc-message-00000000-0000-000000000003', conversationId: darkChatConversations[0].id,
+    direction: 'received', senderProfileId: 2, messageType: 'gif', body: '',
+    mediaPayload: 'https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif', reactions: {}, createdAt: '2026-08-06 22:44:00', readAt: null,
+  },
+]
+
+function darkChatBootstrap() {
+  return {
+    profile: darkChatProfile,
+    contacts: darkChatPeers.filter((peer) => peer.isContact).map((peer) => ({ ...peer, createdAt: '2026-08-03 22:12:00' })),
+    conversations: darkChatConversations.map((conversation) => {
+      const thread = darkChatMessages.filter((message) => message.conversationId === conversation.id)
+      const last = thread.at(-1)
+      return {
+        id: conversation.id,
+        peer: conversation.peer,
+        disappearingSeconds: conversation.disappearingSeconds,
+        blocked: conversation.peer.blocked,
+        lastMessage: last?.body ?? '',
+        lastMessageType: last?.messageType ?? 'system',
+        lastMessageAt: last?.createdAt ?? conversation.createdAt,
+        unread: thread.filter((message) => message.direction === 'received' && !message.readAt).length,
+      }
+    }),
+  }
+}
 const marketplaceListings = [
   {
     id: '81bc9d37-20e1-4d8a-82f8-f4b85f77cf01',
@@ -426,17 +489,7 @@ const deviceData = {
   },
   apps: {
     payload: {
-      claimedApps: [
-        'snake',
-        'memory',
-        'number-merge',
-        'minesweeper',
-        'tower-stack',
-        'sky-flappy',
-        'neon-drop',
-        'citymarkt',
-        'local-pages',
-      ],
+      claimedApps: [],
     },
     revision: 2,
   },
@@ -912,6 +965,159 @@ app.post('/api/:endpoint', (request, response) => {
       success: true,
       data: { coords: { x: -75.2, y: -818.9, z: 326.2 } },
     })
+    return
+  }
+  if (endpoint === 'darkchat:bootstrap') {
+    response.json({ success: true, data: darkChatBootstrap() })
+    return
+  }
+  if (endpoint === 'darkchat:update-profile') {
+    darkChatProfile.alias = String(request.body.alias ?? darkChatProfile.alias).trim()
+    darkChatProfile.notificationMode = request.body.notificationMode ?? 'private'
+    darkChatProfile.activityVisible = Boolean(request.body.activityVisible)
+    response.json({ success: true, data: darkChatProfile })
+    return
+  }
+  if (endpoint === 'darkchat:start') {
+    const identifier = String(request.body.identifier ?? '').toUpperCase()
+    const peer = darkChatPeers.find((item) => item.darkId.toUpperCase() === identifier)
+      ?? (identifier === 'DC-ECH0-77LM' ? darkChatPeers[1] : null)
+    if (!peer) {
+      response.json({ success: false, error: 'profile_not_found' })
+      return
+    }
+    let conversation = darkChatConversations.find((item) => item.peer.id === peer.id)
+    if (!conversation) {
+      conversation = {
+        id: `dc-conversation-${Date.now()}`,
+        peer,
+        disappearingSeconds: 0,
+        notificationsEnabled: true,
+        readReceipts: true,
+        blockedByPeer: false,
+        createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      }
+      darkChatConversations.push(conversation)
+    }
+    response.json({ success: true, data: { conversationId: conversation.id } })
+    return
+  }
+  if (endpoint === 'darkchat:thread') {
+    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+    if (!conversation) {
+      response.json({ success: false, error: 'conversation_not_found' })
+      return
+    }
+    const thread = darkChatMessages.filter((message) => message.conversationId === conversation.id)
+    for (const message of thread) {
+      if (message.direction === 'received') message.readAt = message.readAt ?? new Date().toISOString()
+    }
+    response.json({ success: true, data: { conversation, messages: thread.map(({ mediaSecret, ...message }) => message) } })
+    return
+  }
+  if (endpoint === 'darkchat:send') {
+    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+    if (!conversation || conversation.peer.blocked) {
+      response.json({ success: false, error: conversation ? 'blocked' : 'conversation_not_found' })
+      return
+    }
+    const messageType = request.body.messageType ?? 'text'
+    const body = String(request.body.body ?? '')
+    if ((messageType === 'text' || messageType === 'emoji') && !body.trim()) {
+      response.json({ success: false, error: 'invalid_message' })
+      return
+    }
+    const reply = darkChatMessages.find((message) => message.id === request.body.replyToId)
+    const message = {
+      id: `dc-message-${Date.now()}`,
+      conversationId: conversation.id,
+      direction: 'sent',
+      senderProfileId: darkChatProfile.id,
+      messageType,
+      body,
+      mediaPayload: messageType === 'gif' ? request.body.mediaPayload : undefined,
+      mediaSecret: messageType === 'voice' ? request.body.mediaPayload : undefined,
+      mediaMime: request.body.mediaMime,
+      mediaDurationMs: request.body.mediaDurationMs,
+      mediaWaveform: request.body.mediaWaveform,
+      replyToId: request.body.replyToId,
+      replyBody: reply?.body,
+      reactions: {},
+      createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      readAt: null,
+    }
+    darkChatMessages.push(message)
+    const { mediaSecret, ...publicMessage } = message
+    response.json({ success: true, data: publicMessage })
+    return
+  }
+  if (endpoint === 'darkchat:media') {
+    const message = darkChatMessages.find((item) => item.id === request.body.messageId && item.messageType === 'voice')
+    response.json(message?.mediaSecret
+      ? { success: true, data: { mime: message.mediaMime, payload: message.mediaSecret } }
+      : { success: false, error: 'message_not_found' })
+    return
+  }
+  if (endpoint === 'darkchat:react') {
+    const message = darkChatMessages.find((item) => item.id === request.body.messageId)
+    if (message) {
+      const current = message.reactions[String(darkChatProfile.id)]
+      if (current === request.body.reaction) delete message.reactions[String(darkChatProfile.id)]
+      else message.reactions[String(darkChatProfile.id)] = request.body.reaction
+    }
+    response.json({ success: Boolean(message), error: message ? undefined : 'message_not_found' })
+    return
+  }
+  if (endpoint === 'darkchat:message-action') {
+    const index = darkChatMessages.findIndex((item) => item.id === request.body.messageId)
+    if (index >= 0 && request.body.action === 'delete_me') darkChatMessages.splice(index, 1)
+    else if (index >= 0 && request.body.action === 'delete_all') {
+      darkChatMessages[index].messageType = 'system'
+      darkChatMessages[index].body = 'message_deleted'
+      darkChatMessages[index].mediaPayload = undefined
+    }
+    response.json({ success: index >= 0 })
+    return
+  }
+  if (endpoint === 'darkchat:update-conversation') {
+    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+    if (conversation) {
+      conversation.disappearingSeconds = Number(request.body.disappearingSeconds)
+      conversation.notificationsEnabled = Boolean(request.body.notificationsEnabled)
+      conversation.readReceipts = Boolean(request.body.readReceipts)
+      darkChatMessages.push({
+        id: `dc-system-${Date.now()}`, conversationId: conversation.id, direction: 'received',
+        messageType: 'system', body: `timer_changed:${conversation.disappearingSeconds}`,
+        reactions: {}, createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      })
+    }
+    response.json({ success: Boolean(conversation) })
+    return
+  }
+  if (endpoint === 'darkchat:add-contact' || endpoint === 'darkchat:remove-contact') {
+    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+    if (conversation) {
+      conversation.peer.isContact = endpoint === 'darkchat:add-contact'
+      if (request.body.alias) conversation.peer.alias = String(request.body.alias)
+    }
+    response.json({ success: Boolean(conversation) })
+    return
+  }
+  if (endpoint === 'darkchat:block') {
+    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+    if (conversation) conversation.peer.blocked = Boolean(request.body.blocked)
+    response.json({ success: Boolean(conversation) })
+    return
+  }
+  if (endpoint === 'darkchat:clear') {
+    for (let index = darkChatMessages.length - 1; index >= 0; index -= 1) {
+      if (darkChatMessages[index].conversationId === request.body.conversationId) darkChatMessages.splice(index, 1)
+    }
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'darkchat:report') {
+    response.json({ success: true })
     return
   }
   if (endpoint === 'messages:conversations') {

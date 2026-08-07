@@ -315,8 +315,8 @@ function onMessage(event: MessageEvent): void {
       latestMedia.value = result.media
       updateCapture(result.correlationId, { status: 'success' })
       if (requestedMessageMedia.value === result.media.mediaType) {
-        messageMedia.complete(result.media)
-        void router.replace('/apps/messages')
+        const returnPath = messageMedia.complete(result.media)
+        if (returnPath) void router.replace(returnPath)
         return
       }
       showCameraNotice(phone.t('Apps.camera.saved'))

@@ -1,9 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { clampPage } from './pages'
+import { clampPage, paginateItems } from './pages'
 describe('page clamping', () => {
   it('keeps pages in range', () => {
     expect(clampPage(-4)).toBe(0)
     expect(clampPage(1)).toBe(1)
     expect(clampPage(9)).toBe(2)
+  })
+
+  it('splits overflowing app grids into additional pages', () => {
+    expect(
+      paginateItems(
+        Array.from({ length: 21 }, (_, index) => index),
+        20,
+      ),
+    ).toEqual([
+      Array.from({ length: 20 }, (_, index) => index),
+      [20],
+    ])
   })
 })

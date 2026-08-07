@@ -80,6 +80,20 @@ local server_callbacks = {
     "messages:media",
     "messages:delete",
     "messages:gifs",
+    "darkchat:bootstrap",
+    "darkchat:update-profile",
+    "darkchat:start",
+    "darkchat:thread",
+    "darkchat:send",
+    "darkchat:media",
+    "darkchat:react",
+    "darkchat:message-action",
+    "darkchat:update-conversation",
+    "darkchat:add-contact",
+    "darkchat:remove-contact",
+    "darkchat:block",
+    "darkchat:report",
+    "darkchat:clear",
     "gallery:list",
     "media:config",
 }
@@ -386,6 +400,25 @@ RegisterNetEvent("sky_phone:messages:new", function(data)
     data.title = messages_locale.name
     data.text = messages_locale.newMessage:gsub("{sender}", tostring(data.sender))
     SendNUIMessage({ type = "messages:new", data = data })
+end)
+
+RegisterNetEvent("sky_phone:darkchat:changed", function(data)
+    SendNUIMessage({ type = "darkchat:changed", data = data })
+end)
+
+RegisterNetEvent("sky_phone:darkchat:new", function(data)
+    local darkchat_locale = get_locale().Nui.Apps.darkchat
+    data.title = darkchat_locale.name
+    if data.notificationMode == "private" then
+        data.sender = nil
+        data.text = darkchat_locale.privateNotification
+    elseif data.notificationMode == "hidden" then
+        data.sender = nil
+        data.text = ""
+    else
+        data.text = darkchat_locale.newMessage:gsub("{sender}", tostring(data.sender))
+    end
+    SendNUIMessage({ type = "darkchat:new", data = data })
 end)
 
 RegisterNetEvent("sky_phone:call:incoming", function(data)

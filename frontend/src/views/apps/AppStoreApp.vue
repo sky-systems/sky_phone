@@ -1,156 +1,188 @@
 <script setup lang="ts">
 import {
-  Gamepad2,
-  Grid2X2,
-  Rocket,
-  Search,
-  Sparkles,
-  UserRound,
-} from 'lucide-vue-next'
+  kNavbar,
+  kPage,
+  kPreloader,
+  kSearchbar,
+  kSegmented,
+  kSegmentedButton,
+} from 'konsta/vue'
+import { Gamepad2, Grid2X2, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+import { PHONE_APPS } from '@/config/apps'
 import { useAppStoreStore } from '@/stores/app-store'
 import { usePhoneStore } from '@/stores/phone'
+import type {
+  LaunchablePhoneAppDefinition,
+  LaunchablePhoneAppId,
+} from '@/types/apps'
 
 const phone = usePhoneStore()
 const appStore = useAppStoreStore()
-const tab = ref<'today' | 'apps' | 'games' | 'arcade' | 'search'>('today')
+const router = useRouter()
+const tab = ref<'apps' | 'games' | 'search'>('apps')
 const query = ref('')
+const installedDuringVisit = ref<LaunchablePhoneAppId[]>([])
 const tabs = [
-  { id: 'today', icon: Sparkles },
   { id: 'apps', icon: Grid2X2 },
   { id: 'games', icon: Gamepad2 },
-  { id: 'arcade', icon: Rocket },
   { id: 'search', icon: Search },
 ] as const
-const catalog = [
-  {
-    id: 'orbit',
-    title: 'Orbit',
-    subtitle: 'Apps.appStore.catalog.orbit',
-    gradient: 'linear-gradient(145deg,#453bd1,#75e8ff)',
-  },
-  {
-    id: 'studio',
-    title: 'Studio',
-    subtitle: 'Apps.appStore.catalog.studio',
-    gradient: 'linear-gradient(145deg,#ff8b4a,#ff2d75)',
-  },
-  {
-    id: 'trail',
-    title: 'Trail',
-    subtitle: 'Apps.appStore.catalog.trail',
-    gradient: 'linear-gradient(145deg,#4bd37b,#147ec1)',
-  },
-  {
-    id: 'prism',
-    title: 'Prism',
-    subtitle: 'Apps.appStore.catalog.prism',
-    gradient: 'linear-gradient(145deg,#ffd84d,#7b36dc)',
-  },
-]
-const shown = computed(() =>
-  catalog.filter((item) =>
-    item.title.toLowerCase().includes(query.value.toLowerCase()),
-  ),
+const tabBarColors = {
+  strongHighlightBgIos: 'bg-[#e5e5ea] dark:bg-[#2c2c2e]',
+}
+const catalog = computed(() =>
+  PHONE_APPS.filter((app): app is LaunchablePhoneAppDefinition => {
+    if (
+      app.component === null ||
+      app.route === null ||
+      app.id === 'app-store'
+    ) {
+      return false
+    }
+
+    const installed =
+      app.category !== 'games' || appStore.claimedApps.includes(app.id)
+    return (
+      !installed ||
+      appStore.homeLayout.hidden.includes(app.id) ||
+      installedDuringVisit.value.includes(app.id)
+    )
+  }).sort((a, b) => a.gridOrder - b.gridOrder),
 )
-const date = new Intl.DateTimeFormat(phone.lang, {
-  day: 'numeric',
-  month: 'long',
-}).format(new Date())
+const shownApps = computed(() => {
+  if (tab.value === 'games') {
+    return catalog.value.filter((app) => app.category === 'games')
+  }
+  if (tab.value === 'apps') {
+    return catalog.value.filter((app) => app.category !== 'games')
+  }
+
+  const search = query.value.trim().toLocaleLowerCase(phone.lang)
+  if (!search) return catalog.value
+  return catalog.value.filter((app) =>
+    phone.t(app.labelKey).toLocaleLowerCase(phone.lang).includes(search),
+  )
+})
+
+function updateSearch(event: Event): void {
+  query.value = (event.target as HTMLInputElement).value
+}
+
+function appAction(
+  app: LaunchablePhoneAppDefinition,
+): 'get' | 'installing' | 'open' {
+  if (appStore.installingApps[app.id]) return 'installing'
+
+  const installed =
+    app.category !== 'games' || appStore.claimedApps.includes(app.id)
+  if (
+    installed &&
+    !appStore.homeLayout.hidden.includes(app.id) &&
+    installedDuringVisit.value.includes(app.id)
+  ) {
+    return 'open'
+  }
+
+  return 'get'
+}
+
+function handleApp(app: LaunchablePhoneAppDefinition): void {
+  if (appAction(app) === 'open') {
+    void router.push(app.route)
+    return
+  }
+
+  if (!installedDuringVisit.value.includes(app.id)) {
+    installedDuringVisit.value.push(app.id)
+  }
+  appStore.installApp(app.id)
+}
 </script>
 
 <template>
-  <main class="native-app reference-store">
-    <section class="store-scroll">
-      <header class="store-title">
-        <div>
-          <h1>{{ phone.t(`Apps.appStore.tabs.${tab}`) }}</h1>
-          <strong v-if="tab === 'today'">{{ date }}</strong>
-        </div>
-        <span><UserRound :size="22" /></span>
-      </header>
-      <div v-if="tab === 'search'" class="app-search">
-        <Search :size="17" /><input
-          v-model="query"
+  <k-page component="main" class="native-app app-store-page">
+    <k-navbar
+      large
+      transparent
+      :title="phone.t('Apps.appStore.name')"
+      class="top-0 sticky"
+    >
+      <template v-if="tab === 'search'" #subnavbar>
+        <k-searchbar
+          :value="query"
           :placeholder="phone.t('Apps.appStore.searchPlaceholder')"
+          @input="updateSearch"
+          @clear="query = ''"
         />
-      </div>
-      <template v-if="tab === 'today'">
-        <article class="editorial-card editorial-card--sky">
-          <small>{{ phone.t('Apps.appStore.card.oneEyebrow') }}</small>
-          <h2>{{ phone.t('Apps.appStore.card.oneTitle') }}</h2>
-          <p>{{ phone.t('Apps.appStore.card.oneBody') }}</p>
-          <div class="editorial-orbit">✦</div>
-        </article>
-        <article class="editorial-card editorial-card--music">
-          <small>{{ phone.t('Apps.appStore.card.twoEyebrow') }}</small>
-          <h2>{{ phone.t('Apps.appStore.card.twoTitle') }}</h2>
-          <p>{{ phone.t('Apps.appStore.card.twoBody') }}</p>
-          <div class="editorial-wave" />
-        </article>
-        <div class="store-section-title">
-          <h2>{{ phone.t('Apps.appStore.communityTitle') }}</h2>
-          <p>{{ phone.t('Apps.appStore.communityBody') }}</p>
-        </div>
-        <article class="editorial-card editorial-card--play">
-          <small>{{ phone.t('Apps.appStore.card.threeEyebrow') }}</small>
-          <h2>{{ phone.t('Apps.appStore.card.threeTitle') }}</h2>
-          <p>{{ phone.t('Apps.appStore.card.threeBody') }}</p>
-        </article>
       </template>
-      <template v-else>
-        <article v-if="tab !== 'search'" class="store-feature">
-          <p>{{ phone.t('Apps.appStore.featured') }}</p>
-          <h2>{{ phone.t('Apps.appStore.heroTitle') }}</h2>
-          <span>{{ phone.t('Apps.appStore.heroBody') }}</span>
+    </k-navbar>
+
+    <section class="store-scroll">
+      <section class="store-list">
+        <article v-for="app in shownApps" :key="app.id">
+          <img
+            class="store-icon"
+            :src="app.iconImage"
+            alt=""
+            draggable="false"
+          />
+          <div>
+            <strong>{{ phone.t(app.labelKey) }}</strong>
+            <small>{{ phone.t(`Home.groups.${app.category}`) }}</small>
+          </div>
+          <button
+            type="button"
+            :disabled="appStore.installingApps[app.id]"
+            :aria-label="`${phone.t(app.labelKey)} ${phone.t(
+              `Apps.appStore.${appAction(app)}`,
+            )}`"
+            @click="handleApp(app)"
+          >
+            <k-preloader
+              v-if="appStore.installingApps[app.id]"
+              class="store-installing"
+            />
+            <template v-else>
+              {{ phone.t(`Apps.appStore.${appAction(app)}`) }}
+            </template>
+          </button>
         </article>
-        <div class="store-section-title">
-          <h2>
-            {{
-              phone.t(
-                tab === 'games'
-                  ? 'Apps.appStore.playing'
-                  : 'Apps.appStore.recommended',
-              )
-            }}
-          </h2>
-          <p>{{ phone.t('Apps.appStore.selected') }}</p>
-        </div>
-        <section class="store-list">
-          <article v-for="item in shown" :key="item.id">
-            <div class="store-icon" :style="{ background: item.gradient }">
-              {{ item.title[0] }}
-            </div>
-            <div>
-              <strong>{{ item.title }}</strong
-              ><small>{{ phone.t(item.subtitle) }}</small>
-            </div>
-            <button type="button" @click="appStore.claimApp(item.id)">
-              {{
-                phone.t(
-                  appStore.claimedApps.includes(item.id)
-                    ? 'Apps.appStore.open'
-                    : 'Apps.appStore.get',
-                )
-              }}
-            </button>
-          </article>
-        </section>
-      </template>
+        <p v-if="shownApps.length === 0" class="store-empty">
+          {{ phone.t('Home.noApps') }}
+        </p>
+      </section>
     </section>
-    <nav class="reference-tabbar">
-      <button
-        v-for="item in tabs"
-        :key="item.id"
-        :class="{ active: tab === item.id }"
-        type="button"
-        @click="tab = item.id"
-      >
-        <component :is="item.icon" :size="21" /><span>{{
-          phone.t(`Apps.appStore.tabs.${item.id}`)
-        }}</span>
-      </button>
-    </nav>
-  </main>
+
+    <k-navbar component="nav" :aria-label="phone.t('Apps.appStore.name')">
+      <template #subnavbar>
+        <k-segmented
+          strong
+          rounded
+          :colors="tabBarColors"
+          :data-active-tab="tab"
+        >
+          <k-segmented-button
+            v-for="item in tabs"
+            :key="item.id"
+            large
+            :active="tab === item.id"
+            :class="tab === item.id ? 'text-primary' : 'text-[#8e8e93]'"
+            :aria-label="phone.t(`Apps.appStore.tabs.${item.id}`)"
+            :aria-pressed="tab === item.id"
+            @click="tab = item.id"
+          >
+            <span
+              class="flex flex-col items-center gap-0.5 text-[10px] leading-none"
+            >
+              <component :is="item.icon" class="h-5 w-5" aria-hidden="true" />
+              <span>{{ phone.t(`Apps.appStore.tabs.${item.id}`) }}</span>
+            </span>
+          </k-segmented-button>
+        </k-segmented>
+      </template>
+    </k-navbar>
+  </k-page>
 </template>

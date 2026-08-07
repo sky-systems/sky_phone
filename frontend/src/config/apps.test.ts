@@ -98,6 +98,22 @@ describe('app registry', () => {
     expect(isPhoneAppId('photos')).toBe(true)
     expect(isPhoneAppId('clock')).toBe(true)
     expect(
+      PHONE_APPS.filter((app) => app.category === 'games').map((app) => app.id),
+    ).toEqual([
+      'snake',
+      'memory',
+      'number-merge',
+      'minesweeper',
+      'tower-stack',
+      'sky-flappy',
+      'neon-drop',
+    ])
+    expect(
+      PHONE_APPS.filter((app) => app.category === 'social').map(
+        (app) => app.id,
+      ),
+    ).toEqual(['local-pages', 'phone', 'darkchat', 'mail'])
+    expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))
         .map((app) => app.id),
