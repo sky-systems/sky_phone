@@ -81,6 +81,42 @@ function placeInFirstEmptySlot(
   slots[slots.length - HOME_GRID_PAGE_SIZE] = appId
 }
 
+function insertIntoSlot(
+  slots: HomeSlot[],
+  targetIndex: number,
+  appId: LaunchablePhoneAppId,
+): HomeSlot {
+  if (slots[targetIndex] === null) {
+    slots[targetIndex] = appId
+    return null
+  }
+
+  const emptyAfter = slots.indexOf(null, targetIndex + 1)
+  if (emptyAfter !== -1) {
+    for (let index = emptyAfter; index > targetIndex; index -= 1) {
+      slots[index] = slots[index - 1]
+    }
+    slots[targetIndex] = appId
+    return null
+  }
+
+  const emptyBefore = slots.lastIndexOf(null, targetIndex - 1)
+  if (emptyBefore !== -1) {
+    for (let index = emptyBefore; index < targetIndex; index += 1) {
+      slots[index] = slots[index + 1]
+    }
+    slots[targetIndex] = appId
+    return null
+  }
+
+  const displacedApp = slots.at(-1) ?? null
+  for (let index = slots.length - 1; index > targetIndex; index -= 1) {
+    slots[index] = slots[index - 1]
+  }
+  slots[targetIndex] = appId
+  return displacedApp
+}
+
 export function createDefaultHomeLayout(
   installedIds: LaunchablePhoneAppId[],
   defaultGridIds: LaunchablePhoneAppId[],
@@ -209,9 +245,9 @@ export function moveHomeApp(
   }
 
   if (from === to) {
-    const displacedApp = source[targetIndex]
-    source[targetIndex] = appId
-    source[sourceIndex] = displacedApp
+    if (sourceIndex === targetIndex) return layout
+    source[sourceIndex] = null
+    insertIntoSlot(source, targetIndex, appId)
     return next
   }
 
@@ -220,13 +256,6 @@ export function moveHomeApp(
     target[duplicateIndex] = null
   }
 
-  const displacedApp = target[targetIndex]
-  source[sourceIndex] =
-    displacedApp &&
-    displacedApp !== appId &&
-    !source.some((id, index) => id === displacedApp && index !== sourceIndex)
-      ? displacedApp
-      : null
-  target[targetIndex] = appId
+  source[sourceIndex] = insertIntoSlot(target, targetIndex, appId)
   return next
 }

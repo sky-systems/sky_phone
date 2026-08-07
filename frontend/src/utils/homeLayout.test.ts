@@ -85,20 +85,33 @@ describe('home layout', () => {
     expect(moved.grid[4]).toBe('notes')
   })
 
-  it('swaps occupied slots and avoids duplicate displaced shortcuts', () => {
+  it('shifts occupied grid slots instead of replacing their apps', () => {
     const reordered = moveHomeApp(defaults, 'mail', 'grid', 'grid', 0)
     expect(reordered.grid.slice(0, 5)).toEqual([
       'mail',
-      'messages',
       'phone',
+      'messages',
       'clock',
       'notes',
     ])
+  })
 
-    const docked = moveHomeApp(reordered, 'mail', 'grid', 'dock', 2)
-    expect(docked.dock).toEqual(['phone', 'messages', 'mail', null])
-    expect(docked.grid[0]).toBeNull()
-    expect(docked.grid.filter((id) => id === 'clock')).toHaveLength(1)
+  it('shifts an occupied dock slot toward its gap', () => {
+    const docked = moveHomeApp(defaults, 'mail', 'grid', 'dock', 2)
+
+    expect(docked.dock).toEqual(['phone', 'messages', 'mail', 'clock'])
+    expect(docked.grid[2]).toBeNull()
+  })
+
+  it('moves an app displaced from a full dock into the source slot', () => {
+    const layout: HomeLayout = {
+      ...defaults,
+      dock: ['phone', 'messages', 'clock', 'notes'],
+    }
+    const docked = moveHomeApp(layout, 'mail', 'grid', 'dock', 1)
+
+    expect(docked.dock).toEqual(['phone', 'mail', 'messages', 'clock'])
+    expect(docked.grid[2]).toBe('notes')
   })
 
   it('removes shortcuts without closing gaps and restores the first gap', () => {
