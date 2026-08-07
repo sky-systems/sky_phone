@@ -18,24 +18,36 @@ import {
   UserRound,
   X,
 } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import CityMarktSelect from '@/components/citymarkt/CityMarktSelect.vue'
 import CityMarktGallery from '@/components/citymarkt/CityMarktGallery.vue'
 import { useAccountStore } from '@/stores/account'
-import { useMediaStore } from '@/stores/media'
+import { useMessageMediaStore } from '@/stores/messageMedia'
 import { usePagesStore } from '@/stores/pages'
 import { usePhoneStore } from '@/stores/phone'
 import type { PagesCategory, PagesPost } from '@/types/pages'
+
+type SelectedPhoto = { background: string; id: string }
+type ComposeDraft = {
+  body: string
+  category: Exclude<PagesCategory, 'citymarkt'>
+  district: string
+  images: string[]
+  title: string
+}
+type MediaContext = { draft: ComposeDraft; photos: SelectedPhoto[] }
 
 type Screen = 'main' | 'detail' | 'compose'
 type Tab = 'feed' | 'create' | 'profile'
 
 const phone = usePhoneStore()
 const account = useAccountStore()
-const media = useMediaStore()
+const messageMedia = useMessageMediaStore()
 const pages = usePagesStore()
+const route = useRoute()
 const router = useRouter()
 const screen = ref<Screen>('main')
 const tab = ref<Tab>('feed')
@@ -46,9 +58,8 @@ const search = ref('')
 const category = ref<string>('all')
 const feedback = ref('')
 const reactionPending = ref(false)
-const photoSource = ref<'camera' | 'gallery' | null>(null)
-const cameraFlash = ref(false)
-const draft = ref({
+const pickedPhotos = ref<SelectedPhoto[]>([])
+const draft = ref<ComposeDraft>({
   body: '',
   category: 'recommendation' as Exclude<PagesCategory, 'citymarkt'>,
   district: 'los_santos',
@@ -76,10 +87,10 @@ const displayedPosts = computed(() => tab.value === 'profile'
   : pages.items)
 const isAuthenticated = computed(() => Boolean(account.email))
 const selectedPhotos = computed(() => draft.value.images
-  .map((id) => media.photos.find((photo) => photo.id === id))
+  .map((id) => pickedPhotos.value.find((photo) => photo.id === id))
   .filter((photo) => photo !== undefined))
 const selectedImages = computed(() => selectedPhotos.value.map((photo, index) => ({
-  gradient: photo.gradient,
+  gradient: photo.background,
   media_id: photo.id,
   sort_order: index + 1,
 })))
@@ -134,19 +145,29 @@ async function openPost(post: PagesPost): Promise<void> {
 
 function togglePhoto(id: string): void {
   const index = draft.value.images.indexOf(id)
-  if (index >= 0) draft.value.images.splice(index, 1)
-  else if (draft.value.images.length < 6) draft.value.images.push(id)
-  else showFeedback('Apps.localPages.photoLimit')
+  if (index >= 0) {
+    draft.value.images.splice(index, 1)
+    pickedPhotos.value = pickedPhotos.value.filter((photo) => photo.id !== id)
+  }
 }
 
-function capturePhoto(): void {
-  if (draft.value.images.length >= 6) {
+function openMediaApp(app: 'camera' | 'photos'): void {
+  const remaining = 6 - draft.value.images.length
+  if (remaining < 1) {
     showFeedback('Apps.localPages.photoLimit')
     return
   }
-  cameraFlash.value = true
-  draft.value.images.push(media.capture().id)
-  window.setTimeout(() => (cameraFlash.value = false), 120)
+  messageMedia.begin(
+    'local-pages:compose',
+    'photo',
+    '/apps/local-pages?compose=1',
+    app === 'photos' ? remaining : 1,
+    {
+      draft: { ...draft.value, images: [...draft.value.images] },
+      photos: [...pickedPhotos.value],
+    } satisfies MediaContext,
+  )
+  void router.push({ path: `/apps/${app}`, query: { mediaAttachment: 'photo' } })
 }
 
 async function publish(): Promise<void> {
@@ -166,7 +187,7 @@ async function publish(): Promise<void> {
     return
   }
   draft.value = { body: '', category: 'recommendation', district: 'los_santos', images: [], title: '' }
-  photoSource.value = null
+  pickedPhotos.value = []
   tab.value = 'feed'
   screen.value = 'main'
   showFeedback('Apps.localPages.published')
@@ -225,7 +246,23 @@ function openCityMarktListing(): void {
   })
 }
 
-onMounted(() => void loadFeed())
+onMounted(() => {
+  const selection = messageMedia.consumeMany<MediaContext>('local-pages:compose')
+  if (selection) {
+    if (selection.context) {
+      draft.value = selection.context.draft
+      pickedPhotos.value = selection.context.photos
+    }
+    for (const media of selection.media) {
+      const id = String(media.id)
+      if (draft.value.images.includes(id) || draft.value.images.length >= 6) continue
+      draft.value.images.push(id)
+      pickedPhotos.value.push({ background: `url(${JSON.stringify(media.url)})`, id })
+    }
+  }
+  if (route.query.compose === '1') screen.value = 'compose'
+  void loadFeed()
+})
 </script>
 
 <template>
@@ -282,7 +319,7 @@ onMounted(() => void loadFeed())
     </template>
 
     <section v-else-if="screen === 'detail' && selected" class="pages__detail">
-      <header><button @click="screen = 'main'"><ArrowLeft :size="20" /></button><strong>{{ phone.t('Apps.localPages.post') }}</strong><button v-if="selected.is_owner" class="danger" @click="removePost"><Trash2 :size="18" /></button><button v-else @click="react('save')"><Bookmark :size="18" :fill="selected.is_saved ? 'currentColor' : 'none'" /></button></header>
+      <header><k-button component="button" clear rounded @click="screen = 'main'"><ArrowLeft :size="20" /></k-button><strong>{{ phone.t('Apps.localPages.post') }}</strong><k-button v-if="selected.is_owner" component="button" clear rounded class="danger" @click="removePost"><Trash2 :size="18" /></k-button><k-button v-else component="button" clear rounded @click="react('save')"><Bookmark :size="18" :fill="selected.is_saved ? 'currentColor' : 'none'" /></k-button></header>
       <div class="pages__detail-scroll">
         <div v-if="selected.images.length" class="pages__gallery" :style="{ background: selected.images[galleryIndex]?.gradient }"><button v-if="selected.images.length > 1" @click="moveGallery(-1)"><ChevronLeft /></button><button v-if="selected.images.length > 1" @click="moveGallery(1)"><ChevronRight /></button><span>{{ galleryIndex + 1 }} / {{ selected.images.length }}</span></div>
         <article><div class="pages__author"><span>{{ selected.author_name.charAt(0).toUpperCase() }}</span><div><strong>@{{ selected.author_name }}</strong><small>{{ relativeDate(selected.created_at) }}</small></div><i>{{ label('categories', selected.category) }}</i></div><h1>{{ selected.title }}</h1><p>{{ selected.body }}</p><div class="pages__location"><MapPin :size="17" /><div><small>{{ phone.t('Apps.localPages.location') }}</small><strong>{{ selected.district ? phone.t(`Apps.citymarkt.districts.${selected.district}`) : phone.t('Apps.localPages.allLosSantos') }}</strong></div></div><button v-if="selected.source_type === 'citymarkt'" class="pages__market-link" @click="openCityMarktListing"><Store :size="18" /><span><small>{{ phone.t('Apps.localPages.sharedFrom') }}</small><strong>{{ phone.t('Apps.localPages.openCityMarkt') }}</strong></span><b v-if="selected.citymarkt_price">${{ Number(selected.citymarkt_price).toLocaleString() }}</b></button></article>
@@ -291,7 +328,7 @@ onMounted(() => void loadFeed())
     </section>
 
     <section v-else class="pages__compose">
-      <header><button @click="screen = 'main'"><X :size="20" /></button><div><small>{{ phone.t('Apps.localPages.newPost') }}</small><strong>{{ phone.t('Apps.localPages.shareWithCity') }}</strong></div><button :disabled="!canPublish" @click="publish"><Send :size="16" />{{ phone.t('Apps.localPages.publish') }}</button></header>
+      <header><k-button component="button" clear rounded @click="screen = 'main'"><X :size="20" /></k-button><div><small>{{ phone.t('Apps.localPages.newPost') }}</small><strong>{{ phone.t('Apps.localPages.shareWithCity') }}</strong></div><k-button component="button" tonal rounded :disabled="!canPublish" @click="publish"><Send :size="16" />{{ phone.t('Apps.localPages.publish') }}</k-button></header>
       <div class="pages__compose-scroll">
         <label>{{ phone.t('Apps.localPages.title') }} <span :class="{ valid: draft.title.trim().length >= 5 }">{{ draft.title.trim().length }}/80 · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: '5' }) }}</span><input v-model="draft.title" maxlength="80" :placeholder="phone.t('Apps.localPages.titlePlaceholder')" /></label>
         <label>{{ phone.t('Apps.localPages.body') }} <span :class="{ valid: draft.body.trim().length >= 10 }">{{ draft.body.trim().length }}/1500 · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: '10' }) }}</span><textarea v-model="draft.body" maxlength="1500" :placeholder="phone.t('Apps.localPages.bodyPlaceholder')" /></label>
@@ -301,12 +338,12 @@ onMounted(() => void loadFeed())
           <h2>{{ phone.t('Apps.citymarkt.addPhotos') }}</h2>
           <p>{{ phone.t('Apps.citymarkt.addPhotosBody') }}</p>
           <div class="pages__photo-actions">
-            <button type="button" @click="photoSource = 'gallery'">
+            <button type="button" @click="openMediaApp('photos')">
               <span><Images :size="20" /></span>
               <strong>{{ phone.t('Apps.citymarkt.chooseGallery') }}</strong>
               <small>{{ phone.t('Apps.citymarkt.chooseGalleryBody') }}</small>
             </button>
-            <button type="button" @click="photoSource = 'camera'">
+            <button type="button" @click="openMediaApp('camera')">
               <span><Camera :size="20" /></span>
               <strong>{{ phone.t('Apps.citymarkt.takePhotos') }}</strong>
               <small>{{ phone.t('Apps.citymarkt.takePhotosBody') }}</small>
@@ -329,24 +366,6 @@ onMounted(() => void loadFeed())
             <button v-for="(photo, index) in selectedImages" :key="photo.media_id" type="button" :style="{ background: photo.gradient }" :aria-label="phone.t('Apps.citymarkt.removePhoto', { number: String(index + 1) })" @click="togglePhoto(photo.media_id)"><i>{{ index + 1 }}</i><X :size="12" /></button>
           </div>
         </section>
-      </div>
-      <div v-if="photoSource" class="pages__photo-source">
-        <header>
-          <div><small>{{ phone.t('Apps.citymarkt.addPhotos') }}</small><strong>{{ phone.t(photoSource === 'gallery' ? 'Apps.citymarkt.gallery' : 'Apps.citymarkt.camera') }}</strong></div>
-          <span>{{ draft.images.length }} / 6</span>
-          <button type="button" :aria-label="phone.t('Common.close')" @click="photoSource = null"><X :size="18" /></button>
-        </header>
-        <div v-if="photoSource === 'gallery'" class="pages__photo-picker">
-          <button v-for="photo in media.photos" :key="photo.id" type="button" :class="{ active: draft.images.includes(photo.id) }" :style="{ background: photo.gradient }" @click="togglePhoto(photo.id)"><i v-if="draft.images.includes(photo.id)">{{ draft.images.indexOf(photo.id) + 1 }}</i></button>
-        </div>
-        <div v-else class="pages__capture">
-          <div class="pages__viewfinder" :style="{ background: media.photos[0]?.gradient }">
-            <i v-for="corner in ['tl', 'tr', 'bl', 'br']" :key="corner" :class="`corner-${corner}`" />
-            <span class="pages__camera-flash" :class="{ active: cameraFlash }" />
-          </div>
-          <p>{{ phone.t('Apps.citymarkt.cameraHint') }}</p>
-          <button class="pages__shutter" type="button" :aria-label="phone.t('Apps.citymarkt.takePhoto')" @click="capturePhoto"><Camera :size="23" /></button>
-        </div>
       </div>
     </section>
     <Transition name="toast"><div v-if="feedback" class="pages__toast">{{ feedback }}</div></Transition>
