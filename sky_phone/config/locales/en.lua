@@ -178,7 +178,7 @@ Locales["en"] = {
                 keepPlaying = "Keep Playing", mainMenu = "Main Menu",
                 menuBody = "Slide matching numbers together and work your way up to 2048.", menuTitle = "Build the 2048 tile",
                 mute = "Mute game sounds", newGame = "New Game", score = "Score",
-                swipeHint = "Swipe the board, use the buttons, or press arrow keys / WASD",
+                swipeHint = "Swipe the board or use arrow keys / WASD",
                 unmute = "Turn on game sounds",
                 wonBody = "You reached the legendary tile. Continue climbing or begin again.", wonTitle = "You made 2048!",
             },

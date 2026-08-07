@@ -123,8 +123,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="memory-app" :aria-label="phone.t('Apps.memory.name')">
-    <header class="memory-header">
+  <main
+    class="memory-app"
+    :class="{ 'memory-app--playing': game }"
+    :aria-label="phone.t('Apps.memory.name')"
+  >
+    <header v-if="!game" class="memory-header">
       <div>
         <span>{{ phone.t('Apps.memory.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.memory.name') }}</h1>
@@ -278,6 +282,10 @@ onBeforeUnmount(() => {
   user-select: none;
 }
 
+.memory-app--playing {
+  padding: 0;
+}
+
 .memory-header {
   height: 52px;
   display: flex;
@@ -405,50 +413,67 @@ onBeforeUnmount(() => {
 .memory-difficulty__best { align-self: start; color: #74698f; font-size: 11.5px; line-height: 1.2; }
 .memory-difficulties svg { grid-column: 3; grid-row: 1 / 3; color: #7658c7; }
 
-.memory-game { padding-top: 5px; }
-
-.memory-stats {
-  height: 50px;
-  display: grid;
-  grid-template-columns: 30px auto auto 1fr;
-  align-items: center;
-  gap: 11px;
+.memory-game {
+  position: absolute;
+  inset: 0;
 }
 
-.memory-stats div { display: grid; }
-.memory-stats span { color: #74698f; font-size: 10.5px; font-weight: 800; text-transform: uppercase; }
-.memory-stats strong { font-size: 19px; line-height: 1.05; }
-.memory-stats button { justify-self: end; border: 0; color: #7052bf; background: transparent; font-size: 14px; font-weight: 800; }
+.memory-stats {
+  position: absolute;
+  z-index: 7;
+  top: 66px;
+  right: 18px;
+  left: 18px;
+  height: 42px;
+  display: grid;
+  grid-template-columns: 32px 1fr 1fr auto;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgb(105 79 160 / 10%);
+  border-radius: 21px;
+  background: rgb(246 241 255 / 64%);
+  box-shadow: 0 8px 24px rgb(75 52 121 / 13%);
+  backdrop-filter: blur(14px);
+  box-sizing: border-box;
+}
+
+.memory-stats div { height: 32px; display: grid; grid-template-rows: 10px 20px; align-content: center; justify-items: center; }
+.memory-stats span { color: #74698f; font-size: 10.5px; font-weight: 800; line-height: 10px; text-transform: uppercase; }
+.memory-stats strong { display: block; font-size: 19px; line-height: 20px; }
+.memory-stats button { justify-self: end; border: 0; color: #7052bf; background: transparent; font-size: 13px; font-weight: 800; }
 .memory-stats .memory-menu-button {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   justify-self: start;
   padding: 0;
-  border: 1px solid rgb(105 79 160 / 10%);
-  border-radius: 10px;
+  border: 0;
+  border-radius: 50%;
   background: rgb(255 255 255 / 48%);
-  box-shadow: 0 3px 8px rgb(75 52 121 / 8%);
   cursor: pointer;
 }
 
 .memory-board {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: grid;
   gap: 8px;
-  padding: 9px;
-  border: 1px solid rgb(101 77 153 / 9%);
-  border-radius: 20px;
-  background: rgb(255 255 255 / 31%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 50%);
+  align-content: center;
+  padding: 108px 17px 28px;
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 12% 88%, rgb(135 105 207 / 12%), transparent 31%),
+    radial-gradient(circle at 88% 16%, rgb(255 255 255 / 54%), transparent 28%);
   perspective: 900px;
 }
 
 .memory-board--small { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .memory-board--medium,
 .memory-board--large { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.memory-board--large { gap: 6px; padding: 7px; }
+.memory-board--large { gap: 6px; padding-right: 15px; padding-left: 15px; }
 
 .memory-game-card {
   aspect-ratio: 0.82;
@@ -545,7 +570,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border-radius: 20px;
+  border-radius: 0;
   background: rgb(244 239 255 / 90%);
   backdrop-filter: blur(6px);
   text-align: center;

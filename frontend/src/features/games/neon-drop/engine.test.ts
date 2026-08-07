@@ -20,6 +20,10 @@ describe('neon drop engine', () => {
   it('starts with a valid piece and a complete seven-piece bag', () => {
     const game = createNeonDropGame(() => 0.5)
     expect(game.status).toBe('playing')
+    expect(game.board).toHaveLength(17)
+    expect(game.board.every((row) => row.length === NEON_DROP_COLUMNS)).toBe(
+      true,
+    )
     expect(new Set([game.active.kind, ...game.queue]).size).toBe(7)
     expect(canPlaceNeonDropPiece(game.board, game.active)).toBe(true)
   })

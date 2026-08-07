@@ -341,7 +341,7 @@ const defaultLocales: LocaleTree = {
       mute: 'Mute game sounds',
       newGame: 'New Game',
       score: 'Score',
-      swipeHint: 'Swipe the board, use the buttons, or press arrow keys / WASD',
+      swipeHint: 'Swipe the board or use arrow keys / WASD',
       unmute: 'Turn on game sounds',
       wonBody: 'You reached the legendary tile. Continue climbing or begin again.',
       wonTitle: 'You made 2048!',

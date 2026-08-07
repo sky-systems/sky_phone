@@ -5,7 +5,7 @@ import type {
 } from './types'
 
 export const SNAKE_BOARD_WIDTH = 16
-export const SNAKE_BOARD_HEIGHT = 34
+export const SNAKE_BOARD_HEIGHT = 30
 
 const DIRECTION_VECTORS: Record<SnakeDirection, SnakePoint> = {
   up: { x: 0, y: -1 },

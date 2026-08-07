@@ -214,8 +214,10 @@ onBeforeUnmount(() => {
         >
           <ChevronLeft :size="18" :stroke-width="2.7" aria-hidden="true" />
         </button>
-        <span>{{ phone.t('Apps.snake.score') }}</span>
-        <strong>{{ game.score }}</strong>
+        <div>
+          <span>{{ phone.t('Apps.snake.score') }}</span>
+          <strong>{{ game.score }}</strong>
+        </div>
         <button
           v-if="game.status !== 'game-over'"
           type="button"
@@ -475,34 +477,48 @@ onBeforeUnmount(() => {
 .snake-game__meta {
   position: absolute;
   z-index: 7;
-  top: 48px;
-  right: 14px;
-  left: 14px;
+  top: 66px;
+  right: 18px;
+  left: 18px;
   height: 42px;
-  justify-content: flex-start;
-  gap: 8px;
-  padding: 4px 5px;
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
   border: 1px solid rgb(255 255 255 / 9%);
-  border-radius: 22px;
+  border-radius: 21px;
   background: rgb(8 22 18 / 58%);
   box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
   backdrop-filter: blur(14px);
+  box-sizing: border-box;
+}
+
+.snake-game__meta div {
+  height: 32px;
+  display: grid;
+  grid-template-rows: 10px 20px;
+  align-content: center;
+  justify-items: center;
 }
 
 .snake-game__meta span {
   color: #9fb3a9;
   font-size: 11px;
   font-weight: 700;
+  line-height: 10px;
   text-transform: uppercase;
 }
 
 .snake-game__meta strong {
-  font-size: 22px;
+  display: block;
+  font-size: 19px;
+  line-height: 20px;
 }
 
 .snake-game__meta button {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border: 0;
@@ -511,21 +527,32 @@ onBeforeUnmount(() => {
   background: rgb(255 255 255 / 8%);
 }
 
-.snake-game__meta .snake-game__pause { margin-left: auto; }
-.snake-game__meta .snake-game__back { flex: 0 0 auto; }
+.snake-game__meta .snake-game__pause { justify-self: end; }
+.snake-game__meta .snake-game__back { justify-self: start; }
 
 .snake-board {
   position: absolute;
-  inset: 0;
+  top: 118px;
+  right: 18px;
+  bottom: 62px;
+  left: 18px;
   overflow: hidden;
-  border: 0;
-  border-radius: 0;
+  border: 1px solid rgb(145 228 117 / 24%);
+  border-radius: 18px;
   background-color: #162d26;
   background-image:
-    linear-gradient(rgb(255 255 255 / 2%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 2%) 1px, transparent 1px);
-  background-size: calc(100% / 16) calc(100% / 34);
-  box-shadow: inset 0 0 55px rgb(0 0 0 / 24%);
+    linear-gradient(rgb(173 233 160 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(173 233 160 / 4%) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgb(94 191 91 / 8%), transparent 68%);
+  background-size:
+    calc(100% / 16) calc(100% / 30),
+    calc(100% / 16) calc(100% / 30),
+    100% 100%;
+  box-shadow:
+    inset 0 0 55px rgb(0 0 0 / 24%),
+    inset 0 0 0 1px rgb(213 255 199 / 3%),
+    0 12px 30px rgb(0 0 0 / 20%),
+    0 0 18px rgb(89 196 82 / 7%);
 }
 
 .snake-head,
