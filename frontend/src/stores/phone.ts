@@ -1013,6 +1013,7 @@ const defaultLocales: LocaleTree = {
     apps: 'Apps',
     dock: 'Dock',
     noApps: 'No apps found',
+    removeApp: 'Remove {app} from Home Screen',
     page: 'Page',
     pages: 'Home screen pages',
     groups: {

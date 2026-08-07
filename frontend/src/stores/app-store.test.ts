@@ -32,6 +32,7 @@ describe('app store', () => {
     expect(apps.launchCounts).toEqual({ mail: 4 })
     expect(mocks.saveDeviceNamespace).toHaveBeenCalledWith('apps', {
       claimedApps: ['snake'],
+      homeLayout: apps.homeLayout,
       launchCounts: { mail: 4 },
     })
   })
@@ -53,6 +54,7 @@ describe('app store', () => {
     expect(apps.claimedApps).toEqual(['snake'])
     expect(mocks.saveDeviceNamespace).toHaveBeenCalledWith('apps', {
       claimedApps: ['snake'],
+      homeLayout: apps.homeLayout,
       launchCounts: {},
     })
   })
@@ -68,5 +70,22 @@ describe('app store', () => {
 
     expect(apps.claimedApps).toEqual(['memory', 'snake'])
     expect(mocks.saveDeviceNamespace).toHaveBeenCalledTimes(1)
+  })
+
+  it('persists home reordering and removal independently from installation', () => {
+    const apps = useAppStoreStore()
+    apps.hydrate(null)
+
+    apps.moveHomeApp('mail', 'grid', 'grid', 0)
+    expect(apps.homeLayout.grid[0]).toBe('mail')
+
+    apps.removeHomeApp('mail')
+    expect(apps.homeLayout.grid).not.toContain('mail')
+    expect(apps.homeLayout.hidden).toContain('mail')
+    expect(mocks.saveDeviceNamespace).toHaveBeenLastCalledWith('apps', {
+      claimedApps: [],
+      homeLayout: apps.homeLayout,
+      launchCounts: {},
+    })
   })
 })

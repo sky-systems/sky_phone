@@ -25,7 +25,7 @@ Locales["en"] = {
         },
         Home = {
             appLibrary = "App Library", appLibrarySearch = "Search apps", allApps = "All Apps", apps = "Apps",
-            dock = "Dock", noApps = "No apps found", page = "Page", pages = "Home screen pages",
+            dock = "Dock", noApps = "No apps found", removeApp = "Remove {app} from Home Screen", page = "Page", pages = "Home screen pages",
             groups = {
                 suggestions = "Suggestions", recentlyAdded = "Recently Added", games = "Games",
                 productivity = "Productivity", shopping = "Shopping", social = "Social Networks", utilities = "Utilities",

@@ -1017,6 +1017,12 @@ button {
   grid-template-columns: repeat(4, 1fr);
   gap: 28px 15px;
 }
+.app-icon-item {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
 .app-icon-button {
   min-width: 0;
   border: 0;
@@ -1029,6 +1035,52 @@ button {
   padding: 0;
   cursor: pointer;
   text-shadow: 0 1px 4px #000b;
+}
+.app-icon-item--dragging {
+  z-index: 20;
+  opacity: 0.35;
+}
+.app-icon-remove {
+  position: absolute;
+  z-index: 4;
+  top: -8px;
+  left: 1px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: black;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  text-shadow: none;
+}
+.app-icon-remove__badge {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: 1px solid #ffffff73;
+  box-shadow: 0 1px 4px #0009;
+}
+.app-icon-item--editing:not(.app-icon-item--dragging) {
+  animation: app-icon-wobble 0.15s ease-in-out infinite alternate;
+  transform-origin: 50% 45%;
+}
+.app-icon-item--editing:nth-child(even):not(.app-icon-item--dragging) {
+  animation-direction: alternate-reverse;
+  animation-delay: -0.075s;
+}
+@keyframes app-icon-wobble {
+  from {
+    transform: rotate(-1.5deg) translateY(-0.4px);
+  }
+  to {
+    transform: rotate(1.5deg) translateY(0.4px);
+  }
 }
 .app-icon-anchor {
   position: relative;
@@ -1109,8 +1161,8 @@ button {
   right: 15px;
   height: 82px;
   padding: 13px 18px;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   border: 1px solid #ffffff28;
   border-radius: 27px;
   background: #ffffff22;
@@ -1119,6 +1171,35 @@ button {
     0 8px 28px #0004;
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+.springboard-edit-done {
+  position: absolute;
+  z-index: 12;
+  top: 45px;
+  right: 18px;
+  min-width: 51px;
+  min-height: 30px;
+  padding: 0 13px;
+  border: 1px solid #ffffff38;
+  border-radius: 999px;
+  color: white;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 28px;
+  text-align: center;
+  text-shadow: 0 1px 3px #000a;
+  cursor: pointer;
+}
+.edit-done-enter-active,
+.edit-done-leave-active {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+.edit-done-enter-from,
+.edit-done-leave-to {
+  opacity: 0;
+  transform: scale(0.88);
 }
 .page-indicator {
   position: absolute;
@@ -1425,6 +1506,11 @@ button {
   width: 44px;
   height: 44px;
   border-radius: 11px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-icon-item--editing:not(.app-icon-item--dragging) {
+    animation: none;
+  }
 }
 .app-library-group .app-icon-button--compact .app-icon {
   width: 56px;
