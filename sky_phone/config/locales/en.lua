@@ -32,7 +32,7 @@ Locales["en"] = {
         },
         Home = {
             appLibrary = "App Library", appLibrarySearch = "Search apps", allApps = "All Apps", apps = "Apps",
-            dock = "Dock", noApps = "No apps found", removeApp = "Remove {app} from Home Screen", page = "Page", pages = "Home screen pages",
+            dock = "Dock", noApps = "No apps found", removeApp = "Remove {app} from Home Screen", addToHome = "Add {app} to Home Screen", addPage = "Add Home Screen page", deletePage = "Delete current Home Screen page", removedFromHome = "Removed from Home Screen", page = "Page", pages = "Home screen pages",
             groups = {
                 suggestions = "Suggestions", recentlyAdded = "Recently Added", games = "Games",
                 productivity = "Productivity", shopping = "Shopping", social = "Social Networks", utilities = "Utilities",
@@ -43,6 +43,19 @@ Locales["en"] = {
                 calendar = { event = "No more events today" },
                 battery = { label = "Phone" },
                 media = { title = "Night Drive", artist = "Sky Radio", play = "Play", pause = "Pause" },
+            },
+            widgetSystem = {
+                galleryTitle = "Widgets", search = "Search Widgets", size = "Size", add = "Add Widget", addWidget = "Add Widget",
+                editWidget = "Edit Widget", removeWidget = "Remove Widget", remove = "Remove widget", configure = "Configure Widget", noResults = "No widgets found",
+                sizes = { small = "Small", medium = "Medium", large = "Large" },
+                categories = { essentials = "Essentials", information = "Information", media = "Media", finance = "Finance", people = "People" },
+                clock = { name = "Clock", description = "The current time, with an optional date.", showDate = "Show Date" },
+                date = { name = "Date", description = "Weekday, month, and date at a glance." },
+                weather = { name = "Weather", description = "Current conditions, location, and high and low." },
+                music = { name = "Now Playing", description = "Music controls and the current track." },
+                wallet = { name = "Wallet", description = "Your current bank or cash balance.", balance = "Displayed Balance", bank = "Bank", cash = "Cash" },
+                transactions = { name = "Transactions", description = "Your latest incoming and outgoing payments." },
+                contacts = { name = "Favorites", description = "Call or message your favorite contacts.", choose = "Favorite Contacts" },
             },
         },
         Apps = {
