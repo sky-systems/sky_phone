@@ -11,14 +11,22 @@ import {
   Images,
   MapPin,
   Plus,
-  Search,
-  Send,
   Store,
   Trash2,
   UserRound,
   X,
 } from 'lucide-vue-next'
-import { kButton } from 'konsta/vue'
+import {
+  kButton,
+  kGlass,
+  kIcon,
+  kNavbar,
+  kPage,
+  kSearchbar,
+  kTabbar,
+  kTabbarLink,
+  kToolbarPane,
+} from 'konsta/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -119,6 +127,15 @@ function showFeedback(key: string): void {
 
 async function loadFeed(): Promise<void> {
   await pages.load({ category: category.value, search: search.value })
+}
+
+function updateSearch(event: Event): void {
+  search.value = (event.target as HTMLInputElement).value
+}
+
+function clearSearch(): void {
+  search.value = ''
+  void loadFeed()
 }
 
 async function selectTab(next: Tab): Promise<void> {
@@ -266,36 +283,52 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="pages" :class="{ 'pages--light': !phone.isDarkMode }">
+  <k-page
+    component="main"
+    class="pages pb-safe-24"
+    :class="{ 'pages--light': !phone.isDarkMode }"
+    :colors="{ bgIos: 'bg-transparent' }"
+  >
     <template v-if="screen === 'main'">
-      <header class="pages__header">
-        <div>
-          <span class="pages__brand">
-            <MapPin :size="14" />
-            {{ phone.t(tab === 'feed' ? 'Apps.localPages.eyebrow' : 'Apps.localPages.name') }}
-          </span>
-          <h1>{{ phone.t(tab === 'feed' ? 'Apps.localPages.name' : 'Apps.localPages.profile') }}</h1>
-        </div>
-      </header>
+      <k-navbar
+        class="pages-navbar"
+        :subtitle="phone.t(tab === 'feed' ? 'Apps.localPages.eyebrow' : 'Apps.localPages.name')"
+        :title="phone.t(tab === 'feed' ? 'Apps.localPages.name' : 'Apps.localPages.profile')"
+      />
 
       <section class="pages__content">
         <template v-if="tab === 'feed'">
-          <div class="pages__hero"><div><small>{{ phone.t('Apps.localPages.cityPulse') }}</small><strong>{{ phone.t('Apps.localPages.heroTitle') }}</strong><span>{{ phone.t('Apps.localPages.heroBody') }}</span></div><MapPin :size="40" /></div>
-          <form class="pages__search" @submit.prevent="loadFeed"><Search :size="17" /><input v-model="search" :placeholder="phone.t('Apps.localPages.searchPlaceholder')" /><button>{{ phone.t('Apps.localPages.search') }}</button></form>
+          <k-glass class="pages-hero-glass">
+            <div class="pages__hero"><div><small>{{ phone.t('Apps.localPages.cityPulse') }}</small><strong>{{ phone.t('Apps.localPages.heroTitle') }}</strong><span>{{ phone.t('Apps.localPages.heroBody') }}</span></div><MapPin :size="40" /></div>
+          </k-glass>
+          <k-searchbar
+            component="form"
+            class="pages-searchbar"
+            :value="search"
+            :placeholder="phone.t('Apps.localPages.searchPlaceholder')"
+            @input="updateSearch"
+            @clear="clearSearch"
+            @submit.prevent="loadFeed"
+          />
           <CityMarktSelect :model-value="category" :options="categoryOptions" @change="(value) => { category = value; loadFeed() }" />
         </template>
 
         <template v-else>
           <div v-if="!isAuthenticated" class="pages__empty"><UserRound :size="42" /><strong>{{ phone.t('Apps.localPages.signInTitle') }}</strong><span>{{ phone.t('Apps.localPages.signInBody') }}</span></div>
           <template v-else>
-            <div class="pages__profile"><span>{{ account.email.charAt(0).toUpperCase() }}</span><div><small>{{ phone.t('Apps.localPages.localCreator') }}</small><strong>@{{ account.email.split('@')[0] }}</strong><b>{{ pages.ownItems.length }} {{ phone.t('Apps.localPages.posts') }}</b></div></div>
-            <div class="pages__segmented"><button :class="{ active: profileMode === 'own' }" @click="profileMode = 'own'">{{ phone.t('Apps.localPages.myPosts') }}</button><button :class="{ active: profileMode === 'saved' }" @click="profileMode = 'saved'">{{ phone.t('Apps.localPages.saved') }}</button></div>
+            <k-glass class="pages-profile-glass">
+              <div class="pages__profile"><span>{{ account.email.charAt(0).toUpperCase() }}</span><div><small>{{ phone.t('Apps.localPages.localCreator') }}</small><strong>@{{ account.email.split('@')[0] }}</strong><b>{{ pages.ownItems.length }} {{ phone.t('Apps.localPages.posts') }}</b></div></div>
+            </k-glass>
+            <k-glass class="pages-segmented-glass">
+              <div class="pages__segmented"><button :class="{ active: profileMode === 'own' }" @click="profileMode = 'own'">{{ phone.t('Apps.localPages.myPosts') }}</button><button :class="{ active: profileMode === 'saved' }" @click="profileMode = 'saved'">{{ phone.t('Apps.localPages.saved') }}</button></div>
+            </k-glass>
           </template>
         </template>
 
         <div v-if="pages.isLoading" class="pages__empty">{{ phone.t('Common.loading') }}</div>
         <div v-else-if="isAuthenticated || tab === 'feed'" class="pages__feed">
-          <article v-for="post in displayedPosts" :key="post.id" class="pages__post">
+          <k-glass v-for="post in displayedPosts" :key="post.id" class="pages-post-glass">
+            <article class="pages__post">
             <button class="pages__post-open" type="button" @click="openPost(post)">
               <div class="pages__post-head"><span>{{ post.author_name.charAt(0).toUpperCase() }}</span><div><strong>@{{ post.author_name }}</strong><small><MapPin :size="10" /> {{ post.district ? phone.t(`Apps.citymarkt.districts.${post.district}`) : phone.t('Apps.localPages.allLosSantos') }} · {{ relativeDate(post.created_at) }}</small></div><i>{{ label('categories', post.category) }}</i></div>
               <div v-if="post.image" class="pages__cover" :style="{ background: post.image }"><b v-if="post.images.length > 1">1 / {{ post.images.length }}</b></div>
@@ -306,16 +339,49 @@ onMounted(() => {
               <span v-if="post.source_type === 'citymarkt'"><Store :size="14" /> CityMarkt</span>
               <button type="button" :class="{ active: post.is_saved }" :disabled="reactionPending" :aria-label="phone.t('Apps.localPages.save')" @click="reactToPost(post, 'save')"><Bookmark :size="15" :fill="post.is_saved ? 'currentColor' : 'none'" /> {{ phone.t('Apps.localPages.save') }}</button>
             </div>
-          </article>
+            </article>
+          </k-glass>
           <div v-if="!displayedPosts.length" class="pages__empty"><Compass :size="38" /><strong>{{ phone.t('Apps.localPages.noPosts') }}</strong><span>{{ phone.t('Apps.localPages.noPostsBody') }}</span></div>
         </div>
       </section>
 
-      <nav class="pages__tabbar">
-        <button :class="{ active: tab === 'feed' }" @click="selectTab('feed')"><span><Compass :size="20" /></span>{{ phone.t('Apps.localPages.discover') }}</button>
-        <button class="create" @click="selectTab('create')"><span><Plus :size="23" /></span>{{ phone.t('Apps.localPages.create') }}</button>
-        <button :class="{ active: tab === 'profile' }" @click="selectTab('profile')"><span><UserRound :size="20" /></span>{{ phone.t('Apps.localPages.profile') }}</button>
-      </nav>
+      <k-tabbar
+        component="nav"
+        icons
+        labels
+        class="bottom-0 left-0 fixed"
+        inner-class="!w-full !max-w-none !gap-0 !px-1"
+        :aria-label="phone.t('Apps.localPages.name')"
+      >
+        <k-toolbar-pane class="pages__tab-pane">
+          <k-tabbar-link
+            component="button"
+            :active="tab === 'feed'"
+            :link-props="{ class: 'pages-tab-button', type: 'button' }"
+            @click="selectTab('feed')"
+          >
+            <template #label><span class="pages__tab-label">{{ phone.t('Apps.localPages.discover') }}</span></template>
+            <template #icon><k-icon><Compass :size="20" /></k-icon></template>
+          </k-tabbar-link>
+          <k-tabbar-link
+            component="button"
+            :link-props="{ class: 'pages-tab-button', type: 'button' }"
+            @click="selectTab('create')"
+          >
+            <template #label><span class="pages__tab-label">{{ phone.t('Apps.localPages.create') }}</span></template>
+            <template #icon><span class="pages__tab-icon pages__tab-icon--create"><k-icon><Plus :size="21" /></k-icon></span></template>
+          </k-tabbar-link>
+          <k-tabbar-link
+            component="button"
+            :active="tab === 'profile'"
+            :link-props="{ class: 'pages-tab-button', type: 'button' }"
+            @click="selectTab('profile')"
+          >
+            <template #label><span class="pages__tab-label">{{ phone.t('Apps.localPages.profile') }}</span></template>
+            <template #icon><k-icon><UserRound :size="20" /></k-icon></template>
+          </k-tabbar-link>
+        </k-toolbar-pane>
+      </k-tabbar>
     </template>
 
     <section v-else-if="screen === 'detail' && selected" class="pages__detail">
@@ -328,26 +394,44 @@ onMounted(() => {
     </section>
 
     <section v-else class="pages__compose">
-      <header><k-button component="button" clear rounded @click="screen = 'main'"><X :size="20" /></k-button><div><small>{{ phone.t('Apps.localPages.newPost') }}</small><strong>{{ phone.t('Apps.localPages.shareWithCity') }}</strong></div><k-button component="button" tonal rounded :disabled="!canPublish" @click="publish"><Send :size="16" />{{ phone.t('Apps.localPages.publish') }}</k-button></header>
+      <k-navbar
+        class="pages-create-navbar"
+        center-title
+        left-class="pages-create-action pages-create-action--close !w-11 !min-w-11 !max-w-11 !h-11 !p-0 !rounded-full"
+        right-class="pages-create-action pages-create-action--publish !min-w-[58px] !h-11 !p-0 !rounded-full"
+        :title="phone.t('Apps.localPages.shareWithCity')"
+        :subtitle="phone.t('Apps.localPages.newPost')"
+      >
+        <template #left>
+          <button class="pages-create-close" type="button" :aria-label="phone.t('Common.close')" @click="screen = 'main'">
+            <X :size="20" />
+          </button>
+        </template>
+        <template #right>
+          <button class="pages-create-publish" type="button" :disabled="!canPublish" @click="publish">
+            {{ phone.t('Apps.localPages.publish') }}
+          </button>
+        </template>
+      </k-navbar>
       <div class="pages__compose-scroll">
-        <label>{{ phone.t('Apps.localPages.title') }} <span :class="{ valid: draft.title.trim().length >= 5 }">{{ draft.title.trim().length }}/80 · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: '5' }) }}</span><input v-model="draft.title" maxlength="80" :placeholder="phone.t('Apps.localPages.titlePlaceholder')" /></label>
-        <label>{{ phone.t('Apps.localPages.body') }} <span :class="{ valid: draft.body.trim().length >= 10 }">{{ draft.body.trim().length }}/1500 · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: '10' }) }}</span><textarea v-model="draft.body" maxlength="1500" :placeholder="phone.t('Apps.localPages.bodyPlaceholder')" /></label>
+        <label>{{ phone.t('Apps.localPages.title') }} <span :class="{ valid: draft.title.trim().length >= 5 }">{{ draft.title.trim().length }}/80 · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: '5' }) }}</span><k-glass class="pages__field-glass"><input v-model="draft.title" maxlength="80" :placeholder="phone.t('Apps.localPages.titlePlaceholder')" /></k-glass></label>
+        <label>{{ phone.t('Apps.localPages.body') }} <span :class="{ valid: draft.body.trim().length >= 10 }">{{ draft.body.trim().length }}/1500 · {{ phone.t('Apps.citymarkt.minimumCharacters', { minimum: '10' }) }}</span><k-glass class="pages__field-glass pages__field-glass--textarea"><textarea v-model="draft.body" maxlength="1500" :placeholder="phone.t('Apps.localPages.bodyPlaceholder')" /></k-glass></label>
         <div class="pages__form-row"><label>{{ phone.t('Apps.localPages.category') }}<CityMarktSelect :model-value="draft.category" :options="composeCategoryOptions" @change="(value) => draft.category = value as typeof draft.category" /></label><label>{{ phone.t('Apps.localPages.location') }}<CityMarktSelect :model-value="draft.district" :options="districtOptions" @change="(value) => draft.district = value" /></label></div>
         <section class="pages__photos">
           <ImagePlus :size="30" />
           <h2>{{ phone.t('Apps.citymarkt.addPhotos') }}</h2>
           <p>{{ phone.t('Apps.citymarkt.addPhotosBody') }}</p>
           <div class="pages__photo-actions">
-            <button type="button" @click="openMediaApp('photos')">
+            <k-glass><button type="button" @click="openMediaApp('photos')">
               <span><Images :size="20" /></span>
               <strong>{{ phone.t('Apps.citymarkt.chooseGallery') }}</strong>
               <small>{{ phone.t('Apps.citymarkt.chooseGalleryBody') }}</small>
-            </button>
-            <button type="button" @click="openMediaApp('camera')">
+            </button></k-glass>
+            <k-glass><button type="button" @click="openMediaApp('camera')">
               <span><Camera :size="20" /></span>
               <strong>{{ phone.t('Apps.citymarkt.takePhotos') }}</strong>
               <small>{{ phone.t('Apps.citymarkt.takePhotosBody') }}</small>
-            </button>
+            </button></k-glass>
           </div>
           <div class="pages__selected-heading">
             <strong>{{ phone.t('Apps.citymarkt.selectedPhotos') }}</strong>
@@ -369,7 +453,7 @@ onMounted(() => {
       </div>
     </section>
     <Transition name="toast"><div v-if="feedback" class="pages__toast">{{ feedback }}</div></Transition>
-  </main>
+  </k-page>
 </template>
 
 <style scoped>
@@ -414,4 +498,220 @@ onMounted(() => {
 .pages__selected-heading span,.pages__photo-source>header small,.pages__photo-source>header>span{font-size:11px}
 .pages__selected-strip button i,.pages__photo-picker i{font-size:10px}
 .pages__toast{font-size:12px}
+.pages {
+  --color-primary: var(--yellow);
+  position: relative;
+  height: 100%;
+  padding: 0;
+  background: #12171b !important;
+}
+.pages--light {
+  background: #fbfbf6 !important;
+}
+.pages-navbar {
+  --k-safe-area-top: 46px;
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  right: 0;
+  left: 0;
+}
+.pages__content {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  padding: 108px 13px 112px;
+}
+.pages-hero-glass,
+.pages-profile-glass,
+.pages-segmented-glass,
+.pages-post-glass {
+  width: 100%;
+  border-radius: 17px;
+}
+.pages-hero-glass {
+  margin-bottom: 10px;
+}
+.pages__hero {
+  height: 105px;
+  margin: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.pages-searchbar {
+  margin-bottom: 8px;
+}
+.pages-profile-glass {
+  margin: 3px 0 10px;
+}
+.pages__profile {
+  margin: 0;
+  background: transparent;
+}
+.pages-segmented-glass {
+  padding: 4px;
+  border-radius: 13px;
+}
+.pages__segmented {
+  padding: 0;
+  background: transparent;
+}
+.pages-post-glass {
+  overflow: hidden;
+}
+.pages__post {
+  background: transparent;
+  box-shadow: none;
+}
+.pages__tab-pane {
+  width: 100% !important;
+  max-width: none;
+  margin-right: auto;
+  margin-left: auto;
+  flex: none;
+  justify-content: space-around;
+  gap: 2px;
+  padding: 0 4px;
+}
+.pages__tab-label {
+  display: block;
+  max-width: 52px;
+  overflow: hidden;
+  font-size: 9.5px;
+  line-height: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:global(.pages__tab-pane) {
+  width: 100% !important;
+  max-width: none;
+  margin-right: auto;
+  margin-left: auto;
+  flex: none;
+  justify-content: space-around;
+}
+:global(.pages-tab-button) {
+  width: 20% !important;
+  min-width: 0 !important;
+  max-width: 58px !important;
+  flex: 0 0 20% !important;
+  padding-right: 3px !important;
+  padding-left: 3px !important;
+}
+.pages-create-navbar {
+  --k-safe-area-top: 46px;
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  right: 0;
+  left: 0;
+}
+.pages-create-action {
+  height: 44px;
+  border-radius: 9999px;
+}
+.pages-create-action--close {
+  width: 44px;
+}
+.pages-create-action--publish {
+  min-width: 58px;
+}
+.pages-create-close,
+.pages-create-publish {
+  width: 100%;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  background: transparent;
+  color: inherit;
+}
+.pages-create-close {
+  display: grid;
+  place-items: center;
+}
+.pages-create-publish {
+  min-width: 58px;
+  padding: 0 13px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+.pages-create-publish:disabled {
+  opacity: 0.38;
+}
+.pages__compose-scroll {
+  position: absolute;
+  top: 104px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: auto;
+  padding-bottom: 35px;
+}
+.pages__field-glass {
+  min-height: 44px;
+  margin-top: 5px;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.pages__field-glass--textarea {
+  min-height: 116px;
+  border-radius: 18px;
+}
+.pages__field-glass > input,
+.pages__field-glass > textarea {
+  width: 100%;
+  min-height: 44px;
+  margin: 0 !important;
+  padding: 11px 14px !important;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  color: inherit;
+  font-size: 13px !important;
+}
+.pages__field-glass > textarea {
+  min-height: 116px;
+  resize: none;
+  line-height: 1.45;
+}
+.pages__photo-actions > * {
+  min-width: 0;
+  border-radius: 14px;
+}
+.pages__photo-actions > * > button {
+  width: 100%;
+  min-height: 118px;
+  padding: 11px 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  background: transparent;
+}
+.pages__photo-actions > * > button > span {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 8px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: var(--yellow);
+}
+.pages__tab-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.pages__tab-icon--create {
+  width: 38px;
+  height: 30px;
+  margin-top: -4px;
+  border-radius: 10px;
+  background: var(--yellow);
+  color: #17191a;
+  box-shadow: 0 4px 12px #00000030;
+}
 </style>
