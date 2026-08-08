@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   createSnakeGame,
+  SNAKE_BOARD_HEIGHT,
   SNAKE_BOARD_WIDTH,
   stepSnake,
   turnSnake,
@@ -27,6 +28,17 @@ describe('Snake engine', () => {
     expect(next.body).not.toContainEqual(next.fruit)
   })
 
+  it('places fruit inside the visible play area', () => {
+    for (const random of [() => 0, () => 1]) {
+      const { fruit } = createSnakeGame(random)
+
+      expect(fruit.x).toBeGreaterThanOrEqual(0)
+      expect(fruit.x).toBeLessThan(SNAKE_BOARD_WIDTH)
+      expect(fruit.y).toBeGreaterThanOrEqual(0)
+      expect(fruit.y).toBeLessThan(SNAKE_BOARD_HEIGHT)
+    }
+  })
+
   it('ignores an immediate reverse direction', () => {
     const game = createSnakeGame(() => 0)
 
@@ -41,6 +53,20 @@ describe('Snake engine', () => {
         { x: SNAKE_BOARD_WIDTH - 1, y: 4 },
         { x: SNAKE_BOARD_WIDTH - 2, y: 4 },
       ],
+    }
+
+    expect(stepSnake(game).status).toBe('game-over')
+  })
+
+  it('ends the game at the lower edge of the visible play area', () => {
+    const game: SnakeGameState = {
+      ...createSnakeGame(() => 0),
+      body: [
+        { x: 4, y: SNAKE_BOARD_HEIGHT - 1 },
+        { x: 4, y: SNAKE_BOARD_HEIGHT - 2 },
+      ],
+      direction: 'down',
+      pendingDirection: 'down',
     }
 
     expect(stepSnake(game).status).toBe('game-over')

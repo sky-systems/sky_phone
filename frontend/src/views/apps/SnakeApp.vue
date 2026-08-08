@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import {
-  ChevronDown,
   ChevronLeft,
-  ChevronRight,
-  ChevronUp,
   Pause,
   Play,
 } from 'lucide-vue-next'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 
 import {
   SNAKE_BOARD_HEIGHT,
@@ -23,17 +20,7 @@ import { usePhoneStore } from '@/stores/phone'
 
 const phone = usePhoneStore()
 const snake = useSnakeStore()
-const touchStart = ref<SnakePoint | null>(null)
 const speedOptions: SnakeSpeed[] = ['relaxed', 'normal', 'fast']
-const directionButtons: Array<{
-  direction: SnakeDirection
-  icon: typeof ChevronUp
-}> = [
-  { direction: 'up', icon: ChevronUp },
-  { direction: 'left', icon: ChevronLeft },
-  { direction: 'down', icon: ChevronDown },
-  { direction: 'right', icon: ChevronRight },
-]
 const game = computed(() => snake.game)
 const boardMotionStyle = computed(() => ({
   '--snake-motion-duration': `${Math.min(
@@ -90,7 +77,9 @@ function stopGameTimer(): void {
 function syncGameTimer(): void {
   stopGameTimer()
   if (snake.game?.status === 'playing') {
-    gameTimer = setInterval(() => snake.tick(), snake.tickMilliseconds)
+    gameTimer = setInterval(() => {
+      snake.tick()
+    }, snake.tickMilliseconds)
   }
 }
 
@@ -99,16 +88,16 @@ function returnToMenu(): void {
   snake.showMenu()
 }
 
+function startGame(): void {
+  snake.start()
+}
+
 function handleKeydown(event: KeyboardEvent): void {
   const directionByKey: Partial<Record<string, SnakeDirection>> = {
     ArrowDown: 'down',
     ArrowLeft: 'left',
     ArrowRight: 'right',
     ArrowUp: 'up',
-    a: 'left',
-    d: 'right',
-    s: 'down',
-    w: 'up',
   }
   const direction = directionByKey[event.key]
 
@@ -122,28 +111,6 @@ function handleKeydown(event: KeyboardEvent): void {
     } else {
       snake.pause()
     }
-  }
-}
-
-function beginSwipe(event: TouchEvent): void {
-  const touch = event.changedTouches[0]
-  touchStart.value = touch ? { x: touch.clientX, y: touch.clientY } : null
-}
-
-function endSwipe(event: TouchEvent): void {
-  const start = touchStart.value
-  const touch = event.changedTouches[0]
-  touchStart.value = null
-  if (!start || !touch) return
-
-  const deltaX = touch.clientX - start.x
-  const deltaY = touch.clientY - start.y
-  if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 18) return
-
-  if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    snake.turn(deltaX > 0 ? 'right' : 'left')
-  } else {
-    snake.turn(deltaY > 0 ? 'down' : 'up')
   }
 }
 
@@ -162,8 +129,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="snake-app" :aria-label="phone.t('Apps.snake.name')">
-    <header class="snake-header">
+  <main
+    class="snake-app"
+    :class="{ 'snake-app--playing': game }"
+    :aria-label="phone.t('Apps.snake.name')"
+  >
+    <header v-if="!game" class="snake-header">
       <span class="snake-brand">{{ phone.t('Apps.snake.name') }}</span>
       <div class="snake-score-card">
         <span>{{ phone.t('Apps.snake.highScore') }}</span>
@@ -226,7 +197,7 @@ onBeforeUnmount(() => {
           {{ phone.t(`Apps.snake.speeds.${speed}`) }}
         </button>
       </fieldset>
-      <button type="button" class="snake-primary" @click="snake.start">
+      <button type="button" class="snake-primary" @click="startGame">
         <Play :size="18" fill="currentColor" />
         {{ phone.t('Apps.snake.start') }}
       </button>
@@ -243,8 +214,10 @@ onBeforeUnmount(() => {
         >
           <ChevronLeft :size="18" :stroke-width="2.7" aria-hidden="true" />
         </button>
-        <span>{{ phone.t('Apps.snake.score') }}</span>
-        <strong>{{ game.score }}</strong>
+        <div>
+          <span>{{ phone.t('Apps.snake.score') }}</span>
+          <strong>{{ game.score }}</strong>
+        </div>
         <button
           v-if="game.status !== 'game-over'"
           type="button"
@@ -267,8 +240,6 @@ onBeforeUnmount(() => {
         class="snake-board"
         :style="boardMotionStyle"
         :aria-label="phone.t('Apps.snake.board')"
-        @touchstart.passive="beginSwipe"
-        @touchend.passive="endSwipe"
       >
         <span
           v-for="(_, index) in game.body.slice(1)"
@@ -306,7 +277,7 @@ onBeforeUnmount(() => {
           <template v-else>
             <span class="snake-overline">{{ phone.t('Apps.snake.score') }} {{ game.score }}</span>
             <h2>{{ phone.t('Apps.snake.gameOver') }}</h2>
-            <button type="button" class="snake-primary" @click="snake.start">
+            <button type="button" class="snake-primary" @click="startGame">
               {{ phone.t('Apps.snake.restart') }}
             </button>
             <button type="button" class="snake-secondary" @click="returnToMenu">
@@ -317,18 +288,6 @@ onBeforeUnmount(() => {
       </div>
 
       <p class="snake-hint">{{ phone.t('Apps.snake.swipeHint') }}</p>
-      <div class="snake-controls" :aria-label="phone.t('Apps.snake.controls')">
-        <button
-          v-for="control in directionButtons"
-          :key="control.direction"
-          type="button"
-          :class="`snake-control--${control.direction}`"
-          :aria-label="phone.t(`Apps.snake.directions.${control.direction}`)"
-          @click="snake.turn(control.direction)"
-        >
-          <component :is="control.icon" :size="24" :stroke-width="2.6" />
-        </button>
-      </div>
     </section>
   </main>
 </template>
@@ -346,6 +305,10 @@ onBeforeUnmount(() => {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   user-select: none;
   touch-action: none;
+}
+
+.snake-app--playing {
+  padding: 0;
 }
 
 .snake-header,
@@ -507,53 +470,89 @@ onBeforeUnmount(() => {
 }
 
 .snake-game {
-  padding-top: 8px;
+  position: absolute;
+  inset: 0;
 }
 
 .snake-game__meta {
-  height: 43px;
-  justify-content: flex-start;
-  gap: 8px;
+  position: absolute;
+  z-index: 7;
+  top: 66px;
+  right: 18px;
+  left: 18px;
+  height: 42px;
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 21px;
+  background: rgb(8 22 18 / 58%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  backdrop-filter: blur(14px);
+  box-sizing: border-box;
+}
+
+.snake-game__meta div {
+  height: 32px;
+  display: grid;
+  grid-template-rows: 10px 20px;
+  align-content: center;
+  justify-items: center;
 }
 
 .snake-game__meta span {
   color: #9fb3a9;
   font-size: 11px;
   font-weight: 700;
+  line-height: 10px;
   text-transform: uppercase;
 }
 
 .snake-game__meta strong {
-  font-size: 22px;
+  display: block;
+  font-size: 19px;
+  line-height: 20px;
 }
 
 .snake-game__meta button {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  border: 1px solid rgb(255 255 255 / 9%);
+  border: 0;
   border-radius: 50%;
   color: #dff6d9;
-  background: rgb(255 255 255 / 7%);
+  background: rgb(255 255 255 / 8%);
 }
 
-.snake-game__meta .snake-game__pause { margin-left: auto; }
-.snake-game__meta .snake-game__back { flex: 0 0 auto; }
+.snake-game__meta .snake-game__pause { justify-self: end; }
+.snake-game__meta .snake-game__back { justify-self: start; }
 
 .snake-board {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 18;
+  position: absolute;
+  top: 118px;
+  right: 18px;
+  bottom: 62px;
+  left: 18px;
   overflow: hidden;
-  border: 1px solid rgb(167 231 157 / 16%);
+  border: 1px solid rgb(145 228 117 / 24%);
   border-radius: 18px;
   background-color: #162d26;
   background-image:
-    linear-gradient(rgb(255 255 255 / 2%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 2%) 1px, transparent 1px);
-  background-size: calc(100% / 16) calc(100% / 18);
-  box-shadow: inset 0 0 35px rgb(0 0 0 / 20%), 0 17px 35px rgb(0 0 0 / 20%);
+    linear-gradient(rgb(173 233 160 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(173 233 160 / 4%) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgb(94 191 91 / 8%), transparent 68%);
+  background-size:
+    calc(100% / 16) calc(100% / 30),
+    calc(100% / 16) calc(100% / 30),
+    100% 100%;
+  box-shadow:
+    inset 0 0 55px rgb(0 0 0 / 24%),
+    inset 0 0 0 1px rgb(213 255 199 / 3%),
+    0 12px 30px rgb(0 0 0 / 20%),
+    0 0 18px rgb(89 196 82 / 7%);
 }
 
 .snake-head,
@@ -679,35 +678,21 @@ onBeforeUnmount(() => {
 }
 
 .snake-hint {
-  margin: 9px 0 6px;
-  color: #71867c;
+  position: absolute;
+  z-index: 6;
+  right: 50px;
+  bottom: 27px;
+  left: 50px;
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #9eb2a8;
+  background: rgb(8 22 18 / 48%);
+  backdrop-filter: blur(10px);
   font-size: 10px;
   text-align: center;
+  pointer-events: none;
 }
-
-.snake-controls {
-  position: relative;
-  width: 132px;
-  height: 91px;
-  margin: 0 auto;
-}
-
-.snake-controls button {
-  position: absolute;
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 9%);
-  border-radius: 13px;
-  color: #cae6d1;
-  background: rgb(255 255 255 / 7%);
-}
-
-.snake-control--up { left: 45px; top: 0; }
-.snake-control--left { left: 0; top: 45px; }
-.snake-control--down { left: 45px; top: 45px; }
-.snake-control--right { right: 0; top: 45px; }
 
 button:active {
   transform: scale(0.96);

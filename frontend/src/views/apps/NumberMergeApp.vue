@@ -1,9 +1,5 @@
 <script setup lang="ts">
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
   ChevronLeft,
   RotateCcw,
   Volume2,
@@ -30,16 +26,6 @@ const canResume = computed(
 const currentHighest = computed(() =>
   Math.max(0, ...(numberMerge.game?.tiles.map((tile) => tile.value) ?? [])),
 )
-const directionButtons: Array<{
-  direction: NumberMergeDirection
-  icon: typeof ArrowUp
-}> = [
-  { direction: 'left', icon: ArrowLeft },
-  { direction: 'up', icon: ArrowUp },
-  { direction: 'down', icon: ArrowDown },
-  { direction: 'right', icon: ArrowRight },
-]
-
 function formatScore(value: number): string {
   return new Intl.NumberFormat('en-US').format(value)
 }
@@ -139,8 +125,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 </script>
 
 <template>
-  <main class="number-merge-app" :aria-label="phone.t('Apps.numberMerge.name')">
-    <header class="number-merge-header">
+  <main
+    class="number-merge-app"
+    :class="{ 'number-merge-app--playing': !numberMerge.menuOpen && game }"
+    :aria-label="phone.t('Apps.numberMerge.name')"
+  >
+    <header v-if="numberMerge.menuOpen" class="number-merge-header">
       <div>
         <span>{{ phone.t('Apps.numberMerge.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.numberMerge.name') }}</h1>
@@ -317,17 +307,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
       </div>
 
       <p class="number-merge-hint">{{ phone.t('Apps.numberMerge.swipeHint') }}</p>
-      <div class="number-merge-controls" :aria-label="phone.t('Apps.numberMerge.controls')">
-        <button
-          v-for="control in directionButtons"
-          :key="control.direction"
-          type="button"
-          :aria-label="phone.t(`Apps.numberMerge.directions.${control.direction}`)"
-          @click="move(control.direction)"
-        >
-          <component :is="control.icon" :size="19" :stroke-width="2.5" aria-hidden="true" />
-        </button>
-      </div>
     </section>
 
     <div v-if="confirmNewGame" class="number-merge-confirm" role="dialog" aria-modal="true">
@@ -358,6 +337,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   touch-action: none;
   user-select: none;
+}
+
+.number-merge-app--playing {
+  padding: 0;
 }
 
 .number-merge-header {
@@ -508,40 +491,73 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 }
 .number-merge-how-to small { display: block; color: #8b6559; font-size: 11px; line-height: 1.35; }
 
-.number-merge-game { padding-top: 5px; }
+.number-merge-game {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 88%, rgb(161 77 47 / 13%), transparent 32%),
+    radial-gradient(circle at 88% 16%, rgb(255 246 219 / 42%), transparent 29%);
+}
 
 .number-merge-toolbar {
-  height: 48px;
+  position: absolute;
+  z-index: 10;
+  top: 66px;
+  right: 18px;
+  left: 18px;
+  height: 42px;
   display: grid;
-  grid-template-columns: 36px 1fr 1fr 36px;
+  grid-template-columns: 32px 1fr 1fr 32px;
   align-items: center;
-  gap: 7px;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgb(109 66 52 / 10%);
+  border-radius: 21px;
+  background: rgb(255 241 216 / 65%);
+  box-shadow: 0 8px 24px rgb(95 48 31 / 13%);
+  backdrop-filter: blur(14px);
+  box-sizing: border-box;
 }
 
 .number-merge-toolbar div {
   min-width: 0;
+  height: 32px;
   display: grid;
+  grid-template-rows: 10px 20px;
+  align-content: center;
   justify-items: center;
-  line-height: 1.05;
 }
 
-.number-merge-toolbar strong { max-width: 80px; overflow: hidden; font-size: 18px; text-overflow: ellipsis; }
+.number-merge-toolbar span { line-height: 10px; }
+.number-merge-toolbar strong { display: block; max-width: 80px; overflow: hidden; font-size: 18px; line-height: 20px; text-overflow: ellipsis; }
 .number-merge-toolbar__restart { justify-self: end; }
+
+.number-merge-toolbar .number-merge-toolbar__icon {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
+}
 
 .number-merge-board {
   --board-gap: 7px;
   --board-padding: 9px;
-  position: relative;
-  width: 100%;
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  left: 14px;
+  width: auto;
   aspect-ratio: 1;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--board-gap);
   padding: var(--board-padding);
-  border: 1px solid rgb(78 41 32 / 9%);
+  border: 0;
   border-radius: 21px;
   background: #80564c;
-  box-shadow: inset 0 2px 2px rgb(255 255 255 / 10%), 0 17px 28px rgb(101 52 38 / 18%);
+  box-shadow: inset 0 2px 2px rgb(255 255 255 / 10%), 0 14px 28px rgb(101 52 38 / 15%);
+  transform: translateY(-47%);
 }
 
 .number-merge-cell {
@@ -638,25 +654,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   font-weight: 800;
 }
 
-.number-merge-hint { margin: 10px 0 7px; color: #976f61; font-size: 12px; text-align: center; }
-
-.number-merge-controls {
-  display: grid;
-  grid-template-columns: repeat(4, 38px);
-  justify-content: center;
-  gap: 7px;
-}
-
-.number-merge-controls button {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid rgb(97 56 44 / 10%);
-  border-radius: 12px;
-  color: #71483b;
-  background: rgb(255 255 255 / 38%);
+.number-merge-hint {
+  position: absolute;
+  z-index: 6;
+  right: 45px;
+  bottom: 27px;
+  left: 45px;
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #8e675b;
+  background: rgb(255 241 216 / 52%);
+  backdrop-filter: blur(10px);
+  font-size: 10px;
+  text-align: center;
+  pointer-events: none;
 }
 
 .number-merge-confirm {

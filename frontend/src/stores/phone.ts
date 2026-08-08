@@ -744,6 +744,8 @@ const defaultLocales: LocaleTree = {
       sortPriceDesc: 'Highest price',
       freshOffers: 'Fresh offers',
       offers: 'offers',
+      compactView: 'Compact view',
+      largeView: 'Large view',
       noListings: 'No offers found',
       noListingsBody: 'Try another search or category.',
       noDistrict: 'No district',

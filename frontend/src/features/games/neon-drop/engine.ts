@@ -8,7 +8,7 @@ import type {
 } from './types'
 
 export const NEON_DROP_COLUMNS = 10
-export const NEON_DROP_ROWS = 18
+export const NEON_DROP_ROWS = 17
 export const NEON_DROP_LINES_PER_LEVEL = 8
 
 const PIECE_KINDS: NeonDropPieceKind[] = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
