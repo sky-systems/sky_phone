@@ -571,7 +571,7 @@ onBeforeUnmount(() => {
   gap: 12px;
   width: 100%;
   height: 100%;
-  padding: 62px 18px 30px;
+  padding: 70px 18px 30px;
   outline: none;
   pointer-events: none;
   transform-origin: calc(100% - 38px) 18px;
