@@ -13,6 +13,9 @@ describe('preferences', () => {
         version: 1,
         settings: {
           appearanceMode: 'light',
+          bluetoothEnabled: false,
+          cellularEnabled: false,
+          focusMode: true,
           notificationVolume: 45,
           notificationDurationSeconds: 14,
           notifications: {
@@ -20,11 +23,17 @@ describe('preferences', () => {
             clock: { enabled: false, sounds: false },
           },
           phoneScale: 110,
+          rotationLocked: true,
+          screenBrightness: 64,
           wallpaper: 'ember',
+          wifiEnabled: false,
         },
       }),
     )
     expect(value.settings.appearanceMode).toBe('light')
+    expect(value.settings.bluetoothEnabled).toBe(false)
+    expect(value.settings.cellularEnabled).toBe(false)
+    expect(value.settings.focusMode).toBe(true)
     expect(value.settings.notificationVolume).toBe(45)
     expect(value.settings.notificationDurationSeconds).toBe(14)
     expect(value.settings.notifications.messages).toEqual({
@@ -40,7 +49,10 @@ describe('preferences', () => {
       sounds: true,
     })
     expect(value.settings.phoneScale).toBe(110)
+    expect(value.settings.rotationLocked).toBe(true)
+    expect(value.settings.screenBrightness).toBe(64)
     expect(value.settings.wallpaper).toBe('ember')
+    expect(value.settings.wifiEnabled).toBe(false)
   })
 
   it('clamps ranges and rejects unknown choices', () => {
@@ -54,6 +66,7 @@ describe('preferences', () => {
           notificationDurationSeconds: 100,
           phoneScale: 500,
           ringtoneVolume: 120,
+          screenBrightness: -20,
         },
       }),
     )
@@ -64,5 +77,22 @@ describe('preferences', () => {
     expect(value.settings.notificationDurationSeconds).toBe(30)
     expect(value.settings.phoneScale).toBe(150)
     expect(value.settings.ringtoneVolume).toBe(100)
+    expect(value.settings.screenBrightness).toBe(10)
+  })
+
+  it('adds safe control center defaults to legacy version one preferences', () => {
+    const value = parsePhonePreferences(
+      JSON.stringify({ version: 1, settings: { airplaneMode: true } }),
+    )
+
+    expect(value.settings).toMatchObject({
+      airplaneMode: true,
+      bluetoothEnabled: true,
+      cellularEnabled: true,
+      focusMode: false,
+      rotationLocked: false,
+      screenBrightness: 100,
+      wifiEnabled: true,
+    })
   })
 })

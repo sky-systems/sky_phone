@@ -123,6 +123,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       console.error(`[Phone notifications] Unknown app: ${input.appId}`)
       return null
     }
+    if (!input.critical && preferences.settings.focusMode) return null
     if (!input.critical && !appPreferences.enabled) {
       return null
     }

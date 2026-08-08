@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { BatteryMedium, Signal, Wifi } from 'lucide-vue-next'
+import { BatteryMedium, Plane, Signal, Wifi } from 'lucide-vue-next'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { usePhoneStore } from '@/stores/phone'
 
 const phone = usePhoneStore()
+withDefaults(defineProps<{ controlCenterOpened?: boolean }>(), {
+  controlCenterOpened: false,
+})
+const emit = defineEmits<{ controlCenter: [] }>()
 const time = ref('')
 let intervalId: number | undefined
 
@@ -27,10 +31,35 @@ onBeforeUnmount(() => {
 <template>
   <header class="phone-status-bar" :aria-label="phone.t('Common.phoneStatus')">
     <time>{{ time }}</time>
-    <div class="phone-status-bar__indicators" aria-hidden="true">
-      <Signal :size="12" :stroke-width="2.5" />
-      <Wifi :size="13" :stroke-width="2.5" />
+    <button
+      class="phone-status-bar__indicators"
+      type="button"
+      :aria-label="phone.t('ControlCenter.open')"
+      :aria-expanded="controlCenterOpened"
+      @click.stop="emit('controlCenter')"
+    >
+      <Plane
+        v-if="phone.preferences.settings.airplaneMode"
+        :size="12"
+        :stroke-width="2.5"
+        aria-hidden="true"
+      />
+      <Signal
+        v-else-if="phone.preferences.settings.cellularEnabled"
+        :size="12"
+        :stroke-width="2.5"
+        aria-hidden="true"
+      />
+      <Wifi
+        v-if="
+          phone.preferences.settings.wifiEnabled &&
+          !phone.preferences.settings.airplaneMode
+        "
+        :size="13"
+        :stroke-width="2.5"
+        aria-hidden="true"
+      />
       <BatteryMedium :size="16" :stroke-width="2.4" />
-    </div>
+    </button>
   </header>
 </template>

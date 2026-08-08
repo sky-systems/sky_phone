@@ -1086,6 +1086,31 @@ const defaultLocales: LocaleTree = {
       },
     },
   },
+  ControlCenter: {
+    airplaneMode: 'Airplane Mode',
+    bluetooth: 'Bluetooth',
+    brightness: 'Brightness',
+    calculator: 'Calculator',
+    camera: 'Camera',
+    cellular: 'Cellular Data',
+    close: 'Close Control Center',
+    flashlight: 'Flashlight',
+    focus: 'Focus',
+    label: 'Control Center',
+    media: 'Media',
+    muteRingtone: 'Mute ringtone and notifications',
+    next: 'Next track',
+    notPlaying: 'Not Playing',
+    open: 'Open Control Center',
+    play: 'Play',
+    previous: 'Previous track',
+    quickActions: 'Quick actions',
+    rotationLock: 'Rotation Lock',
+    timer: 'Timer',
+    unmuteRingtone: 'Unmute ringtone and notifications',
+    volume: 'Volume',
+    wifi: 'Wi-Fi',
+  },
   Common: {
     add: 'Add',
     cancel: 'Cancel',
@@ -1243,6 +1268,12 @@ export const usePhoneStore = defineStore('phone', {
       value: PhonePreferencesV1['settings'][K],
     ): void {
       this.preferences.settings[key] = value
+      this.saveDeviceNamespace('settings', this.preferences)
+    },
+    setAlertVolumes(value: number): void {
+      const volume = Math.min(100, Math.max(0, Math.round(value)))
+      this.preferences.settings.notificationVolume = volume
+      this.preferences.settings.ringtoneVolume = volume
       this.saveDeviceNamespace('settings', this.preferences)
     },
     setSystemDarkMode(value: boolean): void {

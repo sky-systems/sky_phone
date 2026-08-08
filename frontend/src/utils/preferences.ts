@@ -30,6 +30,9 @@ export type PhonePreferencesV1 = {
   settings: {
     airplaneMode: boolean
     appearanceMode: AppearanceMode
+    bluetoothEnabled: boolean
+    cellularEnabled: boolean
+    focusMode: boolean
     frame: PhoneFrameId
     notificationSound: NotificationSoundId
     notificationDurationSeconds: number
@@ -38,8 +41,11 @@ export type PhonePreferencesV1 = {
     phoneScale: number
     ringtone: RingtoneId
     ringtoneVolume: number
+    rotationLocked: boolean
+    screenBrightness: number
     streamerMode: boolean
     wallpaper: WallpaperId
+    wifiEnabled: boolean
   }
   version: 1
 }
@@ -79,6 +85,9 @@ export const DEFAULT_PHONE_PREFERENCES: PhonePreferencesV1 = {
   settings: {
     airplaneMode: false,
     appearanceMode: 'automatic',
+    bluetoothEnabled: true,
+    cellularEnabled: true,
+    focusMode: false,
     frame: 'black',
     notificationSound: 'chime',
     notificationDurationSeconds: 10,
@@ -87,8 +96,11 @@ export const DEFAULT_PHONE_PREFERENCES: PhonePreferencesV1 = {
     phoneScale: 100,
     ringtone: 'skyline',
     ringtoneVolume: 80,
+    rotationLocked: false,
+    screenBrightness: 100,
     streamerMode: false,
     wallpaper: 'midnight',
+    wifiEnabled: true,
   },
   version: 1,
 }
@@ -164,6 +176,15 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
           APPEARANCE_MODE_IDS,
           defaults.appearanceMode,
         ),
+        bluetoothEnabled: readBoolean(
+          settings.bluetoothEnabled,
+          defaults.bluetoothEnabled,
+        ),
+        cellularEnabled: readBoolean(
+          settings.cellularEnabled,
+          defaults.cellularEnabled,
+        ),
+        focusMode: readBoolean(settings.focusMode, defaults.focusMode),
         frame: readChoice(settings.frame, PHONE_FRAME_IDS, defaults.frame),
         notificationSound: readChoice(
           settings.notificationSound,
@@ -200,12 +221,23 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
           0,
           100,
         ),
+        rotationLocked: readBoolean(
+          settings.rotationLocked,
+          defaults.rotationLocked,
+        ),
+        screenBrightness: readNumber(
+          settings.screenBrightness,
+          defaults.screenBrightness,
+          10,
+          100,
+        ),
         streamerMode: readBoolean(settings.streamerMode, defaults.streamerMode),
         wallpaper: readChoice(
           settings.wallpaper,
           WALLPAPER_IDS,
           defaults.wallpaper,
         ),
+        wifiEnabled: readBoolean(settings.wifiEnabled, defaults.wifiEnabled),
       },
       version: 1,
     }

@@ -19,6 +19,13 @@ Locales["en"] = {
             phone = "Phone", phoneStatus = "Phone status", reset = "Reset",
             save = "Save", search = "Search", send = "Send", start = "Start", stop = "Stop",
         },
+        ControlCenter = {
+            airplaneMode = "Airplane Mode", bluetooth = "Bluetooth", brightness = "Brightness", calculator = "Calculator",
+            camera = "Camera", cellular = "Cellular Data", close = "Close Control Center", flashlight = "Flashlight",
+            focus = "Focus", label = "Control Center", media = "Media", muteRingtone = "Mute ringtone and notifications", next = "Next track", notPlaying = "Not Playing",
+            open = "Open Control Center", play = "Play", previous = "Previous track", quickActions = "Quick actions",
+            rotationLock = "Rotation Lock", timer = "Timer", unmuteRingtone = "Unmute ringtone and notifications", volume = "Volume", wifi = "Wi-Fi",
+        },
         Notifications = { now = "now" },
         LockScreen = {
             label = "Lock Screen", flashlight = "Flashlight", camera = "Camera", swipeUp = "Swipe up to open",
