@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  addHomePage,
   createDefaultHomeLayout,
+  deleteHomePage,
   HOME_GRID_PAGE_SIZE,
+  MAX_HOME_GRID_PAGES,
   moveHomeApp,
   parseHomeLayout,
   removeHomeApp,
@@ -162,5 +165,25 @@ describe('home layout', () => {
     const restored = restoreHomeApp(removed, 'phone')
     expect(restored.grid[0]).toBe('phone')
     expect(restored.hidden).not.toContain('phone')
+  })
+
+  it('adds persistent empty pages up to the home screen limit', () => {
+    let layout = defaults
+    for (let page = 1; page < MAX_HOME_GRID_PAGES; page += 1) {
+      layout = addHomePage(layout)
+    }
+
+    expect(layout.grid).toHaveLength(HOME_GRID_PAGE_SIZE * MAX_HOME_GRID_PAGES)
+    expect(addHomePage(layout)).toBe(layout)
+  })
+
+  it('deletes a page and moves its apps into remaining empty slots', () => {
+    let layout = addHomePage(defaults)
+    layout = moveHomeApp(layout, 'grid', 0, 'grid', HOME_GRID_PAGE_SIZE)
+    const deleted = deleteHomePage(layout, 2)
+
+    expect(deleted.grid).toHaveLength(HOME_GRID_PAGE_SIZE)
+    expect(deleted.grid).toContain('phone')
+    expect(deleteHomePage(deleted, 1)).toBe(deleted)
   })
 })
