@@ -496,7 +496,7 @@ const defaultLocales: LocaleTree = {
       reportReasons: { prohibited: 'Prohibited item', fraud: 'Suspected fraud', spam: 'Spam', offensive: 'Offensive content', other: 'Other' },
       searchPlaceholder: 'What are you looking for?', allCategories: 'All categories', allDistricts: 'All districts',
       sortNewest: 'Newest first', sortPriceAsc: 'Lowest price', sortPriceDesc: 'Highest price',
-      freshOffers: 'Fresh offers', offers: 'offers', noListings: 'No offers found',
+      freshOffers: 'Fresh offers', offers: 'offers', compactView: 'Compact view', largeView: 'Large view', noListings: 'No offers found',
       noListingsBody: 'Try another search or category.', noDistrict: 'No district',
       free: 'Free', negotiablePrice: '${price} negotiable', money: '${price}',
       hoursAgo: '{count}h ago', daysAgo: '{count}d ago', photos: 'photos', activeListings: 'active listings',
