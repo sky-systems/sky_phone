@@ -1,7 +1,6 @@
 Bridge.Database.AfterMigration("sky_phone", function()
 local categories = {}
 local districts = {}
-local photo_gradients = {}
 local item_conditions = { new = true, very_good = true, used = true, defective = true }
 local price_types = { fixed = true, negotiable = true, free = true }
 local report_reasons = { prohibited = true, fraud = true, spam = true, offensive = true, other = true }
@@ -14,9 +13,6 @@ for _, category in ipairs(Config.Marketplace.Categories) do
 end
 for _, district in ipairs(Config.Marketplace.Districts) do
     districts[district] = true
-end
-for _, gradient in ipairs(Config.Marketplace.PhotoGradients) do
-    photo_gradients[gradient] = true
 end
 
 local function trim(value)
@@ -96,7 +92,7 @@ local function load_images(listing_id)
     ]], { listing_id })
 end
 
-local function validate_images(source, imei, images)
+local function validate_images(source, images)
     if type(images) ~= "table" or #images > Config.Marketplace.MaxImages then
         return nil
     end
@@ -104,30 +100,15 @@ local function validate_images(source, imei, images)
         return {}
     end
 
-    local owned_media = {
-        ["sunset-drive"] = Config.Marketplace.PhotoGradients[1],
-        ["ocean-air"] = Config.Marketplace.PhotoGradients[2],
-        ["city-lights"] = Config.Marketplace.PhotoGradients[3],
-        ["desert-road"] = Config.Marketplace.PhotoGradients[4],
-    }
-    local rows = Bridge.Database.Query([[
-        SELECT `payload` FROM `sky_phone_device_data`
-        WHERE `device_imei` = ? AND `namespace` = 'media'
-        LIMIT 1
-    ]], { imei })
-    local media = rows[1] and json.decode(rows[1].payload) or nil
-    for _, capture in ipairs(type(media) == "table" and media.captures or {}) do
-        if type(capture) == "table" and type(capture.id) == "string" and photo_gradients[capture.gradient] then
-            owned_media[capture.id] = capture.gradient
-        end
-    end
-
     local normalized = {}
     local seen = {}
     for index, image in ipairs(images) do
         local media_id = type(image) == "table" and image.id or nil
-        local gradient = media_id and owned_media[media_id] or nil
-        if type(media_id) ~= "string" or #media_id > 64 or not gradient or seen[media_id] then
+        local numeric_id = tonumber(media_id)
+        local normalized_id = numeric_id and tostring(math.floor(numeric_id)) or nil
+        if not numeric_id or numeric_id < 1 or numeric_id ~= math.floor(numeric_id)
+            or seen[normalized_id]
+        then
             Bridge.Debug(
                 "warn",
                 "[sky_phone] Rejected unowned marketplace image from source %s.",
@@ -135,8 +116,17 @@ local function validate_images(source, imei, images)
             )
             return nil
         end
-        seen[media_id] = true
-        normalized[index] = { id = media_id, gradient = gradient }
+        local url = SkyPhoneMedia.ResolveOwnedMedia(source, normalized_id, "photo")
+        if not url then
+            Bridge.Debug(
+                "warn",
+                "[sky_phone] Rejected unowned marketplace image from source %s.",
+                tostring(source)
+            )
+            return nil
+        end
+        seen[normalized_id] = true
+        normalized[index] = { id = normalized_id, gradient = ("url(%s)"):format(json.encode(url)) }
     end
     return normalized
 end
@@ -168,7 +158,7 @@ local function validate_listing(source, account, data)
         return nil, "phone_unavailable"
     end
 
-    local images = validate_images(source, account.imei, data.images)
+    local images = validate_images(source, data.images)
     if not images then
         return nil, "invalid_images"
     end

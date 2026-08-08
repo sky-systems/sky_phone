@@ -29,17 +29,19 @@ import {
   Wrench,
   X,
 } from 'lucide-vue-next'
+import { kButton } from 'konsta/vue'
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import CityMarktSelect from '@/components/citymarkt/CityMarktSelect.vue'
 import CityMarktGallery from '@/components/citymarkt/CityMarktGallery.vue'
 import CityMarktOfferCard from '@/components/citymarkt/CityMarktOfferCard.vue'
 import { useAccountStore } from '@/stores/account'
 import { useMarketplaceStore } from '@/stores/marketplace'
-import { useMediaStore } from '@/stores/media'
+import { useMessageMediaStore } from '@/stores/messageMedia'
 import { usePagesStore } from '@/stores/pages'
 import { usePhoneStore } from '@/stores/phone'
+import { parseDatabaseDate, type DatabaseDateValue } from '@/utils/date'
 import type {
   MarketplaceCategory,
   MarketplaceChat,
@@ -55,14 +57,32 @@ import type {
 type Tab = 'discover' | 'search' | 'sell' | 'inbox' | 'profile'
 type Screen = 'main' | 'detail' | 'sell' | 'chat' | 'report'
 type ChatTimelineItem =
-  | { createdAt: string; key: string; kind: 'message'; value: MarketplaceMessage }
-  | { createdAt: string; isCounter: boolean; key: string; kind: 'offer'; value: MarketplaceOffer }
+  | { createdAt: DatabaseDateValue; key: string; kind: 'message'; value: MarketplaceMessage }
+  | { createdAt: DatabaseDateValue; isCounter: boolean; key: string; kind: 'offer'; value: MarketplaceOffer }
+type SelectedPhoto = { background: string; id: string }
+type SellDraft = {
+  category: MarketplaceCategory
+  condition: MarketplaceCondition
+  description: string
+  district: string
+  price: string
+  priceType: MarketplacePriceType
+  showPhone: boolean
+  title: string
+}
+type MediaContext = {
+  draft: SellDraft
+  editing: { id: string; revision: number } | null
+  photos: SelectedPhoto[]
+  sellStep: number
+}
 
 const phone = usePhoneStore()
 const route = useRoute()
+const router = useRouter()
 const account = useAccountStore()
 const marketplace = useMarketplaceStore()
-const media = useMediaStore()
+const messageMedia = useMessageMediaStore()
 const pages = usePagesStore()
 const tab = ref<Tab>('discover')
 const screen = ref<Screen>('main')
@@ -82,8 +102,7 @@ const feedback = ref('')
 const sellStep = ref(1)
 const submitting = ref(false)
 const selectedPhotoIds = ref<string[]>([])
-const photoSource = ref<'camera' | 'gallery' | null>(null)
-const cameraFlash = ref(false)
+const pickedPhotos = ref<SelectedPhoto[]>([])
 const reportReason = ref('spam')
 const reportDetails = ref('')
 const editing = ref<{ id: string; revision: number } | null>(null)
@@ -91,7 +110,7 @@ const listingTextLimits = {
   description: { maximum: 2000, minimum: 20 },
   title: { maximum: 70, minimum: 5 },
 } as const
-const draft = ref({
+const draft = ref<SellDraft>({
   category: 'vehicles' as MarketplaceCategory,
   condition: 'used' as MarketplaceCondition,
   description: '',
@@ -175,9 +194,9 @@ const displayItems = computed(() => {
 })
 const draftImages = computed(() =>
   selectedPhotoIds.value.flatMap((id, index) => {
-    const photo = media.photos.find((item) => item.id === id)
+    const photo = pickedPhotos.value.find((item) => item.id === id)
     return photo
-      ? [{ gradient: photo.gradient, media_id: photo.id, sort_order: index + 1 }]
+      ? [{ gradient: photo.background, media_id: photo.id, sort_order: index + 1 }]
       : []
   }),
 )
@@ -198,8 +217,8 @@ const chatTimeline = computed<ChatTimelineItem[]>(() => {
   }))
   return [...messages, ...offers].sort(
     (left, right) =>
-      new Date(left.createdAt.replace(' ', 'T')).getTime() -
-      new Date(right.createdAt.replace(' ', 'T')).getTime(),
+      parseDatabaseDate(left.createdAt).getTime() -
+      parseDatabaseDate(right.createdAt).getTime(),
   )
 })
 const canMakeOffer = computed(() => {
@@ -243,16 +262,16 @@ function formatPrice(item: { price: number | string | null; price_type: Marketpl
     : phone.t('Apps.citymarkt.money', { price: formatted })
 }
 
-function relativeDate(value: string): string {
-  const timestamp = new Date(value.replace(' ', 'T')).getTime()
+function relativeDate(value: DatabaseDateValue): string {
+  const timestamp = parseDatabaseDate(value).getTime()
   const hours = Math.max(1, Math.floor((Date.now() - timestamp) / 3_600_000))
   if (hours < 24) return phone.t('Apps.citymarkt.hoursAgo', { count: String(hours) })
   return phone.t('Apps.citymarkt.daysAgo', { count: String(Math.floor(hours / 24)) })
 }
 
-function messageTime(value: string): string {
+function messageTime(value: DatabaseDateValue): string {
   return new Intl.DateTimeFormat(phone.lang, { hour: '2-digit', minute: '2-digit' }).format(
-    new Date(value.replace(' ', 'T')),
+    parseDatabaseDate(value),
   )
 }
 
@@ -351,27 +370,38 @@ async function toggleFavorite(): Promise<void> {
 
 function togglePhoto(id: string): void {
   const index = selectedPhotoIds.value.indexOf(id)
-  if (index >= 0) selectedPhotoIds.value.splice(index, 1)
-  else if (selectedPhotoIds.value.length < 6) selectedPhotoIds.value.push(id)
-  else setFeedback('Apps.citymarkt.photoLimit')
+  if (index >= 0) {
+    selectedPhotoIds.value.splice(index, 1)
+    pickedPhotos.value = pickedPhotos.value.filter((photo) => photo.id !== id)
+  }
 }
 
-function captureMarketplacePhoto(): void {
-  if (selectedPhotoIds.value.length >= 6) {
+function openMediaApp(app: 'camera' | 'photos'): void {
+  const remaining = 6 - selectedPhotoIds.value.length
+  if (remaining < 1) {
     setFeedback('Apps.citymarkt.photoLimit')
     return
   }
-  cameraFlash.value = true
-  const photo = media.capture()
-  selectedPhotoIds.value.push(photo.id)
-  window.setTimeout(() => (cameraFlash.value = false), 120)
+  messageMedia.begin(
+    'citymarkt:sell',
+    'photo',
+    '/apps/citymarkt?sell=1',
+    app === 'photos' ? remaining : 1,
+    {
+      draft: { ...draft.value },
+      editing: editing.value ? { ...editing.value } : null,
+      photos: [...pickedPhotos.value],
+      sellStep: sellStep.value,
+    } satisfies MediaContext,
+  )
+  void router.push({ path: `/apps/${app}`, query: { mediaAttachment: 'photo' } })
 }
 
 function resetSell(): void {
   editing.value = null
   sellStep.value = 1
   selectedPhotoIds.value = []
-  photoSource.value = null
+  pickedPhotos.value = []
   draft.value = {
     category: 'vehicles',
     condition: 'used',
@@ -388,6 +418,10 @@ function editListing(): void {
   if (!selectedListing.value) return
   editing.value = { id: selectedListing.value.id, revision: selectedListing.value.revision }
   selectedPhotoIds.value = selectedListing.value.images.map((image) => image.media_id)
+  pickedPhotos.value = selectedListing.value.images.map((image) => ({
+    background: image.gradient,
+    id: image.media_id,
+  }))
   draft.value = {
     category: selectedListing.value.category,
     condition: selectedListing.value.item_condition,
@@ -565,6 +599,26 @@ async function blockSeller(): Promise<void> {
 }
 
 onMounted(async () => {
+  const selection = messageMedia.consumeMany<MediaContext>('citymarkt:sell')
+  if (selection) {
+    if (selection.context) {
+      draft.value = selection.context.draft
+      editing.value = selection.context.editing
+      pickedPhotos.value = selection.context.photos
+      sellStep.value = selection.context.sellStep
+      selectedPhotoIds.value = selection.context.photos.map((photo) => photo.id)
+    }
+    for (const media of selection.media) {
+      const id = String(media.id)
+      if (selectedPhotoIds.value.includes(id) || selectedPhotoIds.value.length >= 6) continue
+      selectedPhotoIds.value.push(id)
+      pickedPhotos.value.push({ background: `url(${JSON.stringify(media.url)})`, id })
+    }
+  }
+  if (route.query.sell === '1') {
+    tab.value = 'sell'
+    screen.value = 'sell'
+  }
   await loadFeed()
   if (isAuthenticated.value) await marketplace.loadCounts()
   if (typeof route.query.listingId === 'string') {
@@ -583,7 +637,10 @@ onMounted(async () => {
         </span>
         <h1>{{ phone.t(tab === 'discover' ? 'Apps.citymarkt.name' : `Apps.citymarkt.tabs.${tab}`) }}</h1>
       </div>
-      <button
+      <k-button
+        component="button"
+        clear
+        rounded
         v-if="isAuthenticated"
         class="citymarkt__round"
         type="button"
@@ -592,7 +649,7 @@ onMounted(async () => {
       >
         <Bell :size="18" />
         <i v-if="marketplace.counts.unread" />
-      </button>
+      </k-button>
     </header>
 
     <section v-if="screen === 'main'" class="citymarkt__content">
@@ -696,7 +753,13 @@ onMounted(async () => {
     </section>
 
     <section v-else-if="screen === 'detail' && selectedListing" class="citymarkt__detail">
-      <div class="citymarkt__top-actions"><button @click="screen = 'main'"><ArrowLeft :size="19" /></button><div><button v-if="!selectedListing.is_owner" @click="toggleFavorite"><Heart :size="19" :fill="selectedListing.is_favorite ? 'currentColor' : 'none'" /></button><button v-if="!selectedListing.is_owner" @click="screen = 'report'"><MoreHorizontal :size="20" /></button></div></div>
+      <div class="citymarkt__top-actions">
+        <k-button component="button" clear rounded @click="screen = 'main'"><ArrowLeft :size="19" /></k-button>
+        <div>
+          <k-button v-if="!selectedListing.is_owner" component="button" clear rounded @click="toggleFavorite"><Heart :size="19" :fill="selectedListing.is_favorite ? 'currentColor' : 'none'" /></k-button>
+          <k-button v-if="!selectedListing.is_owner" component="button" clear rounded @click="screen = 'report'"><MoreHorizontal :size="20" /></k-button>
+        </div>
+      </div>
       <CityMarktGallery
         class="citymarkt__hero"
         :images="selectedListing.images"
@@ -730,7 +793,7 @@ onMounted(async () => {
     </section>
 
     <section v-else-if="screen === 'sell'" class="citymarkt__sell">
-      <header><button @click="resetSell(); screen = 'main'; tab = 'discover'"><X :size="20" /></button><div><strong>{{ phone.t(editing ? 'Apps.citymarkt.editListing' : 'Apps.citymarkt.createListing') }}</strong><small>{{ phone.t('Apps.citymarkt.step', { current: String(sellStep), total: '4' }) }}</small></div><button :disabled="!canContinueSell || submitting" @click="sellStep < 4 ? sellStep++ : publish()">{{ sellStep < 4 ? phone.t('Apps.citymarkt.next') : phone.t(editing ? 'Apps.citymarkt.save' : 'Apps.citymarkt.publish') }}</button></header>
+      <header><k-button component="button" clear rounded @click="resetSell(); screen = 'main'; tab = 'discover'"><X :size="20" /></k-button><div><strong>{{ phone.t(editing ? 'Apps.citymarkt.editListing' : 'Apps.citymarkt.createListing') }}</strong><small>{{ phone.t('Apps.citymarkt.step', { current: String(sellStep), total: '4' }) }}</small></div><k-button component="button" clear rounded :disabled="!canContinueSell || submitting" @click="sellStep < 4 ? sellStep++ : publish()">{{ sellStep < 4 ? phone.t('Apps.citymarkt.next') : phone.t(editing ? 'Apps.citymarkt.save' : 'Apps.citymarkt.publish') }}</k-button></header>
       <div class="citymarkt__progress"><i :style="{ width: `${sellStep * 25}%` }" /></div>
       <div class="citymarkt__sell-body">
         <template v-if="sellStep === 1">
@@ -738,12 +801,12 @@ onMounted(async () => {
           <h2>{{ phone.t('Apps.citymarkt.addPhotos') }}</h2>
           <p>{{ phone.t('Apps.citymarkt.addPhotosBody') }}</p>
           <div class="citymarkt__photo-actions">
-            <button type="button" @click="photoSource = 'gallery'">
+            <button type="button" @click="openMediaApp('photos')">
               <span><Images :size="20" /></span>
               <strong>{{ phone.t('Apps.citymarkt.chooseGallery') }}</strong>
               <small>{{ phone.t('Apps.citymarkt.chooseGalleryBody') }}</small>
             </button>
-            <button type="button" @click="photoSource = 'camera'">
+            <button type="button" @click="openMediaApp('camera')">
               <span><Camera :size="20" /></span>
               <strong>{{ phone.t('Apps.citymarkt.takePhotos') }}</strong>
               <small>{{ phone.t('Apps.citymarkt.takePhotosBody') }}</small>
@@ -798,31 +861,10 @@ onMounted(async () => {
         <template v-else><h2>{{ phone.t('Apps.citymarkt.preview') }}</h2><CityMarktGallery class="citymarkt__preview-image" :images="draftImages" :empty-title="phone.t('Apps.citymarkt.noPhoto')" :empty-body="phone.t('Apps.citymarkt.noPhotoBody')" :previous-label="phone.t('Apps.citymarkt.previousPhoto')" :next-label="phone.t('Apps.citymarkt.nextPhoto')" :photo-label="phone.t('Apps.citymarkt.photo')" /><strong class="citymarkt__preview-price">{{ formatPrice({ price: draft.price, price_type: draft.priceType }) }}</strong><h3>{{ draft.title }}</h3><p>{{ draft.description }}</p><small><MapPin :size="13" /> {{ label('districts', draft.district) }}</small></template>
       </div>
       <button v-if="sellStep > 1" class="citymarkt__previous" @click="sellStep--">{{ phone.t('Apps.citymarkt.previous') }}</button>
-      <div v-if="photoSource" class="citymarkt__photo-source">
-        <header>
-          <div>
-            <small>{{ phone.t('Apps.citymarkt.addPhotos') }}</small>
-            <strong>{{ phone.t(photoSource === 'gallery' ? 'Apps.citymarkt.gallery' : 'Apps.citymarkt.camera') }}</strong>
-          </div>
-          <span>{{ selectedPhotoIds.length }} / 6</span>
-          <button type="button" :aria-label="phone.t('Common.close')" @click="photoSource = null"><X :size="18" /></button>
-        </header>
-        <div v-if="photoSource === 'gallery'" class="citymarkt__photo-picker">
-          <button v-for="photo in media.photos" :key="photo.id" type="button" :class="{ active: selectedPhotoIds.includes(photo.id) }" :style="{ background: photo.gradient }" @click="togglePhoto(photo.id)"><i>{{ selectedPhotoIds.indexOf(photo.id) + 1 }}</i></button>
-        </div>
-        <div v-else class="citymarkt__capture">
-          <div class="citymarkt__viewfinder" :style="{ background: media.photos[0]?.gradient }">
-            <i v-for="corner in ['tl', 'tr', 'bl', 'br']" :key="corner" :class="`corner-${corner}`" />
-            <span class="citymarkt__camera-flash" :class="{ active: cameraFlash }" />
-          </div>
-          <p>{{ phone.t('Apps.citymarkt.cameraHint') }}</p>
-          <button class="citymarkt__shutter" type="button" :aria-label="phone.t('Apps.citymarkt.takePhoto')" @click="captureMarketplacePhoto"><Camera :size="23" /></button>
-        </div>
-      </div>
     </section>
 
     <section v-else-if="screen === 'chat' && selectedChat" class="citymarkt__chat">
-      <header><button @click="screen = 'main'; tab = 'inbox'"><ArrowLeft :size="19" /></button><div><strong>{{ selectedChat.inquiry.seller_account_id === selectedChat.accountId ? selectedChat.inquiry.buyer_name : selectedChat.inquiry.seller_name }}</strong><small>{{ selectedChat.inquiry.title }}</small></div></header>
+      <header><k-button component="button" clear rounded @click="screen = 'main'; tab = 'inbox'"><ArrowLeft :size="19" /></k-button><div><strong>{{ selectedChat.inquiry.seller_account_id === selectedChat.accountId ? selectedChat.inquiry.buyer_name : selectedChat.inquiry.seller_name }}</strong><small>{{ selectedChat.inquiry.title }}</small></div></header>
       <div class="citymarkt__chat-listing"><div><strong>{{ formatPrice(selectedChat.inquiry) }}</strong><span>{{ selectedChat.inquiry.title }}</span></div><i>{{ label('status', selectedChat.inquiry.status) }}</i></div>
       <div class="citymarkt__messages">
         <template v-for="item in chatTimeline" :key="item.key">
@@ -851,7 +893,7 @@ onMounted(async () => {
             <small>{{ phone.t('Apps.citymarkt.offerFor') }}</small>
             <strong>{{ selectedChat.inquiry.title }}</strong>
           </div>
-          <button type="button" @click="offerPanelOpen = false"><X :size="16" /></button>
+          <k-button component="button" clear rounded type="button" @click="offerPanelOpen = false"><X :size="16" /></k-button>
         </header>
         <label>
           {{ phone.t('Apps.citymarkt.offerAmount') }}
@@ -871,7 +913,7 @@ onMounted(async () => {
     </section>
 
     <section v-else-if="screen === 'report' && selectedListing" class="citymarkt__report">
-      <header><button @click="screen = 'detail'"><ArrowLeft :size="19" /></button><strong>{{ phone.t('Apps.citymarkt.reportListing') }}</strong></header>
+      <header><k-button component="button" clear rounded @click="screen = 'detail'"><ArrowLeft :size="19" /></k-button><strong>{{ phone.t('Apps.citymarkt.reportListing') }}</strong></header>
       <div><h2>{{ phone.t('Apps.citymarkt.reportWhy') }}</h2><CityMarktSelect class="citymarkt__form-select" :model-value="reportReason" :options="reportReasonOptions" @change="selectReportReason" /><textarea v-model="reportDetails" maxlength="500" :placeholder="phone.t('Apps.citymarkt.reportDetails')" /><button @click="submitReport">{{ phone.t('Apps.citymarkt.sendReport') }}</button><button class="secondary" @click="blockSeller">{{ phone.t('Apps.citymarkt.blockSeller') }}</button></div>
     </section>
 

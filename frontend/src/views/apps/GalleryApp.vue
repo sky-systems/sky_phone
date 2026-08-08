@@ -41,9 +41,13 @@ const messageMedia = useMessageMediaStore()
 const route = useRoute()
 const router = useRouter()
 const requestedMessageMedia = computed<GalleryFilter | null>(() => {
-  const value = route.query.messageAttachment
+  const value = route.query.mediaAttachment ?? route.query.messageAttachment
   return value === 'photo' || value === 'video' ? value : null
 })
+const multipleSelection = computed(
+  () => requestedMessageMedia.value !== null && (messageMedia.request?.maxSelection ?? 1) > 1,
+)
+const selectedMediaIds = ref<number[]>([])
 const media = ref<PhoneMedia[]>([])
 const filter = ref<GalleryFilter>(requestedMessageMedia.value ?? 'all')
 const loading = ref(true)
@@ -203,6 +207,14 @@ function observeMore(): void {
 
 function openMedia(entry: PhoneMedia): void {
   if (requestedMessageMedia.value) {
+    if (multipleSelection.value) {
+      const index = selectedMediaIds.value.indexOf(entry.id)
+      if (index >= 0) selectedMediaIds.value.splice(index, 1)
+      else if (selectedMediaIds.value.length < (messageMedia.request?.maxSelection ?? 1)) {
+        selectedMediaIds.value.push(entry.id)
+      }
+      return
+    }
     const returnPath = messageMedia.complete(entry)
     if (returnPath) void router.replace(returnPath)
     return
@@ -212,6 +224,15 @@ function openMedia(entry: PhoneMedia): void {
   selected.value = entry
   imageZoom.value = 1
   imagePan.value = { x: 0, y: 0 }
+}
+
+function completeMultipleSelection(): void {
+  const selectedMedia = selectedMediaIds.value.flatMap((id) => {
+    const entry = media.value.find((item) => item.id === id)
+    return entry ? [entry] : []
+  })
+  const returnPath = messageMedia.completeMany(selectedMedia)
+  if (returnPath) void router.replace(returnPath)
 }
 
 function cancelMessageSelection(): void {
@@ -352,6 +373,15 @@ onBeforeUnmount(() => {
           @click="cancelMessageSelection"
         />
       </template>
+      <template v-if="multipleSelection" #right>
+        <k-link
+          component="button"
+          :disabled="!selectedMediaIds.length"
+          @click="completeMultipleSelection"
+        >
+          {{ phone.t('Common.done') }}
+        </k-link>
+      </template>
     </k-navbar>
 
     <div class="gallery-content">
@@ -375,6 +405,7 @@ onBeforeUnmount(() => {
           v-for="entry in media"
           :key="entry.id"
           class="gallery-tile"
+          :class="{ 'gallery-tile--selected': selectedMediaIds.includes(entry.id) }"
           type="button"
           :aria-label="
             phone.t(
@@ -400,6 +431,12 @@ onBeforeUnmount(() => {
           ></video>
           <span v-if="entry.mediaType === 'video'" class="gallery-video-badge">
             <Play :size="16" fill="currentColor" />
+          </span>
+          <span
+            v-if="multipleSelection && selectedMediaIds.includes(entry.id)"
+            class="gallery-selection-badge"
+          >
+            {{ selectedMediaIds.indexOf(entry.id) + 1 }}
           </span>
         </button>
         <span
@@ -593,6 +630,29 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border: 0;
   background: #d1d1d6;
+}
+.gallery-tile--selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid #0a84ff;
+  pointer-events: none;
+}
+.gallery-selection-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #0a84ff;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px #0006;
 }
 .gallery-grid--fill .gallery-tile {
   height: 100%;

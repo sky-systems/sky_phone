@@ -436,7 +436,7 @@ local schema = {
             { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
             { name = "listing_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "media_id", type = "VARCHAR(64) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
-            { name = "gradient", type = "VARCHAR(160) NOT NULL" },
+            { name = "gradient", type = "VARCHAR(2200) NOT NULL" },
             { name = "sort_order", type = "TINYINT UNSIGNED NOT NULL" },
         },
         primaryKey = "id",
@@ -619,7 +619,7 @@ local schema = {
             { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
             { name = "post_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "media_id", type = "VARCHAR(64) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
-            { name = "gradient", type = "VARCHAR(160) NOT NULL" },
+            { name = "gradient", type = "VARCHAR(2200) NOT NULL" },
             { name = "sort_order", type = "TINYINT UNSIGNED NOT NULL" },
         },
         primaryKey = "id",
@@ -840,6 +840,14 @@ Bridge.Database.Query([[
 Bridge.Database.Query([[
     ALTER TABLE `sky_phone_darkchat_messages`
     MODIFY COLUMN `message_type` ENUM('text', 'emoji', 'gif', 'voice', 'image', 'video', 'system') NOT NULL DEFAULT 'text'
+]], {})
+Bridge.Database.Query([[
+    ALTER TABLE `sky_phone_marketplace_images`
+    MODIFY COLUMN `gradient` VARCHAR(2200) NOT NULL
+]], {})
+Bridge.Database.Query([[
+    ALTER TABLE `sky_phone_pages_images`
+    MODIFY COLUMN `gradient` VARCHAR(2200) NOT NULL
 ]], {})
 Bridge.Database.EnsureIndex("sky_phone_devices", "uniq_sky_phone_devices_sim", "(`sim_id`)", { unique = true })
 Bridge.Database.Query("UPDATE `sky_phone_contacts` SET `contact_id` = `id` WHERE `contact_id` IS NULL", {})
