@@ -73,6 +73,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   calendar: { enabled: true, sounds: true },
   weather: { enabled: true, sounds: true },
   banking: { enabled: true, sounds: true },
+  garage: { enabled: true, sounds: true },
   mail: { enabled: true, sounds: true },
   map: { enabled: true, sounds: true },
   notes: { enabled: true, sounds: true },
