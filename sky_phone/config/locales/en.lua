@@ -133,7 +133,8 @@ Locales["en"] = {
                 chartDaySummary = "{day}: {incoming} incoming, {outgoing} outgoing",
                 navigation = "Banking navigation", incoming = "Incoming", outgoing = "Outgoing",
                 refresh = "Refresh banking data", unavailable = "Banking unavailable", tryAgain = "Try Again",
-                playerId = "Player ID", playerIdPlaceholder = "Enter the recipient ID",
+                recipientPhone = "Phone number", recipientPhonePlaceholder = "Enter the recipient's number",
+                chooseContact = "Choose from contacts", noContacts = "No contacts saved yet.",
                 amount = "Amount", amountPlaceholder = "Enter an amount",
                 transactions = {
                     deposit = "Cash deposit", withdrawal = "Cash withdrawal",
@@ -143,7 +144,7 @@ Locales["en"] = {
                     transfer = { title = "Send money", body = "Transfer money from your bank account to an online player.", submit = "Send transfer" },
                 },
                 errors = {
-                    invalid_request = "Enter a valid whole amount and player ID.", insufficient_funds = "There is not enough money in this account.",
+                    invalid_request = "Enter a valid phone number and whole amount.", insufficient_funds = "There is not enough money in this account.",
                     target_not_found = "The recipient is not online.", self_transfer = "You cannot send money to yourself.",
                     rate_limited = "Please wait before making another transaction.", transfer_failed = "The transfer could not be completed.",
                     banking_unavailable = "Banking is currently unavailable.", request_failed = "The banking request failed.",
@@ -422,7 +423,7 @@ Locales["en"] = {
             weather = {
                 name = "Weather", now = "Now", today = "Today", refresh = "Refresh weather", details = "Weather details",
                 feelsLike = "Feels Like", wind = "Wind", humidity = "Humidity", rain = "Precipitation",
-                hourly = "24-Hour Forecast", daily = "7-Day Forecast", unavailable = "Weather is unavailable",
+                hourly = "Next Hours", unavailable = "Weather is unavailable",
                 stale = "Showing the last available weather update.", tryAgain = "Try Again",
                 regions = { los_santos = "Los Santos", blaine_county = "Blaine County", cayo_perico = "Cayo Perico" },
                 conditions = {

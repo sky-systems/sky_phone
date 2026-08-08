@@ -83,6 +83,27 @@ local function notify_changed(source)
     TriggerClientEvent("sky_phone:banking:changed", source)
 end
 
+local function online_source_for_phone(number)
+    local rows = Bridge.Database.Query([[
+        SELECT d.`imei`
+        FROM `sky_phone_sims` s
+        INNER JOIN `sky_phone_devices` d ON d.`sim_id` = s.`id`
+        WHERE s.`phone_number` = ?
+        LIMIT 1
+    ]], { number })
+    local device = rows[1]
+    if not device or type(device.imei) ~= "string" then
+        return nil
+    end
+    for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
+        local target = tonumber(player_source) or player_source
+        if SkyPhone.FindDeviceSlots(target, device.imei)[1] then
+            return target
+        end
+    end
+    return nil
+end
+
 Bridge.Callbacks.Register("sky_phone:banking:overview", function(source)
     local identifier, error_response = require_banking_session(source)
     if not identifier then
@@ -100,16 +121,18 @@ Bridge.Callbacks.Register("sky_phone:banking:transfer", function(source, data)
         return error_response
     end
     local amount = valid_amount(data and data.amount)
-    local target_value = tonumber(data and data.target)
-    if not amount
-        or not target_value
-        or target_value ~= math.floor(target_value)
-        or target_value <= 0
-        or target_value > 65535
-    then
+    local number = SkyPhoneSimNumber.Normalize(
+        data and data.phoneNumber,
+        Config.Sim.NumberLength,
+        Config.Sim.NumberPrefix
+    )
+    if not amount or not number then
         return { success = false, error = "invalid_request" }
     end
-    local target = math.floor(target_value)
+    local target = online_source_for_phone(number)
+    if not target then
+        return { success = false, error = "target_not_found" }
+    end
     if target == source then
         return { success = false, error = "self_transfer" }
     end
