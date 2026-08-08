@@ -6,17 +6,23 @@ import { usePhoneStore } from '@/stores/phone'
 const route = useRoute()
 const router = useRouter()
 const phone = usePhoneStore()
-const isApp = computed(() => route.name === 'app')
+const HOME_PAGE = 1
+const canGoHome = computed(
+  () => route.name !== 'home' || phone.currentPage !== HOME_PAGE,
+)
 
 function goHome(): void {
-  if (isApp.value) void router.push('/')
+  if (!canGoHome.value) return
+
+  phone.setCurrentPage(HOME_PAGE)
+  if (route.name !== 'home') void router.push('/')
 }
 </script>
 
 <template>
   <button
     class="phone-home-indicator"
-    :class="{ 'phone-home-indicator--interactive': isApp }"
+    :class="{ 'phone-home-indicator--interactive': canGoHome }"
     type="button"
     :aria-label="phone.t('Common.home')"
     @pointerdown.stop="goHome"

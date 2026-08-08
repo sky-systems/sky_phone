@@ -115,6 +115,7 @@ type CalendarReminderData = {
 const REFERENCE_VIEWPORT_WIDTH = 1920
 const REFERENCE_VIEWPORT_HEIGHT = 1080
 const PHONE_BASE_SCALE = 0.69
+const DEVELOPMENT_PHONE_SCALE = 1.25
 const isDevelopment = import.meta.env.DEV
 
 const phone = usePhoneStore()
@@ -144,7 +145,10 @@ const controlCenterOpened = ref(false)
 const simPicker = ref<SimPickerPayload | null>(null)
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
 const viewportScale = ref(getViewportScale())
-const phoneBaseZoom = computed(() => viewportScale.value * PHONE_BASE_SCALE)
+const phoneBaseZoom = computed(() =>
+  viewportScale.value *
+  (isDevelopment ? DEVELOPMENT_PHONE_SCALE : PHONE_BASE_SCALE),
+)
 const phoneResolutionStyle = computed<CSSProperties>(() => ({
   '--phone-edge-gap': `${24 * viewportScale.value}px`,
   '--phone-stack-gap': `${16 * viewportScale.value}px`,
