@@ -22,6 +22,7 @@ import {
   TimerReset,
 } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 import AlarmEditor from '@/components/AlarmEditor.vue'
 import AlarmSoundMenu from '@/components/AlarmSoundMenu.vue'
@@ -41,7 +42,10 @@ import {
 
 const phone = usePhoneStore()
 const clock = useClockStore()
-const tab = ref<'world' | 'alarm' | 'stopwatch' | 'timer'>('world')
+const route = useRoute()
+const tab = ref<'world' | 'alarm' | 'stopwatch' | 'timer'>(
+  route.query.section === 'timer' ? 'timer' : 'world',
+)
 const alarmEditor = ref<
   { mode: 'create' } | { id: string; mode: 'edit' } | null
 >(null)
@@ -201,6 +205,13 @@ watch([() => clock.stopwatchStartedAt, tab], ([startedAt, activeTab]) => {
       ? undefined
       : requestAnimationFrame(updateStopwatchFrame)
 })
+
+watch(
+  () => route.query.section,
+  (section) => {
+    if (section === 'timer') tab.value = 'timer'
+  },
+)
 
 onMounted(() => {
   ticker = setInterval(() => {

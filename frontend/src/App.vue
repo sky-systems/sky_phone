@@ -11,6 +11,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
+import PhoneControlCenter from '@/components/PhoneControlCenter.vue'
 import PhoneMediaCapture from '@/components/PhoneMediaCapture.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
@@ -139,6 +140,7 @@ const appTransitionName = computed(() =>
 )
 const isLocked = ref(false)
 const isUnlocking = ref(false)
+const controlCenterOpened = ref(false)
 const simPicker = ref<SimPickerPayload | null>(null)
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
 const viewportScale = ref(getViewportScale())
@@ -148,6 +150,11 @@ const phoneResolutionStyle = computed<CSSProperties>(() => ({
   '--phone-stack-gap': `${16 * viewportScale.value}px`,
   '--phone-zoom':
     phoneBaseZoom.value * (phone.preferences.settings.phoneScale / 100),
+}))
+const phoneDisplayStyle = computed<CSSProperties>(() => ({
+  '--phone-display-dim': String(
+    ((100 - phone.preferences.settings.screenBrightness) / 100) * 0.8,
+  ),
 }))
 const phoneFrameImage = computed(
   () => PHONE_FRAME_IMAGES[phone.preferences.settings.frame],
@@ -338,17 +345,26 @@ function onMessage(event: MessageEvent<AppMessage>): void {
   } else if (event.data?.type === 'darkchat:new' && event.data.data) {
     const data = event.data.data as DarkChatEventData
     void darkchat.refreshInbox()
-    if (data.conversationId && darkchat.activeConversation?.id === data.conversationId) {
+    if (
+      data.conversationId &&
+      darkchat.activeConversation?.id === data.conversationId
+    ) {
       void darkchat.openThread(data.conversationId)
     }
     if (data.notificationMode !== 'hidden') {
       const notification: PhoneNotificationInput = {
         appId: 'darkchat',
         subtitle: data.sender,
-        text: data.text ?? data.preview ?? phone.t('Apps.darkchat.privateNotification'),
+        text:
+          data.text ??
+          data.preview ??
+          phone.t('Apps.darkchat.privateNotification'),
         title: data.title ?? phone.t('Apps.darkchat.name'),
       }
-      if (data.device && (!phone.isOpen || data.device.imei !== phone.device?.imei)) {
+      if (
+        data.device &&
+        (!phone.isOpen || data.device.imei !== phone.device?.imei)
+      ) {
         notification.device = {
           imei: data.device.imei,
           name: data.device.name,
@@ -367,6 +383,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     event.data.data
   ) {
     calls.applyCallState(event.data.data as PhoneCall)
+    controlCenterOpened.value = false
     isLocked.value = false
     isUnlocking.value = false
     window.setTimeout(() => void router.push('/apps/phone'), 0)
@@ -379,6 +396,10 @@ function onMessage(event: MessageEvent<AppMessage>): void {
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.key !== 'Escape' || !phone.isOpen) return
+  if (controlCenterOpened.value) {
+    controlCenterOpened.value = false
+    return
+  }
   phone.close()
   void nuiCall('close')
 }
@@ -399,6 +420,11 @@ function unlockPhone(): void {
   unlockTimer = window.setTimeout(() => {
     isUnlocking.value = false
   }, 720)
+}
+
+function toggleControlCenter(): void {
+  if (isLocked.value) return
+  controlCenterOpened.value = !controlCenterOpened.value
 }
 
 function unlockCamera(): void {
@@ -487,15 +513,24 @@ watch(
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
     if (!isOpen) {
       weather.stop()
+      controlCenterOpened.value = false
       isLocked.value = false
       isUnlocking.value = false
       return
     }
     isLocked.value = true
+    controlCenterOpened.value = false
     weather.start()
     isUnlocking.value = false
     phone.setLaunchOrigin(null)
     void router.replace('/')
+  },
+)
+
+watch(
+  () => phone.cameraLandscape,
+  (landscape) => {
+    if (landscape) controlCenterOpened.value = false
   },
 )
 
@@ -560,13 +595,18 @@ onBeforeUnmount(() => {
                 :dark="phone.isDarkMode"
                 safe-areas
                 class="phone-app"
+                :style="phoneDisplayStyle"
                 :class="{
                   dark: phone.isDarkMode,
                   'phone-app--light': !phone.isDarkMode,
                   'phone-app--unlocking': isUnlocking,
                 }"
               >
-                <PhoneStatusBar v-if="!isLocked" />
+                <PhoneStatusBar
+                  v-if="!isLocked"
+                  :control-center-opened="controlCenterOpened"
+                  @control-center="toggleControlCenter"
+                />
                 <SpringboardView />
                 <RouterView v-slot="{ Component }">
                   <Transition :name="appTransitionName">
@@ -578,6 +618,10 @@ onBeforeUnmount(() => {
                   </Transition>
                 </RouterView>
                 <PhoneHomeIndicator v-if="!isLocked" />
+                <PhoneControlCenter
+                  :opened="controlCenterOpened"
+                  @close="controlCenterOpened = false"
+                />
                 <Transition name="lock-screen">
                   <PhoneLockScreen
                     v-if="isLocked"
@@ -589,6 +633,7 @@ onBeforeUnmount(() => {
                   :notification="notifications.current"
                   @close="notifications.dismissCurrent()"
                 />
+                <div class="phone-display-dimmer" aria-hidden="true"></div>
               </k-app>
             </div>
             <img

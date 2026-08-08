@@ -5,6 +5,7 @@ import {
   useNotificationsStore,
   type PhoneNotificationDevice,
 } from '@/stores/notifications'
+import { usePhoneStore } from '@/stores/phone'
 import {
   DEFAULT_PHONE_PREFERENCES,
   type PhonePreferencesV1,
@@ -103,5 +104,27 @@ describe('notifications store', () => {
 
     expect(id).toBeNull()
     expect(notifications.devicePreviews).toEqual([])
+  })
+
+  it('suppresses normal notifications during Focus but keeps critical alerts', () => {
+    const phone = usePhoneStore()
+    const notifications = useNotificationsStore()
+    phone.preferences.settings.focusMode = true
+
+    const normalId = notifications.show({
+      appId: 'mail',
+      text: 'Quiet message',
+      title: 'Mail',
+    })
+    const criticalId = notifications.show({
+      appId: 'clock',
+      critical: true,
+      text: 'Timer finished',
+      title: 'Clock',
+    })
+
+    expect(normalId).toBeNull()
+    expect(criticalId).not.toBeNull()
+    expect(notifications.current?.text).toBe('Timer finished')
   })
 })

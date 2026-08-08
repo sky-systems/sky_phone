@@ -324,6 +324,27 @@ button {
 .phone-app--light {
   color-scheme: light;
 }
+.phone-display-dimmer {
+  position: absolute;
+  z-index: 99;
+  inset: 0;
+  background: #000;
+  opacity: var(--phone-display-dim, 0);
+  pointer-events: none;
+  transition: opacity 120ms linear;
+}
+.control-center__range input[type='range']::-webkit-slider-thumb {
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  -webkit-appearance: none !important;
+}
+.control-center__range input[type='range']::-moz-range-thumb {
+  width: 1px !important;
+  height: 1px !important;
+  border: 0 !important;
+  opacity: 0 !important;
+}
 .phone-notification {
   z-index: 85 !important;
   top: 68px !important;
@@ -339,7 +360,7 @@ button {
 }
 .phone-status-bar {
   position: absolute;
-  z-index: 70;
+  z-index: 97;
   top: 0;
   left: 0;
   width: 100%;
@@ -355,9 +376,21 @@ button {
   pointer-events: none;
 }
 .phone-status-bar__indicators {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 3px;
+  width: 118px;
+  height: 45px;
+  padding: 11px 42px 0 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
 }
 .phone-home-indicator {
   position: absolute;
