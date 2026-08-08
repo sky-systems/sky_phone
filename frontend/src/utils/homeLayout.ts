@@ -2,7 +2,7 @@ import type { LaunchablePhoneAppId } from '@/types/apps'
 
 export const HOME_DOCK_CAPACITY = 4
 export const HOME_GRID_PAGE_SIZE = 20
-const MAX_HOME_GRID_PAGES = 5
+export const MAX_HOME_GRID_PAGES = 5
 
 export type HomeArea = 'dock' | 'grid'
 export type HomeSlot = LaunchablePhoneAppId | null
@@ -217,6 +217,41 @@ export function restoreHomeApp(
     dock: [...layout.dock],
     grid,
     hidden: layout.hidden.filter((id) => id !== appId),
+    version: 2,
+  }
+}
+
+export function addHomePage(layout: HomeLayout): HomeLayout {
+  if (layout.grid.length >= HOME_GRID_PAGE_SIZE * MAX_HOME_GRID_PAGES) {
+    return layout
+  }
+
+  return {
+    dock: [...layout.dock],
+    grid: [...layout.grid, ...createSlots(HOME_GRID_PAGE_SIZE)],
+    hidden: [...layout.hidden],
+    version: 2,
+  }
+}
+
+export function deleteHomePage(layout: HomeLayout, page: number): HomeLayout {
+  const pageCount = Math.ceil(layout.grid.length / HOME_GRID_PAGE_SIZE)
+  if (pageCount <= 1 || page < 1 || page > pageCount) return layout
+
+  const pageStart = (page - 1) * HOME_GRID_PAGE_SIZE
+  const grid = [...layout.grid]
+  const removedApps = grid
+    .splice(pageStart, HOME_GRID_PAGE_SIZE)
+    .filter((appId): appId is LaunchablePhoneAppId => appId !== null)
+  if (removedApps.length > grid.filter((appId) => appId === null).length) {
+    return layout
+  }
+  for (const appId of removedApps) placeInFirstEmptySlot(grid, appId)
+
+  return {
+    dock: [...layout.dock],
+    grid,
+    hidden: [...layout.hidden],
     version: 2,
   }
 }

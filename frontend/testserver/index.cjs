@@ -738,6 +738,8 @@ const deviceData = {
     revision: 1,
   },
 }
+let mockPasscode = ''
+let mockSecurity = { enabled: false, length: null, lockedUntil: 0 }
 let mockContacts = [
   {
     created_at: isoTime(-14 * 86_400_000),
@@ -1517,6 +1519,7 @@ app.post('/api/:endpoint', (request, response) => {
           },
         },
         notes: mockNotes,
+        security: mockSecurity,
         token: 'development',
       },
     })
@@ -1749,12 +1752,56 @@ app.post('/api/:endpoint', (request, response) => {
     response.json({ success: true, data: { revision } })
     return
   }
+  if (endpoint === 'security:unlock') {
+    response.json(
+      !mockSecurity.enabled || request.body.passcode === mockPasscode
+        ? { success: true, data: { security: mockSecurity } }
+        : { success: false, error: 'invalid_passcode' },
+    )
+    return
+  }
+  if (endpoint === 'security:set-passcode') {
+    mockPasscode = String(request.body.passcode)
+    mockSecurity = {
+      enabled: true,
+      length: mockPasscode.length,
+      lockedUntil: 0,
+    }
+    response.json({ success: true, data: { security: mockSecurity } })
+    return
+  }
+  if (endpoint === 'security:change-passcode') {
+    if (request.body.currentPasscode !== mockPasscode) {
+      response.json({ success: false, error: 'invalid_passcode' })
+      return
+    }
+    mockPasscode = String(request.body.newPasscode)
+    mockSecurity = {
+      enabled: true,
+      length: mockPasscode.length,
+      lockedUntil: 0,
+    }
+    response.json({ success: true, data: { security: mockSecurity } })
+    return
+  }
+  if (endpoint === 'security:disable-passcode') {
+    if (request.body.passcode !== mockPasscode) {
+      response.json({ success: false, error: 'invalid_passcode' })
+      return
+    }
+    mockPasscode = ''
+    mockSecurity = { enabled: false, length: null, lockedUntil: 0 }
+    response.json({ success: true, data: { security: mockSecurity } })
+    return
+  }
   if (endpoint === 'device:factory-reset') {
     authenticated = false
     linkedAccount = null
     mockNotes = []
     mockMedia = []
     calendarEvents = []
+    mockPasscode = ''
+    mockSecurity = { enabled: false, length: null, lockedUntil: 0 }
     for (const key of Object.keys(deviceData)) delete deviceData[key]
     response.json({ success: true })
     return

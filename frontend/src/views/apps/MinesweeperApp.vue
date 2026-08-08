@@ -198,8 +198,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="minesweeper-app" :aria-label="phone.t('Apps.minesweeper.name')">
-    <header class="minesweeper-header">
+  <main
+    class="minesweeper-app"
+    :class="{ 'minesweeper-app--playing': !minesweeper.menuOpen && game }"
+    :aria-label="phone.t('Apps.minesweeper.name')"
+  >
+    <header v-if="minesweeper.menuOpen" class="minesweeper-header">
       <div>
         <span>{{ phone.t('Apps.minesweeper.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.minesweeper.name') }}</h1>
@@ -420,6 +424,10 @@ onBeforeUnmount(() => {
   user-select: none;
 }
 
+.minesweeper-app--playing {
+  padding: 0;
+}
+
 .minesweeper-header {
   height: 55px;
   display: flex;
@@ -524,22 +532,59 @@ onBeforeUnmount(() => {
 .minesweeper-difficulties small { align-self: start; color: #658a89; font-size: 8px; }
 .minesweeper-long-press { margin: 0; color: #628887; font-size: 9px; }
 
-.minesweeper-game { position: relative; padding-top: 5px; }
-.minesweeper-toolbar { height: 46px; display: grid; grid-template-columns: 36px 1fr 1fr 36px; align-items: center; gap: 7px; }
-.minesweeper-toolbar div { display: grid; justify-items: center; line-height: 1.05; }
-.minesweeper-toolbar span { color: #5a8484; font-size: 8px; font-weight: 800; text-transform: uppercase; }
-.minesweeper-toolbar strong { font-size: 16px; }
+.minesweeper-game {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 88%, rgb(26 129 130 / 14%), transparent 32%),
+    radial-gradient(circle at 88% 16%, rgb(238 255 249 / 45%), transparent 29%);
+}
+
+.minesweeper-toolbar {
+  position: absolute;
+  z-index: 10;
+  top: 66px;
+  right: 18px;
+  left: 18px;
+  height: 42px;
+  display: grid;
+  grid-template-columns: 32px 1fr 1fr 32px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgb(23 83 87 / 10%);
+  border-radius: 21px;
+  background: rgb(226 249 242 / 65%);
+  box-shadow: 0 8px 24px rgb(23 73 75 / 13%);
+  backdrop-filter: blur(14px);
+  box-sizing: border-box;
+}
+.minesweeper-toolbar div { height: 32px; display: grid; grid-template-rows: 10px 20px; align-content: center; justify-items: center; }
+.minesweeper-toolbar span { color: #5a8484; font-size: 10px; font-weight: 800; line-height: 10px; text-transform: uppercase; }
+.minesweeper-toolbar strong { display: block; font-size: 18px; line-height: 20px; }
+
+.minesweeper-toolbar .minesweeper-toolbar__icon {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
+}
 
 .minesweeper-board {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  left: 14px;
   display: grid;
   grid-template-columns: repeat(var(--minesweeper-columns), minmax(0, 1fr));
   gap: 3px;
   padding: 7px;
-  border: 1px solid rgb(16 78 82 / 10%);
+  border: 0;
   border-radius: 18px;
   background: #187a7e;
   box-shadow: inset 0 2px 2px rgb(255 255 255 / 10%), 0 15px 27px rgb(20 79 81 / 18%);
+  transform: translateY(-45%);
 }
 
 .minesweeper-cell {
@@ -582,8 +627,7 @@ onBeforeUnmount(() => {
 .minesweeper-game--exploding::after {
   position: absolute;
   z-index: 9;
-  inset: 46px 0 0;
-  border-radius: 18px;
+  inset: 0;
   background: #ffb341;
   content: "";
   pointer-events: none;
@@ -767,13 +811,13 @@ onBeforeUnmount(() => {
 }
 
 @keyframes minesweeper-board-shake {
-  0%, 100% { transform: translate(0); }
-  12% { transform: translate(-7px, 3px) rotate(-1deg); }
-  24% { transform: translate(6px, -4px) rotate(1deg); }
-  38% { transform: translate(-5px, -2px); }
-  52% { transform: translate(4px, 3px); }
-  68% { transform: translate(-2px, -2px); }
-  82% { transform: translate(2px, 1px); }
+  0%, 100% { transform: translate(0, -45%); }
+  12% { transform: translate(-7px, calc(-45% + 3px)) rotate(-1deg); }
+  24% { transform: translate(6px, calc(-45% - 4px)) rotate(1deg); }
+  38% { transform: translate(-5px, calc(-45% - 2px)); }
+  52% { transform: translate(4px, calc(-45% + 3px)); }
+  68% { transform: translate(-2px, calc(-45% - 2px)); }
+  82% { transform: translate(2px, calc(-45% + 1px)); }
 }
 
 @keyframes minesweeper-bomb-drop {
@@ -866,7 +910,22 @@ onBeforeUnmount(() => {
 .minesweeper-secondary { position: relative; z-index: 1; min-width: 155px; min-height: 40px; border-radius: 13px; font-size: 11px; font-weight: 850; pointer-events: auto; }
 .minesweeper-primary { border: 0; color: #104d51; background: #8ce3d2; }
 .minesweeper-secondary { border: 1px solid rgb(255 255 255 / 13%); color: #e6faf5; background: rgb(255 255 255 / 7%); }
-.minesweeper-game__hint { margin: 9px 0 0; color: #668c8c; font-size: 9px; text-align: center; }
+.minesweeper-game__hint {
+  position: absolute;
+  z-index: 6;
+  right: 45px;
+  bottom: 27px;
+  left: 45px;
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #668c8c;
+  background: rgb(226 249 242 / 52%);
+  backdrop-filter: blur(10px);
+  font-size: 9px;
+  text-align: center;
+  pointer-events: none;
+}
 
 button:active { transform: scale(0.96); }
 

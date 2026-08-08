@@ -209,6 +209,39 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_device_security",
+        columns = {
+            {
+                name = "device_imei",
+                type = "CHAR(15) NOT NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            { name = "passcode_hash", type = "BINARY(32) NOT NULL" },
+            {
+                name = "passcode_salt",
+                type = "CHAR(32) NOT NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            { name = "passcode_length", type = "TINYINT UNSIGNED NOT NULL" },
+            { name = "failed_attempts", type = "TINYINT UNSIGNED NOT NULL DEFAULT 0" },
+            { name = "locked_until", type = "BIGINT UNSIGNED NOT NULL DEFAULT 0" },
+            {
+                name = "updated_at",
+                type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+            },
+        },
+        primaryKey = "device_imei",
+        foreignKeys = {
+            {
+                column = "device_imei",
+                references = "`sky_phone_devices` (`imei`) ON DELETE CASCADE",
+            },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
         name = "sky_phone_notes",
         columns = {
             { name = "id", type = "VARCHAR(64) NOT NULL" },
@@ -436,7 +469,7 @@ local schema = {
             { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
             { name = "listing_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "media_id", type = "VARCHAR(64) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
-            { name = "gradient", type = "VARCHAR(160) NOT NULL" },
+            { name = "gradient", type = "VARCHAR(2200) NOT NULL" },
             { name = "sort_order", type = "TINYINT UNSIGNED NOT NULL" },
         },
         primaryKey = "id",
@@ -619,7 +652,7 @@ local schema = {
             { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
             { name = "post_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "media_id", type = "VARCHAR(64) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
-            { name = "gradient", type = "VARCHAR(160) NOT NULL" },
+            { name = "gradient", type = "VARCHAR(2200) NOT NULL" },
             { name = "sort_order", type = "TINYINT UNSIGNED NOT NULL" },
         },
         primaryKey = "id",
@@ -858,6 +891,14 @@ Bridge.Database.Query([[
 Bridge.Database.Query([[
     ALTER TABLE `sky_phone_darkchat_messages`
     MODIFY COLUMN `message_type` ENUM('text', 'emoji', 'gif', 'voice', 'image', 'video', 'system') NOT NULL DEFAULT 'text'
+]], {})
+Bridge.Database.Query([[
+    ALTER TABLE `sky_phone_marketplace_images`
+    MODIFY COLUMN `gradient` VARCHAR(2200) NOT NULL
+]], {})
+Bridge.Database.Query([[
+    ALTER TABLE `sky_phone_pages_images`
+    MODIFY COLUMN `gradient` VARCHAR(2200) NOT NULL
 ]], {})
 Bridge.Database.EnsureIndex("sky_phone_devices", "uniq_sky_phone_devices_sim", "(`sim_id`)", { unique = true })
 Bridge.Database.Query("UPDATE `sky_phone_contacts` SET `contact_id` = `id` WHERE `contact_id` IS NULL", {})

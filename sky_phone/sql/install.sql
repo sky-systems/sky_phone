@@ -92,6 +92,18 @@ CREATE TABLE IF NOT EXISTS `sky_phone_device_data` (
     FOREIGN KEY (`device_imei`) REFERENCES `sky_phone_devices` (`imei`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_device_security` (
+    `device_imei` CHAR(15) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `passcode_hash` BINARY(32) NOT NULL,
+    `passcode_salt` CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `passcode_length` TINYINT UNSIGNED NOT NULL,
+    `failed_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `locked_until` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`device_imei`),
+    FOREIGN KEY (`device_imei`) REFERENCES `sky_phone_devices` (`imei`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_notes` (
     `id` VARCHAR(64) NOT NULL,
     `account_id` BIGINT UNSIGNED NULL,

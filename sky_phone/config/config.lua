@@ -15,8 +15,15 @@ Config.Command = "phone"
 
 Config.Phone = {
     Item = "phone",
-    DevelopmentCommand = true,
+    DevelopmentCommand = false,
     DeviceName = "iFruit Phone",
+}
+
+Config.Security = {
+    PasscodePepperConvar = "sky_phone_passcode_pepper",
+    MaximumAttempts = 5,
+    LockSeconds = 30,
+    AttemptsPerMinute = 12,
 }
 
 Config.Sim = {
@@ -80,6 +87,40 @@ Config.Radio = {
                 army = true,
                 ambulance = true,
             },
+        },
+    },
+}
+
+Config.Animations = {
+    Enabled = true,
+    PropModel = "prop_npc_phone_02",
+    PropBone = 28422,
+    LoadTimeoutMs = 5000,
+    ContextPollMs = 250,
+    Dictionaries = {
+        OnFoot = "cellphone@",
+        Driver = "anim@cellphone@in_car@ds",
+        Passenger = "anim@cellphone@in_car@ps",
+        Selfie = "anim@mp_player_intuppertake_selfie",
+    },
+    Clips = {
+        TextIn = "cellphone_text_in",
+        TextRead = "cellphone_text_read_base",
+        TextOut = "cellphone_text_out",
+        TextToCall = "cellphone_text_to_call",
+        CallListen = "cellphone_call_listen_base",
+        CallToText = "cellphone_call_to_text",
+        CallOut = "cellphone_call_out",
+        Selfie = "idle_a",
+    },
+    Transforms = {
+        Portrait = {
+            position = { x = 0.0, y = 0.0, z = 0.0 },
+            rotation = { x = 0.0, y = 0.0, z = 0.0 },
+        },
+        Landscape = {
+            position = { x = 0.0, y = 0.0, z = 0.0 },
+            rotation = { x = 0.0, y = 0.0, z = 90.0 },
         },
     },
 }

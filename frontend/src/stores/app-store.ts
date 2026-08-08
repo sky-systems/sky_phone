@@ -8,7 +8,9 @@ import {
 import { usePhoneStore } from '@/stores/phone'
 import type { LaunchablePhoneAppId } from '@/types/apps'
 import {
+  addHomePage,
   createDefaultHomeLayout,
+  deleteHomePage,
   moveHomeApp,
   parseHomeLayout,
   removeHomeApp,
@@ -39,6 +41,20 @@ export const useAppStoreStore = defineStore('app-store', {
     launchCounts: {} as Partial<Record<LaunchablePhoneAppId, number>>,
   }),
   actions: {
+    addHomePage(): boolean {
+      const next = addHomePage(this.homeLayout)
+      if (next === this.homeLayout) return false
+      this.homeLayout = next
+      this.persist()
+      return true
+    },
+    deleteHomePage(page: number): boolean {
+      const next = deleteHomePage(this.homeLayout, page)
+      if (next === this.homeLayout) return false
+      this.homeLayout = next
+      this.persist()
+      return true
+    },
     claimApp(id: LaunchablePhoneAppId): void {
       if (!this.claimedApps.includes(id)) {
         this.claimedApps.push(id)

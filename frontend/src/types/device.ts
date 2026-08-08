@@ -19,6 +19,12 @@ export type PhoneNotificationDevicePayload = {
   settings?: string | null
 }
 
+export type DeviceSecurity = {
+  enabled: boolean
+  length: 4 | 6 | null
+  lockedUntil: number
+}
+
 export type AccountDevice = {
   created_at: string
   current: boolean
@@ -37,5 +43,6 @@ export type DeviceBootstrap = {
   account: IfruitAccount | null
   device: PhoneDevice
   notes: Note[]
+  security: DeviceSecurity
   token: string
 }

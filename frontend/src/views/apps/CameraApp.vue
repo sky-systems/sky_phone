@@ -7,6 +7,7 @@ import {
   kSegmentedButton,
 } from 'konsta/vue'
 import {
+  ArrowLeft,
   Images,
   RefreshCw,
   RotateCcwSquare,
@@ -38,7 +39,7 @@ const messageMedia = useMessageMediaStore()
 const route = useRoute()
 const router = useRouter()
 const requestedMessageMedia = computed<MediaType | null>(() => {
-  const value = route.query.messageAttachment
+  const value = route.query.mediaAttachment ?? route.query.messageAttachment
   return value === 'photo' || value === 'video' ? value : null
 })
 const mode = ref<MediaType>(requestedMessageMedia.value ?? 'photo')
@@ -205,6 +206,10 @@ function capture(): void {
   void requestPhoto()
 }
 
+function cancelMediaSelection(): void {
+  void router.replace(messageMedia.cancel())
+}
+
 function setMode(nextMode: MediaType): void {
   if (recording.value || savingVideo.value) return
   mode.value = nextMode
@@ -230,6 +235,9 @@ function toggleOrientation(): void {
     },
     '*',
   )
+  void nuiCall('camera:setOrientation', {
+    landscape: phone.cameraLandscape,
+  })
 }
 
 function setZoom(zoom: (typeof zoomLevels)[number]): void {
@@ -348,6 +356,7 @@ onMounted(() => {
     { data: { landscape: false }, type: 'camera:orientation' },
     '*',
   )
+  void nuiCall('camera:setOrientation', { landscape: false })
   window.postMessage(
     { data: { zoom: selectedZoom.value }, type: 'camera:zoom' },
     '*',
@@ -381,6 +390,7 @@ onBeforeUnmount(() => {
     '*',
   )
   window.postMessage({ type: 'camera:recordCancel' }, '*')
+  void nuiCall('camera:setOrientation', { landscape: false })
   void nuiCall('camera:setFlash', { enabled: false })
   void nuiCall('camera:setActive', { active: false })
 })
@@ -413,7 +423,17 @@ onBeforeUnmount(() => {
     </div>
 
     <header class="camera-topbar">
+      <button
+        v-if="requestedMessageMedia"
+        class="camera-picker-back"
+        type="button"
+        :aria-label="phone.t('Common.back')"
+        @click="cancelMediaSelection"
+      >
+        <ArrowLeft :size="20" />
+      </button>
       <k-fab
+        v-if="!requestedMessageMedia"
         component="button"
         type="button"
         class="camera-control"
@@ -489,7 +509,7 @@ onBeforeUnmount(() => {
             router.push({
               path: '/apps/photos',
               query: requestedMessageMedia
-                ? { messageAttachment: requestedMessageMedia }
+                ? { mediaAttachment: requestedMessageMedia }
                 : undefined,
             })
           "
@@ -670,6 +690,17 @@ onBeforeUnmount(() => {
 }
 .camera-control {
   --color-primary: transparent;
+}
+.camera-picker-back {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #1c1c1ecc;
+  color: #fff;
+  backdrop-filter: blur(16px);
 }
 .camera-control svg {
   width: 21px;

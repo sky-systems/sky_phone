@@ -23,9 +23,9 @@ export type MarketplaceImage = {
 
 export type MarketplaceListingSummary = {
   category: MarketplaceCategory
-  created_at: string
+  created_at: DatabaseDateValue
   district: string | null
-  expires_at: string
+  expires_at: DatabaseDateValue
   id: string
   image: string | null
   is_favorite: boolean | number
@@ -35,7 +35,7 @@ export type MarketplaceListingSummary = {
   seller_name: string
   status: MarketplaceStatus
   title: string
-  updated_at: string
+  updated_at: DatabaseDateValue
 }
 
 export type MarketplaceListing = MarketplaceListingSummary & {
@@ -46,7 +46,7 @@ export type MarketplaceListing = MarketplaceListingSummary & {
   reserved_account_id: number | null
   revision: number
   seller_active: number
-  seller_since: string
+  seller_since: DatabaseDateValue
   show_phone: boolean | number
 }
 
@@ -75,12 +75,12 @@ export type MarketplaceInquirySummary = {
   status: MarketplaceStatus
   title: string
   unread: number
-  updated_at: string
+  updated_at: DatabaseDateValue
 }
 
 export type MarketplaceMessage = {
   body: string
-  created_at: string
+  created_at: DatabaseDateValue
   id: number
   read_at: string | null
   sender_account_id: number
@@ -88,13 +88,13 @@ export type MarketplaceMessage = {
 
 export type MarketplaceOffer = {
   amount: number | string
-  created_at: string
+  created_at: DatabaseDateValue
   id: number
   proposer_account_id: number
   read_at: string | null
   response_read_at: string | null
   status: MarketplaceOfferStatus
-  updated_at: string
+  updated_at: DatabaseDateValue
 }
 
 export type MarketplaceInquiry = {
@@ -124,3 +124,4 @@ export type MarketplaceChat = {
 }
 
 export type MarketplaceCounts = { active: number; unread: number }
+import type { DatabaseDateValue } from '@/utils/date'

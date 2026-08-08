@@ -14,6 +14,7 @@ import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
 import PhoneControlCenter from '@/components/PhoneControlCenter.vue'
 import PhoneMediaCapture from '@/components/PhoneMediaCapture.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
+import PhonePasscode from '@/components/PhonePasscode.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import NotificationPhonePreview from '@/components/NotificationPhonePreview.vue'
 import PhoneStatusBar from '@/components/PhoneStatusBar.vue'
@@ -33,6 +34,7 @@ import { useDarkChatStore } from '@/stores/darkchat'
 import { useMediaStore } from '@/stores/media'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAppStoreStore } from '@/stores/app-store'
+import { useWidgetsStore } from '@/stores/widgets'
 import { isPhoneAppId } from '@/config/apps'
 import { useNotesStore } from '@/stores/notes'
 import { useWeatherStore } from '@/stores/weather'
@@ -131,6 +133,7 @@ const darkchat = useDarkChatStore()
 const media = useMediaStore()
 const marketplace = useMarketplaceStore()
 const appStore = useAppStoreStore()
+const widgets = useWidgetsStore()
 const notes = useNotesStore()
 const weather = useWeatherStore()
 const notifications = useNotificationsStore()
@@ -142,13 +145,21 @@ const appTransitionName = computed(() =>
 )
 const isLocked = ref(false)
 const isUnlocking = ref(false)
+const passcodeBusy = ref(false)
+const passcodeError = ref('')
+const passcodeResetKey = ref(0)
+const passcodeRetrySeconds = ref(0)
+const passcodeVisible = ref(false)
+const pendingUnlockRoute = ref<string | null>(null)
+const unlockedServicesLoaded = ref(false)
 const controlCenterOpened = ref(false)
 const simPicker = ref<SimPickerPayload | null>(null)
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
 const viewportScale = ref(getViewportScale())
-const phoneBaseZoom = computed(() =>
-  viewportScale.value *
-  (isDevelopment ? DEVELOPMENT_PHONE_SCALE : PHONE_BASE_SCALE),
+const phoneBaseZoom = computed(
+  () =>
+    viewportScale.value *
+    (isDevelopment ? DEVELOPMENT_PHONE_SCALE : PHONE_BASE_SCALE),
 )
 const phoneResolutionStyle = computed<CSSProperties>(() => ({
   '--phone-edge-gap': `${24 * viewportScale.value}px`,
@@ -166,6 +177,7 @@ const phoneFrameImage = computed(
 )
 let clockTicker: ReturnType<typeof setInterval> | undefined
 let unlockTimer: number | undefined
+let passcodeLockTimer: number | undefined
 
 function getViewportScale(): number {
   const heightScale = window.innerHeight / REFERENCE_VIEWPORT_HEIGHT
@@ -182,12 +194,18 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
   appStore.hydrate(payload.device?.data.apps?.payload)
-  void mail.bootstrap(payload.account?.email ?? '')
-  if (payload.account?.email) void marketplace.loadCounts()
+  widgets.hydrate(payload.device?.data.widgets?.payload)
+}
+
+function loadUnlockedPhoneData(): void {
+  if (unlockedServicesLoaded.value) return
+  unlockedServicesLoaded.value = true
+  void mail.bootstrap(account.email)
+  if (account.email) void marketplace.loadCounts()
   else marketplace.setCounts({ active: 0, unread: 0 })
   void calls.bootstrap()
   void messages.loadConversations()
-  if (payload.account?.email) void darkchat.bootstrap()
+  if (account.email) void darkchat.bootstrap()
 }
 
 async function hydrateDevelopmentPhone(): Promise<void> {
@@ -389,8 +407,11 @@ function onMessage(event: MessageEvent<AppMessage>): void {
   ) {
     calls.applyCallState(event.data.data as PhoneCall)
     controlCenterOpened.value = false
-    isLocked.value = false
-    isUnlocking.value = false
+    if (!phone.security.enabled) {
+      isLocked.value = false
+      isUnlocking.value = false
+      loadUnlockedPhoneData()
+    }
     window.setTimeout(() => void router.push('/apps/phone'), 0)
   } else if (event.data?.type === 'sim:picker' && event.data.data) {
     simPicker.value = event.data.data as unknown as SimPickerPayload
@@ -417,14 +438,78 @@ function updateViewportScale(): void {
   viewportScale.value = getViewportScale()
 }
 
-function unlockPhone(): void {
+function finishUnlock(): void {
   if (!isLocked.value) return
   isUnlocking.value = true
   isLocked.value = false
+  passcodeVisible.value = false
+  passcodeError.value = ''
 
   unlockTimer = window.setTimeout(() => {
     isUnlocking.value = false
   }, 720)
+
+  if (pendingUnlockRoute.value) {
+    const routePath = pendingUnlockRoute.value
+    pendingUnlockRoute.value = null
+    window.setTimeout(() => void router.push(routePath), 0)
+  }
+  loadUnlockedPhoneData()
+}
+
+function unlockPhone(): void {
+  if (!isLocked.value) return
+  if (phone.security.enabled) {
+    passcodeError.value = ''
+    passcodeVisible.value = true
+    return
+  }
+  finishUnlock()
+}
+
+function cancelPasscode(): void {
+  if (passcodeBusy.value) return
+  passcodeVisible.value = false
+  passcodeError.value = ''
+  pendingUnlockRoute.value = null
+}
+
+function startPasscodeLock(seconds: number): void {
+  if (passcodeLockTimer !== undefined) window.clearInterval(passcodeLockTimer)
+  passcodeRetrySeconds.value = Math.max(1, Math.ceil(seconds))
+  passcodeLockTimer = window.setInterval(() => {
+    passcodeRetrySeconds.value = Math.max(0, passcodeRetrySeconds.value - 1)
+    if (passcodeRetrySeconds.value === 0 && passcodeLockTimer !== undefined) {
+      window.clearInterval(passcodeLockTimer)
+      passcodeLockTimer = undefined
+      passcodeError.value = ''
+    }
+  }, 1000)
+}
+
+async function submitUnlockPasscode(passcode: string): Promise<void> {
+  if (passcodeBusy.value || passcodeRetrySeconds.value > 0) return
+  passcodeBusy.value = true
+  const response = await phone.unlockWithPasscode(passcode)
+  passcodeBusy.value = false
+  if (response.success) {
+    finishUnlock()
+    return
+  }
+
+  passcodeResetKey.value += 1
+  if (response.error === 'passcode_locked') {
+    startPasscodeLock(response.data?.retryAfter ?? 30)
+    passcodeError.value = phone.t('LockScreen.passcode.locked', {
+      seconds: String(response.data?.retryAfter ?? 30),
+    })
+    return
+  }
+  if (response.error === 'rate_limited') {
+    passcodeError.value = phone.t('LockScreen.passcode.rateLimited')
+    return
+  }
+  passcodeError.value = phone.t('LockScreen.passcode.incorrect')
 }
 
 function toggleControlCenter(): void {
@@ -433,6 +518,11 @@ function toggleControlCenter(): void {
 }
 
 function unlockCamera(): void {
+  if (phone.security.enabled) {
+    pendingUnlockRoute.value = '/apps/camera'
+    unlockPhone()
+    return
+  }
   unlockPhone()
   window.setTimeout(() => void router.push('/apps/camera'), 0)
 }
@@ -521,12 +611,33 @@ watch(
       controlCenterOpened.value = false
       isLocked.value = false
       isUnlocking.value = false
+      passcodeVisible.value = false
+      passcodeBusy.value = false
+      passcodeError.value = ''
+      pendingUnlockRoute.value = null
+      unlockedServicesLoaded.value = false
+      if (passcodeLockTimer !== undefined) {
+        window.clearInterval(passcodeLockTimer)
+        passcodeLockTimer = undefined
+      }
       return
     }
     isLocked.value = true
+    unlockedServicesLoaded.value = false
     controlCenterOpened.value = false
     weather.start()
     isUnlocking.value = false
+    passcodeVisible.value = false
+    passcodeBusy.value = false
+    passcodeError.value = ''
+    passcodeResetKey.value += 1
+    passcodeRetrySeconds.value = Math.max(
+      0,
+      (phone.security.lockedUntil ?? 0) - Math.floor(Date.now() / 1000),
+    )
+    if (passcodeRetrySeconds.value > 0) {
+      startPasscodeLock(passcodeRetrySeconds.value)
+    }
     phone.setLaunchOrigin(null)
     void router.replace('/')
   },
@@ -543,6 +654,7 @@ onBeforeUnmount(() => {
   weather.stop()
   if (clockTicker) clearInterval(clockTicker)
   if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
+  if (passcodeLockTimer !== undefined) window.clearInterval(passcodeLockTimer)
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', updateViewportScale)
@@ -633,6 +745,26 @@ onBeforeUnmount(() => {
                     v-if="isLocked"
                     @camera="unlockCamera"
                     @unlock="unlockPhone"
+                  />
+                </Transition>
+                <Transition name="lock-screen">
+                  <PhonePasscode
+                    v-if="isLocked && passcodeVisible"
+                    :busy="passcodeBusy"
+                    :disabled="passcodeRetrySeconds > 0"
+                    :error="passcodeError"
+                    :length="phone.security.length ?? 6"
+                    :reset-key="passcodeResetKey"
+                    :subtitle="
+                      passcodeRetrySeconds > 0
+                        ? phone.t('LockScreen.passcode.tryAgain', {
+                            seconds: String(passcodeRetrySeconds),
+                          })
+                        : phone.t('LockScreen.passcode.unlockSubtitle')
+                    "
+                    :title="phone.t('LockScreen.passcode.enter')"
+                    @cancel="cancelPasscode"
+                    @complete="submitUnlockPasscode"
                   />
                 </Transition>
                 <PhoneNotifications

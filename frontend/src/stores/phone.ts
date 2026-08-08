@@ -1,10 +1,15 @@
 import { defineStore } from 'pinia'
 
 import type { AppLaunchOrigin, LaunchablePhoneAppId } from '@/types/apps'
-import type { DeviceBootstrap, PhoneDevice } from '@/types/device'
+import type {
+  DeviceBootstrap,
+  DeviceSecurity,
+  PhoneDevice,
+} from '@/types/device'
 import { clampPage } from '@/utils/pages'
 import { cloneJsonData } from '@/utils/clone'
 import { nuiCall } from '@/utils/nui'
+import type { NuiResponse } from '@/utils/nui'
 import {
   DEFAULT_PHONE_PREFERENCES,
   parsePhonePreferences,
@@ -15,12 +20,19 @@ import {
 
 type LocaleTree = Record<string, unknown>
 
+export type PasscodeResponseData = {
+  attemptsRemaining?: number
+  retryAfter?: number
+  security?: DeviceSecurity
+}
+
 export type PhoneOpenPayload = {
   account?: DeviceBootstrap['account']
   device?: PhoneDevice
   lang?: string
   locales?: LocaleTree
   notes?: DeviceBootstrap['notes']
+  security?: DeviceSecurity
   token?: string
 }
 
@@ -800,6 +812,8 @@ const defaultLocales: LocaleTree = {
       sortPriceDesc: 'Highest price',
       freshOffers: 'Fresh offers',
       offers: 'offers',
+      compactView: 'Compact view',
+      largeView: 'Large view',
       noListings: 'No offers found',
       noListingsBody: 'Try another search or category.',
       noDistrict: 'No district',
@@ -1376,6 +1390,7 @@ const defaultLocales: LocaleTree = {
       notifications: 'Notifications',
       sounds: 'Sounds & Haptics',
       general: 'General Settings',
+      security: 'Passcode & Security',
       appearance: 'Appearance',
       allowNotifications: 'Allow Notifications',
       notificationSounds: 'Sounds',
@@ -1420,6 +1435,28 @@ const defaultLocales: LocaleTree = {
         'This removes the account and all local data from this phone. Cloud data and the IMEI remain.',
       factoryResetProgress: 'Erasing iFruit Phone',
       factoryResetWarning: 'Do not turn off this phone. This takes 60 seconds.',
+      passcode: {
+        description:
+          'A passcode protects the contents of this phone. It stays with the device when the SIM or iFruit account changes.',
+        status: 'Passcode',
+        codeLength: 'Code Length',
+        sixDigit: '6-Digit Code',
+        fourDigit: '4-Digit Code',
+        turnOn: 'Turn Passcode On',
+        turnOff: 'Turn Passcode Off',
+        change: 'Change Passcode',
+        enterNew: 'Enter New Passcode',
+        confirmNew: 'Verify New Passcode',
+        enterCurrent: 'Enter Current Passcode',
+        screenSubtitle: 'Use 4 or 6 numbers.',
+        incorrect: 'Incorrect passcode.',
+        mismatch: 'The passcodes did not match.',
+        locked: 'Too many incorrect attempts. Try again later.',
+        rateLimited: 'Too many attempts. Please wait.',
+        failed: 'The passcode could not be updated.',
+        saved: 'Passcode saved.',
+        disabled: 'Passcode turned off.',
+      },
       accountErrors: {
         invalid_email: 'Choose a valid 3–32 character iFruit address.',
         invalid_password: 'Password must be 6–64 characters.',
@@ -1514,6 +1551,16 @@ const defaultLocales: LocaleTree = {
     flashlight: 'Flashlight',
     camera: 'Camera',
     swipeUp: 'Swipe up to open',
+    passcode: {
+      enter: 'Enter Passcode',
+      unlockSubtitle: 'Enter the passcode for this phone.',
+      cancel: 'Cancel',
+      delete: 'Delete digit',
+      incorrect: 'Incorrect passcode',
+      locked: 'Too many attempts. Try again in {seconds} seconds.',
+      tryAgain: 'Try again in {seconds} seconds',
+      rateLimited: 'Too many attempts. Please wait.',
+    },
   },
   Home: {
     appLibrary: 'App Library',
@@ -1523,6 +1570,10 @@ const defaultLocales: LocaleTree = {
     dock: 'Dock',
     noApps: 'No apps found',
     removeApp: 'Remove {app} from Home Screen',
+    addToHome: 'Add {app} to Home Screen',
+    addPage: 'Add Home Screen page',
+    deletePage: 'Delete current Home Screen page',
+    removedFromHome: 'Removed from Home Screen',
     page: 'Page',
     pages: 'Home screen pages',
     groups: {
@@ -1544,6 +1595,59 @@ const defaultLocales: LocaleTree = {
         artist: 'Sky Radio',
         play: 'Play',
         pause: 'Pause',
+      },
+    },
+    widgetSystem: {
+      galleryTitle: 'Widgets',
+      search: 'Search Widgets',
+      size: 'Size',
+      add: 'Add Widget',
+      addWidget: 'Add Widget',
+      editWidget: 'Edit Widget',
+      removeWidget: 'Remove Widget',
+      remove: 'Remove widget',
+      configure: 'Configure Widget',
+      noResults: 'No widgets found',
+      sizes: { small: 'Small', medium: 'Medium', large: 'Large' },
+      categories: {
+        essentials: 'Essentials',
+        information: 'Information',
+        media: 'Media',
+        finance: 'Finance',
+        people: 'People',
+      },
+      clock: {
+        name: 'Clock',
+        description: 'The current time, with an optional date.',
+        showDate: 'Show Date',
+      },
+      date: {
+        name: 'Date',
+        description: 'Weekday, month, and date at a glance.',
+      },
+      weather: {
+        name: 'Weather',
+        description: 'Current conditions, location, and high and low.',
+      },
+      music: {
+        name: 'Now Playing',
+        description: 'Music controls and the current track.',
+      },
+      wallet: {
+        name: 'Wallet',
+        description: 'Your current bank or cash balance.',
+        balance: 'Displayed Balance',
+        bank: 'Bank',
+        cash: 'Cash',
+      },
+      transactions: {
+        name: 'Transactions',
+        description: 'Your latest incoming and outgoing payments.',
+      },
+      contacts: {
+        name: 'Favorites',
+        description: 'Call or message your favorite contacts.',
+        choose: 'Favorite Contacts',
       },
     },
   },
@@ -1572,6 +1676,11 @@ export const usePhoneStore = defineStore('phone', {
     launchOrigin: null as AppLaunchOrigin | null,
     locales: defaultLocales,
     preferences: cloneJsonData(DEFAULT_PHONE_PREFERENCES),
+    security: {
+      enabled: false,
+      length: null,
+      lockedUntil: 0,
+    } as DeviceSecurity,
     systemDarkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
   }),
   getters: {
@@ -1590,6 +1699,11 @@ export const usePhoneStore = defineStore('phone', {
       this.lang = payload.lang ?? 'en'
       this.locales = payload.locales ?? defaultLocales
       if (payload.device) this.hydrateDevice(payload.device)
+      this.security = payload.security ?? {
+        enabled: false,
+        length: null,
+        lockedUntil: 0,
+      }
       this.isOpen = true
     },
     hydrateDevice(device: PhoneDevice): void {
@@ -1658,6 +1772,55 @@ export const usePhoneStore = defineStore('phone', {
     setWallpaper(wallpaper: WallpaperId): void {
       this.preferences.settings.wallpaper = wallpaper
       this.saveDeviceNamespace('settings', this.preferences)
+    },
+    async unlockWithPasscode(
+      passcode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:unlock',
+        { passcode },
+      )
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
+    },
+    async setPasscode(
+      passcode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:set-passcode',
+        { passcode },
+      )
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
+    },
+    async changePasscode(
+      currentPasscode: string,
+      newPasscode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:change-passcode',
+        { currentPasscode, newPasscode },
+      )
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
+    },
+    async disablePasscode(
+      passcode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:disable-passcode',
+        { passcode },
+      )
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
     },
     t(path: string, replacements: Record<string, string> = {}): string {
       const translated = getByPath(this.locales, path)
