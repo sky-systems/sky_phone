@@ -23,6 +23,7 @@ let renderFrameId: number | undefined
 let lastRenderAt = 0
 let recorder: MediaRecorder | null = null
 let stream: MediaStream | null = null
+let microphoneStream: MediaStream | null = null
 let chunks: RecordingChunk[] = []
 let lastChunkAt = 0
 let lastChunkTimecode: number | null = null
@@ -95,7 +96,9 @@ function resetRecording(): void {
 
 function stopTracks(): void {
   stream?.getTracks().forEach((track) => track.stop())
+  microphoneStream?.getTracks().forEach((track) => track.stop())
   stream = null
+  microphoneStream = null
 }
 
 function cleanupRecording(): void {
@@ -109,7 +112,7 @@ function cleanupRecording(): void {
   postRecordState(false)
 }
 
-function startRecording(data: Record<string, unknown>): void {
+async function startRecording(data: Record<string, unknown>): Promise<void> {
   if (recorder) return
   if (typeof MediaRecorder === 'undefined') {
     window.postMessage(
@@ -127,13 +130,45 @@ function startRecording(data: Record<string, unknown>): void {
   }
   startRenderLoop()
   resetRecording()
-  stream = canvasRef.value?.captureStream(captureFps) ?? null
-  if (!stream) {
+  const videoStream = canvasRef.value?.captureStream(captureFps) ?? null
+  if (!videoStream) {
     cleanupRecording()
     return
   }
+  if (data.microphoneEnabled === true) {
+    try {
+      microphoneStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      })
+    } catch {
+      videoStream.getTracks().forEach((track) => track.stop())
+      cleanupRecording()
+      window.postMessage(
+        {
+          data: { error: 'microphone_unavailable', success: false },
+          type: 'camera:recordError',
+        },
+        '*',
+      )
+      return
+    }
+  }
+  stream = new MediaStream([
+    ...videoStream.getVideoTracks(),
+    ...(microphoneStream?.getAudioTracks() ?? []),
+  ])
+  const mimeType = [
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=vp8',
+    'video/webm',
+  ].find((type) => MediaRecorder.isTypeSupported(type))
   recorder = new MediaRecorder(stream, {
-    mimeType: 'video/webm',
+    ...(mimeType ? { mimeType } : {}),
+    audioBitsPerSecond: 128_000,
     videoBitsPerSecond: bitrateBps,
   })
   recorder.ondataavailable = (event) => {
@@ -311,7 +346,7 @@ function onMessage(event: MessageEvent): void {
     type?: string
   }
   if (message.type === 'camera:recordStart') {
-    startRecording(message.data ?? {})
+    void startRecording(message.data ?? {})
   } else if (message.type === 'camera:recordStop') {
     void stopRecording(message.data ?? {})
   } else if (message.type === 'camera:recordCancel') {

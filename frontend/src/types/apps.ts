@@ -26,6 +26,7 @@ export type PhoneAppId =
   | 'neon-drop'
   | 'citymarkt'
   | 'local-pages'
+  | 'fliptok'
 
 export type LaunchablePhoneAppId = PhoneAppId
 

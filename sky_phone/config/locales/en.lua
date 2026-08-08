@@ -1,5 +1,13 @@
 Locales["en"] = {
     CommandDescription = "Open your phone.",
+    FlipTokCommand = {
+        usage = "Usage: /{command} <@handle> [on|off]",
+        noPermission = "You do not have permission to manage FlipTok verification.",
+        notFound = "FlipTok profile @{handle} was not found.",
+        updated = "FlipTok @{handle} is now {state}.",
+        verified = "verified",
+        unverified = "unverified",
+    },
     DeviceErrors = {
         phone_slot_missing = "The used phone could not be identified. Make sure phones are not stacked.",
         phone_stacked = "Phones cannot be stacked.",
@@ -15,7 +23,7 @@ Locales["en"] = {
     },
     Nui = {
         Common = {
-            add = "Add", back = "Back", cancel = "Cancel", clear = "Clear", close = "Close", delete = "Delete", done = "Done", edit = "Edit", home = "Home", loading = "Loading", pause = "Pause",
+            add = "Add", back = "Back", cancel = "Cancel", clear = "Clear", close = "Close", delete = "Delete", done = "Done", edit = "Edit", home = "Home", loading = "Loading", pause = "Pause", use = "Use",
             phone = "Phone", phoneStatus = "Phone status", reset = "Reset",
             save = "Save", search = "Search", send = "Send", start = "Start", stop = "Stop",
         },
@@ -64,6 +72,28 @@ Locales["en"] = {
             },
         },
         Apps = {
+            fliptok = {
+                name = "FlipTok", loading = "Loading FlipTok", following = "Following", forYou = "For You", verified = "Verified account",
+                originalSound = "original sound", save = "Save", home = "Home", discover = "Discover", create = "Create", activity = "Activity", profile = "Profile",
+                emptyFeed = "No videos yet", emptyFeedBody = "Follow creators or post the first FlipTok.", searchPlaceholder = "Search creators and videos",
+                noActivity = "No activity yet", followers = "Followers", videos = "Videos", emptyBio = "No bio yet.", editProfile = "Edit profile",
+                newVideo = "New FlipTok", chooseVideo = "Choose a video", chooseVideoHint = "Select one from Gallery", changeVideo = "Change",
+                captionPlaceholder = "Write a caption...", location = "Add location", whoCanWatch = "Who can watch", public = "Everyone",
+                followersOnly = "Followers", private = "Only me", allowComments = "Allow comments", saveDraft = "Drafts", publishing = "Posting...", post = "Post",
+                draftSaved = "Draft saved.", published = "Your FlipTok is live.", linkCopied = "Video link copied.", reported = "Report submitted.", blocked = "Creator blocked.",
+                comments = "Comments", noComments = "No comments yet", addComment = "Add comment...", report = "Report video", reportReason = "Reason",
+                reportDetails = "Additional details (optional)", submitReport = "Submit report",
+                reportReasons = { spam = "Spam or misleading", harassment = "Harassment or bullying", dangerous = "Dangerous activity", illegal = "Illegal content", other = "Something else" },
+                block = "Block creator", follow = "Follow", unfollow = "Following", backToProfile = "Back", cancel = "Cancel",
+                sounds = "Sound", chooseSound = "Choose music", originalOnly = "Original sound only", noMusic = "No music tracks are configured.",
+                trimAndCover = "Trim & cover", trimStart = "Start", trimEnd = "End", coverFrame = "Cover", originalVolume = "Original sound", musicVolume = "Music",
+                moderation = "Moderation", reports = "Open reports", noReports = "No open reports", removeVideo = "Remove video", dismissReport = "Dismiss",
+                done = "Done", displayName = "Name", username = "Username", bio = "Bio", accountType = "Account type",
+                accountTypes = { person = "Person", business = "Business", organization = "Organization", media = "Media", event = "Event" },
+                activityKinds = { like = "liked your video", comment = "commented on your video", follow = "started following you", verified = "verification changed" },
+                notifications = { like = "{actor} liked your video.", comment = "{actor} commented on your video.", follow = "{actor} started following you.", verified = "Your FlipTok account is now verified.", default = "You have new FlipTok activity." },
+                errors = { invalid_video = "Check the video details.", invalid_media = "Choose a video from this phone.", invalid_comment = "Enter a valid comment.", comments_disabled = "Comments are disabled.", invalid_profile = "Check your profile details.", handle_taken = "This username is already taken.", video_not_found = "This video is unavailable.", blocked = "This account is blocked.", not_authorized = "You do not have moderation access.", report_not_found = "This report is no longer open.", rate_limited = "Too many actions. Try again shortly.", not_authenticated = "Sign in to iFruit first.", default = "FlipTok could not complete the request." },
+            },
             darkchat = {
                 name = "DarkChat", newMessage = "New DarkChat message from {sender}", privateNotification = "New DarkChat message",
                 signInBody = "DarkChat identities are linked to your private iFruit account.", signInHint = "Sign in through Settings to continue.",
@@ -314,7 +344,7 @@ Locales["en"] = {
             },
             camera = {
                 name = "Camera", flash = "Flash", flip = "Flip camera", landscape = "Switch to landscape",
-                portrait = "Switch to portrait", photo = "Photo", video = "Video",
+                portrait = "Switch to portrait", photo = "Photo", video = "Video", microphoneOn = "Microphone on", microphoneOff = "Microphone muted",
                 focusHelp = "Space for movement", returnHelp = "Space to return", uploading = "{count} uploading",
                 saving = "Saving video...", openGallery = "Open Gallery", takePhoto = "Take photo",
                 startRecording = "Start recording", stopRecording = "Stop recording", saved = "Saved to Gallery.",
@@ -323,6 +353,7 @@ Locales["en"] = {
                     cancelled = "Capture cancelled.", capture_failed = "Unable to capture the game view.",
                     invalid_media_type = "The uploaded media type is invalid.", invalid_upload = "The upload could not be verified.",
                     invalid_upload_token = "The upload session is no longer valid.", missing_config = "Camera uploads are not configured.",
+                    microphone_unavailable = "Allow microphone access or mute the microphone before recording.",
                     not_found = "The media item no longer exists.", owner_changed = "The active phone account changed during upload.",
                     operation_in_progress = "Another media operation is already in progress.",
                     rate_limited = "Too many media actions. Try again shortly.", request_failed = "The camera request failed.",

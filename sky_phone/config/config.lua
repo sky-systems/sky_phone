@@ -218,6 +218,18 @@ Config.LocalPages = {
     CityMarktSharesPerDay = 1,
 }
 
+Config.FlipTok = {
+    PageSize = 12,
+    CaptionMaxLength = 500,
+    CommentMaxLength = 300,
+    BioMaxLength = 160,
+    MaxVideoDurationMs = 300000,
+    MusicTracks = {},
+    VerifyCommand = "fliptokverify",
+    AdminGroups = { "admin" },
+    ReportAdminGroups = { "admin" },
+}
+
 Config.Calendar = {
     TitleMaxLength = 120,
     NoteMaxLength = 2000,

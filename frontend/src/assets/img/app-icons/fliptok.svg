@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="FlipTok">
+  <defs>
+    <linearGradient id="flip-bg" x1="18" y1="10" x2="112" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7471f2"/>
+      <stop offset="1" stop-color="#3532a8"/>
+    </linearGradient>
+    <linearGradient id="flip-card" x1="48" y1="30" x2="98" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e8e7ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="29" fill="url(#flip-bg)"/>
+  <rect x="23" y="25" width="55" height="76" rx="14" transform="rotate(-9 23 25)" fill="#ffffff" fill-opacity=".23" stroke="#ffffff" stroke-opacity=".46" stroke-width="3"/>
+  <rect x="46" y="23" width="61" height="82" rx="16" fill="url(#flip-card)"/>
+  <path d="M69 50.5c0-3 3.3-4.8 5.8-3.1l21 14c2.2 1.5 2.2 4.7 0 6.2l-21 14c-2.5 1.7-5.8-.1-5.8-3.1v-28Z" fill="#403db7"/>
+  <path d="M24 89c7 18 24 27 44 27 13 0 25-4 34-12" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  <path d="m94 101 11 1-2 11" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
