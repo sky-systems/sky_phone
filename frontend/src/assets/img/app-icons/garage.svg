@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Garage">
+  <defs>
+    <linearGradient id="garage-bg" x1="18" y1="8" x2="112" y2="122" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#62ddff"/>
+      <stop offset="0.5" stop-color="#287cff"/>
+      <stop offset="1" stop-color="#1643aa"/>
+    </linearGradient>
+    <linearGradient id="garage-car" x1="39" y1="53" x2="92" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/>
+      <stop offset="1" stop-color="#dbeaff"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="29" fill="url(#garage-bg)"/>
+  <path d="M25 56 64 29l39 27v44a5 5 0 0 1-5 5H30a5 5 0 0 1-5-5V56Z" fill="#fff" fill-opacity=".22" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M37 68h54v37H37V68Z" fill="#1759c8" fill-opacity=".72"/>
+  <path d="m45 82 5-13a6 6 0 0 1 6-4h17a6 6 0 0 1 6 4l5 13 5 5v9a4 4 0 0 1-4 4h-3a4 4 0 0 1-4-4H51a4 4 0 0 1-4 4h-3a4 4 0 0 1-4-4v-9l5-5Z" fill="url(#garage-car)"/>
+  <path d="M49 81h30l-4-10a3 3 0 0 0-3-2H56a3 3 0 0 0-3 2l-4 10Z" fill="#4f9cff"/>
+  <circle cx="50" cy="90" r="4" fill="#287cff"/>
+  <circle cx="78" cy="90" r="4" fill="#287cff"/>
+</svg>

@@ -3,6 +3,7 @@ import {
   Bomb,
   Blocks,
   Camera,
+  CarFront,
   CalendarDays,
   Clock3,
   Gamepad2,
@@ -48,6 +49,7 @@ import skyFlappyIcon from '@/assets/img/app-icons/sky-flappy.webp'
 import neonDropIcon from '@/assets/img/app-icons/neon-drop.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
 import bankingIcon from '@/assets/img/app-icons/banking.svg'
+import garageIcon from '@/assets/img/app-icons/garage.svg'
 import citymarktIcon from '@/assets/img/app-icons/citymarkt.webp'
 import localPagesIcon from '@/assets/img/app-icons/local-pages.webp'
 import type {
@@ -130,6 +132,20 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
   {
     category: 'utilities',
     component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/GarageApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 23,
+    icon: markRaw(CarFront),
+    iconClass: 'app-icon--garage',
+    iconImage: garageIcon,
+    id: 'garage',
+    labelKey: 'Apps.garage.name',
+    route: '/apps/garage',
+  },
+  {
+    category: 'utilities',
+    component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MapApp.vue')),
     ),
     dockOrder: null,
@@ -142,7 +158,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/map',
   },
   {
-    category: 'social',
+    category: 'utilities',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/BankingApp.vue')),
     ),
@@ -156,6 +172,7 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     route: '/apps/banking',
   },
   {
+    category: 'social',
     component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/MailApp.vue')),
     ),

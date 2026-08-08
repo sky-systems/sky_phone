@@ -10,6 +10,7 @@ export type PhoneAppId =
   | 'calendar'
   | 'weather'
   | 'banking'
+  | 'garage'
   | 'mail'
   | 'map'
   | 'notes'

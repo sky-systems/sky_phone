@@ -31,10 +31,15 @@ Keep each one explicit and isolated so disabling it does not create an implicit 
 - The phone intentionally uses Konsta UI's iOS liquid-glass styling. Any `backdrop-filter` or
   `-webkit-backdrop-filter` prohibition inherited from sibling-resource conventions does not apply
   anywhere in `sky_phone`; these effects are explicitly allowed here.
-- For every design implementation, prefer Konsta UI's native iOS components (for example Navbar,
-  Tabbar, Sheet, Dialog, List, Card, Button, and Glass) over custom equivalents. Preserve their
-  built-in iOS interaction, motion, active, and glass behavior so the phone feels native; add
-  scoped styling only where the product design requires it.
+- **Konsta UI is mandatory for every phone app UI.** Build app shells, navigation, forms, lists,
+  cards, actions, dialogs, sheets, feedback, and loading states from the installed `konsta/vue`
+  components whenever Konsta provides the interaction. Do not recreate an available Konsta
+  component with custom HTML/CSS. Custom markup is allowed only for product-specific content that
+  has no Konsta equivalent, must remain inside the Konsta app/page structure, and must preserve the
+  native iOS interaction, motion, active, accessibility, theme, and liquid-glass behavior.
+- A phone app implementation is incomplete if it bypasses Konsta UI without documenting why no
+  installed Konsta component fits. Scoped styling may extend Konsta for product identity and layout,
+  but must not replace its component state or interaction classes.
 - Before creating or substantially changing phone UI, read `docs/konsta-ui/README.md` and the
   linked project patterns. Treat the installed Konsta package and its Vue type declarations as the
   API source of truth for the locked version; do not guess props from examples for another version.
