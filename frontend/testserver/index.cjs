@@ -24,13 +24,115 @@ let mockBankBalance = 24787
 let mockCashBalance = 2350
 let nextBankTransactionId = 7
 const mockBankTransactions = [
-  { id: 1, kind: 'transfer_in', amount: 3200, label: 'Sofia Turner', reference: 'mock-1', createdAt: Date.now() - 45 * 60 * 1000 },
-  { id: 2, kind: 'transfer_out', amount: 680, label: 'Vincent Cole', reference: 'mock-2', createdAt: Date.now() - 5 * 60 * 60 * 1000 },
-  { id: 3, kind: 'deposit', amount: 1250, label: '', reference: 'mock-3', createdAt: Date.now() - 25 * 60 * 60 * 1000 },
-  { id: 4, kind: 'transfer_out', amount: 420, label: 'Maya Brooks', reference: 'mock-4', createdAt: Date.now() - 50 * 60 * 60 * 1000 },
-  { id: 5, kind: 'withdrawal', amount: 300, label: '', reference: 'mock-5', createdAt: Date.now() - 76 * 60 * 60 * 1000 },
-  { id: 6, kind: 'transfer_in', amount: 950, label: 'Noah Bennett', reference: 'mock-6', createdAt: Date.now() - 120 * 60 * 60 * 1000 },
+  {
+    id: 1,
+    kind: 'transfer_in',
+    amount: 3200,
+    label: 'Sofia Turner',
+    reference: 'mock-1',
+    createdAt: Date.now() - 45 * 60 * 1000,
+  },
+  {
+    id: 2,
+    kind: 'transfer_out',
+    amount: 680,
+    label: 'Vincent Cole',
+    reference: 'mock-2',
+    createdAt: Date.now() - 5 * 60 * 60 * 1000,
+  },
+  {
+    id: 3,
+    kind: 'deposit',
+    amount: 1250,
+    label: '',
+    reference: 'mock-3',
+    createdAt: Date.now() - 25 * 60 * 60 * 1000,
+  },
+  {
+    id: 4,
+    kind: 'transfer_out',
+    amount: 420,
+    label: 'Maya Brooks',
+    reference: 'mock-4',
+    createdAt: Date.now() - 50 * 60 * 60 * 1000,
+  },
+  {
+    id: 5,
+    kind: 'withdrawal',
+    amount: 300,
+    label: '',
+    reference: 'mock-5',
+    createdAt: Date.now() - 76 * 60 * 60 * 1000,
+  },
+  {
+    id: 6,
+    kind: 'transfer_in',
+    amount: 950,
+    label: 'Noah Bennett',
+    reference: 'mock-6',
+    createdAt: Date.now() - 120 * 60 * 60 * 1000,
+  },
 ]
+const mockGarageVehicles = [
+  {
+    id: 'vehicle-1',
+    plate: 'SKY 204',
+    vin: '1S9SKY204LS000001',
+    nickname: 'Midnight',
+    model: 'sultanrs',
+    name: 'Karin Sultan RS',
+    kind: 'car',
+    status: 'garaged',
+    location: 'Legion Square',
+    fuel: 82,
+    engine: 96,
+    body: 91,
+  },
+  {
+    id: 'vehicle-2',
+    plate: 'NOVA 77',
+    vin: '1S9NOVA77LS000002',
+    nickname: '',
+    model: 'comet6',
+    name: 'Pfister Comet S2',
+    kind: 'car',
+    status: 'out',
+    location: '',
+    fuel: 46,
+    engine: 88,
+    body: 73,
+  },
+  {
+    id: 'vehicle-3',
+    plate: 'SEA 911',
+    vin: '1S9SEA911LS000003',
+    nickname: 'Blue Current',
+    model: 'speeder',
+    name: 'Pegassi Speeder',
+    kind: 'boat',
+    status: 'garaged',
+    location: 'La Puerta Pier',
+    fuel: 67,
+    engine: 84,
+    body: 79,
+  },
+  {
+    id: 'vehicle-4',
+    plate: 'AIR 404',
+    vin: '1S9AIR404LS000004',
+    nickname: '',
+    model: 'maverick',
+    name: 'Buckingham Maverick',
+    kind: 'helicopter',
+    status: 'impounded',
+    location: 'Impound Heli',
+    fuel: 23,
+    engine: 58,
+    body: 44,
+  },
+]
+
+let mockGarageValet = null
 
 let contactSequence = 2
 const contacts = [
@@ -45,8 +147,13 @@ const contacts = [
 const attachmentAssets = {
   gif: new Set(['celebrate', 'hearts', 'party', 'thumbs_up', 'wow']),
   image: new Set([
-    'camera-1', 'camera-2', 'camera-3', 'city-lights', 'desert-road',
-    'ocean-air', 'sunset-drive',
+    'camera-1',
+    'camera-2',
+    'camera-3',
+    'city-lights',
+    'desert-road',
+    'ocean-air',
+    'sunset-drive',
   ]),
   video: new Set(['city-loop', 'ocean-loop', 'sunset-loop']),
 }
@@ -177,8 +284,26 @@ const darkChatProfile = {
   createdAt: '2026-08-01 21:20:00',
 }
 const darkChatPeers = [
-  { id: 2, darkId: 'dark:N0VA-41KQ', alias: 'Nova', originalAlias: 'Nova', avatarSeed: 142, activityVisible: true, isContact: true, blocked: false },
-  { id: 3, darkId: 'dark:ECH0-77LM', alias: 'Echo', originalAlias: 'Echo', avatarSeed: 311, activityVisible: false, isContact: true, blocked: false },
+  {
+    id: 2,
+    darkId: 'dark:N0VA-41KQ',
+    alias: 'Nova',
+    originalAlias: 'Nova',
+    avatarSeed: 142,
+    activityVisible: true,
+    isContact: true,
+    blocked: false,
+  },
+  {
+    id: 3,
+    darkId: 'dark:ECH0-77LM',
+    alias: 'Echo',
+    originalAlias: 'Echo',
+    avatarSeed: 311,
+    activityVisible: false,
+    isContact: true,
+    blocked: false,
+  },
 ]
 const darkChatConversations = [
   {
@@ -193,28 +318,51 @@ const darkChatConversations = [
 ]
 const darkChatMessages = [
   {
-    id: 'dc-message-00000000-0000-000000000001', conversationId: darkChatConversations[0].id,
-    direction: 'received', senderProfileId: 2, messageType: 'text', body: 'The east gate is clear. Are you close?',
-    reactions: {}, createdAt: '2026-08-06 22:42:00', readAt: '2026-08-06 22:43:00',
+    id: 'dc-message-00000000-0000-000000000001',
+    conversationId: darkChatConversations[0].id,
+    direction: 'received',
+    senderProfileId: 2,
+    messageType: 'text',
+    body: 'The east gate is clear. Are you close?',
+    reactions: {},
+    createdAt: '2026-08-06 22:42:00',
+    readAt: '2026-08-06 22:43:00',
   },
   {
-    id: 'dc-message-00000000-0000-000000000002', conversationId: darkChatConversations[0].id,
-    direction: 'sent', senderProfileId: 1, messageType: 'text', body: 'Two minutes. Keep this channel quiet. 🟣',
-    reactions: { 2: '👍' }, createdAt: '2026-08-06 22:43:00', readAt: '2026-08-06 22:43:30',
+    id: 'dc-message-00000000-0000-000000000002',
+    conversationId: darkChatConversations[0].id,
+    direction: 'sent',
+    senderProfileId: 1,
+    messageType: 'text',
+    body: 'Two minutes. Keep this channel quiet. 🟣',
+    reactions: { 2: '👍' },
+    createdAt: '2026-08-06 22:43:00',
+    readAt: '2026-08-06 22:43:30',
   },
   {
-    id: 'dc-message-00000000-0000-000000000003', conversationId: darkChatConversations[0].id,
-    direction: 'received', senderProfileId: 2, messageType: 'gif', body: '',
-    mediaPayload: 'https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif', reactions: {}, createdAt: '2026-08-06 22:44:00', readAt: null,
+    id: 'dc-message-00000000-0000-000000000003',
+    conversationId: darkChatConversations[0].id,
+    direction: 'received',
+    senderProfileId: 2,
+    messageType: 'gif',
+    body: '',
+    mediaPayload: 'https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif',
+    reactions: {},
+    createdAt: '2026-08-06 22:44:00',
+    readAt: null,
   },
 ]
 
 function darkChatBootstrap() {
   return {
     profile: darkChatProfile,
-    contacts: darkChatPeers.filter((peer) => peer.isContact).map((peer) => ({ ...peer, createdAt: '2026-08-03 22:12:00' })),
+    contacts: darkChatPeers
+      .filter((peer) => peer.isContact)
+      .map((peer) => ({ ...peer, createdAt: '2026-08-03 22:12:00' })),
     conversations: darkChatConversations.map((conversation) => {
-      const thread = darkChatMessages.filter((message) => message.conversationId === conversation.id)
+      const thread = darkChatMessages.filter(
+        (message) => message.conversationId === conversation.id,
+      )
       const last = thread.at(-1)
       return {
         id: conversation.id,
@@ -224,7 +372,9 @@ function darkChatBootstrap() {
         lastMessage: last?.body ?? '',
         lastMessageType: last?.messageType ?? 'system',
         lastMessageAt: last?.createdAt ?? conversation.createdAt,
-        unread: thread.filter((message) => message.direction === 'received' && !message.readAt).length,
+        unread: thread.filter(
+          (message) => message.direction === 'received' && !message.readAt,
+        ).length,
       }
     }),
   }
@@ -904,18 +1054,74 @@ app.post('/api/:endpoint', (request, response) => {
     response.json({ success: true, data: bankingOverview() })
     return
   }
-    if (endpoint === 'banking:transfer') {
+  if (endpoint === 'garage:vehicles') {
+    response.json({
+      success: true,
+      data: {
+        system: 'jg',
+        valet: {
+          account: 'bank',
+          enabled: true,
+          price: 750,
+          vehicleTypes: {
+            bike: true,
+            boat: false,
+            car: true,
+            helicopter: false,
+            plane: false,
+          },
+        },
+        vehicles: mockGarageVehicles,
+      },
+    })
+    return
+  }
+  if (endpoint === 'garage:valet-state') {
+    response.json({ success: true, data: mockGarageValet })
+    return
+  }
+  if (endpoint === 'garage:valet-request') {
+    const vehicle = mockGarageVehicles.find(
+      (item) => item.plate === request.body.plate,
+    )
+    if (!vehicle || vehicle.status !== 'garaged') {
+      response.json({ success: false, error: 'vehicle_not_garaged' })
+      return
+    }
+    if (!['car', 'bike'].includes(vehicle.kind)) {
+      response.json({ success: false, error: 'valet_vehicle_type' })
+      return
+    }
+    mockGarageValet = {
+      canCancel: true,
+      cost: 750,
+      distance: 1240,
+      etaSeconds: 62,
+      orderId: 'mock-valet-1',
+      plate: vehicle.plate,
+      status: 'en_route',
+      vehicleName: vehicle.nickname || vehicle.name,
+    }
+    response.json({ success: true, data: mockGarageValet })
+    return
+  }
+  if (endpoint === 'garage:valet-cancel') {
+    mockGarageValet = null
+    response.json({ success: true, data: null })
+    return
+  }
+  if (endpoint === 'banking:transfer') {
     const amount = Number(request.body.amount)
     if (!Number.isSafeInteger(amount) || amount <= 0) {
       response.json({ success: false, error: 'invalid_request' })
       return
     }
-      if (mockBankBalance < amount) {
-        response.json({ success: false, error: 'insufficient_funds' })
-        return
-      }
-      const kind = 'transfer_out'
-      mockBankBalance -= amount
+    if (mockBankBalance < amount) {
+      response.json({ success: false, error: 'insufficient_funds' })
+      return
+    }
+    const kind = 'transfer_out'
+    mockBankBalance -= amount
     mockBankTransactions.unshift({
       amount,
       createdAt: Date.now(),
@@ -952,21 +1158,27 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'darkchat:update-profile') {
-    darkChatProfile.alias = String(request.body.alias ?? darkChatProfile.alias).trim()
-    darkChatProfile.notificationMode = request.body.notificationMode ?? 'private'
+    darkChatProfile.alias = String(
+      request.body.alias ?? darkChatProfile.alias,
+    ).trim()
+    darkChatProfile.notificationMode =
+      request.body.notificationMode ?? 'private'
     darkChatProfile.activityVisible = Boolean(request.body.activityVisible)
     response.json({ success: true, data: darkChatProfile })
     return
   }
   if (endpoint === 'darkchat:start') {
     const identifier = String(request.body.identifier ?? '').toUpperCase()
-    const peer = darkChatPeers.find((item) => item.darkId.toUpperCase() === identifier)
-      ?? (identifier === 'DC-ECH0-77LM' ? darkChatPeers[1] : null)
+    const peer =
+      darkChatPeers.find((item) => item.darkId.toUpperCase() === identifier) ??
+      (identifier === 'DC-ECH0-77LM' ? darkChatPeers[1] : null)
     if (!peer) {
       response.json({ success: false, error: 'profile_not_found' })
       return
     }
-    let conversation = darkChatConversations.find((item) => item.peer.id === peer.id)
+    let conversation = darkChatConversations.find(
+      (item) => item.peer.id === peer.id,
+    )
     if (!conversation) {
       conversation = {
         id: `dc-conversation-${Date.now()}`,
@@ -983,22 +1195,38 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'darkchat:thread') {
-    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+    const conversation = darkChatConversations.find(
+      (item) => item.id === request.body.conversationId,
+    )
     if (!conversation) {
       response.json({ success: false, error: 'conversation_not_found' })
       return
     }
-    const thread = darkChatMessages.filter((message) => message.conversationId === conversation.id)
+    const thread = darkChatMessages.filter(
+      (message) => message.conversationId === conversation.id,
+    )
     for (const message of thread) {
-      if (message.direction === 'received') message.readAt = message.readAt ?? new Date().toISOString()
+      if (message.direction === 'received')
+        message.readAt = message.readAt ?? new Date().toISOString()
     }
-    response.json({ success: true, data: { conversation, messages: thread.map(({ mediaSecret, ...message }) => message) } })
+    response.json({
+      success: true,
+      data: {
+        conversation,
+        messages: thread.map(({ mediaSecret, ...message }) => message),
+      },
+    })
     return
   }
   if (endpoint === 'darkchat:send') {
-    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+    const conversation = darkChatConversations.find(
+      (item) => item.id === request.body.conversationId,
+    )
     if (!conversation || conversation.peer.blocked) {
-      response.json({ success: false, error: conversation ? 'blocked' : 'conversation_not_found' })
+      response.json({
+        success: false,
+        error: conversation ? 'blocked' : 'conversation_not_found',
+      })
       return
     }
     const messageType = request.body.messageType ?? 'text'
@@ -1007,7 +1235,9 @@ app.post('/api/:endpoint', (request, response) => {
       response.json({ success: false, error: 'invalid_message' })
       return
     }
-    const reply = darkChatMessages.find((message) => message.id === request.body.replyToId)
+    const reply = darkChatMessages.find(
+      (message) => message.id === request.body.replyToId,
+    )
     const message = {
       id: `dc-message-${Date.now()}`,
       conversationId: conversation.id,
@@ -1015,8 +1245,10 @@ app.post('/api/:endpoint', (request, response) => {
       senderProfileId: darkChatProfile.id,
       messageType,
       body,
-      mediaPayload: messageType === 'gif' ? request.body.mediaPayload : undefined,
-      mediaSecret: messageType === 'voice' ? request.body.mediaPayload : undefined,
+      mediaPayload:
+        messageType === 'gif' ? request.body.mediaPayload : undefined,
+      mediaSecret:
+        messageType === 'voice' ? request.body.mediaPayload : undefined,
       mediaMime: request.body.mediaMime,
       mediaDurationMs: request.body.mediaDurationMs,
       mediaWaveform: request.body.mediaWaveform,
@@ -1032,25 +1264,42 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'darkchat:media') {
-    const message = darkChatMessages.find((item) => item.id === request.body.messageId && item.messageType === 'voice')
-    response.json(message?.mediaSecret
-      ? { success: true, data: { mime: message.mediaMime, payload: message.mediaSecret } }
-      : { success: false, error: 'message_not_found' })
+    const message = darkChatMessages.find(
+      (item) =>
+        item.id === request.body.messageId && item.messageType === 'voice',
+    )
+    response.json(
+      message?.mediaSecret
+        ? {
+            success: true,
+            data: { mime: message.mediaMime, payload: message.mediaSecret },
+          }
+        : { success: false, error: 'message_not_found' },
+    )
     return
   }
   if (endpoint === 'darkchat:react') {
-    const message = darkChatMessages.find((item) => item.id === request.body.messageId)
+    const message = darkChatMessages.find(
+      (item) => item.id === request.body.messageId,
+    )
     if (message) {
       const current = message.reactions[String(darkChatProfile.id)]
-      if (current === request.body.reaction) delete message.reactions[String(darkChatProfile.id)]
+      if (current === request.body.reaction)
+        delete message.reactions[String(darkChatProfile.id)]
       else message.reactions[String(darkChatProfile.id)] = request.body.reaction
     }
-    response.json({ success: Boolean(message), error: message ? undefined : 'message_not_found' })
+    response.json({
+      success: Boolean(message),
+      error: message ? undefined : 'message_not_found',
+    })
     return
   }
   if (endpoint === 'darkchat:message-action') {
-    const index = darkChatMessages.findIndex((item) => item.id === request.body.messageId)
-    if (index >= 0 && request.body.action === 'delete_me') darkChatMessages.splice(index, 1)
+    const index = darkChatMessages.findIndex(
+      (item) => item.id === request.body.messageId,
+    )
+    if (index >= 0 && request.body.action === 'delete_me')
+      darkChatMessages.splice(index, 1)
     else if (index >= 0 && request.body.action === 'delete_all') {
       darkChatMessages[index].messageType = 'system'
       darkChatMessages[index].body = 'message_deleted'
@@ -1060,38 +1309,59 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'darkchat:update-conversation') {
-    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+    const conversation = darkChatConversations.find(
+      (item) => item.id === request.body.conversationId,
+    )
     if (conversation) {
-      conversation.disappearingSeconds = Number(request.body.disappearingSeconds)
-      conversation.notificationsEnabled = Boolean(request.body.notificationsEnabled)
+      conversation.disappearingSeconds = Number(
+        request.body.disappearingSeconds,
+      )
+      conversation.notificationsEnabled = Boolean(
+        request.body.notificationsEnabled,
+      )
       conversation.readReceipts = Boolean(request.body.readReceipts)
       darkChatMessages.push({
-        id: `dc-system-${Date.now()}`, conversationId: conversation.id, direction: 'received',
-        messageType: 'system', body: `timer_changed:${conversation.disappearingSeconds}`,
-        reactions: {}, createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        id: `dc-system-${Date.now()}`,
+        conversationId: conversation.id,
+        direction: 'received',
+        messageType: 'system',
+        body: `timer_changed:${conversation.disappearingSeconds}`,
+        reactions: {},
+        createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
       })
     }
     response.json({ success: Boolean(conversation) })
     return
   }
-  if (endpoint === 'darkchat:add-contact' || endpoint === 'darkchat:remove-contact') {
-    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+  if (
+    endpoint === 'darkchat:add-contact' ||
+    endpoint === 'darkchat:remove-contact'
+  ) {
+    const conversation = darkChatConversations.find(
+      (item) => item.id === request.body.conversationId,
+    )
     if (conversation) {
       conversation.peer.isContact = endpoint === 'darkchat:add-contact'
-      if (request.body.alias) conversation.peer.alias = String(request.body.alias)
+      if (request.body.alias)
+        conversation.peer.alias = String(request.body.alias)
     }
     response.json({ success: Boolean(conversation) })
     return
   }
   if (endpoint === 'darkchat:block') {
-    const conversation = darkChatConversations.find((item) => item.id === request.body.conversationId)
+    const conversation = darkChatConversations.find(
+      (item) => item.id === request.body.conversationId,
+    )
     if (conversation) conversation.peer.blocked = Boolean(request.body.blocked)
     response.json({ success: Boolean(conversation) })
     return
   }
   if (endpoint === 'darkchat:clear') {
     for (let index = darkChatMessages.length - 1; index >= 0; index -= 1) {
-      if (darkChatMessages[index].conversationId === request.body.conversationId) darkChatMessages.splice(index, 1)
+      if (
+        darkChatMessages[index].conversationId === request.body.conversationId
+      )
+        darkChatMessages.splice(index, 1)
     }
     response.json({ success: true })
     return
@@ -1127,14 +1397,16 @@ app.post('/api/:endpoint', (request, response) => {
   if (endpoint === 'messages:gifs') {
     const offset = Math.max(0, Number(request.body.offset ?? 0))
     const pageSize = 6
-    const results = gifMocks.slice(offset, offset + pageSize).map(([id, title]) => ({
-      height: 200,
-      id,
-      previewUrl: `https://media.giphy.com/media/${id}/200w.gif`,
-      title,
-      url: `https://media.giphy.com/media/${id}/giphy.gif`,
-      width: 200,
-    }))
+    const results = gifMocks
+      .slice(offset, offset + pageSize)
+      .map(([id, title]) => ({
+        height: 200,
+        id,
+        previewUrl: `https://media.giphy.com/media/${id}/200w.gif`,
+        title,
+        url: `https://media.giphy.com/media/${id}/giphy.gif`,
+        width: 200,
+      }))
     response.json({
       success: true,
       data: {
@@ -1174,7 +1446,8 @@ app.post('/api/:endpoint', (request, response) => {
         message.sender_number === number || message.recipient_number === number,
     )
     for (const message of thread) {
-      if (message.direction === 'received') message.read_at = message.read_at ?? '2026-08-06 13:06:00'
+      if (message.direction === 'received')
+        message.read_at = message.read_at ?? '2026-08-06 13:06:00'
     }
     response.json({
       success: true,
@@ -1231,10 +1504,9 @@ app.post('/api/:endpoint', (request, response) => {
       created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       direction: 'sent',
       id: `sms-${Date.now()}`,
-      media_duration_ms:
-        ['voice', 'video'].includes(messageType)
-          ? request.body.mediaDurationMs ?? null
-          : null,
+      media_duration_ms: ['voice', 'video'].includes(messageType)
+        ? (request.body.mediaDurationMs ?? null)
+        : null,
       media_mime:
         messageType === 'voice'
           ? request.body.mediaMime
@@ -1296,7 +1568,10 @@ app.post('/api/:endpoint', (request, response) => {
     if (contact) {
       contact.name = name
       contact.phone_number = phoneNumber
-      contact.updated_at = new Date().toISOString().slice(0, 19).replace('T', ' ')
+      contact.updated_at = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace('T', ' ')
     } else {
       const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
       contact = {
