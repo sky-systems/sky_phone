@@ -25,6 +25,7 @@ client_scripts {
     'source/bridge/client/framework.lua',
     'source/bridge/client/callbacks.lua',
     'source/client/camera.lua',
+    'source/client/garage.lua',
     'source/client/main.lua',
 }
 
@@ -49,6 +50,7 @@ server_scripts {
     'source/server/notes.lua',
     'source/server/mail.lua',
     'source/server/banking.lua',
+    'source/server/garage.lua',
     'source/server/marketplace.lua',
     'source/server/pages.lua',
     'source/server/calendar.lua',
