@@ -32,6 +32,7 @@ import { useDarkChatStore } from '@/stores/darkchat'
 import { useMediaStore } from '@/stores/media'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAppStoreStore } from '@/stores/app-store'
+import { useWidgetsStore } from '@/stores/widgets'
 import { isPhoneAppId } from '@/config/apps'
 import { useNotesStore } from '@/stores/notes'
 import { useWeatherStore } from '@/stores/weather'
@@ -130,6 +131,7 @@ const darkchat = useDarkChatStore()
 const media = useMediaStore()
 const marketplace = useMarketplaceStore()
 const appStore = useAppStoreStore()
+const widgets = useWidgetsStore()
 const notes = useNotesStore()
 const weather = useWeatherStore()
 const notifications = useNotificationsStore()
@@ -145,9 +147,10 @@ const controlCenterOpened = ref(false)
 const simPicker = ref<SimPickerPayload | null>(null)
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
 const viewportScale = ref(getViewportScale())
-const phoneBaseZoom = computed(() =>
-  viewportScale.value *
-  (isDevelopment ? DEVELOPMENT_PHONE_SCALE : PHONE_BASE_SCALE),
+const phoneBaseZoom = computed(
+  () =>
+    viewportScale.value *
+    (isDevelopment ? DEVELOPMENT_PHONE_SCALE : PHONE_BASE_SCALE),
 )
 const phoneResolutionStyle = computed<CSSProperties>(() => ({
   '--phone-edge-gap': `${24 * viewportScale.value}px`,
@@ -181,6 +184,7 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
   appStore.hydrate(payload.device?.data.apps?.payload)
+  widgets.hydrate(payload.device?.data.widgets?.payload)
   void mail.bootstrap(payload.account?.email ?? '')
   if (payload.account?.email) void marketplace.loadCounts()
   else marketplace.setCounts({ active: 0, unread: 0 })
