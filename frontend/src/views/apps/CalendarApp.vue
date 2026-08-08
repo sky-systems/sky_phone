@@ -17,6 +17,7 @@ import {
   UserRound,
   X,
 } from 'lucide-vue-next'
+import { kFab } from 'konsta/vue'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 
 import { useAccountStore } from '@/stores/account'
@@ -77,6 +78,11 @@ const hourOptions = Array.from({ length: 24 }, (_, index) =>
 const minuteOptions = Array.from({ length: 12 }, (_, index) =>
   String(index * 5).padStart(2, '0'),
 )
+const cornerButtonColors = {
+  bgIos: 'bg-ios-light-glass/75 dark:bg-ios-dark-glass/75',
+  activeBgIos: 'active:bg-white/90 dark:active:bg-white/20',
+  textIos: 'text-black/80 dark:text-white/80',
+}
 const viewModes: Array<{
   icon: typeof LayoutGrid
   id: CalendarViewMode
@@ -444,45 +450,60 @@ onMounted(async () => {
         class="calendar__toolbar"
         :class="{ 'calendar__toolbar--year': yearOverviewOpen }"
       >
-        <button
+        <k-fab
           v-if="!yearOverviewOpen"
-          class="calendar__year-button"
+          component="button"
           type="button"
+          :text="String(visibleYear)"
+          text-position="after"
+          :colors="cornerButtonColors"
           :aria-label="String(visibleYear)"
           @click="openYearOverview"
         >
-          <ChevronLeft :size="22" />
-          <span>{{ visibleYear }}</span>
-        </button>
-        <div class="calendar__toolbar-pill">
-          <button
+          <template #icon>
+            <ChevronLeft :size="22" />
+          </template>
+        </k-fab>
+        <div class="calendar__toolbar-actions">
+          <k-fab
             v-if="!yearOverviewOpen"
-            :class="{ active: viewMenuOpen }"
+            component="button"
+            :colors="cornerButtonColors"
             :aria-label="phone.t(`Apps.calendar.views.${viewMode}`)"
             type="button"
             @click="viewMenuOpen = !viewMenuOpen"
           >
-            <component
-              :is="viewModes.find((mode) => mode.id === viewMode)?.icon"
-              :size="19"
-            />
-          </button>
-          <button
+            <template #icon>
+              <component
+                :is="viewModes.find((mode) => mode.id === viewMode)?.icon"
+                :size="19"
+              />
+            </template>
+          </k-fab>
+          <k-fab
+            component="button"
+            :colors="cornerButtonColors"
             :aria-label="phone.t('Common.search')"
             type="button"
             @click="toggleSearch"
           >
-            <X v-if="searchOpen" :size="19" />
-            <Search v-else :size="19" />
-          </button>
-          <button
+            <template #icon>
+              <X v-if="searchOpen" :size="19" />
+              <Search v-else :size="19" />
+            </template>
+          </k-fab>
+          <k-fab
             v-if="isAuthenticated"
+            component="button"
+            :colors="cornerButtonColors"
             :aria-label="phone.t('Apps.calendar.newEvent')"
             type="button"
             @click="openCreate"
           >
-            <Plus :size="22" />
-          </button>
+            <template #icon>
+              <Plus :size="22" />
+            </template>
+          </k-fab>
         </div>
 
         <Transition name="calendar-popover">
@@ -703,9 +724,13 @@ onMounted(async () => {
       </div>
 
       <footer v-if="isAuthenticated" class="calendar__footer">
-        <button class="calendar__today-button" type="button" @click="goToday">
-          {{ phone.t('Apps.calendar.today') }}
-        </button>
+        <k-fab
+          component="button"
+          type="button"
+          :colors="cornerButtonColors"
+          :text="phone.t('Apps.calendar.today')"
+          @click="goToday"
+        />
       </footer>
     </template>
 
@@ -916,6 +941,7 @@ onMounted(async () => {
 
 <style scoped>
 .calendar {
+  --color-primary: transparent;
   --accent: #ff3b30;
   --bg: #000;
   --elevated: #1c1c1e;
@@ -949,7 +975,7 @@ onMounted(async () => {
   --muted: #6e6e73;
 }
 
-.calendar button,
+.calendar button:not(.k-fab),
 .calendar input,
 .calendar textarea {
   border: 0;
@@ -957,7 +983,7 @@ onMounted(async () => {
   font: inherit;
 }
 
-.calendar button {
+.calendar button:not(.k-fab) {
   cursor: pointer;
 }
 
@@ -972,49 +998,11 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.calendar__year-button,
-.calendar__toolbar-pill,
-.calendar__today-button {
-  border: 1px solid var(--line) !important;
-  border-radius: 25px;
-  background: var(--glass);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 16%),
-    0 6px 20px rgb(0 0 0 / 20%);
-  backdrop-filter: blur(22px) saturate(180%);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-}
-
-.calendar__year-button {
-  height: 46px;
-  padding: 0 18px 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--label) !important;
-  font-size: 18px !important;
-  font-weight: 680 !important;
-}
-
-.calendar__toolbar-pill {
-  height: 46px;
+.calendar__toolbar-actions {
   margin-left: auto;
-  padding: 0 4px;
   display: flex;
   align-items: center;
-}
-
-.calendar__toolbar-pill button {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  background: transparent;
-}
-
-.calendar__toolbar-pill button.active {
-  color: var(--accent);
+  gap: 8px;
 }
 
 .calendar__view-menu {
@@ -1348,16 +1336,6 @@ onMounted(async () => {
   left: 14px;
   display: flex;
   align-items: center;
-  pointer-events: none;
-}
-
-.calendar__today-button {
-  height: 46px;
-  padding: 0 20px;
-  color: var(--label) !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  pointer-events: auto;
 }
 
 .calendar__list-view {
