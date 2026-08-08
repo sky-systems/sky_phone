@@ -27,6 +27,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   dragcancel: []
   dragend: [event: PointerEvent]
+  dragmove: [event: PointerEvent]
   dragstart: [event: PointerEvent]
   edit: []
   remove: []
@@ -41,10 +42,13 @@ const iconFailed = ref(false)
 const isDragging = ref(false)
 const calendarToday = ref(new Date())
 const dragOffset = ref({ x: 0, y: 0 })
+let dragStartPage = 0
+let dragPageWidth = 0
 const dragStyle = computed(() =>
   isDragging.value
     ? {
-        transform: `translate(${dragOffset.value.x}px, ${dragOffset.value.y}px)`,
+        transform: `translateX(${(phone.currentPage - dragStartPage) * dragPageWidth}px)`,
+        translate: `${dragOffset.value.x}px ${dragOffset.value.y}px`,
       }
     : undefined,
 )
@@ -132,6 +136,7 @@ function onPointerMove(event: PointerEvent): void {
       x: event.clientX - pointerStart.x,
       y: event.clientY - pointerStart.y,
     }
+    emit('dragmove', event)
     return
   }
   if (
@@ -143,6 +148,11 @@ function onPointerMove(event: PointerEvent): void {
 }
 
 function beginPointerDrag(event: PointerEvent): void {
+  dragStartPage = phone.currentPage
+  dragPageWidth =
+    (event.target as HTMLElement)
+      .closest<HTMLElement>('.springboard-page')
+      ?.getBoundingClientRect().width ?? 0
   isDragging.value = true
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp)
