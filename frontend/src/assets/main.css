@@ -1936,7 +1936,9 @@ button {
   display: flex;
   touch-action: pan-y;
   transform: translateX(calc(var(--springboard-offset) + var(--drag-offset)));
-  transition: transform 0.46s cubic-bezier(0.22, 0.9, 0.24, 1);
+  transition: transform var(--springboard-page-duration)
+    var(--springboard-page-easing);
+  will-change: transform;
 }
 .springboard--dragging .springboard-track {
   transition: none;
@@ -1948,6 +1950,12 @@ button {
 }
 .springboard-page--apps {
   padding-top: 82px;
+  overflow: hidden;
+}
+.springboard--widget-dragging .springboard-page--apps,
+.springboard--widget-dragging .springboard-page--widgets,
+.springboard--widget-dragging .springboard-widget-page-scroll {
+  overflow: visible;
 }
 .app-grid {
   display: grid;
@@ -1979,6 +1987,8 @@ button {
 .app-icon-item--dragging {
   z-index: 20;
   opacity: 0.35;
+  transition: transform var(--springboard-page-duration)
+    var(--springboard-page-easing);
 }
 .app-icon-remove {
   position: absolute;
@@ -2006,11 +2016,12 @@ button {
   border: 1px solid #ffffff73;
   box-shadow: 0 1px 4px #0009;
 }
-.app-icon-item--editing:not(.app-icon-item--dragging) {
+.app-icon-item--editing:not(.app-icon-item--dragging) .app-icon-button {
   animation: app-icon-wobble 0.15s ease-in-out infinite alternate;
   transform-origin: 50% 45%;
 }
-.app-icon-item--editing:nth-child(even):not(.app-icon-item--dragging) {
+.app-icon-item--editing:nth-child(even):not(.app-icon-item--dragging)
+  .app-icon-button {
   animation-direction: alternate-reverse;
   animation-delay: -0.075s;
 }
@@ -2187,8 +2198,9 @@ button {
   right: 0;
   height: 14px;
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 5px;
 }
 .page-indicator button {
   width: 6px;
@@ -6139,4 +6151,128 @@ button {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Widget-aware iOS springboard layout */
+.springboard {
+  --springboard-page-duration: 0.5s;
+  --springboard-page-easing: cubic-bezier(0.32, 0.72, 0, 1);
+  --springboard-grid-row: 80px;
+  --springboard-grid-row-gap: 12px;
+  --springboard-grid-column-gap: 10px;
+}
+.springboard-page--widgets {
+  padding: 61px 22px 25px;
+  overflow: hidden;
+}
+.springboard-widget-page-scroll {
+  height: 100%;
+  padding: 21px 0 42px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  touch-action: pan-y;
+}
+.springboard-widget-page-scroll::-webkit-scrollbar {
+  display: none;
+}
+.app-grid {
+  grid-template-rows: repeat(5, var(--springboard-grid-row));
+  gap: var(--springboard-grid-row-gap) var(--springboard-grid-column-gap);
+}
+.app-grid-slot {
+  min-height: var(--springboard-grid-row);
+}
+.app-icon-button {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.app-icon-label {
+  min-height: 15px;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: -0.15px;
+  line-height: 15px;
+  text-align: center;
+}
+.springboard-edit-add {
+  position: absolute;
+  z-index: 12;
+  top: 45px;
+  left: 18px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #ffffff38;
+  border-radius: 50%;
+  color: white;
+  text-shadow: 0 1px 3px #000a;
+  cursor: pointer;
+}
+.page-indicator--without-dock {
+  bottom: 25px;
+}
+.app-reflow-move {
+  z-index: 1;
+  transition: transform 0.58s cubic-bezier(0.2, 0.82, 0.2, 1);
+  will-change: transform;
+}
+
+.springboard-page-add {
+  display: grid;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  padding: 0 !important;
+  place-items: center;
+  border: 0.5px solid rgb(255 255 255 / 38%) !important;
+  border-radius: 50% !important;
+  color: #fff;
+  background: rgb(255 255 255 / 18%) !important;
+  box-shadow: 0 1px 7px rgb(0 0 0 / 18%);
+}
+
+.springboard-page-delete {
+  display: grid;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  padding: 0 !important;
+  place-items: center;
+  border: 0.5px solid rgb(255 255 255 / 30%) !important;
+  border-radius: 50% !important;
+  color: #ff453a;
+  background: rgb(28 28 30 / 48%) !important;
+  box-shadow: 0 1px 7px rgb(0 0 0 / 18%);
+}
+.app-library-group--removed {
+  border-color: #ffffff30;
+}
+.app-library-restore-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.app-library-restore-button,
+.app-library-row-restore {
+  display: grid;
+  width: 25px;
+  min-width: 25px;
+  height: 25px;
+  min-height: 25px;
+  padding: 0;
+  place-items: center;
+}
+.app-library-restore-button {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  z-index: 3;
+}
+.app-library-row-restore {
+  margin-left: auto;
 }
