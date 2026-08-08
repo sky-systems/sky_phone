@@ -7,6 +7,15 @@ local sessions = {}
 local auth_attempts = {}
 local operation_attempts = {}
 local max_device_data_bytes = 100000
+local passcode_pepper = GetConvar(Config.Security.PasscodePepperConvar, "")
+if passcode_pepper == "" then
+    Bridge.Debug(
+        "warn",
+        "[sky_phone] Passcode pepper convar '%s' is empty; configure it before production use.",
+        Config.Security.PasscodePepperConvar,
+        { always = true }
+    )
+end
 local allowed_device_namespaces = {
     settings = true,
     notifications = true,
@@ -234,6 +243,98 @@ local function load_device_data(imei)
     return data
 end
 
+local function load_device_security(imei)
+    local rows = Bridge.Database.Query([[
+        SELECT `passcode_length`, `failed_attempts`, `locked_until`
+        FROM `sky_phone_device_security`
+        WHERE `device_imei` = ?
+        LIMIT 1
+    ]], { imei })
+    return rows[1]
+end
+
+local function security_status(imei)
+    local security = load_device_security(imei)
+    return {
+        enabled = security ~= nil,
+        length = security and tonumber(security.passcode_length) or nil,
+        lockedUntil = security and tonumber(security.locked_until) or 0,
+    }
+end
+
+local function valid_passcode(value)
+    return type(value) == "string"
+        and (#value == 4 or #value == 6)
+        and value:match("^%d+$") ~= nil
+end
+
+local function passcode_matches(imei, passcode)
+    local rows = Bridge.Database.Query([[
+        SELECT 1 AS `matches`
+        FROM `sky_phone_device_security`
+        WHERE `device_imei` = ?
+            AND `passcode_hash` = UNHEX(SHA2(CONCAT(?, `passcode_salt`, ?), 256))
+        LIMIT 1
+    ]], { imei, passcode_pepper, passcode })
+    return rows[1] ~= nil
+end
+
+local function verify_passcode(session, passcode)
+    if not valid_passcode(passcode) then
+        return false, { success = false, error = "invalid_passcode" }
+    end
+
+    local security = load_device_security(session.imei)
+    if not security then
+        return false, { success = false, error = "passcode_not_set" }
+    end
+
+    local now = os.time()
+    local locked_until = tonumber(security.locked_until) or 0
+    if locked_until > now then
+        return false, {
+            success = false,
+            error = "passcode_locked",
+            data = { retryAfter = locked_until - now },
+        }
+    end
+
+    if passcode_matches(session.imei, passcode) then
+        Bridge.Database.Query([[
+            UPDATE `sky_phone_device_security`
+            SET `failed_attempts` = 0, `locked_until` = 0
+            WHERE `device_imei` = ?
+        ]], { session.imei })
+        return true
+    end
+
+    local failed_attempts = (tonumber(security.failed_attempts) or 0) + 1
+    if failed_attempts >= Config.Security.MaximumAttempts then
+        local next_unlock = now + Config.Security.LockSeconds
+        Bridge.Database.Query([[
+            UPDATE `sky_phone_device_security`
+            SET `failed_attempts` = 0, `locked_until` = ?
+            WHERE `device_imei` = ?
+        ]], { next_unlock, session.imei })
+        return false, {
+            success = false,
+            error = "passcode_locked",
+            data = { retryAfter = Config.Security.LockSeconds },
+        }
+    end
+
+    Bridge.Database.Query([[
+        UPDATE `sky_phone_device_security`
+        SET `failed_attempts` = ?
+        WHERE `device_imei` = ?
+    ]], { failed_attempts, session.imei })
+    return false, {
+        success = false,
+        error = "invalid_passcode",
+        data = { attemptsRemaining = Config.Security.MaximumAttempts - failed_attempts },
+    }
+end
+
 local function account_devices(account_id, current_imei)
     local rows = Bridge.Database.Query([[
         SELECT `imei`, `device_name`, `created_at`, `updated_at`
@@ -248,7 +349,7 @@ local function account_devices(account_id, current_imei)
 end
 
 local function bootstrap(source)
-    local session, error_response = SkyPhone.RequireSession(source)
+    local session, error_response = SkyPhone.RequireDeviceSession(source)
     if not session then
         return nil, error_response
     end
@@ -260,6 +361,7 @@ local function bootstrap(source)
 
     return {
         token = session.token,
+        security = security_status(device.imei),
         device = {
             imei = device.imei,
             name = device.device_name,
@@ -417,7 +519,7 @@ local function authenticate(source, data, registering)
     return link_account(source, accounts[1])
 end
 
-function SkyPhone.RequireSession(source)
+function SkyPhone.RequireDeviceSession(source)
     local session = sessions[source]
     if not session then
         return nil, { success = false, error = "device_not_open" }
@@ -430,6 +532,17 @@ function SkyPhone.RequireSession(source)
         return nil, { success = false, error = "device_not_owned" }
     end
     session.slot = matches[1].slot
+    return session
+end
+
+function SkyPhone.RequireSession(source)
+    local session, error_response = SkyPhone.RequireDeviceSession(source)
+    if not session then
+        return nil, error_response
+    end
+    if not session.unlocked then
+        return nil, { success = false, error = "device_locked" }
+    end
     return session
 end
 
@@ -565,10 +678,12 @@ local function open_phone(source, used_item)
         return false
     end
 
+    local security = load_device_security(imei)
     sessions[source] = {
         imei = imei,
         slot = slot.slot,
         token = ("%s:%s:%s"):format(imei, tostring(source), tostring(GetGameTimer())),
+        unlocked = security == nil,
     }
     local payload = bootstrap(source)
     Bridge.Debug(
@@ -590,10 +705,12 @@ function SkyPhone.OpenDeviceForCall(source, imei)
         Bridge.Debug("warn", "[sky_phone] Could not open ringing device %s for source %s.", tostring(imei), tostring(source))
         return false
     end
+    local security = load_device_security(imei)
     sessions[source] = {
         imei = imei,
         slot = matches[1].slot,
         token = ("%s:%s:%s"):format(imei, tostring(source), tostring(GetGameTimer())),
+        unlocked = security == nil,
     }
     TriggerClientEvent("sky_phone:device:open", source, bootstrap(source))
     return true
@@ -617,6 +734,106 @@ Bridge.Debug(
 Bridge.Callbacks.Register("sky_phone:device:close", function(source)
     sessions[source] = nil
     return { success = true }
+end)
+
+Bridge.Callbacks.Register("sky_phone:security:unlock", function(source, data)
+    if not SkyPhone.AllowOperation(source, "security_unlock", Config.Security.AttemptsPerMinute, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local session, error_response = SkyPhone.RequireDeviceSession(source)
+    if not session then
+        return error_response
+    end
+    if session.unlocked then
+        return { success = true, data = { security = security_status(session.imei) } }
+    end
+
+    local verified, verification_error = verify_passcode(session, data and data.passcode)
+    if not verified then
+        return verification_error
+    end
+    session.unlocked = true
+    return { success = true, data = { security = security_status(session.imei) } }
+end)
+
+Bridge.Callbacks.Register("sky_phone:security:set-passcode", function(source, data)
+    local session, error_response = SkyPhone.RequireSession(source)
+    if not session then
+        return error_response
+    end
+    local passcode = data and data.passcode
+    if not valid_passcode(passcode) then
+        return { success = false, error = "invalid_passcode" }
+    end
+    if load_device_security(session.imei) then
+        return { success = false, error = "passcode_already_set" }
+    end
+
+    local salts = Bridge.Database.Query("SELECT REPLACE(UUID(), '-', '') AS `salt`", {})
+    local salt = salts[1] and salts[1].salt
+    if type(salt) ~= "string" or #salt ~= 32 then
+        error("[sky_phone] Database did not generate a valid passcode salt.")
+    end
+    local result = Bridge.Database.Query([[
+        INSERT INTO `sky_phone_device_security`
+            (`device_imei`, `passcode_hash`, `passcode_salt`, `passcode_length`)
+        VALUES (?, UNHEX(SHA2(CONCAT(?, ?, ?), 256)), ?, ?)
+    ]], { session.imei, passcode_pepper, salt, passcode, salt, #passcode })
+    if affected_rows(result) ~= 1 then
+        return { success = false, error = "request_failed" }
+    end
+    return { success = true, data = { security = security_status(session.imei) } }
+end)
+
+Bridge.Callbacks.Register("sky_phone:security:change-passcode", function(source, data)
+    local session, error_response = SkyPhone.RequireSession(source)
+    if not session then
+        return error_response
+    end
+    local new_passcode = data and data.newPasscode
+    if not valid_passcode(new_passcode) then
+        return { success = false, error = "invalid_passcode" }
+    end
+    local verified, verification_error = verify_passcode(session, data and data.currentPasscode)
+    if not verified then
+        return verification_error
+    end
+
+    local salts = Bridge.Database.Query("SELECT REPLACE(UUID(), '-', '') AS `salt`", {})
+    local salt = salts[1] and salts[1].salt
+    if type(salt) ~= "string" or #salt ~= 32 then
+        error("[sky_phone] Database did not generate a valid passcode salt.")
+    end
+    local result = Bridge.Database.Query([[
+        UPDATE `sky_phone_device_security`
+        SET `passcode_hash` = UNHEX(SHA2(CONCAT(?, ?, ?), 256)),
+            `passcode_salt` = ?, `passcode_length` = ?, `failed_attempts` = 0, `locked_until` = 0
+        WHERE `device_imei` = ?
+    ]], { passcode_pepper, salt, new_passcode, salt, #new_passcode, session.imei })
+    if affected_rows(result) ~= 1 then
+        return { success = false, error = "request_failed" }
+    end
+    return { success = true, data = { security = security_status(session.imei) } }
+end)
+
+Bridge.Callbacks.Register("sky_phone:security:disable-passcode", function(source, data)
+    local session, error_response = SkyPhone.RequireSession(source)
+    if not session then
+        return error_response
+    end
+    local verified, verification_error = verify_passcode(session, data and data.passcode)
+    if not verified then
+        return verification_error
+    end
+    local result = Bridge.Database.Query(
+        "DELETE FROM `sky_phone_device_security` WHERE `device_imei` = ?",
+        { session.imei }
+    )
+    if affected_rows(result) ~= 1 then
+        return { success = false, error = "request_failed" }
+    end
+    session.unlocked = true
+    return { success = true, data = { security = security_status(session.imei) } }
 end)
 
 Bridge.Callbacks.Register("sky_phone:device:development-open", function(source)
@@ -765,6 +982,10 @@ Bridge.Callbacks.Register("sky_phone:device:factory-reset", function(source)
     local media_remote_ids = SkyPhoneMedia.GetDeviceRemoteIds(session.imei)
     if not Bridge.Database.Transaction({
         {
+            query = "DELETE FROM `sky_phone_device_security` WHERE `device_imei` = ?",
+            params = { session.imei },
+        },
+        {
             query = "DELETE FROM `sky_phone_device_data` WHERE `device_imei` = ?",
             params = { session.imei },
         },
@@ -792,6 +1013,7 @@ Bridge.Callbacks.Register("sky_phone:device:factory-reset", function(source)
         return { success = false, error = "request_failed" }
     end
     SkyPhoneMedia.CleanupRemoteFiles(media_remote_ids)
+    session.unlocked = true
     refresh_source(source)
     return { success = true }
 end)

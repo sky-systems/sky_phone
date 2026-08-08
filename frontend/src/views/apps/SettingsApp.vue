@@ -17,6 +17,8 @@ import {
   kPreloader,
   kRange,
   kSearchbar,
+  kSegmented,
+  kSegmentedButton,
   kToast,
   kToggle,
 } from 'konsta/vue'
@@ -45,6 +47,7 @@ import {
 import { PHONE_FRAME_COLORS } from '@/config/appearance'
 import { isLaunchablePhoneApp, PHONE_APPS } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
+import PhonePasscode from '@/components/PhonePasscode.vue'
 import { useAccountStore } from '@/stores/account'
 import type {
   LaunchablePhoneAppDefinition,
@@ -74,6 +77,7 @@ import {
 type SettingsView =
   | 'root'
   | 'account'
+  | 'security'
   | 'notifications'
   | 'notification-detail'
   | 'sounds'
@@ -82,6 +86,14 @@ type SettingsView =
   | 'wallpaper'
 type RootToggleKey = 'airplaneMode' | 'streamerMode'
 type SubmenuView = Exclude<SettingsView, 'root' | 'notification-detail'>
+type PasscodeFlow =
+  | 'set-new'
+  | 'set-confirm'
+  | 'change-current'
+  | 'change-new'
+  | 'change-confirm'
+  | 'disable'
+  | null
 
 const FACTORY_RESET_DURATION_MS = 60_000
 const FACTORY_RESET_CIRCUMFERENCE = 2 * Math.PI * 48
@@ -110,6 +122,13 @@ const accountPassword = ref('')
 const accountConfirm = ref('')
 const accountSubmitting = ref(false)
 const accountToast = ref('')
+const passcodeBusy = ref(false)
+const passcodeCurrent = ref('')
+const passcodeError = ref('')
+const passcodeFirst = ref('')
+const passcodeFlow = ref<PasscodeFlow>(null)
+const passcodeLength = ref<4 | 6>(6)
+const passcodeResetKey = ref(0)
 const removeDeviceImei = ref('')
 const removeDevicePassword = ref('')
 const removeDeviceOpened = ref(false)
@@ -152,6 +171,12 @@ const serviceRows = [
   },
 ]
 const preferenceRows = [
+  {
+    key: 'security',
+    view: 'security' as const,
+    icon: KeyRound,
+    iconColor: '#34c759',
+  },
   {
     key: 'general',
     view: 'general' as const,
@@ -204,6 +229,18 @@ const activeTitle = computed(() => {
   }
   return phone.t(`Apps.settings.${activeView.value}`)
 })
+const passcodeTitle = computed(() => {
+  if (passcodeFlow.value === 'set-confirm') {
+    return phone.t('Apps.settings.passcode.confirmNew')
+  }
+  if (passcodeFlow.value === 'change-current' || passcodeFlow.value === 'disable') {
+    return phone.t('Apps.settings.passcode.enterCurrent')
+  }
+  if (passcodeFlow.value === 'change-confirm') {
+    return phone.t('Apps.settings.passcode.confirmNew')
+  }
+  return phone.t('Apps.settings.passcode.enterNew')
+})
 
 function matchesSearch(key: string): boolean {
   return (
@@ -220,6 +257,9 @@ function updateSearch(event: Event): void {
 }
 
 function openView(view: SubmenuView): void {
+  if (view === 'security') {
+    passcodeLength.value = phone.security.length ?? 6
+  }
   activeView.value = view
   scrollPageToTop()
 }
@@ -246,6 +286,115 @@ function scrollPageToTop(): void {
 
 function toggleRootSetting(key: RootToggleKey): void {
   phone.setPreference(key, !phone.preferences.settings[key])
+}
+
+function resetPasscodeInput(): void {
+  passcodeError.value = ''
+  passcodeResetKey.value += 1
+}
+
+function beginSetPasscode(): void {
+  passcodeLength.value = phone.security.length ?? passcodeLength.value
+  passcodeFirst.value = ''
+  passcodeCurrent.value = ''
+  passcodeFlow.value = 'set-new'
+  resetPasscodeInput()
+}
+
+function beginChangePasscode(): void {
+  passcodeFirst.value = ''
+  passcodeCurrent.value = ''
+  passcodeFlow.value = 'change-current'
+  resetPasscodeInput()
+}
+
+function beginDisablePasscode(): void {
+  passcodeLength.value = phone.security.length ?? 6
+  passcodeCurrent.value = ''
+  passcodeFlow.value = 'disable'
+  resetPasscodeInput()
+}
+
+function cancelPasscodeFlow(): void {
+  if (passcodeBusy.value) return
+  passcodeFlow.value = null
+  passcodeFirst.value = ''
+  passcodeCurrent.value = ''
+  resetPasscodeInput()
+}
+
+function passcodeRequestError(error?: string): string {
+  if (error === 'invalid_passcode') {
+    return phone.t('Apps.settings.passcode.incorrect')
+  }
+  if (error === 'passcode_locked') {
+    return phone.t('Apps.settings.passcode.locked')
+  }
+  if (error === 'rate_limited') {
+    return phone.t('Apps.settings.passcode.rateLimited')
+  }
+  return phone.t('Apps.settings.passcode.failed')
+}
+
+async function submitSettingsPasscode(passcode: string): Promise<void> {
+  if (passcodeBusy.value || !passcodeFlow.value) return
+
+  if (passcodeFlow.value === 'set-new') {
+    passcodeFirst.value = passcode
+    passcodeFlow.value = 'set-confirm'
+    resetPasscodeInput()
+    return
+  }
+  if (passcodeFlow.value === 'change-current') {
+    passcodeCurrent.value = passcode
+    passcodeFlow.value = 'change-new'
+    resetPasscodeInput()
+    return
+  }
+  if (passcodeFlow.value === 'change-new') {
+    passcodeFirst.value = passcode
+    passcodeFlow.value = 'change-confirm'
+    resetPasscodeInput()
+    return
+  }
+  if (
+    (passcodeFlow.value === 'set-confirm' ||
+      passcodeFlow.value === 'change-confirm') &&
+    passcode !== passcodeFirst.value
+  ) {
+    passcodeError.value = phone.t('Apps.settings.passcode.mismatch')
+    passcodeResetKey.value += 1
+    return
+  }
+
+  passcodeBusy.value = true
+  const response =
+    passcodeFlow.value === 'set-confirm'
+      ? await phone.setPasscode(passcode)
+      : passcodeFlow.value === 'change-confirm'
+        ? await phone.changePasscode(passcodeCurrent.value, passcode)
+        : await phone.disablePasscode(passcode)
+  passcodeBusy.value = false
+  if (!response.success) {
+    passcodeError.value = passcodeRequestError(response.error)
+    if (
+      passcodeFlow.value === 'change-confirm' &&
+      response.error === 'invalid_passcode'
+    ) {
+      passcodeFlow.value = 'change-current'
+      passcodeCurrent.value = ''
+      passcodeFirst.value = ''
+    }
+    passcodeResetKey.value += 1
+    return
+  }
+
+  accountToast.value = phone.t(
+    passcodeFlow.value === 'disable'
+      ? 'Apps.settings.passcode.disabled'
+      : 'Apps.settings.passcode.saved',
+  )
+  cancelPasscodeFlow()
 }
 
 function updateNumberPreference(
@@ -551,6 +700,15 @@ onBeforeUnmount(() => {
               <component :is="row.icon" :size="17" :stroke-width="2.25" />
             </span>
           </template>
+          <template v-if="row.key === 'security'" #after>
+            {{
+              phone.t(
+                phone.security.enabled
+                  ? 'Apps.settings.on'
+                  : 'Apps.settings.off',
+              )
+            }}
+          </template>
         </k-list-item>
       </k-list>
     </template>
@@ -710,6 +868,81 @@ onBeforeUnmount(() => {
           <k-list strong inset>
             <k-list-button @click="logoutAccount">
               {{ phone.t('Apps.settings.signOut') }}
+            </k-list-button>
+          </k-list>
+        </template>
+      </template>
+
+      <template v-else-if="activeView === 'security'">
+        <k-block class="text-sm leading-5 opacity-70">
+          {{ phone.t('Apps.settings.passcode.description') }}
+        </k-block>
+
+        <template v-if="!phone.security.enabled">
+          <k-block-title>{{ phone.t('Apps.settings.passcode.codeLength') }}</k-block-title>
+          <k-block>
+            <k-segmented strong rounded>
+              <k-segmented-button
+                :active="passcodeLength === 6"
+                @click="passcodeLength = 6"
+              >
+                {{ phone.t('Apps.settings.passcode.sixDigit') }}
+              </k-segmented-button>
+              <k-segmented-button
+                :active="passcodeLength === 4"
+                @click="passcodeLength = 4"
+              >
+                {{ phone.t('Apps.settings.passcode.fourDigit') }}
+              </k-segmented-button>
+            </k-segmented>
+          </k-block>
+          <k-list strong inset>
+            <k-list-button @click="beginSetPasscode">
+              {{ phone.t('Apps.settings.passcode.turnOn') }}
+            </k-list-button>
+          </k-list>
+        </template>
+
+        <template v-else>
+          <k-list strong inset>
+            <k-list-item
+              :title="phone.t('Apps.settings.passcode.status')"
+              :after="phone.t('Apps.settings.on')"
+            />
+            <k-list-item
+              :title="phone.t('Apps.settings.passcode.codeLength')"
+              :after="
+                phone.t(
+                  phone.security.length === 4
+                    ? 'Apps.settings.passcode.fourDigit'
+                    : 'Apps.settings.passcode.sixDigit',
+                )
+              "
+            />
+          </k-list>
+          <k-block-title>{{ phone.t('Apps.settings.passcode.codeLength') }}</k-block-title>
+          <k-block>
+            <k-segmented strong rounded>
+              <k-segmented-button
+                :active="passcodeLength === 6"
+                @click="passcodeLength = 6"
+              >
+                {{ phone.t('Apps.settings.passcode.sixDigit') }}
+              </k-segmented-button>
+              <k-segmented-button
+                :active="passcodeLength === 4"
+                @click="passcodeLength = 4"
+              >
+                {{ phone.t('Apps.settings.passcode.fourDigit') }}
+              </k-segmented-button>
+            </k-segmented>
+          </k-block>
+          <k-list strong inset>
+            <k-list-button @click="beginChangePasscode">
+              {{ phone.t('Apps.settings.passcode.change') }}
+            </k-list-button>
+            <k-list-button class="!text-red-500" @click="beginDisablePasscode">
+              {{ phone.t('Apps.settings.passcode.turnOff') }}
             </k-list-button>
           </k-list>
         </template>
@@ -1101,6 +1334,18 @@ onBeforeUnmount(() => {
       </template>
     </template>
   </k-page>
+
+  <PhonePasscode
+    v-if="passcodeFlow"
+    :busy="passcodeBusy"
+    :error="passcodeError"
+    :length="passcodeLength"
+    :reset-key="passcodeResetKey"
+    :subtitle="phone.t('Apps.settings.passcode.screenSubtitle')"
+    :title="passcodeTitle"
+    @cancel="cancelPasscodeFlow"
+    @complete="submitSettingsPasscode"
+  />
 
   <div
     v-if="factoryResetting"

@@ -209,6 +209,39 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_device_security",
+        columns = {
+            {
+                name = "device_imei",
+                type = "CHAR(15) NOT NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            { name = "passcode_hash", type = "BINARY(32) NOT NULL" },
+            {
+                name = "passcode_salt",
+                type = "CHAR(32) NOT NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            { name = "passcode_length", type = "TINYINT UNSIGNED NOT NULL" },
+            { name = "failed_attempts", type = "TINYINT UNSIGNED NOT NULL DEFAULT 0" },
+            { name = "locked_until", type = "BIGINT UNSIGNED NOT NULL DEFAULT 0" },
+            {
+                name = "updated_at",
+                type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+            },
+        },
+        primaryKey = "device_imei",
+        foreignKeys = {
+            {
+                column = "device_imei",
+                references = "`sky_phone_devices` (`imei`) ON DELETE CASCADE",
+            },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
         name = "sky_phone_notes",
         columns = {
             { name = "id", type = "VARCHAR(64) NOT NULL" },

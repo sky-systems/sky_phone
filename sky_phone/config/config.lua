@@ -19,6 +19,13 @@ Config.Phone = {
     DeviceName = "iFruit Phone",
 }
 
+Config.Security = {
+    PasscodePepperConvar = "sky_phone_passcode_pepper",
+    MaximumAttempts = 5,
+    LockSeconds = 30,
+    AttemptsPerMinute = 12,
+}
+
 Config.Sim = {
     RegisteredItem = "sky_phone_sim_registered",
     AnonymousItem = "sky_phone_sim_anonymous",

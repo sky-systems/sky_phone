@@ -8,6 +8,10 @@ local call_channel = 0
 Bridge.Debug("debug", "[sky_phone] Client script initialized.", { always = true })
 
 local server_callbacks = {
+    "security:unlock",
+    "security:set-passcode",
+    "security:change-passcode",
+    "security:disable-passcode",
     "device:save",
     "device:factory-reset",
     "account:login",

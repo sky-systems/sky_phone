@@ -29,6 +29,11 @@ Locales["en"] = {
         Notifications = { now = "now" },
         LockScreen = {
             label = "Lock Screen", flashlight = "Flashlight", camera = "Camera", swipeUp = "Swipe up to open",
+            passcode = {
+                enter = "Enter Passcode", unlockSubtitle = "Enter the passcode for this phone.", cancel = "Cancel", delete = "Delete digit",
+                incorrect = "Incorrect passcode", locked = "Too many attempts. Try again in {seconds} seconds.",
+                tryAgain = "Try again in {seconds} seconds", rateLimited = "Too many attempts. Please wait.",
+            },
         },
         Home = {
             appLibrary = "App Library", appLibrarySearch = "Search apps", allApps = "All Apps", apps = "Apps",
@@ -545,7 +550,7 @@ Locales["en"] = {
                 accountInformation = "Account Information", accountStatus = "Account Status", accountStatusValue = "Active",
                 accountStorage = "Cloud Storage", accountStorageValue = "On Device", accountPurchases = "Media & Purchases",
                 accountPurchasesValue = "Available", notifications = "Notifications", sounds = "Sounds & Haptics",
-                general = "General Settings", appearance = "Appearance", allowNotifications = "Allow Notifications",
+                general = "General Settings", security = "Passcode & Security", appearance = "Appearance", allowNotifications = "Allow Notifications",
                 notificationSounds = "Sounds", notificationDuration = "Notification Duration", seconds = "{seconds} seconds",
                 ringtoneVolume = "Ringtone Volume", notificationVolume = "Notification Volume",
                 ringtone = "Ringtone", notificationSound = "Notification Sound", appearanceMode = "Appearance Mode",
@@ -559,6 +564,15 @@ Locales["en"] = {
                 removeDeviceBody = "Enter your iFruit password to remove this device from the account.", signOut = "Sign Out",
                 factoryReset = "Erase All Content and Settings", factoryResetBody = "This removes the account and all local data from this phone. Cloud data and the IMEI remain.",
                 factoryResetProgress = "Erasing iFruit Phone", factoryResetWarning = "Do not turn off this phone. This takes 60 seconds.",
+                passcode = {
+                    description = "A passcode protects the contents of this phone. It stays with the device when the SIM or iFruit account changes.",
+                    status = "Passcode", codeLength = "Code Length", sixDigit = "6-Digit Code", fourDigit = "4-Digit Code",
+                    turnOn = "Turn Passcode On", turnOff = "Turn Passcode Off", change = "Change Passcode",
+                    enterNew = "Enter New Passcode", confirmNew = "Verify New Passcode", enterCurrent = "Enter Current Passcode",
+                    screenSubtitle = "Use 4 or 6 numbers.", incorrect = "Incorrect passcode.", mismatch = "The passcodes did not match.",
+                    locked = "Too many incorrect attempts. Try again later.", rateLimited = "Too many attempts. Please wait.",
+                    failed = "The passcode could not be updated.", saved = "Passcode saved.", disabled = "Passcode turned off.",
+                },
                 accountErrors = {
                     invalid_email = "Choose a valid 3–32 character iFruit address.", invalid_password = "Password must be 6–64 characters.",
                     invalid_credentials = "Email or password is incorrect.", email_taken = "That iFruit address is already registered.",
