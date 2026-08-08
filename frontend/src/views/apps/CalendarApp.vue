@@ -3,7 +3,6 @@ import {
   Bell,
   CalendarDays,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Circle,
@@ -26,20 +25,31 @@ import { usePhoneStore } from '@/stores/phone'
 import type { CalendarEvent, CalendarEventDraft } from '@/types/calendar'
 
 type CalendarScreen = 'detail' | 'form' | 'main'
-type MonthViewMode = 'compact' | 'details' | 'list' | 'stacked'
+type CalendarViewMode = 'compact' | 'details' | 'list' | 'stacked'
 type TimeField = 'endTime' | 'startTime'
+type YearMonth = {
+  cells: Array<Date | null>
+  date: Date
+  key: string
+  label: string
+}
+type YearOverview = {
+  months: YearMonth[]
+  year: number
+}
 
 const phone = usePhoneStore()
 const account = useAccountStore()
 const calendar = useCalendarStore()
 const today = new Date()
-const visibleMonth = ref(new Date(today.getFullYear(), today.getMonth(), 1))
+const visibleYear = ref(today.getFullYear())
 const selectedDate = ref(dateKey(today))
 const selectedEvent = ref<CalendarEvent | null>(null)
 const editingEvent = ref<CalendarEvent | null>(null)
 const screen = ref<CalendarScreen>('main')
-const viewMode = ref<MonthViewMode>('details')
+const viewMode = ref<CalendarViewMode>('details')
 const viewMenuOpen = ref(false)
+const yearOverviewOpen = ref(false)
 const searchOpen = ref(false)
 const searchQuery = ref('')
 const reminderOpen = ref(false)
@@ -50,6 +60,8 @@ const pickerHour = ref('09')
 const pickerMinute = ref('00')
 const hourColumn = ref<HTMLElement | null>(null)
 const minuteColumn = ref<HTMLElement | null>(null)
+const calendarScroll = ref<HTMLElement | null>(null)
+const yearOverviewScroll = ref<HTMLElement | null>(null)
 const draft = reactive({
   date: selectedDate.value,
   endTime: '10:00',
@@ -67,7 +79,7 @@ const minuteOptions = Array.from({ length: 12 }, (_, index) =>
 )
 const viewModes: Array<{
   icon: typeof LayoutGrid
-  id: MonthViewMode
+  id: CalendarViewMode
   labelKey: string
 }> = [
   {
@@ -98,12 +110,6 @@ const timePickerTitle = computed(() =>
     ? phone.t('Apps.calendar.starts')
     : phone.t('Apps.calendar.ends'),
 )
-const monthLabel = computed(() =>
-  new Intl.DateTimeFormat(phone.lang, {
-    month: 'long',
-    year: 'numeric',
-  }).format(visibleMonth.value),
-)
 const weekdayLabels = computed(() => {
   const monday = new Date(2026, 0, 5)
   return Array.from({ length: 7 }, (_, index) =>
@@ -112,25 +118,40 @@ const weekdayLabels = computed(() => {
     ),
   )
 })
-const monthDays = computed(() => {
-  const start = calendarGridStart(visibleMonth.value)
-  return Array.from({ length: 42 }, (_, index) => addDays(start, index))
-})
+const yearMonths = computed<YearMonth[]>(() =>
+  Array.from({ length: 12 }, (_, monthIndex) => {
+    const date = new Date(visibleYear.value, monthIndex, 1)
+    return {
+      cells: monthCells(date),
+      date,
+      key: `${visibleYear.value}-${String(monthIndex + 1).padStart(2, '0')}`,
+      label: new Intl.DateTimeFormat(phone.lang, { month: 'long' }).format(
+        date,
+      ),
+    }
+  }),
+)
+const yearOverview = computed<YearOverview[]>(() =>
+  Array.from({ length: 11 }, (_, yearIndex) => {
+    const year = visibleYear.value - 5 + yearIndex
+    return {
+      months: Array.from({ length: 12 }, (_, monthIndex) => {
+        const date = new Date(year, monthIndex, 1)
+        return {
+          cells: monthCells(date),
+          date,
+          key: `${year}-${String(monthIndex + 1).padStart(2, '0')}`,
+          label: new Intl.DateTimeFormat(phone.lang, { month: 'long' }).format(
+            date,
+          ),
+        }
+      }),
+      year,
+    }
+  }),
+)
 const normalizedSearch = computed(() => searchQuery.value.trim().toLowerCase())
-const selectedEvents = computed(() =>
-  calendar.events
-    .filter((event) => dateKey(event.startsAt) === selectedDate.value)
-    .filter(matchesSearch)
-    .sort((left, right) => left.startsAt - right.startsAt),
-)
-const selectedDateLabel = computed(() =>
-  new Intl.DateTimeFormat(phone.lang, {
-    day: 'numeric',
-    month: 'long',
-    weekday: 'long',
-  }).format(new Date(`${selectedDate.value}T12:00:00`)),
-)
-const monthEventGroups = computed(() => {
+const eventsByDate = computed(() => {
   const groups = new Map<string, CalendarEvent[]>()
   for (const event of [...calendar.events]
     .filter(matchesSearch)
@@ -140,7 +161,10 @@ const monthEventGroups = computed(() => {
     events.push(event)
     groups.set(key, events)
   }
-  return [...groups.entries()].map(([key, events]) => ({
+  return groups
+})
+const monthEventGroups = computed(() => {
+  return [...eventsByDate.value.entries()].map(([key, events]) => ({
     events,
     key,
     label: new Intl.DateTimeFormat(phone.lang, {
@@ -157,10 +181,21 @@ function addDays(date: Date, amount: number): Date {
   return next
 }
 
-function calendarGridStart(month: Date): Date {
+function monthCells(month: Date): Array<Date | null> {
   const first = new Date(month.getFullYear(), month.getMonth(), 1)
-  const mondayOffset = (first.getDay() + 6) % 7
-  return addDays(first, -mondayOffset)
+  const leading = (first.getDay() + 6) % 7
+  const daysInMonth = new Date(
+    month.getFullYear(),
+    month.getMonth() + 1,
+    0,
+  ).getDate()
+  const cellCount = Math.ceil((leading + daysInMonth) / 7) * 7
+  return Array.from({ length: cellCount }, (_, index) => {
+    const day = index - leading + 1
+    return day > 0 && day <= daysInMonth
+      ? new Date(month.getFullYear(), month.getMonth(), day)
+      : null
+  })
 }
 
 function dateKey(value: Date | number): string {
@@ -189,11 +224,7 @@ function matchesSearch(event: CalendarEvent): boolean {
 }
 
 function eventsForDay(day: Date): CalendarEvent[] {
-  const key = dateKey(day)
-  return calendar.events
-    .filter((event) => dateKey(event.startsAt) === key)
-    .filter(matchesSearch)
-    .sort((left, right) => left.startsAt - right.startsAt)
+  return eventsByDate.value.get(dateKey(day)) ?? []
 }
 
 function formatTime(value: number): string {
@@ -221,44 +252,70 @@ function reminderLabel(minutes: number | null): string {
   return phone.t('Apps.calendar.reminders.oneDay')
 }
 
-async function loadMonth(): Promise<void> {
+async function loadYear(): Promise<void> {
   if (!isAuthenticated.value) {
     calendar.events = []
     return
   }
-  const start = calendarGridStart(visibleMonth.value)
-  await calendar.load(start.getTime(), addDays(start, 42).getTime())
+  const start = new Date(visibleYear.value, 0, 1)
+  const end = new Date(visibleYear.value + 1, 0, 1)
+  await calendar.load(start.getTime(), end.getTime())
 }
 
-async function moveMonth(amount: number): Promise<void> {
-  visibleMonth.value = new Date(
-    visibleMonth.value.getFullYear(),
-    visibleMonth.value.getMonth() + amount,
-    1,
-  )
-  selectedDate.value = dateKey(visibleMonth.value)
-  viewMenuOpen.value = false
-  await loadMonth()
+async function moveYear(amount: number): Promise<void> {
+  visibleYear.value += amount
+  selectedDate.value = `${visibleYear.value}-01-01`
+  await loadYear()
+  await nextTick()
+  calendarScroll.value?.scrollTo({ behavior: 'smooth', top: 0 })
 }
 
 async function goToday(): Promise<void> {
   const current = new Date()
-  visibleMonth.value = new Date(current.getFullYear(), current.getMonth(), 1)
+  visibleYear.value = current.getFullYear()
   selectedDate.value = dateKey(current)
-  await loadMonth()
+  await loadYear()
+  await nextTick()
+  if (yearOverviewOpen.value) {
+    yearOverviewScroll.value
+      ?.querySelector<HTMLElement>(`[data-year="${visibleYear.value}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  } else {
+    scrollToMonth(current)
+  }
 }
 
 function selectDay(day: Date): void {
   selectedDate.value = dateKey(day)
-  if (day.getMonth() !== visibleMonth.value.getMonth()) {
-    visibleMonth.value = new Date(day.getFullYear(), day.getMonth(), 1)
-    void loadMonth()
-  }
 }
 
-function selectView(mode: MonthViewMode): void {
+function selectView(mode: CalendarViewMode): void {
   viewMode.value = mode
   viewMenuOpen.value = false
+}
+
+async function openYearOverview(): Promise<void> {
+  viewMenuOpen.value = false
+  yearOverviewOpen.value = true
+  await nextTick()
+  yearOverviewScroll.value
+    ?.querySelector<HTMLElement>(`[data-year="${visibleYear.value}"]`)
+    ?.scrollIntoView({ block: 'start' })
+}
+
+async function selectOverviewDay(day: Date): Promise<void> {
+  visibleYear.value = day.getFullYear()
+  selectedDate.value = dateKey(day)
+  yearOverviewOpen.value = false
+  await loadYear()
+  await nextTick()
+  scrollToMonth(day, 'auto')
+}
+
+function scrollToMonth(date: Date, behavior: ScrollBehavior = 'smooth'): void {
+  calendarScroll.value
+    ?.querySelector<HTMLElement>(`[data-month="${dateKey(date).slice(0, 7)}"]`)
+    ?.scrollIntoView({ behavior, block: 'start' })
 }
 
 function toggleSearch(): void {
@@ -357,12 +414,8 @@ async function saveEvent(): Promise<void> {
     return
   }
   selectedDate.value = draft.date
-  visibleMonth.value = new Date(
-    new Date(startsAt).getFullYear(),
-    new Date(startsAt).getMonth(),
-    1,
-  )
-  await loadMonth()
+  visibleYear.value = new Date(startsAt).getFullYear()
+  await loadYear()
   screen.value = 'main'
 }
 
@@ -377,25 +430,44 @@ async function deleteEvent(): Promise<void> {
   screen.value = 'main'
 }
 
-onMounted(loadMonth)
+onMounted(async () => {
+  await loadYear()
+  await nextTick()
+  scrollToMonth(today, 'auto')
+})
 </script>
 
 <template>
   <main class="calendar" :class="{ 'calendar--light': !phone.isDarkMode }">
     <template v-if="screen === 'main'">
-      <header class="calendar__toolbar">
+      <header
+        class="calendar__toolbar"
+        :class="{ 'calendar__toolbar--year': yearOverviewOpen }"
+      >
         <button
-          class="calendar__month-title"
+          v-if="!yearOverviewOpen"
+          class="calendar__year-button"
           type="button"
-          :aria-expanded="viewMenuOpen"
-          @click="viewMenuOpen = !viewMenuOpen"
+          :aria-label="String(visibleYear)"
+          @click="openYearOverview"
         >
-          <span>{{ monthLabel }}</span>
-          <ChevronDown :size="16" :class="{ open: viewMenuOpen }" />
+          <ChevronLeft :size="22" />
+          <span>{{ visibleYear }}</span>
         </button>
-        <div class="calendar__toolbar-actions">
+        <div class="calendar__toolbar-pill">
           <button
-            class="calendar__glass-button"
+            v-if="!yearOverviewOpen"
+            :class="{ active: viewMenuOpen }"
+            :aria-label="phone.t(`Apps.calendar.views.${viewMode}`)"
+            type="button"
+            @click="viewMenuOpen = !viewMenuOpen"
+          >
+            <component
+              :is="viewModes.find((mode) => mode.id === viewMode)?.icon"
+              :size="19"
+            />
+          </button>
+          <button
             :aria-label="phone.t('Common.search')"
             type="button"
             @click="toggleSearch"
@@ -405,7 +477,6 @@ onMounted(loadMonth)
           </button>
           <button
             v-if="isAuthenticated"
-            class="calendar__glass-button calendar__glass-button--accent"
             :aria-label="phone.t('Apps.calendar.newEvent')"
             type="button"
             @click="openCreate"
@@ -419,13 +490,13 @@ onMounted(loadMonth)
             <button
               v-for="mode in viewModes"
               :key="mode.id"
-              type="button"
               :class="{ active: viewMode === mode.id }"
+              type="button"
               @click="selectView(mode.id)"
             >
               <component :is="mode.icon" :size="19" />
               <span>{{ phone.t(mode.labelKey) }}</span>
-              <Check v-if="viewMode === mode.id" :size="18" />
+              <Check v-if="viewMode === mode.id" :size="17" />
             </button>
           </div>
         </Transition>
@@ -450,125 +521,143 @@ onMounted(loadMonth)
       </section>
 
       <div
+        v-else-if="yearOverviewOpen"
+        ref="yearOverviewScroll"
+        class="calendar__year-overview"
+      >
+        <section
+          v-for="overview in yearOverview"
+          :key="overview.year"
+          class="calendar__overview-year"
+          :data-year="overview.year"
+        >
+          <h1>{{ overview.year }}</h1>
+          <div class="calendar__overview-months">
+            <section
+              v-for="month in overview.months"
+              :key="month.key"
+              class="calendar__overview-month"
+            >
+              <h2
+                :class="{
+                  current:
+                    month.date.getFullYear() === today.getFullYear() &&
+                    month.date.getMonth() === today.getMonth(),
+                }"
+              >
+                {{ month.label }}
+              </h2>
+              <div>
+                <template
+                  v-for="(day, cellIndex) in month.cells"
+                  :key="day ? dateKey(day) : `${month.key}-${cellIndex}`"
+                >
+                  <button
+                    v-if="day"
+                    type="button"
+                    :class="{
+                      selected: dateKey(day) === selectedDate,
+                      today: dateKey(day) === dateKey(today),
+                    }"
+                    @click="selectOverviewDay(day)"
+                  >
+                    {{ day.getDate() }}
+                  </button>
+                  <span v-else />
+                </template>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+
+      <div
         v-else
+        ref="calendarScroll"
         class="calendar__content"
-        :class="[`calendar__content--${viewMode}`]"
+        :class="`calendar__content--${viewMode}`"
       >
         <template v-if="viewMode !== 'list'">
-          <section class="calendar__month">
-            <div class="calendar__month-navigation">
-              <button
-                :aria-label="phone.t('Apps.calendar.previousMonth')"
-                type="button"
-                @click="moveMonth(-1)"
-              >
-                <ChevronLeft :size="19" />
-              </button>
-              <button type="button" @click="goToday">
-                {{ phone.t('Apps.calendar.today') }}
-              </button>
-              <button
-                :aria-label="phone.t('Apps.calendar.nextMonth')"
-                type="button"
-                @click="moveMonth(1)"
-              >
-                <ChevronRight :size="19" />
-              </button>
-            </div>
+          <section
+            v-for="month in yearMonths"
+            :key="month.key"
+            class="calendar__year-month"
+            :data-month="month.key"
+          >
+            <h1>{{ month.label }}</h1>
             <div class="calendar__weekdays">
-              <span v-for="weekday in weekdayLabels" :key="weekday">
+              <span
+                v-for="(weekday, weekdayIndex) in weekdayLabels"
+                :key="`${month.key}-${weekdayIndex}`"
+                :class="{ weekend: weekdayIndex > 4 }"
+              >
                 {{ weekday }}
               </span>
             </div>
-            <div class="calendar__grid" :class="`calendar__grid--${viewMode}`">
-              <button
-                v-for="day in monthDays"
-                :key="dateKey(day)"
-                type="button"
-                :class="{
-                  outside: day.getMonth() !== visibleMonth.getMonth(),
-                  selected: dateKey(day) === selectedDate,
-                  today: dateKey(day) === dateKey(today),
-                }"
-                @click="selectDay(day)"
+            <div
+              class="calendar__year-grid"
+              :class="`calendar__year-grid--${viewMode}`"
+            >
+              <template
+                v-for="(day, cellIndex) in month.cells"
+                :key="day ? dateKey(day) : `${month.key}-blank-${cellIndex}`"
               >
-                <span class="calendar__day-number">{{ day.getDate() }}</span>
-                <span
-                  v-if="viewMode === 'compact' && eventsForDay(day).length"
-                  class="calendar__compact-indicator"
-                />
-                <span
-                  v-else-if="viewMode === 'stacked'"
-                  class="calendar__event-bars"
+                <button
+                  v-if="day"
+                  type="button"
+                  :class="{
+                    selected: dateKey(day) === selectedDate,
+                    today: dateKey(day) === dateKey(today),
+                    weekend: cellIndex % 7 > 4,
+                  }"
+                  @click="selectDay(day)"
                 >
-                  <i
-                    v-for="event in eventsForDay(day).slice(0, 3)"
-                    :key="event.id"
+                  <span class="calendar__day-number">{{ day.getDate() }}</span>
+                  <span
+                    v-if="
+                      viewMode === 'compact' && eventsForDay(day).length
+                    "
+                    class="calendar__compact-indicator"
                   />
-                </span>
-                <span
-                  v-else-if="viewMode === 'details'"
-                  class="calendar__event-titles"
-                >
-                  <i
-                    v-for="event in eventsForDay(day).slice(0, 2)"
-                    :key="event.id"
+                  <span
+                    v-else-if="
+                      viewMode === 'stacked' && eventsForDay(day).length
+                    "
+                    class="calendar__event-bars"
                   >
-                    {{ event.title }}
-                  </i>
-                </span>
-              </button>
+                    <i
+                      v-for="(event, eventIndex) in eventsForDay(day).slice(0, 3)"
+                      :key="event.id"
+                      :class="`calendar__event-dot--${eventIndex % 3}`"
+                    />
+                  </span>
+                  <span
+                    v-else-if="
+                      viewMode === 'details' && eventsForDay(day).length
+                    "
+                    class="calendar__event-titles"
+                  >
+                    <i
+                      v-for="event in eventsForDay(day).slice(0, 2)"
+                      :key="event.id"
+                    >
+                      {{ event.title }}
+                    </i>
+                  </span>
+                </button>
+                <span v-else class="calendar__blank-day" />
+              </template>
             </div>
           </section>
 
-          <section class="calendar__agenda">
-            <header>
-              <div>
-                <strong>{{ selectedDateLabel }}</strong>
-                <span v-if="selectedEvents.length">
-                  {{ selectedEvents.length }}
-                </span>
-              </div>
-              <button
-                :aria-label="phone.t('Apps.calendar.newEvent')"
-                type="button"
-                @click="openCreate"
-              >
-                <Plus :size="18" />
-              </button>
-            </header>
-            <p v-if="calendar.loading" class="calendar__empty-copy">
-              {{ phone.t('Common.loading') }}
-            </p>
-            <div
-              v-else-if="!selectedEvents.length"
-              class="calendar__empty-copy"
-            >
-              <strong>{{ phone.t('Apps.calendar.noEvents') }}</strong>
-              <span>{{ phone.t('Apps.calendar.noEventsBody') }}</span>
-            </div>
-            <button
-              v-for="event in selectedEvents"
-              v-else
-              :key="event.id"
-              class="calendar__event-row"
-              type="button"
-              @click="openDetail(event)"
-            >
-              <span class="calendar__event-time">
-                <strong>{{ formatTime(event.startsAt) }}</strong>
-                <small>{{ formatTime(event.endsAt) }}</small>
-              </span>
-              <i />
-              <span class="calendar__event-copy">
-                <strong>{{ event.title }}</strong>
-                <small>{{
-                  event.note || reminderLabel(event.reminderMinutes)
-                }}</small>
-              </span>
-              <ChevronRight :size="17" />
-            </button>
-          </section>
+          <button
+            class="calendar__next-year"
+            type="button"
+            @click="moveYear(1)"
+          >
+            <span>{{ visibleYear + 1 }}</span>
+            <ChevronRight :size="19" />
+          </button>
         </template>
 
         <section v-else class="calendar__list-view">
@@ -612,6 +701,12 @@ onMounted(loadMonth)
           </section>
         </section>
       </div>
+
+      <footer v-if="isAuthenticated" class="calendar__footer">
+        <button class="calendar__today-button" type="button" @click="goToday">
+          {{ phone.t('Apps.calendar.today') }}
+        </button>
+      </footer>
     </template>
 
     <section
@@ -869,94 +964,83 @@ onMounted(loadMonth)
 .calendar__toolbar {
   position: relative;
   z-index: 8;
-  height: 64px;
-  padding: 10px 14px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  height: 68px;
+  padding: 11px 14px 9px;
+  display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.calendar__glass-button {
-  width: 40px;
-  height: 40px;
-  padding: 0;
+.calendar__year-button,
+.calendar__toolbar-pill,
+.calendar__today-button {
   border: 1px solid var(--line) !important;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
+  border-radius: 25px;
   background: var(--glass);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 16%),
-    0 4px 14px rgb(0 0 0 / 14%);
-  backdrop-filter: blur(18px) saturate(170%);
-  -webkit-backdrop-filter: blur(18px) saturate(170%);
+    0 6px 20px rgb(0 0 0 / 20%);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
 }
 
-.calendar__glass-button--accent {
-  background: var(--accent);
-  color: #fff !important;
-}
-
-.calendar__month-title {
-  min-width: 0;
-  padding: 5px 0;
+.calendar__year-button {
+  height: 46px;
+  padding: 0 18px 0 12px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 4px;
-  background: transparent;
-  color: var(--accent) !important;
-  font-size: 19px !important;
-  font-weight: 720 !important;
-  text-transform: capitalize;
+  color: var(--label) !important;
+  font-size: 18px !important;
+  font-weight: 680 !important;
 }
 
-.calendar__month-title span {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.calendar__month-title svg {
-  flex: none;
-  transition: transform 0.18s ease;
-}
-
-.calendar__month-title svg.open {
-  transform: rotate(180deg);
-}
-
-.calendar__toolbar-actions {
+.calendar__toolbar-pill {
+  height: 46px;
+  margin-left: auto;
+  padding: 0 4px;
   display: flex;
-  justify-content: flex-end;
-  gap: 7px;
+  align-items: center;
+}
+
+.calendar__toolbar-pill button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: transparent;
+}
+
+.calendar__toolbar-pill button.active {
+  color: var(--accent);
 }
 
 .calendar__view-menu {
   position: absolute;
-  z-index: 10;
-  top: 58px;
-  left: 14px;
+  z-index: 12;
+  top: 62px;
+  right: 91px;
   width: 190px;
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--glass);
-  box-shadow: 0 15px 45px rgb(0 0 0 / 32%);
+  box-shadow: 0 16px 44px rgb(0 0 0 / 38%);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
 }
 
 .calendar__view-menu button {
   width: 100%;
-  min-height: 44px;
-  padding: 8px 10px;
+  min-height: 42px;
+  padding: 7px 9px;
   border-radius: 11px;
   display: grid;
-  grid-template-columns: 20px 1fr 18px;
+  grid-template-columns: 22px 1fr 18px;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   background: transparent;
   font-size: 14px;
   text-align: left;
@@ -989,55 +1073,170 @@ onMounted(loadMonth)
 }
 
 .calendar__content {
-  height: calc(100% - 64px);
-  padding: 0 14px 24px;
+  height: calc(100% - 68px);
+  padding: 4px 0 100px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
   scrollbar-width: none;
 }
 
 .calendar__search + .calendar__content {
-  height: calc(100% - 117px);
+  height: calc(100% - 121px);
 }
 
-.calendar__month {
+.calendar__year-overview {
+  height: calc(100% - 68px);
+  padding: 4px 14px 100px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.calendar__search + .calendar__year-overview {
+  height: calc(100% - 121px);
+}
+
+.calendar__year-overview::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar__overview-year {
+  scroll-margin-top: 4px;
+  padding-bottom: 36px;
+}
+
+.calendar__overview-year > h1 {
+  margin: 0 0 14px;
+  padding: 10px 2px 9px;
   border-bottom: 1px solid var(--line);
+  color: var(--accent);
+  font-size: 40px;
+  font-weight: 780;
+  line-height: 1;
+  letter-spacing: -1.4px;
 }
 
-.calendar__month-navigation {
-  height: 38px;
+.calendar__overview-months {
   display: grid;
-  grid-template-columns: 30px 1fr 30px;
-  align-items: center;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px 11px;
 }
 
-.calendar__month-navigation button {
+.calendar__overview-month {
+  min-width: 0;
+}
+
+.calendar__overview-month h2 {
+  margin: 0 0 7px;
+  overflow: hidden;
+  color: var(--label);
+  font-size: 16px;
+  font-weight: 680;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.calendar__overview-month h2.current {
+  color: var(--accent);
+}
+
+.calendar__overview-month > div {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar__overview-month button,
+.calendar__overview-month > div > span {
+  min-width: 0;
+  height: 17px;
+}
+
+.calendar__overview-month button {
   padding: 0;
+  border-radius: 50%;
   display: grid;
   place-items: center;
   background: transparent;
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 650;
+  color: var(--label);
+  font-size: 10px;
+  font-weight: 540;
+}
+
+.calendar__overview-month button.today,
+.calendar__overview-month button.selected {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 750;
+}
+
+.calendar__content::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar__year-month {
+  scroll-margin-top: 8px;
+  margin-bottom: 30px;
+}
+
+.calendar__year-month h1 {
+  margin: 0;
+  padding: 13px 18px 16px;
+  font-size: 34px;
+  font-weight: 780;
+  line-height: 1;
+  letter-spacing: -1.2px;
+  text-transform: capitalize;
 }
 
 .calendar__weekdays,
-.calendar__grid {
+.calendar__year-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .calendar__weekdays {
-  height: 27px;
+  height: 28px;
+  padding: 0 7px;
   align-items: center;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
+  color: var(--label);
+  font-size: 10px;
+  font-weight: 680;
   text-align: center;
 }
 
-.calendar__grid button {
+.calendar__weekdays span.weekend {
+  color: var(--muted);
+}
+
+.calendar__year-grid {
+  padding: 0 7px;
+}
+
+.calendar__year-grid button,
+.calendar__blank-day {
+  height: 92px;
+  border-top: 1px solid var(--line) !important;
+}
+
+.calendar__year-grid--compact > * {
+  height: 72px;
+}
+
+.calendar__year-grid--stacked > * {
+  height: 88px;
+}
+
+.calendar__year-grid--details > * {
+  height: 112px;
+}
+
+.calendar__year-grid button {
   min-width: 0;
-  padding: 2px 1px;
+  padding: 11px 1px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1046,55 +1245,45 @@ onMounted(loadMonth)
   color: var(--label);
 }
 
-.calendar__grid--compact button {
-  height: 41px;
-}
-
-.calendar__grid--stacked button {
-  height: 48px;
-}
-
-.calendar__grid--details button {
-  height: 54px;
-}
-
-.calendar__grid button.outside {
-  opacity: 0.28;
+.calendar__year-grid button.weekend {
+  color: var(--muted);
 }
 
 .calendar__day-number {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   flex: none;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 13px;
-  font-weight: 560;
+  font-size: 17px;
+  font-weight: 600;
 }
 
-.calendar__grid button.today .calendar__day-number {
+.calendar__year-grid button.today .calendar__day-number {
   color: var(--accent);
   font-weight: 800;
 }
 
-.calendar__grid button.selected .calendar__day-number {
+.calendar__year-grid button.selected .calendar__day-number {
   background: var(--accent);
   color: #fff;
   font-weight: 800;
 }
 
 .calendar__compact-indicator {
-  width: 12px;
-  height: 2px;
+  width: 5px;
+  height: 5px;
   margin-top: 2px;
-  border-radius: 2px;
-  background: var(--accent);
+  border-radius: 50%;
+  background: #a855f7;
 }
 
 .calendar__event-bars {
-  width: 78%;
+  width: 74%;
+  margin-top: 3px;
   display: flex;
+  align-items: center;
   gap: 2px;
 }
 
@@ -1103,12 +1292,23 @@ onMounted(loadMonth)
   min-width: 0;
   flex: 1;
   border-radius: 2px;
-  background: var(--accent);
+}
+
+.calendar__event-dot--0 {
+  background: #a855f7;
+}
+
+.calendar__event-dot--1 {
+  background: #0ea5e9;
+}
+
+.calendar__event-dot--2 {
+  background: #f59e0b;
 }
 
 .calendar__event-titles {
   width: 100%;
-  padding: 0 1px;
+  padding: 0 2px;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -1117,12 +1317,51 @@ onMounted(loadMonth)
 .calendar__event-titles i {
   overflow: hidden;
   color: var(--accent);
-  font-size: 8.5px;
+  font-size: 8px;
   font-style: normal;
   font-weight: 650;
-  line-height: 11px;
-  white-space: nowrap;
+  line-height: 10px;
+  text-align: left;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar__next-year {
+  width: calc(100% - 28px);
+  height: 48px;
+  margin: 0 14px 20px;
+  border-top: 1px solid var(--line) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  color: var(--accent) !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+}
+
+.calendar__footer {
+  position: absolute;
+  z-index: 9;
+  bottom: 29px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.calendar__today-button {
+  height: 46px;
+  padding: 0 20px;
+  color: var(--label) !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  pointer-events: auto;
+}
+
+.calendar__list-view {
+  padding: 0 14px;
 }
 
 .calendar__agenda {
@@ -1849,16 +2088,6 @@ onMounted(loadMonth)
 .calendar-picker-enter-from .calendar__time-picker,
 .calendar-picker-leave-to .calendar__time-picker {
   transform: translateY(100%);
-}
-
-/* Keep dense month and agenda copy readable at the physical phone scale. */
-.calendar__weekdays {
-  font-size: 13px;
-}
-
-.calendar__event-titles i {
-  font-size: 10.5px;
-  line-height: 13px;
 }
 
 .calendar__agenda > header span,

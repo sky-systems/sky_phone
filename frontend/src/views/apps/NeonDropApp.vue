@@ -1,14 +1,9 @@
 <script setup lang="ts">
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
   ChevronLeft,
-  ChevronsDown,
   Pause,
   Play,
   RotateCcw,
-  RotateCw,
   Trophy,
   Volume2,
   VolumeX,
@@ -201,8 +196,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="neon-drop-app" :aria-label="phone.t('Apps.neonDrop.name')">
-    <header class="neon-header">
+  <main
+    class="neon-drop-app"
+    :class="{ 'neon-drop-app--playing': !neon.menuOpen && game }"
+    :aria-label="phone.t('Apps.neonDrop.name')"
+  >
+    <header v-if="neon.menuOpen" class="neon-header">
       <div>
         <span>{{ phone.t('Apps.neonDrop.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.neonDrop.name') }}</h1>
@@ -335,51 +334,11 @@ onBeforeUnmount(() => {
           <span>{{ phone.t('Apps.neonDrop.level') }}</span
           ><strong>{{ game.level }}</strong>
           <div class="neon-level">
-            <i :style="{ height: `${levelProgress * 100}%` }"></i>
+            <i :style="{ width: `${levelProgress * 100}%` }"></i>
           </div>
         </aside>
       </div>
 
-      <div
-        class="neon-controls"
-        :aria-label="phone.t('Apps.neonDrop.controls')"
-      >
-        <button
-          type="button"
-          :aria-label="phone.t('Apps.neonDrop.left')"
-          @click="move(-1)"
-        >
-          <ArrowLeft :size="18" />
-        </button>
-        <button
-          type="button"
-          :aria-label="phone.t('Apps.neonDrop.rotate')"
-          @click="rotate"
-        >
-          <RotateCw :size="18" />
-        </button>
-        <button
-          type="button"
-          :aria-label="phone.t('Apps.neonDrop.right')"
-          @click="move(1)"
-        >
-          <ArrowRight :size="18" />
-        </button>
-        <button
-          type="button"
-          :aria-label="phone.t('Apps.neonDrop.softDrop')"
-          @click="softDrop"
-        >
-          <ArrowDown :size="18" />
-        </button>
-        <button
-          type="button"
-          :aria-label="phone.t('Apps.neonDrop.hardDrop')"
-          @click="hardDrop"
-        >
-          <ChevronsDown :size="18" />
-        </button>
-      </div>
       <p class="neon-hint">{{ phone.t('Apps.neonDrop.gameHint') }}</p>
 
       <div v-if="game.status === 'paused'" class="neon-overlay">
@@ -420,6 +379,9 @@ onBeforeUnmount(() => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   user-select: none;
   touch-action: manipulation;
+}
+.neon-drop-app--playing {
+  padding: 0;
 }
 .neon-header {
   height: 54px;
@@ -613,42 +575,70 @@ onBeforeUnmount(() => {
   background: #ffffff0a;
 }
 .neon-game {
-  position: relative;
-  height: calc(100% - 54px);
+  position: absolute;
+  inset: 0;
 }
 .neon-toolbar {
+  position: absolute;
+  z-index: 10;
+  top: 66px;
+  right: 18px;
+  left: 18px;
   height: 42px;
   display: grid;
-  grid-template-columns: 35px 1fr 1fr 35px;
+  grid-template-columns: 32px 1fr 1fr 32px;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #7cf6e72b;
+  border-radius: 21px;
+  background: #101a38a8;
+  box-shadow: 0 8px 24px #0008;
+  backdrop-filter: blur(14px);
+  box-sizing: border-box;
+}
+.neon-toolbar span {
+  font-size: 11px;
+  line-height: 10px;
 }
 .neon-toolbar div {
-  text-align: center;
+  height: 32px;
+  display: grid;
+  grid-template-rows: 10px 20px;
+  align-content: center;
+  justify-items: center;
 }
 .neon-toolbar strong {
-  font-size: 21px;
+  display: block;
+  font-size: 19px;
+  line-height: 20px;
+}
+.neon-toolbar button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
 }
 .neon-play-area {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 5px;
+  position: absolute;
+  inset: 0;
 }
 .neon-board {
-  width: 218px;
-  height: 414px;
+  position: absolute;
+  top: 156px;
+  right: 0;
+  bottom: 76px;
+  left: 0;
   display: grid;
   grid-template-columns: repeat(10, 1fr);
-  grid-template-rows: repeat(18, 1fr);
-  gap: 1.5px;
-  padding: 5px;
-  border: 1px solid #65f4e43b;
-  border-radius: 13px;
-  background: #06091af2;
-  box-shadow:
-    inset 0 0 25px #000b,
-    0 12px 26px #0008;
+  grid-template-rows: repeat(17, 1fr);
+  gap: 1px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   touch-action: none;
 }
 .neon-cell {
@@ -700,31 +690,35 @@ onBeforeUnmount(() => {
   animation: neon-clear 0.24s ease-out;
 }
 .neon-side {
-  width: 70px;
-  display: flex;
-  flex-direction: column;
+  position: absolute;
+  top: 110px;
+  right: 14px;
+  left: 14px;
+  height: 40px;
+  display: grid;
+  grid-template-columns: auto 40px auto auto 1fr;
   align-items: center;
-  gap: 9px;
-  padding: 10px 4px 11px;
-  border: 1px solid #65f4e448;
-  border-radius: 13px;
-  background: linear-gradient(180deg, #1420478f, #090d24a3);
-  box-shadow: inset 0 0 16px #53e8d90a;
+  gap: 8px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .neon-side > strong {
-  font-size: 28px;
+  font-size: 21px;
 }
 .neon-preview {
-  width: 62px;
-  height: 62px;
+  width: 40px;
+  height: 40px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(4, 1fr);
-  gap: 2px;
-  padding: 5px;
-  border: 1px solid #ffffff35;
-  border-radius: 10px;
-  background: #ffffff08;
+  gap: 1px;
+  padding: 3px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 .neon-preview i[class*='neon-piece--'] {
   border: 1px solid #ffffff68;
@@ -734,63 +728,49 @@ onBeforeUnmount(() => {
 }
 .neon-level {
   position: relative;
-  width: 12px;
-  height: 221px;
+  width: 100%;
+  height: 6px;
   overflow: hidden;
   border-radius: 8px;
   background: #ffffff0c;
 }
 .neon-level i {
   position: absolute;
-  right: 0;
+  top: 0;
   bottom: 0;
   left: 0;
   border-radius: 8px;
   background: linear-gradient(#73a7ff, #71f5e5);
   box-shadow: 0 0 9px #69f4e5;
-  transition: height 0.25s;
-}
-.neon-controls {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 5px;
-  margin-top: 9px;
-}
-.neon-controls button {
-  height: 48px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid #ffffff16;
-  border-radius: 11px;
-  color: #dffefd;
-  background: #ffffff0b;
-}
-.neon-controls button:last-child {
-  color: #071225;
-  background: linear-gradient(135deg, #ffe265, #ff9167);
-}
-.neon-controls svg {
-  transform: scale(1.2);
+  transition: width 0.25s;
 }
 .neon-hint {
-  margin: 7px 0 0;
+  position: absolute;
+  z-index: 6;
+  right: 45px;
+  bottom: 27px;
+  left: 45px;
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 999px;
   color: #d6deed;
-  font-size: 16px;
+  background: #101a3891;
+  backdrop-filter: blur(10px);
+  font-size: 10px;
   font-weight: 700;
   text-align: center;
+  pointer-events: none;
 }
 .neon-overlay {
   position: absolute;
   z-index: 10;
-  inset: 42px 0 19px;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 25px;
-  border-radius: 17px;
   background: #080c21e8;
   backdrop-filter: blur(6px);
   text-align: center;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { kBadge } from 'konsta/vue'
 import { Minus } from 'lucide-vue-next'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { NON_REMOVABLE_PHONE_APP_IDS } from '@/config/apps'
@@ -39,6 +39,7 @@ const darkchat = useDarkChatStore()
 const router = useRouter()
 const iconFailed = ref(false)
 const isDragging = ref(false)
+const calendarToday = ref(new Date())
 const dragOffset = ref({ x: 0, y: 0 })
 const dragStyle = computed(() =>
   isDragging.value
@@ -49,6 +50,7 @@ const dragStyle = computed(() =>
 )
 const suppressClick = ref(false)
 let holdTimer: number | undefined
+let calendarTimer: number | undefined
 let pointerStart = { x: 0, y: 0 }
 const unreadCount = computed(() => {
   if (props.app.id === 'mail') return mail.counts.unread
@@ -60,6 +62,12 @@ const notificationBadgeColors = {
   bg: 'bg-[#ff3b30]',
   text: 'text-white',
 }
+const calendarWeekday = computed(() =>
+  new Intl.DateTimeFormat(phone.lang, { weekday: 'short' })
+    .format(calendarToday.value)
+    .replace(/\.$/, ''),
+)
+const calendarDay = computed(() => calendarToday.value.getDate())
 
 function launch(event: MouseEvent): void {
   if (props.editMode || suppressClick.value) {
@@ -167,8 +175,16 @@ function removeDragListeners(): void {
   window.removeEventListener('pointercancel', cancelPointerDrag)
 }
 
+onMounted(() => {
+  if (props.app.id !== 'calendar') return
+  calendarTimer = window.setInterval(() => {
+    calendarToday.value = new Date()
+  }, 60_000)
+})
+
 onBeforeUnmount(() => {
   clearHold()
+  if (calendarTimer !== undefined) window.clearInterval(calendarTimer)
   removeDragListeners()
 })
 </script>
@@ -200,10 +216,17 @@ onBeforeUnmount(() => {
       <span class="app-icon-anchor" aria-hidden="true">
         <span
           class="app-icon"
-          :class="[app.iconClass, { 'app-icon--image': !iconFailed }]"
+          :class="[
+            app.iconClass,
+            { 'app-icon--image': !iconFailed && app.id !== 'calendar' },
+          ]"
         >
+          <span v-if="app.id === 'calendar'" class="app-icon-calendar">
+            <strong>{{ calendarWeekday }}</strong>
+            <b>{{ calendarDay }}</b>
+          </span>
           <img
-            v-if="!iconFailed"
+            v-else-if="!iconFailed"
             :src="app.iconImage"
             alt=""
             draggable="false"
