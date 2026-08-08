@@ -15,7 +15,7 @@ Config.Command = "phone"
 
 Config.Phone = {
     Item = "phone",
-    DevelopmentCommand = true,
+    DevelopmentCommand = false,
     DeviceName = "iFruit Phone",
 }
 
