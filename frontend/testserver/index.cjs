@@ -933,6 +933,7 @@ app.post('/api/:endpoint', (request, response) => {
       data: {
         clock: { year: 2026, month: 8, day: 5, hour: 17, minute: 20 },
         condition: 'partly_cloudy',
+        nextCondition: 'rain',
         rainLevel: 0.08,
         region: 'los_santos',
         windSpeed: 3.2,

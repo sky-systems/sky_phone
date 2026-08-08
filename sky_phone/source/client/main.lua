@@ -257,10 +257,12 @@ end
 RegisterNUICallback("weather:get", function(_, cb)
     local coords = GetEntityCoords(PlayerPedId())
     local weather_hash = GetPrevWeatherTypeHashName()
+    local next_weather_hash = GetNextWeatherTypeHashName()
     cb({
         success = true,
         data = {
             condition = weather_types[weather_hash] or "clear",
+            nextCondition = weather_types[next_weather_hash] or weather_types[weather_hash] or "clear",
             region = weather_region(coords),
             clock = {
                 year = GetClockYear(),

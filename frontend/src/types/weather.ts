@@ -8,10 +8,7 @@ export type WeatherConditionId =
   | 'fog'
   | 'snow'
 
-export type WeatherRegionId =
-  | 'los_santos'
-  | 'blaine_county'
-  | 'cayo_perico'
+export type WeatherRegionId = 'los_santos' | 'blaine_county' | 'cayo_perico'
 
 export type WeatherClock = {
   day: number
@@ -24,6 +21,7 @@ export type WeatherClock = {
 export type RawWeatherSnapshot = {
   clock: WeatherClock
   condition: WeatherConditionId
+  nextCondition: WeatherConditionId
   rainLevel: number
   region: WeatherRegionId
   windSpeed: number
@@ -36,17 +34,8 @@ export type HourlyWeather = {
   timestamp: number
 }
 
-export type DailyWeather = {
-  condition: WeatherConditionId
-  high: number
-  low: number
-  rainChance: number
-  timestamp: number
-}
-
 export type WeatherForecast = {
   condition: WeatherConditionId
-  daily: DailyWeather[]
   feelsLike: number
   hourly: HourlyWeather[]
   humidity: number

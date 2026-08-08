@@ -3,12 +3,11 @@ import { describe, expect, it } from 'vitest'
 import type { RawWeatherSnapshot, WeatherRegionId } from '@/types/weather'
 import { buildWeatherForecast } from './weather'
 
-function snapshot(
-  region: WeatherRegionId = 'los_santos',
-): RawWeatherSnapshot {
+function snapshot(region: WeatherRegionId = 'los_santos'): RawWeatherSnapshot {
   return {
     clock: { day: 31, hour: 23, minute: 30, month: 12, year: 2026 },
     condition: 'partly_cloudy',
+    nextCondition: 'rain',
     rainLevel: 0.1,
     region,
     windSpeed: 4,
@@ -16,13 +15,15 @@ function snapshot(
 }
 
 describe('weather forecast', () => {
-  it('builds deterministic 24-hour and seven-day forecasts', () => {
+  it('builds a deterministic six-hour forecast from native weather states', () => {
     const first = buildWeatherForecast(snapshot())
     const second = buildWeatherForecast(snapshot())
 
     expect(first).toEqual(second)
-    expect(first.hourly).toHaveLength(24)
-    expect(first.daily).toHaveLength(7)
+    expect(first.hourly).toHaveLength(6)
+    expect(first.hourly[0]?.condition).toBe('partly_cloudy')
+    expect(first.hourly[1]?.condition).toBe('rain')
+    expect(first).not.toHaveProperty('daily')
   })
 
   it('rolls hourly timestamps into the next year', () => {
