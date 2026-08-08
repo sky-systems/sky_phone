@@ -10,6 +10,7 @@ vi.mock('@/utils/nui', () => ({ nuiCall: vi.fn() }))
 const rawWeather: RawWeatherSnapshot = {
   clock: { day: 5, hour: 17, minute: 20, month: 8, year: 2026 },
   condition: 'sunny',
+  nextCondition: 'clear',
   rainLevel: 0,
   region: 'los_santos',
   windSpeed: 2,
@@ -32,7 +33,7 @@ describe('weather store', () => {
 
     expect(nuiCall).toHaveBeenCalledWith('weather:get')
     expect(weather.forecast?.condition).toBe('sunny')
-    expect(weather.forecast?.hourly).toHaveLength(24)
+    expect(weather.forecast?.hourly).toHaveLength(6)
     expect(weather.error).toBeNull()
   })
 

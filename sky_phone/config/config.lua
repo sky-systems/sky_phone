@@ -140,6 +140,37 @@ Config.Banking = {
     HistoryLimit = 50,
 }
 
+Config.Garage = {
+    System = "auto", -- auto, custom, esx, qb, qbox, ak47, bp, cd, codem, ds-servercreator, hex, jg, my, okok, op, quasar, rx, vms, ws, zyke_garages
+    MaximumVehicles = 250,
+    RequestsPerMinute = 30,
+    Custom = {
+        Table = "",
+        OwnerColumn = "",
+    },
+    Valet = {
+        Enabled = true,
+        Price = 750,
+        Account = "bank", -- bank or cash
+        RequestsPerMinute = 3,
+        CooldownSeconds = 60,
+        TimeoutSeconds = 180,
+        SpawnDistance = 110.0,
+        ArrivalDistance = 14.0,
+        DriveSpeed = 20.0,
+        DrivingStyle = 786603,
+        DriverModel = "s_m_m_autoshop_01",
+        -- The current valet driver route supports road vehicles. Keep non-road types disabled.
+        VehicleTypes = {
+            car = true,
+            bike = true,
+            boat = false,
+            plane = false,
+            helicopter = false,
+        },
+    },
+}
+
 Config.Marketplace = {
     PageSize = 20,
     MessagePageSize = 50,

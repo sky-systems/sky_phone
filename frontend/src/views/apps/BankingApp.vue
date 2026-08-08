@@ -32,17 +32,21 @@ import {
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { useBankingStore } from '@/stores/banking'
+import { useCallsStore } from '@/stores/calls'
 import { usePhoneStore } from '@/stores/phone'
 import type {
   BankingAction,
   BankingTransaction,
   BankingTransactionKind,
 } from '@/types/banking'
+import type { PhoneContact } from '@/types/phone'
+import { formatPhoneNumber, normalizePhoneNumber } from '@/utils/phone'
 
 type BankingTab = 'home' | 'activity'
 
 const phone = usePhoneStore()
 const banking = useBankingStore()
+const calls = useCallsStore()
 const activeTab = ref<BankingTab>('home')
 const action = ref<BankingAction | null>(null)
 const amount = ref('')
@@ -138,6 +142,7 @@ function openAction(nextAction: BankingAction): void {
   amount.value = ''
   target.value = ''
   formError.value = ''
+  void calls.loadContacts()
 }
 
 function closeAction(): void {
@@ -147,11 +152,17 @@ function closeAction(): void {
 
 function updateTarget(event: Event): void {
   if (!(event.target instanceof HTMLInputElement)) {
-    console.error('[banking] Player ID input emitted without an input target.')
+    console.error('[banking] Phone number input emitted without an input target.')
     return
   }
   target.value = event.target.value
   formError.value = ''
+}
+
+function selectContact(contact: PhoneContact): void {
+  target.value = contact.phone_number
+  formError.value = ''
+  void nextTick(() => document.getElementById('banking-transfer-amount')?.focus())
 }
 
 function updateAmount(event: Event): void {
@@ -256,17 +267,22 @@ function errorMessage(code: string): string {
 async function submitAction(): Promise<void> {
   if (!action.value) return
   const parsedAmount = Number(amount.value)
-  const parsedTarget = action.value === 'transfer' ? Number(target.value) : undefined
+  const phoneNumber = action.value === 'transfer'
+    ? normalizePhoneNumber(target.value)
+    : undefined
   if (
     !Number.isSafeInteger(parsedAmount) ||
     parsedAmount <= 0 ||
-    (action.value === 'transfer' &&
-      (!Number.isSafeInteger(parsedTarget) || (parsedTarget ?? 0) <= 0))
+    (action.value === 'transfer' && !phoneNumber)
   ) {
     formError.value = phone.t('Apps.banking.errors.invalid_request')
     return
   }
-  const response = await banking.perform(action.value, parsedAmount, parsedTarget)
+  const response = await banking.perform(
+    action.value,
+    parsedAmount,
+    phoneNumber ?? undefined,
+  )
   if (!response.success) {
     formError.value = errorMessage(response.error ?? 'default')
     return
@@ -563,13 +579,12 @@ onBeforeUnmount(() => {
         <p>{{ phone.t(`Apps.banking.forms.${action}.body`) }}</p>
         <k-list inset strong class="banking-form-list">
           <k-list-input
-            :label="phone.t('Apps.banking.playerId')"
+            :label="phone.t('Apps.banking.recipientPhone')"
             input-id="banking-transfer-target"
-            inputmode="numeric"
-            min="1"
+            inputmode="tel"
             outline
-            :placeholder="phone.t('Apps.banking.playerIdPlaceholder')"
-            type="number"
+            :placeholder="phone.t('Apps.banking.recipientPhonePlaceholder')"
+            type="tel"
             :value="target"
             @input="updateTarget"
           />
@@ -587,6 +602,20 @@ onBeforeUnmount(() => {
             @keydown.enter="submitAction"
           />
         </k-list>
+        <div class="banking-contact-picker">
+          <span>{{ phone.t('Apps.banking.chooseContact') }}</span>
+          <k-list v-if="calls.contacts.length" inset strong>
+            <k-list-item
+              v-for="contact in calls.contacts"
+              :key="contact.id"
+              :title="contact.name"
+              :subtitle="formatPhoneNumber(contact.phone_number)"
+              link
+              @click="selectContact(contact)"
+            />
+          </k-list>
+          <p v-else>{{ phone.t('Apps.banking.noContacts') }}</p>
+        </div>
         <p v-if="formError" class="banking-form-error" role="alert">
           {{ formError }}
         </p>

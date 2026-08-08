@@ -4,3 +4,6 @@ dist/
 *.local
 dev-server*.log
 
+# Image-generation source files retained locally for asset iteration.
+/src/assets/img/weather-icons/source/
+

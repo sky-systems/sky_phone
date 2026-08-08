@@ -37,13 +37,13 @@ describe('banking store', () => {
     mockNuiCall.mockResolvedValueOnce({ data: updated, success: true })
     const banking = useBankingStore()
 
-    const response = await banking.perform('transfer', 1000, 17)
+    const response = await banking.perform('transfer', 1000, '5551234567')
 
     expect(response.success).toBe(true)
     expect(banking.overview?.bank).toBe(23787)
     expect(mockNuiCall).toHaveBeenCalledWith('banking:transfer', {
       amount: 1000,
-      target: 17,
+      phoneNumber: '5551234567',
     })
   })
 
@@ -55,7 +55,7 @@ describe('banking store', () => {
     const banking = useBankingStore()
     banking.overview = overview
 
-    await banking.perform('transfer', 50000, 17)
+    await banking.perform('transfer', 50000, '5551234567')
 
     expect(banking.overview).toEqual(overview)
     expect(banking.error).toBe('insufficient_funds')

@@ -1736,8 +1736,9 @@ button {
   height: 100%;
   overflow: hidden;
   background:
-    radial-gradient(circle at 92% 4%, rgb(45 118 255 / 28%), transparent 32%),
-    linear-gradient(160deg, #0c1834 0%, #080d1d 44%, #050710 100%) !important;
+    radial-gradient(ellipse at 50% -8%, rgb(26 185 187 / 34%), transparent 42%),
+    radial-gradient(circle at 92% 18%, rgb(45 118 255 / 24%), transparent 34%),
+    linear-gradient(180deg, #071a2a 0%, #081220 40%, #060910 100%) !important;
   color: #fff;
   isolation: isolate;
 }
@@ -1746,25 +1747,26 @@ button {
   position: absolute;
   z-index: -1;
   inset: 0;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 2.4%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 2.4%) 1px, transparent 1px);
-  background-size: 42px 42px;
+  background:
+    radial-gradient(circle at 8% 54%, rgb(28 210 183 / 10%), transparent 31%),
+    radial-gradient(circle at 78% 72%, rgb(77 75 255 / 9%), transparent 30%),
+    linear-gradient(180deg, rgb(255 255 255 / 2.5%), transparent 32%);
   content: '';
-  mask-image: linear-gradient(to bottom, #000, transparent 66%);
+  pointer-events: none;
 }
 
 .banking-app__aurora {
   position: absolute;
   z-index: -1;
-  width: 240px;
-  height: 180px;
-  top: 160px;
-  left: -145px;
+  width: 270px;
+  height: 210px;
+  top: 92px;
+  right: -178px;
   border-radius: 50%;
-  background: #215dea;
-  filter: blur(78px);
-  opacity: 0.2;
+  background: #2c8cff;
+  filter: blur(88px);
+  opacity: 0.18;
+  pointer-events: none;
 }
 
 .banking-navbar {
@@ -1913,7 +1915,8 @@ button {
   color: #fff;
 }
 
-.banking-action--primary svg:last-child {
+.banking-action--primary > .lucide-chevron-right {
+  flex: 0 0 auto;
   margin-left: auto;
   opacity: 0.78;
 }
@@ -2112,6 +2115,29 @@ button {
 
 .banking-form-list { margin: 12px 0 0 !important; }
 
+.banking-contact-picker {
+  margin-top: 12px;
+}
+
+.banking-contact-picker > span {
+  display: block;
+  margin: 0 4px 6px;
+  color: rgb(213 225 248 / 52%);
+  font-size: 9px;
+}
+
+.banking-contact-picker > div {
+  max-height: 118px;
+  margin: 0 !important;
+  overflow-y: auto;
+}
+
+.banking-contact-picker > p {
+  margin: 0 4px;
+  color: rgb(213 225 248 / 42%);
+  font-size: 9px;
+}
+
 .banking-sheet__content .banking-form-error {
   margin: 10px 3px 0;
   color: #ff8b98;
@@ -2274,7 +2300,8 @@ button {
   font-size: 11px;
   font-weight: 650;
 }
-.weather-hour svg {
+.weather-hour svg,
+.weather-hour img {
   margin: 5px 0;
 }
 .weather-hour small {
@@ -2287,52 +2314,6 @@ button {
   margin-top: auto;
   font-size: 15px;
 }
-.weather-day {
-  display: grid;
-  align-items: center;
-  grid-template-columns: 55px 45px 28px 1fr 28px;
-  min-height: 48px;
-  margin: 0 12px;
-  border-bottom: 1px solid #ffffff18;
-  font-size: 13px;
-}
-.weather-day:last-child {
-  border-bottom: 0;
-}
-.weather-day > strong {
-  font-weight: 650;
-}
-.weather-day__condition {
-  position: relative;
-  display: grid;
-  place-items: center;
-}
-.weather-day__condition small {
-  position: absolute;
-  top: 29px;
-  color: #66d2ff;
-  font-size: 8px;
-  font-weight: 700;
-}
-.weather-day__low {
-  color: #ffffff7d;
-}
-.weather-day__range {
-  position: relative;
-  height: 4px;
-  margin: 0 4px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #07122755;
-}
-.weather-day__range i {
-  position: absolute;
-  left: var(--range-left);
-  width: var(--range-width);
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #68d8ff, #7de4b7 55%, #ffd55e);
-}
 .weather-empty {
   position: absolute;
   inset: 90px 20px 25px;
@@ -2344,7 +2325,8 @@ button {
   color: #ffffffd9;
   text-align: center;
 }
-.weather-empty > svg {
+.weather-empty > svg,
+.weather-empty > img {
   opacity: 0.75;
 }
 .weather-spin {
