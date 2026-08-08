@@ -124,6 +124,7 @@ end
 
 local function close_phone()
     open_requested = false
+    TriggerEvent("sky_phone:animation:phone", false)
     if not is_open then
         return
     end
@@ -192,6 +193,7 @@ RegisterNUICallback("ui:opened", function(_, cb)
     is_open = true
     notification_focus = false
     SetNuiFocus(true, true)
+    TriggerEvent("sky_phone:animation:phone", true)
     cb({ success = true })
 end)
 
@@ -351,6 +353,7 @@ end)
 RegisterNetEvent("sky_phone:device:invalidated", function()
     open_requested = false
     device_payload = nil
+    TriggerEvent("sky_phone:animation:reset")
     close_phone()
 end)
 
@@ -465,6 +468,7 @@ end)
 RegisterNetEvent("sky_phone:call:incoming", function(data)
     notification_focus = true
     SetNuiFocus(true, true)
+    TriggerEvent("sky_phone:animation:call", data)
     SendNUIMessage({ type = "call:incoming", data = data })
 end)
 
@@ -476,6 +480,7 @@ RegisterNetEvent("sky_phone:call:state", function(data)
     elseif data.state ~= "ringing" then
         leave_call_voice()
     end
+    TriggerEvent("sky_phone:animation:call", data)
     SendNUIMessage({ type = "call:state", data = data })
 end)
 
@@ -494,6 +499,7 @@ AddEventHandler("onResourceStop", function(resource_name)
         SetNuiFocus(false, false)
     end
 
+    TriggerEvent("sky_phone:animation:reset")
     leave_call_voice()
 
     if Config.Phone.DevelopmentCommand then

@@ -235,6 +235,9 @@ function toggleOrientation(): void {
     },
     '*',
   )
+  void nuiCall('camera:setOrientation', {
+    landscape: phone.cameraLandscape,
+  })
 }
 
 function setZoom(zoom: (typeof zoomLevels)[number]): void {
@@ -353,6 +356,7 @@ onMounted(() => {
     { data: { landscape: false }, type: 'camera:orientation' },
     '*',
   )
+  void nuiCall('camera:setOrientation', { landscape: false })
   window.postMessage(
     { data: { zoom: selectedZoom.value }, type: 'camera:zoom' },
     '*',
@@ -386,6 +390,7 @@ onBeforeUnmount(() => {
     '*',
   )
   window.postMessage({ type: 'camera:recordCancel' }, '*')
+  void nuiCall('camera:setOrientation', { landscape: false })
   void nuiCall('camera:setFlash', { enabled: false })
   void nuiCall('camera:setActive', { active: false })
 })

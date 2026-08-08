@@ -24,6 +24,7 @@ client_scripts {
     'config/locales/*.lua',
     'source/bridge/client/framework.lua',
     'source/bridge/client/callbacks.lua',
+    'source/client/animations.lua',
     'source/client/camera.lua',
     'source/client/garage.lua',
     'source/client/main.lua',

@@ -14,6 +14,7 @@ local camera_state = {
     focus_watcher = false,
     front_camera = false,
     front_camera_handle = nil,
+    landscape = false,
     ultrawide_camera_handle = nil,
     nui_focused = true,
     previous_ped_view = nil,
@@ -181,6 +182,7 @@ local function set_camera_active(active)
     camera_state.active = active
     if active then
         camera_state.front_camera = false
+        camera_state.landscape = false
         camera_state.zoom = 1.0
         clear_front_camera()
         clear_ultrawide_camera()
@@ -190,6 +192,11 @@ local function set_camera_active(active)
         DisplayRadar(false)
         set_camera_focus(true)
         apply_camera_view()
+        TriggerEvent("sky_phone:animation:camera", {
+            active = true,
+            front = camera_state.front_camera,
+            landscape = camera_state.landscape,
+        })
         if camera_state.enforcing then
             return
         end
@@ -240,6 +247,7 @@ local function set_camera_active(active)
     end
     set_flash_enabled(false)
     camera_state.front_camera = false
+    camera_state.landscape = false
     clear_front_camera()
     clear_ultrawide_camera()
     restore_camera_view()
@@ -248,6 +256,11 @@ local function set_camera_active(active)
         SetNuiFocusKeepInput(false)
         SetNuiFocus(true, true)
     end
+    TriggerEvent("sky_phone:animation:camera", {
+        active = false,
+        front = false,
+        landscape = false,
+    })
 end
 
 local function set_front_camera(active)
@@ -268,6 +281,25 @@ local function set_front_camera(active)
         end
     end
     apply_camera_view()
+    TriggerEvent("sky_phone:animation:camera", {
+        active = true,
+        front = camera_state.front_camera,
+        landscape = camera_state.landscape,
+    })
+end
+
+local function set_camera_landscape(active)
+    if camera_state.landscape == active then
+        return
+    end
+    camera_state.landscape = active
+    if camera_state.active then
+        TriggerEvent("sky_phone:animation:camera", {
+            active = true,
+            front = camera_state.front_camera,
+            landscape = camera_state.landscape,
+        })
+    end
 end
 
 local function set_camera_zoom(zoom)
@@ -311,6 +343,11 @@ end)
 
 RegisterNUICallback("camera:setFacing", function(data, cb)
     set_front_camera(data and data.front == true)
+    cb({ success = true })
+end)
+
+RegisterNUICallback("camera:setOrientation", function(data, cb)
+    set_camera_landscape(data and data.landscape == true)
     cb({ success = true })
 end)
 
