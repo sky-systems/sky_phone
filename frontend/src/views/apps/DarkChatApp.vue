@@ -2112,8 +2112,8 @@ onBeforeUnmount(() => {
 .dc-sms-chat-contact > span:nth-child(2) {
   display: flex;
   min-width: 0;
-  height: 31px;
-  padding: 4px 11px;
+  min-height: 23px;
+  padding: 3px 11px;
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -2363,10 +2363,8 @@ onBeforeUnmount(() => {
               >{{ avatarGlyph(active.peer.avatarSeed) }}</span
             ><span
               ><strong>{{ active.peer.alias }}</strong
-              ><small>{{
-                active.peer.activityVisible
-                  ? t('activeNow')
-                  : t('encryptedSession')
+              ><small v-if="active.peer.activityVisible">{{
+                t('activeNow')
               }}</small></span
             ><ChevronRight :size="13" />
           </button>
