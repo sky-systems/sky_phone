@@ -101,7 +101,8 @@ const unmatchDialog = ref(false)
 const activeExploreMode = ref<ExploreMode>('all')
 const actionToast = ref('')
 const draftPhotos = ref<FlareDraftPhoto[]>([])
-const activeChoiceField = ref<FlareChoiceField | null>(null)
+const activeChoiceField = ref<FlareChoiceField>('gender')
+const choiceOpened = ref(false)
 const choiceSheetContent = ref<HTMLElement | null>(null)
 let activeChoiceTrigger: HTMLElement | null = null
 const profileDraft = reactive<FlareProfileDraft>({
@@ -125,14 +126,12 @@ const bioInputStyle: CSSProperties = {
 }
 
 const activeChoiceOptions = computed<FlareChoiceOption[]>(() =>
-  activeChoiceField.value ? choiceOptions(activeChoiceField.value) : [],
+  choiceOptions(activeChoiceField.value),
 )
 const activeChoiceTitle = computed(() =>
-  activeChoiceField.value ? choiceFieldLabel(activeChoiceField.value) : '',
+  choiceFieldLabel(activeChoiceField.value),
 )
-const activeChoiceValue = computed(() =>
-  activeChoiceField.value ? profileDraft[activeChoiceField.value] : '',
-)
+const activeChoiceValue = computed(() => profileDraft[activeChoiceField.value])
 
 const filteredSuggestions = computed(() =>
   activeExploreMode.value === 'all'
@@ -316,7 +315,7 @@ function choiceLabel(field: FlareChoiceField): string {
 function choiceLinkProps(field: FlareChoiceField): Record<string, unknown> {
   return {
     'aria-controls': 'flare-choice-sheet',
-    'aria-expanded': activeChoiceField.value === field,
+    'aria-expanded': choiceOpened.value && activeChoiceField.value === field,
     'aria-haspopup': 'dialog',
     class: 'flare-choice-trigger',
     onClick: (event: MouseEvent) =>
@@ -325,21 +324,28 @@ function choiceLinkProps(field: FlareChoiceField): Record<string, unknown> {
   }
 }
 
-function openChoice(field: FlareChoiceField, trigger: HTMLElement): void {
+async function openChoice(
+  field: FlareChoiceField,
+  trigger: HTMLElement,
+): Promise<void> {
   activeChoiceTrigger = trigger
   activeChoiceField.value = field
-  void nextTick(() => {
-    choiceSheetContent.value
-      ?.querySelector<HTMLElement>('[aria-selected="true"]')
-      ?.focus()
+  await nextTick()
+  await new Promise<void>((resolve) => {
+    globalThis.requestAnimationFrame(() => resolve())
   })
+  choiceOpened.value = true
+  await nextTick()
+  choiceSheetContent.value
+    ?.querySelector<HTMLElement>('[aria-selected="true"]')
+    ?.focus({ preventScroll: true })
 }
 
 function closeChoice(): void {
   const trigger = activeChoiceTrigger
-  activeChoiceField.value = null
+  choiceOpened.value = false
   activeChoiceTrigger = null
-  void nextTick(() => trigger?.focus())
+  void nextTick(() => trigger?.focus({ preventScroll: true }))
 }
 
 function selectChoice(value: string): void {
@@ -1477,18 +1483,19 @@ onMounted(async () => {
     </div>
 
     <k-sheet
-      :opened="Boolean(activeChoiceField)"
+      :opened="choiceOpened"
       class="flare-choice-sheet"
       @backdropclick="closeChoice"
     >
       <section
-        v-if="activeChoiceField"
         id="flare-choice-sheet"
         ref="choiceSheetContent"
         class="flare-choice-sheet__content"
         role="dialog"
-        aria-modal="true"
+        :aria-hidden="!choiceOpened"
+        :aria-modal="choiceOpened ? 'true' : undefined"
         aria-labelledby="flare-choice-sheet-title"
+        :inert="!choiceOpened"
         @keydown.esc="closeChoice"
       >
         <span class="flare-choice-sheet__grabber" aria-hidden="true" />
