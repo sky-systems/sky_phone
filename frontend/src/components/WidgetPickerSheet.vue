@@ -183,6 +183,8 @@ watch(
               :key="definition.kind"
               link
               link-component="button"
+              content-class="w-full"
+              :chevron="false"
               :title="phone.t(definition.labelKey)"
               :subtitle="phone.t(definition.descriptionKey)"
               @click="selectWidget(definition)"

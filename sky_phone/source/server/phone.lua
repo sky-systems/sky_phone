@@ -1006,6 +1006,10 @@ Bridge.Callbacks.Register("sky_phone:device:factory-reset", function(source)
             params = { session.imei },
         },
         {
+            query = "DELETE FROM `sky_phone_fliptok_sessions` WHERE `device_imei` = ?",
+            params = { session.imei },
+        },
+        {
             query = "UPDATE `sky_phone_devices` SET `account_id` = NULL, `device_name` = ? WHERE `imei` = ?",
             params = { Config.Phone.DeviceName, session.imei },
         },

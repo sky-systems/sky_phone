@@ -5,6 +5,16 @@ local report_reasons = { spam = true, harassment = true, dangerous = true, illeg
 local report_actions = { dismiss = true, remove = true }
 local music_tracks = {}
 local music_track_list = {}
+local password_pepper = GetConvar(Config.FlipTok.PasswordPepperConvar, "")
+
+if password_pepper == "" then
+    Bridge.Debug(
+        "warn",
+        "[sky_phone] FlipTok password pepper convar '%s' is empty; configure it before production use.",
+        Config.FlipTok.PasswordPepperConvar,
+        { always = true }
+    )
+end
 
 for _, track in ipairs(Config.FlipTok.MusicTracks) do
     local id = tostring(track.Id or track.id or "")
@@ -50,28 +60,33 @@ local function new_id()
     return rows[1].id
 end
 
-local function profile_for_account(account)
-    local rows = Bridge.Database.Query("SELECT * FROM `sky_phone_fliptok_profiles` WHERE `account_id` = ? LIMIT 1", { account.id })
-    if rows[1] then return rows[1] end
-
-    local base = account.email:match("^([^@]+)") or "user"
-    base = base:lower():gsub("[^a-z0-9._]", ""):sub(1, 16)
-    if #base < 3 then base = "user" end
-    local handle = base
-    local suffix = 0
-    while Bridge.Database.Query("SELECT `id` FROM `sky_phone_fliptok_profiles` WHERE `handle` = ? LIMIT 1", { handle })[1] do
-        suffix = suffix + 1
-        handle = (base:sub(1, 18) .. tostring(account.id) .. tostring(suffix)):sub(1, 24)
+local function normalize_handle(value)
+    local handle = trim(value)
+    if not handle then return nil end
+    handle = handle:lower():gsub("^@", "")
+    if #handle < 3 or #handle > 24 or not handle:match("^[a-z0-9][a-z0-9._]*[a-z0-9]$") or handle:find("..", 1, true) then
+        return nil
     end
-    Bridge.Database.Query([[INSERT INTO `sky_phone_fliptok_profiles`
-        (`account_id`, `handle`, `display_name`) VALUES (?, ?, ?)]], { account.id, handle, base })
-    return Bridge.Database.Query("SELECT * FROM `sky_phone_fliptok_profiles` WHERE `account_id` = ? LIMIT 1", { account.id })[1]
+    return handle
+end
+
+local function valid_password(value)
+    local length = type(value) == "string" and utf8.len(value) or nil
+    return length and length >= Config.FlipTok.PasswordMinLength and length <= Config.FlipTok.PasswordMaxLength
+end
+
+local function profile_for_session(source)
+    local session, error_response = SkyPhone.RequireSession(source)
+    if not session then return nil, error_response end
+    local rows = Bridge.Database.Query([[SELECT p.* FROM `sky_phone_fliptok_sessions` s
+        JOIN `sky_phone_fliptok_profiles` p ON p.`id` = s.`profile_id`
+        WHERE s.`device_imei` = ? LIMIT 1]], { session.imei })
+    if not rows[1] then return nil, { success = false, error = "fliptok_not_authenticated" } end
+    return rows[1], nil
 end
 
 local function require_profile(source)
-    local account, error_response = SkyPhone.RequireAccount(source)
-    if not account then return nil, error_response end
-    return profile_for_account(account), nil
+    return profile_for_session(source)
 end
 
 local function hydrate_profile(profile, viewer_id)
@@ -181,12 +196,104 @@ local function feed(source, data)
     return { success = true, data = { items = rows, offset = offset, hasMore = has_more } }
 end
 
+Bridge.Callbacks.Register("sky_phone:fliptok:register", function(source, data)
+    if not SkyPhone.AllowOperation(source, "fliptok:register", 5, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local account, error_response = SkyPhone.RequireAccount(source)
+    if not account then return error_response end
+    if type(data) ~= "table" then return { success = false, error = "invalid_request" } end
+
+    local handle = normalize_handle(data.handle)
+    local display_name = trim(data.displayName)
+    if not handle then return { success = false, error = "invalid_handle" } end
+    if not valid_text(display_name, 1, 40) then return { success = false, error = "invalid_display_name" } end
+    if not valid_password(data.password) then return { success = false, error = "invalid_password" } end
+
+    local profiles = Bridge.Database.Query("SELECT `id` FROM `sky_phone_fliptok_profiles` WHERE `account_id` = ? LIMIT 1", { account.id })
+    local profile_id = profiles[1] and tonumber(profiles[1].id) or nil
+    local duplicates = profile_id and Bridge.Database.Query(
+        "SELECT `id` FROM `sky_phone_fliptok_profiles` WHERE `handle` = ? AND `id` <> ? LIMIT 1",
+        { handle, profile_id }
+    ) or Bridge.Database.Query(
+        "SELECT `id` FROM `sky_phone_fliptok_profiles` WHERE `handle` = ? LIMIT 1",
+        { handle }
+    )
+    if duplicates[1] then return { success = false, error = "handle_taken" } end
+
+    if profile_id then
+        local credentials = Bridge.Database.Query("SELECT `profile_id` FROM `sky_phone_fliptok_credentials` WHERE `profile_id` = ? LIMIT 1", { profile_id })
+        if credentials[1] then return { success = false, error = "already_registered" } end
+        Bridge.Database.Query("UPDATE `sky_phone_fliptok_profiles` SET `handle` = ?, `display_name` = ? WHERE `id` = ?", {
+            handle, display_name, profile_id,
+        })
+    else
+        local result = Bridge.Database.Query([[INSERT IGNORE INTO `sky_phone_fliptok_profiles`
+            (`account_id`, `handle`, `display_name`) VALUES (?, ?, ?)]], { account.id, handle, display_name })
+        if affected_rows(result) ~= 1 then return { success = false, error = "handle_taken" } end
+        local created = Bridge.Database.Query("SELECT `id` FROM `sky_phone_fliptok_profiles` WHERE `account_id` = ? LIMIT 1", { account.id })
+        if not created[1] then error("[sky_phone] FlipTok profile insert did not return the created profile.") end
+        profile_id = tonumber(created[1].id)
+    end
+
+    local salts = Bridge.Database.Query("SELECT REPLACE(UUID(), '-', '') AS `salt`", {})
+    local salt = salts[1] and salts[1].salt
+    if type(salt) ~= "string" or #salt ~= 32 then error("[sky_phone] Database did not generate a FlipTok password salt.") end
+    local credential_result = Bridge.Database.Query([[INSERT IGNORE INTO `sky_phone_fliptok_credentials`
+        (`profile_id`, `password_hash`, `password_salt`) VALUES (?, UNHEX(SHA2(CONCAT(?, ?, ?), 256)), ?)]], {
+        profile_id, password_pepper, salt, data.password, salt,
+    })
+    if affected_rows(credential_result) ~= 1 then return { success = false, error = "already_registered" } end
+    Bridge.Database.Query([[INSERT INTO `sky_phone_fliptok_sessions` (`device_imei`, `profile_id`) VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE `profile_id` = VALUES(`profile_id`), `updated_at` = CURRENT_TIMESTAMP]], {
+        account.imei, profile_id,
+    })
+    return { success = true }
+end)
+
+Bridge.Callbacks.Register("sky_phone:fliptok:login", function(source, data)
+    if not SkyPhone.AllowOperation(source, "fliptok:login", 10, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local session, error_response = SkyPhone.RequireSession(source)
+    if not session then return error_response end
+    if type(data) ~= "table" then return { success = false, error = "invalid_credentials" } end
+    local handle = normalize_handle(data.handle)
+    if not handle or not valid_password(data.password) then
+        return { success = false, error = "invalid_credentials" }
+    end
+    local profiles = Bridge.Database.Query([[SELECT p.`id` FROM `sky_phone_fliptok_profiles` p
+        JOIN `sky_phone_fliptok_credentials` c ON c.`profile_id` = p.`id`
+        WHERE p.`handle` = ?
+            AND c.`password_hash` = UNHEX(SHA2(CONCAT(?, c.`password_salt`, ?), 256))
+        LIMIT 1]], { handle, password_pepper, data.password })
+    if not profiles[1] then return { success = false, error = "invalid_credentials" } end
+    Bridge.Database.Query([[INSERT INTO `sky_phone_fliptok_sessions` (`device_imei`, `profile_id`) VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE `profile_id` = VALUES(`profile_id`), `updated_at` = CURRENT_TIMESTAMP]], {
+        session.imei, profiles[1].id,
+    })
+    return { success = true }
+end)
+
+Bridge.Callbacks.Register("sky_phone:fliptok:logout", function(source)
+    local session, error_response = SkyPhone.RequireSession(source)
+    if not session then return error_response end
+    Bridge.Database.Query("DELETE FROM `sky_phone_fliptok_sessions` WHERE `device_imei` = ?", { session.imei })
+    return { success = true }
+end)
+
 Bridge.Callbacks.Register("sky_phone:fliptok:bootstrap", function(source)
     local profile, error_response = require_profile(source)
-    if not profile then return error_response end
+    if not profile then
+        if error_response.error == "fliptok_not_authenticated" then
+            return { success = true, data = { authenticated = false, musicTracks = music_track_list } }
+        end
+        return error_response
+    end
     local result = feed(source, { mode = "for-you", offset = 0 })
     if not result.success then return result end
     return { success = true, data = {
+        authenticated = true,
         profile = load_profile(profile.id, profile.id),
         feed = result.data,
         isAdmin = Bridge.Framework.HasAdminGroup(source, Config.FlipTok.ReportAdminGroups),

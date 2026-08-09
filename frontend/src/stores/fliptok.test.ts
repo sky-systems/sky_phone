@@ -130,4 +130,57 @@ describe('FlipTok verification updates', () => {
     expect(store.activities).toEqual([])
     expect(store.viewedProfile).toBeNull()
   })
+
+  it('keeps the app signed out when bootstrap has no FlipTok session', async () => {
+    vi.mocked(nuiCall).mockResolvedValue({
+      success: true,
+      data: { authenticated: false, musicTracks: [] },
+    })
+    const store = useFlipTokStore()
+
+    expect(await store.bootstrap()).toBe(true)
+    expect(store.authenticated).toBe(false)
+    expect(store.profile).toBeNull()
+    expect(store.feed).toEqual([])
+  })
+
+  it('loads the profile after a successful login', async () => {
+    vi.mocked(nuiCall)
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          authenticated: true,
+          feed: { hasMore: false, items: [{ ...video }], offset: 0 },
+          isAdmin: false,
+          musicTracks: [],
+          profile: { ...profile },
+        },
+      })
+    const store = useFlipTokStore()
+
+    expect((await store.login('nova', 'password123')).success).toBe(true)
+    expect(store.authenticated).toBe(true)
+    expect(store.profile?.handle).toBe('nova')
+    expect(nuiCall).toHaveBeenNthCalledWith(1, 'fliptok:login', {
+      handle: 'nova',
+      password: 'password123',
+    })
+  })
+
+  it('clears the complete local session after logout', async () => {
+    vi.mocked(nuiCall).mockResolvedValue({ success: true })
+    const store = useFlipTokStore()
+    store.authenticated = true
+    store.profile = { ...profile }
+    store.feed = [{ ...video }]
+    store.activities = [{ ...activity }]
+
+    expect((await store.logout()).success).toBe(true)
+    expect(nuiCall).toHaveBeenCalledWith('fliptok:logout')
+    expect(store.authenticated).toBe(false)
+    expect(store.profile).toBeNull()
+    expect(store.feed).toEqual([])
+    expect(store.activities).toEqual([])
+  })
 })

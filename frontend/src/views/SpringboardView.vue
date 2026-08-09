@@ -1004,6 +1004,7 @@ watch(isEditablePage, (visible) => {
         <k-list-item
           link
           link-component="button"
+          content-class="w-full"
           :title="phone.t('Home.widgetSystem.editWidget')"
           @click="openWidgetConfig"
         >
@@ -1012,6 +1013,7 @@ watch(isEditablePage, (visible) => {
         <k-list-item
           link
           link-component="button"
+          content-class="w-full"
           class="widget-action-remove"
           :title="phone.t('Home.widgetSystem.removeWidget')"
           @click="activeWidget && removeWidget(activeWidget.id)"

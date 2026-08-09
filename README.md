@@ -20,6 +20,23 @@ MusicTracks = {
 }
 ```
 
+## FlipTok accounts
+
+FlipTok profiles use their own username and password login. Registration requires a linked iFruit
+account once so an existing creator profile, videos, followers, and verification can be claimed
+without data loss. Login sessions are stored per phone IMEI and survive resource or server restarts;
+signing out removes only that device session.
+
+Set a private, stable password pepper in `server.cfg` before players register. Changing it later
+invalidates every existing FlipTok password:
+
+```cfg
+set sky_phone_fliptok_password_pepper "replace-with-a-long-random-secret"
+```
+
+Passwords are stored as salted hashes. The pepper is read server-side from the convar and is never
+included in the NUI bundle.
+
 Standalone FiveM phone built with Vue 3, TypeScript, Pinia, Vue Router, Konsta UI 5, and Tailwind CSS 4. Each non-stackable `phone` item receives a unique 15-digit IMEI and owns its server-persisted device state. The phone opens through the usable item; `/phone` is disabled unless `Config.Phone.DevelopmentCommand` is enabled explicitly.
 
 An iFruit account is optional. Unlinked devices retain local settings, alarms, media, apps, notes, contacts, and recent calls. Linking from Mail or Settings moves local data into an empty cloud account; an existing cloud dataset wins over local contacts and recents. Signing out keeps an editable local snapshot without deleting cloud data.

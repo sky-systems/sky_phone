@@ -14,6 +14,7 @@ import {
   kNavbarBackLink,
   kPage,
   kPreloader,
+  kSearchbar,
   kToast,
   kToolbarPane,
 } from 'konsta/vue'
@@ -394,7 +395,8 @@ async function saveContactDetails(): Promise<void> {
     return
   }
   contactEditing.value = false
-  contactNumberDraft.value = response.data?.phone_number ?? contactNumberDraft.value
+  contactNumberDraft.value =
+    response.data?.phone_number ?? contactNumberDraft.value
 }
 
 async function deleteActiveContact(): Promise<void> {
@@ -432,7 +434,10 @@ function openEmojiPicker(): void {
   emojiOpen.value = true
 }
 
-function openMediaApp(app: 'camera' | 'photos', mediaType: 'photo' | 'video'): void {
+function openMediaApp(
+  app: 'camera' | 'photos',
+  mediaType: 'photo' | 'video',
+): void {
   if (!messages.activeNumber) return
   attachmentMenuOpen.value = false
   messageMedia.begin(messages.activeNumber, mediaType)
@@ -536,7 +541,10 @@ function sampleMicrophone(): void {
 
 async function startVoiceRecording(): Promise<void> {
   emojiOpen.value = false
-  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+  if (
+    !navigator.mediaDevices?.getUserMedia ||
+    typeof MediaRecorder === 'undefined'
+  ) {
     showToast(phone.t('Apps.messages.microphoneUnavailable'))
     return
   }
@@ -618,7 +626,13 @@ function compressedWaveform(): number[] {
     const end = Math.max(start + 1, Math.floor((index + 1) * bucketSize))
     const bucket = recordingSamples.slice(start, end)
     result.push(
-      Math.max(0.08, Math.min(1, bucket.reduce((sum, value) => sum + value, 0) / bucket.length)),
+      Math.max(
+        0.08,
+        Math.min(
+          1,
+          bucket.reduce((sum, value) => sum + value, 0) / bucket.length,
+        ),
+      ),
     )
   }
   return result
@@ -694,7 +708,9 @@ onBeforeUnmount(() => {
   >
     <k-navbar large transparent :title="phone.t('Apps.messages.name')" />
     <div class="messages-empty-state">
-      <span class="messages-empty-state__icon"><MessageCircle :size="35" /></span>
+      <span class="messages-empty-state__icon"
+        ><MessageCircle :size="35"
+      /></span>
       <h2>{{ phone.t('Apps.messages.noSim') }}</h2>
       <p>{{ phone.t('Apps.messages.noSimBody') }}</p>
     </div>
@@ -746,10 +762,7 @@ onBeforeUnmount(() => {
       </k-glass>
     </header>
 
-    <div
-      v-if="filteredConversations.length"
-      class="messages-conversation-list"
-    >
+    <div v-if="filteredConversations.length" class="messages-conversation-list">
       <button
         v-for="conversation in filteredConversations"
         :key="conversation.phoneNumber"
@@ -797,7 +810,9 @@ onBeforeUnmount(() => {
         <span class="messages-conversation__body">
           <span class="messages-conversation__headline">
             <strong>{{ contactName(conversation.phoneNumber) }}</strong>
-            <time>{{ formatConversationDate(conversation.lastMessageAt) }}</time>
+            <time>{{
+              formatConversationDate(conversation.lastMessageAt)
+            }}</time>
             <ChevronRight :size="13" />
           </span>
           <span class="messages-conversation__preview">
@@ -808,7 +823,9 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-else class="messages-empty-state messages-empty-state--list">
-      <span class="messages-empty-state__icon"><MessageCircle :size="35" /></span>
+      <span class="messages-empty-state__icon"
+        ><MessageCircle :size="35"
+      /></span>
       <h2>
         {{
           phone.t(
@@ -823,16 +840,31 @@ onBeforeUnmount(() => {
     </div>
 
     <footer v-if="!editingList" class="messages-inbox-toolbar">
-      <label>
-        <Search :size="16" />
-        <input
+      <div class="messages-inbox-search">
+        <k-searchbar
           :value="search"
-          type="search"
           :placeholder="phone.t('Apps.messages.search')"
+          :colors="{
+            inputBgIos: 'bg-transparent',
+            placeholderIos: 'placeholder-[#8e8e93]',
+          }"
+          :clear-button="false"
+          :input-style="{
+            color: phone.isDarkMode ? '#f5f5f7' : '#111',
+            paddingRight: '48px',
+          }"
           @input="search = eventValue($event)"
+          @clear="search = ''"
         />
-        <Mic :size="16" />
-      </label>
+        <k-link
+          component="button"
+          icon-only
+          class="messages-inbox-search__voice"
+          :aria-label="phone.t('Apps.messages.search')"
+        >
+          <Mic :size="20" />
+        </k-link>
+      </div>
       <k-glass
         component="button"
         type="button"
@@ -843,7 +875,11 @@ onBeforeUnmount(() => {
       </k-glass>
     </footer>
     <footer v-else class="messages-edit-toolbar">
-      <span>{{ phone.t('Apps.messages.selectedCount', { count: String(selectedNumbers.length) }) }}</span>
+      <span>{{
+        phone.t('Apps.messages.selectedCount', {
+          count: String(selectedNumbers.length),
+        })
+      }}</span>
       <button
         type="button"
         :disabled="!selectedNumbers.length"
@@ -881,7 +917,11 @@ onBeforeUnmount(() => {
         @keyup.enter="chooseRecipient(composerNumber)"
       />
     </k-list>
-    <k-list v-if="contactSuggestions.length" class="messages-contact-list" strong>
+    <k-list
+      v-if="contactSuggestions.length"
+      class="messages-contact-list"
+      strong
+    >
       <k-list-item
         v-for="contact in contactSuggestions"
         :key="contact.id"
@@ -895,7 +935,9 @@ onBeforeUnmount(() => {
             class="messages-avatar messages-avatar--small"
             :style="avatarStyle(contact.phone_number)"
           >
-            <span class="messages-avatar__glyph">{{ avatarGlyph(contact.phone_number) }}</span>
+            <span class="messages-avatar__glyph">{{
+              avatarGlyph(contact.phone_number)
+            }}</span>
           </span>
         </template>
       </k-list-item>
@@ -919,27 +961,32 @@ onBeforeUnmount(() => {
     :aria-label="activeTitle"
   >
     <header class="messages-chat-header">
-      <button
+      <k-link
+        component="button"
+        icon-only
         type="button"
         class="messages-chat-header__back"
         :aria-label="phone.t('Apps.messages.name')"
         @click="goBack"
       >
         <ChevronLeft :size="28" :stroke-width="2.35" />
-      </button>
+      </k-link>
       <div class="messages-chat-header__contact">
         <span
           class="messages-avatar messages-avatar--header"
           :class="{ 'messages-avatar--unknown': !activeContact }"
           :style="avatarStyle(messages.activeNumber ?? '')"
         >
-          <span v-if="activeContact" class="messages-avatar__glyph">{{ avatarGlyph(messages.activeNumber ?? '') }}</span>
+          <span v-if="activeContact" class="messages-avatar__glyph">{{
+            avatarGlyph(messages.activeNumber ?? '')
+          }}</span>
           <span v-else class="messages-avatar__placeholder" aria-hidden="true">
             <i />
             <b />
           </span>
         </span>
-        <button
+        <k-link
+          component="button"
           type="button"
           class="messages-chat-header__name"
           :aria-label="phone.t('Apps.messages.contactDetails')"
@@ -947,7 +994,7 @@ onBeforeUnmount(() => {
         >
           <strong>{{ activeTitle }}</strong>
           <ChevronRight :size="13" />
-        </button>
+        </k-link>
       </div>
     </header>
 
@@ -977,7 +1024,9 @@ onBeforeUnmount(() => {
           :class="{ 'messages-avatar--unknown': !activeContact }"
           :style="avatarStyle(messages.activeNumber ?? '')"
         >
-          <span v-if="activeContact" class="messages-avatar__glyph">{{ avatarGlyph(messages.activeNumber ?? '') }}</span>
+          <span v-if="activeContact" class="messages-avatar__glyph">{{
+            avatarGlyph(messages.activeNumber ?? '')
+          }}</span>
           <span v-else class="messages-avatar__placeholder" aria-hidden="true">
             <i />
             <b />
@@ -1035,11 +1084,17 @@ onBeforeUnmount(() => {
     </section>
 
     <k-messages class="messages-bubbles">
-      <template v-for="(message, index) in messages.messages" :key="message.client_id ?? message.id">
+      <template
+        v-for="(message, index) in messages.messages"
+        :key="message.client_id ?? message.id"
+      >
         <k-messages-title v-if="startsDay(message, index)">
           <span class="messages-thread-timestamp">
             <span>{{ phone.t('Apps.messages.smsLabel') }}</span>
-            <b>{{ dayLabel(message.created_at) }}, {{ timeLabel(message.created_at) }}</b>
+            <b
+              >{{ dayLabel(message.created_at) }},
+              {{ timeLabel(message.created_at) }}</b
+            >
           </span>
         </k-messages-title>
         <k-message
@@ -1165,7 +1220,6 @@ onBeforeUnmount(() => {
         <ArrowUpCircle :size="29" fill="currentColor" />
       </button>
     </section>
-
 
     <k-messagebar
       v-else

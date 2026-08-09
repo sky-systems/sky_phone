@@ -684,6 +684,33 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_map_markers",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            {
+                name = "device_imei",
+                type = "CHAR(15) NOT NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            { name = "label", type = "VARCHAR(40) NOT NULL" },
+            { name = "color", type = "VARCHAR(16) NOT NULL" },
+            { name = "position_x", type = "DOUBLE NOT NULL" },
+            { name = "position_y", type = "DOUBLE NOT NULL" },
+            { name = "position_z", type = "DOUBLE NOT NULL DEFAULT 0" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_map_markers_device", columns = "(`device_imei`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "device_imei", references = "`sky_phone_devices` (`imei`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
         name = "sky_phone_calendar_events",
         columns = {
             { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
@@ -882,6 +909,35 @@ local schema = {
             { name = "uniq_sky_phone_fliptok_handle", columns = "(`handle`)" },
         },
         foreignKeys = {{ column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" }},
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_fliptok_credentials",
+        columns = {
+            { name = "profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "password_hash", type = "BINARY(32) NOT NULL" },
+            { name = "password_salt", type = "CHAR(32) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "profile_id",
+        foreignKeys = {{ column = "profile_id", references = "`sky_phone_fliptok_profiles` (`id`) ON DELETE CASCADE" }},
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_fliptok_sessions",
+        columns = {
+            { name = "device_imei", type = "CHAR(15) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "device_imei",
+        indexes = {{ name = "idx_sky_phone_fliptok_sessions_profile", columns = "(`profile_id`, `updated_at`)" }},
+        foreignKeys = {
+            { column = "device_imei", references = "`sky_phone_devices` (`imei`) ON DELETE CASCADE" },
+            { column = "profile_id", references = "`sky_phone_fliptok_profiles` (`id`) ON DELETE CASCADE" },
+        },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {

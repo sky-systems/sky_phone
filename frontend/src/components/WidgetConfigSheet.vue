@@ -164,6 +164,8 @@ watch(
               :key="contact.id"
               link
               link-component="button"
+              content-class="w-full"
+              :chevron="false"
               :title="contact.name"
               :subtitle="contact.phone_number"
               @click="toggleContact(contact.id)"

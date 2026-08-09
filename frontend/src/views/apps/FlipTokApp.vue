@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  ArrowLeft,
   Bell,
   Bookmark,
   Check,
@@ -23,24 +22,37 @@ import {
   X,
 } from 'lucide-vue-next'
 import {
+  kBlock,
+  kBlockTitle,
   kButton,
+  kChip,
+  kDialog,
+  kDialogButton,
   kGlass,
   kLink,
   kList,
+  kListButton,
+  kListInput,
   kListItem,
+  kMessagebar,
   kNavbar,
+  kNavbarBackLink,
   kPage,
   kPreloader,
   kRange,
   kSearchbar,
+  kSegmented,
+  kSegmentedButton,
   kSheet,
   kTabbar,
   kTabbarLink,
+  kToast,
   kToggle,
 } from 'konsta/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import flipTokIcon from '@/assets/img/app-icons/fliptok.webp'
 import { useFlipTokStore } from '@/stores/fliptok'
 import { useMessageMediaStore } from '@/stores/messageMedia'
 import { usePhoneStore } from '@/stores/phone'
@@ -53,11 +65,20 @@ import type { PhoneMedia } from '@/types/media'
 import { nuiCall } from '@/utils/nui'
 
 type Tab = 'feed' | 'discover' | 'create' | 'activity' | 'profile'
+type AuthMode = 'login' | 'register'
 
 const phone = usePhoneStore()
 const store = useFlipTokStore()
 const messageMedia = useMessageMediaStore()
 const router = useRouter()
+const authMode = ref<AuthMode>('login')
+const authHandle = ref('')
+const authDisplayName = ref('')
+const authPassword = ref('')
+const authConfirmPassword = ref('')
+const authSubmitting = ref(false)
+const logoutDialogOpen = ref(false)
+const logoutSubmitting = ref(false)
 const tab = ref<Tab>('feed')
 const selectedVideo = ref<FlipTokVideo | null>(null)
 const selectedMedia = ref<PhoneMedia | null>(null)
@@ -85,7 +106,9 @@ const musicTrack = ref('')
 const videoDurationMs = ref(0)
 const previewVideo = ref<HTMLVideoElement | null>(null)
 const composerMusic = ref<HTMLAudioElement | null>(null)
-const reportReason = ref<'spam' | 'harassment' | 'dangerous' | 'illegal' | 'other'>('spam')
+const reportReason = ref<
+  'spam' | 'harassment' | 'dangerous' | 'illegal' | 'other'
+>('spam')
 const reportDetails = ref('')
 const publishing = ref(false)
 const feedback = ref('')
@@ -103,8 +126,30 @@ let observer: IntersectionObserver | null = null
 let videoClickTimer: number | null = null
 let likePulseTimer: number | null = null
 let reactionPulseTimer: number | null = null
+let feedbackTimer: number | null = null
 const darkNavbarColors = { bgIos: 'bg-black', textIos: 'text-white' }
 const darkSheetColors = { bgIos: 'bg-[#151517]' }
+const darkListColors = { strongBgIos: 'bg-[#1c1c1e]' }
+const darkInputColors = {
+  bgIos: 'bg-transparent',
+  labelTextFocusIos: 'text-[#0a84ff]',
+  labelTextIos: 'text-[#a1a1a6]',
+}
+const darkSearchbarColors = {
+  inputBgIos: 'bg-[#1c1c1e]',
+  placeholderIos: 'placeholder-[#8e8e93]',
+}
+const commentMessagebarColors = {
+  bgIos: 'bg-[#151517]',
+  borderIos: 'border-[#3a3a3c]',
+  inputBgIos: 'bg-[#2c2c2e]',
+  placeholderIos: 'placeholder-[#8e8e93]',
+  toolbarIconIos: 'fill-[#0a84ff]',
+}
+const authGlassColors = {
+  bgIos: 'bg-white/75 dark:bg-white/[0.09]',
+  shadowIos: 'shadow-ios-light-glass dark:shadow-ios-dark-glass',
+}
 const draftButtonColors = {
   tonalBgIos: 'bg-[#1c1c1e] active:bg-[#2c2c2e]',
   tonalTextIos: 'text-[#64a8ff]',
@@ -153,10 +198,53 @@ function compactCount(value: number): string {
 }
 
 function notify(message: string): void {
+  if (feedbackTimer !== null) window.clearTimeout(feedbackTimer)
   feedback.value = message
-  window.setTimeout(() => {
+  feedbackTimer = window.setTimeout(() => {
     feedback.value = ''
+    feedbackTimer = null
   }, 2400)
+}
+
+function inputValue(event: Event): string {
+  return (event.target as HTMLInputElement).value
+}
+
+async function submitAuth(): Promise<void> {
+  if (
+    authMode.value === 'register' &&
+    authPassword.value !== authConfirmPassword.value
+  ) {
+    notify(t('passwordsMismatch'))
+    return
+  }
+  authSubmitting.value = true
+  const response =
+    authMode.value === 'login'
+      ? await store.login(authHandle.value, authPassword.value)
+      : await store.register(
+          authDisplayName.value,
+          authHandle.value,
+          authPassword.value,
+        )
+  authSubmitting.value = false
+  if (!response.success) notify(t(`errors.${response.error ?? 'default'}`))
+}
+
+async function confirmLogout(): Promise<void> {
+  logoutSubmitting.value = true
+  const response = await store.logout()
+  logoutSubmitting.value = false
+  if (!response.success) {
+    notify(t(`errors.${response.error ?? 'default'}`))
+    return
+  }
+  logoutDialogOpen.value = false
+  profileEditOpen.value = false
+  tab.value = 'feed'
+  authHandle.value = ''
+  authPassword.value = ''
+  authConfirmPassword.value = ''
 }
 
 function setVideoElement(id: string, element: unknown): void {
@@ -167,14 +255,31 @@ function setMusicElement(id: string, element: unknown): void {
   if (element instanceof HTMLAudioElement) musicElements.set(id, element)
 }
 
-function textParts(value: string): Array<{ kind: 'text' | 'hashtag' | 'mention'; value: string }> {
-  return value.split(/([#@][A-Za-z0-9._]+)/g).filter(Boolean).map((part) => ({
-    kind: part.startsWith('#') ? 'hashtag' : part.startsWith('@') ? 'mention' : 'text',
-    value: part,
-  }))
+function chooseMusicTrack(trackId: string): void {
+  musicTrack.value = trackId
+  musicSheetOpen.value = false
 }
 
-async function openTextLink(part: { kind: string; value: string }): Promise<void> {
+function textParts(
+  value: string,
+): Array<{ kind: 'text' | 'hashtag' | 'mention'; value: string }> {
+  return value
+    .split(/([#@][A-Za-z0-9._]+)/g)
+    .filter(Boolean)
+    .map((part) => ({
+      kind: part.startsWith('#')
+        ? 'hashtag'
+        : part.startsWith('@')
+          ? 'mention'
+          : 'text',
+      value: part,
+    }))
+}
+
+async function openTextLink(part: {
+  kind: string
+  value: string
+}): Promise<void> {
   if (part.kind === 'hashtag') {
     search.value = part.value
     tab.value = 'discover'
@@ -228,23 +333,37 @@ function togglePlayback(video: FlipTokVideo): void {
   }
 }
 
-function prepareFeedVideo(video: FlipTokVideo, element: HTMLVideoElement): void {
+function prepareFeedVideo(
+  video: FlipTokVideo,
+  element: HTMLVideoElement,
+): void {
   element.volume = (Number(video.original_volume) || 0) / 100
-  const start = Math.min((Number(video.trim_start_ms) || 0) / 1000, element.duration || 0)
+  const start = Math.min(
+    (Number(video.trim_start_ms) || 0) / 1000,
+    element.duration || 0,
+  )
   if (element.currentTime < start) element.currentTime = start
 }
 
-function enforceVideoTrim(video: FlipTokVideo, element: HTMLVideoElement): void {
+function enforceVideoTrim(
+  video: FlipTokVideo,
+  element: HTMLVideoElement,
+): void {
   const end = (video.trim_end_ms ?? Math.round(element.duration * 1000)) / 1000
-  if (element.currentTime < video.trim_start_ms / 1000 || element.currentTime >= end) {
+  if (
+    element.currentTime < video.trim_start_ms / 1000 ||
+    element.currentTime >= end
+  ) {
     element.currentTime = video.trim_start_ms / 1000
     const music = musicElements.get(video.id)
     if (music) music.currentTime = 0
   } else {
     const music = musicElements.get(video.id)
     if (music?.duration) {
-      const expected = (element.currentTime - video.trim_start_ms / 1000) % music.duration
-      if (Math.abs(music.currentTime - expected) > 0.65) music.currentTime = expected
+      const expected =
+        (element.currentTime - video.trim_start_ms / 1000) % music.duration
+      if (Math.abs(music.currentTime - expected) > 0.65)
+        music.currentTime = expected
     }
   }
 }
@@ -283,6 +402,7 @@ async function reactWithPulse(
   await nextTick()
   reactionPulse.value = { id: video.id, kind }
   if (reactionPulseTimer !== null) window.clearTimeout(reactionPulseTimer)
+  if (feedbackTimer !== null) window.clearTimeout(feedbackTimer)
   reactionPulseTimer = window.setTimeout(() => {
     reactionPulse.value = null
     reactionPulseTimer = null
@@ -380,7 +500,8 @@ function resetComposer(): void {
 
 function rangeNumber(value: unknown): number {
   if (typeof value === 'number') return value
-  if (value instanceof Event) return Number((value.target as HTMLInputElement).value)
+  if (value instanceof Event)
+    return Number((value.target as HTMLInputElement).value)
   return Number(value) || 0
 }
 
@@ -389,7 +510,10 @@ function loadComposerVideo(event: Event): void {
   videoDurationMs.value = Math.max(1000, Math.floor(element.duration * 1000))
   if (!trimEndMs.value || trimEndMs.value > videoDurationMs.value)
     trimEndMs.value = videoDurationMs.value
-  coverTimeMs.value = Math.min(Math.max(coverTimeMs.value, trimStartMs.value), trimEndMs.value)
+  coverTimeMs.value = Math.min(
+    Math.max(coverTimeMs.value, trimStartMs.value),
+    trimEndMs.value,
+  )
   element.currentTime = coverTimeMs.value / 1000
   element.volume = originalVolume.value / 100
 }
@@ -409,7 +533,10 @@ function enforceComposerTrim(event: Event): void {
 }
 
 function updateTrimStart(value: unknown): void {
-  trimStartMs.value = Math.min(rangeNumber(value), Math.max(0, trimEndMs.value - 500))
+  trimStartMs.value = Math.min(
+    rangeNumber(value),
+    Math.max(0, trimEndMs.value - 500),
+  )
   coverTimeMs.value = Math.max(coverTimeMs.value, trimStartMs.value)
 }
 
@@ -420,7 +547,8 @@ function updateTrimEnd(value: unknown): void {
 
 function updateCover(value: unknown): void {
   coverTimeMs.value = rangeNumber(value)
-  if (previewVideo.value) previewVideo.value.currentTime = coverTimeMs.value / 1000
+  if (previewVideo.value)
+    previewVideo.value.currentTime = coverTimeMs.value / 1000
 }
 
 function formatDuration(value: number): string {
@@ -487,7 +615,8 @@ async function reportVideo(): Promise<void> {
     id: selectedVideo.value.id,
     reason: reportReason.value,
   })
-  if (!response.success) return notify(t(`errors.${response.error ?? 'default'}`))
+  if (!response.success)
+    return notify(t(`errors.${response.error ?? 'default'}`))
   actionsOpen.value = false
   reportSheetOpen.value = false
   reportDetails.value = ''
@@ -520,7 +649,10 @@ async function openModeration(): Promise<void> {
   moderationOpen.value = true
 }
 
-async function resolveReport(report: FlipTokReport, action: 'dismiss' | 'remove'): Promise<void> {
+async function resolveReport(
+  report: FlipTokReport,
+  action: 'dismiss' | 'remove',
+): Promise<void> {
   if (!(await store.resolveReport(report.id, action)))
     notify(t('errors.default'))
 }
@@ -558,6 +690,15 @@ watch(tab, async (value) => {
     observeVideos()
   }
 })
+
+watch(
+  () => store.authenticated,
+  async (authenticated) => {
+    if (!authenticated) return
+    await nextTick()
+    observeVideos()
+  },
+)
 
 watch(search, () => {
   window.clearTimeout((runSearch as unknown as { timer?: number }).timer)
@@ -631,6 +772,101 @@ onBeforeUnmount(() => {
       <k-preloader /><span>{{ t('loading') }}</span>
     </div>
 
+    <section
+      v-else-if="!store.authenticated"
+      class="fliptok-auth"
+      :class="{ 'fliptok-auth--dark': phone.isDarkMode }"
+    >
+      <k-navbar class="fliptok-auth__navbar" :title="t('name')" />
+      <div class="fliptok-auth__body">
+        <k-glass class="fliptok-auth__glass" :colors="authGlassColors">
+          <header class="fliptok-auth__hero">
+            <img :src="flipTokIcon" alt="" />
+            <div>
+              <h1>{{ t('authTitle') }}</h1>
+              <p>
+                {{ t(authMode === 'login' ? 'loginBody' : 'registerBody') }}
+              </p>
+            </div>
+          </header>
+
+          <k-segmented class="fliptok-auth__segment" raised strong rounded>
+            <k-segmented-button
+              :active="authMode === 'login'"
+              @click="authMode = 'login'"
+            >
+              {{ t('login') }}
+            </k-segmented-button>
+            <k-segmented-button
+              :active="authMode === 'register'"
+              @click="authMode = 'register'"
+            >
+              {{ t('register') }}
+            </k-segmented-button>
+          </k-segmented>
+
+          <form class="fliptok-auth__form" @submit.prevent="submitAuth">
+            <k-block-title>{{ t('accountDetails') }}</k-block-title>
+            <k-list inset strong>
+              <k-list-input
+                v-if="authMode === 'register'"
+                input-id="fliptok-display-name"
+                :label="t('displayName')"
+                :placeholder="t('displayNamePlaceholder')"
+                :value="authDisplayName"
+                maxlength="40"
+                clear-button
+                @input="authDisplayName = inputValue($event)"
+              />
+              <k-list-input
+                input-id="fliptok-handle"
+                :label="t('username')"
+                :placeholder="t('usernamePlaceholder')"
+                :value="authHandle"
+                maxlength="24"
+                autocapitalize="none"
+                autocomplete="username"
+                clear-button
+                @input="authHandle = inputValue($event)"
+              />
+              <k-list-input
+                input-id="fliptok-password"
+                type="password"
+                :label="t('password')"
+                :placeholder="t('passwordPlaceholder')"
+                :value="authPassword"
+                :autocomplete="
+                  authMode === 'login' ? 'current-password' : 'new-password'
+                "
+                maxlength="72"
+                @input="authPassword = inputValue($event)"
+              />
+              <k-list-input
+                v-if="authMode === 'register'"
+                input-id="fliptok-confirm-password"
+                type="password"
+                :label="t('confirmPassword')"
+                :placeholder="t('confirmPasswordPlaceholder')"
+                :value="authConfirmPassword"
+                autocomplete="new-password"
+                maxlength="72"
+                @input="authConfirmPassword = inputValue($event)"
+              />
+            </k-list>
+            <k-button large rounded type="submit" :disabled="authSubmitting">
+              <k-preloader v-if="authSubmitting" />
+              <template v-else>{{
+                t(authMode === 'login' ? 'login' : 'createAccount')
+              }}</template>
+            </k-button>
+            <k-block v-if="authMode === 'register'" class="fliptok-auth__hint">
+              {{ t('registrationHint') }}
+            </k-block>
+          </form>
+        </k-glass>
+      </div>
+    </section>
+
     <template v-else-if="tab === 'feed'">
       <header class="feed-header">
         <button
@@ -665,8 +901,12 @@ onBeforeUnmount(() => {
             loop
             playsinline
             preload="metadata"
-            @loadedmetadata="prepareFeedVideo(video, $event.target as HTMLVideoElement)"
-            @timeupdate="enforceVideoTrim(video, $event.target as HTMLVideoElement)"
+            @loadedmetadata="
+              prepareFeedVideo(video, $event.target as HTMLVideoElement)
+            "
+            @timeupdate="
+              enforceVideoTrim(video, $event.target as HTMLVideoElement)
+            "
           />
           <audio
             v-if="video.music_url"
@@ -674,7 +914,9 @@ onBeforeUnmount(() => {
             :src="video.music_url"
             loop
             preload="metadata"
-            @loadedmetadata="prepareMusic(video, $event.target as HTMLAudioElement)"
+            @loadedmetadata="
+              prepareMusic(video, $event.target as HTMLAudioElement)
+            "
           />
           <div
             class="video-shade"
@@ -690,9 +932,11 @@ onBeforeUnmount(() => {
           </Transition>
           <section class="video-copy">
             <div class="creator-line">
-              <button class="creator-link" @click="openProfile(video.profile_id)">
-                <strong>@{{ video.handle }}</strong>
-              </button
+              <button
+                class="creator-link"
+                @click="openProfile(video.profile_id)"
+              >
+                <strong>@{{ video.handle }}</strong></button
               ><Check
                 v-if="video.verified"
                 class="verified"
@@ -700,8 +944,17 @@ onBeforeUnmount(() => {
               />
             </div>
             <p>
-              <template v-for="(part, index) in textParts(video.caption)" :key="`${video.id}-${index}`">
-                <button v-if="part.kind !== 'text'" class="caption-link" @click="openTextLink(part)">{{ part.value }}</button>
+              <template
+                v-for="(part, index) in textParts(video.caption)"
+                :key="`${video.id}-${index}`"
+              >
+                <button
+                  v-if="part.kind !== 'text'"
+                  class="caption-link"
+                  @click="openTextLink(part)"
+                >
+                  {{ part.value }}
+                </button>
                 <template v-else>{{ part.value }}</template>
               </template>
             </p>
@@ -779,10 +1032,16 @@ onBeforeUnmount(() => {
         :colors="darkNavbarColors"
       />
       <div class="light-screen discover-screen">
-        <k-searchbar v-model="search" :placeholder="t('searchPlaceholder')" />
+        <k-searchbar
+          v-model="search"
+          :placeholder="t('searchPlaceholder')"
+          :colors="darkSearchbarColors"
+          :input-style="{ color: '#f5f5f7' }"
+        />
         <div class="trend-pills">
-          <button># LosSantos</button><button># Roleplay</button
-          ><button># Trending</button>
+          <k-chip component="button" type="button"># LosSantos</k-chip>
+          <k-chip component="button" type="button"># Roleplay</k-chip>
+          <k-chip component="button" type="button"># Trending</k-chip>
         </div>
         <div class="video-grid">
           <button
@@ -794,10 +1053,11 @@ onBeforeUnmount(() => {
               :src="video.url"
               preload="metadata"
               muted
-              @loadedmetadata="($event.target as HTMLVideoElement).currentTime = video.cover_time_ms / 1000"
-            /><span
-              ><Play />{{ compactCount(video.view_count) }}</span
-            >
+              @loadedmetadata="
+                ($event.target as HTMLVideoElement).currentTime =
+                  video.cover_time_ms / 1000
+              "
+            /><span><Play />{{ compactCount(video.view_count) }}</span>
           </button>
         </div>
       </div>
@@ -810,13 +1070,24 @@ onBeforeUnmount(() => {
         :colors="darkNavbarColors"
       >
         <template v-if="store.isAdmin" #right>
-          <button class="nav-button" :aria-label="t('moderation')" @click="openModeration">
+          <k-link
+            component="button"
+            icon-only
+            class="nav-button"
+            :link-props="{ type: 'button' }"
+            :aria-label="t('moderation')"
+            @click="openModeration"
+          >
             <ShieldAlert />
-          </button>
+          </k-link>
         </template>
       </k-navbar>
       <div class="light-screen activity-list">
-        <article v-for="activity in store.activities" :key="activity.id" @click="openProfile(activity.profile_id)">
+        <article
+          v-for="activity in store.activities"
+          :key="activity.id"
+          @click="openProfile(activity.profile_id)"
+        >
           <div class="activity-avatar">
             {{ initials(activity.display_name) }}
           </div>
@@ -840,7 +1111,10 @@ onBeforeUnmount(() => {
         :colors="darkNavbarColors"
       >
         <template v-if="store.viewedProfile" #left>
-          <button class="nav-button" @click="openOwnProfile"><ArrowLeft /></button>
+          <k-navbar-back-link
+            :text="phone.t('Common.back')"
+            @click="openOwnProfile"
+          />
         </template>
       </k-navbar>
       <div class="light-screen profile-screen" v-if="currentProfile">
@@ -868,22 +1142,40 @@ onBeforeUnmount(() => {
         </div>
         <p class="bio">{{ currentProfile.bio || t('emptyBio') }}</p>
         <div class="profile-actions">
-          <k-button v-if="currentProfile.is_owner" rounded @click="editProfile">{{ t('editProfile') }}</k-button>
+          <k-button
+            v-if="currentProfile.is_owner"
+            rounded
+            @click="editProfile"
+            >{{ t('editProfile') }}</k-button
+          >
           <template v-else>
             <k-button rounded @click="store.followProfile(currentProfile)">
               {{ currentProfile.is_following ? t('unfollow') : t('follow') }}
             </k-button>
-            <k-button rounded tonal class="danger-button" @click="blockCurrentProfile">{{ t('block') }}</k-button>
+            <k-button
+              rounded
+              tonal
+              class="danger-button"
+              @click="blockCurrentProfile"
+              >{{ t('block') }}</k-button
+            >
           </template>
         </div>
         <div class="profile-video-grid">
-          <button v-for="video in store.profileVideos" :key="video.id" @click="openDiscoveredVideo(video)">
+          <button
+            v-for="video in store.profileVideos"
+            :key="video.id"
+            @click="openDiscoveredVideo(video)"
+          >
             <video
               :src="video.url"
               muted
               playsinline
               preload="metadata"
-              @loadedmetadata="($event.target as HTMLVideoElement).currentTime = video.cover_time_ms / 1000"
+              @loadedmetadata="
+                ($event.target as HTMLVideoElement).currentTime =
+                  video.cover_time_ms / 1000
+              "
             />
             <span><Play />{{ compactCount(video.view_count) }}</span>
           </button>
@@ -892,7 +1184,12 @@ onBeforeUnmount(() => {
     </template>
 
     <k-tabbar
-      v-if="!composeOpen && !profileEditOpen && !moderationOpen"
+      v-if="
+        store.authenticated &&
+        !composeOpen &&
+        !profileEditOpen &&
+        !moderationOpen
+      "
       class="main-tabs"
       labels
       icons
@@ -914,7 +1211,8 @@ onBeforeUnmount(() => {
         :label="t('create')"
         @click="composeOpen = true"
         ><template #icon
-          ><span class="create-icon" aria-hidden="true"><Play /></span></template
+          ><span class="create-icon" aria-hidden="true"
+            ><Play /></span></template
       ></k-tabbar-link>
       <k-tabbar-link
         :active="tab === 'activity'"
@@ -933,13 +1231,15 @@ onBeforeUnmount(() => {
     <div v-if="composeOpen" class="overlay-screen compose-screen">
       <k-navbar :title="t('newVideo')" :colors="darkNavbarColors"
         ><template #left
-          ><button
-            class="nav-button"
-            :aria-label="t('cancel')"
+          ><k-link
+            component="button"
+            :link-props="{ type: 'button' }"
             @click="composeOpen = false"
           >
-            <X /></button></template
-      ></k-navbar>
+            {{ t('cancel') }}</k-link
+          ></template
+        ></k-navbar
+      >
       <div class="compose-body">
         <button v-if="!selectedMedia" class="media-picker" @click="chooseVideo">
           <Video /><strong>{{ t('chooseVideo') }}</strong
@@ -955,9 +1255,7 @@ onBeforeUnmount(() => {
             @play="handleComposerPlayback(true)"
             @pause="handleComposerPlayback(false)"
             @timeupdate="enforceComposerTrim"
-          /><button
-            @click="chooseVideo"
-          >
+          /><button @click="chooseVideo">
             {{ t('changeVideo') }}
           </button>
           <audio
@@ -971,63 +1269,129 @@ onBeforeUnmount(() => {
         <section v-if="selectedMedia && videoDurationMs" class="editor-card">
           <h3>{{ t('trimAndCover') }}</h3>
           <label>
-            <span>{{ t('trimStart') }} <strong>{{ formatDuration(trimStartMs) }}</strong></span>
-            <k-range :value="trimStartMs" :min="0" :max="Math.max(0, trimEndMs - 500)" :step="100" @input="updateTrimStart" />
+            <span
+              >{{ t('trimStart') }}
+              <strong>{{ formatDuration(trimStartMs) }}</strong></span
+            >
+            <k-range
+              :value="trimStartMs"
+              :min="0"
+              :max="Math.max(0, trimEndMs - 500)"
+              :step="100"
+              @input="updateTrimStart"
+            />
           </label>
           <label>
-            <span>{{ t('trimEnd') }} <strong>{{ formatDuration(trimEndMs) }}</strong></span>
-            <k-range :value="trimEndMs" :min="Math.min(videoDurationMs, trimStartMs + 500)" :max="videoDurationMs" :step="100" @input="updateTrimEnd" />
+            <span
+              >{{ t('trimEnd') }}
+              <strong>{{ formatDuration(trimEndMs) }}</strong></span
+            >
+            <k-range
+              :value="trimEndMs"
+              :min="Math.min(videoDurationMs, trimStartMs + 500)"
+              :max="videoDurationMs"
+              :step="100"
+              @input="updateTrimEnd"
+            />
           </label>
           <label>
-            <span>{{ t('coverFrame') }} <strong>{{ formatDuration(coverTimeMs) }}</strong></span>
-            <k-range :value="coverTimeMs" :min="trimStartMs" :max="trimEndMs" :step="100" @input="updateCover" />
+            <span
+              >{{ t('coverFrame') }}
+              <strong>{{ formatDuration(coverTimeMs) }}</strong></span
+            >
+            <k-range
+              :value="coverTimeMs"
+              :min="trimStartMs"
+              :max="trimEndMs"
+              :step="100"
+              @input="updateCover"
+            />
           </label>
         </section>
         <section v-if="selectedMedia" class="editor-card">
-          <button class="sound-picker" type="button" @click="musicSheetOpen = true">
+          <button
+            class="sound-picker"
+            type="button"
+            @click="musicSheetOpen = true"
+          >
             <span><Music2 />{{ t('sounds') }}</span>
-            <strong>{{ selectedMusic ? `${selectedMusic.title} · ${selectedMusic.artist}` : t('originalOnly') }}</strong>
+            <strong>{{
+              selectedMusic
+                ? `${selectedMusic.title} · ${selectedMusic.artist}`
+                : t('originalOnly')
+            }}</strong>
             <ChevronDown />
           </button>
           <label>
-            <span>{{ t('originalVolume') }} <strong>{{ originalVolume }}%</strong></span>
-            <k-range :value="originalVolume" :min="0" :max="100" :step="1" @input="originalVolume = rangeNumber($event)" />
+            <span
+              >{{ t('originalVolume') }}
+              <strong>{{ originalVolume }}%</strong></span
+            >
+            <k-range
+              :value="originalVolume"
+              :min="0"
+              :max="100"
+              :step="1"
+              @input="originalVolume = rangeNumber($event)"
+            />
           </label>
           <label :class="{ disabled: !musicTrack }">
-            <span>{{ t('musicVolume') }} <strong>{{ musicTrack ? `${musicVolume}%` : '—' }}</strong></span>
-            <k-range :value="musicVolume" :min="0" :max="100" :step="1" :disabled="!musicTrack" @input="musicVolume = rangeNumber($event)" />
+            <span
+              >{{ t('musicVolume') }}
+              <strong>{{ musicTrack ? `${musicVolume}%` : '—' }}</strong></span
+            >
+            <k-range
+              :value="musicVolume"
+              :min="0"
+              :max="100"
+              :step="1"
+              :disabled="!musicTrack"
+              @input="musicVolume = rangeNumber($event)"
+            />
           </label>
         </section>
-        <textarea
-          v-model="caption"
-          :placeholder="t('captionPlaceholder')"
-          maxlength="500"
-        />
-        <label class="field"
-          ><MapPin /><input
-            v-model="location"
+        <k-list inset strong class="compose-form-list" :colors="darkListColors">
+          <k-list-input
+            type="textarea"
+            :placeholder="t('captionPlaceholder')"
+            :value="caption"
+            :colors="darkInputColors"
+            input-class="text-[#f5f5f7] placeholder:text-[#8e8e93]"
+            maxlength="500"
+            @input="caption = inputValue($event)"
+          />
+          <k-list-input
+            :label="t('location')"
             :placeholder="t('location')"
+            :value="location"
+            :colors="darkInputColors"
+            input-class="text-[#f5f5f7] placeholder:text-[#8e8e93]"
             maxlength="80"
-        /></label>
-        <button
-          class="field visibility-row"
-          type="button"
-          @click="visibilitySheetOpen = true"
-        >
-          <span>{{ t('whoCanWatch') }}</span
-          ><strong>{{
-            visibility === 'public'
-              ? t('public')
-              : visibility === 'followers'
-                ? t('followersOnly')
-                : t('private')
-          }}</strong
-          ><ChevronDown />
-        </button>
-        <label class="toggle-row"
-          ><span>{{ t('allowComments') }}</span
-          ><k-toggle :checked="commentsEnabled" @change="setCommentsEnabled"
-        /></label>
+            @input="location = inputValue($event)"
+          />
+          <k-list-item
+            link
+            link-component="button"
+            content-class="w-full"
+            :title="t('whoCanWatch')"
+            :after="
+              visibility === 'public'
+                ? t('public')
+                : visibility === 'followers'
+                  ? t('followersOnly')
+                  : t('private')
+            "
+            @click="visibilitySheetOpen = true"
+          />
+          <k-list-item :title="t('allowComments')">
+            <template #after>
+              <k-toggle
+                :checked="commentsEnabled"
+                @change="setCommentsEnabled"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
         <div class="compose-actions">
           <k-button
             tonal
@@ -1047,73 +1411,115 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-if="profileEditOpen" class="overlay-screen profile-edit">
-      <k-navbar :title="t('editProfile')" :colors="darkNavbarColors"
-        ><template #left
-          ><button class="nav-button" @click="profileEditOpen = false">
-            <ArrowLeft /></button></template
-        ><template #right
-          ><button class="done-button" @click="saveProfile">
+      <k-navbar :title="t('editProfile')" :colors="darkNavbarColors">
+        <template #left>
+          <k-navbar-back-link
+            :text="t('backToProfile')"
+            @click="profileEditOpen = false"
+          />
+        </template>
+        <template #right>
+          <k-link
+            component="button"
+            :link-props="{ type: 'button' }"
+            class="done-button"
+            @click="saveProfile"
+          >
             {{ t('done') }}
-          </button></template
-        ></k-navbar
-      >
-      <div class="form-card">
-        <label
-          >{{ t('displayName')
-          }}<input v-model="profileDraft.displayName" maxlength="40" /></label
-        ><label
-          >{{ t('username') }}
-          <div class="handle-field">
-            <span>@</span
-            ><input v-model="profileDraft.handle" maxlength="24" /></div></label
-        ><label
-          >{{ t('bio')
-          }}<textarea
-            v-model="profileDraft.bio"
-            maxlength="160"
-            spellcheck="false"
-          /></label
-        ><button
-          class="profile-select"
-          type="button"
+          </k-link>
+        </template>
+      </k-navbar>
+
+      <k-block-title>{{ t('profileDetails') }}</k-block-title>
+      <k-list inset strong class="profile-form-list">
+        <k-list-input
+          input-id="fliptok-profile-display-name"
+          :label="t('displayName')"
+          :value="profileDraft.displayName"
+          maxlength="40"
+          clear-button
+          @input="profileDraft.displayName = inputValue($event)"
+        />
+        <k-list-input
+          input-id="fliptok-profile-handle"
+          :label="t('username')"
+          :value="profileDraft.handle"
+          maxlength="24"
+          autocapitalize="none"
+          clear-button
+          @input="profileDraft.handle = inputValue($event)"
+        />
+        <k-list-input
+          input-id="fliptok-profile-bio"
+          type="textarea"
+          :label="t('bio')"
+          :value="profileDraft.bio"
+          maxlength="160"
+          spellcheck="false"
+          @input="profileDraft.bio = inputValue($event)"
+        />
+        <k-list-item
+          link
+          :title="t('accountType')"
+          :after="t(`accountTypes.${profileDraft.accountType}`)"
           @click="accountTypeSheetOpen = true"
-        >
-          <span
-            ><small>{{ t('accountType') }}</small
-            ><strong>{{
-              t(`accountTypes.${profileDraft.accountType}`)
-            }}</strong></span
-          ><ChevronDown />
-        </button>
-      </div>
+        />
+      </k-list>
+
+      <k-block-title>{{ t('account') }}</k-block-title>
+      <k-list inset strong>
+        <k-list-button class="logout-button" @click="logoutDialogOpen = true">
+          {{ t('logout') }}
+        </k-list-button>
+      </k-list>
     </div>
 
     <div v-if="moderationOpen" class="overlay-screen moderation-screen">
       <k-navbar :title="t('moderation')" :colors="darkNavbarColors">
         <template #left>
-          <button class="nav-button" @click="moderationOpen = false"><ArrowLeft /></button>
+          <k-navbar-back-link
+            :text="phone.t('Common.back')"
+            @click="moderationOpen = false"
+          />
         </template>
       </k-navbar>
       <div class="moderation-body">
         <h2>{{ t('reports') }}</h2>
-        <article v-for="report in store.reports" :key="report.id" class="report-card">
+        <article
+          v-for="report in store.reports"
+          :key="report.id"
+          class="report-card"
+        >
           <video :src="report.url" muted playsinline preload="metadata" />
           <div>
             <strong>@{{ report.creator_handle }}</strong>
-            <small>{{ t(`reportReasons.${report.reason}`) }} · @{{ report.reporter_handle }}</small>
+            <small
+              >{{ t(`reportReasons.${report.reason}`) }} · @{{
+                report.reporter_handle
+              }}</small
+            >
             <p>{{ report.details || report.caption }}</p>
             <div class="report-actions">
-              <k-button small rounded tonal @click="resolveReport(report, 'dismiss')">{{ t('dismissReport') }}</k-button>
+              <k-button
+                small
+                rounded
+                tonal
+                @click="resolveReport(report, 'dismiss')"
+                >{{ t('dismissReport') }}</k-button
+              >
               <k-button
                 small
                 rounded
                 :colors="reportRemoveButtonColors"
                 @click="resolveReport(report, 'remove')"
-              >{{ t('removeVideo') }}</k-button>
+                >{{ t('removeVideo') }}</k-button
+              >
             </div>
           </div>
         </article>
-        <div v-if="!store.reports.length" class="light-empty"><ShieldAlert /><strong>{{ t('noReports') }}</strong></div>
+        <div v-if="!store.reports.length" class="light-empty">
+          <ShieldAlert /><strong>{{ t('noReports') }}</strong>
+        </div>
       </div>
     </div>
 
@@ -1131,7 +1537,11 @@ onBeforeUnmount(() => {
           ><button @click="commentsOpen = false"><X /></button>
         </header>
         <div class="comments-list">
-          <article v-for="comment in store.comments" :key="comment.id" @click="openProfile(comment.profile_id)">
+          <article
+            v-for="comment in store.comments"
+            :key="comment.id"
+            @click="openProfile(comment.profile_id)"
+          >
             <div class="comment-avatar">
               {{ initials(comment.display_name) }}
             </div>
@@ -1140,8 +1550,17 @@ onBeforeUnmount(() => {
                 >{{ comment.display_name }}
                 <Check v-if="comment.verified" class="verified" /></strong
               ><span>
-                <template v-for="(part, index) in textParts(comment.body)" :key="`${comment.id}-${index}`">
-                  <button v-if="part.kind !== 'text'" class="caption-link" @click.stop="openTextLink(part)">{{ part.value }}</button>
+                <template
+                  v-for="(part, index) in textParts(comment.body)"
+                  :key="`${comment.id}-${index}`"
+                >
+                  <button
+                    v-if="part.kind !== 'text'"
+                    class="caption-link"
+                    @click.stop="openTextLink(part)"
+                  >
+                    {{ part.value }}
+                  </button>
                   <template v-else>{{ part.value }}</template>
                 </template>
               </span>
@@ -1151,13 +1570,26 @@ onBeforeUnmount(() => {
             {{ t('noComments') }}
           </div>
         </div>
-        <form @submit.prevent="submitComment">
-          <input
-            v-model="commentBody"
-            :placeholder="t('addComment')"
-            maxlength="300"
-          /><button><Send /></button>
-        </form>
+        <k-messagebar
+          component="form"
+          class="comments-messagebar"
+          :value="commentBody"
+          :placeholder="t('addComment')"
+          :colors="commentMessagebarColors"
+          @input="commentBody = inputValue($event)"
+          @submit.prevent="submitComment"
+        >
+          <template #right>
+            <k-link
+              component="button"
+              icon-only
+              :link-props="{ type: 'submit' }"
+              :aria-label="phone.t('Common.send')"
+            >
+              <Send />
+            </k-link>
+          </template>
+        </k-messagebar>
       </div>
     </k-sheet>
 
@@ -1173,10 +1605,12 @@ onBeforeUnmount(() => {
           ><k-list-item
             link
             link-component="button"
+            content-class="w-full"
             :title="t('report')"
             @click="openReport" /><k-list-item
             link
             link-component="button"
+            content-class="w-full"
             class="danger"
             :title="t('block')"
             @click="blockCreator" /></k-list
@@ -1201,15 +1635,33 @@ onBeforeUnmount(() => {
             :key="reason"
             link
             link-component="button"
+            content-class="w-full"
+            :chevron="false"
             :title="t(`reportReasons.${reason}`)"
             @click="reportReason = reason"
           >
-            <template #after><Check v-if="reportReason === reason" class="selection-check" /></template>
+            <template #after
+              ><Check v-if="reportReason === reason" class="selection-check"
+            /></template>
           </k-list-item>
         </k-list>
-        <textarea v-model="reportDetails" :placeholder="t('reportDetails')" maxlength="500" />
-        <k-button large rounded @click="reportVideo">{{ t('submitReport') }}</k-button>
-        <k-button large rounded tonal @click="reportSheetOpen = false">{{ t('cancel') }}</k-button>
+        <k-list inset strong :colors="darkListColors">
+          <k-list-input
+            type="textarea"
+            :placeholder="t('reportDetails')"
+            :value="reportDetails"
+            :colors="darkInputColors"
+            input-class="text-[#f5f5f7] placeholder:text-[#8e8e93]"
+            maxlength="500"
+            @input="reportDetails = inputValue($event)"
+          />
+        </k-list>
+        <k-button large rounded @click="reportVideo">{{
+          t('submitReport')
+        }}</k-button>
+        <k-button large rounded tonal @click="reportSheetOpen = false">{{
+          t('cancel')
+        }}</k-button>
       </div>
     </k-sheet>
     <k-sheet
@@ -1223,23 +1675,43 @@ onBeforeUnmount(() => {
       <div class="selection-sheet">
         <h3>{{ t('chooseSound') }}</h3>
         <k-list inset strong>
-          <k-list-item link link-component="button" :title="t('originalOnly')" @click="musicTrack = ''; musicSheetOpen = false">
-            <template #after><Check v-if="!musicTrack" class="selection-check" /></template>
+          <k-list-item
+            link
+            link-component="button"
+            content-class="w-full"
+            :chevron="false"
+            :title="t('originalOnly')"
+            @click="chooseMusicTrack('')"
+          >
+            <template #after
+              ><Check v-if="!musicTrack" class="selection-check"
+            /></template>
           </k-list-item>
           <k-list-item
             v-for="track in store.musicTracks"
             :key="track.id"
             link
             link-component="button"
+            content-class="w-full"
+            :chevron="false"
             :title="track.title"
             :after="track.artist"
-            @click="musicTrack = track.id; musicSheetOpen = false"
+            @click="chooseMusicTrack(track.id)"
           >
-            <template #after><Check v-if="musicTrack === track.id" class="selection-check" /><span v-else>{{ track.artist }}</span></template>
+            <template #after
+              ><Check
+                v-if="musicTrack === track.id"
+                class="selection-check"
+              /><span v-else>{{ track.artist }}</span></template
+            >
           </k-list-item>
         </k-list>
-        <p v-if="!store.musicTracks.length" class="sheet-note">{{ t('noMusic') }}</p>
-        <k-button large rounded tonal @click="musicSheetOpen = false">{{ t('cancel') }}</k-button>
+        <p v-if="!store.musicTracks.length" class="sheet-note">
+          {{ t('noMusic') }}
+        </p>
+        <k-button large rounded tonal @click="musicSheetOpen = false">{{
+          t('cancel')
+        }}</k-button>
       </div>
     </k-sheet>
     <k-sheet
@@ -1257,6 +1729,8 @@ onBeforeUnmount(() => {
             :key="option"
             link
             link-component="button"
+            content-class="w-full"
+            :chevron="false"
             :title="
               option === 'public'
                 ? t('public')
@@ -1289,6 +1763,8 @@ onBeforeUnmount(() => {
             :key="option"
             link
             link-component="button"
+            content-class="w-full"
+            :chevron="false"
             :title="t(`accountTypes.${option}`)"
             @click="chooseAccountType(option)"
             ><template #after
@@ -1300,7 +1776,36 @@ onBeforeUnmount(() => {
         }}</k-button>
       </div></k-sheet
     >
-    <k-glass v-if="feedback" class="feedback">{{ feedback }}</k-glass>
+    <k-dialog
+      :opened="logoutDialogOpen"
+      @backdropclick="!logoutSubmitting && (logoutDialogOpen = false)"
+    >
+      <template #title>{{ t('signOutTitle') }}</template>
+      <p>{{ t('signOutBody') }}</p>
+      <template #buttons>
+        <k-dialog-button
+          :disabled="logoutSubmitting"
+          @click="logoutDialogOpen = false"
+        >
+          {{ t('cancel') }}
+        </k-dialog-button>
+        <k-dialog-button
+          strong
+          class="logout-dialog-button"
+          :disabled="logoutSubmitting"
+          @click="confirmLogout"
+        >
+          {{ logoutSubmitting ? t('signingOut') : t('logout') }}
+        </k-dialog-button>
+      </template>
+    </k-dialog>
+    <k-toast
+      :opened="Boolean(feedback)"
+      position="center"
+      @click="feedback = ''"
+    >
+      {{ feedback }}
+    </k-toast>
   </k-page>
 </template>
 
@@ -1469,11 +1974,14 @@ onBeforeUnmount(() => {
 .follow-dot svg {
   width: 12px !important;
 }
-.liked {
+.liked svg {
   color: #ff2d55 !important;
 }
-.saved {
+.saved svg {
   color: #ffd60a !important;
+}
+.video-actions button span {
+  color: #fff;
 }
 .main-tabs {
   z-index: 30 !important;
@@ -1711,8 +2219,7 @@ onBeforeUnmount(() => {
   border-radius: 15px;
   padding: 6px 10px;
 }
-.compose-body textarea,
-.form-card textarea {
+.compose-body textarea {
   box-sizing: border-box;
   width: 100%;
   min-height: 82px;
@@ -1761,42 +2268,11 @@ onBeforeUnmount(() => {
   color: #0a84ff;
 }
 .nav-button svg {
-  width: 20px;
+  width: 19px;
+  height: 19px;
 }
 .profile-edit {
   padding-top: 54px;
-}
-.form-card {
-  margin: 12px;
-  border-radius: 15px;
-  background: #fff;
-  overflow: hidden;
-}
-.form-card label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 11px;
-  border-bottom: 1px solid #ddd;
-  color: #777;
-  font-size: 10px;
-}
-.form-card input,
-.form-card select {
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #111;
-  font-size: 13px;
-}
-.form-card textarea {
-  margin: 0;
-  padding: 0;
-  min-height: 60px;
-}
-.handle-field {
-  display: flex;
-  color: #111;
 }
 .sheet-handle {
   width: 34px;
@@ -1869,17 +2345,6 @@ onBeforeUnmount(() => {
 }
 .action-sheet .danger {
   color: #ff3b30;
-}
-.feedback {
-  position: absolute !important;
-  z-index: 90;
-  left: 50%;
-  bottom: 65px;
-  transform: translateX(-50%);
-  padding: 8px 13px !important;
-  border-radius: 18px !important;
-  white-space: nowrap;
-  font-size: 10px;
 }
 .empty-feed {
   padding: 30px;
@@ -2026,15 +2491,13 @@ onBeforeUnmount(() => {
   color: #fff;
   background: rgba(28, 28, 30, 0.9);
 }
-.compose-body textarea,
-.form-card textarea {
+.compose-body textarea {
   border: 1px solid #3a3a3c;
   background: #1c1c1e;
   color: #f5f5f7;
   outline: none;
 }
 .compose-body textarea::placeholder,
-.form-card textarea::placeholder,
 .field input::placeholder {
   color: #8e8e93;
 }
@@ -2084,29 +2547,38 @@ onBeforeUnmount(() => {
   background: #1c1c1e !important;
   opacity: 0.62;
 }
-.form-card {
-  border: 1px solid #2c2c2e;
-  background: #1c1c1e;
-}
-.form-card label {
-  border-color: #2c2c2e;
-  color: #a1a1a6;
-}
-.form-card input,
-.form-card select,
-.form-card textarea {
-  color: #f5f5f7;
-  background: transparent;
-}
 .nav-button {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 34px;
+  max-height: 34px;
+  inline-size: 34px !important;
+  block-size: 34px !important;
+  box-sizing: border-box;
+  padding: 0;
+  flex: 0 0 34px;
   place-items: center;
   border: 0;
-  border-radius: 50%;
+  border-radius: 50% !important;
   color: #0a84ff;
   background: #1c1c1e;
+  clip-path: circle(50% at 50% 50%);
+  line-height: 0;
+  overflow: hidden;
+}
+
+.fliptok-page :deep(.k-glass:has(> .nav-button)) {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  flex: 0 0 34px !important;
+  align-self: center;
+  border-radius: 50% !important;
+  overflow: hidden;
 }
 .done-button {
   font-weight: 650;
@@ -2182,10 +2654,6 @@ onBeforeUnmount(() => {
   width: 18px;
   color: #0a84ff;
 }
-.feedback {
-  color: #fff !important;
-  background: rgba(44, 44, 46, 0.94) !important;
-}
 .fliptok-navbar {
   transform: translateY(24px);
 }
@@ -2201,37 +2669,6 @@ onBeforeUnmount(() => {
 .field,
 .toggle-row {
   font-size: 12px;
-}
-.profile-select {
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 58px;
-  padding: 10px 11px;
-  border: 0;
-  border-bottom: 1px solid #2c2c2e;
-  color: #f5f5f7;
-  background: #1c1c1e;
-  text-align: left;
-}
-.profile-select span {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 4px;
-}
-.profile-select small {
-  color: #a1a1a6;
-  font-size: 10px;
-}
-.profile-select strong {
-  font-size: 13px;
-  font-weight: 500;
-}
-.profile-select svg {
-  width: 16px;
-  color: #8e8e93;
 }
 .discover-screen {
   padding-top: 100px;
@@ -2272,10 +2709,10 @@ onBeforeUnmount(() => {
 .video-actions button {
   position: relative;
 }
-.reaction-pop--like {
+.reaction-pop--like svg {
   color: #ff2d55 !important;
 }
-.reaction-pop--save {
+.reaction-pop--save svg {
   color: #ffd60a !important;
 }
 .reaction-pop svg {
@@ -2298,6 +2735,129 @@ onBeforeUnmount(() => {
     filter: drop-shadow(0 0 0 currentColor);
     transform: scale(1);
   }
+}
+
+.fliptok-auth {
+  --fliptok-auth-bg: #e9ebf1;
+  --fliptok-auth-text: #111;
+  --fliptok-auth-secondary: #6e6e73;
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  background: var(--fliptok-auth-bg);
+  color: var(--fliptok-auth-text);
+  overflow-y: auto;
+}
+.fliptok-auth--dark {
+  --fliptok-auth-bg: #08080a;
+  --fliptok-auth-text: #f5f5f7;
+  --fliptok-auth-secondary: #98989d;
+}
+.fliptok-auth::before {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: rgba(86, 72, 205, 0.2);
+  content: '';
+  filter: blur(58px);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+.fliptok-auth__navbar {
+  position: sticky !important;
+  z-index: 2;
+  top: 0;
+}
+.fliptok-auth__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: calc(100% - 58px);
+  align-items: center;
+  box-sizing: border-box;
+  padding: 18px 14px 34px;
+}
+.fliptok-auth__glass {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 26px !important;
+  padding: 18px 0 16px;
+  overflow: hidden;
+}
+.fliptok-auth:not(.fliptok-auth--dark) .fliptok-auth__glass {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+.fliptok-auth__hero {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 2px 20px 18px;
+}
+.fliptok-auth__hero img {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  border-radius: 15px;
+  box-shadow: 0 8px 24px rgba(45, 36, 135, 0.24);
+}
+.fliptok-auth__hero h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.35px;
+}
+.fliptok-auth__hero p {
+  margin: 4px 0 0;
+  color: var(--fliptok-auth-secondary);
+  font-size: 11px;
+  line-height: 1.3;
+}
+.fliptok-auth__segment {
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  margin: 0 16px 10px;
+  overflow: hidden;
+}
+.fliptok-auth__form :deep(.k-block-title) {
+  margin-top: 12px;
+  margin-bottom: 5px;
+}
+.fliptok-auth__form :deep(.k-list) {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+.fliptok-auth__form :deep(input),
+.fliptok-auth__form :deep(textarea) {
+  color: var(--fliptok-auth-text) !important;
+}
+.fliptok-auth__form > .k-button {
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  margin: 0 16px;
+}
+.fliptok-auth__hint {
+  margin: 9px 24px 0 !important;
+  padding: 0 !important;
+  color: var(--fliptok-auth-secondary);
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: center;
+}
+.logout-button {
+  color: #ff3b30 !important;
+}
+.logout-dialog-button {
+  color: #fff !important;
+  background: #ff3b30 !important;
+}
+.logout-dialog-button:active {
+  background: #d70015 !important;
+}
+.profile-form-list :deep(textarea) {
+  min-height: 70px;
 }
 .creator-link,
 .caption-link {

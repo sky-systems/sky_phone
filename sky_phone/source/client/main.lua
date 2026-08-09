@@ -60,6 +60,9 @@ local server_callbacks = {
     "pages:share-citymarkt",
     "pages:react",
     "pages:delete",
+    "fliptok:register",
+    "fliptok:login",
+    "fliptok:logout",
     "fliptok:bootstrap",
     "fliptok:feed",
     "fliptok:discover",
@@ -83,6 +86,9 @@ local server_callbacks = {
     "calendar:create",
     "calendar:update",
     "calendar:delete",
+    "map:markers",
+    "map:create-marker",
+    "map:delete-marker",
     "sim:insert",
     "sim:eject",
     "contacts:list",
@@ -249,6 +255,19 @@ RegisterNUICallback("map:getPlayerCoords", function(_, cb)
             }
         }
     })
+end)
+
+RegisterNUICallback("map:setWaypoint", function(data, cb)
+    local coords = type(data) == "table" and data.coords or nil
+    local x = type(coords) == "table" and tonumber(coords.x) or nil
+    local y = type(coords) == "table" and tonumber(coords.y) or nil
+    if not x or not y or x ~= x or y ~= y or math.abs(x) > 10000.0 or math.abs(y) > 10000.0 then
+        cb({ success = false, error = "invalid_marker" })
+        return
+    end
+
+    SetNewWaypoint(x, y)
+    cb({ success = true })
 end)
 
 local weather_types = {

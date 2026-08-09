@@ -223,11 +223,20 @@ Config.FlipTok = {
     CaptionMaxLength = 500,
     CommentMaxLength = 300,
     BioMaxLength = 160,
+    PasswordMinLength = 8,
+    PasswordMaxLength = 72,
+    PasswordPepperConvar = "sky_phone_fliptok_password_pepper",
     MaxVideoDurationMs = 300000,
     MusicTracks = {},
     VerifyCommand = "fliptokverify",
     AdminGroups = { "admin" },
     ReportAdminGroups = { "admin" },
+}
+
+Config.MapMarkers = {
+    MaximumMarkers = 50,
+    LabelMaxLength = 40,
+    ActionsPerMinute = 60,
 }
 
 Config.Calendar = {

@@ -23,6 +23,14 @@ let draft = null
 let mockBankBalance = 24787
 let mockCashBalance = 2350
 let nextBankTransactionId = 7
+let mockMapMarkers = [
+  {
+    color: 'blue',
+    coords: { x: -75.2, y: -818.9, z: 0 },
+    id: 'mock-map-marker-1',
+    label: 'Meeting point',
+  },
+]
 const flipTokProfile = {
   id: 1,
   handle: 'skyline',
@@ -36,6 +44,7 @@ const flipTokProfile = {
   following: 128,
   video_count: 2,
 }
+let flipTokAuthenticated = true
 const flipTokMusicTracks = [
   {
     id: 'night-drive',
@@ -1173,15 +1182,36 @@ app.post('/api/:endpoint', (request, response) => {
     transactions: mockBankTransactions,
   })
   if (endpoint === 'fliptok:bootstrap') {
+    if (!flipTokAuthenticated) {
+      response.json({
+        success: true,
+        data: {
+          authenticated: false,
+          musicTracks: flipTokMusicTracks,
+        },
+      })
+      return
+    }
     response.json({
       success: true,
       data: {
+        authenticated: true,
         profile: flipTokProfile,
         feed: { items: flipTokVideos, offset: 0, hasMore: false },
         isAdmin: true,
         musicTracks: flipTokMusicTracks,
       },
     })
+    return
+  }
+  if (endpoint === 'fliptok:login' || endpoint === 'fliptok:register') {
+    flipTokAuthenticated = true
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'fliptok:logout') {
+    flipTokAuthenticated = false
+    response.json({ success: true })
     return
   }
   if (endpoint === 'fliptok:feed') {
@@ -1252,7 +1282,8 @@ app.post('/api/:endpoint', (request, response) => {
   if (endpoint === 'fliptok:profile') {
     const profileId = Number(request.body.profileId || 0)
     const handle = String(request.body.handle || '').toLowerCase()
-    const own = profileId === flipTokProfile.id || handle === flipTokProfile.handle
+    const own =
+      profileId === flipTokProfile.id || handle === flipTokProfile.handle
     const videos = own
       ? flipTokVideos.filter((video) => video.profile_id === flipTokProfile.id)
       : flipTokVideos.filter((video) =>
@@ -1288,9 +1319,15 @@ app.post('/api/:endpoint', (request, response) => {
   }
   if (endpoint === 'fliptok:block') {
     const profileId = Number(request.body.profileId)
-    flipTokVideos = flipTokVideos.filter((video) => video.profile_id !== profileId)
-    flipTokComments = flipTokComments.filter((comment) => comment.profile_id !== profileId)
-    flipTokActivities = flipTokActivities.filter((activity) => activity.profile_id !== profileId)
+    flipTokVideos = flipTokVideos.filter(
+      (video) => video.profile_id !== profileId,
+    )
+    flipTokComments = flipTokComments.filter(
+      (comment) => comment.profile_id !== profileId,
+    )
+    flipTokActivities = flipTokActivities.filter(
+      (activity) => activity.profile_id !== profileId,
+    )
     response.json({ success: true })
     return
   }
@@ -1299,9 +1336,13 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'fliptok:admin-resolve-report') {
-    const selected = flipTokReports.find((report) => report.id === request.body.id)
+    const selected = flipTokReports.find(
+      (report) => report.id === request.body.id,
+    )
     if (selected && request.body.action === 'remove')
-      flipTokVideos = flipTokVideos.filter((video) => video.id !== selected.video_id)
+      flipTokVideos = flipTokVideos.filter(
+        (video) => video.id !== selected.video_id,
+      )
     flipTokReports = flipTokReports.filter((report) =>
       request.body.action === 'remove'
         ? report.video_id !== selected?.video_id
@@ -1472,6 +1513,49 @@ app.post('/api/:endpoint', (request, response) => {
       success: true,
       data: { coords: { x: -75.2, y: -818.9, z: 326.2 } },
     })
+    return
+  }
+
+  if (endpoint === 'map:setWaypoint') {
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'map:markers') {
+    response.json({ success: true, data: mockMapMarkers })
+    return
+  }
+  if (endpoint === 'map:create-marker') {
+    const label = String(request.body.label ?? '').trim()
+    const color = String(request.body.color ?? '')
+    const coords = request.body.coords
+    if (!label || label.length > 40 || !coords) {
+      response.json({ success: false, error: 'invalid_marker' })
+      return
+    }
+    const marker = {
+      color,
+      coords: {
+        x: Number(coords.x),
+        y: Number(coords.y),
+        z: Number(coords.z) || 0,
+      },
+      id: `mock-map-marker-${Date.now()}`,
+      label,
+    }
+    mockMapMarkers.push(marker)
+    response.json({ success: true, data: marker })
+    return
+  }
+  if (endpoint === 'map:delete-marker') {
+    const previousLength = mockMapMarkers.length
+    mockMapMarkers = mockMapMarkers.filter(
+      (marker) => marker.id !== request.body.id,
+    )
+    response.json(
+      mockMapMarkers.length === previousLength
+        ? { success: false, error: 'marker_not_found' }
+        : { success: true },
+    )
     return
   }
   if (endpoint === 'darkchat:bootstrap') {

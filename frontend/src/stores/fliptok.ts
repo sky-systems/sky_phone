@@ -15,6 +15,7 @@ import { nuiCall, type NuiResponse } from '@/utils/nui'
 export const useFlipTokStore = defineStore('fliptok', {
   state: () => ({
     activities: [] as FlipTokActivity[],
+    authenticated: false,
     comments: [] as FlipTokComment[],
     feed: [] as FlipTokVideo[],
     isAdmin: false,
@@ -61,18 +62,44 @@ export const useFlipTokStore = defineStore('fliptok', {
     async bootstrap(): Promise<boolean> {
       this.loading = true
       const response = await nuiCall<{
-        feed: FlipTokPage
-        isAdmin: boolean
+        authenticated: boolean
+        feed?: FlipTokPage
+        isAdmin?: boolean
         musicTracks: FlipTokMusicTrack[]
-        profile: FlipTokProfile
+        profile?: FlipTokProfile
       }>('fliptok:bootstrap')
       this.loading = false
       if (!response.success || !response.data) return false
-      this.profile = response.data.profile
-      this.feed = response.data.feed.items
+      this.authenticated = response.data.authenticated === true
+      this.profile = response.data.profile ?? null
+      this.feed = response.data.feed?.items ?? []
       this.isAdmin = response.data.isAdmin === true
       this.musicTracks = response.data.musicTracks ?? []
       return true
+    },
+    async login(handle: string, password: string): Promise<NuiResponse> {
+      const response = await nuiCall('fliptok:login', { handle, password })
+      if (response.success) await this.bootstrap()
+      return response
+    },
+    async register(
+      displayName: string,
+      handle: string,
+      password: string,
+    ): Promise<NuiResponse> {
+      const response = await nuiCall('fliptok:register', {
+        displayName,
+        handle,
+        password,
+      })
+      if (response.success) await this.bootstrap()
+      return response
+    },
+    async logout(): Promise<NuiResponse> {
+      const response = await nuiCall('fliptok:logout')
+      if (!response.success) return response
+      this.$reset()
+      return response
     },
     async loadFeed(mode?: 'for-you' | 'following'): Promise<boolean> {
       mode ??= this.mode
