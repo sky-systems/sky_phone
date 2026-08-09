@@ -1511,6 +1511,17 @@ const defaultLocales: LocaleTree = {
       general: 'General Settings',
       security: 'Passcode & Security',
       appearance: 'Appearance',
+      connectivity: 'Connectivity',
+      connections: 'Connections',
+      wifi: 'Wi-Fi',
+      bluetooth: 'Bluetooth',
+      cellular: 'Cellular',
+      connectivityDescription:
+        'Airplane Mode temporarily disables wireless connections. Wi-Fi, Bluetooth, and cellular settings are saved on this phone.',
+      focus: 'Focus',
+      focusMode: 'Focus',
+      focusDescription:
+        'Focus silences non-critical notifications while keeping alarms and important alerts available.',
       allowNotifications: 'Allow Notifications',
       notificationSounds: 'Sounds',
       notificationDuration: 'Notification Duration',
@@ -1525,6 +1536,8 @@ const defaultLocales: LocaleTree = {
       dark: 'Dark',
       phoneScale: 'Phone Scale',
       phoneFrame: 'Phone Frame',
+      screenBrightness: 'Screen Brightness',
+      rotationLock: 'Rotation Lock',
       about: 'About',
       deviceName: 'Device Name',
       deviceNameValue: 'Sky Phone',
@@ -1591,6 +1604,11 @@ const defaultLocales: LocaleTree = {
       toggle: {
         airplaneMode: 'Toggle Airplane Mode',
         streamerMode: 'Toggle Streamer Mode',
+        focusMode: 'Toggle Focus',
+        wifiEnabled: 'Toggle Wi-Fi',
+        bluetoothEnabled: 'Toggle Bluetooth',
+        cellularEnabled: 'Toggle Cellular Data',
+        rotationLocked: 'Toggle Rotation Lock',
         notifications: 'Toggle notifications for {app}',
         notificationSounds: 'Toggle notification sounds for {app}',
       },
@@ -1896,10 +1914,9 @@ export const usePhoneStore = defineStore('phone', {
     async unlockWithPasscode(
       passcode: string,
     ): Promise<NuiResponse<PasscodeResponseData>> {
-      const response = await nuiCall<PasscodeResponseData>(
-        'security:unlock',
-        { passcode },
-      )
+      const response = await nuiCall<PasscodeResponseData>('security:unlock', {
+        passcode,
+      })
       if (response.success && response.data?.security) {
         this.security = response.data.security
       }

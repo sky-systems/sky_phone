@@ -111,6 +111,9 @@ const forecastLow = computed(() =>
 const weatherIcon = computed(
   () => weatherIcons[weather.forecast.value?.condition ?? 'partly_cloudy'],
 )
+const visibleHourlyWeather = computed(
+  () => weather.forecast.value?.hourly.slice(0, 5) ?? [],
+)
 const balance = computed(() =>
   props.instance.settings.balanceSource === 'cash'
     ? bank.overview.value.cash
@@ -146,6 +149,13 @@ function formatMoney(value: number): string {
 
 function avatar(name: string): string {
   return name.trim().charAt(0).toLocaleUpperCase(phone.lang) || '?'
+}
+
+function formatForecastHour(timestamp: number): string {
+  return new Intl.DateTimeFormat(phone.lang, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(timestamp)
 }
 
 function clearHold(): void {
@@ -326,6 +336,13 @@ onBeforeUnmount(() => {
         <small v-if="instance.size !== 'small'" class="widget-weather-range">
           H: {{ forecastHigh ?? '--' }}° &nbsp; L: {{ forecastLow ?? '--' }}°
         </small>
+        <div v-if="instance.size !== 'small'" class="widget-weather-hourly">
+          <div v-for="hour in visibleHourlyWeather" :key="hour.timestamp">
+            <time>{{ formatForecastHour(hour.timestamp) }}</time>
+            <component :is="weatherIcons[hour.condition]" :size="21" />
+            <strong>{{ hour.temperature }}°</strong>
+          </div>
+        </div>
       </template>
 
       <template v-else-if="instance.kind === 'music'">
@@ -492,20 +509,35 @@ onBeforeUnmount(() => {
 .home-widget {
   width: 100%;
   height: 100%;
-  padding: 14px;
+  padding: 15px;
   overflow: hidden;
-  border: 0.5px solid rgb(255 255 255 / 18%);
-  border-radius: 22px;
+  border: 0.75px solid rgb(255 255 255 / 17%);
+  border-radius: 25px;
   outline: none;
   color: #fff;
-  background: rgb(28 28 30 / 76%);
+  background: rgb(25 25 27 / 91%);
   box-shadow:
-    0 8px 24px rgb(0 0 0 / 24%),
-    inset 0 0.5px rgb(255 255 255 / 18%);
+    0 10px 25px rgb(0 0 0 / 28%),
+    inset 0 0.75px rgb(255 255 255 / 15%);
+  backdrop-filter: blur(26px) saturate(125%);
+  -webkit-backdrop-filter: blur(26px) saturate(125%);
   cursor: pointer;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Segoe UI', sans-serif;
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+}
+
+.home-widget-shell--small .home-widget {
+  padding: 13px;
+  border-radius: 23px;
+}
+
+.home-widget-shell--large .home-widget {
+  padding: 18px;
+  border-radius: 28px;
 }
 
 .home-widget:active {
@@ -514,8 +546,9 @@ onBeforeUnmount(() => {
 
 .home-widget small,
 .widget-eyebrow {
-  color: rgb(255 255 255 / 68%);
+  color: rgb(255 255 255 / 62%);
   font-size: 11px;
+  font-weight: 500;
   line-height: 1.25;
 }
 
@@ -528,25 +561,30 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
 }
 
+.home-widget--clock {
+  background: rgb(12 12 13 / 94%);
+}
+
 .widget-clock {
-  margin: 1px 0;
-  font-size: 31px;
-  font-weight: 400;
-  letter-spacing: -1.6px;
+  margin: 2px 0;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -1.8px;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .home-widget-shell--medium .widget-clock {
-  font-size: 45px;
+  font-size: 48px;
 }
 
 .home-widget--date {
-  background: rgb(247 247 247 / 88%);
-  color: #111;
+  background: rgb(24 24 26 / 94%);
+  color: #fff;
 }
 
 .home-widget--date small {
-  color: #6e6e73;
+  color: rgb(255 255 255 / 58%);
 }
 
 .widget-date-month {
@@ -557,8 +595,8 @@ onBeforeUnmount(() => {
 }
 
 .widget-date-day {
-  font-size: 48px;
-  font-weight: 300;
+  font-size: 52px;
+  font-weight: 400;
   letter-spacing: -2px;
   line-height: 0.95;
 }
@@ -567,7 +605,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background: rgb(25 69 112 / 82%);
+  background: rgb(34 42 78 / 95%);
 }
 
 .widget-weather-top {
@@ -582,14 +620,72 @@ onBeforeUnmount(() => {
 }
 
 .widget-weather-top strong {
-  font-size: 34px;
-  font-weight: 300;
+  font-size: 38px;
+  font-weight: 400;
   letter-spacing: -1.5px;
   line-height: 1;
 }
 
 .widget-weather-range {
-  margin-top: 4px;
+  margin-top: 3px;
+  color: rgb(255 255 255 / 86%) !important;
+  font-weight: 600 !important;
+}
+
+.widget-weather-hourly {
+  display: grid;
+  margin-top: 12px;
+  padding-top: 11px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-top: 0.5px solid rgb(255 255 255 / 18%);
+}
+
+.widget-weather-hourly > div {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 6px;
+}
+
+.widget-weather-hourly time {
+  color: rgb(255 255 255 / 58%);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.widget-weather-hourly strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.home-widget-shell--medium .home-widget--weather {
+  padding: 13px 15px;
+}
+
+.home-widget-shell--medium .widget-weather-top strong {
+  font-size: 32px;
+}
+
+.home-widget-shell--medium .widget-weather-hourly {
+  margin-top: 7px;
+  padding-top: 7px;
+}
+
+.home-widget-shell--medium .widget-weather-hourly > div {
+  gap: 3px;
+}
+
+.home-widget-shell--medium .widget-weather-hourly svg {
+  width: 18px;
+  height: 18px;
+}
+
+.home-widget-shell--medium .widget-weather-hourly time {
+  font-size: 8px;
+}
+
+.home-widget-shell--medium .widget-weather-hourly strong {
+  font-size: 11px;
 }
 
 .home-widget--music {
@@ -597,6 +693,7 @@ onBeforeUnmount(() => {
   align-items: center;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
+  background: rgb(25 25 28 / 94%);
 }
 
 .home-widget-shell--large .home-widget--music {
@@ -610,10 +707,12 @@ onBeforeUnmount(() => {
   width: 58px;
   height: 58px;
   place-items: center;
-  border-radius: 13px;
+  border-radius: 14px;
   color: #fff;
-  background: #b33a3a;
-  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 22%);
+  background: #5653b8;
+  box-shadow:
+    inset 0 0 0 0.5px rgb(255 255 255 / 25%),
+    0 5px 13px rgb(0 0 0 / 24%);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 1.5px;
@@ -640,6 +739,10 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
+.widget-music-copy strong {
+  font-size: 13px;
+}
+
 .widget-music-controls {
   display: flex;
   align-items: center;
@@ -655,7 +758,11 @@ onBeforeUnmount(() => {
   border: 0;
   border-radius: 50%;
   color: #fff;
-  background: rgb(255 255 255 / 13%);
+  background: rgb(255 255 255 / 11%);
+}
+
+.home-widget--wallet {
+  background: rgb(25 26 29 / 94%);
 }
 
 .widget-wallet-icon {
@@ -667,14 +774,14 @@ onBeforeUnmount(() => {
   height: 36px;
   place-items: center;
   border-radius: 11px;
-  color: #0a84ff;
-  background: rgb(10 132 255 / 15%);
+  color: #64d2ff;
+  background: rgb(100 210 255 / 13%);
 }
 
 .widget-balance {
   margin: 2px 0;
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 30px;
+  font-weight: 650;
   letter-spacing: -1.2px;
 }
 
@@ -684,14 +791,26 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
+.home-widget--transactions {
+  background: rgb(29 29 31 / 94%);
+}
+
+.home-widget--contacts {
+  background: rgb(25 26 29 / 94%);
+}
+
 .widget-list-header {
   display: flex;
   margin-bottom: 7px;
   align-items: center;
   justify-content: space-between;
-  color: rgb(255 255 255 / 72%);
-  font-size: 12px;
-  font-weight: 600;
+  color: #64d2ff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.home-widget--transactions .widget-list-header {
+  color: #30d158;
 }
 
 .widget-transaction {
@@ -701,7 +820,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   border: 0;
-  border-top: 0.5px solid rgb(255 255 255 / 12%);
+  border-top: 0.5px solid rgb(255 255 255 / 11%);
   color: #fff;
   background: transparent;
   text-align: left;
@@ -715,6 +834,12 @@ onBeforeUnmount(() => {
 
 .widget-transaction strong {
   font-size: 12px;
+  font-weight: 650;
+}
+
+.widget-transaction small {
+  margin-top: 1px;
+  font-size: 9px;
 }
 
 .widget-transaction b {
@@ -756,6 +881,7 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   color: #fff;
   background: #5e5ce6;
+  box-shadow: inset 0 1px rgb(255 255 255 / 20%);
   font-size: 16px;
   font-weight: 650;
 }
@@ -784,8 +910,8 @@ onBeforeUnmount(() => {
 .widget-contacts button {
   width: 25px;
   height: 25px;
-  color: #0a84ff;
-  background: rgb(10 132 255 / 14%);
+  color: #64d2ff;
+  background: rgb(100 210 255 / 12%);
 }
 
 .home-widget-remove {

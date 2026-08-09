@@ -24,17 +24,22 @@ import {
 } from 'konsta/vue'
 import {
   BellRing,
+  Bluetooth,
   Check,
   EyeOff,
   KeyRound,
   Monitor,
+  Moon,
   Plane,
   RotateCcw,
+  RotateCw,
   Settings,
+  Signal,
   Smartphone,
   Sun,
   UserRound,
   Volume2,
+  Wifi,
 } from 'lucide-vue-next'
 import {
   computed,
@@ -81,10 +86,18 @@ type SettingsView =
   | 'notifications'
   | 'notification-detail'
   | 'sounds'
+  | 'connectivity'
+  | 'focus'
   | 'general'
   | 'appearance'
   | 'wallpaper'
-type RootToggleKey = 'airplaneMode' | 'streamerMode'
+type RootToggleKey =
+  | 'airplaneMode'
+  | 'streamerMode'
+  | 'focusMode'
+  | 'wifiEnabled'
+  | 'bluetoothEnabled'
+  | 'cellularEnabled'
 type SubmenuView = Exclude<SettingsView, 'root' | 'notification-detail'>
 type PasscodeFlow =
   | 'set-new'
@@ -172,6 +185,18 @@ const serviceRows = [
 ]
 const preferenceRows = [
   {
+    key: 'connectivity',
+    view: 'connectivity' as const,
+    icon: Wifi,
+    iconColor: '#007aff',
+  },
+  {
+    key: 'focus',
+    view: 'focus' as const,
+    icon: Moon,
+    iconColor: '#5856d6',
+  },
+  {
     key: 'security',
     view: 'security' as const,
     icon: KeyRound,
@@ -194,6 +219,27 @@ const preferenceRows = [
     view: 'wallpaper' as const,
     icon: Monitor,
     iconColor: '#32ade6',
+  },
+]
+
+const connectivityRows = [
+  {
+    key: 'wifi',
+    preferenceKey: 'wifiEnabled' as const,
+    icon: Wifi,
+    iconColor: '#007aff',
+  },
+  {
+    key: 'bluetooth',
+    preferenceKey: 'bluetoothEnabled' as const,
+    icon: Bluetooth,
+    iconColor: '#007aff',
+  },
+  {
+    key: 'cellular',
+    preferenceKey: 'cellularEnabled' as const,
+    icon: Signal,
+    iconColor: '#34c759',
   },
 ]
 
@@ -233,7 +279,10 @@ const passcodeTitle = computed(() => {
   if (passcodeFlow.value === 'set-confirm') {
     return phone.t('Apps.settings.passcode.confirmNew')
   }
-  if (passcodeFlow.value === 'change-current' || passcodeFlow.value === 'disable') {
+  if (
+    passcodeFlow.value === 'change-current' ||
+    passcodeFlow.value === 'disable'
+  ) {
     return phone.t('Apps.settings.passcode.enterCurrent')
   }
   if (passcodeFlow.value === 'change-confirm') {
@@ -402,7 +451,8 @@ function updateNumberPreference(
     | 'notificationDurationSeconds'
     | 'notificationVolume'
     | 'phoneScale'
-    | 'ringtoneVolume',
+    | 'ringtoneVolume'
+    | 'screenBrightness',
   event: Event,
 ): void {
   phone.setPreference(
@@ -700,10 +750,11 @@ onBeforeUnmount(() => {
               <component :is="row.icon" :size="17" :stroke-width="2.25" />
             </span>
           </template>
-          <template v-if="row.key === 'security'" #after>
+          <template v-if="row.key === 'security' || row.key === 'focus'" #after>
             {{
               phone.t(
-                phone.security.enabled
+                (row.key === 'security' && phone.security.enabled) ||
+                  (row.key === 'focus' && phone.preferences.settings.focusMode)
                   ? 'Apps.settings.on'
                   : 'Apps.settings.off',
               )
@@ -714,7 +765,13 @@ onBeforeUnmount(() => {
     </template>
 
     <template v-else>
-      <k-navbar :title="activeTitle" class="top-0 sticky z-20">
+      <k-navbar
+        :title="activeTitle"
+        :class="[
+          'settings-detail-navbar sticky z-20',
+          { 'settings-detail-navbar--dark': phone.isDarkMode },
+        ]"
+      >
         <template #left>
           <k-navbar-back-link
             component="button"
@@ -879,7 +936,9 @@ onBeforeUnmount(() => {
         </k-block>
 
         <template v-if="!phone.security.enabled">
-          <k-block-title>{{ phone.t('Apps.settings.passcode.codeLength') }}</k-block-title>
+          <k-block-title>{{
+            phone.t('Apps.settings.passcode.codeLength')
+          }}</k-block-title>
           <k-block>
             <k-segmented strong rounded>
               <k-segmented-button
@@ -920,7 +979,9 @@ onBeforeUnmount(() => {
               "
             />
           </k-list>
-          <k-block-title>{{ phone.t('Apps.settings.passcode.codeLength') }}</k-block-title>
+          <k-block-title>{{
+            phone.t('Apps.settings.passcode.codeLength')
+          }}</k-block-title>
           <k-block>
             <k-segmented strong rounded>
               <k-segmented-button
@@ -1132,6 +1193,80 @@ onBeforeUnmount(() => {
         </k-list>
       </template>
 
+      <template v-else-if="activeView === 'connectivity'">
+        <k-list strong inset>
+          <k-list-item :title="phone.t('Apps.settings.airplaneMode')">
+            <template #media>
+              <span class="settings-row-icon bg-[#ff9500]">
+                <Plane :size="17" :stroke-width="2.25" />
+              </span>
+            </template>
+            <template #after>
+              <k-toggle
+                :checked="phone.preferences.settings.airplaneMode"
+                :aria-label="phone.t('Apps.settings.toggle.airplaneMode')"
+                @change="toggleRootSetting('airplaneMode')"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+
+        <k-block-title>{{
+          phone.t('Apps.settings.connections')
+        }}</k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            v-for="row in connectivityRows"
+            :key="row.key"
+            :title="phone.t(`Apps.settings.${row.key}`)"
+          >
+            <template #media>
+              <span
+                class="settings-row-icon"
+                :style="{ backgroundColor: row.iconColor }"
+              >
+                <component :is="row.icon" :size="17" :stroke-width="2.25" />
+              </span>
+            </template>
+            <template #after>
+              <k-toggle
+                :checked="phone.preferences.settings[row.preferenceKey]"
+                :disabled="phone.preferences.settings.airplaneMode"
+                :aria-label="
+                  phone.t(`Apps.settings.toggle.${row.preferenceKey}`)
+                "
+                @change="toggleRootSetting(row.preferenceKey)"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+        <k-block class="text-sm leading-5 opacity-60">
+          {{ phone.t('Apps.settings.connectivityDescription') }}
+        </k-block>
+      </template>
+
+      <template v-else-if="activeView === 'focus'">
+        <k-list strong inset>
+          <k-list-item :title="phone.t('Apps.settings.focusMode')">
+            <template #media>
+              <span class="settings-row-icon bg-[#5856d6]">
+                <Moon :size="17" :stroke-width="2.25" />
+              </span>
+            </template>
+            <template #after>
+              <k-toggle
+                :checked="phone.preferences.settings.focusMode"
+                :aria-label="phone.t('Apps.settings.toggle.focusMode')"
+                @change="toggleRootSetting('focusMode')"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+        <k-block class="text-sm leading-5 opacity-60">
+          {{ phone.t('Apps.settings.focusDescription') }}
+        </k-block>
+      </template>
+
       <template v-else-if="activeView === 'general'">
         <k-block-title>
           {{ phone.t('Apps.settings.notificationDuration') }} ·
@@ -1238,6 +1373,48 @@ onBeforeUnmount(() => {
               <Check
                 v-if="phone.preferences.settings.appearanceMode === mode"
                 class="w-5 h-5 text-primary"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+
+        <k-block-title>
+          {{ phone.t('Apps.settings.screenBrightness') }} ·
+          {{ phone.preferences.settings.screenBrightness }}%
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item>
+            <template #inner>
+              <div class="flex w-full items-center gap-3">
+                <Sun :size="16" class="shrink-0 opacity-55" />
+                <k-range
+                  class="w-full"
+                  :value="phone.preferences.settings.screenBrightness"
+                  :min="10"
+                  :max="100"
+                  :aria-label="phone.t('Apps.settings.screenBrightness')"
+                  @input="updateNumberPreference('screenBrightness', $event)"
+                />
+                <Sun :size="23" class="shrink-0" />
+              </div>
+            </template>
+          </k-list-item>
+          <k-list-item :title="phone.t('Apps.settings.rotationLock')">
+            <template #media>
+              <span class="settings-row-icon bg-[#ff9500]">
+                <RotateCw :size="17" :stroke-width="2.25" />
+              </span>
+            </template>
+            <template #after>
+              <k-toggle
+                :checked="phone.preferences.settings.rotationLocked"
+                :aria-label="phone.t('Apps.settings.toggle.rotationLocked')"
+                @change="
+                  phone.setPreference(
+                    'rotationLocked',
+                    !phone.preferences.settings.rotationLocked,
+                  )
+                "
               />
             </template>
           </k-list-item>
@@ -1456,3 +1633,44 @@ onBeforeUnmount(() => {
     {{ accountToast }}
   </k-toast>
 </template>
+
+<style scoped>
+.settings-row-icon {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 35%),
+    0 1px 2px rgb(0 0 0 / 25%);
+}
+
+.settings-detail-navbar {
+  top: 0 !important;
+  background: rgb(248 248 248 / 94%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.settings-detail-navbar::before {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 44px;
+  background: rgb(248 248 248);
+  content: '';
+}
+
+.settings-detail-navbar--dark {
+  background: rgb(0 0 0 / 94%);
+}
+
+.settings-detail-navbar--dark::before {
+  background: #000;
+}
+</style>
