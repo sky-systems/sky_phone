@@ -1938,7 +1938,7 @@ onMounted(async () => {
 }
 .flare-explore-card {
   position: relative;
-  height: 185px;
+  aspect-ratio: 1 / 1;
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden;
