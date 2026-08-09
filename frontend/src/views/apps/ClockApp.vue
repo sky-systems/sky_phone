@@ -81,6 +81,7 @@ const timerPicker = computed({
 const currentTime = computed(() =>
   new Intl.DateTimeFormat(phone.lang, {
     hour: '2-digit',
+    hourCycle: 'h23',
     minute: '2-digit',
     timeZone: browserTimeZone,
   }).format(now.value),

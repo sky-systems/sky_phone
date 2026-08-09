@@ -37,9 +37,19 @@ const wrapperStyle = computed<CSSProperties>(() => ({ zoom: props.zoom }))
   >
     <section
       class="phone-device phone-device--notification"
+      :class="{
+        'phone-app--light': !isDarkMode,
+        [`phone-app--${preferences.settings.graphicsMode}`]: true,
+      }"
       :aria-label="device.name"
     >
-      <div class="phone-screen">
+      <div
+        class="phone-screen"
+        :class="{
+          'phone-app--light': !isDarkMode,
+          [`phone-app--${preferences.settings.graphicsMode}`]: true,
+        }"
+      >
         <k-app
           theme="ios"
           :dark="isDarkMode"
@@ -48,6 +58,7 @@ const wrapperStyle = computed<CSSProperties>(() => ({ zoom: props.zoom }))
           :class="{
             dark: isDarkMode,
             'phone-app--light': !isDarkMode,
+            [`phone-app--${preferences.settings.graphicsMode}`]: true,
           }"
         >
           <div

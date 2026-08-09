@@ -127,6 +127,7 @@ function formatDate(timestamp: number): string {
   return new Intl.DateTimeFormat(phone.lang, {
     day: 'numeric',
     hour: '2-digit',
+    hourCycle: 'h23',
     minute: '2-digit',
     month: 'short',
   }).format(timestamp)

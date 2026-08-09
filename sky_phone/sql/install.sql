@@ -241,6 +241,18 @@ CREATE TABLE IF NOT EXISTS `sky_phone_calendar_events` (
     FOREIGN KEY (`account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_radio_profiles` (
+    `identifier` VARCHAR(80) NOT NULL,
+    `history` LONGTEXT NOT NULL,
+    `settings` LONGTEXT NOT NULL,
+    `primary_frequency` DOUBLE NOT NULL DEFAULT 0,
+    `secondary_frequency` DOUBLE NOT NULL DEFAULT 0,
+    `badge` VARCHAR(32) NOT NULL DEFAULT '',
+    `display_name` VARCHAR(64) NOT NULL DEFAULT '',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`identifier`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_fliptok_profiles` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, `account_id` BIGINT UNSIGNED NOT NULL,
     `handle` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL, `display_name` VARCHAR(40) NOT NULL,

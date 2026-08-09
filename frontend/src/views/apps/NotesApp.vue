@@ -295,7 +295,11 @@ function togglePinned(): void {
       <k-popover
         :opened="menuOpened"
         :target="menuTarget"
-        :class="{ dark: phone.isDarkMode }"
+        :class="{
+          dark: phone.isDarkMode,
+          'phone-app--light': !phone.isDarkMode,
+          [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
+        }"
         angle
         @backdropclick="menuOpened = false"
       >

@@ -187,6 +187,7 @@ function formatConversationDate(value: DatabaseDateValue): string {
   if (date.toDateString() === today.toDateString()) {
     return new Intl.DateTimeFormat(phone.lang, {
       hour: '2-digit',
+      hourCycle: 'h23',
       minute: '2-digit',
     }).format(date)
   }
@@ -229,6 +230,7 @@ function timeLabel(value: DatabaseDateValue): string {
   if (Number.isNaN(date.getTime())) return ''
   return new Intl.DateTimeFormat(phone.lang, {
     hour: '2-digit',
+    hourCycle: 'h23',
     minute: '2-digit',
   }).format(date)
 }

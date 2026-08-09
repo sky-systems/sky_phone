@@ -46,6 +46,12 @@ describe('app registry', () => {
       labelKey: 'Apps.calendar.name',
       route: '/apps/calendar',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'radio')).toMatchObject({
+      dockOrder: null,
+      gridOrder: 21,
+      labelKey: 'Apps.radio.name',
+      route: '/apps/radio',
+    })
     expect(PHONE_APPS.find((app) => app.id === 'snake')).toMatchObject({
       dockOrder: null,
       gridOrder: 12,
@@ -120,6 +126,7 @@ describe('app registry', () => {
       ),
     ).toEqual([
       'fliptok',
+      'radio',
       'local-pages',
       'phone',
       'darkchat',
