@@ -47,6 +47,126 @@ const radioData = {
 let mockBankBalance = 24787
 let mockCashBalance = 2350
 let nextBankTransactionId = 7
+const flipTokProfile = {
+  id: 1,
+  handle: 'skyline',
+  display_name: 'Skyline',
+  bio: 'Life around Los Santos.',
+  account_type: 'media',
+  verified: true,
+  is_following: false,
+  is_owner: true,
+  followers: 18400,
+  following: 128,
+  video_count: 2,
+}
+const flipTokMusicTracks = [
+  {
+    id: 'night-drive',
+    title: 'Night Drive',
+    artist: 'Los Santos Radio',
+    url: 'https://media.w3.org/2010/07/bunny/04-Death_Becomes_Fur.oga',
+  },
+]
+let flipTokVideos = [
+  {
+    id: 'fliptok-1',
+    profile_id: 2,
+    handle: 'novals',
+    display_name: 'Nova',
+    verified: true,
+    caption: 'A quiet minute above Vinewood. #LosSantos',
+    location: 'Vinewood Hills',
+    trim_start_ms: 0,
+    trim_end_ms: null,
+    cover_time_ms: 1200,
+    original_volume: 100,
+    music_volume: 0,
+    music_track: '',
+    music_title: '',
+    music_artist: '',
+    music_url: '',
+    url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    comments_enabled: true,
+    is_liked: false,
+    is_saved: false,
+    is_following: false,
+    is_owner: false,
+    like_count: 12840,
+    comment_count: 384,
+    view_count: 245100,
+    share_count: 932,
+    created_at: Date.now() - 3600000,
+  },
+  {
+    id: 'fliptok-2',
+    profile_id: 1,
+    handle: 'skyline',
+    display_name: 'Skyline',
+    verified: true,
+    caption: 'Tonight in the city.',
+    location: 'Downtown Los Santos',
+    trim_start_ms: 800,
+    trim_end_ms: 12000,
+    cover_time_ms: 2200,
+    original_volume: 70,
+    music_volume: 25,
+    music_track: 'night-drive',
+    music_title: 'Night Drive',
+    music_artist: 'Los Santos Radio',
+    music_url: flipTokMusicTracks[0].url,
+    url: 'https://media.w3.org/2010/05/sintel/trailer.mp4',
+    comments_enabled: true,
+    is_liked: true,
+    is_saved: true,
+    is_following: false,
+    is_owner: true,
+    like_count: 4921,
+    comment_count: 97,
+    view_count: 88300,
+    share_count: 220,
+    created_at: Date.now() - 7200000,
+  },
+]
+let flipTokComments = [
+  {
+    id: 'comment-1',
+    profile_id: 2,
+    handle: 'nova',
+    display_name: 'Nova',
+    verified: true,
+    body: 'This view is perfect.',
+    created_at: Date.now() - 300000,
+  },
+]
+let flipTokActivities = [
+  {
+    id: 'activity-1',
+    profile_id: 2,
+    handle: 'nova',
+    display_name: 'Nova',
+    verified: true,
+    kind: 'like',
+    video_id: 'fliptok-2',
+    read_at: null,
+    created_at: Date.now() - 240000,
+  },
+]
+let flipTokReports = [
+  {
+    id: 'report-1',
+    video_id: 'fliptok-1',
+    reason: 'dangerous',
+    details: 'Please review the driving shown in this clip.',
+    created_at: Date.now() - 600000,
+    caption: flipTokVideos[0].caption,
+    url: flipTokVideos[0].url,
+    reporter_handle: 'skyline',
+    reporter_display_name: 'Skyline',
+    creator_handle: 'novals',
+    creator_display_name: 'Nova',
+  },
+]
 const mockBankTransactions = [
   {
     id: 1,
@@ -1134,6 +1254,204 @@ app.post('/api/:endpoint', (request, response) => {
     playerName: 'Alex Morgan',
     transactions: mockBankTransactions,
   })
+  if (endpoint === 'fliptok:bootstrap') {
+    response.json({
+      success: true,
+      data: {
+        profile: flipTokProfile,
+        feed: { items: flipTokVideos, offset: 0, hasMore: false },
+        isAdmin: true,
+        musicTracks: flipTokMusicTracks,
+      },
+    })
+    return
+  }
+  if (endpoint === 'fliptok:feed') {
+    const items =
+      request.body.mode === 'following'
+        ? flipTokVideos.filter((video) => video.is_following)
+        : flipTokVideos
+    response.json({ success: true, data: { items, offset: 0, hasMore: false } })
+    return
+  }
+  if (endpoint === 'fliptok:discover') {
+    const search = String(request.body.search ?? '').toLowerCase()
+    response.json({
+      success: true,
+      data: flipTokVideos.filter((video) =>
+        `${video.handle} ${video.display_name} ${video.caption}`
+          .toLowerCase()
+          .includes(search),
+      ),
+    })
+    return
+  }
+  if (endpoint === 'fliptok:react') {
+    const video = flipTokVideos.find((item) => item.id === request.body.id)
+    if (video) {
+      const key = request.body.kind === 'like' ? 'is_liked' : 'is_saved'
+      video[key] = request.body.active
+    }
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'fliptok:follow') {
+    flipTokVideos
+      .filter((video) => video.profile_id === request.body.profileId)
+      .forEach((video) => {
+        video.is_following = request.body.active
+      })
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'fliptok:share') {
+    const video = flipTokVideos.find((item) => item.id === request.body.id)
+    if (video) video.share_count += 1
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'fliptok:comments') {
+    response.json({ success: true, data: flipTokComments })
+    return
+  }
+  if (endpoint === 'fliptok:comment') {
+    flipTokComments.unshift({
+      id: `comment-${Date.now()}`,
+      profile_id: 1,
+      handle: flipTokProfile.handle,
+      display_name: flipTokProfile.display_name,
+      verified: flipTokProfile.verified,
+      body: request.body.body,
+      created_at: Date.now(),
+    })
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'fliptok:activities') {
+    response.json({ success: true, data: flipTokActivities })
+    return
+  }
+  if (endpoint === 'fliptok:profile') {
+    const profileId = Number(request.body.profileId || 0)
+    const handle = String(request.body.handle || '').toLowerCase()
+    const own = profileId === flipTokProfile.id || handle === flipTokProfile.handle
+    const videos = own
+      ? flipTokVideos.filter((video) => video.profile_id === flipTokProfile.id)
+      : flipTokVideos.filter((video) =>
+          profileId ? video.profile_id === profileId : video.handle === handle,
+        )
+    const first = videos[0]
+    if (!first && !own) {
+      response.json({ success: false, error: 'profile_not_found' })
+      return
+    }
+    response.json({
+      success: true,
+      data: {
+        profile: own
+          ? { ...flipTokProfile }
+          : {
+              id: first.profile_id,
+              handle: first.handle,
+              display_name: first.display_name,
+              bio: 'Creator in Los Santos.',
+              account_type: 'person',
+              verified: first.verified,
+              is_following: first.is_following,
+              is_owner: false,
+              followers: 12840,
+              following: 91,
+              video_count: videos.length,
+            },
+        videos,
+      },
+    })
+    return
+  }
+  if (endpoint === 'fliptok:block') {
+    const profileId = Number(request.body.profileId)
+    flipTokVideos = flipTokVideos.filter((video) => video.profile_id !== profileId)
+    flipTokComments = flipTokComments.filter((comment) => comment.profile_id !== profileId)
+    flipTokActivities = flipTokActivities.filter((activity) => activity.profile_id !== profileId)
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'fliptok:admin-reports') {
+    response.json({ success: true, data: flipTokReports })
+    return
+  }
+  if (endpoint === 'fliptok:admin-resolve-report') {
+    const selected = flipTokReports.find((report) => report.id === request.body.id)
+    if (selected && request.body.action === 'remove')
+      flipTokVideos = flipTokVideos.filter((video) => video.id !== selected.video_id)
+    flipTokReports = flipTokReports.filter((report) =>
+      request.body.action === 'remove'
+        ? report.video_id !== selected?.video_id
+        : report.id !== request.body.id,
+    )
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'fliptok:update-profile') {
+    Object.assign(flipTokProfile, {
+      handle: request.body.handle,
+      display_name: request.body.displayName,
+      bio: request.body.bio,
+      account_type: request.body.accountType,
+    })
+    response.json({ success: true, data: flipTokProfile })
+    return
+  }
+  if (endpoint === 'fliptok:publish') {
+    const media = mockMedia.find(
+      (item) => item.id === request.body.mediaId && item.mediaType === 'video',
+    )
+    if (!media) {
+      response.json({ success: false, error: 'invalid_media' })
+      return
+    }
+    flipTokVideos.unshift({
+      id: `fliptok-${Date.now()}`,
+      profile_id: 1,
+      handle: flipTokProfile.handle,
+      display_name: flipTokProfile.display_name,
+      verified: flipTokProfile.verified,
+      caption: request.body.caption,
+      location: request.body.location,
+      trim_start_ms: request.body.trimStartMs || 0,
+      trim_end_ms: request.body.trimEndMs || null,
+      cover_time_ms: request.body.coverTimeMs || 0,
+      original_volume: request.body.originalVolume ?? 100,
+      music_volume: request.body.musicVolume || 0,
+      music_track: request.body.musicTrack || '',
+      music_title:
+        flipTokMusicTracks.find((track) => track.id === request.body.musicTrack)
+          ?.title || '',
+      music_artist:
+        flipTokMusicTracks.find((track) => track.id === request.body.musicTrack)
+          ?.artist || '',
+      music_url:
+        flipTokMusicTracks.find((track) => track.id === request.body.musicTrack)
+          ?.url || '',
+      url: media.url,
+      comments_enabled: request.body.commentsEnabled,
+      is_liked: false,
+      is_saved: false,
+      is_following: false,
+      is_owner: true,
+      like_count: 0,
+      comment_count: 0,
+      view_count: 0,
+      share_count: 0,
+      created_at: Date.now(),
+    })
+    response.json({ success: true, data: { id: flipTokVideos[0].id } })
+    return
+  }
+  if (endpoint.startsWith('fliptok:')) {
+    response.json({ success: true })
+    return
+  }
   if (endpoint === 'banking:overview') {
     response.json({ success: true, data: bankingOverview() })
     return

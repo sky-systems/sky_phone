@@ -31,6 +31,7 @@ import { useAccountStore } from '@/stores/account'
 import { useMailStore } from '@/stores/mail'
 import { useMessagesStore } from '@/stores/messages'
 import { useDarkChatStore } from '@/stores/darkchat'
+import { useFlipTokStore } from '@/stores/fliptok'
 import { useMediaStore } from '@/stores/media'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAppStoreStore } from '@/stores/app-store'
@@ -60,6 +61,8 @@ type AppMessage = {
     | MarketplaceEventData
     | MessagesEventData
     | DarkChatEventData
+    | FlipTokVerificationData
+    | FlipTokNotificationData
     | PhoneCall
     | PhoneNotificationInput
     | PhoneOpenPayload
@@ -115,6 +118,20 @@ type CalendarReminderData = {
   text?: string
   title?: string
 }
+
+type FlipTokVerificationData = {
+  profileId: number
+  verified: boolean
+}
+
+type FlipTokNotificationData = {
+  actor?: string
+  device?: PhoneNotificationDevicePayload
+  kind?: 'like' | 'comment' | 'follow' | 'verified'
+  text?: string
+  title?: string
+  videoId?: string
+}
 const REFERENCE_VIEWPORT_WIDTH = 1920
 const REFERENCE_VIEWPORT_HEIGHT = 1080
 const PHONE_BASE_SCALE = 0.69
@@ -130,6 +147,7 @@ const banking = useBankingStore()
 const mail = useMailStore()
 const messages = useMessagesStore()
 const darkchat = useDarkChatStore()
+const fliptok = useFlipTokStore()
 const media = useMediaStore()
 const marketplace = useMarketplaceStore()
 const appStore = useAppStoreStore()
@@ -277,6 +295,32 @@ function onMessage(event: MessageEvent<AppMessage>): void {
   } else if (event.data?.type === 'marketplace:changed' && event.data.data) {
     const data = event.data.data as MarketplaceEventData
     if (data.counts) marketplace.setCounts(data.counts)
+  } else if (
+    event.data?.type === 'fliptok:verification-changed' &&
+    event.data.data
+  ) {
+    const data = event.data.data as FlipTokVerificationData
+    fliptok.applyVerification(Number(data.profileId), data.verified === true)
+  } else if (event.data?.type === 'fliptok:new' && event.data.data) {
+    const data = event.data.data as FlipTokNotificationData
+    const notification: PhoneNotificationInput = {
+      appId: 'fliptok',
+      subtitle: data.actor,
+      text: data.text ?? phone.t('Apps.fliptok.notifications.default'),
+      title: data.title ?? phone.t('Apps.fliptok.name'),
+    }
+    if (
+      data.device &&
+      (!phone.isOpen || data.device.imei !== phone.device?.imei)
+    ) {
+      notification.device = {
+        imei: data.device.imei,
+        name: data.device.name,
+        preferences: parsePhonePreferences(data.device.settings ?? null),
+      }
+    }
+    notifications.show(notification)
+    if (phone.isOpen) void fliptok.loadActivities()
   } else if (
     event.data?.type === 'marketplace:new-message' &&
     event.data.data

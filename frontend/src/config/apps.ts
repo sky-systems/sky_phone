@@ -54,6 +54,7 @@ import bankingIcon from '@/assets/img/app-icons/banking.svg'
 import garageIcon from '@/assets/img/app-icons/garage.svg'
 import citymarktIcon from '@/assets/img/app-icons/citymarkt.webp'
 import localPagesIcon from '@/assets/img/app-icons/local-pages.webp'
+import flipTokIcon from '@/assets/img/app-icons/fliptok.svg'
 import type {
   LaunchablePhoneAppDefinition,
   LaunchablePhoneAppId,
@@ -61,6 +62,20 @@ import type {
 } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
+  {
+    category: 'social',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/FlipTokApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 22,
+    icon: markRaw(Blocks),
+    iconClass: 'app-icon--fliptok',
+    iconImage: flipTokIcon,
+    id: 'fliptok',
+    labelKey: 'Apps.fliptok.name',
+    route: '/apps/fliptok',
+  },
   {
     category: 'productivity',
     component: markRaw(

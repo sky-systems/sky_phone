@@ -1,5 +1,25 @@
 # sky_phone
 
+## FlipTok verification
+
+FlipTok verification is server-authoritative and limited to the framework groups configured in
+`Config.FlipTok.AdminGroups`; no command ACE is required. Use
+`/fliptokverify <@handle> [on|off]`. Without `on` or `off`, the current blue-check state is toggled.
+The command name is configurable through `Config.FlipTok.VerifyCommand`.
+Verification command access uses `Config.FlipTok.AdminGroups`. The report moderation overview is
+server-authoritative and independently restricted through `Config.FlipTok.ReportAdminGroups`.
+
+## FlipTok music
+
+Licensed music can be exposed in the composer through `Config.FlipTok.MusicTracks`. Keep the IDs
+stable because published videos store the selected ID; URLs must be directly playable by the NUI.
+
+```lua
+MusicTracks = {
+    { Id = "night-drive", Title = "Night Drive", Artist = "Sky Radio", Url = "https://cdn.example.com/night-drive.ogg" },
+}
+```
+
 Standalone FiveM phone built with Vue 3, TypeScript, Pinia, Vue Router, Konsta UI 5, and Tailwind CSS 4. Each non-stackable `phone` item receives a unique 15-digit IMEI and owns its server-persisted device state. The phone opens through the usable item; `/phone` is disabled unless `Config.Phone.DevelopmentCommand` is enabled explicitly.
 
 An iFruit account is optional. Unlinked devices retain local settings, alarms, media, apps, notes, contacts, and recent calls. Linking from Mail or Settings moves local data into an empty cloud account; an existing cloud dataset wins over local contacts and recents. Signing out keeps an editable local snapshot without deleting cloud data.

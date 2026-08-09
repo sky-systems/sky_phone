@@ -21,6 +21,14 @@ function Bridge.Framework.GetIdentifier(source)
     return player and player.PlayerData and tostring(player.PlayerData.citizenid) or nil
 end
 
+function Bridge.Framework.HasAdminGroup(source, groups)
+    local player = get_player(source)
+    if not player then
+        return false
+    end
+    return QBCore.Functions.HasPermission(source, groups)
+end
+
 function Bridge.Framework.GetMoney(source, account)
     local player = get_player(source)
     return player and player.PlayerData and player.PlayerData.money[account] or nil

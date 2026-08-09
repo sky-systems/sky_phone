@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import {
-  kFab,
-  kNavbar,
-  kPage,
-  kSegmented,
-  kSegmentedButton,
-} from 'konsta/vue'
+import { kFab, kNavbar, kPage, kSegmented, kSegmentedButton } from 'konsta/vue'
 import {
   ArrowLeft,
   Images,
+  Mic,
+  MicOff,
   RefreshCw,
   RotateCcwSquare,
   Video,
@@ -45,6 +41,7 @@ const requestedMessageMedia = computed<MediaType | null>(() => {
 const mode = ref<MediaType>(requestedMessageMedia.value ?? 'photo')
 const selectedZoom = ref<(typeof zoomLevels)[number]>(1)
 const flashEnabled = ref(false)
+const microphoneEnabled = ref(true)
 const frontCamera = ref(false)
 const shutterActive = ref(false)
 const focused = ref(true)
@@ -63,6 +60,8 @@ let recordingTimer: number | undefined
 let gameView: GameView | null = null
 let renderFrameId: number | undefined
 let resizeObserver: ResizeObserver | null = null
+let wheelDelta = 0
+let wheelResetTimer: number | undefined
 
 const pendingCount = computed(
   () =>
@@ -87,6 +86,12 @@ const flashColors = computed(() => ({
   textIos: flashEnabled.value
     ? 'text-yellow-500 dark:text-yellow-300'
     : controlColors.textIos,
+}))
+const microphoneColors = computed(() => ({
+  ...controlColors,
+  textIos: microphoneEnabled.value
+    ? 'text-white'
+    : 'text-red-400',
 }))
 
 function correlationId(): string {
@@ -156,13 +161,29 @@ async function requestPhoto(): Promise<void> {
 
 function startRecording(): void {
   if (savingVideo.value) return
+  if (isDevelopment) {
+    recording.value = true
+    recordingStartedAt.value = Date.now()
+    updateRecordingTimer()
+    if (recordingTimer !== undefined) window.clearInterval(recordingTimer)
+    recordingTimer = window.setInterval(updateRecordingTimer, 250)
+    return
+  }
   window.postMessage(
     {
-      data: { bitrateKbps: videoBitrateKbps.value },
+      data: {
+        bitrateKbps: videoBitrateKbps.value,
+        microphoneEnabled: microphoneEnabled.value,
+      },
       type: 'camera:recordStart',
     },
     '*',
   )
+}
+
+function toggleMicrophone(): void {
+  if (recording.value || savingVideo.value) return
+  microphoneEnabled.value = !microphoneEnabled.value
 }
 
 function stopRecording(): void {
@@ -172,6 +193,8 @@ function stopRecording(): void {
   if (isDevelopment) {
     recording.value = false
     savingVideo.value = true
+    if (recordingTimer !== undefined) window.clearInterval(recordingTimer)
+    recordingTimer = undefined
     window.setTimeout(() => {
       window.dispatchEvent(
         new MessageEvent('message', {
@@ -245,6 +268,26 @@ function setZoom(zoom: (typeof zoomLevels)[number]): void {
   resizeGameView()
   window.postMessage({ data: { zoom }, type: 'camera:zoom' }, '*')
   void nuiCall('camera:setZoom', { zoom })
+}
+
+function zoomWithWheel(event: WheelEvent): void {
+  wheelDelta += event.deltaY
+  if (wheelResetTimer !== undefined) window.clearTimeout(wheelResetTimer)
+  wheelResetTimer = window.setTimeout(() => {
+    wheelDelta = 0
+    wheelResetTimer = undefined
+  }, 140)
+  if (Math.abs(wheelDelta) < 35) return
+
+  const currentIndex = zoomLevels.indexOf(selectedZoom.value)
+  const nextIndex = Math.min(
+    zoomLevels.length - 1,
+    Math.max(0, currentIndex + (wheelDelta < 0 ? 1 : -1)),
+  )
+  wheelDelta = 0
+  const nextZoom = zoomLevels[nextIndex]
+  if (nextZoom !== undefined && nextZoom !== selectedZoom.value)
+    setZoom(nextZoom)
 }
 
 function resizeGameView(entry?: ResizeObserverEntry): void {
@@ -379,6 +422,7 @@ onBeforeUnmount(() => {
   if (shutterTimer !== undefined) window.clearTimeout(shutterTimer)
   if (noticeTimer !== undefined) window.clearTimeout(noticeTimer)
   if (recordingTimer !== undefined) window.clearInterval(recordingTimer)
+  if (wheelResetTimer !== undefined) window.clearTimeout(wheelResetTimer)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('message', onMessage)
   if (renderFrameId !== undefined) window.cancelAnimationFrame(renderFrameId)
@@ -402,7 +446,7 @@ onBeforeUnmount(() => {
     :class="{ 'camera-page--landscape': phone.cameraLandscape }"
     :aria-label="phone.t('Apps.camera.name')"
   >
-    <div class="camera-viewport">
+    <div class="camera-viewport" @wheel.prevent="zoomWithWheel">
       <canvas
         v-if="!isDevelopment"
         ref="gameCanvas"
@@ -423,29 +467,53 @@ onBeforeUnmount(() => {
     </div>
 
     <header class="camera-topbar">
-      <button
-        v-if="requestedMessageMedia"
-        class="camera-picker-back"
-        type="button"
-        :aria-label="phone.t('Common.back')"
-        @click="cancelMediaSelection"
-      >
-        <ArrowLeft :size="20" />
-      </button>
-      <k-fab
-        v-if="!requestedMessageMedia"
-        component="button"
-        type="button"
-        class="camera-control"
-        :colors="flashColors"
-        :aria-label="phone.t('Apps.camera.flash')"
-        @click="toggleFlash"
-      >
-        <template #icon>
-          <Zap v-if="flashEnabled" :size="19" />
-          <ZapOff v-else :size="19" />
-        </template>
-      </k-fab>
+      <div class="camera-topbar-actions">
+        <button
+          v-if="requestedMessageMedia"
+          class="camera-picker-back"
+          type="button"
+          :aria-label="phone.t('Common.back')"
+          @click="cancelMediaSelection"
+        >
+          <ArrowLeft :size="20" />
+        </button>
+        <k-fab
+          v-else
+          component="button"
+          type="button"
+          class="camera-control"
+          :colors="flashColors"
+          :aria-label="phone.t('Apps.camera.flash')"
+          @click="toggleFlash"
+        >
+          <template #icon>
+            <Zap v-if="flashEnabled" :size="19" />
+            <ZapOff v-else :size="19" />
+          </template>
+        </k-fab>
+        <k-fab
+          v-if="mode === 'video'"
+          component="button"
+          type="button"
+          class="camera-control"
+          :colors="microphoneColors"
+          :disabled="recording || savingVideo"
+          :aria-label="
+            phone.t(
+              microphoneEnabled
+                ? 'Apps.camera.microphoneOn'
+                : 'Apps.camera.microphoneOff',
+            )
+          "
+          :aria-pressed="microphoneEnabled"
+          @click="toggleMicrophone"
+        >
+          <template #icon>
+            <Mic v-if="microphoneEnabled" :size="19" />
+            <MicOff v-else :size="19" />
+          </template>
+        </k-fab>
+      </div>
       <span
         v-if="noticeText"
         class="camera-focus-pill camera-focus-pill--notice"
@@ -455,11 +523,7 @@ onBeforeUnmount(() => {
       <span v-else-if="pendingCount" class="camera-upload-pill">
         {{ phone.t('Apps.camera.uploading', { count: String(pendingCount) }) }}
       </span>
-      <span v-else class="camera-focus-pill">
-        {{
-          phone.t(focused ? 'Apps.camera.focusHelp' : 'Apps.camera.returnHelp')
-        }}
-      </span>
+      <span v-else class="camera-topbar-spacer" aria-hidden="true"></span>
       <k-fab
         component="button"
         type="button"
@@ -595,7 +659,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .camera-page {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   background: #000;
   color: #fff;
 }
@@ -684,9 +748,20 @@ onBeforeUnmount(() => {
   left: 18px;
   right: 18px;
   display: grid;
-  grid-template-columns: 44px 1fr 44px;
+  grid-template-columns: auto minmax(0, 1fr) 44px;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+.camera-topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+.camera-topbar-spacer {
+  min-width: 0;
+}
+.camera-topbar .camera-control {
+  width: 44px;
+  height: 44px;
 }
 .camera-control {
   --color-primary: transparent;

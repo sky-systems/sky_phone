@@ -36,6 +36,7 @@ server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'config/config.lua',
     'config/media.lua',
+    'config/locales/*.lua',
     'source/bridge/server/database.lua',
     'source/bridge/server/migrations.lua',
     'source/bridge/server/callbacks.lua',
@@ -56,6 +57,7 @@ server_scripts {
     'source/server/garage.lua',
     'source/server/marketplace.lua',
     'source/server/pages.lua',
+    'source/server/fliptok.lua',
     'source/server/calendar.lua',
     'source/server/radio.lua',
 }

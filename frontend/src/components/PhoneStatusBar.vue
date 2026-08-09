@@ -40,13 +40,13 @@ onBeforeUnmount(() => {
     >
       <Plane
         v-if="phone.preferences.settings.airplaneMode"
-        :size="12"
+        :size="18"
         :stroke-width="2.5"
         aria-hidden="true"
       />
       <Signal
         v-else-if="phone.preferences.settings.cellularEnabled"
-        :size="12"
+        :size="19"
         :stroke-width="2.5"
         aria-hidden="true"
       />
@@ -55,11 +55,11 @@ onBeforeUnmount(() => {
           phone.preferences.settings.wifiEnabled &&
           !phone.preferences.settings.airplaneMode
         "
-        :size="13"
+        :size="20"
         :stroke-width="2.5"
         aria-hidden="true"
       />
-      <BatteryMedium :size="16" :stroke-width="2.4" />
+      <BatteryMedium :size="26" :stroke-width="2.4" aria-hidden="true" />
     </button>
   </header>
 </template>
