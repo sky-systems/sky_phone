@@ -8,8 +8,12 @@ export default defineConfig({
   base: './',
   build: {
     assetsDir: 'assets',
+    // Keep the published NUI compatible with the Chromium 103 CEF runtime.
+    cssMinify: 'lightningcss',
+    cssTarget: 'chrome103',
     emptyOutDir: true,
     outDir: 'dist',
+    target: 'chrome103',
     rollupOptions: {
       output: {
         assetFileNames: 'assets/sky-[name]-[hash].[ext]',

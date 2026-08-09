@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   NotebookPen,
   Phone,
+  RadioTower,
   Settings,
   ShoppingBag,
   CloudSun,
@@ -38,6 +39,7 @@ import mapIcon from '@/assets/img/app-icons/map.webp'
 import messagesIcon from '@/assets/img/app-icons/sms.webp'
 import darkChatIcon from '@/assets/img/app-icons/darkchat.webp'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
+import radioIcon from '@/assets/img/app-icons/radio.svg'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
 import settingsIcon from '@/assets/img/app-icons/settings.svg'
@@ -103,6 +105,20 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'calendar',
     labelKey: 'Apps.calendar.name',
     route: '/apps/calendar',
+  },
+  {
+    category: 'social',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/RadioApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 21,
+    icon: markRaw(RadioTower),
+    iconClass: 'app-icon--radio',
+    iconImage: radioIcon,
+    id: 'radio',
+    labelKey: 'Apps.radio.name',
+    route: '/apps/radio',
   },
   {
     category: 'social',

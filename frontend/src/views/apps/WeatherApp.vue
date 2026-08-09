@@ -32,7 +32,8 @@ function conditionLabel(condition: WeatherConditionId): string {
 function formatHour(timestamp: number, index: number): string {
   if (index === 0) return phone.t('Apps.weather.now')
   return new Intl.DateTimeFormat(phone.lang, {
-    hour: 'numeric',
+    hour: '2-digit',
+    hourCycle: 'h23',
     timeZone: 'UTC',
   }).format(timestamp)
 }

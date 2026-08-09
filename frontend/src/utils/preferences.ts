@@ -2,12 +2,23 @@ import type { LaunchablePhoneAppId } from '@/types/apps'
 import { cloneJsonData } from '@/utils/clone'
 
 export const APPEARANCE_MODE_IDS = ['automatic', 'light', 'dark'] as const
+export const GRAPHICS_MODE_IDS = ['performance', 'ultimate'] as const
 export const PHONE_FRAME_IDS = [
   'black',
   'blue',
   'green',
   'lavender',
+  'red',
   'white',
+  'orange',
+  'yellow',
+  'lime',
+  'teal',
+  'cyan',
+  'purple',
+  'pink',
+  'gold',
+  'rgb',
 ] as const
 export const RINGTONE_IDS = ['skyline', 'horizon', 'pulse'] as const
 export const NOTIFICATION_SOUND_IDS = ['chime', 'signal', 'soft'] as const
@@ -17,6 +28,7 @@ export const PHONE_SCALE_MAX = 150
 export const PHONE_SCALE_STEP = 5
 
 export type AppearanceMode = (typeof APPEARANCE_MODE_IDS)[number]
+export type GraphicsMode = (typeof GRAPHICS_MODE_IDS)[number]
 export type PhoneFrameId = (typeof PHONE_FRAME_IDS)[number]
 export type RingtoneId = (typeof RINGTONE_IDS)[number]
 export type NotificationSoundId = (typeof NOTIFICATION_SOUND_IDS)[number]
@@ -34,6 +46,7 @@ export type PhonePreferencesV1 = {
     cellularEnabled: boolean
     focusMode: boolean
     frame: PhoneFrameId
+    graphicsMode: GraphicsMode
     notificationSound: NotificationSoundId
     notificationDurationSeconds: number
     notificationVolume: number
@@ -79,6 +92,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   mail: { enabled: true, sounds: true },
   map: { enabled: true, sounds: true },
   notes: { enabled: true, sounds: true },
+  radio: { enabled: true, sounds: true },
   photos: { enabled: true, sounds: true },
   settings: { enabled: true, sounds: true },
 }
@@ -91,6 +105,7 @@ export const DEFAULT_PHONE_PREFERENCES: PhonePreferencesV1 = {
     cellularEnabled: true,
     focusMode: false,
     frame: 'black',
+    graphicsMode: 'performance',
     notificationSound: 'chime',
     notificationDurationSeconds: 10,
     notificationVolume: 70,
@@ -188,6 +203,11 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
         ),
         focusMode: readBoolean(settings.focusMode, defaults.focusMode),
         frame: readChoice(settings.frame, PHONE_FRAME_IDS, defaults.frame),
+        graphicsMode: readChoice(
+          settings.graphicsMode,
+          GRAPHICS_MODE_IDS,
+          defaults.graphicsMode,
+        ),
         notificationSound: readChoice(
           settings.notificationSound,
           NOTIFICATION_SOUND_IDS,

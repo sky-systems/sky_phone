@@ -46,6 +46,12 @@ describe('app registry', () => {
       labelKey: 'Apps.calendar.name',
       route: '/apps/calendar',
     })
+    expect(PHONE_APPS.find((app) => app.id === 'radio')).toMatchObject({
+      dockOrder: null,
+      gridOrder: 21,
+      labelKey: 'Apps.radio.name',
+      route: '/apps/radio',
+    })
     expect(PHONE_APPS.find((app) => app.id === 'snake')).toMatchObject({
       dockOrder: null,
       gridOrder: 12,
@@ -118,10 +124,11 @@ describe('app registry', () => {
       PHONE_APPS.filter((app) => app.category === 'social').map(
         (app) => app.id,
       ),
-    ).toEqual([
-      'fliptok',
-      'flare',
-      'local-pages',
+      ).toEqual([
+        'fliptok',
+        'flare',
+        'radio',
+        'local-pages',
       'phone',
       'darkchat',
       'banking',

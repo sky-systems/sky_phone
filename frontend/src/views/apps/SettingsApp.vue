@@ -66,6 +66,7 @@ import { nuiCall } from '@/utils/nui'
 import { formatPhoneNumber } from '@/utils/phone'
 import {
   APPEARANCE_MODE_IDS,
+  GRAPHICS_MODE_IDS,
   NOTIFICATION_SOUND_IDS,
   PHONE_FRAME_IDS,
   PHONE_SCALE_MAX,
@@ -74,6 +75,7 @@ import {
   RINGTONE_IDS,
   WALLPAPER_IDS,
   type AppearanceMode,
+  type GraphicsMode,
   type NotificationSoundId,
   type PhoneFrameId,
   type RingtoneId,
@@ -111,7 +113,17 @@ type PasscodeFlow =
 const FACTORY_RESET_DURATION_MS = 60_000
 const FACTORY_RESET_CIRCUMFERENCE = 2 * Math.PI * 48
 const FRAME_PICKER_WIDTH = 240
-const FRAME_PICKER_HEIGHT = 140
+const FRAME_PICKER_COLUMN_COUNT = 3
+const FRAME_PICKER_SWATCH_SIZE = 40
+const FRAME_PICKER_GRID_GAP = 20
+const FRAME_PICKER_PADDING = 20
+const FRAME_PICKER_ROW_COUNT = Math.ceil(
+  PHONE_FRAME_IDS.length / FRAME_PICKER_COLUMN_COUNT,
+)
+const FRAME_PICKER_HEIGHT =
+  FRAME_PICKER_PADDING * 2 +
+  FRAME_PICKER_ROW_COUNT * FRAME_PICKER_SWATCH_SIZE +
+  Math.max(0, FRAME_PICKER_ROW_COUNT - 1) * FRAME_PICKER_GRID_GAP
 const FRAME_PICKER_INSET = 8
 const FRAME_PICKER_GAP = 8
 
@@ -463,6 +475,10 @@ function updateNumberPreference(
 
 function selectAppearanceMode(mode: AppearanceMode): void {
   phone.setPreference('appearanceMode', mode)
+}
+
+function selectGraphicsMode(mode: GraphicsMode): void {
+  phone.setPreference('graphicsMode', mode)
 }
 
 function selectFrame(frame: PhoneFrameId): void {
@@ -1358,6 +1374,28 @@ onBeforeUnmount(() => {
 
       <template v-else-if="activeView === 'appearance'">
         <k-block-title>
+          {{ phone.t('Apps.settings.graphicsMode') }}
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            v-for="mode in GRAPHICS_MODE_IDS"
+            :key="mode"
+            link
+            :chevron="false"
+            :title="phone.t(`Apps.settings.${mode}Mode`)"
+            :subtitle="phone.t(`Apps.settings.${mode}ModeDescription`)"
+            @click="selectGraphicsMode(mode)"
+          >
+            <template #after>
+              <Check
+                v-if="phone.preferences.settings.graphicsMode === mode"
+                class="w-5 h-5 text-primary"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+
+        <k-block-title>
           {{ phone.t('Apps.settings.appearanceMode') }}
         </k-block-title>
         <k-list strong inset>
@@ -1451,7 +1489,7 @@ onBeforeUnmount(() => {
             <template #after>
               <span
                 class="h-7 w-7 rounded-full border border-black/15 shadow-sm"
-                :style="{ backgroundColor: selectedFrameColor }"
+                :style="{ background: selectedFrameColor }"
                 aria-hidden="true"
               />
             </template>
@@ -1463,7 +1501,11 @@ onBeforeUnmount(() => {
             :opened="framePickerOpened"
             :class="[
               'settings-frame-popover !absolute !z-[200] !left-[var(--settings-frame-picker-left)] !top-[var(--settings-frame-picker-top)]',
-              { dark: phone.isDarkMode },
+              {
+                dark: phone.isDarkMode,
+                'phone-app--light': !phone.isDarkMode,
+                [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
+              },
             ]"
             @backdropclick="framePickerOpened = false"
           >
@@ -1477,7 +1519,7 @@ onBeforeUnmount(() => {
                 :key="frame"
                 type="button"
                 class="h-10 w-10 rounded-full border border-black/15 shadow-sm"
-                :style="{ backgroundColor: PHONE_FRAME_COLORS[frame] }"
+                :style="{ background: PHONE_FRAME_COLORS[frame] }"
                 :aria-label="phone.t(`Apps.settings.frames.${frame}`)"
                 :aria-pressed="phone.preferences.settings.frame === frame"
                 @click="selectFrame(frame)"

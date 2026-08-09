@@ -20,6 +20,30 @@ function isoTime(offsetMilliseconds) {
 
 let authenticated = true
 let draft = null
+const radioData = {
+  badge: '231',
+  badgeEnabled: true,
+  badgeMaxLength: 8,
+  connected: false,
+  displayName: 'Unit 21',
+  displayNameAllowed: true,
+  displayNameEnabled: true,
+  displayNameMaxLength: 32,
+  frequency: 0,
+  frequencyMax: 999.9,
+  frequencyMin: 0.1,
+  frequencyStep: 0.1,
+  history: [
+    { primary: 120.5, secondary: 130.7 },
+    { primary: 42.1, secondary: 0 },
+  ],
+  members: [],
+  provider: 'yaca',
+  secondaryFrequency: 0,
+  secondarySupported: true,
+  settings: { autoRejoin: false, notifications: true },
+  volume: 50,
+}
 let mockBankBalance = 24787
 let mockCashBalance = 2350
 let nextBankTransactionId = 7
@@ -1300,6 +1324,64 @@ function flareBootstrap() {
 app.post('/api/:endpoint', (request, response) => {
   console.log(`[NUI] ${request.params.endpoint}`, request.body)
   const endpoint = request.params.endpoint
+  if (endpoint === 'radio:get') {
+    response.json({ success: true, data: radioData })
+    return
+  }
+  if (endpoint === 'radio:connect') {
+    radioData.connected = true
+    radioData.frequency = Number(request.body.frequency)
+    radioData.secondaryFrequency = Number(request.body.secondaryFrequency) || 0
+    radioData.members = [
+      {
+        id: 12,
+        joinTime: 248,
+        name: 'Alex Morgan',
+        rank: 'Sergeant',
+        rankNumber: 3,
+      },
+      {
+        id: 27,
+        joinTime: 42,
+        name: 'Jamie Rivera',
+        rank: 'Officer',
+        rankNumber: 1,
+      },
+    ]
+    response.json({ success: true, data: radioData })
+    return
+  }
+  if (endpoint === 'radio:disconnect') {
+    radioData.connected = false
+    radioData.frequency = 0
+    radioData.secondaryFrequency = 0
+    radioData.members = []
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'radio:set-volume') {
+    radioData.volume = Math.max(0, Math.min(100, Number(request.body.volume)))
+    response.json({ success: true, data: { volume: radioData.volume } })
+    return
+  }
+  if (endpoint === 'radio:save-settings') {
+    radioData.settings[request.body.key] = request.body.value === true
+    response.json({ success: true, data: radioData.settings })
+    return
+  }
+  if (endpoint === 'radio:save-badge') {
+    radioData.badge = String(request.body.badge ?? '')
+    response.json({ success: true, data: { badge: radioData.badge } })
+    return
+  }
+  if (endpoint === 'radio:save-display-name') {
+    radioData.displayName = String(request.body.displayName ?? '')
+    response.json({
+      success: true,
+      data: { displayName: radioData.displayName },
+    })
+    return
+  }
   const bankingOverview = () => ({
     bank: mockBankBalance,
     cash: mockCashBalance,

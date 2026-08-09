@@ -324,6 +324,81 @@ button {
 .phone-app--light {
   color-scheme: light;
 }
+
+/* FiveM CEF blur-free glass fallback. Ultimate keeps the native effects. */
+.phone-app--performance {
+  --phone-performance-glass: rgb(28 28 31 / 96%);
+}
+.phone-app--performance.phone-app--light {
+  --phone-performance-glass: rgb(245 245 248 / 97%);
+}
+.phone-device.phone-app--performance {
+  filter: none;
+}
+.phone-app--performance,
+.phone-app--performance *,
+.phone-app--performance *::before,
+.phone-app--performance *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.phone-app--performance .k-glass {
+  background-color: var(--phone-performance-glass) !important;
+}
+.phone-app--performance .control-center__backdrop {
+  background: rgb(20 20 24 / 92%);
+}
+.phone-app--performance .app-dock {
+  background-color: rgb(38 38 46 / 92%);
+}
+.phone-app--performance .widget {
+  background-color: rgb(21 24 34 / 95%);
+}
+.phone-app--performance .app-library-search,
+.phone-app--performance .app-search,
+.phone-app--performance .app-library-group__icons {
+  background-color: rgb(18 18 25 / 92%);
+}
+.phone-app--performance .app-library-all {
+  background-color: rgb(9 9 16 / 97%);
+}
+.phone-screen--app .phone-app--performance .springboard,
+.phone-app--performance .lock-screen__time,
+.phone-app--performance .lock-screen-leave-to,
+.phone-app--performance .minesweeper-marker-drop__trail,
+.phone-app--performance .flappy-clouds i::after {
+  filter: none !important;
+}
+.phone-app--performance .springboard {
+  transition-property: transform !important;
+}
+.phone-app--performance .lock-screen {
+  will-change: transform, opacity;
+}
+.phone-app--performance .lock-screen-leave-active {
+  transition-property: transform, opacity !important;
+}
+.phone-app--performance .sim-picker__glow,
+.phone-app--performance .banking-app__aurora {
+  display: none;
+}
+
+/* Chromium 103 cannot resolve color-mix() when the mixed color is a variable. */
+@supports not (color: color-mix(in srgb, white, black)) {
+  .flappy-menu__tower,
+  .flappy-obstacle span {
+    background: var(--tower);
+  }
+
+  .flappy-menu__tower::after {
+    border: 3px solid var(--tower);
+    background: var(--tower);
+  }
+
+  .flappy-obstacle span::after {
+    background: var(--tower);
+  }
+}
 .phone-display-dimmer {
   position: absolute;
   z-index: 99;
@@ -364,16 +439,24 @@ button {
   top: 0;
   left: 0;
   width: 100%;
-  height: 45px;
-  padding: 19px 42px 0;
+  height: 48px;
+  padding: 17px 30px 0;
   color: #fff;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  font-size: 12px;
-  font-weight: 500;
+  align-items: center;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: -0.25px;
   text-shadow: 0 1px 3px #0009;
   pointer-events: none;
+}
+.phone-status-bar__time {
+  position: absolute;
+  left: 0;
+  width: calc(50% - 70px);
+  text-align: center;
 }
 .phone-status-bar__indicators {
   position: absolute;
@@ -382,10 +465,10 @@ button {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
-  width: 118px;
-  height: 45px;
-  padding: 11px 42px 0 0;
+  gap: 6px;
+  width: 120px;
+  height: 48px;
+  padding: 17px 30px 0 0;
   border: 0;
   color: inherit;
   background: transparent;
@@ -481,13 +564,13 @@ button {
 .lock-screen__status {
   position: absolute;
   z-index: 1;
-  top: 11px;
-  right: 26px;
-  left: 26px;
+  top: 17px;
+  right: 30px;
+  left: 30px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  min-height: 18px;
+  min-height: 26px;
   filter: drop-shadow(0 1px 2px #0009);
 }
 .lock-screen__lock {
@@ -503,7 +586,7 @@ button {
   right: 0;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 6px;
 }
 .lock-screen__content {
   position: relative;
@@ -5980,6 +6063,7 @@ button {
 }
 .messages-inbox-page .messages-conversation:active,
 .messages-inbox-page .messages-conversation--selected {
+  background: var(--messages-inbox-control);
   background: color-mix(
     in srgb,
     var(--messages-inbox-control) 86%,

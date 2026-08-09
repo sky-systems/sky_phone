@@ -70,6 +70,18 @@ function Bridge.Framework.GetBirthdate(source)
     return character and character.birthdate or nil
 end
 
+function Bridge.Framework.GetJob(source)
+    local player = get_player(source)
+    local job = player and player.PlayerData and player.PlayerData.job
+    local grade = job and job.grade
+    return {
+        name = job and job.name or "",
+        label = job and job.label or "",
+        grade = type(grade) == "table" and tonumber(grade.level) or tonumber(grade) or 0,
+        gradeLabel = type(grade) == "table" and (grade.name or job.label) or (job and job.label or ""),
+    }
+end
+
 function Bridge.Framework.RegisterUsableItem(item_name, callback)
     QBCore.Functions.CreateUseableItem(item_name, callback)
     return true

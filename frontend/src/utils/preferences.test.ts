@@ -16,6 +16,8 @@ describe('preferences', () => {
           bluetoothEnabled: false,
           cellularEnabled: false,
           focusMode: true,
+          frame: 'rgb',
+          graphicsMode: 'ultimate',
           notificationVolume: 45,
           notificationDurationSeconds: 14,
           notifications: {
@@ -34,6 +36,8 @@ describe('preferences', () => {
     expect(value.settings.bluetoothEnabled).toBe(false)
     expect(value.settings.cellularEnabled).toBe(false)
     expect(value.settings.focusMode).toBe(true)
+    expect(value.settings.frame).toBe('rgb')
+    expect(value.settings.graphicsMode).toBe('ultimate')
     expect(value.settings.notificationVolume).toBe(45)
     expect(value.settings.notificationDurationSeconds).toBe(14)
     expect(value.settings.notifications.messages).toEqual({
@@ -61,7 +65,8 @@ describe('preferences', () => {
         version: 1,
         settings: {
           appearanceMode: 'neon',
-          frame: 'gold',
+          frame: 'bronze',
+          graphicsMode: 'cinematic',
           notificationVolume: -10,
           notificationDurationSeconds: 100,
           phoneScale: 500,
@@ -73,6 +78,7 @@ describe('preferences', () => {
 
     expect(value.settings.appearanceMode).toBe('automatic')
     expect(value.settings.frame).toBe('black')
+    expect(value.settings.graphicsMode).toBe('performance')
     expect(value.settings.notificationVolume).toBe(0)
     expect(value.settings.notificationDurationSeconds).toBe(30)
     expect(value.settings.phoneScale).toBe(150)
@@ -90,6 +96,7 @@ describe('preferences', () => {
       bluetoothEnabled: true,
       cellularEnabled: true,
       focusMode: false,
+      graphicsMode: 'performance',
       rotationLocked: false,
       screenBrightness: 100,
       wifiEnabled: true,

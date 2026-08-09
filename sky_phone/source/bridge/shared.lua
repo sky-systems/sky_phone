@@ -3,6 +3,7 @@ Bridge.Callbacks = Bridge.Callbacks or {}
 Bridge.Database = Bridge.Database or {}
 Bridge.Framework = Bridge.Framework or {}
 Bridge.Inventory = Bridge.Inventory or {}
+Bridge.Radio = Bridge.Radio or {}
 
 local level_colours = {
     debug = "^5",

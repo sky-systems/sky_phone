@@ -345,6 +345,7 @@ function relativeDate(value: DatabaseDateValue): string {
 function messageTime(value: DatabaseDateValue): string {
   return new Intl.DateTimeFormat(phone.lang, {
     hour: '2-digit',
+    hourCycle: 'h23',
     minute: '2-digit',
   }).format(parseDatabaseDate(value))
 }
