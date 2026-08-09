@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { BatteryMedium, Plane, Signal, Wifi } from 'lucide-vue-next'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import PhoneStatusIndicators from '@/components/PhoneStatusIndicators.vue'
 import { usePhoneStore } from '@/stores/phone'
 
 const phone = usePhoneStore()
@@ -13,7 +13,8 @@ let intervalId: number | undefined
 
 function updateTime(): void {
   time.value = new Intl.DateTimeFormat([], {
-    hour: 'numeric',
+    hour: '2-digit',
+    hourCycle: 'h23',
     minute: '2-digit',
   }).format(new Date())
 }
@@ -30,7 +31,7 @@ onBeforeUnmount(() => {
 
 <template>
   <header class="phone-status-bar" :aria-label="phone.t('Common.phoneStatus')">
-    <time>{{ time }}</time>
+    <time class="phone-status-bar__time">{{ time }}</time>
     <button
       class="phone-status-bar__indicators"
       type="button"
@@ -38,28 +39,11 @@ onBeforeUnmount(() => {
       :aria-expanded="controlCenterOpened"
       @click.stop="emit('controlCenter')"
     >
-      <Plane
-        v-if="phone.preferences.settings.airplaneMode"
-        :size="18"
-        :stroke-width="2.5"
-        aria-hidden="true"
+      <PhoneStatusIndicators
+        :airplane-mode="phone.preferences.settings.airplaneMode"
+        :cellular-enabled="phone.preferences.settings.cellularEnabled"
+        :wifi-enabled="phone.preferences.settings.wifiEnabled"
       />
-      <Signal
-        v-else-if="phone.preferences.settings.cellularEnabled"
-        :size="19"
-        :stroke-width="2.5"
-        aria-hidden="true"
-      />
-      <Wifi
-        v-if="
-          phone.preferences.settings.wifiEnabled &&
-          !phone.preferences.settings.airplaneMode
-        "
-        :size="20"
-        :stroke-width="2.5"
-        aria-hidden="true"
-      />
-      <BatteryMedium :size="26" :stroke-width="2.4" aria-hidden="true" />
     </button>
   </header>
 </template>

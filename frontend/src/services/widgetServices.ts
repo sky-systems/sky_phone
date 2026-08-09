@@ -49,7 +49,7 @@ export function useClockService() {
     time: computed(() =>
       new Intl.DateTimeFormat(phone.lang, {
         hour: '2-digit',
-        hour12: false,
+        hourCycle: 'h23',
         minute: '2-digit',
       }).format(now.value),
     ),

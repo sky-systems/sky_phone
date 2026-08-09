@@ -93,20 +93,6 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
   {
     category: 'social',
     component: markRaw(
-      defineAsyncComponent(() => import('@/views/apps/LocalPagesApp.vue')),
-    ),
-    dockOrder: null,
-    gridOrder: 20,
-    icon: markRaw(MapPinHouse),
-    iconClass: 'app-icon--local-pages',
-    iconImage: localPagesIcon,
-    id: 'local-pages',
-    labelKey: 'Apps.localPages.name',
-    route: '/apps/local-pages',
-  },
-  {
-    category: 'social',
-    component: markRaw(
       defineAsyncComponent(() => import('@/views/apps/RadioApp.vue')),
     ),
     dockOrder: null,
@@ -117,6 +103,20 @@ export const PHONE_APPS: PhoneAppDefinition[] = [
     id: 'radio',
     labelKey: 'Apps.radio.name',
     route: '/apps/radio',
+  },
+  {
+    category: 'social',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/LocalPagesApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 20,
+    icon: markRaw(MapPinHouse),
+    iconClass: 'app-icon--local-pages',
+    iconImage: localPagesIcon,
+    id: 'local-pages',
+    labelKey: 'Apps.localPages.name',
+    route: '/apps/local-pages',
   },
   {
     category: 'social',

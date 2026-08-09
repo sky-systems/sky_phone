@@ -236,6 +236,7 @@ function eventsForDay(day: Date): CalendarEvent[] {
 function formatTime(value: number): string {
   return new Intl.DateTimeFormat(phone.lang, {
     hour: '2-digit',
+    hourCycle: 'h23',
     minute: '2-digit',
   }).format(value)
 }
@@ -1584,6 +1585,7 @@ onMounted(async () => {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   border-bottom: 1px solid var(--line);
+  background: var(--bg);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -1902,6 +1904,7 @@ onMounted(async () => {
   border-bottom: 0;
   border-radius: 28px 28px 0 0;
   overflow: hidden;
+  background: var(--elevated);
   background: color-mix(in srgb, var(--elevated) 94%, transparent);
   box-shadow: 0 -18px 60px rgb(0 0 0 / 38%);
   backdrop-filter: blur(30px) saturate(180%);

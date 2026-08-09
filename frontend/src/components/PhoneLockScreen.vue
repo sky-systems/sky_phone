@@ -1,15 +1,9 @@
 <script setup lang="ts">
 import { kFab } from 'konsta/vue'
-import {
-  BatteryMedium,
-  Camera,
-  Flashlight,
-  LockKeyhole,
-  Signal,
-  Wifi,
-} from 'lucide-vue-next'
+import { Camera, Flashlight, LockKeyhole } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import PhoneStatusIndicators from '@/components/PhoneStatusIndicators.vue'
 import { usePhoneStore } from '@/stores/phone'
 import { nuiCall } from '@/utils/nui'
 
@@ -41,7 +35,8 @@ const date = computed(() =>
 )
 const time = computed(() =>
   new Intl.DateTimeFormat(phone.lang, {
-    hour: 'numeric',
+    hour: '2-digit',
+    hourCycle: 'h23',
     minute: '2-digit',
   })
     .formatToParts(now.value)
@@ -140,11 +135,7 @@ onBeforeUnmount(() => {
     <div class="lock-screen__shade" aria-hidden="true"></div>
 
     <header class="lock-screen__status">
-      <div class="lock-screen__indicators" aria-hidden="true">
-        <Signal :size="12" :stroke-width="2.5" />
-        <Wifi :size="13" :stroke-width="2.5" />
-        <BatteryMedium :size="17" :stroke-width="2.4" />
-      </div>
+      <PhoneStatusIndicators class="lock-screen__indicators" />
     </header>
     <LockKeyhole
       class="lock-screen__lock"

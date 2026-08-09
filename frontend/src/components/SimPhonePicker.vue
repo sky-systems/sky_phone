@@ -48,7 +48,11 @@ function close(): void {
 </script>
 
 <template>
-  <div class="sim-picker-backdrop" @click.self="close">
+  <div
+    class="sim-picker-backdrop"
+    :class="`phone-app--${phone.preferences.settings.graphicsMode}`"
+    @click.self="close"
+  >
     <section class="sim-picker" aria-modal="true" role="dialog">
       <div class="sim-picker__glow sim-picker__glow--top" />
       <div class="sim-picker__glow sim-picker__glow--bottom" />

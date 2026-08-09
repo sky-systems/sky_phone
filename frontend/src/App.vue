@@ -353,6 +353,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       appId: 'calendar',
       subtitle: new Intl.DateTimeFormat(phone.lang, {
         hour: '2-digit',
+        hourCycle: 'h23',
         minute: '2-digit',
       }).format(startsAt),
       text:
@@ -747,10 +748,21 @@ onBeforeUnmount(() => {
           v-if="phone.isOpen || notifications.current"
           class="phone-resolution-wrapper phone-resolution-wrapper--primary"
         >
-          <section class="phone-device" :aria-label="phone.t('Common.phone')">
+          <section
+            class="phone-device"
+            :class="{
+              'phone-app--light': !phone.isDarkMode,
+              [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
+            }"
+            :aria-label="phone.t('Common.phone')"
+          >
             <div
               class="phone-screen"
-              :class="{ 'phone-screen--app': isAppRoute }"
+              :class="{
+                'phone-screen--app': isAppRoute,
+                'phone-app--light': !phone.isDarkMode,
+                [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
+              }"
             >
               <k-app
                 theme="ios"
@@ -761,6 +773,7 @@ onBeforeUnmount(() => {
                 :class="{
                   dark: phone.isDarkMode,
                   'phone-app--light': !phone.isDarkMode,
+                  [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
                   'phone-app--unlocking': isUnlocking,
                 }"
               >

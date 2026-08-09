@@ -342,7 +342,7 @@ onBeforeUnmount(() => {
             @input="displayNameInput = eventValue($event)"
           />
         </k-list>
-        <k-block inset class="radio-hint-block">
+        <k-block class="radio-hint-block">
           <p class="radio-setting-hint">
             {{
               phone.t(
@@ -442,18 +442,9 @@ onBeforeUnmount(() => {
 
 .radio-tabs :deep(button) {
   align-items: center;
-  border-radius: 8px;
   display: flex;
   gap: 6px;
   justify-content: center;
-}
-
-.radio-tabs {
-  border-radius: 12px;
-}
-
-.radio-tabs :deep(> span.start-1) {
-  border-radius: 8px;
 }
 
 .radio-loading {
@@ -530,8 +521,6 @@ onBeforeUnmount(() => {
 .radio-hint-block {
   margin-bottom: 0;
   margin-top: 8px;
-  padding-left: 0;
-  padding-right: 0;
 }
 
 .radio-settings-title {

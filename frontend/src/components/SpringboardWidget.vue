@@ -154,6 +154,7 @@ function avatar(name: string): string {
 function formatForecastHour(timestamp: number): string {
   return new Intl.DateTimeFormat(phone.lang, {
     hour: '2-digit',
+    hourCycle: 'h23',
     minute: '2-digit',
   }).format(timestamp)
 }
