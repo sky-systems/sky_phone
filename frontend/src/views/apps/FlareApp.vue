@@ -19,6 +19,7 @@ import {
   kNavbarBackLink,
   kPage,
   kPreloader,
+  kSheet,
   kTabbar,
   kTabbarLink,
   kToolbarPane,
@@ -27,6 +28,7 @@ import {
 } from 'konsta/vue'
 import {
   ArrowUpCircle,
+  Check,
   ChevronRight,
   Ellipsis,
   EyeOff,
@@ -63,6 +65,11 @@ import type { PhoneMedia } from '@/types/media'
 
 type FlareTab = 'discover' | 'explore' | 'likes' | 'matches' | 'profile'
 type ExploreMode = 'all' | 'dates' | 'friends' | 'longTerm'
+type FlareChoiceField = 'gender' | 'interestedIn' | 'lookingFor'
+type FlareChoiceOption = {
+  label: string
+  value: string
+}
 type FlareDraftPhoto = Pick<PhoneMedia, 'id' | 'url'>
 type FlareMediaContext = {
   draft: FlareProfileDraft
@@ -84,6 +91,7 @@ const currentPhotoIndex = ref(0)
 const dragging = ref(false)
 const pointerStart = ref(0)
 const outgoing = ref<'like' | 'pass' | 'superlike' | null>(null)
+const swipingProfile = ref<FlareProfile | null>(null)
 const messageScroll = ref<HTMLElement | null>(null)
 const profileEditing = ref(false)
 const profileSettings = ref(false)
@@ -93,6 +101,9 @@ const unmatchDialog = ref(false)
 const activeExploreMode = ref<ExploreMode>('all')
 const actionToast = ref('')
 const draftPhotos = ref<FlareDraftPhoto[]>([])
+const activeChoiceField = ref<FlareChoiceField | null>(null)
+const choiceSheetContent = ref<HTMLElement | null>(null)
+let activeChoiceTrigger: HTMLElement | null = null
 const profileDraft = reactive<FlareProfileDraft>({
   age: 25,
   avatar: 0,
@@ -113,6 +124,16 @@ const bioInputStyle: CSSProperties = {
   resize: 'none',
 }
 
+const activeChoiceOptions = computed<FlareChoiceOption[]>(() =>
+  activeChoiceField.value ? choiceOptions(activeChoiceField.value) : [],
+)
+const activeChoiceTitle = computed(() =>
+  activeChoiceField.value ? choiceFieldLabel(activeChoiceField.value) : '',
+)
+const activeChoiceValue = computed(() =>
+  activeChoiceField.value ? profileDraft[activeChoiceField.value] : '',
+)
+
 const filteredSuggestions = computed(() =>
   activeExploreMode.value === 'all'
     ? flare.suggestions
@@ -120,8 +141,19 @@ const filteredSuggestions = computed(() =>
         (profile) => profile.lookingFor === activeExploreMode.value,
       ),
 )
-const currentProfile = computed(() => filteredSuggestions.value[0] ?? null)
-const nextProfile = computed(() => filteredSuggestions.value[1] ?? null)
+const currentProfile = computed(
+  () => swipingProfile.value ?? filteredSuggestions.value[0] ?? null,
+)
+const nextProfile = computed(() => {
+  const swipingId = swipingProfile.value?.id
+  if (swipingId) {
+    return (
+      filteredSuggestions.value.find((profile) => profile.id !== swipingId) ??
+      null
+    )
+  }
+  return filteredSuggestions.value[1] ?? null
+})
 const currentPhotoCount = computed(() =>
   Math.max(1, currentProfile.value?.photoUrls.length ?? 0),
 )
@@ -239,20 +271,90 @@ function eventValue(event: Event): string {
   return (event.target as HTMLInputElement).value
 }
 
+function choiceFieldLabel(field: FlareChoiceField): string {
+  if (field === 'gender') return phone.t('Apps.flare.gender')
+  if (field === 'interestedIn') return phone.t('Apps.flare.showMe')
+  return phone.t('Apps.flare.relationshipGoal')
+}
+
+function choiceOptions(field: FlareChoiceField): FlareChoiceOption[] {
+  if (field === 'gender') {
+    return [
+      { label: phone.t('Apps.flare.woman'), value: 'woman' },
+      { label: phone.t('Apps.flare.man'), value: 'man' },
+      { label: phone.t('Apps.flare.nonbinary'), value: 'nonbinary' },
+    ]
+  }
+  if (field === 'interestedIn') {
+    return [
+      { label: phone.t('Apps.flare.everyone'), value: 'everyone' },
+      { label: phone.t('Apps.flare.women'), value: 'woman' },
+      { label: phone.t('Apps.flare.men'), value: 'man' },
+      {
+        label: phone.t('Apps.flare.nonbinaryPeople'),
+        value: 'nonbinary',
+      },
+    ]
+  }
+  return [
+    {
+      label: phone.t('Apps.flare.lookingFor.longTerm'),
+      value: 'longTerm',
+    },
+    { label: phone.t('Apps.flare.lookingFor.dates'), value: 'dates' },
+    { label: phone.t('Apps.flare.lookingFor.friends'), value: 'friends' },
+  ]
+}
+
+function choiceLabel(field: FlareChoiceField): string {
+  const value = profileDraft[field]
+  return (
+    choiceOptions(field).find((option) => option.value === value)?.label ?? ''
+  )
+}
+
+function choiceLinkProps(field: FlareChoiceField): Record<string, unknown> {
+  return {
+    'aria-controls': 'flare-choice-sheet',
+    'aria-expanded': activeChoiceField.value === field,
+    'aria-haspopup': 'dialog',
+    class: 'flare-choice-trigger',
+    onClick: (event: MouseEvent) =>
+      openChoice(field, event.currentTarget as HTMLElement),
+    type: 'button',
+  }
+}
+
+function openChoice(field: FlareChoiceField, trigger: HTMLElement): void {
+  activeChoiceTrigger = trigger
+  activeChoiceField.value = field
+  void nextTick(() => {
+    choiceSheetContent.value
+      ?.querySelector<HTMLElement>('[aria-selected="true"]')
+      ?.focus()
+  })
+}
+
+function closeChoice(): void {
+  const trigger = activeChoiceTrigger
+  activeChoiceField.value = null
+  activeChoiceTrigger = null
+  void nextTick(() => trigger?.focus())
+}
+
+function selectChoice(value: string): void {
+  if (activeChoiceField.value === 'gender') {
+    profileDraft.gender = value as FlareGender
+  } else if (activeChoiceField.value === 'interestedIn') {
+    profileDraft.interestedIn = value as FlareInterest
+  } else if (activeChoiceField.value === 'lookingFor') {
+    profileDraft.lookingFor = value
+  }
+  closeChoice()
+}
+
 function updateNumber(key: 'age' | 'minAge' | 'maxAge', event: Event): void {
   profileDraft[key] = Number(eventValue(event))
-}
-
-function updateGender(event: Event): void {
-  profileDraft.gender = eventValue(event) as FlareGender
-}
-
-function updateInterest(event: Event): void {
-  profileDraft.interestedIn = eventValue(event) as FlareInterest
-}
-
-function updateLookingFor(event: Event): void {
-  profileDraft.lookingFor = eventValue(event)
 }
 
 function updateInterests(event: Event): void {
@@ -304,12 +406,14 @@ async function swipe(choice: 'like' | 'pass' | 'superlike'): Promise<void> {
   const profile = currentProfile.value
   if (!profile || outgoing.value) return
   outgoing.value = choice
+  swipingProfile.value = profile
   cardOffset.value = choice === 'pass' ? -430 : 430
   const match = await flare.swipe(profile.id, choice)
   const errorKey = flare.error
   globalThis.setTimeout(() => {
     cardOffset.value = 0
     currentPhotoIndex.value = 0
+    swipingProfile.value = null
     outgoing.value = null
     if (match) matchReveal.value = match
     if (errorKey) {
@@ -596,49 +700,30 @@ onMounted(async () => {
             :maxlength="300"
             @input="profileDraft.bio = eventValue($event)"
           />
-          <k-list-input
-            :label="phone.t('Apps.flare.gender')"
-            type="select"
-            :value="profileDraft.gender"
-            @change="updateGender"
-          >
-            <option value="woman">{{ phone.t('Apps.flare.woman') }}</option>
-            <option value="man">{{ phone.t('Apps.flare.man') }}</option>
-            <option value="nonbinary">
-              {{ phone.t('Apps.flare.nonbinary') }}
-            </option>
-          </k-list-input>
-          <k-list-input
-            :label="phone.t('Apps.flare.showMe')"
-            type="select"
-            :value="profileDraft.interestedIn"
-            @change="updateInterest"
-          >
-            <option value="everyone">
-              {{ phone.t('Apps.flare.everyone') }}
-            </option>
-            <option value="woman">{{ phone.t('Apps.flare.women') }}</option>
-            <option value="man">{{ phone.t('Apps.flare.men') }}</option>
-            <option value="nonbinary">
-              {{ phone.t('Apps.flare.nonbinaryPeople') }}
-            </option>
-          </k-list-input>
-          <k-list-input
-            :label="phone.t('Apps.flare.relationshipGoal')"
-            type="select"
-            :value="profileDraft.lookingFor"
-            @change="updateLookingFor"
-          >
-            <option value="longTerm">
-              {{ phone.t('Apps.flare.lookingFor.longTerm') }}
-            </option>
-            <option value="dates">
-              {{ phone.t('Apps.flare.lookingFor.dates') }}
-            </option>
-            <option value="friends">
-              {{ phone.t('Apps.flare.lookingFor.friends') }}
-            </option>
-          </k-list-input>
+          <k-list-item
+            class="flare-choice-row"
+            :header="phone.t('Apps.flare.gender')"
+            :title="choiceLabel('gender')"
+            link
+            link-component="button"
+            :link-props="choiceLinkProps('gender')"
+          />
+          <k-list-item
+            class="flare-choice-row"
+            :header="phone.t('Apps.flare.showMe')"
+            :title="choiceLabel('interestedIn')"
+            link
+            link-component="button"
+            :link-props="choiceLinkProps('interestedIn')"
+          />
+          <k-list-item
+            class="flare-choice-row"
+            :header="phone.t('Apps.flare.relationshipGoal')"
+            :title="choiceLabel('lookingFor')"
+            link
+            link-component="button"
+            :link-props="choiceLinkProps('lookingFor')"
+          />
           <k-list-input
             :label="phone.t('Apps.flare.interests')"
             :value="profileDraft.interests.join(', ')"
@@ -799,6 +884,7 @@ onMounted(async () => {
         <div v-else-if="currentProfile" class="flare-deck">
           <article
             v-if="nextProfile"
+            :key="nextProfile.id"
             class="flare-card flare-card--next"
             :aria-hidden="true"
           >
@@ -808,6 +894,7 @@ onMounted(async () => {
             />
           </article>
           <article
+            :key="currentProfile.id"
             class="flare-card"
             :class="{
               'is-liking': cardOffset > 28,
@@ -1087,21 +1174,14 @@ onMounted(async () => {
           phone.t('Apps.flare.discoveryPreferences')
         }}</k-block-title>
         <k-list inset strong>
-          <k-list-input
-            :label="phone.t('Apps.flare.showMe')"
-            type="select"
-            :value="profileDraft.interestedIn"
-            @change="updateInterest"
-          >
-            <option value="everyone">
-              {{ phone.t('Apps.flare.everyone') }}
-            </option>
-            <option value="woman">{{ phone.t('Apps.flare.women') }}</option>
-            <option value="man">{{ phone.t('Apps.flare.men') }}</option>
-            <option value="nonbinary">
-              {{ phone.t('Apps.flare.nonbinaryPeople') }}
-            </option>
-          </k-list-input>
+          <k-list-item
+            class="flare-choice-row"
+            :header="phone.t('Apps.flare.showMe')"
+            :title="choiceLabel('interestedIn')"
+            link
+            link-component="button"
+            :link-props="choiceLinkProps('interestedIn')"
+          />
           <k-list-input
             :label="phone.t('Apps.flare.minimumAge')"
             type="number"
@@ -1237,34 +1317,22 @@ onMounted(async () => {
             :maxlength="300"
             @input="profileDraft.bio = eventValue($event)"
           />
-          <k-list-input
-            :label="phone.t('Apps.flare.gender')"
-            type="select"
-            :value="profileDraft.gender"
-            @change="updateGender"
-          >
-            <option value="woman">{{ phone.t('Apps.flare.woman') }}</option>
-            <option value="man">{{ phone.t('Apps.flare.man') }}</option>
-            <option value="nonbinary">
-              {{ phone.t('Apps.flare.nonbinary') }}
-            </option>
-          </k-list-input>
-          <k-list-input
-            :label="phone.t('Apps.flare.relationshipGoal')"
-            type="select"
-            :value="profileDraft.lookingFor"
-            @change="updateLookingFor"
-          >
-            <option value="longTerm">
-              {{ phone.t('Apps.flare.lookingFor.longTerm') }}
-            </option>
-            <option value="dates">
-              {{ phone.t('Apps.flare.lookingFor.dates') }}
-            </option>
-            <option value="friends">
-              {{ phone.t('Apps.flare.lookingFor.friends') }}
-            </option>
-          </k-list-input>
+          <k-list-item
+            class="flare-choice-row"
+            :header="phone.t('Apps.flare.gender')"
+            :title="choiceLabel('gender')"
+            link
+            link-component="button"
+            :link-props="choiceLinkProps('gender')"
+          />
+          <k-list-item
+            class="flare-choice-row"
+            :header="phone.t('Apps.flare.relationshipGoal')"
+            :title="choiceLabel('lookingFor')"
+            link
+            link-component="button"
+            :link-props="choiceLinkProps('lookingFor')"
+          />
           <k-list-input
             :label="phone.t('Apps.flare.interests')"
             :value="profileDraft.interests.join(', ')"
@@ -1407,6 +1475,70 @@ onMounted(async () => {
         </k-button>
       </div>
     </div>
+
+    <k-sheet
+      :opened="Boolean(activeChoiceField)"
+      class="flare-choice-sheet"
+      @backdropclick="closeChoice"
+    >
+      <section
+        v-if="activeChoiceField"
+        id="flare-choice-sheet"
+        ref="choiceSheetContent"
+        class="flare-choice-sheet__content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="flare-choice-sheet-title"
+        @keydown.esc="closeChoice"
+      >
+        <span class="flare-choice-sheet__grabber" aria-hidden="true" />
+        <header class="flare-choice-sheet__header">
+          <h2 id="flare-choice-sheet-title">{{ activeChoiceTitle }}</h2>
+          <k-link
+            component="button"
+            icon-only
+            class="flare-choice-sheet__close"
+            :aria-label="phone.t('Common.close')"
+            :link-props="{ type: 'button' }"
+            @click="closeChoice"
+          >
+            <X />
+          </k-link>
+        </header>
+        <k-list
+          component="ul"
+          role="listbox"
+          inset
+          strong
+          class="flare-choice-sheet__list"
+        >
+          <k-list-item
+            v-for="option in activeChoiceOptions"
+            :key="option.value"
+            class="flare-choice-option"
+            :title="option.label"
+            link
+            :chevron="false"
+            link-component="button"
+            :link-props="{
+              type: 'button',
+              role: 'option',
+              class: 'flare-choice-option__button',
+              'aria-selected': activeChoiceValue === option.value,
+            }"
+            @click="selectChoice(option.value)"
+          >
+            <template #after>
+              <Check
+                v-if="activeChoiceValue === option.value"
+                class="flare-choice-check"
+                aria-hidden="true"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+      </section>
+    </k-sheet>
 
     <k-dialog :opened="unmatchDialog" @backdropclick="unmatchDialog = false">
       <template #title>{{ phone.t('Apps.flare.unmatchTitle') }}</template>
@@ -1587,8 +1719,7 @@ onMounted(async () => {
   cursor: grabbing;
 }
 .flare-card--next {
-  transform: scale(0.976) translateY(7px);
-  opacity: 0.55;
+  pointer-events: none;
 }
 .flare-card__photo {
   position: absolute;
@@ -2170,6 +2301,19 @@ onMounted(async () => {
   margin-top: 8px;
   margin-bottom: 8px;
 }
+.flare-choice-row :deep(.flare-choice-trigger),
+.flare-choice-option :deep(.flare-choice-option__button) {
+  width: 100%;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+.flare-choice-row :deep(.flare-choice-trigger:focus-visible),
+.flare-choice-option :deep(.flare-choice-option__button:focus-visible) {
+  outline: 2px solid var(--flare);
+  outline-offset: -2px;
+}
 .flare-brand-lockup {
   display: flex;
   align-items: center;
@@ -2336,6 +2480,67 @@ onMounted(async () => {
   color: var(--flare-muted);
   font-size: 11px;
   line-height: 1.45;
+}
+
+:global(.flare-choice-sheet) {
+  z-index: 70;
+  max-height: min(62%, 420px);
+  overflow-y: auto !important;
+  color: var(--flare-ink);
+  background: var(--flare-surface) !important;
+  box-shadow: 0 -18px 55px rgb(0 0 0 / 18%);
+}
+.flare-choice-sheet__content {
+  padding: 8px 0 max(18px, var(--k-safe-area-bottom));
+}
+.flare-choice-sheet__grabber {
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 5px;
+  display: block;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--flare-muted) 38%, transparent);
+}
+.flare-choice-sheet__header {
+  position: relative;
+  min-height: 48px;
+  padding: 7px 58px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.flare-choice-sheet__header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.35px;
+}
+.flare-choice-sheet__header :deep(.flare-choice-sheet__close) {
+  position: absolute;
+  top: 4px;
+  right: 13px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--flare-ink);
+  background: var(--flare-panel);
+}
+.flare-choice-sheet__header :deep(.flare-choice-sheet__close svg) {
+  width: 18px;
+  height: 18px;
+}
+.flare-choice-sheet__list {
+  margin: 0 12px 8px !important;
+}
+.flare-choice-check {
+  width: 20px;
+  height: 20px;
+  color: var(--flare);
+  stroke-width: 3;
 }
 
 .flare-chat-title {
