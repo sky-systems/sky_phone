@@ -28,6 +28,7 @@ import {
 } from 'konsta/vue'
 import {
   ArrowUpCircle,
+  Camera,
   Check,
   ChevronRight,
   Ellipsis,
@@ -35,33 +36,50 @@ import {
   Grid2X2,
   Flame,
   Heart,
+  ImagePlay,
   Images,
   MapPin,
   MessageCircle,
   Pencil,
+  Plus,
   RotateCcw,
+  Search,
   Settings2,
   Star,
   SlidersHorizontal,
   UserRound,
+  Video,
   X,
 } from 'lucide-vue-next'
 import type { CSSProperties } from 'vue'
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import profilesSprite from '@/assets/img/flare/profiles-source.png'
+import FullEmojiPicker from '@/components/FullEmojiPicker.vue'
+import MessageAttachmentBubble from '@/components/MessageAttachmentBubble.vue'
 import { useFlareStore } from '@/stores/flare'
 import { useMessageMediaStore } from '@/stores/messageMedia'
+import { useMessagesStore } from '@/stores/messages'
 import { usePhoneStore } from '@/stores/phone'
 import type {
   FlareGender,
   FlareInterest,
   FlareMatch,
+  FlareMessage,
   FlareProfile,
   FlareProfileDraft,
 } from '@/types/flare'
 import type { PhoneMedia } from '@/types/media'
+import type { GifSearchResult, SmsAttachmentType } from '@/types/messages'
+import { parseDatabaseDate, type DatabaseDateValue } from '@/utils/date'
 
 type FlareTab = 'discover' | 'explore' | 'likes' | 'matches' | 'profile'
 type ExploreMode = 'all' | 'dates' | 'friends' | 'longTerm'
@@ -76,10 +94,12 @@ type FlareMediaContext = {
   editing: boolean
   photos: FlareDraftPhoto[]
 }
+type FlareChatMediaContext = { matchId: string }
 
 const phone = usePhoneStore()
 const flare = useFlareStore()
 const messageMedia = useMessageMediaStore()
+const messages = useMessagesStore()
 const route = useRoute()
 const router = useRouter()
 const activeTab = ref<FlareTab>('discover')
@@ -100,11 +120,21 @@ const discoverySaving = ref(false)
 const unmatchDialog = ref(false)
 const activeExploreMode = ref<ExploreMode>('all')
 const actionToast = ref('')
+const emojiOpen = ref(false)
+const attachmentMenuOpen = ref(false)
+const attachmentPicker = ref<'gifs' | null>(null)
+const gifQuery = ref('')
+const gifResults = ref<GifSearchResult[]>([])
+const gifLoading = ref(false)
+const gifError = ref<string | null>(null)
+const gifHasMore = ref(true)
+const gifNextOffset = ref(0)
 const draftPhotos = ref<FlareDraftPhoto[]>([])
 const activeChoiceField = ref<FlareChoiceField>('gender')
 const choiceOpened = ref(false)
 const choiceSheetContent = ref<HTMLElement | null>(null)
 let activeChoiceTrigger: HTMLElement | null = null
+let gifSearchTimer: ReturnType<typeof setTimeout> | undefined
 const profileDraft = reactive<FlareProfileDraft>({
   age: 25,
   avatar: 0,
@@ -160,10 +190,13 @@ const normalizedPhotoIndex = computed(
   () => currentPhotoIndex.value % currentPhotoCount.value,
 )
 const newMatches = computed(() =>
-  flare.matches.filter((match) => !match.lastMessage),
+  flare.matches.filter((match) => !match.lastMessage && !match.lastMessageType),
 )
 const unreadMatches = computed(() =>
   flare.matches.reduce((total, match) => total + match.unread, 0),
+)
+const attachmentPanelOpen = computed(
+  () => emojiOpen.value || attachmentPicker.value !== null,
 )
 const cardStyle = computed(() => ({
   transform: `translateX(${cardOffset.value}px) rotate(${cardOffset.value / 22}deg)`,
@@ -535,6 +568,14 @@ async function openMatch(match: FlareMatch): Promise<void> {
   messageScroll.value?.scrollTo({ top: messageScroll.value.scrollHeight })
 }
 
+function closeMatch(): void {
+  activeMatch.value = null
+  draft.value = ''
+  emojiOpen.value = false
+  attachmentMenuOpen.value = false
+  attachmentPicker.value = null
+}
+
 async function openRevealedMatch(): Promise<void> {
   const match = matchReveal.value
   if (!match) return
@@ -546,7 +587,15 @@ async function sendMessage(): Promise<void> {
   const body = draft.value.trim()
   if (!body || !activeMatch.value || flare.sending) return
   draft.value = ''
-  if (!(await flare.send(activeMatch.value.id, body))) {
+  emojiOpen.value = false
+  attachmentMenuOpen.value = false
+  attachmentPicker.value = null
+  if (
+    !(await flare.send(activeMatch.value.id, {
+      body,
+      messageType: 'text',
+    }))
+  ) {
     draft.value = body
     showActionError()
   }
@@ -557,10 +606,131 @@ async function sendMessage(): Promise<void> {
   })
 }
 
-function messageTime(value: string): string {
-  const parsed = new Date(
-    value.includes('T') ? value : `${value.replace(' ', 'T')}Z`,
+function appendEmoji(emoji: string): void {
+  draft.value += emoji
+}
+
+function toggleAttachmentMenu(): void {
+  attachmentMenuOpen.value = !attachmentMenuOpen.value
+  emojiOpen.value = false
+  attachmentPicker.value = null
+}
+
+function openEmojiPicker(): void {
+  attachmentMenuOpen.value = false
+  attachmentPicker.value = null
+  emojiOpen.value = true
+}
+
+function openGifPicker(): void {
+  attachmentMenuOpen.value = false
+  emojiOpen.value = false
+  attachmentPicker.value = 'gifs'
+  if (!gifResults.value.length) void loadGifs(true)
+}
+
+function openChatMediaApp(
+  app: 'camera' | 'photos',
+  mediaType: 'photo' | 'video',
+): void {
+  if (!activeMatch.value) return
+  const matchId = activeMatch.value.id
+  attachmentMenuOpen.value = false
+  messageMedia.begin(
+    'flare:chat-media',
+    mediaType,
+    `/apps/flare?match=${encodeURIComponent(matchId)}`,
+    1,
+    { matchId } satisfies FlareChatMediaContext,
   )
+  void router.push({
+    path: `/apps/${app}`,
+    query: { messageAttachment: mediaType },
+  })
+}
+
+async function sendAttachment(
+  messageType: SmsAttachmentType,
+  mediaAssetId: string,
+  mediaDurationMs?: number,
+): Promise<void> {
+  if (!activeMatch.value || flare.sending) return
+  attachmentMenuOpen.value = false
+  attachmentPicker.value = null
+  if (
+    !(await flare.send(activeMatch.value.id, {
+      mediaAssetId,
+      mediaDurationMs,
+      messageType,
+    }))
+  ) {
+    showActionError()
+  }
+  await nextTick()
+  messageScroll.value?.scrollTo({
+    behavior: 'smooth',
+    top: messageScroll.value.scrollHeight,
+  })
+}
+
+async function loadGifs(reset = false): Promise<void> {
+  if (gifLoading.value || (!reset && !gifHasMore.value)) return
+  gifError.value = null
+  gifLoading.value = true
+  const response = await messages.searchGifs(
+    gifQuery.value,
+    reset ? 0 : gifNextOffset.value,
+  )
+  gifLoading.value = false
+  if (!response.success || !response.data) {
+    if (reset) gifResults.value = []
+    gifError.value = response.error ?? 'gif_provider_failed'
+    return
+  }
+  const existingIds = new Set(
+    reset ? [] : gifResults.value.map((result) => result.id),
+  )
+  const uniqueResults = response.data.results.filter((result) => {
+    if (existingIds.has(result.id)) return false
+    existingIds.add(result.id)
+    return true
+  })
+  gifResults.value = reset
+    ? uniqueResults
+    : [...gifResults.value, ...uniqueResults]
+  gifHasMore.value = response.data.hasMore
+  gifNextOffset.value = response.data.nextOffset
+}
+
+function queueGifSearch(): void {
+  if (gifSearchTimer) clearTimeout(gifSearchTimer)
+  gifSearchTimer = setTimeout(() => void loadGifs(true), 320)
+}
+
+function attachmentMessage(message: FlareMessage): {
+  media_asset_id: string | null
+  media_duration_ms: number | null
+  message_type: SmsAttachmentType
+} {
+  return {
+    media_asset_id: message.mediaUrl,
+    media_duration_ms: message.mediaDurationMs,
+    message_type: message.messageType as SmsAttachmentType,
+  }
+}
+
+function matchPreview(match: FlareMatch): string {
+  if (match.lastMessageType === 'image') {
+    return phone.t('Apps.flare.messagePhoto')
+  }
+  if (match.lastMessageType === 'gif') return phone.t('Apps.flare.gif')
+  if (match.lastMessageType === 'video') return phone.t('Apps.flare.video')
+  return match.lastMessage || phone.t('Apps.flare.newMatch')
+}
+
+function messageTime(value: DatabaseDateValue): string {
+  const parsed = parseDatabaseDate(value)
+  if (Number.isNaN(parsed.getTime())) return ''
   return new Intl.DateTimeFormat(phone.lang, {
     hour: '2-digit',
     minute: '2-digit',
@@ -598,6 +768,30 @@ onMounted(async () => {
   if (route.query.profileEdit === '1') {
     void router.replace('/apps/flare')
   }
+
+  const chatSelection =
+    messageMedia.consumeMany<FlareChatMediaContext>('flare:chat-media')
+  const requestedMatchId =
+    chatSelection?.context?.matchId ??
+    (typeof route.query.match === 'string' ? route.query.match : '')
+  if (requestedMatchId) {
+    const match = flare.matches.find((item) => item.id === requestedMatchId)
+    if (match) {
+      await openMatch(match)
+      const media = chatSelection?.media[0]
+      if (media) {
+        await sendAttachment(
+          media.mediaType === 'photo' ? 'image' : 'video',
+          import.meta.env.DEV ? media.url : String(media.id),
+        )
+      }
+    }
+    if (route.query.match) void router.replace('/apps/flare')
+  }
+})
+
+onBeforeUnmount(() => {
+  if (gifSearchTimer) clearTimeout(gifSearchTimer)
 })
 </script>
 
@@ -607,6 +801,7 @@ onMounted(async () => {
     class="native-app flare-page"
     :class="{
       'flare-page--chat': Boolean(activeMatch),
+      'flare-page--attachment-panel': attachmentPanelOpen,
       'flare-page--without-tabs':
         !flare.profile || profileEditing || profileSettings,
     }"
@@ -762,7 +957,7 @@ onMounted(async () => {
         <template #left>
           <k-navbar-back-link
             :text="phone.t('Common.back')"
-            @click="activeMatch = null"
+            @click="closeMatch"
           />
         </template>
         <template #title>
@@ -788,19 +983,121 @@ onMounted(async () => {
             v-for="message in flare.messages"
             :key="message.id"
             :type="message.direction"
-            :text="message.body"
+            :text="message.messageType === 'text' ? message.body : undefined"
             :text-footer="messageTime(message.createdAt)"
-          />
+          >
+            <template v-if="message.messageType !== 'text'" #text>
+              <MessageAttachmentBubble :message="attachmentMessage(message)" />
+            </template>
+          </k-message>
         </k-messages>
       </div>
+
+      <section v-if="attachmentMenuOpen" class="messages-attachment-menu">
+        <button type="button" @click="openChatMediaApp('photos', 'photo')">
+          <span><Images :size="20" /></span>
+          {{ phone.t('Apps.flare.attachPhoto') }}
+        </button>
+        <button type="button" @click="openChatMediaApp('camera', 'photo')">
+          <span><Camera :size="20" /></span>
+          {{ phone.t('Apps.flare.takePhoto') }}
+        </button>
+        <button type="button" @click="openEmojiPicker">
+          <span class="messages-action-emoji">😀</span>
+          {{ phone.t('Apps.flare.emoji') }}
+        </button>
+        <button type="button" @click="openGifPicker">
+          <span><ImagePlay :size="20" /></span>
+          {{ phone.t('Apps.flare.attachGif') }}
+        </button>
+        <button type="button" @click="openChatMediaApp('photos', 'video')">
+          <span><Video :size="20" /></span>
+          {{ phone.t('Apps.flare.attachVideo') }}
+        </button>
+      </section>
+
+      <section
+        v-if="attachmentPicker"
+        class="messages-media-picker flare-media-picker"
+      >
+        <header>
+          <strong>{{ phone.t('Apps.flare.gifs') }}</strong>
+          <button type="button" @click="attachmentPicker = null">
+            {{ phone.t('Common.done') }}
+          </button>
+        </header>
+        <div class="messages-media-picker__gifs">
+          <label class="messages-gif-search">
+            <Search :size="15" />
+            <input
+              v-model="gifQuery"
+              type="search"
+              :placeholder="phone.t('Apps.flare.searchGifs')"
+              @input="queueGifSearch"
+            />
+          </label>
+          <button
+            v-for="gif in gifResults"
+            :key="gif.id"
+            type="button"
+            :aria-label="gif.title"
+            @click="sendAttachment('gif', gif.url)"
+          >
+            <img
+              :src="gif.previewUrl"
+              :alt="gif.title"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+            />
+          </button>
+          <button
+            v-if="gifResults.length && gifHasMore && !gifLoading"
+            type="button"
+            class="messages-gif-more"
+            @click="loadGifs()"
+          >
+            {{ phone.t('Apps.flare.loadMore') }}
+          </button>
+          <div v-if="gifError && !gifLoading" class="messages-gif-error">
+            <ImagePlay :size="24" />
+            <strong>{{ phone.t(`Apps.flare.errors.${gifError}`) }}</strong>
+            <button type="button" @click="loadGifs(true)">
+              {{ phone.t('Apps.flare.retryGifs') }}
+            </button>
+          </div>
+          <k-preloader v-if="gifLoading" class="messages-gif-loading" />
+        </div>
+      </section>
+
+      <FullEmojiPicker
+        v-if="emojiOpen"
+        @close="emojiOpen = false"
+        @pick="appendEmoji"
+      />
+
       <k-messagebar
-        class="flare-messagebar"
+        class="flare-messagebar messages-messagebar"
         :placeholder="phone.t('Apps.flare.messagePlaceholder')"
         :value="draft"
         :disabled="flare.sending"
         @input="draft = eventValue($event)"
         @keydown.enter.exact.prevent="sendMessage"
       >
+        <template #left>
+          <k-toolbar-pane class="ios:h-10 messages-messagebar__tools">
+            <k-link
+              component="button"
+              icon-only
+              :aria-label="phone.t('Apps.flare.moreActions')"
+              :class="{
+                active: attachmentMenuOpen || attachmentPanelOpen,
+              }"
+              @click="toggleAttachmentMenu"
+            >
+              <Plus :size="25" />
+            </k-link>
+          </k-toolbar-pane>
+        </template>
         <template #right>
           <k-toolbar-pane>
             <k-link
@@ -1126,7 +1423,7 @@ onMounted(async () => {
               :key="match.id"
               link
               :title="match.profile.name"
-              :subtitle="match.lastMessage || phone.t('Apps.flare.newMatch')"
+              :subtitle="matchPreview(match)"
               @click="openMatch(match)"
             >
               <template #media>
@@ -2562,6 +2859,9 @@ onMounted(async () => {
 .flare-chat-scroll {
   padding: 10px 12px 82px;
 }
+.flare-page--attachment-panel .flare-chat-scroll {
+  padding-bottom: 390px;
+}
 .flare-chat-scroll :deep(.k-message-sent [class*='message-bubble']) {
   background: linear-gradient(
     110deg,
@@ -2580,6 +2880,18 @@ onMounted(async () => {
 }
 .flare-messagebar :deep(.k-link) {
   color: var(--flare);
+}
+.flare-messagebar :deep(.messages-messagebar__tools .k-link) {
+  color: var(--flare-text);
+}
+.flare-messagebar :deep(.messages-messagebar__tools .k-link.active) {
+  background: rgb(255 56 92 / 13%);
+  color: var(--flare);
+}
+.flare-media-picker > header button,
+.flare-media-picker .messages-gif-more,
+.flare-media-picker .messages-gif-error button {
+  color: var(--flare) !important;
 }
 
 .flare-tabbar {

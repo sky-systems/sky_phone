@@ -118,6 +118,7 @@ describe('flare store', () => {
       id: 'match-1',
       lastMessage: '',
       lastMessageAt: null,
+      lastMessageType: null,
       profile: maya,
       unread: 0,
     }
@@ -147,5 +148,45 @@ describe('flare store', () => {
     expect(await flare.setDiscovery(false)).toBe(false)
     expect(flare.profile?.discoverable).toBe(true)
     expect(flare.error).toBe('invalid_discovery')
+  })
+
+  it('sends media messages and keeps numeric database timestamps intact', async () => {
+    const match: FlareMatch = {
+      id: 'match-media',
+      lastMessage: '',
+      lastMessageAt: null,
+      lastMessageType: null,
+      profile: maya,
+      unread: 0,
+    }
+    const sentAt = Date.now()
+    mockNuiCall.mockResolvedValueOnce({
+      data: {
+        body: '',
+        createdAt: sentAt,
+        direction: 'sent',
+        id: 'message-media',
+        mediaDurationMs: null,
+        mediaUrl: 'https://cdn.example.test/photo.jpg',
+        messageType: 'image',
+      },
+      success: true,
+    })
+    const flare = useFlareStore()
+    flare.matches = [match]
+
+    expect(
+      await flare.send(match.id, {
+        mediaAssetId: '42',
+        messageType: 'image',
+      }),
+    ).toBe(true)
+    expect(mockNuiCall).toHaveBeenCalledWith('flare:send', {
+      matchId: match.id,
+      mediaAssetId: '42',
+      messageType: 'image',
+    })
+    expect(flare.messages[0]?.createdAt).toBe(sentAt)
+    expect(match.lastMessageType).toBe('image')
   })
 })

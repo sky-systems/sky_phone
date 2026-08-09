@@ -1128,6 +1128,7 @@ const flareMatches = [
     },
     lastMessage: 'That place sounds perfect. Friday?',
     lastMessageAt: isoTime(-38 * 60 * 1000),
+    lastMessageType: 'text',
     unread: 1,
   },
 ]
@@ -1145,12 +1146,18 @@ const flareMessages = {
       direction: 'sent',
       body: 'Have you tried the little jazz bar in Vinewood?',
       createdAt: isoTime(-55 * 60 * 1000),
+      mediaDurationMs: null,
+      mediaUrl: null,
+      messageType: 'text',
     },
     {
       id: 'flare-message-2',
       direction: 'received',
       body: 'That place sounds perfect. Friday?',
       createdAt: isoTime(-38 * 60 * 1000),
+      mediaDurationMs: null,
+      mediaUrl: null,
+      messageType: 'text',
     },
   ],
 }
@@ -1250,6 +1257,7 @@ app.post('/api/:endpoint', (request, response) => {
         profile: target,
         lastMessage: '',
         lastMessageAt: null,
+        lastMessageType: null,
         unread: 0,
       }
       flareMatches.unshift(match)
@@ -1303,21 +1311,32 @@ app.post('/api/:endpoint', (request, response) => {
   }
   if (endpoint === 'flare:send') {
     const match = flareMatches.find((item) => item.id === request.body.matchId)
+    const messageType = request.body.messageType ?? 'text'
     const body = String(request.body.body ?? '').trim()
-    if (!match || !body) {
+    const mediaUrl = String(request.body.mediaAssetId ?? '')
+    if (
+      !match ||
+      (messageType === 'text'
+        ? !body
+        : !['image', 'gif', 'video'].includes(messageType) || !mediaUrl)
+    ) {
       response.json({ success: false, error: 'invalid_message' })
       return
     }
     const message = {
       id: `flare-message-${Date.now()}`,
       direction: 'sent',
-      body,
-      createdAt: new Date().toISOString(),
+      body: messageType === 'text' ? body : '',
+      createdAt: Date.now(),
+      mediaDurationMs: request.body.mediaDurationMs ?? null,
+      mediaUrl: messageType === 'text' ? null : mediaUrl,
+      messageType,
     }
     flareMessages[match.id] ??= []
     flareMessages[match.id].push(message)
-    match.lastMessage = body
+    match.lastMessage = message.body
     match.lastMessageAt = message.createdAt
+    match.lastMessageType = messageType
     response.json({ success: true, data: message })
     return
   }

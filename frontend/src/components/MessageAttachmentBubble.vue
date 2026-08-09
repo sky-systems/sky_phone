@@ -2,9 +2,15 @@
 import { Camera, Pause, Play } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
-import type { SmsMessage } from '@/types/messages'
+import type { SmsMessageType } from '@/types/messages'
 
-const props = defineProps<{ message: SmsMessage }>()
+type MessageAttachment = {
+  media_asset_id: string | null
+  media_duration_ms: number | null
+  message_type: SmsMessageType
+}
+
+const props = defineProps<{ message: MessageAttachment }>()
 const playing = ref(false)
 const video = ref<HTMLVideoElement>()
 
@@ -66,7 +72,13 @@ function durationLabel(milliseconds: number | null): string {
     class="messages-attachment messages-attachment--image"
     :style="{ background }"
   >
-    <img v-if="mediaUrl" :src="mediaUrl" alt="" loading="lazy" referrerpolicy="no-referrer" />
+    <img
+      v-if="mediaUrl"
+      :src="mediaUrl"
+      alt=""
+      loading="lazy"
+      referrerpolicy="no-referrer"
+    />
     <Camera v-else :size="18" />
   </div>
   <button
@@ -85,11 +97,22 @@ function durationLabel(milliseconds: number | null): string {
       preload="metadata"
       @ended="playing = false"
     />
-    <span><Pause v-if="playing" :size="22" fill="currentColor" /><Play v-else :size="22" fill="currentColor" /></span>
+    <span
+      ><Pause v-if="playing" :size="22" fill="currentColor" /><Play
+        v-else
+        :size="22"
+        fill="currentColor"
+    /></span>
     <small>{{ durationLabel(message.media_duration_ms) }}</small>
   </button>
   <div v-else class="messages-attachment messages-attachment--gif">
-    <img v-if="mediaUrl" :src="mediaUrl" alt="GIF" loading="lazy" referrerpolicy="no-referrer" />
+    <img
+      v-if="mediaUrl"
+      :src="mediaUrl"
+      alt="GIF"
+      loading="lazy"
+      referrerpolicy="no-referrer"
+    />
     <template v-else>
       <span>{{ gif.emoji }}</span>
       <strong>{{ gif.label }}</strong>

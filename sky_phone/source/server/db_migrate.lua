@@ -940,6 +940,9 @@ local schema = {
             { name = "match_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "sender_account_id", type = "BIGINT UNSIGNED NOT NULL" },
             { name = "body", type = "VARCHAR(1000) NOT NULL" },
+            { name = "message_type", type = "ENUM('text', 'image', 'gif', 'video') NOT NULL DEFAULT 'text'" },
+            { name = "media_url", type = "VARCHAR(2048) NULL" },
+            { name = "media_duration_ms", type = "INT UNSIGNED NULL" },
             { name = "read_at", type = "DATETIME NULL" },
             { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
         },
@@ -960,6 +963,10 @@ Bridge.Database.Migrate("sky_phone", schema)
 Bridge.Database.Query([[
     ALTER TABLE `sky_phone_flare_swipes`
     MODIFY COLUMN `choice` ENUM('like', 'pass', 'superlike') NOT NULL
+]], {})
+Bridge.Database.Query([[
+    ALTER TABLE `sky_phone_flare_messages`
+    MODIFY COLUMN `message_type` ENUM('text', 'image', 'gif', 'video') NOT NULL DEFAULT 'text'
 ]], {})
 Bridge.Database.Query([[
     ALTER TABLE `sky_phone_sms_messages`

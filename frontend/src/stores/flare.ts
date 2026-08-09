@@ -4,6 +4,7 @@ import type {
   FlareBootstrap,
   FlareMatch,
   FlareMessage,
+  FlareOutgoingMessage,
   FlareProfile,
   FlareProfileDraft,
 } from '@/types/flare'
@@ -57,11 +58,14 @@ export const useFlareStore = defineStore('flare', {
       }
       return response.success
     },
-    async send(matchId: string, body: string): Promise<boolean> {
+    async send(
+      matchId: string,
+      outgoing: FlareOutgoingMessage,
+    ): Promise<boolean> {
       this.sending = true
       const response = await nuiCall<FlareMessage>('flare:send', {
-        body,
         matchId,
+        ...outgoing,
       })
       this.sending = false
       this.error = response.success ? '' : (response.error ?? 'default')
@@ -71,6 +75,7 @@ export const useFlareStore = defineStore('flare', {
         if (match) {
           match.lastMessage = response.data.body
           match.lastMessageAt = response.data.createdAt
+          match.lastMessageType = response.data.messageType
         }
       }
       return response.success

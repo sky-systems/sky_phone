@@ -2,6 +2,24 @@ Bridge.Database.AfterMigration("sky_phone", function()
 local genders = { woman = true, man = true, nonbinary = true }
 local interests = { woman = true, man = true, nonbinary = true, everyone = true }
 local looking_for = { longTerm = true, dates = true, friends = true }
+local message_types = { text = true, image = true, gif = true, video = true }
+
+local function allowed_gif_url(value)
+    if type(value) ~= "string" or #value == 0 or #value > Config.Media.UrlMaxLength then
+        return false
+    end
+    local host = value:lower():match("^https://([^/:?#]+)")
+    if not host then
+        return false
+    end
+    for _, allowed_host in ipairs(Config.Media.AllowedGifHosts) do
+        local suffix = "." .. allowed_host
+        if host == allowed_host or host:sub(-#suffix) == suffix then
+            return true
+        end
+    end
+    return false
+end
 
 local function is_enabled(value)
     return value == true or tonumber(value) == 1
@@ -208,7 +226,8 @@ local function list_matches(account_id)
         SELECT match_row.`id`, match_row.`created_at`,
             profile.`id` AS `profile_id`, profile.`name`, profile.`age`, profile.`bio`,
             profile.`gender`, profile.`avatar`, profile.`interests`, profile.`looking_for`,
-            latest.`body` AS `last_message`, latest.`created_at` AS `last_message_at`,
+            latest.`body` AS `last_message`, latest.`message_type` AS `last_message_type`,
+            UNIX_TIMESTAMP(latest.`created_at`) * 1000 AS `last_message_at`,
             (SELECT COUNT(*) FROM `sky_phone_flare_messages` unread
                 WHERE unread.`match_id` = match_row.`id`
                     AND unread.`sender_account_id` <> ?
@@ -242,7 +261,8 @@ local function list_matches(account_id)
                 photo_urls = row.photo_urls,
             }, false),
             lastMessage = row.last_message or "",
-            lastMessageAt = row.last_message_at,
+            lastMessageAt = tonumber(row.last_message_at),
+            lastMessageType = row.last_message_type,
             unread = tonumber(row.unread) or 0,
         }
     end
@@ -347,6 +367,75 @@ local function load_match(account_id, match_id)
         LIMIT 1
     ]], { match_id, account_id, account_id })
     return rows[1]
+end
+
+local function validate_message(source, data)
+    if type(data) ~= "table" then
+        return nil, "invalid_message"
+    end
+    local message_type = data.messageType or "text"
+    if not message_types[message_type] then
+        return nil, "invalid_message"
+    end
+    if message_type == "text" then
+        local body = trim(data.body)
+        local length = text_length(body)
+        if not length or length < 1 or length > 1000 then
+            return nil, "invalid_message"
+        end
+        return { body = body, message_type = message_type }
+    end
+
+    if type(data.mediaAssetId) ~= "string" then
+        return nil, "invalid_attachment"
+    end
+    local media_url
+    if message_type == "gif" then
+        if not allowed_gif_url(data.mediaAssetId) then
+            return nil, "invalid_attachment"
+        end
+        media_url = data.mediaAssetId
+    else
+        local media_id = tonumber(data.mediaAssetId)
+        local expected_type = message_type == "image" and "photo" or "video"
+        if not media_id or media_id < 1 or media_id ~= math.floor(media_id) then
+            return nil, "invalid_attachment"
+        end
+        media_url = SkyPhoneMedia.ResolveOwnedMedia(source, media_id, expected_type)
+        if type(media_url) ~= "string" or #media_url > Config.Media.UrlMaxLength
+            or not media_url:match("^https://")
+        then
+            Bridge.Debug("warn", ("[sky_phone] Rejected unowned Flare media from source %s."):format(tostring(source)))
+            return nil, "invalid_attachment"
+        end
+    end
+
+    local duration = nil
+    if message_type == "video" and data.mediaDurationMs ~= nil then
+        duration = tonumber(data.mediaDurationMs)
+        if not duration or duration < 1000 or duration > Config.Messages.VideoMaxDurationMs then
+            return nil, "invalid_attachment"
+        end
+        duration = math.floor(duration)
+    end
+    return {
+        body = "",
+        media_duration_ms = duration,
+        media_url = media_url,
+        message_type = message_type,
+    }
+end
+
+local function message_payload(row, account_id)
+    return {
+        id = row.id,
+        direction = tonumber(row.sender_account_id) == tonumber(account_id) and "sent" or "received",
+        body = row.body or "",
+        createdAt = tonumber(row.created_at_ms),
+        messageType = row.message_type or "text",
+        mediaUrl = row.media_url,
+        mediaDurationMs = tonumber(row.media_duration_ms),
+    }
 end
 
 Bridge.Callbacks.Register("sky_phone:flare:bootstrap", function(source)
@@ -581,7 +670,8 @@ Bridge.Callbacks.Register("sky_phone:flare:thread", function(source, data)
         WHERE `match_id` = ? AND `sender_account_id` <> ? AND `read_at` IS NULL
     ]], { match.id, account.id })
     local rows = Bridge.Database.Query([[
-        SELECT `id`, `sender_account_id`, `body`, `created_at`
+        SELECT `id`, `sender_account_id`, `body`, `message_type`, `media_url`,
+            `media_duration_ms`, UNIX_TIMESTAMP(`created_at`) * 1000 AS `created_at_ms`
         FROM `sky_phone_flare_messages`
         WHERE `match_id` = ?
         ORDER BY `created_at`, `id`
@@ -589,12 +679,7 @@ Bridge.Callbacks.Register("sky_phone:flare:thread", function(source, data)
     ]], { match.id })
     local messages = {}
     for _, row in ipairs(rows) do
-        messages[#messages + 1] = {
-            id = row.id,
-            direction = tonumber(row.sender_account_id) == tonumber(account.id) and "sent" or "received",
-            body = row.body,
-            createdAt = row.created_at,
-        }
+        messages[#messages + 1] = message_payload(row, account.id)
     end
     return { success = true, data = { messages = messages } }
 end)
@@ -607,36 +692,43 @@ Bridge.Callbacks.Register("sky_phone:flare:send", function(source, data)
     if not account then
         return error_response
     end
-    local body = trim(data and data.body)
-    local length = text_length(body)
     local match = load_match(account.id, data and data.matchId)
     if not match then
         return { success = false, error = "match_not_found" }
     end
-    if not length or length < 1 or length > 1000 then
-        return { success = false, error = "invalid_message" }
+    local message, validation_error = validate_message(source, data)
+    if not message then
+        return { success = false, error = validation_error }
     end
     local id = uuid()
     local own_profile = load_profile(account.id)
     Bridge.Database.Query([[
-        INSERT INTO `sky_phone_flare_messages` (`id`, `match_id`, `sender_account_id`, `body`)
-        VALUES (?, ?, ?, ?)
-    ]], { id, match.id, account.id, body })
+        INSERT INTO `sky_phone_flare_messages`
+            (`id`, `match_id`, `sender_account_id`, `body`, `message_type`, `media_url`,
+                `media_duration_ms`)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ]], {
+        id, match.id, account.id, message.body, message.message_type, message.media_url,
+        message.media_duration_ms,
+    })
     local recipient_account_id = tonumber(match.account_a_id) == tonumber(account.id)
         and tonumber(match.account_b_id) or tonumber(match.account_a_id)
     SkyPhone.NotifyAccountDevices(recipient_account_id, "sky_phone:flare:message", {
         matchId = match.id,
-        body = body,
+        body = message.body,
         sender = own_profile and own_profile.name or "",
     })
     return {
         success = true,
-        data = {
+        data = message_payload({
             id = id,
-            direction = "sent",
-            body = body,
-            createdAt = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-        },
+            sender_account_id = account.id,
+            body = message.body,
+            created_at_ms = os.time() * 1000,
+            message_type = message.message_type,
+            media_url = message.media_url,
+            media_duration_ms = message.media_duration_ms,
+        }, account.id),
     }
 end)
 end)
