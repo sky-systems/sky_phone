@@ -37,7 +37,6 @@ import {
   Plus,
   QrCode,
   Reply,
-  Search,
   ShieldCheck,
   ShieldOff,
   Trash2,
@@ -88,6 +87,10 @@ const darkMessagebarColors = {
   inputBgIos: 'bg-[#1c1c1e]',
   placeholderIos: 'placeholder-[#8e8e93]',
   toolbarIconIos: 'fill-[#0a84ff]',
+}
+const darkSearchbarColors = {
+  inputBgIos: 'bg-[#1c1c1e]',
+  placeholderIos: 'placeholder-[#8e8e93]',
 }
 const darkSheetColors = {
   bgIos: 'bg-[#111113]',
@@ -180,10 +183,6 @@ function avatarGlyph(seed: number): string {
 
 function inputValue(event: Event): string {
   return (event.target as HTMLInputElement | HTMLTextAreaElement).value
-}
-
-function setSearch(event: Event): void {
-  search.value = inputValue(event)
 }
 
 function setIdentifier(event: Event): void {
@@ -1706,20 +1705,6 @@ onBeforeUnmount(() => {
   background: rgb(255 255 255 / 8%);
 }
 
-.dc-report-dialog textarea {
-  width: 100%;
-  min-height: 82px;
-  margin-top: 10px;
-  padding: 10px;
-  resize: none;
-  border: 0.5px solid var(--dc-border);
-  border-radius: 10px;
-  outline: none;
-  color: var(--dc-label);
-  font-size: 14px;
-  background: var(--dc-surface-raised);
-}
-
 .dc-action-sheet {
   max-height: 72%;
   padding: 7px 0 32px;
@@ -2023,33 +2008,10 @@ onBeforeUnmount(() => {
   gap: 9px;
 }
 
-.dc-sms-inbox-toolbar label {
-  display: flex;
-  height: 40px;
+.dc-sms-search {
   min-width: 0;
-  padding: 0 12px;
+  margin: 0;
   flex: 1;
-  align-items: center;
-  gap: 7px;
-  border: 0.5px solid var(--dc-border);
-  border-radius: 22px;
-  color: var(--dc-tertiary);
-  background: rgb(28 28 30 / 94%);
-}
-
-.dc-sms-inbox-toolbar input {
-  min-width: 0;
-  flex: 1;
-  border: 0;
-  outline: 0;
-  color: var(--dc-label);
-  font-size: 14px;
-  background: transparent;
-}
-
-.dc-sms-inbox-toolbar input::placeholder {
-  color: var(--dc-tertiary);
-  opacity: 1;
 }
 
 .dc-sms-inbox-toolbar > button {
@@ -2244,13 +2206,14 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <footer class="dc-sms-inbox-toolbar">
-          <label
-            ><Search :size="17" /><input
-              :value="search"
-              type="search"
-              :placeholder="phone.t('Common.search')"
-              @input="setSearch" /></label
-          ><k-glass
+          <k-searchbar
+            v-model="search"
+            class="dc-sms-search"
+            :placeholder="phone.t('Common.search')"
+            :colors="darkSearchbarColors"
+            :input-style="{ color: 'var(--dc-label)' }"
+          />
+          <k-glass
             component="button"
             type="button"
             :aria-label="t('newChat')"
@@ -2309,6 +2272,7 @@ onBeforeUnmount(() => {
               :key="contact.id"
               link
               link-component="button"
+              content-class="w-full"
               :title="contact.alias"
               :subtitle="contact.darkId"
               @click="requestStart(contact.darkId)"
@@ -2611,6 +2575,7 @@ onBeforeUnmount(() => {
             <k-list-item
               link
               link-component="button"
+              content-class="w-full"
               :title="t('disappearing')"
               @click="selectionSheet = 'disappearing'"
             >
@@ -2640,6 +2605,7 @@ onBeforeUnmount(() => {
               v-if="active.peer.isContact"
               link
               link-component="button"
+              content-class="w-full"
               :title="t('removeContact')"
               @click="removeContact"
               ><template #media><UserMinus :size="20" /></template
@@ -2647,6 +2613,7 @@ onBeforeUnmount(() => {
             <k-list-item
               link
               link-component="button"
+              content-class="w-full"
               :title="active.peer.blocked ? t('unblock') : t('block')"
               @click="toggleBlock"
               ><template #media><ShieldOff :size="20" /></template
@@ -2654,6 +2621,7 @@ onBeforeUnmount(() => {
             <k-list-item
               link
               link-component="button"
+              content-class="w-full"
               :title="t('report')"
               @click="beginReport()"
               ><template #media><BellOff :size="20" /></template
@@ -2661,6 +2629,7 @@ onBeforeUnmount(() => {
             <k-list-item
               link
               link-component="button"
+              content-class="w-full"
               :title="t('clearChat')"
               @click="clearChat"
               ><template #media><Trash2 :size="20" /></template
@@ -2716,12 +2685,18 @@ onBeforeUnmount(() => {
             <k-list-item
               link
               link-component="button"
-              :title="t('notificationPrivacy')"
+              content-class="w-full"
+              title-wrap-class="gap-2"
               @click="selectionSheet = 'notification'"
             >
               <template #media><Bell :size="20" /></template>
+              <template #title>
+                <span class="whitespace-nowrap text-[15px]">
+                  {{ t('notificationPrivacy') }}
+                </span>
+              </template>
               <template #after
-                ><span class="dc-setting-value">{{
+                ><span class="dc-setting-value max-w-[106px] text-[12px]">{{
                   notificationOptions.find(
                     (option) => option.value === notificationMode,
                   )?.label
@@ -2797,6 +2772,7 @@ onBeforeUnmount(() => {
           <k-list-item
             link
             link-component="button"
+            content-class="w-full"
             :title="t('reply')"
             @click="beginReply(selectedMessage)"
             ><template #media><Reply :size="20" /></template
@@ -2808,6 +2784,7 @@ onBeforeUnmount(() => {
             "
             link
             link-component="button"
+            content-class="w-full"
             :title="t('copy')"
             @click="copyMessage(selectedMessage)"
             ><template #media><Copy :size="20" /></template
@@ -2815,6 +2792,7 @@ onBeforeUnmount(() => {
           <k-list-item
             link
             link-component="button"
+            content-class="w-full"
             :title="t('deleteForMe')"
             @click="messageAction(selectedMessage, 'delete_me')"
             ><template #media><Trash2 :size="20" /></template
@@ -2823,6 +2801,7 @@ onBeforeUnmount(() => {
             v-if="selectedMessage.direction === 'sent'"
             link
             link-component="button"
+            content-class="w-full"
             class="dc-danger-row"
             :title="t('deleteForBoth')"
             @click="messageAction(selectedMessage, 'delete_all')"
@@ -2832,6 +2811,7 @@ onBeforeUnmount(() => {
             v-if="selectedMessage.direction === 'received'"
             link
             link-component="button"
+            content-class="w-full"
             class="dc-danger-row"
             :title="t('report')"
             @click="beginReport(selectedMessage)"
@@ -2859,6 +2839,7 @@ onBeforeUnmount(() => {
         <k-list-item
           link
           link-component="button"
+          content-class="w-full"
           :title="t('reportUser')"
           @click="selectionSheet = 'report'"
         >
@@ -2870,12 +2851,17 @@ onBeforeUnmount(() => {
           >
         </k-list-item>
       </k-list>
-      <textarea
-        :value="reportDetails"
-        maxlength="500"
-        :placeholder="t('reportDetails')"
-        @input="setReportDetails"
-      />
+      <k-list inset strong class="dc-form-list">
+        <k-list-input
+          type="textarea"
+          :value="reportDetails"
+          maxlength="500"
+          :placeholder="t('reportDetails')"
+          :colors="darkInputColors"
+          input-class="text-[#f5f5f7] placeholder:text-[#8e8e93]"
+          @input="setReportDetails"
+        />
+      </k-list>
       <template #buttons
         ><k-dialog-button @click="closeReport">{{
           phone.t('Common.cancel')
@@ -2900,6 +2886,8 @@ onBeforeUnmount(() => {
           :key="option.value"
           link
           link-component="button"
+          content-class="w-full"
+          :chevron="false"
           :title="option.label"
           @click="chooseSelection(option.value)"
         >

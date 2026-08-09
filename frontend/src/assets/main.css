@@ -4153,29 +4153,23 @@ button {
   align-items: center;
   gap: 9px;
 }
-.messages-inbox-toolbar label {
-  height: 40px;
-  padding: 0 12px;
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid #ededf0;
-  border-radius: 22px;
-  background: rgb(255 255 255 / 94%);
-  box-shadow: 0 7px 25px rgb(0 0 0 / 8%);
-  color: #9b9ba0;
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-}
-.messages-inbox-toolbar input {
+.messages-inbox-search {
+  position: relative;
   min-width: 0;
+  height: 40px;
   flex: 1;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #111;
-  font-size: 13px;
+}
+.messages-inbox-search__voice {
+  position: absolute;
+  z-index: 45;
+  top: 50%;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: currentColor;
+  transform: translateY(-50%);
 }
 .messages-inbox-toolbar > button {
   width: 40px;
@@ -4380,11 +4374,9 @@ button {
 }
 .messages-chat-header__name strong {
   min-width: 0;
-  overflow: hidden;
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .messages-chat-header__name svg {
@@ -5166,7 +5158,6 @@ button {
   backdrop-filter: blur(22px) saturate(175%);
   -webkit-backdrop-filter: blur(22px) saturate(175%);
 }
-.messages-inbox-toolbar label,
 .messages-edit-toolbar,
 .messages-messagebar,
 .messages-chat-header__name {
@@ -5533,7 +5524,6 @@ button {
 .phone-app.dark .messages-contact-details__fields span {
   color: #98989f;
 }
-.phone-app.dark .messages-inbox-toolbar label,
 .phone-app.dark .messages-edit-toolbar,
 .phone-app.dark .messages-messagebar,
 .phone-app.dark .messages-chat-header__name {
@@ -5543,7 +5533,6 @@ button {
     inset 0 1px 0 rgb(255 255 255 / 10%),
     0 8px 26px rgb(0 0 0 / 32%);
 }
-.phone-app.dark .messages-inbox-toolbar input,
 .phone-app.dark .messages-messagebar textarea,
 .phone-app.dark .messages-gif-search input,
 .phone-app.dark .messages-full-emoji-picker__search input {
@@ -5636,6 +5625,11 @@ button {
 }
 .messages-thread-page .messages-chat-header__contact {
   top: 4px;
+  left: 50%;
+  width: 280px;
+  min-width: 280px;
+  margin-left: -140px;
+  transform: none;
 }
 .messages-thread-page .messages-avatar--header {
   width: 64px;
@@ -5644,7 +5638,8 @@ button {
 }
 .messages-thread-page .messages-chat-header__name {
   min-width: 0;
-  max-width: 230px;
+  width: max-content;
+  max-width: calc(100% - 8px);
   height: 32px;
   padding: 0 11px;
   justify-content: center;
@@ -6047,28 +6042,12 @@ button {
   height: 50px;
   gap: 10px;
 }
-.messages-inbox-page .messages-inbox-toolbar label {
+.messages-inbox-page .messages-inbox-search {
   height: 48px;
-  padding: 0 14px;
-  border-color: var(--messages-inbox-control-border);
-  border-radius: 25px;
-  background: var(--messages-inbox-control);
-  box-shadow: var(--messages-inbox-control-shadow);
   color: var(--messages-inbox-secondary);
 }
-.messages-inbox-page .messages-inbox-toolbar label > svg:first-child {
-  width: 22px;
-  height: 22px;
+.messages-inbox-page .messages-inbox-search__voice {
   color: var(--messages-inbox-primary);
-}
-.messages-inbox-page .messages-inbox-toolbar label > svg:last-child {
-  width: 21px;
-  height: 21px;
-  color: var(--messages-inbox-primary);
-}
-.messages-inbox-page .messages-inbox-toolbar input {
-  color: var(--messages-inbox-primary);
-  font-size: 16px;
 }
 .messages-inbox-page .messages-inbox-toolbar > button {
   width: 48px;
@@ -6100,8 +6079,7 @@ button {
   --messages-inbox-secondary: #8e8e93;
   --messages-inbox-separator: #2c2c2e;
 }
-.phone-app.dark .messages-inbox-page .messages-inbox-header,
-.phone-app.dark .messages-inbox-page .messages-inbox-toolbar label {
+.phone-app.dark .messages-inbox-page .messages-inbox-header {
   background: var(--messages-inbox-control);
   box-shadow: none;
 }

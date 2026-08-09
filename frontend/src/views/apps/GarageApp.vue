@@ -741,18 +741,29 @@ onBeforeUnmount(() => {
 }
 .garage-vehicle__visual > i {
   position: absolute;
-  top: 8px;
-  right: 7px;
-  padding: 3px 6px;
+  top: 7px;
+  left: 50%;
+  display: inline-flex;
+  width: max-content;
+  min-width: 48px;
+  max-width: 70px;
+  height: 14px;
+  padding: 0 6px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   border-radius: 999px;
   background: rgb(20 92 48 / 78%);
   color: #fff;
-  font-size: 10px;
+  font-size: 7px;
   font-style: normal;
   font-weight: 720;
+  line-height: 1;
+  white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   backdrop-filter: blur(12px);
+  transform: translateX(-50%);
 }
 .garage-vehicle__visual > i.is-out {
   background: rgb(176 91 0 / 82%);
@@ -794,14 +805,15 @@ onBeforeUnmount(() => {
 }
 .garage-vehicle__title > b {
   flex: none;
-  padding: 4px 7px;
+  padding: 2px 5px;
   border: 0.5px solid var(--garage-separator);
-  border-radius: 7px;
+  border-radius: 5px;
   background: var(--garage-surface-muted);
   color: var(--garage-text);
-  font-size: 11px;
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
 }
 .garage-vehicle__meta {
   display: flex;

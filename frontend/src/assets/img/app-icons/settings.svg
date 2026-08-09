@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Settings">
+  <defs>
+    <linearGradient id="settings-bg" x1="18" y1="8" x2="111" y2="121" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c8ccd3"/>
+      <stop offset="0.48" stop-color="#858b96"/>
+      <stop offset="1" stop-color="#505660"/>
+    </linearGradient>
+    <linearGradient id="settings-gear" x1="38" y1="31" x2="89" y2="98" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e7e9ee"/>
+    </linearGradient>
+    <filter id="settings-shadow" x="15" y="15" width="98" height="98" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#20242b" flood-opacity=".32"/>
+    </filter>
+  </defs>
+  <rect width="128" height="128" rx="29" fill="url(#settings-bg)"/>
+  <path d="M12 34C30 17 52 10 80 13c18 2 30 9 38 18v-2C118 13 105 0 89 0H29C13 0 0 13 0 29v25c2-7 6-14 12-20Z" fill="#ffffff" fill-opacity=".18"/>
+  <g fill="url(#settings-gear)" filter="url(#settings-shadow)">
+    <rect x="57" y="20" width="14" height="27" rx="6"/>
+    <rect x="57" y="81" width="14" height="27" rx="6"/>
+    <rect x="81" y="57" width="27" height="14" rx="6"/>
+    <rect x="20" y="57" width="27" height="14" rx="6"/>
+    <rect x="76" y="25" width="14" height="29" rx="6" transform="rotate(45 83 39.5)"/>
+    <rect x="38" y="74" width="14" height="29" rx="6" transform="rotate(45 45 88.5)"/>
+    <rect x="74" y="76" width="29" height="14" rx="6" transform="rotate(45 88.5 83)"/>
+    <rect x="25" y="38" width="29" height="14" rx="6" transform="rotate(45 39.5 45)"/>
+    <circle cx="64" cy="64" r="34"/>
+  </g>
+  <circle cx="64" cy="64" r="15" fill="#626873"/>
+  <circle cx="64" cy="64" r="11" fill="#747a85" stroke="#ffffff" stroke-opacity=".35" stroke-width="2"/>
+</svg>

@@ -118,7 +118,15 @@ describe('app registry', () => {
       PHONE_APPS.filter((app) => app.category === 'social').map(
         (app) => app.id,
       ),
-    ).toEqual(['flare', 'local-pages', 'phone', 'darkchat', 'banking', 'mail'])
+    ).toEqual([
+      'fliptok',
+      'flare',
+      'local-pages',
+      'phone',
+      'darkchat',
+      'banking',
+      'mail',
+    ])
     expect(
       PHONE_APPS.filter((app) => app.dockOrder !== null)
         .sort((a, b) => (a.dockOrder ?? 0) - (b.dockOrder ?? 0))

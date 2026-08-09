@@ -1,10 +1,15 @@
 import { defineStore } from 'pinia'
 
 import type { AppLaunchOrigin, LaunchablePhoneAppId } from '@/types/apps'
-import type { DeviceBootstrap, PhoneDevice } from '@/types/device'
+import type {
+  DeviceBootstrap,
+  DeviceSecurity,
+  PhoneDevice,
+} from '@/types/device'
 import { clampPage } from '@/utils/pages'
 import { cloneJsonData } from '@/utils/clone'
 import { nuiCall } from '@/utils/nui'
+import type { NuiResponse } from '@/utils/nui'
 import {
   DEFAULT_PHONE_PREFERENCES,
   parsePhonePreferences,
@@ -15,12 +20,19 @@ import {
 
 type LocaleTree = Record<string, unknown>
 
+export type PasscodeResponseData = {
+  attemptsRemaining?: number
+  retryAfter?: number
+  security?: DeviceSecurity
+}
+
 export type PhoneOpenPayload = {
   account?: DeviceBootstrap['account']
   device?: PhoneDevice
   lang?: string
   locales?: LocaleTree
   notes?: DeviceBootstrap['notes']
+  security?: DeviceSecurity
   token?: string
 }
 
@@ -177,6 +189,151 @@ const defaultLocales: LocaleTree = {
         gif_provider_failed: 'GIFs are temporarily unavailable.',
         rate_limited: 'Slow down for a moment and try again.',
         default: 'Flare could not complete the request.',
+      },
+    },
+    fliptok: {
+      name: 'FlipTok',
+      loading: 'Loading FlipTok',
+      following: 'Following',
+      forYou: 'For You',
+      verified: 'Verified account',
+      originalSound: 'original sound',
+      save: 'Save',
+      home: 'Home',
+      discover: 'Discover',
+      create: 'Create',
+      activity: 'Activity',
+      profile: 'Profile',
+      emptyFeed: 'No videos yet',
+      emptyFeedBody: 'Follow creators or post the first FlipTok.',
+      searchPlaceholder: 'Search creators and videos',
+      noActivity: 'No activity yet',
+      followers: 'Followers',
+      videos: 'Videos',
+      emptyBio: 'No bio yet.',
+      editProfile: 'Edit profile',
+      newVideo: 'New FlipTok',
+      chooseVideo: 'Choose a video',
+      chooseVideoHint: 'Select one from Gallery',
+      changeVideo: 'Change',
+      captionPlaceholder: 'Write a caption...',
+      location: 'Add location',
+      whoCanWatch: 'Who can watch',
+      public: 'Everyone',
+      followersOnly: 'Followers',
+      private: 'Only me',
+      allowComments: 'Allow comments',
+      saveDraft: 'Drafts',
+      publishing: 'Posting...',
+      post: 'Post',
+      draftSaved: 'Draft saved.',
+      published: 'Your FlipTok is live.',
+      linkCopied: 'Video link copied.',
+      reported: 'Report submitted.',
+      blocked: 'Creator blocked.',
+      comments: 'Comments',
+      noComments: 'No comments yet',
+      addComment: 'Add comment...',
+      report: 'Report video',
+      reportReason: 'Reason',
+      reportDetails: 'Additional details (optional)',
+      submitReport: 'Submit report',
+      reportReasons: {
+        spam: 'Spam or misleading',
+        harassment: 'Harassment or bullying',
+        dangerous: 'Dangerous activity',
+        illegal: 'Illegal content',
+        other: 'Something else',
+      },
+      block: 'Block creator',
+      follow: 'Follow',
+      unfollow: 'Following',
+      backToProfile: 'Back',
+      sounds: 'Sound',
+      chooseSound: 'Choose music',
+      originalOnly: 'Original sound only',
+      noMusic: 'No music tracks are configured.',
+      trimAndCover: 'Trim & cover',
+      trimStart: 'Start',
+      trimEnd: 'End',
+      coverFrame: 'Cover',
+      originalVolume: 'Original sound',
+      musicVolume: 'Music',
+      moderation: 'Moderation',
+      reports: 'Open reports',
+      noReports: 'No open reports',
+      removeVideo: 'Remove video',
+      dismissReport: 'Dismiss',
+      cancel: 'Cancel',
+      done: 'Done',
+      displayName: 'Name',
+      username: 'Username',
+      bio: 'Bio',
+      accountType: 'Account type',
+      authTitle: 'Your FlipTok account',
+      login: 'Sign In',
+      register: 'Register',
+      createAccount: 'Create Account',
+      logout: 'Sign Out',
+      loginBody:
+        'Sign in to continue with your videos, follows, and saved posts.',
+      registerBody: 'Create a private FlipTok login for this profile.',
+      password: 'Password',
+      confirmPassword: 'Confirm password',
+      passwordsMismatch: 'The passwords do not match.',
+      displayNamePlaceholder: 'Your name',
+      usernamePlaceholder: 'username',
+      passwordPlaceholder: 'At least 8 characters',
+      confirmPasswordPlaceholder: 'Enter password again',
+      registrationHint:
+        'An iFruit account is required once to create and own a FlipTok profile.',
+      accountDetails: 'Account details',
+      profileDetails: 'Profile details',
+      account: 'Account',
+      signOutTitle: 'Sign out of FlipTok?',
+      signOutBody:
+        'Your profile and videos stay online. This phone will return to the FlipTok sign-in screen.',
+      signingOut: 'Signing Out...',
+      accountTypes: {
+        person: 'Person',
+        business: 'Business',
+        organization: 'Organization',
+        media: 'Media',
+        event: 'Event',
+      },
+      activityKinds: {
+        like: 'liked your video',
+        comment: 'commented on your video',
+        follow: 'started following you',
+        verified: 'verification changed',
+      },
+      notifications: {
+        like: '{actor} liked your video.',
+        comment: '{actor} commented on your video.',
+        follow: '{actor} started following you.',
+        verified: 'Your FlipTok account is now verified.',
+        default: 'You have new FlipTok activity.',
+      },
+      errors: {
+        invalid_video: 'Check the video details.',
+        invalid_media: 'Choose a video from this phone.',
+        invalid_comment: 'Enter a valid comment.',
+        comments_disabled: 'Comments are disabled.',
+        invalid_profile: 'Check your profile details.',
+        invalid_handle: 'Use 3–24 letters, numbers, dots, or underscores.',
+        invalid_display_name: 'Enter a display name.',
+        invalid_password: 'Password must be 8–72 characters.',
+        invalid_credentials: 'Username or password is incorrect.',
+        already_registered:
+          'This iFruit account already owns a registered FlipTok profile.',
+        handle_taken: 'This username is already taken.',
+        video_not_found: 'This video is unavailable.',
+        rate_limited: 'Too many actions. Try again shortly.',
+        not_authenticated: 'Sign in to iFruit first.',
+        blocked: 'This account is blocked.',
+        not_authorized: 'You do not have moderation access.',
+        report_not_found: 'This report is no longer open.',
+        default: 'FlipTok could not complete the request.',
       },
     },
     darkchat: {
@@ -1098,6 +1255,36 @@ const defaultLocales: LocaleTree = {
       currentLocation: 'Current Location',
       imageError: 'The map image could not be loaded.',
       switchStyle: 'Switch Map Type',
+      addMarker: 'Add Marker',
+      placeMarker: 'Place Marker',
+      placeMarkerHint:
+        'Move the map until the crosshair is over the destination.',
+      addHere: 'Add Here',
+      newMarker: 'New Marker',
+      newMarkerDescription: 'Give this saved place a name and color.',
+      markerName: 'Name',
+      markerNamePlaceholder: 'e.g. Meeting point',
+      markerColor: 'Marker Color',
+      saveMarker: 'Save Marker',
+      deleteMarker: 'Delete Marker',
+      setWaypoint: 'Set Waypoint',
+      waypointSet: 'Waypoint set.',
+      markerSaved: 'Marker saved.',
+      markerDeleted: 'Marker deleted.',
+      colors: {
+        blue: 'Blue',
+        green: 'Green',
+        orange: 'Orange',
+        purple: 'Purple',
+        red: 'Red',
+      },
+      errors: {
+        invalid_marker: 'Enter a valid marker name and position.',
+        marker_limit: 'This phone has reached its marker limit.',
+        marker_not_found: 'This marker no longer exists.',
+        rate_limited: 'Too many changes. Try again shortly.',
+        request_failed: 'The marker could not be saved.',
+      },
       styles: {
         default: 'Default Map',
         satellite: 'Satellite Map',
@@ -1153,6 +1340,8 @@ const defaultLocales: LocaleTree = {
       portrait: 'Switch to portrait',
       photo: 'Photo',
       video: 'Video',
+      microphoneOn: 'Microphone on',
+      microphoneOff: 'Microphone muted',
       focusHelp: 'Space for movement',
       returnHelp: 'Space to return',
       uploading: '{count} uploading',
@@ -1170,6 +1359,8 @@ const defaultLocales: LocaleTree = {
         invalid_upload: 'The upload could not be verified.',
         invalid_upload_token: 'The upload session is no longer valid.',
         missing_config: 'Camera uploads are not configured.',
+        microphone_unavailable:
+          'Allow microphone access or mute the microphone before recording.',
         not_found: 'The media item no longer exists.',
         operation_in_progress:
           'Another media operation is already in progress.',
@@ -1473,7 +1664,19 @@ const defaultLocales: LocaleTree = {
       notifications: 'Notifications',
       sounds: 'Sounds & Haptics',
       general: 'General Settings',
+      security: 'Passcode & Security',
       appearance: 'Appearance',
+      connectivity: 'Connectivity',
+      connections: 'Connections',
+      wifi: 'Wi-Fi',
+      bluetooth: 'Bluetooth',
+      cellular: 'Cellular',
+      connectivityDescription:
+        'Airplane Mode temporarily disables wireless connections. Wi-Fi, Bluetooth, and cellular settings are saved on this phone.',
+      focus: 'Focus',
+      focusMode: 'Focus',
+      focusDescription:
+        'Focus silences non-critical notifications while keeping alarms and important alerts available.',
       allowNotifications: 'Allow Notifications',
       notificationSounds: 'Sounds',
       notificationDuration: 'Notification Duration',
@@ -1488,6 +1691,8 @@ const defaultLocales: LocaleTree = {
       dark: 'Dark',
       phoneScale: 'Phone Scale',
       phoneFrame: 'Phone Frame',
+      screenBrightness: 'Screen Brightness',
+      rotationLock: 'Rotation Lock',
       about: 'About',
       deviceName: 'Device Name',
       deviceNameValue: 'Sky Phone',
@@ -1517,6 +1722,28 @@ const defaultLocales: LocaleTree = {
         'This removes the account and all local data from this phone. Cloud data and the IMEI remain.',
       factoryResetProgress: 'Erasing iFruit Phone',
       factoryResetWarning: 'Do not turn off this phone. This takes 60 seconds.',
+      passcode: {
+        description:
+          'A passcode protects the contents of this phone. It stays with the device when the SIM or iFruit account changes.',
+        status: 'Passcode',
+        codeLength: 'Code Length',
+        sixDigit: '6-Digit Code',
+        fourDigit: '4-Digit Code',
+        turnOn: 'Turn Passcode On',
+        turnOff: 'Turn Passcode Off',
+        change: 'Change Passcode',
+        enterNew: 'Enter New Passcode',
+        confirmNew: 'Verify New Passcode',
+        enterCurrent: 'Enter Current Passcode',
+        screenSubtitle: 'Use 4 or 6 numbers.',
+        incorrect: 'Incorrect passcode.',
+        mismatch: 'The passcodes did not match.',
+        locked: 'Too many incorrect attempts. Try again later.',
+        rateLimited: 'Too many attempts. Please wait.',
+        failed: 'The passcode could not be updated.',
+        saved: 'Passcode saved.',
+        disabled: 'Passcode turned off.',
+      },
       accountErrors: {
         invalid_email: 'Choose a valid 3–32 character iFruit address.',
         invalid_password: 'Password must be 6–64 characters.',
@@ -1532,6 +1759,11 @@ const defaultLocales: LocaleTree = {
       toggle: {
         airplaneMode: 'Toggle Airplane Mode',
         streamerMode: 'Toggle Streamer Mode',
+        focusMode: 'Toggle Focus',
+        wifiEnabled: 'Toggle Wi-Fi',
+        bluetoothEnabled: 'Toggle Bluetooth',
+        cellularEnabled: 'Toggle Cellular Data',
+        rotationLocked: 'Toggle Rotation Lock',
         notifications: 'Toggle notifications for {app}',
         notificationSounds: 'Toggle notification sounds for {app}',
       },
@@ -1604,6 +1836,7 @@ const defaultLocales: LocaleTree = {
     send: 'Send',
     start: 'Start',
     stop: 'Stop',
+    use: 'Use',
   },
   Notifications: { now: 'now' },
   LockScreen: {
@@ -1611,6 +1844,16 @@ const defaultLocales: LocaleTree = {
     flashlight: 'Flashlight',
     camera: 'Camera',
     swipeUp: 'Swipe up to open',
+    passcode: {
+      enter: 'Enter Passcode',
+      unlockSubtitle: 'Enter the passcode for this phone.',
+      cancel: 'Cancel',
+      delete: 'Delete digit',
+      incorrect: 'Incorrect passcode',
+      locked: 'Too many attempts. Try again in {seconds} seconds.',
+      tryAgain: 'Try again in {seconds} seconds',
+      rateLimited: 'Too many attempts. Please wait.',
+    },
   },
   Home: {
     appLibrary: 'App Library',
@@ -1726,6 +1969,11 @@ export const usePhoneStore = defineStore('phone', {
     launchOrigin: null as AppLaunchOrigin | null,
     locales: defaultLocales,
     preferences: cloneJsonData(DEFAULT_PHONE_PREFERENCES),
+    security: {
+      enabled: false,
+      length: null,
+      lockedUntil: 0,
+    } as DeviceSecurity,
     systemDarkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
   }),
   getters: {
@@ -1744,6 +1992,11 @@ export const usePhoneStore = defineStore('phone', {
       this.lang = payload.lang ?? 'en'
       this.locales = payload.locales ?? defaultLocales
       if (payload.device) this.hydrateDevice(payload.device)
+      this.security = payload.security ?? {
+        enabled: false,
+        length: null,
+        lockedUntil: 0,
+      }
       this.isOpen = true
     },
     hydrateDevice(device: PhoneDevice): void {
@@ -1812,6 +2065,54 @@ export const usePhoneStore = defineStore('phone', {
     setWallpaper(wallpaper: WallpaperId): void {
       this.preferences.settings.wallpaper = wallpaper
       this.saveDeviceNamespace('settings', this.preferences)
+    },
+    async unlockWithPasscode(
+      passcode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const response = await nuiCall<PasscodeResponseData>('security:unlock', {
+        passcode,
+      })
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
+    },
+    async setPasscode(
+      passcode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:set-passcode',
+        { passcode },
+      )
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
+    },
+    async changePasscode(
+      currentPasscode: string,
+      newPasscode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:change-passcode',
+        { currentPasscode, newPasscode },
+      )
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
+    },
+    async disablePasscode(
+      passcode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:disable-passcode',
+        { passcode },
+      )
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
     },
     t(path: string, replacements: Record<string, string> = {}): string {
       const translated = getByPath(this.locales, path)

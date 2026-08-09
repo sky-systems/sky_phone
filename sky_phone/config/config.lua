@@ -19,6 +19,13 @@ Config.Phone = {
     DeviceName = "iFruit Phone",
 }
 
+Config.Security = {
+    PasscodePepperConvar = "sky_phone_passcode_pepper",
+    MaximumAttempts = 5,
+    LockSeconds = 30,
+    AttemptsPerMinute = 12,
+}
+
 Config.Sim = {
     RegisteredItem = "sky_phone_sim_registered",
     AnonymousItem = "sky_phone_sim_anonymous",
@@ -209,6 +216,27 @@ Config.LocalPages = {
     BodyMaxLength = 1500,
     Categories = { "recommendation", "wanted", "service", "event", "place", "community" },
     CityMarktSharesPerDay = 1,
+}
+
+Config.FlipTok = {
+    PageSize = 12,
+    CaptionMaxLength = 500,
+    CommentMaxLength = 300,
+    BioMaxLength = 160,
+    PasswordMinLength = 8,
+    PasswordMaxLength = 72,
+    PasswordPepperConvar = "sky_phone_fliptok_password_pepper",
+    MaxVideoDurationMs = 300000,
+    MusicTracks = {},
+    VerifyCommand = "fliptokverify",
+    AdminGroups = { "admin" },
+    ReportAdminGroups = { "admin" },
+}
+
+Config.MapMarkers = {
+    MaximumMarkers = 50,
+    LabelMaxLength = 40,
+    ActionsPerMinute = 60,
 }
 
 Config.Calendar = {

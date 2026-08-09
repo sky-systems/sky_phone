@@ -17,22 +17,29 @@ import {
   kPreloader,
   kRange,
   kSearchbar,
+  kSegmented,
+  kSegmentedButton,
   kToast,
   kToggle,
 } from 'konsta/vue'
 import {
   BellRing,
+  Bluetooth,
   Check,
   EyeOff,
   KeyRound,
   Monitor,
+  Moon,
   Plane,
   RotateCcw,
+  RotateCw,
   Settings,
+  Signal,
   Smartphone,
   Sun,
   UserRound,
   Volume2,
+  Wifi,
 } from 'lucide-vue-next'
 import {
   computed,
@@ -45,6 +52,7 @@ import {
 import { PHONE_FRAME_COLORS } from '@/config/appearance'
 import { isLaunchablePhoneApp, PHONE_APPS } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
+import PhonePasscode from '@/components/PhonePasscode.vue'
 import { useAccountStore } from '@/stores/account'
 import type {
   LaunchablePhoneAppDefinition,
@@ -74,14 +82,31 @@ import {
 type SettingsView =
   | 'root'
   | 'account'
+  | 'security'
   | 'notifications'
   | 'notification-detail'
   | 'sounds'
+  | 'connectivity'
+  | 'focus'
   | 'general'
   | 'appearance'
   | 'wallpaper'
-type RootToggleKey = 'airplaneMode' | 'streamerMode'
+type RootToggleKey =
+  | 'airplaneMode'
+  | 'streamerMode'
+  | 'focusMode'
+  | 'wifiEnabled'
+  | 'bluetoothEnabled'
+  | 'cellularEnabled'
 type SubmenuView = Exclude<SettingsView, 'root' | 'notification-detail'>
+type PasscodeFlow =
+  | 'set-new'
+  | 'set-confirm'
+  | 'change-current'
+  | 'change-new'
+  | 'change-confirm'
+  | 'disable'
+  | null
 
 const FACTORY_RESET_DURATION_MS = 60_000
 const FACTORY_RESET_CIRCUMFERENCE = 2 * Math.PI * 48
@@ -110,6 +135,13 @@ const accountPassword = ref('')
 const accountConfirm = ref('')
 const accountSubmitting = ref(false)
 const accountToast = ref('')
+const passcodeBusy = ref(false)
+const passcodeCurrent = ref('')
+const passcodeError = ref('')
+const passcodeFirst = ref('')
+const passcodeFlow = ref<PasscodeFlow>(null)
+const passcodeLength = ref<4 | 6>(6)
+const passcodeResetKey = ref(0)
 const removeDeviceImei = ref('')
 const removeDevicePassword = ref('')
 const removeDeviceOpened = ref(false)
@@ -153,6 +185,24 @@ const serviceRows = [
 ]
 const preferenceRows = [
   {
+    key: 'connectivity',
+    view: 'connectivity' as const,
+    icon: Wifi,
+    iconColor: '#007aff',
+  },
+  {
+    key: 'focus',
+    view: 'focus' as const,
+    icon: Moon,
+    iconColor: '#5856d6',
+  },
+  {
+    key: 'security',
+    view: 'security' as const,
+    icon: KeyRound,
+    iconColor: '#34c759',
+  },
+  {
     key: 'general',
     view: 'general' as const,
     icon: Settings,
@@ -169,6 +219,27 @@ const preferenceRows = [
     view: 'wallpaper' as const,
     icon: Monitor,
     iconColor: '#32ade6',
+  },
+]
+
+const connectivityRows = [
+  {
+    key: 'wifi',
+    preferenceKey: 'wifiEnabled' as const,
+    icon: Wifi,
+    iconColor: '#007aff',
+  },
+  {
+    key: 'bluetooth',
+    preferenceKey: 'bluetoothEnabled' as const,
+    icon: Bluetooth,
+    iconColor: '#007aff',
+  },
+  {
+    key: 'cellular',
+    preferenceKey: 'cellularEnabled' as const,
+    icon: Signal,
+    iconColor: '#34c759',
   },
 ]
 
@@ -204,6 +275,21 @@ const activeTitle = computed(() => {
   }
   return phone.t(`Apps.settings.${activeView.value}`)
 })
+const passcodeTitle = computed(() => {
+  if (passcodeFlow.value === 'set-confirm') {
+    return phone.t('Apps.settings.passcode.confirmNew')
+  }
+  if (
+    passcodeFlow.value === 'change-current' ||
+    passcodeFlow.value === 'disable'
+  ) {
+    return phone.t('Apps.settings.passcode.enterCurrent')
+  }
+  if (passcodeFlow.value === 'change-confirm') {
+    return phone.t('Apps.settings.passcode.confirmNew')
+  }
+  return phone.t('Apps.settings.passcode.enterNew')
+})
 
 function matchesSearch(key: string): boolean {
   return (
@@ -220,6 +306,9 @@ function updateSearch(event: Event): void {
 }
 
 function openView(view: SubmenuView): void {
+  if (view === 'security') {
+    passcodeLength.value = phone.security.length ?? 6
+  }
   activeView.value = view
   scrollPageToTop()
 }
@@ -248,12 +337,122 @@ function toggleRootSetting(key: RootToggleKey): void {
   phone.setPreference(key, !phone.preferences.settings[key])
 }
 
+function resetPasscodeInput(): void {
+  passcodeError.value = ''
+  passcodeResetKey.value += 1
+}
+
+function beginSetPasscode(): void {
+  passcodeLength.value = phone.security.length ?? passcodeLength.value
+  passcodeFirst.value = ''
+  passcodeCurrent.value = ''
+  passcodeFlow.value = 'set-new'
+  resetPasscodeInput()
+}
+
+function beginChangePasscode(): void {
+  passcodeFirst.value = ''
+  passcodeCurrent.value = ''
+  passcodeFlow.value = 'change-current'
+  resetPasscodeInput()
+}
+
+function beginDisablePasscode(): void {
+  passcodeLength.value = phone.security.length ?? 6
+  passcodeCurrent.value = ''
+  passcodeFlow.value = 'disable'
+  resetPasscodeInput()
+}
+
+function cancelPasscodeFlow(): void {
+  if (passcodeBusy.value) return
+  passcodeFlow.value = null
+  passcodeFirst.value = ''
+  passcodeCurrent.value = ''
+  resetPasscodeInput()
+}
+
+function passcodeRequestError(error?: string): string {
+  if (error === 'invalid_passcode') {
+    return phone.t('Apps.settings.passcode.incorrect')
+  }
+  if (error === 'passcode_locked') {
+    return phone.t('Apps.settings.passcode.locked')
+  }
+  if (error === 'rate_limited') {
+    return phone.t('Apps.settings.passcode.rateLimited')
+  }
+  return phone.t('Apps.settings.passcode.failed')
+}
+
+async function submitSettingsPasscode(passcode: string): Promise<void> {
+  if (passcodeBusy.value || !passcodeFlow.value) return
+
+  if (passcodeFlow.value === 'set-new') {
+    passcodeFirst.value = passcode
+    passcodeFlow.value = 'set-confirm'
+    resetPasscodeInput()
+    return
+  }
+  if (passcodeFlow.value === 'change-current') {
+    passcodeCurrent.value = passcode
+    passcodeFlow.value = 'change-new'
+    resetPasscodeInput()
+    return
+  }
+  if (passcodeFlow.value === 'change-new') {
+    passcodeFirst.value = passcode
+    passcodeFlow.value = 'change-confirm'
+    resetPasscodeInput()
+    return
+  }
+  if (
+    (passcodeFlow.value === 'set-confirm' ||
+      passcodeFlow.value === 'change-confirm') &&
+    passcode !== passcodeFirst.value
+  ) {
+    passcodeError.value = phone.t('Apps.settings.passcode.mismatch')
+    passcodeResetKey.value += 1
+    return
+  }
+
+  passcodeBusy.value = true
+  const response =
+    passcodeFlow.value === 'set-confirm'
+      ? await phone.setPasscode(passcode)
+      : passcodeFlow.value === 'change-confirm'
+        ? await phone.changePasscode(passcodeCurrent.value, passcode)
+        : await phone.disablePasscode(passcode)
+  passcodeBusy.value = false
+  if (!response.success) {
+    passcodeError.value = passcodeRequestError(response.error)
+    if (
+      passcodeFlow.value === 'change-confirm' &&
+      response.error === 'invalid_passcode'
+    ) {
+      passcodeFlow.value = 'change-current'
+      passcodeCurrent.value = ''
+      passcodeFirst.value = ''
+    }
+    passcodeResetKey.value += 1
+    return
+  }
+
+  accountToast.value = phone.t(
+    passcodeFlow.value === 'disable'
+      ? 'Apps.settings.passcode.disabled'
+      : 'Apps.settings.passcode.saved',
+  )
+  cancelPasscodeFlow()
+}
+
 function updateNumberPreference(
   key:
     | 'notificationDurationSeconds'
     | 'notificationVolume'
     | 'phoneScale'
-    | 'ringtoneVolume',
+    | 'ringtoneVolume'
+    | 'screenBrightness',
   event: Event,
 ): void {
   phone.setPreference(
@@ -551,12 +750,28 @@ onBeforeUnmount(() => {
               <component :is="row.icon" :size="17" :stroke-width="2.25" />
             </span>
           </template>
+          <template v-if="row.key === 'security' || row.key === 'focus'" #after>
+            {{
+              phone.t(
+                (row.key === 'security' && phone.security.enabled) ||
+                  (row.key === 'focus' && phone.preferences.settings.focusMode)
+                  ? 'Apps.settings.on'
+                  : 'Apps.settings.off',
+              )
+            }}
+          </template>
         </k-list-item>
       </k-list>
     </template>
 
     <template v-else>
-      <k-navbar :title="activeTitle" class="top-0 sticky z-20">
+      <k-navbar
+        :title="activeTitle"
+        :class="[
+          'settings-detail-navbar sticky z-20',
+          { 'settings-detail-navbar--dark': phone.isDarkMode },
+        ]"
+      >
         <template #left>
           <k-navbar-back-link
             component="button"
@@ -710,6 +925,85 @@ onBeforeUnmount(() => {
           <k-list strong inset>
             <k-list-button @click="logoutAccount">
               {{ phone.t('Apps.settings.signOut') }}
+            </k-list-button>
+          </k-list>
+        </template>
+      </template>
+
+      <template v-else-if="activeView === 'security'">
+        <k-block class="text-sm leading-5 opacity-70">
+          {{ phone.t('Apps.settings.passcode.description') }}
+        </k-block>
+
+        <template v-if="!phone.security.enabled">
+          <k-block-title>{{
+            phone.t('Apps.settings.passcode.codeLength')
+          }}</k-block-title>
+          <k-block>
+            <k-segmented strong rounded>
+              <k-segmented-button
+                :active="passcodeLength === 6"
+                @click="passcodeLength = 6"
+              >
+                {{ phone.t('Apps.settings.passcode.sixDigit') }}
+              </k-segmented-button>
+              <k-segmented-button
+                :active="passcodeLength === 4"
+                @click="passcodeLength = 4"
+              >
+                {{ phone.t('Apps.settings.passcode.fourDigit') }}
+              </k-segmented-button>
+            </k-segmented>
+          </k-block>
+          <k-list strong inset>
+            <k-list-button @click="beginSetPasscode">
+              {{ phone.t('Apps.settings.passcode.turnOn') }}
+            </k-list-button>
+          </k-list>
+        </template>
+
+        <template v-else>
+          <k-list strong inset>
+            <k-list-item
+              :title="phone.t('Apps.settings.passcode.status')"
+              :after="phone.t('Apps.settings.on')"
+            />
+            <k-list-item
+              :title="phone.t('Apps.settings.passcode.codeLength')"
+              :after="
+                phone.t(
+                  phone.security.length === 4
+                    ? 'Apps.settings.passcode.fourDigit'
+                    : 'Apps.settings.passcode.sixDigit',
+                )
+              "
+            />
+          </k-list>
+          <k-block-title>{{
+            phone.t('Apps.settings.passcode.codeLength')
+          }}</k-block-title>
+          <k-block>
+            <k-segmented strong rounded>
+              <k-segmented-button
+                :active="passcodeLength === 6"
+                @click="passcodeLength = 6"
+              >
+                {{ phone.t('Apps.settings.passcode.sixDigit') }}
+              </k-segmented-button>
+              <k-segmented-button
+                :active="passcodeLength === 4"
+                @click="passcodeLength = 4"
+              >
+                {{ phone.t('Apps.settings.passcode.fourDigit') }}
+              </k-segmented-button>
+            </k-segmented>
+          </k-block>
+          <k-list strong inset>
+            <k-list-button @click="beginChangePasscode">
+              {{ phone.t('Apps.settings.passcode.change') }}
+            </k-list-button>
+            <k-list-button class="!text-red-500" @click="beginDisablePasscode">
+              {{ phone.t('Apps.settings.passcode.turnOff') }}
             </k-list-button>
           </k-list>
         </template>
@@ -899,6 +1193,80 @@ onBeforeUnmount(() => {
         </k-list>
       </template>
 
+      <template v-else-if="activeView === 'connectivity'">
+        <k-list strong inset>
+          <k-list-item :title="phone.t('Apps.settings.airplaneMode')">
+            <template #media>
+              <span class="settings-row-icon bg-[#ff9500]">
+                <Plane :size="17" :stroke-width="2.25" />
+              </span>
+            </template>
+            <template #after>
+              <k-toggle
+                :checked="phone.preferences.settings.airplaneMode"
+                :aria-label="phone.t('Apps.settings.toggle.airplaneMode')"
+                @change="toggleRootSetting('airplaneMode')"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+
+        <k-block-title>{{
+          phone.t('Apps.settings.connections')
+        }}</k-block-title>
+        <k-list strong inset>
+          <k-list-item
+            v-for="row in connectivityRows"
+            :key="row.key"
+            :title="phone.t(`Apps.settings.${row.key}`)"
+          >
+            <template #media>
+              <span
+                class="settings-row-icon"
+                :style="{ backgroundColor: row.iconColor }"
+              >
+                <component :is="row.icon" :size="17" :stroke-width="2.25" />
+              </span>
+            </template>
+            <template #after>
+              <k-toggle
+                :checked="phone.preferences.settings[row.preferenceKey]"
+                :disabled="phone.preferences.settings.airplaneMode"
+                :aria-label="
+                  phone.t(`Apps.settings.toggle.${row.preferenceKey}`)
+                "
+                @change="toggleRootSetting(row.preferenceKey)"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+        <k-block class="text-sm leading-5 opacity-60">
+          {{ phone.t('Apps.settings.connectivityDescription') }}
+        </k-block>
+      </template>
+
+      <template v-else-if="activeView === 'focus'">
+        <k-list strong inset>
+          <k-list-item :title="phone.t('Apps.settings.focusMode')">
+            <template #media>
+              <span class="settings-row-icon bg-[#5856d6]">
+                <Moon :size="17" :stroke-width="2.25" />
+              </span>
+            </template>
+            <template #after>
+              <k-toggle
+                :checked="phone.preferences.settings.focusMode"
+                :aria-label="phone.t('Apps.settings.toggle.focusMode')"
+                @change="toggleRootSetting('focusMode')"
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+        <k-block class="text-sm leading-5 opacity-60">
+          {{ phone.t('Apps.settings.focusDescription') }}
+        </k-block>
+      </template>
+
       <template v-else-if="activeView === 'general'">
         <k-block-title>
           {{ phone.t('Apps.settings.notificationDuration') }} ·
@@ -1011,6 +1379,48 @@ onBeforeUnmount(() => {
         </k-list>
 
         <k-block-title>
+          {{ phone.t('Apps.settings.screenBrightness') }} ·
+          {{ phone.preferences.settings.screenBrightness }}%
+        </k-block-title>
+        <k-list strong inset>
+          <k-list-item>
+            <template #inner>
+              <div class="flex w-full items-center gap-3">
+                <Sun :size="16" class="shrink-0 opacity-55" />
+                <k-range
+                  class="w-full"
+                  :value="phone.preferences.settings.screenBrightness"
+                  :min="10"
+                  :max="100"
+                  :aria-label="phone.t('Apps.settings.screenBrightness')"
+                  @input="updateNumberPreference('screenBrightness', $event)"
+                />
+                <Sun :size="23" class="shrink-0" />
+              </div>
+            </template>
+          </k-list-item>
+          <k-list-item :title="phone.t('Apps.settings.rotationLock')">
+            <template #media>
+              <span class="settings-row-icon bg-[#ff9500]">
+                <RotateCw :size="17" :stroke-width="2.25" />
+              </span>
+            </template>
+            <template #after>
+              <k-toggle
+                :checked="phone.preferences.settings.rotationLocked"
+                :aria-label="phone.t('Apps.settings.toggle.rotationLocked')"
+                @change="
+                  phone.setPreference(
+                    'rotationLocked',
+                    !phone.preferences.settings.rotationLocked,
+                  )
+                "
+              />
+            </template>
+          </k-list-item>
+        </k-list>
+
+        <k-block-title>
           {{ phone.t('Apps.settings.phoneScale') }} ·
           {{ phone.preferences.settings.phoneScale }}%
         </k-block-title>
@@ -1101,6 +1511,18 @@ onBeforeUnmount(() => {
       </template>
     </template>
   </k-page>
+
+  <PhonePasscode
+    v-if="passcodeFlow"
+    :busy="passcodeBusy"
+    :error="passcodeError"
+    :length="passcodeLength"
+    :reset-key="passcodeResetKey"
+    :subtitle="phone.t('Apps.settings.passcode.screenSubtitle')"
+    :title="passcodeTitle"
+    @cancel="cancelPasscodeFlow"
+    @complete="submitSettingsPasscode"
+  />
 
   <div
     v-if="factoryResetting"
@@ -1211,3 +1633,44 @@ onBeforeUnmount(() => {
     {{ accountToast }}
   </k-toast>
 </template>
+
+<style scoped>
+.settings-row-icon {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 35%),
+    0 1px 2px rgb(0 0 0 / 25%);
+}
+
+.settings-detail-navbar {
+  top: 0 !important;
+  background: rgb(248 248 248 / 94%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.settings-detail-navbar::before {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 44px;
+  background: rgb(248 248 248);
+  content: '';
+}
+
+.settings-detail-navbar--dark {
+  background: rgb(0 0 0 / 94%);
+}
+
+.settings-detail-navbar--dark::before {
+  background: #000;
+}
+</style>

@@ -36,11 +36,11 @@ import calendarIcon from '@/assets/img/app-icons/calendar.svg'
 import mailIcon from '@/assets/img/app-icons/mail.webp'
 import mapIcon from '@/assets/img/app-icons/map.webp'
 import messagesIcon from '@/assets/img/app-icons/sms.webp'
-import darkChatIcon from '@/assets/img/app-icons/darkchat.svg'
+import darkChatIcon from '@/assets/img/app-icons/darkchat.webp'
 import notesIcon from '@/assets/img/app-icons/notes.webp'
 import photosIcon from '@/assets/img/app-icons/gallery.webp'
 import phoneIcon from '@/assets/img/app-icons/phone.webp'
-import settingsIcon from '@/assets/img/app-icons/settings.webp'
+import settingsIcon from '@/assets/img/app-icons/settings.svg'
 import snakeIcon from '@/assets/img/app-icons/snake.webp'
 import memoryIcon from '@/assets/img/app-icons/memory.webp'
 import numberMergeIcon from '@/assets/img/app-icons/number-merge.webp'
@@ -49,11 +49,12 @@ import towerStackIcon from '@/assets/img/app-icons/tower-stack.webp'
 import skyFlappyIcon from '@/assets/img/app-icons/sky-flappy.webp'
 import neonDropIcon from '@/assets/img/app-icons/neon-drop.webp'
 import weatherIcon from '@/assets/img/app-icons/weather.webp'
-import bankingIcon from '@/assets/img/app-icons/banking.svg'
-import garageIcon from '@/assets/img/app-icons/garage.svg'
+import bankingIcon from '@/assets/img/app-icons/banking.webp'
+import garageIcon from '@/assets/img/app-icons/garage.webp'
 import citymarktIcon from '@/assets/img/app-icons/citymarkt.webp'
 import localPagesIcon from '@/assets/img/app-icons/local-pages.webp'
 import flareIcon from '@/assets/img/app-icons/flare.svg'
+import flipTokIcon from '@/assets/img/app-icons/fliptok.webp'
 import type {
   LaunchablePhoneAppDefinition,
   LaunchablePhoneAppId,
@@ -61,6 +62,20 @@ import type {
 } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
+  {
+    category: 'social',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/FlipTokApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 22,
+    icon: markRaw(Blocks),
+    iconClass: 'app-icon--fliptok',
+    iconImage: flipTokIcon,
+    id: 'fliptok',
+    labelKey: 'Apps.fliptok.name',
+    route: '/apps/fliptok',
+  },
   {
     category: 'social',
     component: markRaw(

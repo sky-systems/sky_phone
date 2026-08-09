@@ -8,6 +8,10 @@ local call_channel = 0
 Bridge.Debug("debug", "[sky_phone] Client script initialized.", { always = true })
 
 local server_callbacks = {
+    "security:unlock",
+    "security:set-passcode",
+    "security:change-passcode",
+    "security:disable-passcode",
     "device:save",
     "device:factory-reset",
     "account:login",
@@ -56,10 +60,35 @@ local server_callbacks = {
     "pages:share-citymarkt",
     "pages:react",
     "pages:delete",
+    "fliptok:register",
+    "fliptok:login",
+    "fliptok:logout",
+    "fliptok:bootstrap",
+    "fliptok:feed",
+    "fliptok:discover",
+    "fliptok:publish",
+    "fliptok:react",
+    "fliptok:follow",
+    "fliptok:comments",
+    "fliptok:comment",
+    "fliptok:view",
+    "fliptok:share",
+    "fliptok:profile",
+    "fliptok:update-profile",
+    "fliptok:activities",
+    "fliptok:mark-activities",
+    "fliptok:report",
+    "fliptok:admin-reports",
+    "fliptok:admin-resolve-report",
+    "fliptok:block",
+    "fliptok:delete",
     "calendar:list",
     "calendar:create",
     "calendar:update",
     "calendar:delete",
+    "map:markers",
+    "map:create-marker",
+    "map:delete-marker",
     "sim:insert",
     "sim:eject",
     "contacts:list",
@@ -236,6 +265,19 @@ RegisterNUICallback("map:getPlayerCoords", function(_, cb)
     })
 end)
 
+RegisterNUICallback("map:setWaypoint", function(data, cb)
+    local coords = type(data) == "table" and data.coords or nil
+    local x = type(coords) == "table" and tonumber(coords.x) or nil
+    local y = type(coords) == "table" and tonumber(coords.y) or nil
+    if not x or not y or x ~= x or y ~= y or math.abs(x) > 10000.0 or math.abs(y) > 10000.0 then
+        cb({ success = false, error = "invalid_marker" })
+        return
+    end
+
+    SetNewWaypoint(x, y)
+    cb({ success = true })
+end)
+
 local weather_types = {
     [joaat("EXTRASUNNY")] = "sunny",
     [joaat("CLEAR")] = "clear",
@@ -389,6 +431,22 @@ end)
 
 RegisterNetEvent("sky_phone:marketplace:changed", function(data)
     SendNUIMessage({ type = "marketplace:changed", data = data })
+end)
+
+RegisterNetEvent("sky_phone:fliptok:command-feedback", function(data)
+    Bridge.Framework.Notify("FlipTok", data.message, data.notificationType, 5000)
+end)
+
+RegisterNetEvent("sky_phone:fliptok:verification-changed", function(data)
+    SendNUIMessage({ type = "fliptok:verification-changed", data = data })
+end)
+
+RegisterNetEvent("sky_phone:fliptok:new", function(data)
+    local fliptok_locale = get_locale().Nui.Apps.fliptok
+    local notification_text = fliptok_locale.notifications[data.kind] or fliptok_locale.notifications.default
+    data.title = fliptok_locale.name
+    data.text = notification_text:gsub("{actor}", tostring(data.actor or ""))
+    SendNUIMessage({ type = "fliptok:new", data = data })
 end)
 
 RegisterNetEvent("sky_phone:marketplace:new-message", function(data)

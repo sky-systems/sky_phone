@@ -77,3 +77,11 @@ export const defaultMapWorldToPercent = (point: MapPoint): MapPoint => ({
     (defaultMapCoordinates.yFlipOffset - point.y - defaultMapCoordinates.minY) /
     defaultMapCoordinates.height,
 })
+
+export const defaultMapPercentToWorld = (point: MapPoint): MapPoint => ({
+  x: defaultMapCoordinates.minX + point.x * defaultMapCoordinates.width,
+  y:
+    defaultMapCoordinates.yFlipOffset -
+    defaultMapCoordinates.minY -
+    point.y * defaultMapCoordinates.height,
+})

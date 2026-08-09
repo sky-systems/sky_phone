@@ -45,7 +45,9 @@ const requestedMessageMedia = computed<GalleryFilter | null>(() => {
   return value === 'photo' || value === 'video' ? value : null
 })
 const multipleSelection = computed(
-  () => requestedMessageMedia.value !== null && (messageMedia.request?.maxSelection ?? 1) > 1,
+  () =>
+    requestedMessageMedia.value !== null &&
+    (messageMedia.request?.maxSelection ?? 1) > 1,
 )
 const selectedMediaIds = ref<number[]>([])
 const media = ref<PhoneMedia[]>([])
@@ -210,20 +212,26 @@ function openMedia(entry: PhoneMedia): void {
     if (multipleSelection.value) {
       const index = selectedMediaIds.value.indexOf(entry.id)
       if (index >= 0) selectedMediaIds.value.splice(index, 1)
-      else if (selectedMediaIds.value.length < (messageMedia.request?.maxSelection ?? 1)) {
+      else if (
+        selectedMediaIds.value.length <
+        (messageMedia.request?.maxSelection ?? 1)
+      ) {
         selectedMediaIds.value.push(entry.id)
       }
       return
     }
-    const returnPath = messageMedia.complete(entry)
-    if (returnPath) void router.replace(returnPath)
-    return
   }
   landscapeViewer.value = false
   phone.setCameraLandscape(false)
   selected.value = entry
   imageZoom.value = 1
   imagePan.value = { x: 0, y: 0 }
+}
+
+function completeSingleSelection(): void {
+  if (!selected.value) return
+  const returnPath = messageMedia.complete(selected.value)
+  if (returnPath) void router.replace(returnPath)
 }
 
 function completeMultipleSelection(): void {
@@ -405,7 +413,9 @@ onBeforeUnmount(() => {
           v-for="entry in media"
           :key="entry.id"
           class="gallery-tile"
-          :class="{ 'gallery-tile--selected': selectedMediaIds.includes(entry.id) }"
+          :class="{
+            'gallery-tile--selected': selectedMediaIds.includes(entry.id),
+          }"
           type="button"
           :aria-label="
             phone.t(
@@ -499,6 +509,14 @@ onBeforeUnmount(() => {
       </template>
       <template #right>
         <k-link
+          v-if="requestedMessageMedia"
+          component="button"
+          @click="completeSingleSelection"
+        >
+          {{ phone.t('Common.use') }}
+        </k-link>
+        <k-link
+          v-else
           component="button"
           icon-only
           class="text-red-500"
