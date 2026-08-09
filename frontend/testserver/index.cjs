@@ -1039,6 +1039,131 @@ function counts() {
   }
 }
 
+let flareProfile = {
+  id: 1,
+  name: 'Alex',
+  age: 27,
+  bio: 'Late-night drives, good coffee, and plans that turn into stories.',
+  gender: 'nonbinary',
+  interestedIn: 'everyone',
+  minAge: 21,
+  maxAge: 39,
+  avatar: 5,
+  interests: ['Night drives', 'Music', 'Coffee'],
+  lookingFor: 'dates',
+  discoverable: true,
+  photoMediaIds: [],
+  photoUrls: [],
+}
+let flareSuggestions = [
+  {
+    id: 11,
+    name: 'Maya',
+    age: 26,
+    bio: 'Ocean air, rooftop sunsets and always up for finding the best tacos in the city.',
+    gender: 'woman',
+    avatar: 0,
+    interests: ['Beach days', 'Food spots', 'Art'],
+    lookingFor: 'longTerm',
+    photoUrls: [],
+  },
+  {
+    id: 12,
+    name: 'Noah',
+    age: 29,
+    bio: 'Architect by day, terrible karaoke singer by night.',
+    gender: 'man',
+    avatar: 1,
+    interests: ['Architecture', 'Karaoke', 'Travel'],
+    lookingFor: 'dates',
+    photoUrls: [],
+  },
+  {
+    id: 13,
+    name: 'Sofia',
+    age: 25,
+    bio: 'Tell me your favorite hidden corner of Los Santos.',
+    gender: 'woman',
+    avatar: 2,
+    interests: ['Coffee', 'Photography', 'Dogs'],
+    lookingFor: 'friends',
+    photoUrls: [],
+  },
+  {
+    id: 14,
+    name: 'Leo',
+    age: 28,
+    bio: 'Desert roads, classic cars and a playlist for every mood.',
+    gender: 'man',
+    avatar: 3,
+    interests: ['Cars', 'Road trips', 'Vinyl'],
+    lookingFor: 'longTerm',
+    photoUrls: [],
+  },
+  {
+    id: 15,
+    name: 'Jade',
+    age: 24,
+    bio: 'Usually somewhere near the water with an iced coffee.',
+    gender: 'woman',
+    avatar: 4,
+    interests: ['Sailing', 'Fitness', 'Brunch'],
+    lookingFor: 'dates',
+    photoUrls: [],
+  },
+]
+const flareMatches = [
+  {
+    id: 'flare-match-demo-0000-0000-0000000001',
+    profile: {
+      id: 16,
+      name: 'Marcus',
+      age: 30,
+      bio: 'Live music and late dinners.',
+      gender: 'man',
+      avatar: 5,
+      interests: ['Live music', 'Cooking'],
+      lookingFor: 'dates',
+      photoUrls: [],
+    },
+    lastMessage: 'That place sounds perfect. Friday?',
+    lastMessageAt: isoTime(-38 * 60 * 1000),
+    unread: 1,
+  },
+]
+let flareLikes = [
+  {
+    ...flareSuggestions[0],
+    superLiked: true,
+  },
+]
+let flareLastSwipe = null
+const flareMessages = {
+  'flare-match-demo-0000-0000-0000000001': [
+    {
+      id: 'flare-message-1',
+      direction: 'sent',
+      body: 'Have you tried the little jazz bar in Vinewood?',
+      createdAt: isoTime(-55 * 60 * 1000),
+    },
+    {
+      id: 'flare-message-2',
+      direction: 'received',
+      body: 'That place sounds perfect. Friday?',
+      createdAt: isoTime(-38 * 60 * 1000),
+    },
+  ],
+}
+
+function flareBootstrap() {
+  return {
+    profile: flareProfile,
+    suggestions: flareProfile.discoverable ? flareSuggestions : [],
+    likes: flareLikes,
+    matches: flareMatches,
+  }
+}
+
 app.post('/api/:endpoint', (request, response) => {
   console.log(`[NUI] ${request.params.endpoint}`, request.body)
   const endpoint = request.params.endpoint
@@ -1050,6 +1175,152 @@ app.post('/api/:endpoint', (request, response) => {
     playerName: 'Alex Morgan',
     transactions: mockBankTransactions,
   })
+  if (endpoint === 'flare:bootstrap') {
+    response.json({ success: true, data: flareBootstrap() })
+    return
+  }
+  if (endpoint === 'flare:save-profile') {
+    const requestedPhotoIds = request.body.photoMediaIds
+    let photoUpdate = {}
+    if (requestedPhotoIds !== undefined) {
+      const validIds =
+        Array.isArray(requestedPhotoIds) &&
+        requestedPhotoIds.length <= 6 &&
+        new Set(requestedPhotoIds).size === requestedPhotoIds.length &&
+        requestedPhotoIds.every((id) => Number.isInteger(id) && id > 0)
+      const photos = validIds
+        ? requestedPhotoIds.map((id) =>
+            mockMedia.find(
+              (item) => item.id === id && item.mediaType === 'photo',
+            ),
+          )
+        : []
+      if (!validIds || photos.some((photo) => !photo)) {
+        response.json({ success: false, error: 'invalid_profile_photos' })
+        return
+      }
+      photoUpdate = {
+        photoMediaIds: [...requestedPhotoIds],
+        photoUrls: photos.map((photo) => photo.url),
+      }
+    }
+    flareProfile = {
+      ...flareProfile,
+      ...request.body,
+      discoverable: flareProfile.discoverable,
+      ...photoUpdate,
+    }
+    response.json({ success: true, data: flareBootstrap() })
+    return
+  }
+  if (endpoint === 'flare:set-discovery') {
+    if (typeof request.body.enabled !== 'boolean') {
+      response.json({ success: false, error: 'invalid_discovery' })
+      return
+    }
+    flareProfile.discoverable = request.body.enabled
+    response.json({ success: true, data: flareBootstrap() })
+    return
+  }
+  if (endpoint === 'flare:swipe') {
+    if (!flareProfile.discoverable) {
+      response.json({ success: false, error: 'discovery_disabled' })
+      return
+    }
+    const target = flareSuggestions.find(
+      (profile) => profile.id === Number(request.body.targetId),
+    )
+    flareLastSwipe = target
+      ? { choice: request.body.choice, profile: target }
+      : null
+    flareSuggestions = flareSuggestions.filter(
+      (profile) => profile.id !== Number(request.body.targetId),
+    )
+    flareLikes = flareLikes.filter(
+      (profile) => profile.id !== Number(request.body.targetId),
+    )
+    let match = null
+    if (
+      target &&
+      ['like', 'superlike'].includes(request.body.choice) &&
+      target.id === 11
+    ) {
+      match = {
+        id: 'flare-match-maya-0000-0000-0000000001',
+        profile: target,
+        lastMessage: '',
+        lastMessageAt: null,
+        unread: 0,
+      }
+      flareMatches.unshift(match)
+      flareMessages[match.id] = []
+    }
+    response.json({ success: true, data: { match } })
+    return
+  }
+  if (endpoint === 'flare:rewind') {
+    if (!flareLastSwipe) {
+      response.json({ success: false, error: 'nothing_to_rewind' })
+      return
+    }
+    const hasMatch = flareMatches.some(
+      (match) => match.profile.id === flareLastSwipe.profile.id,
+    )
+    if (hasMatch) {
+      response.json({ success: false, error: 'cannot_rewind_match' })
+      return
+    }
+    flareSuggestions.unshift(flareLastSwipe.profile)
+    flareLastSwipe = null
+    response.json({ success: true, data: flareBootstrap() })
+    return
+  }
+  if (endpoint === 'flare:unmatch') {
+    const index = flareMatches.findIndex(
+      (match) => match.id === request.body.matchId,
+    )
+    if (index < 0) {
+      response.json({ success: false, error: 'match_not_found' })
+      return
+    }
+    flareMatches.splice(index, 1)
+    delete flareMessages[request.body.matchId]
+    response.json({ success: true, data: { matches: flareMatches } })
+    return
+  }
+  if (endpoint === 'flare:thread') {
+    const match = flareMatches.find((item) => item.id === request.body.matchId)
+    if (!match) {
+      response.json({ success: false, error: 'match_not_found' })
+      return
+    }
+    match.unread = 0
+    response.json({
+      success: true,
+      data: { messages: flareMessages[match.id] ?? [] },
+    })
+    return
+  }
+  if (endpoint === 'flare:send') {
+    const match = flareMatches.find((item) => item.id === request.body.matchId)
+    const body = String(request.body.body ?? '').trim()
+    if (!match || !body) {
+      response.json({ success: false, error: 'invalid_message' })
+      return
+    }
+    const message = {
+      id: `flare-message-${Date.now()}`,
+      direction: 'sent',
+      body,
+      createdAt: new Date().toISOString(),
+    }
+    flareMessages[match.id] ??= []
+    flareMessages[match.id].push(message)
+    match.lastMessage = body
+    match.lastMessageAt = message.createdAt
+    response.json({ success: true, data: message })
+    return
+  }
   if (endpoint === 'banking:overview') {
     response.json({ success: true, data: bankingOverview() })
     return

@@ -48,6 +48,7 @@ server_scripts {
     'source/server/media.lua',
     'source/server/messages.lua',
     'source/server/darkchat.lua',
+    'source/server/flare.lua',
     'source/server/notes.lua',
     'source/server/mail.lua',
     'source/server/banking.lua',

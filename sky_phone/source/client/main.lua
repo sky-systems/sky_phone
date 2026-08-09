@@ -92,6 +92,14 @@ local server_callbacks = {
     "darkchat:block",
     "darkchat:report",
     "darkchat:clear",
+    "flare:bootstrap",
+    "flare:save-profile",
+    "flare:set-discovery",
+    "flare:swipe",
+    "flare:rewind",
+    "flare:unmatch",
+    "flare:thread",
+    "flare:send",
     "gallery:list",
     "media:config",
 }
@@ -409,6 +417,20 @@ RegisterNetEvent("sky_phone:calendar:reminder", function(data)
     data.title = calendar_locale.name
     data.text = calendar_locale.reminder:gsub("{title}", tostring(data.eventTitle))
     SendNUIMessage({ type = "calendar:reminder", data = data })
+end)
+
+RegisterNetEvent("sky_phone:flare:match", function(data)
+    local flare_locale = get_locale().Nui.Apps.flare
+    data.title = flare_locale.name
+    data.text = flare_locale.newMatchNotification:gsub("{sender}", tostring(data.sender))
+    SendNUIMessage({ type = "flare:new-match", data = data })
+end)
+
+RegisterNetEvent("sky_phone:flare:message", function(data)
+    local flare_locale = get_locale().Nui.Apps.flare
+    data.title = flare_locale.name
+    data.text = flare_locale.newMessageNotification:gsub("{sender}", tostring(data.sender))
+    SendNUIMessage({ type = "flare:new-message", data = data })
 end)
 
 RegisterNetEvent("sky_phone:sim:picker", function(data)

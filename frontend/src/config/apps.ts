@@ -24,6 +24,7 @@ import {
   Wind,
   Tag,
   MapPinHouse,
+  Flame,
 } from 'lucide-vue-next'
 import { defineAsyncComponent, markRaw } from 'vue'
 
@@ -52,6 +53,7 @@ import bankingIcon from '@/assets/img/app-icons/banking.svg'
 import garageIcon from '@/assets/img/app-icons/garage.svg'
 import citymarktIcon from '@/assets/img/app-icons/citymarkt.webp'
 import localPagesIcon from '@/assets/img/app-icons/local-pages.webp'
+import flareIcon from '@/assets/img/app-icons/flare.svg'
 import type {
   LaunchablePhoneAppDefinition,
   LaunchablePhoneAppId,
@@ -59,6 +61,20 @@ import type {
 } from '@/types/apps'
 
 export const PHONE_APPS: PhoneAppDefinition[] = [
+  {
+    category: 'social',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/FlareApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 24,
+    icon: markRaw(Flame),
+    iconClass: 'app-icon--flare',
+    iconImage: flareIcon,
+    id: 'flare',
+    labelKey: 'Apps.flare.name',
+    route: '/apps/flare',
+  },
   {
     category: 'productivity',
     component: markRaw(

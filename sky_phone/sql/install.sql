@@ -228,3 +228,78 @@ CREATE TABLE IF NOT EXISTS `sky_phone_calendar_events` (
     KEY `idx_sky_phone_calendar_reminders` (`reminded_at`, `starts_at`),
     FOREIGN KEY (`account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_flare_profiles` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `account_id` BIGINT UNSIGNED NOT NULL,
+    `name` VARCHAR(32) NOT NULL,
+    `age` TINYINT UNSIGNED NOT NULL,
+    `bio` VARCHAR(300) NOT NULL DEFAULT '',
+    `gender` ENUM('woman', 'man', 'nonbinary') NOT NULL,
+    `interested_in` ENUM('woman', 'man', 'nonbinary', 'everyone') NOT NULL DEFAULT 'everyone',
+    `min_age` TINYINT UNSIGNED NOT NULL DEFAULT 18,
+    `max_age` TINYINT UNSIGNED NOT NULL DEFAULT 99,
+    `avatar` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `interests` JSON NOT NULL,
+    `looking_for` ENUM('longTerm', 'dates', 'friends') NOT NULL DEFAULT 'longTerm',
+    `discoverable` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_sky_phone_flare_profile_account` (`account_id`),
+    KEY `idx_sky_phone_flare_discovery` (`gender`, `age`, `updated_at`),
+    FOREIGN KEY (`account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_flare_profile_photos` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `profile_id` BIGINT UNSIGNED NOT NULL,
+    `media_id` BIGINT UNSIGNED NOT NULL,
+    `sort_order` TINYINT UNSIGNED NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_sky_phone_flare_photo_order` (`profile_id`, `sort_order`),
+    UNIQUE KEY `uniq_sky_phone_flare_photo_media` (`profile_id`, `media_id`),
+    KEY `idx_sky_phone_flare_photo_media` (`media_id`),
+    FOREIGN KEY (`profile_id`) REFERENCES `sky_phone_flare_profiles` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`media_id`) REFERENCES `sky_phone_media` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_flare_swipes` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `swiper_account_id` BIGINT UNSIGNED NOT NULL,
+    `target_account_id` BIGINT UNSIGNED NOT NULL,
+    `choice` ENUM('like', 'pass', 'superlike') NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_sky_phone_flare_swipe` (`swiper_account_id`, `target_account_id`),
+    KEY `idx_sky_phone_flare_swipe_target` (`target_account_id`, `choice`),
+    FOREIGN KEY (`swiper_account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`target_account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_flare_matches` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `account_a_id` BIGINT UNSIGNED NOT NULL,
+    `account_b_id` BIGINT UNSIGNED NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_sky_phone_flare_match_pair` (`account_a_id`, `account_b_id`),
+    KEY `idx_sky_phone_flare_match_b` (`account_b_id`, `created_at`),
+    FOREIGN KEY (`account_a_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`account_b_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_flare_messages` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `match_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `sender_account_id` BIGINT UNSIGNED NOT NULL,
+    `body` VARCHAR(1000) NOT NULL,
+    `read_at` DATETIME NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_flare_message_thread` (`match_id`, `created_at`, `id`),
+    KEY `idx_sky_phone_flare_message_unread` (`match_id`, `sender_account_id`, `read_at`),
+    FOREIGN KEY (`match_id`) REFERENCES `sky_phone_flare_matches` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`sender_account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

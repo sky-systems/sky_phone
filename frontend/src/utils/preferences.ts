@@ -57,6 +57,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   phone: { enabled: true, sounds: true },
   messages: { enabled: true, sounds: true },
   darkchat: { enabled: true, sounds: true },
+  flare: { enabled: true, sounds: true },
   'app-store': { enabled: true, sounds: true },
   calculator: { enabled: true, sounds: true },
   snake: { enabled: true, sounds: true },

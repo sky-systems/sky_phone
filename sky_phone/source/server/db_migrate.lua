@@ -830,9 +830,137 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_flare_profiles",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "name", type = "VARCHAR(32) NOT NULL" },
+            { name = "age", type = "TINYINT UNSIGNED NOT NULL" },
+            { name = "bio", type = "VARCHAR(300) NOT NULL DEFAULT ''" },
+            { name = "gender", type = "ENUM('woman', 'man', 'nonbinary') NOT NULL" },
+            { name = "interested_in", type = "ENUM('woman', 'man', 'nonbinary', 'everyone') NOT NULL DEFAULT 'everyone'" },
+            { name = "min_age", type = "TINYINT UNSIGNED NOT NULL DEFAULT 18" },
+            { name = "max_age", type = "TINYINT UNSIGNED NOT NULL DEFAULT 99" },
+            { name = "avatar", type = "TINYINT UNSIGNED NOT NULL DEFAULT 0" },
+            { name = "interests", type = "JSON NOT NULL" },
+            { name = "looking_for", type = "ENUM('longTerm', 'dates', 'friends') NOT NULL DEFAULT 'longTerm'" },
+            { name = "discoverable", type = "TINYINT(1) NOT NULL DEFAULT 1" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_flare_profile_account", columns = "(`account_id`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_flare_discovery", columns = "(`gender`, `age`, `updated_at`)" },
+        },
+        foreignKeys = {
+            { column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_flare_profile_photos",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "profile_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "media_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "sort_order", type = "TINYINT UNSIGNED NOT NULL" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_flare_photo_order", columns = "(`profile_id`, `sort_order`)" },
+            { name = "uniq_sky_phone_flare_photo_media", columns = "(`profile_id`, `media_id`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_flare_photo_media", columns = "(`media_id`)" },
+        },
+        foreignKeys = {
+            {
+                column = "profile_id",
+                references = "`sky_phone_flare_profiles` (`id`) ON DELETE CASCADE",
+            },
+            {
+                column = "media_id",
+                references = "`sky_phone_media` (`id`) ON DELETE CASCADE",
+            },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_flare_swipes",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "swiper_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "target_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "choice", type = "ENUM('like', 'pass', 'superlike') NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_flare_swipe", columns = "(`swiper_account_id`, `target_account_id`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_flare_swipe_target", columns = "(`target_account_id`, `choice`)" },
+        },
+        foreignKeys = {
+            { column = "swiper_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "target_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_flare_matches",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "account_a_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "account_b_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_flare_match_pair", columns = "(`account_a_id`, `account_b_id`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_flare_match_b", columns = "(`account_b_id`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "account_a_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "account_b_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_flare_messages",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "match_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "sender_account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "body", type = "VARCHAR(1000) NOT NULL" },
+            { name = "read_at", type = "DATETIME NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_flare_message_thread", columns = "(`match_id`, `created_at`, `id`)" },
+            { name = "idx_sky_phone_flare_message_unread", columns = "(`match_id`, `sender_account_id`, `read_at`)" },
+        },
+        foreignKeys = {
+            { column = "match_id", references = "`sky_phone_flare_matches` (`id`) ON DELETE CASCADE" },
+            { column = "sender_account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Bridge.Database.Migrate("sky_phone", schema)
+Bridge.Database.Query([[
+    ALTER TABLE `sky_phone_flare_swipes`
+    MODIFY COLUMN `choice` ENUM('like', 'pass', 'superlike') NOT NULL
+]], {})
 Bridge.Database.Query([[
     ALTER TABLE `sky_phone_sms_messages`
     MODIFY COLUMN `message_type` ENUM('text', 'voice', 'image', 'gif', 'video') NOT NULL DEFAULT 'text'
