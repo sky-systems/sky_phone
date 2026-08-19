@@ -17,6 +17,12 @@
       "type": "non_fast_forward"
     },
     {
+      "type": "update",
+      "parameters": {
+        "update_allows_fetch_and_merge": false
+      }
+    },
+    {
       "type": "pull_request",
       "parameters": {
         "allowed_merge_methods": ["merge", "squash", "rebase"],
@@ -50,7 +56,7 @@
     {
       "actor_id": 2,
       "actor_type": "RepositoryRole",
-      "bypass_mode": "always"
+      "bypass_mode": "pull_request"
     }
   ]
 }

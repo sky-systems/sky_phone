@@ -79,6 +79,6 @@ Lua, config, manifest, locale, SQL, and native changes must also be tested in a 
 
 ## Review and merge
 
-A pull request is ready when required checks pass, review conversations are resolved, the latest push is approved by someone other than its author, and migrations or operational steps are explicit. The default ruleset allows merge, squash, and rebase so maintainers can preserve meaningful merge history when needed.
+A pull request is ready when required checks pass, review conversations are resolved, the latest push is approved by someone other than its author, and migrations or operational steps are explicit. Anyone may open a pull request, but only collaborators with the built-in GitHub `Maintain` role may merge into `dev`. Maintainers must merge through a pull request; the ruleset does not permit direct pushes to `dev`. The default ruleset allows merge, squash, and rebase so maintainers can preserve meaningful merge history when needed.
 
 Release tags use numeric semantic versions without a `v` prefix, for example `0.2.0`. Tags are immutable after creation.

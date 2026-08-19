@@ -53,14 +53,23 @@ for (const file of rulesetFiles) {
     fail(`${file} must contain at least one rule`);
   }
 
+  const expectedBypassMode =
+    ruleset.target === "branch" ? "pull_request" : "always";
   const maintainBypass = ruleset.bypass_actors?.some(
     (actor) =>
       actor.actor_type === "RepositoryRole" &&
       actor.actor_id === 2 &&
-      actor.bypass_mode === "always",
+      actor.bypass_mode === expectedBypassMode,
   );
   if (!maintainBypass) {
-    fail(`${file} must retain the Maintain role emergency bypass`);
+    fail(`${file} must retain the expected Maintain role bypass`);
+  }
+
+  if (
+    ruleset.target === "branch" &&
+    !ruleset.rules?.some((rule) => rule.type === "update")
+  ) {
+    fail(`${file} must restrict default-branch updates to bypass actors`);
   }
 
   const statusRule = ruleset.rules?.find(
