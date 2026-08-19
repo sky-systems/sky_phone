@@ -92,3 +92,28 @@ jobs:
 
       - name: Verify published NUI entrypoint
         run: test -f ../sky_phone/source/html/index.html
+
+      - name: Package pull request test resource
+        if: github.event_name == 'pull_request'
+        shell: bash
+        working-directory: .
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          artifact_name="sky_phone-pr-${PR_NUMBER}-${HEAD_SHA}"
+          mkdir -p artifacts
+          zip -r "artifacts/${artifact_name}.zip" sky_phone
+          unzip -t "artifacts/${artifact_name}.zip"
+          unzip -Z1 "artifacts/${artifact_name}.zip" | grep -Fxq 'sky_phone/fxmanifest.lua'
+          unzip -Z1 "artifacts/${artifact_name}.zip" | grep -Fxq 'sky_phone/source/html/index.html'
+
+      - name: Upload pull request test resource
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          path: artifacts/sky_phone-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}.zip
+          archive: false
+          if-no-files-found: error
+          retention-days: 14

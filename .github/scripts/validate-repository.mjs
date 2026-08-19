@@ -31,6 +31,8 @@ const rulesetFiles = (await readdir(rulesetDirectory)).filter((file) =>
 const requiredContexts = new Set([
   "Repository policy",
   "Frontend",
+  "CodeQL",
+  "Dependency review",
   "Pull request policy",
 ]);
 

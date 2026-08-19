@@ -75,10 +75,12 @@ pnpm build
 
 The build publishes the generated NUI into `sky_phone/source/html`. Do not hand-edit generated output. A successful build proves source/build consistency, not behavior inside FiveM; report live runtime testing separately.
 
+Every pull request also receives an automated CodeQL scan and dependency review. After the full CI run succeeds, GitHub packages the deployable `sky_phone` folder as a test-resource ZIP and adds or updates a download link in the pull request. The artifact is retained for 14 days. It is suitable for manual testing on a test server, but it is not a release and does not replace live FiveM validation.
+
 Lua, config, manifest, locale, SQL, and native changes must also be tested in a restarted FiveM resource with experimental OAL enabled. Pass native coordinates as separate numeric arguments and verify native signatures against authoritative documentation.
 
 ## Review and merge
 
-A pull request is ready when required checks pass, review conversations are resolved, the latest push is approved by someone other than its author, and migrations or operational steps are explicit. Anyone may open a pull request, but only collaborators with the built-in GitHub `Maintain` role may merge into `dev`. Maintainers must merge through a pull request; the ruleset does not permit direct pushes to `dev`. The default ruleset allows merge, squash, and rebase so maintainers can preserve meaningful merge history when needed.
+A pull request is ready when the repository policy, frontend, CodeQL, dependency review, and pull-request policy checks pass; review conversations are resolved; the latest push is approved by someone other than its author; and migrations or operational steps are explicit. Automated findings complement rather than replace the human maintainer review. Anyone may open a pull request, but only collaborators with the built-in GitHub `Maintain` role may merge into `dev`. Maintainers must merge through a pull request; the ruleset does not permit direct pushes to `dev`. The default ruleset allows merge, squash, and rebase so maintainers can preserve meaningful merge history when needed.
 
 Release tags use numeric semantic versions without a `v` prefix, for example `0.2.0`. Tags are immutable after creation.

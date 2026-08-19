@@ -45,6 +45,12 @@
             "context": "Frontend"
           },
           {
+            "context": "CodeQL"
+          },
+          {
+            "context": "Dependency review"
+          },
+          {
             "context": "Pull request policy"
           }
         ],
