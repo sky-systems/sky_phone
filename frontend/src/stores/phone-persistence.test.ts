@@ -167,4 +167,66 @@ describe('phone device persistence scope', () => {
     expect(mockNuiCall).toHaveBeenCalledTimes(2)
     expect(phone.deviceRevisions.widgets).toBe(1)
   })
+
+  it('marks setup complete only after the settings save is acknowledged', async () => {
+    const completion = deferredResponse<{ revision: number }>()
+    mockNuiCall.mockReturnValueOnce(completion.promise)
+    const phone = usePhoneStore()
+    phone.open({
+      device: {
+        data: {
+          settings: {
+            payload: {
+              settings: { setupCompleted: false, setupStep: 9 },
+              version: 1,
+            },
+            revision: 3,
+          },
+        },
+        imei: '111',
+        name: 'Phone 111',
+        sim: null,
+      },
+      token: 'session-a',
+    })
+
+    const completed = phone.completeSetup()
+    await Promise.resolve()
+
+    expect(phone.preferences.settings.setupCompleted).toBe(false)
+    completion.resolve({ data: { revision: 4 }, success: true })
+
+    await expect(completed).resolves.toBe(true)
+    expect(phone.preferences.settings.setupCompleted).toBe(true)
+    expect(phone.deviceRevisions.settings).toBe(4)
+  })
+
+  it('keeps setup open when the completion save is rejected', async () => {
+    mockNuiCall.mockResolvedValueOnce({
+      error: 'request_failed',
+      success: false,
+    })
+    const phone = usePhoneStore()
+    phone.open({
+      device: {
+        data: {
+          settings: {
+            payload: {
+              settings: { setupCompleted: false, setupStep: 9 },
+              version: 1,
+            },
+            revision: 3,
+          },
+        },
+        imei: '111',
+        name: 'Phone 111',
+        sim: null,
+      },
+      token: 'session-a',
+    })
+
+    await expect(phone.completeSetup()).resolves.toBe(false)
+    expect(phone.preferences.settings.setupCompleted).toBe(false)
+    expect(phone.deviceRevisions.settings).toBe(3)
+  })
 })
