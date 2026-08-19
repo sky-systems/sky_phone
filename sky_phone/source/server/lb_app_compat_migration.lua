@@ -24,12 +24,12 @@ local function migrate_picchat_phone_reference()
     end
 
     local references = Bridge.Database.Query([[
-        SELECT keys.`CONSTRAINT_NAME`, keys.`REFERENCED_TABLE_NAME`, keys.`REFERENCED_COLUMN_NAME`
-        FROM `INFORMATION_SCHEMA`.`KEY_COLUMN_USAGE` keys
-        WHERE keys.`TABLE_SCHEMA` = DATABASE()
-            AND keys.`TABLE_NAME` = ?
-            AND keys.`COLUMN_NAME` = ?
-            AND keys.`REFERENCED_TABLE_NAME` IS NOT NULL
+        SELECT `CONSTRAINT_NAME`, `REFERENCED_TABLE_NAME`, `REFERENCED_COLUMN_NAME`
+        FROM `INFORMATION_SCHEMA`.`KEY_COLUMN_USAGE`
+        WHERE `TABLE_SCHEMA` = DATABASE()
+            AND `TABLE_NAME` = ?
+            AND `COLUMN_NAME` = ?
+            AND `REFERENCED_TABLE_NAME` IS NOT NULL
     ]], { picchat_table, picchat_phone_column })
 
     local has_sky_phone_reference = false
@@ -114,4 +114,17 @@ local function migrate_picchat_phone_reference()
     )
 end
 
-Bridge.Database.AfterMigration("sky_phone", migrate_picchat_phone_reference)
+local function run_picchat_phone_reference_migration()
+    local success, migration_error = xpcall(migrate_picchat_phone_reference, debug.traceback)
+    if success then
+        return
+    end
+
+    Bridge.Debug(
+        "error",
+        "[sky_phone] PicChat compatibility migration failed. Sky Phone startup will continue, but PicChat database compatibility may be unavailable: %s.",
+        tostring(migration_error)
+    )
+end
+
+Bridge.Database.AfterMigration("sky_phone", run_picchat_phone_reference_migration)

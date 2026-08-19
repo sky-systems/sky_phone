@@ -41,12 +41,21 @@ describe('LB runtime compatibility contracts', () => {
     )
 
     expect(manifest).toContain("'source/server/lb_app_compat_migration.lua'")
+    expect(
+      manifest.indexOf("'source/server/lb_app_compat_migration.lua'"),
+    ).toBeGreaterThan(manifest.indexOf("'source/server/testdata.lua'"))
     expect(migration).toContain('"lbpicchat_logged_in"')
     expect(migration).toContain('"phone_phones"')
     expect(migration).toContain('"sky_phone_sims"')
     expect(migration).toContain('DROP FOREIGN KEY')
     expect(migration).toContain('ON DELETE CASCADE ON UPDATE CASCADE')
     expect(migration).toContain('Legacy data was preserved')
+    expect(migration).toContain('FROM `INFORMATION_SCHEMA`.`KEY_COLUMN_USAGE`')
+    expect(migration).not.toMatch(/KEY_COLUMN_USAGE`\s+keys/i)
+    expect(migration).toContain(
+      'xpcall(migrate_picchat_phone_reference, debug.traceback)',
+    )
+    expect(migration).toContain('Sky Phone startup will continue')
     expect(migration).not.toMatch(/DELETE\s+FROM\s+/i)
   })
 })

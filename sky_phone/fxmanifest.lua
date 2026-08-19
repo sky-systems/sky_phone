@@ -74,7 +74,6 @@ server_scripts {
     'source/server/notes.lua',
     'source/server/phone.lua',
     'source/server/db_migrate.lua',
-    'source/server/lb_app_compat_migration.lua',
     'source/server/lb_phone_migration.lua',
     'source/server/custom_app_storage.lua',
     'source/server/payphones.lua',
@@ -108,6 +107,7 @@ server_scripts {
     'source/server/music.lua',
     'source/server/radio.lua',
     'source/server/testdata.lua',
+    'source/server/lb_app_compat_migration.lua',
 }
 
 files {
