@@ -24,8 +24,20 @@ import type {
 import { nuiCall, type NuiResponse } from '@/utils/nui'
 
 const MAX_MESSAGE_CHARACTERS = 2_000
+const MAX_SNAP_MEDIA = 10
 const MAX_TEXT_OVERLAY_CHARACTERS = 160
 const STORY_PAGE_SIZE = 30
+
+export function normalizeSkyPicHandle(value: string): string {
+  return value.trim().toLowerCase()
+}
+
+export function isValidSkyPicHandle(value: string): boolean {
+  const handle = normalizeSkyPicHandle(value)
+  return (
+    handle.length >= 3 && handle.length <= 24 && /^[a-z0-9._]+$/.test(handle)
+  )
+}
 
 function arrayOrEmpty<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : []
@@ -77,6 +89,9 @@ export const useSkyPicStore = defineStore('skypic', () => {
   const storyViewersHasMore = ref(true)
 
   const loading = ref(false)
+  const bootstrapPending = ref(false)
+  const accountDeletePending = ref(false)
+  const profileAbsentRevision = ref(0)
   const threadLoading = ref(false)
   const searchLoading = ref(false)
   const snapOpening = ref(false)
@@ -158,6 +173,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
   function resetSession(): void {
     sessionVersion += 1
     bootstrapInFlight = null
+    bootstrapPending.value = false
     bootstrapRequest += 1
     searchRequest += 1
     snapRequest += 1
@@ -197,6 +213,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
     profile.value = data.profile ?? null
     if (!profile.value) {
       resetSession()
+      profileAbsentRevision.value += 1
       return
     }
 
@@ -212,12 +229,14 @@ export const useSkyPicStore = defineStore('skypic', () => {
   }
 
   function bootstrap(): Promise<boolean> {
+    if (accountDeletePending.value) return Promise.resolve(false)
     const requestSession = sessionVersion
     if (bootstrapInFlight?.session === requestSession) {
       return bootstrapInFlight.promise
     }
     const requestId = ++bootstrapRequest
     loading.value = true
+    bootstrapPending.value = true
     const token = Symbol('skypic-bootstrap')
     const promise = (async () => {
       try {
@@ -229,7 +248,10 @@ export const useSkyPicStore = defineStore('skypic', () => {
         hydrate(response.data)
         return true
       } finally {
-        if (bootstrapInFlight?.token === token) bootstrapInFlight = null
+        if (bootstrapInFlight?.token === token) {
+          bootstrapInFlight = null
+          bootstrapPending.value = false
+        }
       }
     })()
     bootstrapInFlight = { promise, session: requestSession, token }
@@ -247,7 +269,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
         ? {}
         : { avatarSeed: input.avatarSeed }),
       displayName: input.displayName.trim(),
-      handle: input.handle.trim().toLowerCase(),
+      handle: normalizeSkyPicHandle(input.handle),
     }
     const response = await sessionCall<SkyPicProfile>(
       'skypic:create-profile',
@@ -265,7 +287,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
       ...input,
       bio: input.bio.trim(),
       displayName: input.displayName.trim(),
-      handle: input.handle.trim().toLowerCase(),
+      handle: normalizeSkyPicHandle(input.handle),
     }
     const response = await sessionCall<SkyPicProfile>(
       'skypic:update-profile',
@@ -274,6 +296,22 @@ export const useSkyPicStore = defineStore('skypic', () => {
     setError(response)
     if (response.success && response.data) profile.value = response.data
     return response
+  }
+
+  async function deleteAccount(): Promise<boolean> {
+    if (accountDeletePending.value) return false
+    accountDeletePending.value = true
+    try {
+      const response = await sessionCall('skypic:delete-account', {
+        confirmed: true,
+      })
+      setError(response)
+      if (!response.success) return false
+      resetSession()
+      return true
+    } finally {
+      accountDeletePending.value = false
+    }
   }
 
   async function search(query: string): Promise<boolean> {
@@ -520,8 +558,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
   async function sendSnap(
     input: SkyPicSendSnapInput,
   ): Promise<NuiResponse<SkyPicSnap[]>> {
-    const payload: SkyPicSendSnapInput = {
-      ...input,
+    const common = {
+      allowReplay: input.allowReplay,
       caption: input.caption.trim(),
       durationSeconds: clampDuration(input.durationSeconds),
       overlayColor: normalizeColor(input.overlayColor),
@@ -533,6 +571,20 @@ export const useSkyPicStore = defineStore('skypic', () => {
         .slice(0, MAX_TEXT_OVERLAY_CHARACTERS)
         .join(''),
     }
+    const payload: SkyPicSendSnapInput = Array.isArray(input.mediaIds)
+      ? {
+          ...common,
+          mediaIds: [...new Set(input.mediaIds)]
+            .filter(
+              (mediaId) => Number.isInteger(mediaId) && Number(mediaId) > 0,
+            )
+            .slice(0, MAX_SNAP_MEDIA),
+        }
+      : {
+          ...common,
+          mediaId: input.mediaId!,
+          mediaType: input.mediaType!,
+        }
     const response = await sessionCall<SkyPicSnap[]>(
       'skypic:send-snap',
       payload,
@@ -989,17 +1041,20 @@ export const useSkyPicStore = defineStore('skypic', () => {
   }
 
   return {
+    accountDeletePending,
     activeConversation,
     activeFriendshipId,
     addFriend,
     block,
     blockedProfiles,
     bootstrap,
+    bootstrapPending,
     clearOpenedSnap,
     clearViewedStory,
     closeThread,
     conversations,
     createProfile,
+    deleteAccount,
     deleteMessage,
     error,
     friends,
@@ -1017,6 +1072,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
     openThread,
     outgoingRequests,
     profile,
+    profileAbsentRevision,
     publishStory,
     refreshActiveThread,
     removeFriend,

@@ -4,10 +4,12 @@ import {
   Camera,
   Check,
   ChevronLeft,
+  ChevronRight,
   CirclePlay,
   Eye,
   Image as ImageIcon,
   Images,
+  LogOut,
   MessageCircle,
   Palette,
   Plus,
@@ -34,9 +36,21 @@ import {
 } from 'vue'
 import { useRoute, useRouter, type LocationQuery } from 'vue-router'
 
-import { useMessageMediaStore } from '@/stores/messageMedia'
+import AccountLogoutDialog from '@/components/account/AccountLogoutDialog.vue'
+import AppProfileAuth from '@/components/account/AppProfileAuth.vue'
+import FullEmojiPicker from '@/components/FullEmojiPicker.vue'
+import { useAccountStore } from '@/stores/account'
+import { useAppAuthStore } from '@/stores/app-auth'
+import {
+  useMessageMediaStore,
+  type MediaSelectionResult,
+} from '@/stores/messageMedia'
 import { usePhoneStore } from '@/stores/phone'
-import { useSkyPicStore } from '@/stores/skypic'
+import {
+  isValidSkyPicHandle,
+  normalizeSkyPicHandle,
+  useSkyPicStore,
+} from '@/stores/skypic'
 import type { MediaType, PhoneMedia } from '@/types/media'
 import type {
   SkyPicDraftPurpose,
@@ -48,14 +62,18 @@ import type {
   SkyPicSnap,
   SkyPicStory,
   SkyPicStoryPrivacy,
+  SkyPicThreadMediaDraftContext,
 } from '@/types/skypic'
 import {
   SkyAppPage,
   SkyBadge,
   SkyButton,
   SkyCheckbox,
+  SkyDialog,
+  SkyDialogButton,
   SkyEmptyState,
   SkyField,
+  SkyGlass,
   SkyMessage,
   SkyMessagebar,
   SkyMessages,
@@ -79,14 +97,22 @@ type ViewerKind = 'snap' | 'story'
 type ThreadEntry =
   | { createdAt: string; id: string; kind: 'message'; value: SkyPicMessage }
   | { createdAt: string; id: string; kind: 'snap'; value: SkyPicSnap }
+type SkyPicAuthMediaContext = {
+  handle: string
+  mode: 'login' | 'register'
+  selectedPhoto: PhoneMedia | null
+}
 
 const MAX_CAPTION_LENGTH = 160
 const MAX_MESSAGE_CHARACTERS = 2_000
 const MAX_SEARCH_CHARACTERS = 64
 const MAX_SNAP_RECIPIENTS = 20
+const MAX_THREAD_ATTACHMENTS = 10
 const MAX_TEXT_OVERLAY_LENGTH = 160
 
 const phone = usePhoneStore()
+const account = useAccountStore()
+const appAuth = useAppAuthStore()
 const store = useSkyPicStore()
 const mediaPicker = useMessageMediaStore()
 const route = useRoute()
@@ -104,6 +130,12 @@ const durationSeconds = ref(5)
 const allowReplay = ref(true)
 const selectedRecipientIds = ref<string[]>([])
 const publishing = ref(false)
+const authMode = ref<'login' | 'register'>('register')
+const authHandle = ref('')
+const authPhoto = ref<PhoneMedia | null>(null)
+const authSubmitting = ref(false)
+const authError = ref('')
+const hasSkyPicAccount = ref(false)
 
 const onboarding = reactive({
   avatarSeed: Math.floor(Math.random() * 360) + 1,
@@ -125,6 +157,13 @@ const profileSaving = ref(false)
 const searchQuery = ref('')
 const highlightedProfileId = ref('')
 const chatBody = ref('')
+const pendingThreadMedia = ref<PhoneMedia[]>([])
+const threadAttachmentMenuOpen = ref(false)
+const threadEmojiOpen = ref(false)
+const threadSending = ref(false)
+const logoutDialogOpen = ref(false)
+const deleteAccountDialogOpen = ref(false)
+const accountActionPending = ref(false)
 const storyReply = ref('')
 const feedback = ref('')
 const storyViewerSheetOpen = ref(false)
@@ -153,7 +192,15 @@ const isDarkPage = computed(
     activeTab.value === 'camera' ||
     Boolean(composerMedia.value) ||
     Boolean(store.openedSnap) ||
-    Boolean(store.viewedStory),
+    Boolean(store.viewedStory) ||
+    phone.isDarkMode,
+)
+const isAuthenticated = computed(() => appAuth.isSignedIn('skypic'))
+const authSubmitEnabled = computed(
+  () => Boolean(account.email) && isValidSkyPicHandle(authHandle.value),
+)
+const threadComposerHasContent = computed(
+  () => Boolean(chatBody.value.trim()) || pendingThreadMedia.value.length > 0,
 )
 const incomingSnaps = computed(() =>
   store.inbox.filter((snap) => snap.direction === 'received'),
@@ -279,8 +326,115 @@ function toggleProfileEditor(): void {
   if (profileEditing.value) syncProfileDraft()
 }
 
+function switchAuthMode(mode: 'login' | 'register'): void {
+  authMode.value = mode
+  authError.value = ''
+  authPhoto.value = null
+}
+
+function displayNameFromHandle(handle: string): string {
+  const displayName = handle
+    .split(/[._]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ')
+  return Array.from(displayName || handle)
+    .slice(0, 40)
+    .join('')
+}
+
+function openAuthMedia(source: MediaSource): void {
+  mediaPicker.begin(
+    'skypic-auth-avatar',
+    'photo',
+    `/apps/skypic?auth=${authMode.value}`,
+    1,
+    {
+      handle: authHandle.value,
+      mode: authMode.value,
+      selectedPhoto: authPhoto.value,
+    } satisfies SkyPicAuthMediaContext,
+  )
+  void router.push({
+    path: `/apps/${source}`,
+    query: { mediaAttachment: 'photo' },
+  })
+}
+
+function consumeAuthMediaDraft(): boolean {
+  const selection =
+    mediaPicker.consumeMany<SkyPicAuthMediaContext>('skypic-auth-avatar')
+  if (!selection) return false
+  authMode.value = selection.context?.mode ?? authMode.value
+  authHandle.value = selection.context?.handle ?? authHandle.value
+  authPhoto.value =
+    selection.media[0] ?? selection.context?.selectedPhoto ?? null
+  return true
+}
+
+async function submitAuthentication(): Promise<void> {
+  if (authSubmitting.value) return
+  authError.value = ''
+  const handle = normalizeSkyPicHandle(authHandle.value)
+  if (!account.email) {
+    authError.value = errorText('not_authenticated')
+    return
+  }
+  if (!isValidSkyPicHandle(handle)) {
+    authError.value = errorText('invalid_handle')
+    return
+  }
+
+  authSubmitting.value = true
+  if (authMode.value === 'login') {
+    const loaded = await store.bootstrap()
+    authSubmitting.value = false
+    if (!loaded || !store.profile || store.profile.handle !== handle) {
+      authError.value = errorText('profile_not_found')
+      hasSkyPicAccount.value = Boolean(store.profile)
+      store.resetSession()
+      return
+    }
+    hasSkyPicAccount.value = true
+    appAuth.signIn('skypic', account.email)
+    authHandle.value = ''
+    authPhoto.value = null
+    syncProfileDraft()
+    await applyRouteQuery(route.query)
+    return
+  }
+
+  if (hasSkyPicAccount.value || store.profile) {
+    authSubmitting.value = false
+    authError.value = errorText('profile_exists')
+    return
+  }
+  const response = await store.createProfile({
+    ...(authPhoto.value ? { avatarMediaId: authPhoto.value.id } : {}),
+    avatarSeed: onboarding.avatarSeed,
+    displayName: displayNameFromHandle(handle),
+    handle,
+  })
+  authSubmitting.value = false
+  if (!response.success) {
+    authError.value = errorText(response.error)
+    return
+  }
+  appAuth.signIn('skypic', account.email)
+  hasSkyPicAccount.value = true
+  authHandle.value = ''
+  authPhoto.value = null
+  syncProfileDraft()
+  await store.bootstrap()
+}
+
 async function submitOnboarding(): Promise<void> {
-  if (!onboarding.handle.trim() || !onboarding.displayName.trim()) {
+  const handle = normalizeSkyPicHandle(onboarding.handle)
+  if (!isValidSkyPicHandle(handle)) {
+    notify(errorText('invalid_handle'))
+    return
+  }
+  if (!onboarding.displayName.trim()) {
     notify(t('errors.profile_required'))
     return
   }
@@ -288,15 +442,76 @@ async function submitOnboarding(): Promise<void> {
   const response = await store.createProfile({
     avatarSeed: onboarding.avatarSeed,
     displayName: onboarding.displayName,
-    handle: onboarding.handle,
+    handle,
   })
   onboardingSubmitting.value = false
   if (!response.success) {
     notify(errorText(response.error))
     return
   }
+  appAuth.signIn('skypic', account.email)
   await store.bootstrap()
   syncProfileDraft()
+}
+
+function resetAccountUiState(accountExists: boolean): void {
+  threadNavigationRequest += 1
+  storyNavigationRequest += 1
+  storyViewerRequest += 1
+  mediaPlayRequest += 1
+  clearSnapTimer()
+  clearStoryTimer()
+  profileEditing.value = false
+  profileSaving.value = false
+  logoutDialogOpen.value = false
+  deleteAccountDialogOpen.value = false
+  authMode.value = accountExists ? 'login' : 'register'
+  authHandle.value = ''
+  authPhoto.value = null
+  authError.value = ''
+  pendingThreadMedia.value = []
+  threadAttachmentMenuOpen.value = false
+  threadEmojiOpen.value = false
+  threadSending.value = false
+  chatBody.value = ''
+  searchQuery.value = ''
+  highlightedProfileId.value = ''
+  selectedRecipientIds.value = []
+  storyReply.value = ''
+  storyViewerSheetOpen.value = false
+  storyViewerSheetStoryId.value = ''
+  activeViewerKind.value = null
+  mediaLoading.value = false
+  mediaError.value = false
+  snapRemaining.value = 0
+  snapProgress.value = 100
+  storyRemaining.value = 0
+  storyProgress.value = 100
+  resetComposer()
+  store.closeThread()
+  store.clearOpenedSnap()
+  store.clearViewedStory()
+  hasSkyPicAccount.value = accountExists
+  activeTab.value = 'camera'
+}
+
+function handleLoggedOut(): void {
+  resetAccountUiState(true)
+  store.resetSession()
+}
+
+async function deleteSkyPicAccount(): Promise<void> {
+  if (accountActionPending.value) return
+  accountActionPending.value = true
+  const deleted = await store.deleteAccount()
+  accountActionPending.value = false
+  if (!deleted) {
+    notify(errorText(store.error ?? undefined))
+    return
+  }
+  appAuth.signOut('skypic')
+  resetAccountUiState(false)
+  await router.replace({ path: '/apps/skypic', query: { tab: 'camera' } })
 }
 
 async function saveProfile(): Promise<void> {
@@ -362,6 +577,132 @@ function consumeMediaDraft(): boolean {
   durationSeconds.value = 5
   allowReplay.value = true
   return true
+}
+
+function openThreadMedia(source: MediaSource, mediaType: MediaType): void {
+  const conversation = store.activeConversation
+  if (!conversation) return
+  const hasVideo = pendingThreadMedia.value.some(
+    (media) => media.mediaType === 'video',
+  )
+  if (
+    (mediaType === 'video' && pendingThreadMedia.value.length > 0) ||
+    (mediaType === 'photo' && hasVideo)
+  ) {
+    notify(
+      t('chats.attachmentLimit', {
+        count: String(MAX_THREAD_ATTACHMENTS),
+      }),
+    )
+    return
+  }
+  const remainingSlots =
+    mediaType === 'photo'
+      ? MAX_THREAD_ATTACHMENTS - pendingThreadMedia.value.length
+      : 1
+  if (remainingSlots < 1) {
+    notify(
+      t('chats.attachmentLimit', {
+        count: String(MAX_THREAD_ATTACHMENTS),
+      }),
+    )
+    return
+  }
+
+  threadAttachmentMenuOpen.value = false
+  threadEmojiOpen.value = false
+  mediaPicker.begin(
+    'skypic-thread-media',
+    mediaType,
+    `/apps/skypic?tab=chats&friendship=${encodeURIComponent(conversation.friendshipId)}`,
+    source === 'photos' && mediaType === 'photo' ? remainingSlots : 1,
+    {
+      body: chatBody.value,
+      friendshipId: conversation.friendshipId,
+      pendingMedia: [...pendingThreadMedia.value],
+    } satisfies SkyPicThreadMediaDraftContext,
+  )
+  void router.push({
+    path: `/apps/${source}`,
+    query: { mediaAttachment: mediaType },
+  })
+}
+
+function restoreThreadMediaSelection(
+  selection: MediaSelectionResult<SkyPicThreadMediaDraftContext> | null,
+): boolean {
+  if (!selection) return false
+  const context = selection.context
+  if (
+    !context?.friendshipId ||
+    !store.friends.some(
+      (friend) => friend.friendshipId === context.friendshipId,
+    )
+  ) {
+    pendingThreadMedia.value = []
+    return false
+  }
+  chatBody.value = Array.from(context.body ?? '')
+    .slice(0, MAX_MESSAGE_CHARACTERS)
+    .join('')
+  const selectedVideo = selection.media.find(
+    (media) => media.mediaType === 'video',
+  )
+  if (selectedVideo) {
+    pendingThreadMedia.value = [selectedVideo]
+    return true
+  }
+
+  const seen = new Set<number>()
+  pendingThreadMedia.value = [
+    ...(context.pendingMedia ?? []),
+    ...selection.media,
+  ]
+    .filter((media) => {
+      if (media.mediaType !== 'photo' || seen.has(media.id)) return false
+      seen.add(media.id)
+      return true
+    })
+    .slice(0, MAX_THREAD_ATTACHMENTS)
+  return true
+}
+
+function consumeThreadMediaDraft(): boolean {
+  return restoreThreadMediaSelection(
+    mediaPicker.consumeMany<SkyPicThreadMediaDraftContext>(
+      'skypic-thread-media',
+    ),
+  )
+}
+
+function toggleThreadAttachmentMenu(): void {
+  threadAttachmentMenuOpen.value = !threadAttachmentMenuOpen.value
+  threadEmojiOpen.value = false
+}
+
+function openThreadEmojiPicker(): void {
+  threadAttachmentMenuOpen.value = false
+  threadEmojiOpen.value = true
+}
+
+function appendThreadEmoji(emoji: string): void {
+  updateChatBody(`${chatBody.value}${emoji}`)
+}
+
+function removeThreadMedia(mediaId: number): void {
+  if (threadSending.value) return
+  pendingThreadMedia.value = pendingThreadMedia.value.filter(
+    (media) => media.id !== mediaId,
+  )
+}
+
+function moveThreadMedia(index: number, direction: -1 | 1): void {
+  if (threadSending.value) return
+  const target = index + direction
+  if (target < 0 || target >= pendingThreadMedia.value.length) return
+  const ordered = [...pendingThreadMedia.value]
+  ;[ordered[index], ordered[target]] = [ordered[target], ordered[index]]
+  pendingThreadMedia.value = ordered
 }
 
 function resetComposer(): void {
@@ -482,6 +823,10 @@ async function setTab(next: Tab): Promise<void> {
     (store.activeFriendshipId || store.threadLoading)
   ) {
     store.closeThread()
+    chatBody.value = ''
+    pendingThreadMedia.value = []
+    threadAttachmentMenuOpen.value = false
+    threadEmojiOpen.value = false
   }
   activeTab.value = next
   if (next === 'stories') await store.loadStories()
@@ -544,20 +889,72 @@ function closeThread(): void {
   threadNavigationRequest += 1
   store.closeThread()
   chatBody.value = ''
+  pendingThreadMedia.value = []
+  threadAttachmentMenuOpen.value = false
+  threadEmojiOpen.value = false
   void router.replace({ path: '/apps/skypic', query: { tab: 'chats' } })
 }
 
 async function submitMessage(): Promise<void> {
   const friendshipId = store.activeFriendshipId
+  const recipientId = store.activeConversation?.profile.id
   const body = boundedMessage(chatBody.value, 'chats.messageLimit')
   chatBody.value = body
-  if (!friendshipId || !body.trim()) return
-  const response = await store.sendMessage(friendshipId, body)
-  if (!response.success) {
-    notify(errorText(response.error))
+  if (
+    !friendshipId ||
+    !recipientId ||
+    !threadComposerHasContent.value ||
+    threadSending.value
+  ) {
     return
   }
-  chatBody.value = ''
+  threadSending.value = true
+  threadAttachmentMenuOpen.value = false
+  threadEmojiOpen.value = false
+
+  const queuedMedia = [...pendingThreadMedia.value]
+  if (queuedMedia.length) {
+    const video = queuedMedia.length === 1 ? queuedMedia[0] : null
+    const response =
+      video?.mediaType === 'video'
+        ? await store.sendSnap({
+            allowReplay: true,
+            caption: '',
+            durationSeconds: 5,
+            mediaId: video.id,
+            mediaType: 'video',
+            overlayColor: '#ffffff',
+            recipientIds: [recipientId],
+            textOverlay: '',
+          })
+        : await store.sendSnap({
+            allowReplay: true,
+            caption: '',
+            durationSeconds: 5,
+            mediaIds: queuedMedia.map((media) => media.id),
+            overlayColor: '#ffffff',
+            recipientIds: [recipientId],
+            textOverlay: '',
+          })
+    if (!response.success) {
+      threadSending.value = false
+      notify(errorText(response.error))
+      return
+    }
+    pendingThreadMedia.value = []
+    notify(t('chats.photoAttachmentsSent'))
+  }
+
+  if (body.trim()) {
+    const response = await store.sendMessage(friendshipId, body)
+    if (!response.success) {
+      threadSending.value = false
+      notify(errorText(response.error))
+      return
+    }
+    chatBody.value = ''
+  }
+  threadSending.value = false
 }
 
 function messageKeydown(event: KeyboardEvent): void {
@@ -967,6 +1364,8 @@ async function applyRouteQuery(query: LocationQuery): Promise<void> {
     activeTab.value = requestedTab
   }
 
+  consumeAuthMediaDraft()
+  consumeThreadMediaDraft()
   if (queryValue(query.compose)) consumeMediaDraft()
   const profileId = queryValue(query.profileId)
   highlightedProfileId.value = profileId
@@ -978,6 +1377,9 @@ async function applyRouteQuery(query: LocationQuery): Promise<void> {
   if (!requestedFriendship && store.activeFriendshipId) {
     store.closeThread()
     chatBody.value = ''
+    pendingThreadMedia.value = []
+    threadAttachmentMenuOpen.value = false
+    threadEmojiOpen.value = false
   }
   if (requestedFriendship && requestedFriendship !== store.activeFriendshipId) {
     const opened = await store.openThread(requestedFriendship)
@@ -1009,6 +1411,15 @@ async function applyRouteQuery(query: LocationQuery): Promise<void> {
 
 watch(searchQuery, scheduleSearch)
 watch(
+  () => store.profileAbsentRevision,
+  () => {
+    if (store.profile) return
+    if (appAuth.isSignedIn('skypic')) appAuth.signOut('skypic')
+    resetAccountUiState(false)
+    void router.replace({ path: '/apps/skypic', query: { tab: 'camera' } })
+  },
+)
+watch(
   () => store.openedSnap,
   (snap) => {
     if (snap) prepareViewerMedia('snap', snap.durationSeconds)
@@ -1038,11 +1449,25 @@ async function bootstrapApp(): Promise<void> {
   bootstrapped.value = false
   bootstrapFailed.value = false
   store.resetSession()
+  if (!account.email) {
+    resetAccountUiState(false)
+    bootstrapped.value = true
+    return
+  }
   const loaded = await store.bootstrap()
   if (!appMounted) return
   if (!loaded) {
     bootstrapFailed.value = true
     return
+  }
+  hasSkyPicAccount.value = Boolean(store.profile)
+  if (!appAuth.isSignedIn('skypic')) {
+    authMode.value = hasSkyPicAccount.value ? 'login' : 'register'
+    store.resetSession()
+  } else if (!store.profile) {
+    appAuth.signOut('skypic')
+    authMode.value = 'register'
+    store.resetSession()
   }
   bootstrapped.value = true
   syncProfileDraft()
@@ -1077,6 +1502,10 @@ onBeforeUnmount(() => {
     :dark="isDarkPage"
     :label="t('name')"
     class="skypic-app"
+    :class="{
+      'skypic-app--player-dark': phone.isDarkMode,
+      'skypic-app--player-light': !phone.isDarkMode,
+    }"
   >
     <div v-if="store.loading && !bootstrapped" class="sp-loading">
       <SkySpinner />
@@ -1088,6 +1517,38 @@ onBeforeUnmount(() => {
         {{ phone.t('Common.retry') }}
       </SkyButton>
     </div>
+
+    <section v-else-if="!isAuthenticated" class="sp-auth">
+      <AppProfileAuth
+        v-model:username="authHandle"
+        :avatar-url="authPhoto?.url ?? null"
+        :body="t(authMode === 'login' ? 'auth.body' : 'onboarding.body')"
+        :camera-label="t('camera.capturePhoto')"
+        :email="account.email"
+        :email-label="t('auth.eyebrow')"
+        :error="authError"
+        :eyebrow="t('auth.eyebrow')"
+        :gallery-label="t('camera.gallery')"
+        :login-label="t('auth.login')"
+        :max-username-length="24"
+        :min-username-length="3"
+        :mode="authMode"
+        :pending="authSubmitting"
+        :register-label="t('onboarding.create')"
+        :submit-enabled="authSubmitEnabled"
+        :title="t(authMode === 'login' ? 'auth.title' : 'onboarding.title')"
+        :username-label="t('onboarding.handle')"
+        :username-placeholder="t('onboarding.handlePlaceholder')"
+        variant="centered"
+        @camera="openAuthMedia('camera')"
+        @gallery="openAuthMedia('photos')"
+        @submit="submitAuthentication"
+        @update:mode="switchAuthMode"
+      />
+      <p v-if="!account.email" class="sp-auth__hint">
+        {{ t('auth.noAccount') }}
+      </p>
+    </section>
 
     <template v-else-if="!store.profile">
       <SkyNavbar :title="t('onboarding.title')" />
@@ -1401,25 +1862,192 @@ onBeforeUnmount(() => {
             :title="t('chats.start')"
           />
         </SkyScrollArea>
-        <SkyMessagebar
-          :model-value="chatBody"
-          :aria-label="t('chats.threadPlaceholder')"
-          :placeholder="t('chats.threadPlaceholder')"
-          @keydown="messageKeydown"
-          @update:model-value="updateChatBody"
+        <section
+          v-if="threadAttachmentMenuOpen"
+          class="sp-thread-attachment-menu"
+          :class="{
+            'sp-thread-attachment-menu--with-preview':
+              pendingThreadMedia.length > 0,
+          }"
+          :aria-label="t('chats.moreActions')"
         >
-          <template #right>
-            <button
-              type="button"
-              class="sp-send-button"
-              :aria-label="phone.t('Common.send')"
-              :disabled="!chatBody.trim()"
-              @click="submitMessage"
+          <SkyGlass
+            component="button"
+            type="button"
+            :disabled="
+              threadSending ||
+              pendingThreadMedia.some((media) => media.mediaType === 'video')
+            "
+            @click="openThreadMedia('photos', 'photo')"
+          >
+            <span class="sp-thread-attachment-menu__icon is-photo">
+              <Images :size="20" aria-hidden="true" />
+            </span>
+            {{ t('chats.attachPhoto') }}
+          </SkyGlass>
+          <SkyGlass
+            component="button"
+            type="button"
+            :disabled="
+              threadSending ||
+              pendingThreadMedia.some((media) => media.mediaType === 'video')
+            "
+            @click="openThreadMedia('camera', 'photo')"
+          >
+            <span class="sp-thread-attachment-menu__icon is-camera">
+              <Camera :size="20" aria-hidden="true" />
+            </span>
+            {{ t('chats.takePhoto') }}
+          </SkyGlass>
+          <SkyGlass
+            component="button"
+            type="button"
+            :disabled="threadSending"
+            @click="openThreadEmojiPicker"
+          >
+            <span class="sp-thread-attachment-menu__emoji" aria-hidden="true">
+              😀
+            </span>
+            {{ t('chats.emoji') }}
+          </SkyGlass>
+          <SkyGlass
+            component="button"
+            type="button"
+            :disabled="threadSending || pendingThreadMedia.length > 0"
+            @click="openThreadMedia('photos', 'video')"
+          >
+            <span class="sp-thread-attachment-menu__icon is-video">
+              <Video :size="20" aria-hidden="true" />
+            </span>
+            {{ t('chats.attachVideo') }}
+          </SkyGlass>
+        </section>
+
+        <FullEmojiPicker
+          v-if="threadEmojiOpen"
+          @close="threadEmojiOpen = false"
+          @pick="appendThreadEmoji"
+        />
+
+        <div class="sp-thread-composer">
+          <div
+            v-if="pendingThreadMedia.length"
+            class="sp-thread-media-preview"
+            role="list"
+            :aria-label="t('chats.attachmentPreview')"
+          >
+            <article
+              v-for="(media, index) in pendingThreadMedia"
+              :key="media.id"
+              class="sp-thread-media-preview__item"
+              role="listitem"
             >
-              <Send :size="18" aria-hidden="true" />
-            </button>
-          </template>
-        </SkyMessagebar>
+              <img
+                v-if="media.mediaType === 'photo' || media.thumbnailUrl"
+                :src="media.thumbnailUrl ?? media.url"
+                :alt="
+                  phone.t(
+                    media.mediaType === 'video'
+                      ? 'Apps.photos.videoAlt'
+                      : 'Apps.photos.photoAlt',
+                  )
+                "
+              />
+              <video
+                v-else
+                :src="media.url"
+                :aria-label="phone.t('Apps.photos.videoAlt')"
+                muted
+                playsinline
+                preload="metadata"
+              />
+              <span class="sp-thread-media-preview__order">
+                <button
+                  type="button"
+                  :disabled="threadSending || index === 0"
+                  :aria-label="
+                    t('chats.moveAttachmentEarlier', {
+                      number: String(index + 1),
+                    })
+                  "
+                  @click="moveThreadMedia(index, -1)"
+                >
+                  <ChevronLeft :size="13" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  :disabled="
+                    threadSending || index === pendingThreadMedia.length - 1
+                  "
+                  :aria-label="
+                    t('chats.moveAttachmentLater', {
+                      number: String(index + 1),
+                    })
+                  "
+                  @click="moveThreadMedia(index, 1)"
+                >
+                  <ChevronRight :size="13" aria-hidden="true" />
+                </button>
+              </span>
+              <button
+                type="button"
+                class="sp-thread-media-preview__remove"
+                :disabled="threadSending"
+                :aria-label="
+                  t('chats.removeAttachment', {
+                    number: String(index + 1),
+                  })
+                "
+                @click="removeThreadMedia(media.id)"
+              >
+                <X :size="13" aria-hidden="true" />
+              </button>
+            </article>
+          </div>
+
+          <SkyMessagebar
+            embedded
+            class="sp-thread-messagebar"
+            :model-value="chatBody"
+            :aria-label="t('chats.threadPlaceholder')"
+            :disabled="threadSending"
+            :placeholder="
+              threadSending
+                ? t('chats.sendingAttachments')
+                : t('chats.threadPlaceholder')
+            "
+            @keydown="messageKeydown"
+            @update:model-value="updateChatBody"
+          >
+            <template #left>
+              <SkyGlass
+                component="button"
+                type="button"
+                class="sp-thread-plus"
+                :class="{
+                  'is-active': threadAttachmentMenuOpen || threadEmojiOpen,
+                }"
+                :disabled="threadSending"
+                :aria-label="t('chats.moreActions')"
+                @click="toggleThreadAttachmentMenu"
+              >
+                <Plus :size="23" aria-hidden="true" />
+              </SkyGlass>
+            </template>
+            <template #right>
+              <button
+                type="button"
+                class="sp-send-button"
+                :aria-label="phone.t('Common.send')"
+                :disabled="!threadComposerHasContent || threadSending"
+                @click="submitMessage"
+              >
+                <SkySpinner v-if="threadSending" :size="16" />
+                <Send v-else :size="18" aria-hidden="true" />
+              </button>
+            </template>
+          </SkyMessagebar>
+        </div>
       </template>
 
       <template v-else>
@@ -1925,6 +2553,21 @@ onBeforeUnmount(() => {
                   :aria-label="t('profile.showInQuickAdd')"
                 />
               </label>
+              <fieldset class="sp-account-settings">
+                <legend>{{ t('profile.account') }}</legend>
+                <button type="button" @click="logoutDialogOpen = true">
+                  <LogOut :size="18" aria-hidden="true" />
+                  <span>{{ t('profile.logout') }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="sp-account-settings__danger"
+                  @click="deleteAccountDialogOpen = true"
+                >
+                  <Trash2 :size="18" aria-hidden="true" />
+                  <span>{{ t('profile.deleteAccount') }}</span>
+                </button>
+              </fieldset>
               <div class="sp-editor-actions">
                 <SkyButton
                   outline
@@ -2191,6 +2834,7 @@ onBeforeUnmount(() => {
         </template>
         <SkyTabBar :aria-label="t('navigation')">
           <SkyTabButton
+            class="sp-tab sp-tab--camera"
             :active="activeTab === 'camera'"
             :aria-label="t('tabs.camera')"
             :label="t('tabs.camera')"
@@ -2201,6 +2845,7 @@ onBeforeUnmount(() => {
             </template>
           </SkyTabButton>
           <SkyTabButton
+            class="sp-tab sp-tab--monochrome"
             :active="activeTab === 'chats'"
             :aria-label="t('tabs.chats')"
             :label="t('tabs.chats')"
@@ -2221,6 +2866,7 @@ onBeforeUnmount(() => {
             </template>
           </SkyTabButton>
           <SkyTabButton
+            class="sp-tab sp-tab--monochrome"
             :active="activeTab === 'stories'"
             :aria-label="t('tabs.stories')"
             :label="t('tabs.stories')"
@@ -2231,6 +2877,7 @@ onBeforeUnmount(() => {
             </template>
           </SkyTabButton>
           <SkyTabButton
+            class="sp-tab sp-tab--monochrome"
             :active="activeTab === 'friends'"
             :aria-label="t('tabs.friends')"
             :label="t('tabs.friends')"
@@ -2501,6 +3148,45 @@ onBeforeUnmount(() => {
       </section>
     </SkySheet>
 
+    <AccountLogoutDialog
+      v-model:opened="logoutDialogOpen"
+      app-id="skypic"
+      :app-name="t('name')"
+      @logged-out="handleLoggedOut"
+    />
+
+    <SkyDialog
+      :opened="deleteAccountDialogOpen"
+      @backdropclick="
+        !accountActionPending && (deleteAccountDialogOpen = false)
+      "
+    >
+      <template #title>{{ t('profile.deleteAccountTitle') }}</template>
+      <p>{{ t('profile.deleteAccountBody') }}</p>
+      <template #buttons>
+        <SkyDialogButton
+          :disabled="accountActionPending"
+          @click="deleteAccountDialogOpen = false"
+        >
+          {{ phone.t('Common.cancel') }}
+        </SkyDialogButton>
+        <SkyDialogButton
+          strong
+          class="sp-delete-account-confirm"
+          :disabled="accountActionPending"
+          @click="deleteSkyPicAccount"
+        >
+          {{
+            t(
+              accountActionPending
+                ? 'profile.deletingAccount'
+                : 'profile.deleteAccount',
+            )
+          }}
+        </SkyDialogButton>
+      </template>
+    </SkyDialog>
+
     <SkyNotification
       :opened="Boolean(feedback)"
       :text="feedback"
@@ -2514,12 +3200,43 @@ onBeforeUnmount(() => {
 .skypic-app {
   --sp-accent: #5a6cff;
   --sp-accent-strong: #4254f2;
-  --sp-cyan: #42e8ff;
+  --sp-camera-blue: #0a84ff;
+  --sp-camera-blue-strong: #0067d8;
   --sp-pink: #ff5bbd;
   position: relative;
   display: flex;
   overflow: hidden;
   flex-direction: column;
+}
+
+.skypic-app--player-light {
+  --sp-tab-monochrome: #000000;
+}
+
+.skypic-app--player-dark {
+  --sp-tab-monochrome: #ffffff;
+}
+
+.sp-auth {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(var(--sky-safe-area-top) + var(--sky-space-3))
+    var(--sky-page-gutter)
+    calc(var(--sky-safe-area-bottom) + var(--sky-space-5));
+}
+
+.sp-auth__hint {
+  max-width: 290px;
+  margin: 0 auto;
+  color: var(--sky-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.sp-auth :deep(.app-profile-auth) {
+  --auth-accent: #0a84ff;
 }
 
 .sp-loading {
@@ -2877,6 +3594,8 @@ input:focus-visible {
 }
 
 .sp-camera-screen {
+  --sky-app-accent: var(--sp-camera-blue);
+  --sky-app-accent-soft: rgba(10, 132, 255, 0.2);
   display: flex;
   flex: 1;
   min-height: 0;
@@ -2887,15 +3606,15 @@ input:focus-visible {
   background:
     radial-gradient(
       circle at 12% 14%,
-      rgba(84, 102, 255, 0.34),
-      transparent 36%
+      rgba(37, 149, 255, 0.44),
+      transparent 38%
     ),
     radial-gradient(
       circle at 88% 58%,
-      rgba(255, 91, 189, 0.25),
-      transparent 34%
+      rgba(10, 132, 255, 0.24),
+      transparent 36%
     ),
-    linear-gradient(165deg, #10152a 0%, #151b38 50%, #0e1120 100%);
+    linear-gradient(165deg, #07172d 0%, #0b2444 50%, #061326 100%);
   color: white;
 }
 
@@ -2945,7 +3664,7 @@ input:focus-visible {
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: rgba(90, 108, 255, 0.34);
+  background: rgba(10, 132, 255, 0.38);
   filter: blur(40px);
 }
 
@@ -2957,8 +3676,8 @@ input:focus-visible {
 
 .sp-camera-preview > svg {
   margin-bottom: var(--sky-space-4);
-  color: var(--sp-cyan);
-  filter: drop-shadow(0 7px 18px rgba(66, 232, 255, 0.35));
+  color: #55b4ff;
+  filter: drop-shadow(0 7px 18px rgba(10, 132, 255, 0.42));
 }
 
 .sp-camera-preview p {
@@ -3019,7 +3738,11 @@ input:focus-visible {
   height: 58px;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(145deg, var(--sp-accent), var(--sp-pink));
+  background: linear-gradient(
+    145deg,
+    var(--sp-camera-blue),
+    var(--sp-camera-blue-strong)
+  );
 }
 
 .sp-snap-strip {
@@ -3149,6 +3872,178 @@ input:focus-visible {
 
 .sp-thread-snap:disabled {
   opacity: 0.58;
+}
+
+.sp-thread-attachment-menu {
+  position: absolute;
+  z-index: 46;
+  bottom: calc(var(--sky-safe-area-bottom) + 68px);
+  left: var(--sky-page-gutter);
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.sp-thread-attachment-menu--with-preview {
+  bottom: calc(var(--sky-safe-area-bottom) + 188px);
+}
+
+.sp-thread-attachment-menu :deep(.sky-glass) {
+  width: auto;
+  min-width: 154px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 5px 14px 5px 7px;
+  border-radius: var(--sky-radius-pill);
+  background: color-mix(in srgb, var(--sky-glass-solid) 88%, transparent);
+  color: var(--sky-text);
+  font-size: 13px;
+  font-weight: 750;
+  backdrop-filter: blur(22px) saturate(1.25);
+}
+
+.sp-thread-attachment-menu__icon,
+.sp-thread-attachment-menu__emoji {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--sky-surface);
+}
+
+.sp-thread-attachment-menu__icon.is-photo {
+  color: #0a84ff;
+}
+
+.sp-thread-attachment-menu__icon.is-camera {
+  color: #30c76c;
+}
+
+.sp-thread-attachment-menu__icon.is-video {
+  color: #0a84ff;
+}
+
+.sp-thread-attachment-menu__emoji {
+  font-size: 21px;
+}
+
+.sp-thread-composer {
+  position: relative;
+  z-index: 42;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--sky-space-2);
+  padding: 6px var(--sky-page-gutter) calc(var(--sky-safe-area-bottom) + 6px);
+  border-top: 1px solid var(--sky-hairline);
+  background: var(--sky-bg);
+}
+
+.sp-thread-media-preview {
+  display: flex;
+  gap: var(--sky-space-2);
+  overflow-x: auto;
+  padding: 4px 3px 2px;
+  scrollbar-width: none;
+}
+
+.sp-thread-media-preview::-webkit-scrollbar {
+  display: none;
+}
+
+.sp-thread-media-preview__item {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  flex: 0 0 104px;
+  border-radius: var(--sky-radius-card);
+  background: var(--sky-surface-muted);
+}
+
+.sp-thread-media-preview__item > img,
+.sp-thread-media-preview__item > video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.sp-thread-media-preview__remove,
+.sp-thread-media-preview__order button {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--sky-bg);
+  border-radius: 50%;
+  background: var(--sky-text);
+  color: var(--sky-bg);
+}
+
+.sp-thread-media-preview__remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: var(--sky-touch-target);
+  height: var(--sky-touch-target);
+}
+
+.sp-thread-media-preview__order {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  left: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.sp-thread-media-preview__order button {
+  width: var(--sky-touch-target);
+  height: var(--sky-touch-target);
+  border-color: rgba(255, 255, 255, 0.52);
+  background: rgba(0, 0, 0, 0.64);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+.sp-thread-media-preview__order button:disabled {
+  visibility: hidden;
+}
+
+.sp-thread-messagebar {
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.sp-thread-messagebar :deep(.sky-toolbar__inner) {
+  gap: var(--sky-space-2);
+}
+
+.sp-thread-messagebar :deep(.sky-messagebar__area) {
+  min-height: 48px;
+  border-radius: var(--sky-radius-pill);
+}
+
+.sp-thread-plus {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  padding: 0;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--sky-text);
+  transition: transform var(--sky-transition-normal) ease;
+}
+
+.sp-thread-plus.is-active {
+  color: #0a84ff;
+  transform: rotate(45deg);
 }
 
 .sp-send-button {
@@ -3341,6 +4236,44 @@ input:focus-visible {
   background: var(--sky-surface);
 }
 
+.sp-account-settings {
+  display: grid;
+  gap: var(--sky-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--sky-space-3);
+  border: 1px solid var(--sky-hairline);
+  border-radius: var(--sky-radius-control);
+}
+
+.sp-account-settings legend {
+  padding: 0 5px;
+  color: var(--sky-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.sp-account-settings button {
+  display: flex;
+  align-items: center;
+  gap: var(--sky-space-2);
+  min-height: var(--sky-touch-target);
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--sky-radius-control);
+  background: var(--sky-surface-variant);
+  color: var(--sky-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.sp-account-settings__danger,
+.sp-delete-account-confirm {
+  color: var(--sky-danger, #ff3b30) !important;
+}
+
 .sp-settings-label {
   display: grid;
   gap: var(--sky-space-2);
@@ -3403,6 +4336,26 @@ input:focus-visible {
   color: var(--sky-text);
   font-size: 9px;
   gap: 2px;
+}
+
+:deep(.sp-tab) {
+  transition:
+    color var(--sky-transition-normal) ease,
+    opacity var(--sky-transition-normal) ease;
+}
+
+:deep(.sp-tab:not(.sky-tab-button--active)) {
+  opacity: 0.58;
+}
+
+:deep(.sp-tab--camera),
+:deep(.sp-tab--camera.sky-tab-button--active) {
+  color: var(--sp-camera-blue) !important;
+}
+
+:deep(.sp-tab--monochrome),
+:deep(.sp-tab--monochrome.sky-tab-button--active) {
+  color: var(--sp-tab-monochrome) !important;
 }
 
 .sp-tab-icon {
@@ -3593,6 +4546,11 @@ input:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .sp-viewer-progress span {
+    transition: none;
+  }
+
+  .sp-thread-plus,
+  :deep(.sp-tab) {
     transition: none;
   }
 

@@ -37,6 +37,24 @@ describe('app auth store', () => {
     })
   })
 
+  it('persists the SkyPic session independently', () => {
+    const auth = useAppAuthStore()
+    auth.hydrate(null, 'demo@ifruit.com')
+
+    auth.signIn('skypic', 'demo@ifruit.com')
+
+    expect(auth.isSignedIn('skypic')).toBe(true)
+    expect(auth.isSignedIn('feather')).toBe(false)
+    expect(saveDeviceNamespace).toHaveBeenLastCalledWith('appAuth', {
+      accountEmail: 'demo@ifruit.com',
+      signedIn: ['skypic'],
+      version: 1,
+    })
+
+    auth.signOut('skypic')
+    expect(auth.isSignedIn('skypic')).toBe(false)
+  })
+
   it('does not restore sessions belonging to another iFruit account', () => {
     const auth = useAppAuthStore()
     auth.hydrate(

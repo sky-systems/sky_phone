@@ -3456,6 +3456,44 @@ function skyPicRecipientIds(value) {
   return ids
 }
 
+function skyPicMediaItems(body) {
+  const legacy = body.mediaIds === undefined
+  if (
+    !legacy &&
+    (body.mediaId !== undefined ||
+      (body.mediaType !== undefined && body.mediaType !== 'photo'))
+  ) {
+    return null
+  }
+  const submitted = legacy ? [body.mediaId] : body.mediaIds
+  if (
+    !Array.isArray(submitted) ||
+    submitted.length < 1 ||
+    submitted.length > 10 ||
+    Object.keys(submitted).length !== submitted.length
+  ) {
+    return null
+  }
+  const seen = new Set()
+  const mediaItems = []
+  for (const mediaId of submitted) {
+    if (!Number.isInteger(mediaId) || mediaId < 1 || seen.has(mediaId)) {
+      return null
+    }
+    const media = mockMedia.find((item) => item.id === mediaId)
+    if (
+      !media ||
+      media.mediaType !==
+        (legacy && body.mediaType === 'video' ? 'video' : 'photo')
+    ) {
+      return null
+    }
+    seen.add(mediaId)
+    mediaItems.push(media)
+  }
+  return mediaItems
+}
+
 function skyPicMessageBody(value) {
   const body = typeof value === 'string' ? value.trim() : ''
   if (!body) return { error: 'message_empty' }
@@ -3783,22 +3821,41 @@ function skyPicStoryVisible(story) {
 
 function skyPicBootstrap(testScenario = '') {
   if (testScenario === 'skypic-onboarding') {
+    const profile = skyPicOnboardingProfile
+      ? { ...skyPicOnboardingProfile }
+      : null
     return {
       blockedProfiles: [],
       conversations: [],
       friends: [],
       inbox: [],
-      profile: skyPicOnboardingProfile ? { ...skyPicOnboardingProfile } : null,
+      profile,
       requests: [],
       stories: [],
-      suggestions: skyPicProfiles
-        .slice(1)
-        .filter(
-          (item) =>
-            !skyPicBlockedProfileIds.has(item.id) &&
-            skyPicFriendshipStatus(item.id) === 'none',
-        )
-        .map(skyPicDiscoveryProfile),
+      suggestions: profile
+        ? skyPicProfiles
+            .slice(1)
+            .filter(
+              (item) =>
+                !skyPicBlockedProfileIds.has(item.id) &&
+                skyPicFriendshipStatus(item.id) === 'none',
+            )
+            .map(skyPicDiscoveryProfile)
+        : [],
+      unreadCount: 0,
+    }
+  }
+
+  if (!skyPicProfile) {
+    return {
+      blockedProfiles: [],
+      conversations: [],
+      friends: [],
+      inbox: [],
+      profile: null,
+      requests: [],
+      stories: [],
+      suggestions: [],
       unreadCount: 0,
     }
   }
@@ -7996,6 +8053,7 @@ app.post('/api/:endpoint', (request, response) => {
       avatarUrl: avatar?.url ?? null,
       displayName,
       handle,
+      snapScore: 0,
     })
     skyPicProfile = {
       ...skyPicProfiles[0],
@@ -8008,6 +8066,40 @@ app.post('/api/:endpoint', (request, response) => {
       storyPrivacy: 'friends',
     }
     response.json({ success: true, data: { ...skyPicProfile } })
+    return
+  }
+  if (endpoint === 'skypic:delete-account') {
+    if (request.body.confirmed !== true) {
+      response.json({ success: false, error: 'confirmation_required' })
+      return
+    }
+    if (testScenario === 'skypic-onboarding') {
+      if (!skyPicOnboardingProfile) {
+        response.json({ success: false, error: 'profile_required' })
+        return
+      }
+      skyPicOnboardingProfile = null
+      response.json({ success: true })
+      return
+    }
+    if (!skyPicProfile) {
+      response.json({ success: false, error: 'profile_required' })
+      return
+    }
+    skyPicProfile = null
+    skyPicFriends = []
+    skyPicRequests = []
+    skyPicConversations = []
+    skyPicSnaps = []
+    skyPicMessages.clear()
+    skyPicBlockedProfileIds.clear()
+    for (const story of skyPicStories) {
+      if (!story.isOwner) continue
+      skyPicStoryContents.delete(story.id)
+      skyPicStoryViewers.delete(story.id)
+    }
+    skyPicStories = skyPicStories.filter((story) => !story.isOwner)
+    response.json({ success: true })
     return
   }
   if (endpoint === 'skypic:update-profile') {
@@ -8220,10 +8312,29 @@ app.post('/api/:endpoint', (request, response) => {
       response.json({ success: false, error: 'profile_required' })
       return
     }
-    const mediaId = Number(request.body.mediaId)
-    const media = mockMedia.find((item) => item.id === mediaId)
-    const mediaType = request.body.mediaType === 'video' ? 'video' : 'photo'
-    if (!media || media.mediaType !== mediaType) {
+    const recipientIds = skyPicRecipientIds(request.body.recipientIds)
+    if (!recipientIds) {
+      response.json({ success: false, error: 'invalid_recipients' })
+      return
+    }
+    if (
+      request.body.mediaIds !== undefined &&
+      (!Array.isArray(request.body.mediaIds) ||
+        request.body.mediaIds.length < 1 ||
+        request.body.mediaIds.length > 10)
+    ) {
+      response.json({ success: false, error: 'invalid_media' })
+      return
+    }
+    const requestedMediaCount = Array.isArray(request.body.mediaIds)
+      ? request.body.mediaIds.length
+      : 1
+    if (requestedMediaCount * recipientIds.length > 40) {
+      response.json({ success: false, error: 'too_many_snaps' })
+      return
+    }
+    const mediaItems = skyPicMediaItems(request.body)
+    if (!mediaItems) {
       response.json({ success: false, error: 'invalid_media' })
       return
     }
@@ -8237,11 +8348,6 @@ app.post('/api/:endpoint', (request, response) => {
       response.json({ success: false, error: 'invalid_overlay' })
       return
     }
-    const recipientIds = skyPicRecipientIds(request.body.recipientIds)
-    if (!recipientIds) {
-      response.json({ success: false, error: 'invalid_recipients' })
-      return
-    }
     const recipients = recipientIds
       .map((profileId) =>
         skyPicFriends.find((friend) => friend.profile.id === profileId),
@@ -8249,6 +8355,10 @@ app.post('/api/:endpoint', (request, response) => {
       .filter(Boolean)
     if (!recipients.length || recipients.length !== recipientIds.length) {
       response.json({ success: false, error: 'invalid_recipients' })
+      return
+    }
+    if (mediaItems.length * recipients.length > 40) {
+      response.json({ success: false, error: 'too_many_snaps' })
       return
     }
     const createdAt = new Date().toISOString()
@@ -8262,39 +8372,43 @@ app.post('/api/:endpoint', (request, response) => {
     const overlayColor = /^#[0-9a-f]{6}$/i.test(request.body.overlayColor)
       ? request.body.overlayColor
       : '#ffffff'
-    skyPicIncrementOwnScore(recipients.length)
-    const sent = recipients.map((friend) => {
-      const snap = {
-        allowReplay: request.body.allowReplay === true,
-        createdAt,
-        direction: 'sent',
-        durationSeconds,
-        expiresAt,
-        friendshipId: friend.friendshipId,
-        id: randomUUID(),
-        openedAt: null,
-        replayedAt: null,
-        sender: skyPicProfiles[0],
-        type: mediaType === 'video' ? 'snap_video' : 'snap_photo',
+    skyPicIncrementOwnScore(recipients.length * mediaItems.length)
+    const sent = []
+    for (const friend of recipients) {
+      for (const media of mediaItems) {
+        const mediaType = media.mediaType === 'video' ? 'video' : 'photo'
+        const snap = {
+          allowReplay: request.body.allowReplay === true,
+          createdAt,
+          direction: 'sent',
+          durationSeconds,
+          expiresAt,
+          friendshipId: friend.friendshipId,
+          id: randomUUID(),
+          openedAt: null,
+          replayedAt: null,
+          sender: skyPicProfiles[0],
+          type: mediaType === 'video' ? 'snap_video' : 'snap_photo',
+        }
+        skyPicSnaps.push(snap)
+        skyPicSnapContents.set(snap.id, {
+          caption,
+          mediaType,
+          mimeType: mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
+          overlayColor,
+          textOverlay,
+          url: media.url,
+        })
+        skyPicUpdateConversation(friend.friendshipId, {
+          createdAt,
+          direction: 'sent',
+          id: snap.id,
+          openedAt: null,
+          type: snap.type,
+        })
+        sent.push(skyPicSnapView(snap))
       }
-      skyPicSnaps.push(snap)
-      skyPicSnapContents.set(snap.id, {
-        caption,
-        mediaType,
-        mimeType: mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
-        overlayColor,
-        textOverlay,
-        url: media.url,
-      })
-      skyPicUpdateConversation(friend.friendshipId, {
-        createdAt,
-        direction: 'sent',
-        id: snap.id,
-        openedAt: null,
-        type: snap.type,
-      })
-      return skyPicSnapView(snap)
-    })
+    }
     response.json({ success: true, data: sent })
     return
   }

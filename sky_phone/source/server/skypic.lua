@@ -284,7 +284,7 @@ local function notify_profile(recipient_profile_id, actor, kind, snap_id)
         actor = actor.display_name,
         profileId = actor.profile_id,
         snapId = snap_id,
-    })
+    }, 'skypic')
 end
 
 local function safe_snap_from_row(row, viewer_id)
@@ -716,6 +716,100 @@ Bridge.Callbacks.Register("sky_phone:skypic:create-profile", function(source, da
     end
     local created = require_profile(source)
     return { success = true, data = profile_from_row(created) }
+end)
+
+Bridge.Callbacks.Register("sky_phone:skypic:delete-account", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_profile_delete", 3, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, account, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    if type(data) ~= "table" or data.confirmed ~= true then
+        return { success = false, error = "confirmation_required" }
+    end
+    local affected_accounts = Bridge.Database.Query([[
+        SELECT DISTINCT affected.`account_id`
+        FROM (
+            SELECT peer.`account_id`
+            FROM `sky_phone_skypic_friendships` friendship
+            JOIN `sky_phone_skypic_profiles` peer
+                ON peer.`id` = CASE
+                    WHEN friendship.`profile_a_id` = ? THEN friendship.`profile_b_id`
+                    ELSE friendship.`profile_a_id`
+                END
+                AND peer.`status` = 'active'
+            WHERE friendship.`profile_a_id` = ? OR friendship.`profile_b_id` = ?
+            UNION ALL
+            SELECT peer.`account_id`
+            FROM `sky_phone_skypic_blocks` block
+            JOIN `sky_phone_skypic_profiles` peer
+                ON peer.`id` = CASE
+                    WHEN block.`blocker_profile_id` = ? THEN block.`blocked_profile_id`
+                    ELSE block.`blocker_profile_id`
+                END
+                AND peer.`status` = 'active'
+            WHERE block.`blocker_profile_id` = ? OR block.`blocked_profile_id` = ?
+        ) affected
+    ]], {
+        profile.profile_id, profile.profile_id, profile.profile_id,
+        profile.profile_id, profile.profile_id, profile.profile_id,
+    })
+
+    local ok = Bridge.Database.Transaction({
+        {
+            -- Keep the peers' denormalized limit counter correct before the
+            -- friendship rows disappear through the profile cascade.
+            query = [[
+                UPDATE `sky_phone_skypic_profiles` peer
+                JOIN `sky_phone_skypic_friendships` friendship
+                    ON friendship.`status` = 'accepted'
+                    AND (
+                        (friendship.`profile_a_id` = ? AND peer.`id` = friendship.`profile_b_id`)
+                        OR (friendship.`profile_b_id` = ? AND peer.`id` = friendship.`profile_a_id`)
+                    )
+                SET peer.`friend_count` = IF(
+                    peer.`friend_count` > 0, peer.`friend_count` - 1, 0
+                )
+                WHERE peer.`id` <> ?
+            ]],
+            params = { profile.profile_id, profile.profile_id, profile.profile_id },
+        },
+        {
+            query = [[
+                DELETE FROM `sky_phone_skypic_profiles`
+                WHERE `id` = ? AND `account_id` = ? AND `status` = 'active'
+            ]],
+            params = { profile.profile_id, account.id },
+        },
+    })
+    if not ok then
+        return { success = false, error = "request_failed" }
+    end
+    if Bridge.Database.Query(
+        "SELECT `id` FROM `sky_phone_skypic_profiles` WHERE `id` = ? LIMIT 1",
+        { profile.profile_id }
+    )[1] then
+        return { success = false, error = "request_failed" }
+    end
+
+    -- The generic media library belongs to the Sky account, not SkyPic. The
+    -- cascading profile delete intentionally removes only SkyPic rows.
+    SkyPhone.NotifyAccountDevices(account.id, "sky_phone:skypic:changed", {
+        reason = "account_deleted",
+        profileId = profile.profile_id,
+    }, 'skypic')
+    for _, affected in ipairs(affected_accounts) do
+        local affected_account_id = tonumber(affected.account_id)
+        if affected_account_id and affected_account_id ~= tonumber(account.id) then
+            SkyPhone.NotifyAccountDevices(affected_account_id, "sky_phone:skypic:changed", {
+                reason = "account_deleted",
+                profileId = profile.profile_id,
+            }, 'skypic')
+        end
+    end
+    return { success = true }
 end)
 
 Bridge.Callbacks.Register("sky_phone:skypic:update-profile", function(source, data)
@@ -1211,6 +1305,61 @@ local function editor_payload(source, data, allow_replay)
     }
 end
 
+local function snap_editor_payloads(source, data)
+    if type(data) ~= "table" then
+        return nil, "invalid_request"
+    end
+    if data.mediaIds == nil then
+        local editor, editor_error = editor_payload(source, data, true)
+        return editor and { editor } or nil, editor_error
+    end
+    if data.mediaId ~= nil or (data.mediaType ~= nil and data.mediaType ~= "photo") then
+        return nil, "invalid_media"
+    end
+    if type(data.mediaIds) ~= "table" then
+        return nil, "invalid_media"
+    end
+
+    local count = #data.mediaIds
+    if count < 1 or count > limit("MaximumMediaPerSend", 10) then
+        return nil, "invalid_media"
+    end
+    local key_count = 0
+    for key in pairs(data.mediaIds) do
+        if type(key) ~= "number" or key ~= math.floor(key) or key < 1 or key > count then
+            return nil, "invalid_media"
+        end
+        key_count = key_count + 1
+    end
+    if key_count ~= count then
+        return nil, "invalid_media"
+    end
+
+    local seen = {}
+    local editors = {}
+    for index = 1, count do
+        local media_id = valid_integer(data.mediaIds[index], 1, 9007199254740991)
+        if not media_id or seen[media_id] then
+            return nil, "invalid_media"
+        end
+        seen[media_id] = true
+        local editor, editor_error = editor_payload(source, {
+            mediaId = media_id,
+            mediaType = "photo",
+            durationSeconds = data.durationSeconds,
+            caption = data.caption,
+            textOverlay = data.textOverlay,
+            overlayColor = data.overlayColor,
+            allowReplay = data.allowReplay,
+        }, true)
+        if not editor then
+            return nil, editor_error
+        end
+        editors[#editors + 1] = editor
+    end
+    return editors
+end
+
 Bridge.Callbacks.Register("sky_phone:skypic:thread", function(source, data)
     if not SkyPhone.AllowOperation(source, "skypic_read", limit("ReadActionsPerMinute", 120), 60) then
         return { success = false, error = "rate_limited" }
@@ -1430,6 +1579,16 @@ local function recipient_ids(value)
     if count < 1 or count > limit("MaximumSnapRecipients", 20) then
         return nil
     end
+    local key_count = 0
+    for key in pairs(value) do
+        if type(key) ~= "number" or key ~= math.floor(key) or key < 1 or key > count then
+            return nil
+        end
+        key_count = key_count + 1
+    end
+    if key_count ~= count then
+        return nil
+    end
     local seen = {}
     local ids = {}
     for index = 1, count do
@@ -1465,10 +1624,17 @@ local function load_snap_metadata(message_ids, viewer_id)
         WHERE message.`id` IN (%s) AND message.`message_type` IN ('snap_photo','snap_video')
         ORDER BY message.`created_at`, message.`id`
     ]]):format(table.concat(placeholders, ",")), params)
-    local snaps = {}
+    local snaps_by_id = {}
     for _, row in ipairs(rows) do
-        snaps[#snaps + 1] = safe_snap_from_row(row, viewer_id)
-        snaps[#snaps].recipientProfileId = row.recipient_profile_id
+        local snap = safe_snap_from_row(row, viewer_id)
+        snap.recipientProfileId = row.recipient_profile_id
+        snaps_by_id[row.id] = snap
+    end
+    local snaps = {}
+    for _, message_id in ipairs(message_ids) do
+        if snaps_by_id[message_id] then
+            snaps[#snaps + 1] = snaps_by_id[message_id]
+        end
     end
     return snaps
 end
@@ -1521,15 +1687,35 @@ Bridge.Callbacks.Register("sky_phone:skypic:send-snap", function(source, data)
     if not profile then
         return error_response
     end
-    local editor, editor_error = editor_payload(source, data, true)
-    if not editor then
-        return { success = false, error = editor_error }
-    end
-    local recipients = recipient_ids(data.recipientIds)
+    local recipients = recipient_ids(type(data) == "table" and data.recipientIds or nil)
     if not recipients then
         return { success = false, error = "invalid_recipients" }
     end
-    for _ = 1, #recipients do
+    if type(data) == "table" and data.mediaIds ~= nil then
+        local raw_media_count = type(data.mediaIds) == "table" and #data.mediaIds or 0
+        if raw_media_count < 1 or raw_media_count > limit("MaximumMediaPerSend", 10) then
+            return { success = false, error = "invalid_media" }
+        end
+    end
+    local requested_media_count = type(data) == "table"
+        and type(data.mediaIds) == "table" and #data.mediaIds or 1
+    if requested_media_count * #recipients > limit("MaximumSnapMessagesPerSend", 40) then
+        return { success = false, error = "too_many_snaps" }
+    end
+    local editors, editor_error = snap_editor_payloads(source, data)
+    if not editors then
+        return { success = false, error = editor_error }
+    end
+    local message_count = #editors * #recipients
+    if message_count > limit("MaximumSnapMessagesPerSend", 40) then
+        return { success = false, error = "too_many_snaps" }
+    end
+    for _ = 2, #editors do
+        if not SkyPhone.AllowOperation(source, "skypic_snap", limit("SnapsPerMinute", 20), 60) then
+            return { success = false, error = "rate_limited" }
+        end
+    end
+    for _ = 1, message_count do
         if not SkyPhone.AllowOperation(
             source,
             "skypic_snap_recipient",
@@ -1551,14 +1737,18 @@ Bridge.Callbacks.Register("sky_phone:skypic:send-snap", function(source, data)
         if are_blocked(profile.profile_id, target_id) then
             return { success = false, error = "blocked" }
         end
-        entries[#entries + 1] = {
-            id = new_id(),
-            targetId = target_id,
-            friendship = friendship,
-        }
+        for _, editor in ipairs(editors) do
+            entries[#entries + 1] = {
+                id = new_id(),
+                targetId = target_id,
+                friendship = friendship,
+                editor = editor,
+            }
+        end
     end
     local statements = {}
     for _, entry in ipairs(entries) do
+        local editor = entry.editor
         statements[#statements + 1] = {
             query = [[
                 INSERT INTO `sky_phone_skypic_messages`
@@ -1652,11 +1842,15 @@ Bridge.Callbacks.Register("sky_phone:skypic:send-snap", function(source, data)
         UPDATE `sky_phone_skypic_profiles` SET `snap_score` = `snap_score` + ? WHERE `id` = ?
     ]], { #sent, profile.profile_id })
     local sender_score = (tonumber(profile.snap_score) or 0) + #sent
+    local notified_targets = {}
     for _, snap in ipairs(sent) do
         local target_id = snap.recipientProfileId
         snap.recipientProfileId = nil
         snap.sender.snapScore = sender_score
-        notify_profile(target_id, profile, "snap", snap.id)
+        if not notified_targets[target_id] then
+            notified_targets[target_id] = true
+            notify_profile(target_id, profile, "snap", snap.id)
+        end
     end
     return { success = true, data = sent }
 end)

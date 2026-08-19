@@ -97,6 +97,7 @@ type AppMessage = {
     | PicstagramVerificationData
     | PicstagramNotificationData
     | SkyPicNotificationData
+    | SkyPicChangedData
     | FeatherNotificationData
     | BankingChangedData
     | CryptoMarketChangedData
@@ -245,6 +246,12 @@ type SkyPicNotificationData = {
   snapId?: string
   text?: string
   title?: string
+}
+
+type SkyPicChangedData = {
+  device?: PhoneNotificationDevicePayload
+  profileId?: string
+  reason?: 'account_deleted'
 }
 
 type FeatherNotificationData = {
@@ -513,6 +520,35 @@ function cancelUnlockedPhoneDataLoad(): void {
   unlockedServicesIdle = undefined
 }
 
+async function refreshSkyPicState(refreshThread = false): Promise<void> {
+  if (!account.email || !appAuth.isSignedIn('skypic')) {
+    if (!account.email) {
+      skypic.resetSession()
+    } else {
+      if (!skypic.bootstrapPending) skypic.resetSession()
+    }
+    return
+  }
+  if (skypic.accountDeletePending) return
+  const accountEmail = account.email
+  const imei = phone.device?.imei ?? ''
+  const loaded = await skypic.bootstrap()
+  if (
+    !loaded ||
+    account.email !== accountEmail ||
+    (phone.device?.imei ?? '') !== imei ||
+    !appAuth.isSignedIn('skypic')
+  ) {
+    return
+  }
+  if (!skypic.profile) {
+    appAuth.signOut('skypic')
+    skypic.resetSession()
+    return
+  }
+  if (refreshThread) await skypic.refreshActiveThread()
+}
+
 function queueCompaniesChange(change: CompanyChangedPayload): void {
   if (!pendingCompaniesChange) {
     pendingCompaniesChange = { ...change }
@@ -540,7 +576,7 @@ function queueCompaniesChange(change: CompanyChangedPayload): void {
 
 async function bootstrapUnlockedPhoneData(): Promise<void> {
   const tasks: Array<() => Promise<unknown> | void> = [
-    () => (account.email ? skypic.bootstrap() : skypic.resetSession()),
+    () => refreshSkyPicState(),
     () => calls.bootstrap(),
     () => messages.loadConversations(),
     () => billing.loadOverview(),
@@ -927,6 +963,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     const data = event.data.data as SkyPicNotificationData
     const targetsActiveDevice =
       !data.device || data.device.imei === phone.device?.imei
+    const signedInOnActiveDevice = appAuth.isSignedIn('skypic')
     const notification: PhoneNotificationInput = {
       appId: 'skypic',
       route: skyPicNotificationRoute(data),
@@ -944,11 +981,24 @@ function onMessage(event: MessageEvent<AppMessage>): void {
         preferences: parsePhonePreferences(data.device.settings ?? null),
       }
     }
-    notifications.show(notification)
+    if (!targetsActiveDevice || signedInOnActiveDevice) {
+      notifications.show(notification)
+    }
+    if (phone.isOpen && targetsActiveDevice && signedInOnActiveDevice) {
+      void refreshSkyPicState(true)
+    } else if (
+      targetsActiveDevice &&
+      !signedInOnActiveDevice &&
+      !skypic.bootstrapPending
+    ) {
+      skypic.resetSession()
+    }
+  } else if (event.data?.type === 'skypic:changed' && event.data.data) {
+    const data = event.data.data as SkyPicChangedData
+    const targetsActiveDevice =
+      !data.device || data.device.imei === phone.device?.imei
     if (phone.isOpen && targetsActiveDevice) {
-      void skypic.bootstrap().then((loaded) => {
-        if (loaded) void skypic.refreshActiveThread()
-      })
+      void refreshSkyPicState(true)
     }
   } else if (
     event.data?.type === 'marketplace:new-message' &&

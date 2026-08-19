@@ -1,4 +1,4 @@
-import type { MediaType } from '@/types/media'
+import type { MediaType, PhoneMedia } from '@/types/media'
 
 export type SkyPicStoryPrivacy = 'everyone' | 'friends'
 export type SkyPicDirection = 'received' | 'sent'
@@ -181,18 +181,35 @@ export type SkyPicMediaDraftContext = {
   recipientIds: string[]
 }
 
-export type SkyPicSendSnapInput = {
-  allowReplay: boolean
+export type SkyPicThreadMediaDraftContext = {
+  body: string
+  friendshipId: string
+  pendingMedia: PhoneMedia[]
+}
+
+type SkyPicEditorInput = {
   caption: string
   durationSeconds: number
-  mediaId: number
-  mediaType: MediaType
   overlayColor: string
-  recipientIds: string[]
   textOverlay: string
 }
 
-export type SkyPicPublishStoryInput = Omit<
-  SkyPicSendSnapInput,
-  'allowReplay' | 'recipientIds'
->
+type SkyPicSingleMediaInput = {
+  mediaId: number
+  mediaIds?: never
+  mediaType: MediaType
+}
+
+type SkyPicMultipleMediaInput = {
+  mediaId?: never
+  mediaIds: number[]
+  mediaType?: never
+}
+
+export type SkyPicSendSnapInput = SkyPicEditorInput &
+  (SkyPicSingleMediaInput | SkyPicMultipleMediaInput) & {
+    allowReplay: boolean
+    recipientIds: string[]
+  }
+
+export type SkyPicPublishStoryInput = SkyPicEditorInput & SkyPicSingleMediaInput

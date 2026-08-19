@@ -6,11 +6,13 @@ const read = (path: string) =>
   readFileSync(new URL(path, import.meta.url), 'utf8')
 
 const app = read('./App.vue')
+const appAuth = read('./stores/app-auth.ts')
 const appIcon = read('./components/AppIcon.vue')
 const client = read('../../sky_phone/source/client/main.lua')
 const easyShare = read('../../sky_phone/source/server/easyshare.lua')
 const manifest = read('../../sky_phone/fxmanifest.lua')
 const mockServer = read('../testserver/index.cjs')
+const phoneServer = read('../../sky_phone/source/server/phone.lua')
 const reservedApps = read('../../sky_phone/source/shared/custom_apps.lua')
 const server = read('../../sky_phone/source/server/skypic.lua')
 const types = read('./types/skypic.ts')
@@ -18,6 +20,7 @@ const types = read('./types/skypic.ts')
 const callbacks = [
   'skypic:bootstrap',
   'skypic:create-profile',
+  'skypic:delete-account',
   'skypic:update-profile',
   'skypic:search',
   'skypic:add-friend',
@@ -82,12 +85,25 @@ describe('SkyPic cross-runtime integration contract', () => {
     expect(client).toContain(
       'SendNUIMessage({ type = "skypic:new", data = data })',
     )
+    expect(client).toContain(
+      'RegisterNetEvent("sky_phone:skypic:changed", function(data)',
+    )
+    expect(client).toContain(
+      'SendNUIMessage({ type = "skypic:changed", data = data })',
+    )
     expect(server).toContain(
       'notify_profile(friendship.peer_id, profile, story_id and "story_reply" or "message", nil)',
     )
     expect(server).toContain('profileId = actor.profile_id')
+    expect(phoneServer).toContain('required_app_auth')
+    expect(phoneServer).toContain(
+      'app_auth.accountEmail ~= device.account_email',
+    )
+    expect(phoneServer).toContain('has_required_app_session(device)')
+    expect(server.match(/}, 'skypic'\)/g)).toHaveLength(3)
 
     expect(app).toContain("event.data?.type === 'skypic:new'")
+    expect(app).toContain("event.data?.type === 'skypic:changed'")
     expect(app).toContain("appId: 'skypic'")
     expect(app).toContain('route: skyPicNotificationRoute(data)')
     expect(app).toContain("query.set('profileId', data.profileId)")
@@ -101,16 +117,17 @@ describe('SkyPic cross-runtime integration contract', () => {
       '!data.device || data.device.imei === phone.device?.imei',
     )
     expect(app).toContain('if (phone.isOpen && targetsActiveDevice)')
-    expect(app).toContain('void skypic.bootstrap().then((loaded) => {')
-    expect(app).toContain('if (loaded) void skypic.refreshActiveThread()')
+    expect(app).toContain('void refreshSkyPicState(true)')
+    expect(app).toContain('!targetsActiveDevice || signedInOnActiveDevice')
     expect(appIcon).toContain(
       "if (props.app.id === 'skypic') return skypic.unreadCount",
     )
   })
 
   it('scopes badge state to the active unlocked device and account session', () => {
+    expect(appAuth).toContain("'skypic'")
     expect(app).toContain(
-      '() => (account.email ? skypic.bootstrap() : skypic.resetSession())',
+      "if (!account.email || !appAuth.isSignedIn('skypic'))",
     )
     expect(app).toContain(
       "() => [phone.device?.imei ?? '', account.email] as const",
@@ -119,10 +136,22 @@ describe('SkyPic cross-runtime integration contract', () => {
       'if (imei === previousImei && email === previousEmail) return',
     )
     expect(app).toContain('skypic.resetSession()')
+    expect(app).toContain("appAuth.signOut('skypic')")
     expect(app).toContain('unlockedServicesLoaded.value = false')
     expect(app).toContain(
       'if (phone.isOpen && !isLocked.value && !setupRequired.value)',
     )
+  })
+
+  it('does not let background refreshes abort auth discovery or account deletion', () => {
+    const refreshBlock = app
+      .split('async function refreshSkyPicState(refreshThread = false)')[1]
+      ?.split('function queueCompaniesChange')[0]
+    expect(refreshBlock).toContain(
+      'if (!skypic.bootstrapPending) skypic.resetSession()',
+    )
+    expect(refreshBlock).toContain('if (skypic.accountDeletePending) return')
+    expect(app).toContain('!skypic.bootstrapPending')
   })
 
   it('keeps snap and story secrets out of list payload types', () => {
@@ -147,7 +176,9 @@ describe('SkyPic cross-runtime integration contract', () => {
     expect(mockServer).toContain('const skyPicSnapContents = new Map(')
     expect(mockServer).toContain('const skyPicStoryContents = new Map(')
     expect(mockServer).toContain('blockedProfiles: skyPicProfiles')
-    expect(mockServer).toContain('skyPicIncrementOwnScore(recipients.length)')
+    expect(mockServer).toContain(
+      'skyPicIncrementOwnScore(recipients.length * mediaItems.length)',
+    )
     expect(mockServer).toContain('.slice(offset, offset + 30)')
     expect(mockServer).toContain(
       "response.json({ success: false, error: 'story_unavailable' })",

@@ -162,6 +162,7 @@ local server_callbacks = {
     "picstagram:admin-resolve-report",
     "skypic:bootstrap",
     "skypic:create-profile",
+    "skypic:delete-account",
     "skypic:update-profile",
     "skypic:search",
     "skypic:add-friend",
@@ -895,6 +896,10 @@ RegisterNetEvent("sky_phone:skypic:new", function(data)
     data.title = skypic_locale.name
     data.text = notification_text:gsub("{actor}", tostring(data.actor or ""))
     SendNUIMessage({ type = "skypic:new", data = data })
+end)
+
+RegisterNetEvent("sky_phone:skypic:changed", function(data)
+    SendNUIMessage({ type = "skypic:changed", data = data })
 end)
 
 RegisterNetEvent("sky_phone:feather:new", function(data)

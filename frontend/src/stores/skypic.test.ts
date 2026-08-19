@@ -1,7 +1,11 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useSkyPicStore } from '@/stores/skypic'
+import {
+  isValidSkyPicHandle,
+  normalizeSkyPicHandle,
+  useSkyPicStore,
+} from '@/stores/skypic'
 import type {
   SkyPicBootstrap,
   SkyPicConversation,
@@ -166,6 +170,17 @@ describe('SkyPic store', () => {
     mockNuiCall.mockReset()
   })
 
+  it('matches the server handle rule including leading and trailing separators', () => {
+    expect(normalizeSkyPicHandle(' _Morgan ')).toBe('_morgan')
+    expect(isValidSkyPicHandle('_morgan')).toBe(true)
+    expect(isValidSkyPicHandle('morgan_')).toBe(true)
+    expect(isValidSkyPicHandle('.mo')).toBe(true)
+    expect(isValidSkyPicHandle('mo.')).toBe(true)
+    expect(isValidSkyPicHandle('ab')).toBe(false)
+    expect(isValidSkyPicHandle('a'.repeat(25))).toBe(false)
+    expect(isValidSkyPicHandle('morgan-')).toBe(false)
+  })
+
   it('hydrates the account-bound bootstrap without exposing direct media URLs', async () => {
     mockNuiCall.mockResolvedValueOnce({
       data: { ...bootstrap, blockedProfiles: [theo] },
@@ -225,6 +240,57 @@ describe('SkyPic store', () => {
       storyPrivacy: 'everyone',
     })
     expect(store.profile?.showInQuickAdd).toBe(false)
+  })
+
+  it('deletes only the SkyPic account after explicit confirmation and clears local state', async () => {
+    mockNuiCall.mockResolvedValueOnce({ success: true })
+    const store = useSkyPicStore()
+    store.profile = { ...self }
+    store.friends = [{ ...friend }]
+    store.conversations = [{ ...conversation }]
+
+    await expect(store.deleteAccount()).resolves.toBe(true)
+
+    expect(mockNuiCall).toHaveBeenCalledWith('skypic:delete-account', {
+      confirmed: true,
+    })
+    expect(store.profile).toBeNull()
+    expect(store.friends).toEqual([])
+    expect(store.conversations).toEqual([])
+  })
+
+  it('keeps its own changed refresh from aborting an in-flight account deletion', async () => {
+    const pendingDelete = deferred<NuiResponse<unknown>>()
+    mockNuiCall.mockReturnValueOnce(pendingDelete.promise)
+    const store = useSkyPicStore()
+    store.profile = { ...self }
+
+    const deletion = store.deleteAccount()
+    expect(store.accountDeletePending).toBe(true)
+    await expect(store.bootstrap()).resolves.toBe(false)
+    expect(mockNuiCall).toHaveBeenCalledTimes(1)
+
+    pendingDelete.resolve({ success: true })
+    await expect(deletion).resolves.toBe(true)
+    expect(store.accountDeletePending).toBe(false)
+    expect(store.profile).toBeNull()
+  })
+
+  it('signals a server-confirmed missing profile without conflating local resets', async () => {
+    mockNuiCall.mockResolvedValueOnce({
+      data: { ...bootstrap, profile: null },
+      success: true,
+    })
+    const store = useSkyPicStore()
+
+    const discovery = store.bootstrap()
+    expect(store.bootstrapPending).toBe(true)
+    await expect(discovery).resolves.toBe(true)
+    expect(store.bootstrapPending).toBe(false)
+    expect(store.profileAbsentRevision).toBe(1)
+
+    store.resetSession()
+    expect(store.profileAbsentRevision).toBe(1)
   })
 
   it('updates outgoing relation state and accepts a friend request', async () => {
@@ -501,6 +567,35 @@ describe('SkyPic store', () => {
       type: sent.type,
     })
     expect(store.profile.snapScore).toBe(self.snapScore + 1)
+  })
+
+  it('deduplicates and caps a multi-photo snap batch without legacy media fields', async () => {
+    mockNuiCall.mockResolvedValueOnce({ data: [], success: true })
+    const store = useSkyPicStore()
+    const mediaIds = [1, 2, 2, 0, -1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+    await store.sendSnap({
+      allowReplay: true,
+      caption: '',
+      durationSeconds: 5,
+      mediaIds,
+      overlayColor: '#ffffff',
+      recipientIds: [maya.id],
+      textOverlay: '',
+    })
+
+    expect(mockNuiCall).toHaveBeenCalledWith('skypic:send-snap', {
+      allowReplay: true,
+      caption: '',
+      durationSeconds: 5,
+      mediaIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      overlayColor: '#ffffff',
+      recipientIds: [maya.id],
+      textOverlay: '',
+    })
+    const payload = mockNuiCall.mock.calls[0]?.[1]
+    expect(payload).not.toHaveProperty('mediaId')
+    expect(payload).not.toHaveProperty('mediaType')
   })
 
   it('caps snap recipients and chat bodies at the server limits', async () => {

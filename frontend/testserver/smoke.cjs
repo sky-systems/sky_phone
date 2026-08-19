@@ -617,6 +617,94 @@ async function verifySkyPicActions(baseUrl) {
   bootstrap = await expectSuccess(baseUrl, 'skypic:bootstrap', {}, true)
   assert.equal(bootstrap.profile.snapScore, expectedSnapScore)
 
+  assert.deepEqual(
+    await post(baseUrl, 'skypic:send-snap', {
+      allowReplay: false,
+      caption: 'This batch must stay atomic.',
+      durationSeconds: 5,
+      mediaIds: [1, 999_999],
+      overlayColor: '#24c7ff',
+      recipientIds: [friend.profile.id],
+      textOverlay: '',
+    }),
+    { error: 'invalid_media', success: false },
+  )
+  assert.deepEqual(
+    await post(baseUrl, 'skypic:send-snap', {
+      allowReplay: false,
+      caption: '',
+      durationSeconds: 5,
+      mediaIds: [1, 2],
+      overlayColor: '#24c7ff',
+      recipientIds: [friend.profile.id],
+      textOverlay: '',
+    }),
+    { error: 'invalid_media', success: false },
+  )
+  assert.deepEqual(
+    await post(baseUrl, 'skypic:send-snap', {
+      allowReplay: false,
+      caption: '',
+      durationSeconds: 5,
+      mediaIds: [1, 1],
+      overlayColor: '#24c7ff',
+      recipientIds: [friend.profile.id],
+      textOverlay: '',
+    }),
+    { error: 'invalid_media', success: false },
+  )
+  assert.deepEqual(
+    await post(baseUrl, 'skypic:send-snap', {
+      allowReplay: false,
+      caption: '',
+      durationSeconds: 5,
+      mediaIds: [1, 3, 4],
+      overlayColor: '#24c7ff',
+      recipientIds: recipientIds.slice(0, 20),
+      textOverlay: '',
+    }),
+    { error: 'too_many_snaps', success: false },
+  )
+  assert.deepEqual(
+    await post(baseUrl, 'skypic:send-snap', {
+      allowReplay: false,
+      caption: '',
+      durationSeconds: 5,
+      mediaIds: Array.from({ length: 11 }, (_, index) => index + 1),
+      overlayColor: '#24c7ff',
+      recipientIds: [friend.profile.id],
+      textOverlay: '',
+    }),
+    { error: 'invalid_media', success: false },
+  )
+  bootstrap = await expectSuccess(baseUrl, 'skypic:bootstrap', {}, true)
+  assert.equal(
+    bootstrap.profile.snapScore,
+    expectedSnapScore,
+    'invalid SkyPic media batches changed the snap score',
+  )
+
+  const sentPhotoBatch = await expectSuccess(
+    baseUrl,
+    'skypic:send-snap',
+    {
+      allowReplay: false,
+      caption: 'Three photos from one SkyPic preview.',
+      durationSeconds: 5,
+      mediaIds: [3, 4, 5],
+      overlayColor: '#24c7ff',
+      recipientIds: [friend.profile.id],
+      textOverlay: '',
+    },
+    true,
+  )
+  assert.equal(sentPhotoBatch.length, 3)
+  assert(sentPhotoBatch.every((snap) => snap.type === 'snap_photo'))
+  assert.equal(new Set(sentPhotoBatch.map((snap) => snap.id)).size, 3)
+  expectedSnapScore += sentPhotoBatch.length
+  bootstrap = await expectSuccess(baseUrl, 'skypic:bootstrap', {}, true)
+  assert.equal(bootstrap.profile.snapScore, expectedSnapScore)
+
   const sentMessage = await expectSuccess(
     baseUrl,
     'skypic:send-message',
@@ -653,6 +741,12 @@ async function verifySkyPicActions(baseUrl) {
   assert(
     updatedThread.snaps.some((snap) => snap.id === sentSnaps[0].id),
     'skypic:send-snap did not persist in the thread',
+  )
+  assert(
+    sentPhotoBatch.every((sent) =>
+      updatedThread.snaps.some((snap) => snap.id === sent.id),
+    ),
+    'skypic:send-snap did not persist every item from the media batch',
   )
   expectSkyPicMetadataSafe(updatedThread.snaps, 'updated SkyPic thread snaps')
 
@@ -791,6 +885,27 @@ async function verifySkyPicActions(baseUrl) {
     }),
     { error: 'profile_exists', success: false },
   )
+  assert.deepEqual(
+    await post(baseUrl, 'skypic:delete-account', {
+      _testScenario: 'skypic-onboarding',
+    }),
+    { error: 'confirmation_required', success: false },
+  )
+  await expectSuccess(baseUrl, 'skypic:delete-account', {
+    _testScenario: 'skypic-onboarding',
+    confirmed: true,
+  })
+  const deletedOnboarding = await expectSuccess(
+    baseUrl,
+    'skypic:bootstrap',
+    { _testScenario: 'skypic-onboarding' },
+    true,
+  )
+  assert.equal(deletedOnboarding.profile, null)
+  assert.deepEqual(deletedOnboarding.friends, [])
+  assert.deepEqual(deletedOnboarding.inbox, [])
+  assert.deepEqual(deletedOnboarding.stories, [])
+  assert.deepEqual(deletedOnboarding.suggestions, [])
 
   await expectSuccess(baseUrl, 'skypic:block', {
     blocked: true,
@@ -824,6 +939,22 @@ async function verifySkyPicActions(baseUrl) {
     await post(baseUrl, 'skypic:view-story', { storyId: friendStory.id }),
     { error: 'story_unavailable', success: false },
   )
+
+  await expectSuccess(baseUrl, 'skypic:delete-account', { confirmed: true })
+  const recreatedDefaultProfile = await expectSuccess(
+    baseUrl,
+    'skypic:create-profile',
+    createProfile,
+    true,
+  )
+  assert.equal(recreatedDefaultProfile.snapScore, 0)
+  const recreatedDefaultBootstrap = await expectSuccess(
+    baseUrl,
+    'skypic:bootstrap',
+    {},
+    true,
+  )
+  assert.equal(recreatedDefaultBootstrap.profile.snapScore, 0)
 }
 
 async function verifyStatefulActions(baseUrl) {

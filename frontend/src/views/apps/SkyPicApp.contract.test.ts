@@ -30,6 +30,28 @@ describe('SkyPic frontend contract', () => {
     expect(viewSource.match(/<SkyTabButton/g)).toHaveLength(4)
   })
 
+  it('keeps Camera blue and all other tabs theme-monochrome', () => {
+    expect(viewSource).toContain('phone.isDarkMode')
+    expect(viewSource).toContain("'skypic-app--player-dark': phone.isDarkMode")
+    expect(viewSource).toContain(
+      "'skypic-app--player-light': !phone.isDarkMode",
+    )
+    expect(viewSource).toContain('class="sp-tab sp-tab--camera"')
+    expect(viewSource.match(/class="sp-tab sp-tab--monochrome"/g)).toHaveLength(
+      3,
+    )
+    expect(viewSource).toContain('color: var(--sp-camera-blue) !important')
+    expect(viewSource).toContain('--sp-tab-monochrome: #000000')
+    expect(viewSource).toContain('--sp-tab-monochrome: #ffffff')
+    expect(viewSource).toContain('color: var(--sp-tab-monochrome) !important')
+    const cameraCss = viewSource
+      .split('.sp-camera-screen {')[1]
+      ?.split('.sp-camera-header')[0]
+    expect(cameraCss).toBeTruthy()
+    expect(cameraCss).not.toContain('255, 91, 189')
+    expect(viewSource).not.toContain('var(--sp-cyan)')
+  })
+
   it('uses the shared Camera and Gallery media handoff with a bounded draft', () => {
     expect(viewSource).toContain('mediaPicker.begin(')
     expect(viewSource).toContain("'skypic-draft'")
@@ -40,6 +62,98 @@ describe('SkyPic frontend contract', () => {
     expect(viewSource).toContain('path: `/apps/${source}`')
     expect(viewSource).toContain('query: { mediaAttachment: mediaType }')
     expect(viewSource).toContain("type MediaSource = 'camera' | 'photos'")
+  })
+
+  it('supports a bounded multi-photo thread handoff with preview controls', () => {
+    expect(viewSource).toContain('const MAX_THREAD_ATTACHMENTS = 10')
+    expect(viewSource).toContain("'skypic-thread-media'")
+    expect(viewSource).toContain(
+      'mediaPicker.consumeMany<SkyPicThreadMediaDraftContext>',
+    )
+    expect(viewSource).toContain('pendingThreadMedia')
+    expect(viewSource).toContain('mediaIds: queuedMedia.map')
+    expect(viewSource).toContain('removeThreadMedia(media.id)')
+    expect(viewSource).toContain('moveThreadMedia(index, -1)')
+    expect(viewSource).toContain('moveThreadMedia(index, 1)')
+    expect(viewSource).toContain("openThreadMedia('photos', 'photo')")
+    expect(viewSource).toContain("openThreadMedia('camera', 'photo')")
+    expect(viewSource).toContain("openThreadMedia('photos', 'video')")
+    expect(viewSource).toContain('openThreadEmojiPicker')
+    expect(typeSource).toContain('SkyPicThreadMediaDraftContext')
+    expect(typeSource).toContain('mediaIds: number[]')
+  })
+
+  it('uses app-local authentication and exposes safe account controls', () => {
+    expect(viewSource).toContain('useAppAuthStore()')
+    expect(viewSource).toContain("appAuth.isSignedIn('skypic')")
+    expect(viewSource).toContain("appAuth.signIn('skypic', account.email)")
+    expect(viewSource).toContain("appAuth.signOut('skypic')")
+    expect(viewSource).toContain('<AppProfileAuth')
+    expect(viewSource).toContain('<AccountLogoutDialog')
+    expect(viewSource).toContain('app-id="skypic"')
+    expect(viewSource).toContain('deleteSkyPicAccount')
+    expect(viewSource).toContain('store.resetSession()')
+    expect(storeSource).toContain("'skypic:delete-account'")
+    expect(storeSource).toContain('confirmed: true')
+  })
+
+  it('uses the production SkyPic handle rule for login and registration', () => {
+    expect(viewSource).toContain('isValidSkyPicHandle(authHandle.value)')
+    expect(viewSource).toContain(
+      'const handle = normalizeSkyPicHandle(onboarding.handle)',
+    )
+    expect(storeSource).toContain('/^[a-z0-9._]+$/')
+  })
+
+  it('reacts to confirmed remote account deletion with a clean register state', () => {
+    expect(viewSource).toContain('() => store.profileAbsentRevision')
+    const resetBlock = viewSource
+      .split('function resetAccountUiState(accountExists: boolean): void {')[1]
+      ?.split('function handleLoggedOut')[0]
+    expect(resetBlock).toContain(
+      "authMode.value = accountExists ? 'login' : 'register'",
+    )
+    expect(resetBlock).toContain('deleteAccountDialogOpen.value = false')
+    expect(resetBlock).toContain('profileEditing.value = false')
+    expect(resetBlock).toContain('pendingThreadMedia.value = []')
+    expect(resetBlock).toContain('storyViewerSheetOpen.value = false')
+    expect(resetBlock).toContain("storyViewerSheetStoryId.value = ''")
+    expect(resetBlock).toContain("storyReply.value = ''")
+    expect(resetBlock).toContain('storyNavigationRequest += 1')
+    expect(resetBlock).toContain('clearStoryTimer()')
+    expect(resetBlock).toContain('store.clearViewedStory()')
+    expect(resetBlock).toContain("activeTab.value = 'camera'")
+  })
+
+  it('clears private SkyPic state while the local app session is signed out', () => {
+    const logoutBlock = viewSource
+      .split('function handleLoggedOut(): void {')[1]
+      ?.split('async function deleteSkyPicAccount')[0]
+    const bootstrapBlock = viewSource
+      .split('async function bootstrapApp(): Promise<void> {')[1]
+      ?.split('onMounted(')[0]
+
+    expect(logoutBlock).toContain('store.resetSession()')
+    expect(logoutBlock).not.toContain('bootstrapApp()')
+    expect(bootstrapBlock).toContain("!appAuth.isSignedIn('skypic')")
+    expect(bootstrapBlock).toContain('store.resetSession()')
+    expect(viewSource).toContain(
+      'hasSkyPicAccount.value = Boolean(store.profile)',
+    )
+  })
+
+  it('renders local registration guidance without bootstrapping an absent Sky account', () => {
+    const bootstrapBlock = viewSource
+      .split('async function bootstrapApp(): Promise<void> {')[1]
+      ?.split('onMounted(')[0]
+    const noAccountGuard = bootstrapBlock?.indexOf('if (!account.email)') ?? -1
+    const serverBootstrap = bootstrapBlock?.indexOf(
+      'const loaded = await store.bootstrap()',
+    )
+    expect(noAccountGuard).toBeGreaterThanOrEqual(0)
+    expect(noAccountGuard).toBeLessThan(serverBootstrap ?? -1)
+    expect(bootstrapBlock).toContain('resetAccountUiState(false)')
+    expect(bootstrapBlock).toContain('bootstrapped.value = true')
   })
 
   it('keeps profile editing parse-safe and composer inputs canonical', () => {
@@ -90,6 +204,7 @@ describe('SkyPic frontend contract', () => {
     const callbacks = [
       'skypic:bootstrap',
       'skypic:create-profile',
+      'skypic:delete-account',
       'skypic:update-profile',
       'skypic:search',
       'skypic:add-friend',

@@ -39,6 +39,7 @@ function installTable(name: string): string {
 const callbacks = [
   'bootstrap',
   'create-profile',
+  'delete-account',
   'update-profile',
   'search',
   'add-friend',
@@ -197,6 +198,51 @@ describe('SkyPic backend contracts', () => {
     )
   })
 
+  it('validates dense photo batches before creating their cartesian snap set', () => {
+    const editors = block(
+      server,
+      'local function snap_editor_payloads',
+      'Bridge.Callbacks.Register("sky_phone:skypic:thread"',
+    )
+    expect(config).toContain('MaximumMediaPerSend = 10')
+    expect(config).toContain('MaximumSnapMessagesPerSend = 40')
+    expect(editors).toContain('count > limit("MaximumMediaPerSend", 10)')
+    expect(editors).toContain('if key_count ~= count then')
+    expect(editors).toContain('seen[media_id]')
+    expect(editors).toContain('mediaType = "photo"')
+    expect(server).toContain(
+      'SkyPhoneMedia.ResolveOwnedMedia(source, media_id, data.mediaType)',
+    )
+
+    const sendSnap = block(
+      server,
+      'Bridge.Callbacks.Register("sky_phone:skypic:send-snap"',
+      'Bridge.Callbacks.Register("sky_phone:skypic:open-snap"',
+    )
+    expect(sendSnap).toContain(
+      'raw_media_count > limit("MaximumMediaPerSend", 10)',
+    )
+    expect(sendSnap).toContain(
+      'message_count > limit("MaximumSnapMessagesPerSend", 40)',
+    )
+    expect(sendSnap).toContain('editor = editor')
+    expect(sendSnap).toContain('Bridge.Database.Transaction(statements)')
+    expect(sendSnap).toContain('SELECT COUNT(*) FROM')
+    expect(sendSnap).toContain(') <> ?')
+    expect(sendSnap).toContain(
+      'assertion_params[#assertion_params + 1] = #entries',
+    )
+    expect(sendSnap).toContain('message_ids[#message_ids + 1] = entry.id')
+    expect(sendSnap).toContain(
+      'local sent = load_snap_metadata(message_ids, profile.profile_id)',
+    )
+
+    expect(mockServer).toContain('function skyPicMediaItems(body)')
+    expect(mockServer).toContain('submitted.length > 10')
+    expect(mockServer).toContain('seen.has(mediaId)')
+    expect(mockServer).toContain('mediaItems.length * recipients.length > 40')
+  })
+
   it('keeps browser payload limits and profile creation aligned with production', () => {
     expect(config).toContain('CaptionMaxLength = 160')
     expect(server).toContain('valid_integer(data.avatarSeed, 1, 2147483647)')
@@ -216,7 +262,38 @@ describe('SkyPic backend contracts', () => {
     expect(mockServer).toContain(
       'onboardingScenario && skyPicOnboardingProfile',
     )
-    expect(mockServer).toContain('profile: skyPicOnboardingProfile')
+    expect(mockServer).toContain('const profile = skyPicOnboardingProfile')
+    expect(mockServer).toContain('suggestions: profile')
+  })
+
+  it('deletes only the confirmed SkyPic account and silently refreshes peers', () => {
+    const deletion = block(
+      server,
+      'Bridge.Callbacks.Register("sky_phone:skypic:delete-account"',
+      'Bridge.Callbacks.Register("sky_phone:skypic:update-profile"',
+    )
+    expect(deletion).toContain('data.confirmed ~= true')
+    expect(deletion).toContain('error = "confirmation_required"')
+    expect(deletion).toContain('Bridge.Database.Transaction({')
+    expect(deletion).toContain('SET peer.')
+    expect(deletion).toContain('friend_count')
+    expect(deletion).toContain(' > 0, peer.')
+    expect(deletion).toContain('- 1, 0')
+    expect(deletion).toContain('DELETE FROM')
+    expect(deletion).toContain('sky_phone_skypic_profiles')
+    expect(deletion).toContain('sky_phone_skypic_blocks')
+    expect(deletion).toContain('UNION ALL')
+    expect(deletion).toContain(
+      "AND status = 'active'".replace(
+        'status',
+        String.fromCharCode(96) + 'status' + String.fromCharCode(96),
+      ),
+    )
+    expect(deletion).not.toContain('sky_phone_media')
+    expect(deletion).toContain('"sky_phone:skypic:changed"')
+    expect(deletion).not.toContain('"sky_phone:skypic:new"')
+    expect(mockServer).toContain("if (endpoint === 'skypic:delete-account')")
+    expect(mockServer).toContain("error: 'confirmation_required'")
   })
 
   it('keeps direct snap secrets out of bootstrap and thread serializers', () => {
