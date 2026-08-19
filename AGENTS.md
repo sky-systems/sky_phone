@@ -6,6 +6,44 @@ This repository contains the standalone FiveM resource `sky_phone`. These rules
 apply throughout the repository unless a more specific `AGENTS.md` adds stricter
 requirements.
 
+## Repository governance for AI contributors
+
+AI agents and automated coding tools must treat the repository governance files
+as project instructions, not as optional documentation.
+
+- Before changing code, read `CONTRIBUTING.md` and every more specific
+  `AGENTS.md` that applies to the target files. For issue or pull-request work,
+  also read the matching file under `.github/ISSUE_TEMPLATE` and
+  `.github/PULL_REQUEST_TEMPLATE.md`.
+- Before changing CI, packaging, releases, contribution policy, branch policy,
+  or dependency handling, inspect all relevant files under `.github/workflows`,
+  `.github/rulesets`, and `.github/scripts`. Keep their contracts synchronized.
+- Preserve the required check names `Repository policy`, `Frontend`, `CodeQL`,
+  `Dependency review`, and `Pull request policy`. If a task intentionally
+  renames or replaces one, update `.github/rulesets/protect-dev.json`,
+  `.github/scripts/validate-repository.mjs`, `.github/rulesets/README.md`, and
+  the corresponding workflow in the same change.
+- Anyone may open a pull request, but only collaborators with GitHub's built-in
+  `Maintain` role may merge into `dev`, and maintainers must merge through a
+  pull request. Preserve this behavior in branch rules and documentation.
+- Treat `.github/rulesets/*.json` as the version-controlled ruleset baseline.
+  Editing or merging these files does not update GitHub settings automatically;
+  report that an administrator must import or reconcile the live ruleset.
+- Preserve the secure PR artifact boundary: untrusted pull-request code may
+  build the test resource only with read permissions. A workflow with write
+  permissions may inspect trusted GitHub metadata and maintain the PR comment,
+  but must never check out, download, extract, import, or execute PR-controlled
+  code or artifacts.
+- PR and release packages must contain one top-level `sky_phone` directory with
+  `fxmanifest.lua` and the built NUI at `source/html/index.html`. Build generated
+  NUI from `frontend`; never hand-edit `sky_phone/source/html`.
+- Keep automated review and test-resource findings visible. Do not weaken,
+  skip, or silence validation merely to make a check pass. Automated review
+  complements and never replaces the required human maintainer review.
+- After governance changes, run the repository validator, Prettier, and
+  actionlint where available. Inspect the final diff and stage only files that
+  belong to the task.
+
 ## Architecture and security
 
 - Keep `sky_phone` independent. Do not add dependencies or integrations with
