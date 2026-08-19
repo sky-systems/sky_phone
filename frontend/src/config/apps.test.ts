@@ -170,6 +170,14 @@ describe('app registry', () => {
     expect(isPhoneAppId('music')).toBe(true)
     expect(isPhoneAppId('companies')).toBe(true)
     expect(isPhoneAppId('weazel-news')).toBe(true)
+    expect(PHONE_APPS.find((app) => app.id === 'skypic')).toMatchObject({
+      category: 'social',
+      dockOrder: null,
+      gridOrder: 31,
+      labelKey: 'Apps.skypic.name',
+      route: '/apps/skypic',
+    })
+    expect(isPhoneAppId('skypic')).toBe(true)
     expect(
       PHONE_APPS.filter((app) => app.category === 'games').map((app) => app.id),
     ).toEqual([
@@ -188,6 +196,7 @@ describe('app registry', () => {
     ).toEqual([
       'weazel-news',
       'picstagram',
+      'skypic',
       'feather',
       'fliptok',
       'flare',

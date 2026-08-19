@@ -45,6 +45,7 @@ import { useDarkChatStore } from '@/stores/darkchat'
 import { useFlareStore } from '@/stores/flare'
 import { useFlipTokStore } from '@/stores/fliptok'
 import { usePicstagramStore } from '@/stores/picstagram'
+import { useSkyPicStore } from '@/stores/skypic'
 import { useFeatherStore } from '@/stores/feather'
 import { useMediaStore } from '@/stores/media'
 import { useMarketplaceStore } from '@/stores/marketplace'
@@ -95,6 +96,7 @@ type AppMessage = {
     | FlipTokNotificationData
     | PicstagramVerificationData
     | PicstagramNotificationData
+    | SkyPicNotificationData
     | FeatherNotificationData
     | BankingChangedData
     | CryptoMarketChangedData
@@ -229,6 +231,22 @@ type PicstagramNotificationData = {
   title?: string
 }
 
+type SkyPicNotificationData = {
+  actor?: string
+  device?: PhoneNotificationDevicePayload
+  kind?:
+    | 'friend_request'
+    | 'friend_accepted'
+    | 'snap'
+    | 'message'
+    | 'story_reply'
+    | 'snap_opened'
+  profileId?: string
+  snapId?: string
+  text?: string
+  title?: string
+}
+
 type FeatherNotificationData = {
   actor?: string
   device?: PhoneNotificationDevicePayload
@@ -295,6 +313,7 @@ const darkchat = useDarkChatStore()
 const flare = useFlareStore()
 const fliptok = useFlipTokStore()
 const picstagram = usePicstagramStore()
+const skypic = useSkyPicStore()
 const feather = useFeatherStore()
 const media = useMediaStore()
 const marketplace = useMarketplaceStore()
@@ -317,6 +336,7 @@ const WHITE_STATUS_BAR_APP_IDS = new Set([
   'calculator',
   'camera',
   'fliptok',
+  'skypic',
   'neon-drop',
   'sky-flappy',
   'snake',
@@ -520,6 +540,7 @@ function queueCompaniesChange(change: CompanyChangedPayload): void {
 
 async function bootstrapUnlockedPhoneData(): Promise<void> {
   const tasks: Array<() => Promise<unknown> | void> = [
+    () => (account.email ? skypic.bootstrap() : skypic.resetSession()),
     () => calls.bootstrap(),
     () => messages.loadConversations(),
     () => billing.loadOverview(),
@@ -656,6 +677,19 @@ function openDevelopmentPayphonePreview(): void {
       },
     }),
   )
+}
+
+function skyPicNotificationRoute(data: SkyPicNotificationData): string {
+  const query = new URLSearchParams()
+  query.set(
+    'tab',
+    data.kind === 'friend_request' || data.kind === 'friend_accepted'
+      ? 'friends'
+      : 'chats',
+  )
+  if (data.profileId) query.set('profileId', data.profileId)
+  if (data.kind === 'snap' && data.snapId) query.set('snap', data.snapId)
+  return `/apps/skypic?${query.toString()}`
 }
 
 function onMessage(event: MessageEvent<AppMessage>): void {
@@ -889,6 +923,33 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     }
     notifications.show(notification)
     if (phone.isOpen) void picstagram.loadActivities()
+  } else if (event.data?.type === 'skypic:new' && event.data.data) {
+    const data = event.data.data as SkyPicNotificationData
+    const targetsActiveDevice =
+      !data.device || data.device.imei === phone.device?.imei
+    const notification: PhoneNotificationInput = {
+      appId: 'skypic',
+      route: skyPicNotificationRoute(data),
+      subtitle: data.actor,
+      text: data.text ?? phone.t('Apps.skypic.notifications.default'),
+      title: data.title ?? phone.t('Apps.skypic.name'),
+    }
+    if (
+      data.device &&
+      (!phone.isOpen || data.device.imei !== phone.device?.imei)
+    ) {
+      notification.device = {
+        imei: data.device.imei,
+        name: data.device.name,
+        preferences: parsePhonePreferences(data.device.settings ?? null),
+      }
+    }
+    notifications.show(notification)
+    if (phone.isOpen && targetsActiveDevice) {
+      void skypic.bootstrap().then((loaded) => {
+        if (loaded) void skypic.refreshActiveThread()
+      })
+    }
   } else if (
     event.data?.type === 'marketplace:new-message' &&
     event.data.data
@@ -1501,6 +1562,7 @@ watch(
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
     if (!isOpen) {
       cancelUnlockedPhoneDataLoad()
+      skypic.resetSession()
       appStore.cancelPendingInstalls()
       activitySuspended.value = false
       weather.stop()
@@ -1546,6 +1608,19 @@ watch(
     phone.setLaunchOrigin(null)
     if (isLocked.value || setupRequired.value) void router.replace('/')
     else loadUnlockedPhoneData()
+  },
+)
+
+watch(
+  () => [phone.device?.imei ?? '', account.email] as const,
+  ([imei, email], [previousImei, previousEmail]) => {
+    if (imei === previousImei && email === previousEmail) return
+    skypic.resetSession()
+    cancelUnlockedPhoneDataLoad()
+    unlockedServicesLoaded.value = false
+    if (phone.isOpen && !isLocked.value && !setupRequired.value) {
+      loadUnlockedPhoneData()
+    }
   },
 )
 

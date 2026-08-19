@@ -75,6 +75,7 @@ import localPagesIcon from '@/assets/img/app-icons/local-pages.webp'
 import flareIcon from '@/assets/img/app-icons/flare.webp'
 import flipTokIcon from '@/assets/img/app-icons/fliptok.webp'
 import picstagramIcon from '@/assets/img/app-icons/picstagram.webp'
+import skyPicIcon from '@/assets/img/app-icons/skypic.png'
 import skyRideIcon from '@/assets/img/app-icons/skyride.webp'
 import musicIcon from '@/assets/img/app-icons/music.webp'
 import featherIcon from '@/assets/img/app-icons/feather.webp'
@@ -190,6 +191,20 @@ export const PHONE_APPS = shallowReactive<PhoneAppDefinition[]>([
     id: 'picstagram',
     labelKey: 'Apps.picstagram.name',
     route: '/apps/picstagram',
+  },
+  {
+    category: 'social',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/SkyPicApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 31,
+    icon: markRaw(Camera),
+    iconClass: 'app-icon--skypic',
+    iconImage: skyPicIcon,
+    id: 'skypic',
+    labelKey: 'Apps.skypic.name',
+    route: '/apps/skypic',
   },
   {
     category: 'social',

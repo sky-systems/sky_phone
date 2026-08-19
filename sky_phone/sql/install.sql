@@ -1483,3 +1483,127 @@ CREATE TABLE IF NOT EXISTS `sky_phone_crypto_audit_events` (
     PRIMARY KEY (`id`),
     KEY `idx_sky_phone_crypto_audit` (`profile_id`,`created_at`,`id`)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_profiles` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `account_id` BIGINT UNSIGNED NOT NULL,
+    `handle` VARCHAR(24) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    `display_name` VARCHAR(40) NOT NULL,
+    `bio` VARCHAR(160) NOT NULL DEFAULT '',
+    `avatar_media_id` BIGINT UNSIGNED NULL,
+    `avatar_seed` INT UNSIGNED NOT NULL DEFAULT 1,
+    `story_privacy` ENUM('friends','everyone') NOT NULL DEFAULT 'friends',
+    `quick_add` TINYINT(1) NOT NULL DEFAULT 1,
+    `allow_story_replies` TINYINT(1) NOT NULL DEFAULT 1,
+    `snap_score` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    `friend_count` INT UNSIGNED NOT NULL DEFAULT 0,
+    `status` ENUM('active','hidden','removed') NOT NULL DEFAULT 'active',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_sky_phone_skypic_profile_account` (`account_id`),
+    UNIQUE KEY `uniq_sky_phone_skypic_profile_handle` (`handle`),
+    KEY `idx_sky_phone_skypic_quick_add` (`status`,`quick_add`,`updated_at`),
+    FOREIGN KEY (`account_id`) REFERENCES `sky_phone_accounts` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`avatar_media_id`) REFERENCES `sky_phone_media` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_friendships` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `profile_a_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `profile_b_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `requested_by_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `status` ENUM('pending','accepted') NOT NULL DEFAULT 'pending',
+    `profile_a_last_snap_on` DATE NULL,
+    `profile_b_last_snap_on` DATE NULL,
+    `streak_updated_on` DATE NULL,
+    `streak_count` INT UNSIGNED NOT NULL DEFAULT 0,
+    `best_streak` INT UNSIGNED NOT NULL DEFAULT 0,
+    `accepted_at` DATETIME NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_sky_phone_skypic_friend_pair` (`profile_a_id`,`profile_b_id`),
+    KEY `idx_sky_phone_skypic_friend_a` (`profile_a_id`,`status`,`updated_at`),
+    KEY `idx_sky_phone_skypic_friend_b` (`profile_b_id`,`status`,`updated_at`),
+    KEY `idx_sky_phone_skypic_friend_requests` (`status`,`requested_by_id`,`created_at`),
+    KEY `idx_sky_phone_skypic_streaks` (`status`,`streak_updated_on`),
+    FOREIGN KEY (`profile_a_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`profile_b_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`requested_by_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_blocks` (
+    `blocker_profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `blocked_profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`blocker_profile_id`,`blocked_profile_id`),
+    KEY `idx_sky_phone_skypic_blocked` (`blocked_profile_id`,`created_at`),
+    FOREIGN KEY (`blocker_profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`blocked_profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_messages` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `friendship_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `sender_profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `recipient_profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `message_type` ENUM('text','snap_photo','snap_video') NOT NULL,
+    `body` VARCHAR(2000) NOT NULL DEFAULT '',
+    `caption` VARCHAR(160) NOT NULL DEFAULT '',
+    `overlay_text` VARCHAR(160) NOT NULL DEFAULT '',
+    `overlay_color` CHAR(7) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '#FFFFFF',
+    `media_id` BIGINT UNSIGNED NULL,
+    `view_seconds` TINYINT UNSIGNED NULL,
+    `allow_replay` TINYINT(1) NOT NULL DEFAULT 0,
+    `read_at` DATETIME(6) NULL,
+    `opened_at` DATETIME(6) NULL,
+    `replayed_at` DATETIME(6) NULL,
+    `saved_at` DATETIME(6) NULL,
+    `expires_at` DATETIME(6) NULL,
+    `sender_deleted_at` DATETIME(6) NULL,
+    `recipient_deleted_at` DATETIME(6) NULL,
+    `deleted_at` DATETIME(6) NULL,
+    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_skypic_message_thread` (`friendship_id`,`created_at`,`id`),
+    KEY `idx_sky_phone_skypic_message_inbox` (`recipient_profile_id`,`read_at`,`created_at`),
+    KEY `idx_sky_phone_skypic_message_expiry` (`message_type`,`expires_at`),
+    KEY `idx_sky_phone_skypic_message_deleted` (`deleted_at`),
+    KEY `idx_sky_phone_skypic_message_media` (`media_id`),
+    FOREIGN KEY (`friendship_id`) REFERENCES `sky_phone_skypic_friendships` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`sender_profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`recipient_profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`media_id`) REFERENCES `sky_phone_media` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_stories` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `media_id` BIGINT UNSIGNED NOT NULL,
+    `caption` VARCHAR(160) NOT NULL DEFAULT '',
+    `overlay_text` VARCHAR(160) NOT NULL DEFAULT '',
+    `overlay_color` CHAR(7) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '#FFFFFF',
+    `view_seconds` TINYINT UNSIGNED NOT NULL,
+    `privacy` ENUM('friends','everyone') NOT NULL,
+    `status` ENUM('active','removed') NOT NULL DEFAULT 'active',
+    `expires_at` DATETIME(6) NOT NULL,
+    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_skypic_story_profile` (`profile_id`,`status`,`expires_at`),
+    KEY `idx_sky_phone_skypic_story_expiry` (`status`,`expires_at`),
+    KEY `idx_sky_phone_skypic_story_media` (`media_id`),
+    FOREIGN KEY (`profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`media_id`) REFERENCES `sky_phone_media` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_story_views` (
+    `story_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `viewer_profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `viewed_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`story_id`,`viewer_profile_id`),
+    KEY `idx_sky_phone_skypic_story_viewer` (`viewer_profile_id`,`viewed_at`),
+    FOREIGN KEY (`story_id`) REFERENCES `sky_phone_skypic_stories` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`viewer_profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -85,6 +85,10 @@ describe('preferences', () => {
       enabled: true,
       sounds: true,
     })
+    expect(value.settings.notifications.skypic).toEqual({
+      enabled: true,
+      sounds: true,
+    })
     expect(value.settings.phoneScale).toBe(110)
     expect(value.settings.screenBrightness).toBe(64)
     expect(value.settings.wallpaper).toBe('ember')
