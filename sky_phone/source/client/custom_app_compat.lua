@@ -38,6 +38,20 @@ local function copy_record_data(value)
     return copied
 end
 
+local function emit_provider_stop_signals(reason)
+    for index = 1, #provider_resources do
+        local provider_resource = provider_resources[index]
+        debug_custom_app(
+            "provider",
+            "emitting stop compatibility signals for %s reason=%s",
+            provider_resource,
+            reason
+        )
+        TriggerEvent("onClientResourceStop", provider_resource)
+        TriggerEvent("onResourceStop", provider_resource)
+    end
+end
+
 local function register_provider_app(provider, owner_resource, definition, vendor_data)
     local app_id = definition.id
     local existing = provider_apps[app_id]
@@ -684,21 +698,19 @@ AddEventHandler("onClientResourceStart", function(resource_name)
 end)
 
 AddEventHandler("onClientResourceStop", function(resource_name)
-    if resource_name == RESOURCE_NAME then
-        for index = 1, #provider_resources do
-            local provider_resource = provider_resources[index]
-            debug_custom_app("provider", "emitting stop compatibility signals for %s", provider_resource)
-            TriggerEvent("onClientResourceStop", provider_resource)
-            TriggerEvent("onResourceStop", provider_resource)
-        end
-        return
-    end
-
     for app_id, record in pairs(high_client_apps) do
         if record.owner_resource == resource_name then
             high_client_apps[app_id] = nil
         end
     end
+end)
+
+AddEventHandler("onResourceStop", function(resource_name)
+    if resource_name ~= RESOURCE_NAME then
+        return
+    end
+
+    emit_provider_stop_signals("resource_stop")
 end)
 
 exports("AddApplication", add_17mov_application)
@@ -742,6 +754,7 @@ end)
 
 CreateThread(function()
     Wait(500)
+    emit_provider_stop_signals("startup_reset")
     debug_custom_app("provider", "requesting provider snapshots and emitting compatibility ready signals")
     TriggerServerEvent("sky_phone:compat:high:server:requestSnapshot")
     TriggerEvent("17mov_Phone:Client:Ready")
