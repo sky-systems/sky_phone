@@ -34,7 +34,7 @@ Config.Phone = {
 }
 
 Config.TestData = {
-    Enabled = true,
+    Enabled = false, -- development/test servers only; keep disabled in production
     Command = "phonetestdata",
     AdminOnly = false, -- enable only on development servers; every run is scoped to the executing player's phone
     AdminGroups = { "admin", "superadmin" },

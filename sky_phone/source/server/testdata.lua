@@ -43,6 +43,13 @@ local function seed_hash(seed)
     return value
 end
 
+local function darkchat_identifiers(account_id)
+    local account_key = tostring(account_id)
+    local dark_id = "DC" .. seed_hash("darkchat:id:" .. account_key):upper()
+    local invite_code = "I" .. seed_hash("darkchat:invite:" .. account_key):sub(1, 10):upper()
+    return dark_id, invite_code
+end
+
 local function database_uuid()
     local rows = Bridge.Database.Query("SELECT UUID() AS `id`", {})
     local id = rows[1] and rows[1].id
@@ -125,6 +132,71 @@ local function reserve_sim(owner_identifier, firstname, lastname)
         error("[sky_phone] Test data could not reserve a SIM number.")
     end
     return { id = sim_id, phone_number = number, sim_type = "registered" }
+end
+
+local function restore_sim_attachment(sim_id, current_imei, previous_imei)
+    local statements = {
+        {
+            query = "UPDATE `sky_phone_devices` SET `sim_id` = NULL WHERE `imei` = ? AND `sim_id` = ?",
+            params = { current_imei, sim_id },
+        },
+    }
+    if previous_imei then
+        statements[#statements + 1] = {
+            query = "UPDATE `sky_phone_devices` SET `sim_id` = ? WHERE `imei` = ? AND `sim_id` IS NULL",
+            params = { sim_id, previous_imei },
+        }
+    end
+    if not Bridge.Database.Transaction(statements) then
+        return false
+    end
+
+    local rows = Bridge.Database.Query(
+        "SELECT `imei` FROM `sky_phone_devices` WHERE `sim_id` = ? LIMIT 1",
+        { sim_id }
+    )
+    if previous_imei then
+        return rows[1] and rows[1].imei == previous_imei
+    end
+    return rows[1] == nil
+end
+
+local function move_sim_to_device(sim_id, imei)
+    local rows = Bridge.Database.Query(
+        "SELECT `imei` FROM `sky_phone_devices` WHERE `sim_id` = ? LIMIT 1",
+        { sim_id }
+    )
+    local previous_imei = rows[1] and rows[1].imei or nil
+    if previous_imei == imei then
+        return previous_imei
+    end
+
+    local moved = Bridge.Database.Transaction({
+        {
+            query = "UPDATE `sky_phone_devices` SET `sim_id` = NULL WHERE `sim_id` = ? AND `imei` <> ?",
+            params = { sim_id, imei },
+        },
+        {
+            query = "UPDATE `sky_phone_devices` SET `sim_id` = ? WHERE `imei` = ? AND `sim_id` IS NULL",
+            params = { sim_id, imei },
+        },
+    })
+    if not moved then
+        error("[sky_phone] Test data could not move the player's SIM to the selected phone.")
+    end
+
+    rows = Bridge.Database.Query(
+        "SELECT `sim_id` FROM `sky_phone_devices` WHERE `imei` = ? LIMIT 1",
+        { imei }
+    )
+    if not rows[1] or rows[1].sim_id ~= sim_id then
+        if not restore_sim_attachment(sim_id, imei, previous_imei) then
+            error("[sky_phone] Test data could not verify the SIM move or restore its previous device.")
+        end
+        error("[sky_phone] Test data could not verify the SIM move.")
+    end
+
+    return previous_imei
 end
 
 local function ensure_bot(label, email_local, imei, firstname, lastname)
@@ -667,36 +739,57 @@ local function seed_social_apps(context)
         INSERT IGNORE INTO `sky_phone_flare_profile_photos` (`profile_id`, `media_id`, `sort_order`)
         VALUES (?, ?, 1), (?, ?, 1)
     ]], { flare_user, context.media.user_portrait, flare_bot, context.media.bot_two_portrait })
-    local match_id = stable_uuid(context.key .. ":flare:match")
     local account_a = math.min(account_id, bot_two_id)
     local account_b = math.max(account_id, bot_two_id)
+    local proposed_match_id = stable_uuid(
+        ("sky_phone:testdata:flare:match:%s:%s"):format(account_a, account_b)
+    )
     Bridge.Database.Query([[
         INSERT INTO `sky_phone_flare_matches` (`id`, `account_a_id`, `account_b_id`)
         VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `created_at` = `created_at`
-    ]], { match_id, account_a, account_b })
-    local flare_message = stable_uuid(context.key .. ":flare:message")
+    ]], { proposed_match_id, account_a, account_b })
+    local match_rows = Bridge.Database.Query([[
+        SELECT `id` FROM `sky_phone_flare_matches`
+        WHERE `account_a_id` = ? AND `account_b_id` = ? LIMIT 1
+    ]], { account_a, account_b })
+    local match_id = match_rows[1] and match_rows[1].id or nil
+    if type(match_id) ~= "string" then
+        error("[sky_phone] Test data Flare match could not be loaded.")
+    end
+    local flare_body = "Hey! Bereit für einen vollständigen App-Test?"
+    local message_rows = Bridge.Database.Query([[
+        SELECT `id` FROM `sky_phone_flare_messages`
+        WHERE `match_id` = ? AND `sender_account_id` = ? AND `body` = ?
+        ORDER BY `created_at`, `id` LIMIT 1
+    ]], { match_id, bot_two_id, flare_body })
+    local flare_message = message_rows[1] and message_rows[1].id
+        or stable_uuid("sky_phone:testdata:flare:message:" .. match_id)
     Bridge.Database.Query([[
         INSERT INTO `sky_phone_flare_messages` (`id`, `match_id`, `sender_account_id`, `body`, `read_at`)
-        VALUES (?, ?, ?, 'Hey! Bereit für einen vollständigen App-Test?', NULL)
+        VALUES (?, ?, ?, ?, NULL)
         ON DUPLICATE KEY UPDATE `body` = VALUES(`body`), `read_at` = NULL
-    ]], { flare_message, match_id, bot_two_id })
+    ]], { flare_message, match_id, bot_two_id, flare_body })
 end
 
 local function seed_private_and_services(context)
     local account_id = context.account.id
     local bot_id = context.bot_one.account.id
+    local user_dark_id, user_invite_code = darkchat_identifiers(account_id)
+    local bot_dark_id, bot_invite_code = darkchat_identifiers(bot_id)
     Bridge.Database.Query([[
         INSERT INTO `sky_phone_darkchat_profiles`
             (`account_id`, `dark_id`, `invite_code`, `alias`, `avatar_seed`, `notification_mode`, `activity_visible`)
         VALUES (?, ?, ?, 'NightTester', 42, 'private', 1)
-        ON DUPLICATE KEY UPDATE `alias` = VALUES(`alias`), `notification_mode` = VALUES(`notification_mode`)
-    ]], { account_id, ("DARK%010d"):format(account_id % 10000000000), ("INV%08d"):format(account_id % 100000000) })
+        ON DUPLICATE KEY UPDATE `dark_id` = VALUES(`dark_id`), `invite_code` = VALUES(`invite_code`),
+            `alias` = VALUES(`alias`), `notification_mode` = VALUES(`notification_mode`)
+    ]], { account_id, user_dark_id, user_invite_code })
     Bridge.Database.Query([[
         INSERT INTO `sky_phone_darkchat_profiles`
             (`account_id`, `dark_id`, `invite_code`, `alias`, `avatar_seed`, `notification_mode`, `activity_visible`)
-        VALUES (?, 'DARK0000000001', 'INV00000001', 'GhostAlex', 17, 'full', 1)
-        ON DUPLICATE KEY UPDATE `alias` = VALUES(`alias`)
-    ]], { bot_id })
+        VALUES (?, ?, ?, 'GhostAlex', 17, 'full', 1)
+        ON DUPLICATE KEY UPDATE `dark_id` = VALUES(`dark_id`), `invite_code` = VALUES(`invite_code`),
+            `alias` = VALUES(`alias`)
+    ]], { bot_id, bot_dark_id, bot_invite_code })
     local dark_user = ensure_numeric_profile("sky_phone_darkchat_profiles", account_id)
     local dark_bot = ensure_numeric_profile("sky_phone_darkchat_profiles", bot_id)
     Bridge.Database.Query([[
@@ -897,7 +990,7 @@ local function seed_for_source(source)
         sim = rows[1]
     else
         sim = reserve_sim(identifier, Bridge.Framework.GetFirstname(source), Bridge.Framework.GetLastname(source))
-        Bridge.Database.Query("UPDATE `sky_phone_devices` SET `sim_id` = ? WHERE `imei` = ?", { sim.id, imei })
+        local previous_imei = move_sim_to_device(sim.id, imei)
         local metadata = phone_slot.metadata or {}
         metadata.sim_id = sim.id
         metadata.phone_number = sim.phone_number
@@ -908,6 +1001,11 @@ local function seed_for_source(source)
             Config.Sim.NumberPrefix
         )
         if not Bridge.Inventory.SetSlotMetadata(source, phone_slot.slot, metadata) then
+            if not restore_sim_attachment(sim.id, imei, previous_imei) then
+                error(
+                    "[sky_phone] Test data could not update the phone item's SIM metadata or restore its previous device."
+                )
+            end
             error("[sky_phone] Test data could not update the phone item's SIM metadata.")
         end
     end
