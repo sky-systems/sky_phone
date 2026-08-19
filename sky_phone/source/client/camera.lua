@@ -51,6 +51,7 @@ local camera_state = {
     previous_ped_view = nil,
     previous_radar_hidden = nil,
     previous_vehicle_view = nil,
+    walkable = false,
     zoom = 1.0,
 }
 
@@ -289,6 +290,7 @@ local function set_camera_active(active)
     camera_state.game_input = false
     camera_state.landscape = false
     camera_state.locked = false
+    camera_state.walkable = false
     clear_front_camera()
     restore_camera_view()
     camera_state.nui_focused = true
@@ -335,10 +337,46 @@ local function set_camera_landscape(active)
     end
 end
 
+local function enable_walkable_camera(selfie_mode)
+    set_camera_active(true)
+    camera_state.walkable = true
+    set_front_camera(selfie_mode == true)
+    set_camera_focus(false)
+end
+
+local function disable_walkable_camera()
+    if not camera_state.walkable then
+        return
+    end
+
+    set_camera_active(false)
+end
+
+local function toggle_camera_frozen()
+    camera_state.locked = not camera_state.locked
+end
+
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "EnableWalkableCam", enable_walkable_camera)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "DisableWalkableCam", disable_walkable_camera)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleSelfieCam", set_front_camera)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleCameraFrozen", toggle_camera_frozen)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsWalkingCamEnabled", function()
+    return camera_state.walkable and camera_state.active
+end)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsSelfieCam", function()
+    return camera_state.front_camera
+end)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsCameraOpen", function()
+    return camera_state.active
+end)
+
 RegisterNUICallback("camera:setActive", function(data, cb)
     if type(data) ~= "table" then
         cb({ success = false, error = "invalid_request" })
         return
+    end
+    if data.active == true then
+        camera_state.walkable = false
     end
     set_camera_active(data.active == true)
     cb({ success = true })

@@ -4,6 +4,14 @@ import type { PhonePreferencesV1 } from '@/utils/preferences'
 const LB_PHONE_PROVIDER = 'lb_phone'
 const RESOURCE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/
 const MAX_FRAME_DOCUMENT_BYTES = 1_048_576
+const MAX_STORAGE_BYTES = 65_536
+const MAX_STORAGE_ENTRIES = 128
+const MAX_STORAGE_KEY_LENGTH = 512
+const STORAGE_KEY_PREFIX = 'sky_phone:lb-app-storage:v1:'
+
+export const LB_PHONE_STORAGE_MESSAGE_TYPE = 'sky-phone:lb-storage'
+
+export type LbPhoneStorageSnapshot = Record<string, string>
 
 export type LbPhoneHostSettings = {
   airplaneMode: boolean
@@ -41,6 +49,7 @@ export type LbPhoneHostSettings = {
 
 type LbPhoneFrameDocumentOptions = {
   appName: string
+  localStorage: LbPhoneStorageSnapshot
   resourceName: string
   settings: LbPhoneHostSettings
   ui: string
@@ -59,6 +68,59 @@ const listeners = new Map();
 const settingsListeners = new Set();
 const resourcePattern = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
 const eventPattern = /^[A-Za-z0-9][A-Za-z0-9:._/-]{0,127}$/;
+
+function createStorage(initialValues, onChange) {
+  const values = new Map(Object.entries(initialValues ?? {}));
+  const snapshot = () => Object.fromEntries(values);
+  const storage = {
+    clear() {
+      if (values.size === 0) return;
+      values.clear();
+      onChange(snapshot());
+    },
+    getItem(key) {
+      const normalizedKey = String(key);
+      return values.has(normalizedKey) ? values.get(normalizedKey) : null;
+    },
+    key(index) {
+      const normalizedIndex = Number(index);
+      if (!Number.isInteger(normalizedIndex) || normalizedIndex < 0) return null;
+      return Array.from(values.keys())[normalizedIndex] ?? null;
+    },
+    removeItem(key) {
+      if (!values.delete(String(key))) return;
+      onChange(snapshot());
+    },
+    setItem(key, value) {
+      values.set(String(key), String(value));
+      onChange(snapshot());
+    }
+  };
+  Object.defineProperty(storage, 'length', {
+    enumerable: true,
+    get: () => values.size
+  });
+  return storage;
+}
+
+const localStorageBridge = createStorage(config.localStorage, (storage) => {
+  globalThis.parent.postMessage({
+    appId: config.appName,
+    protocolVersion: 1,
+    storage,
+    type: '${LB_PHONE_STORAGE_MESSAGE_TYPE}'
+  }, '*');
+});
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  enumerable: true,
+  value: localStorageBridge
+});
+Object.defineProperty(globalThis, 'sessionStorage', {
+  configurable: true,
+  enumerable: true,
+  value: createStorage({}, () => undefined)
+});
 
 function applySettings(nextSettings) {
   globalThis.settings = nextSettings;
@@ -154,6 +216,67 @@ function serializeForInlineScript(value: unknown): string {
     .replace(/\u2029/g, '\\u2029')
 }
 
+function normalizeStorageSnapshot(
+  value: unknown,
+): LbPhoneStorageSnapshot | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return null
+  }
+
+  const entries = Object.entries(value)
+  if (entries.length > MAX_STORAGE_ENTRIES) return null
+
+  const normalized: LbPhoneStorageSnapshot = {}
+  for (const [key, item] of entries) {
+    if (
+      key.length > MAX_STORAGE_KEY_LENGTH ||
+      typeof item !== 'string' ||
+      key === '__proto__' ||
+      key === 'constructor' ||
+      key === 'prototype'
+    ) {
+      return null
+    }
+    normalized[key] = item
+  }
+
+  return new TextEncoder().encode(JSON.stringify(normalized)).byteLength <=
+    MAX_STORAGE_BYTES
+    ? normalized
+    : null
+}
+
+export function getLbPhoneStorageKey(appName: string): string {
+  if (!RESOURCE_NAME_PATTERN.test(appName)) {
+    throw new Error('invalid_lb_phone_storage_app')
+  }
+  return `${STORAGE_KEY_PREFIX}${appName}`
+}
+
+export function readLbPhoneStorage(
+  storage: Pick<Storage, 'getItem'>,
+  appName: string,
+): LbPhoneStorageSnapshot {
+  const serialized = storage.getItem(getLbPhoneStorageKey(appName))
+  if (serialized === null) return {}
+
+  const normalized = normalizeStorageSnapshot(JSON.parse(serialized))
+  if (!normalized) throw new Error('invalid_lb_phone_storage')
+  return normalized
+}
+
+export function writeLbPhoneStorage(
+  storage: Pick<Storage, 'setItem'>,
+  appName: string,
+  value: unknown,
+): boolean {
+  const normalized = normalizeStorageSnapshot(value)
+  if (!normalized) return false
+
+  storage.setItem(getLbPhoneStorageKey(appName), JSON.stringify(normalized))
+  return true
+}
+
 export function usesLbPhoneHostRuntime(
   app: ExternalPhoneAppDefinition,
 ): boolean {
@@ -232,6 +355,7 @@ export function createLbPhoneFrameDocument(
   const baseUrl = new URL('.', options.ui).href
   const config = serializeForInlineScript({
     appName: options.appName,
+    localStorage: options.localStorage,
     resourceName: options.resourceName,
     settings: options.settings,
   })

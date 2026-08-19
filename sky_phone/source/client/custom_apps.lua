@@ -105,26 +105,6 @@ local function resolve_localized_text(value)
     return value[locales[1]]
 end
 
-local function is_allowed_remote_origin(url)
-    local origin = url:match("^(https://[^/%?#]+)")
-    if not origin then
-        return false
-    end
-
-    local allowed_origins = Config.CustomApps.AllowRemoteOrigins
-    if allowed_origins[origin] then
-        return true
-    end
-
-    for index = 1, #allowed_origins do
-        if allowed_origins[index] == origin then
-            return true
-        end
-    end
-
-    return false
-end
-
 local function validate_asset_path(path)
     if #path == 0
         or #path > 1024
@@ -185,9 +165,6 @@ local function normalize_asset_url(value, original_owner, adapter_resource, asse
     end
 
     if url:sub(1, 8) == "https://" then
-        if not is_allowed_remote_origin(url) then
-            return nil, "remote_origin_not_allowed"
-        end
         return url
     end
 

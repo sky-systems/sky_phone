@@ -11,7 +11,6 @@ Config = {
         Locale = "en",
     },
     CustomApps = {
-        AllowRemoteOrigins = {},
         BundledApps = false,
         Debug = true,
         Enabled = true,
@@ -310,6 +309,35 @@ assert(not closed_open_success and closed_open_error == "phone_closed", "LB open
 local inactive_close_success, inactive_close_error = lb_close_app({ app = "dispatch" })
 assert(not inactive_close_success and inactive_close_error == "app_not_active", "LB close alias must preserve app state checks")
 assert(lb_remove_custom_app("dispatch"), "the LB owner must be able to remove its app")
+
+assert(lb_add_custom_app({
+    identifier = "remote-dashboard",
+    name = "Remote Dashboard",
+    description = "Hosted dashboard",
+    ui = "https://apps.example.com/dashboard/index.html",
+    icon = "https://cdn.example.com/dashboard.png",
+}), "secure remote LB assets must register without a manual origin allowlist")
+SkyPhoneApps.SetPhoneOpen(true)
+SkyPhoneApps.SendCatalog()
+local remote_catalog = nui_messages[#nui_messages]
+local remote_app
+for index = 1, #remote_catalog.data.apps do
+    if remote_catalog.data.apps[index].id == "remote-dashboard" then
+        remote_app = remote_catalog.data.apps[index]
+        break
+    end
+end
+assert(remote_app, "the remote LB app must be present in the catalog")
+assert(
+    remote_app.ui == "https://apps.example.com/dashboard/index.html",
+    "the registered HTTPS UI origin must be derived automatically"
+)
+assert(
+    remote_app.icon == "https://cdn.example.com/dashboard.png",
+    "the registered HTTPS icon origin must be derived automatically"
+)
+SkyPhoneApps.SetPhoneOpen(false)
+assert(lb_remove_custom_app("remote-dashboard"), "the remote LB app must remain owner-removable")
 
 invoking_resource = "phone_adapter"
 assert(lb_add_custom_app({

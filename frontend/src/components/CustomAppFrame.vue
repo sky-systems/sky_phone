@@ -33,10 +33,13 @@ import {
   getCustomAppSafeArea,
 } from '@/utils/customAppLifecycle'
 import {
+  LB_PHONE_STORAGE_MESSAGE_TYPE,
   createLbPhoneFrameDocument,
   createLbPhoneHostSettings,
   getLbPhoneCallbackResource,
+  readLbPhoneStorage,
   usesLbPhoneHostRuntime,
+  writeLbPhoneStorage,
 } from '@/utils/lbPhoneAppBridge'
 import { cloneJsonData } from '@/utils/clone'
 import { nuiCall } from '@/utils/nui'
@@ -191,6 +194,16 @@ async function prepareLbFrameDocument(): Promise<void> {
   const controller = new AbortController()
   frameDocumentController = controller
   try {
+    let appStorage = {}
+    try {
+      appStorage = readLbPhoneStorage(window.localStorage, props.app.id)
+    } catch (error) {
+      console.error(
+        `[Custom apps] Could not read LB Phone storage for ${props.app.id}.`,
+        error,
+      )
+    }
+
     const response = await fetch(frameUrl.value, {
       credentials: 'omit',
       signal: controller.signal,
@@ -201,6 +214,7 @@ async function prepareLbFrameDocument(): Promise<void> {
     const html = await response.text()
     lbFrameDocument.value = createLbPhoneFrameDocument(html, {
       appName: props.app.id,
+      localStorage: appStorage,
       resourceName: getLbPhoneCallbackResource(props.app),
       settings: lbSettings.value,
       ui: props.app.ui,
@@ -305,6 +319,24 @@ function onFrameMessage(event: MessageEvent): void {
     message.appId !== props.app.id ||
     message.protocolVersion !== PROTOCOL_VERSION
   ) {
+    return
+  }
+
+  if (message.type === LB_PHONE_STORAGE_MESSAGE_TYPE) {
+    try {
+      if (
+        !writeLbPhoneStorage(window.localStorage, props.app.id, message.storage)
+      ) {
+        console.error(
+          `[Custom apps] Rejected invalid LB Phone storage for ${props.app.id}.`,
+        )
+      }
+    } catch (error) {
+      console.error(
+        `[Custom apps] Could not persist LB Phone storage for ${props.app.id}.`,
+        error,
+      )
+    }
     return
   }
 
