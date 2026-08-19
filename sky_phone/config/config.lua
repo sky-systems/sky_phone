@@ -368,8 +368,8 @@ Config.Garage = {
 }
 
 Config.Housing = {
-    System = "auto", -- auto, esx_property, qbx_properties
-    AutoPriority = { "esx_property", "qbx_properties" },
+    System = "auto", -- auto, rtx, quasar, vms, rx, nolag, sn, esx_property, qbx_properties
+    AutoPriority = { "esx_property", "qbx_properties", "rtx", "quasar", "vms", "rx", "nolag", "sn" },
     MaximumProperties = 50,
     OverviewRequestsPerMinute = 30,
     ActionsPerMinute = 12,

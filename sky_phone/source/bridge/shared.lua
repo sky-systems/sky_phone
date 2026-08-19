@@ -5,7 +5,37 @@ Bridge.Database = Bridge.Database or {}
 Bridge.Framework = Bridge.Framework or {}
 Bridge.Inventory = Bridge.Inventory or {}
 Bridge.Radio = Bridge.Radio or {}
+Bridge.Normalize = Bridge.Normalize or {}
 Bridge.Speaker = Bridge.Speaker or {}
+
+function Bridge.Normalize.FiniteNumber(value)
+    local number = tonumber(value)
+    if not number or number ~= number or number == math.huge or number == -math.huge then
+        return nil
+    end
+    return number
+end
+
+function Bridge.Normalize.Coordinates(value)
+    if value == nil then
+        return nil
+    end
+
+    local success, x, y, z = pcall(function()
+        return value.x or value[1], value.y or value[2], value.z or value[3]
+    end)
+    if not success then
+        return nil
+    end
+
+    x = Bridge.Normalize.FiniteNumber(x)
+    y = Bridge.Normalize.FiniteNumber(y)
+    z = Bridge.Normalize.FiniteNumber(z)
+    if not x or not y or not z then
+        return nil
+    end
+    return { x = x, y = y, z = z }
+end
 
 function Bridge.Speaker.IsEnabled()
     return not Config.Speaker or Config.Speaker.Enabled ~= false

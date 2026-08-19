@@ -44,6 +44,15 @@ describe('House app sheets', () => {
     )
   })
 
+  it('can expose key revocation without advertising key grants', () => {
+    expect(source).toContain(
+      'v-if="selectedProperty.capabilities.keyGrant !== false"',
+    )
+    expect(source).toContain(
+      '<section v-if="selectedProperty.capabilities.keys" class="house-keys">',
+    )
+  })
+
   it('centers the resident icon above the Give a Key title', () => {
     expect(source).toMatch(
       /\.house-candidates > svg\s*\{[^}]*display:\s*block;[^}]*margin:\s*0 auto;/s,
