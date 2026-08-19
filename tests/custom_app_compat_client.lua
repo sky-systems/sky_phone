@@ -3,6 +3,7 @@ local registered_event_handlers = {}
 local registered_nui_callbacks = {}
 local triggered_events = {}
 local nui_messages = {}
+local waits = {}
 local invoking_resource = nil
 
 Config = {
@@ -85,6 +86,9 @@ end
 function CreateThread(handler)
     handler()
 end
+function Wait(milliseconds)
+    waits[#waits + 1] = milliseconds
+end
 
 dofile("sky_phone/source/bridge/shared.lua")
 dofile("sky_phone/source/shared/custom_apps.lua")
@@ -161,6 +165,7 @@ end
 for resource_name in pairs(expected_provider_resources) do
     assert(resource_start_events[resource_name], ("Missing %s provider start signal"):format(resource_name))
 end
+assert(waits[1] == 500, "compatibility ready signals must wait for dependent LB apps to initialize")
 assert(yseries_get_data_loaded(), "YSeries must see the compatibility provider as loaded")
 
 invoking_resource = "sky_base"
@@ -364,5 +369,26 @@ local quasar_open_success, quasar_open_error = quasar_open_phone_app("services")
 assert(not quasar_open_success and quasar_open_error == "phone_closed", "Quasar open alias must preserve phone state checks")
 assert(quasar_remove_custom_app("services"), "Quasar removeCustomApp must remove an owned app")
 assert(quasar_add_custom_apps_batch({}), "Quasar batch alias must accept an empty batch")
+
+local resource_stop_handlers = assert(registered_event_handlers["onClientResourceStop"])
+for index = 1, #resource_stop_handlers do
+    resource_stop_handlers[index]("sky_phone")
+end
+
+local client_stop_events = {}
+local resource_stop_events = {}
+for index = 1, #triggered_events do
+    local event = triggered_events[index]
+    local resource_name = event.arguments[1]
+    if event.event_name == "onClientResourceStop" then
+        client_stop_events[resource_name] = true
+    elseif event.event_name == "onResourceStop" then
+        resource_stop_events[resource_name] = true
+    end
+end
+for resource_name in pairs(expected_provider_resources) do
+    assert(client_stop_events[resource_name], ("Missing %s provider client stop signal"):format(resource_name))
+    assert(resource_stop_events[resource_name], ("Missing %s provider stop signal"):format(resource_name))
+end
 
 print("Custom app compatibility client tests passed")
