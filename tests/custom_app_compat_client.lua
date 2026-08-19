@@ -3,7 +3,7 @@ local registered_event_handlers = {}
 local registered_nui_callbacks = {}
 local triggered_events = {}
 local nui_messages = {}
-local waits = {}
+local collision_messages = {}
 local invoking_resource = nil
 
 Config = {
@@ -77,20 +77,41 @@ function SendNUIMessage(message)
 end
 function TriggerServerEvent() end
 function TriggerEvent(event_name, ...)
+    local arguments = { ... }
     triggered_events[#triggered_events + 1] = {
         event_name = event_name,
-        arguments = { ... },
+        arguments = arguments,
     }
+
+    if event_name:sub(1, 13) == "__cfx_export_" then
+        local handlers = registered_event_handlers[event_name] or {}
+        for index = 1, #handlers do
+            handlers[index](table.unpack(arguments))
+        end
+    end
 end
 
 function CreateThread(handler)
     handler()
 end
-function Wait(milliseconds)
-    waits[#waits + 1] = milliseconds
-end
+
+AddEventHandler("__cfx_export_lb-phone_AddCustomApp", function(set_callback)
+    set_callback(function()
+        return false, "App already exists"
+    end)
+end)
 
 dofile("sky_phone/source/bridge/shared.lua")
+local bridge_debug = Bridge.Debug
+Bridge.Debug = function(level, message, ...)
+    if level == "error" then
+        local arguments = { ... }
+        collision_messages[#collision_messages + 1] = #arguments > 0
+            and message:format(table.unpack(arguments))
+            or message
+    end
+    bridge_debug(level, message, ...)
+end
 dofile("sky_phone/source/shared/custom_apps.lua")
 dofile("sky_phone/source/shared/custom_app_compat.lua")
 dofile("sky_phone/source/client/custom_apps.lua")
@@ -99,7 +120,7 @@ dofile("sky_phone/source/client/custom_app_compat.lua")
 local function get_alias_export(resource_name, export_name)
     local event_name = ("__cfx_export_%s_%s"):format(resource_name, export_name)
     local handlers = registered_event_handlers[event_name]
-    assert(handlers and #handlers == 1, ("Missing %s:%s export alias"):format(resource_name, export_name))
+    assert(handlers and #handlers >= 1, ("Missing %s:%s export alias"):format(resource_name, export_name))
 
     local alias_handler
     local export_callback = setmetatable({
@@ -109,7 +130,7 @@ local function get_alias_export(resource_name, export_name)
             alias_handler = handler
         end,
     })
-    handlers[1](export_callback)
+    handlers[#handlers](export_callback)
     assert(type(alias_handler) == "function", ("Invalid %s:%s export alias"):format(resource_name, export_name))
     return alias_handler
 end
@@ -154,6 +175,11 @@ local expected_provider_resources = {
     ["qs-smartphone"] = true,
     ["yseries"] = true,
 }
+assert(
+    collision_messages[1]
+        and collision_messages[1]:find("Compatibility collision: lb-phone:AddCustomApp has 2 providers", 1, true),
+    "concurrent original phone providers must emit an actionable compatibility error"
+)
 local provider_lifecycle_events = {}
 for index = 1, #triggered_events do
     local event = triggered_events[index]
@@ -174,7 +200,6 @@ for resource_name in pairs(expected_provider_resources) do
     assert(lifecycle[2] == "onResourceStop", ("Missing %s provider stop signal"):format(resource_name))
     assert(lifecycle[3] == "onResourceStart", ("Missing %s provider start signal"):format(resource_name))
 end
-assert(waits[1] == 500, "compatibility ready signals must wait for dependent LB apps to initialize")
 assert(yseries_get_data_loaded(), "YSeries must see the compatibility provider as loaded")
 
 invoking_resource = "sky_base"
