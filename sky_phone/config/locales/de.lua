@@ -123,6 +123,7 @@ Locales["de"] = {
             ready = {
                 eyebrow = "Einrichtung abgeschlossen", title = "Willkommen, {name}", body = "Dein Sky Phone ist eingerichtet und bereit. Du kannst alles später in den Einstellungen anpassen.",
                 localOnly = "Auf diesem Handy gespeichert", enter = "Sky Phone öffnen", review = "Einrichtung prüfen",
+                saving = "Einrichtung wird gespeichert", saveFailed = "Die Einrichtung konnte nicht gespeichert werden. Versuche es erneut.",
             },
         },
         Common = {

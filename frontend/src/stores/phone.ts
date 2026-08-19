@@ -43,7 +43,7 @@ export type PhoneOpenPayload = {
   token?: string
 }
 
-const namespaceQueues = new Map<string, Promise<void>>()
+const namespaceQueues = new Map<string, Promise<boolean>>()
 let nextPersistenceSession = 0
 
 const companiesFallbackLocales = {
@@ -4949,6 +4949,8 @@ const defaultLocales: LocaleTree = {
       localOnly: 'Stored on this phone',
       enter: 'Enter Sky Phone',
       review: 'Review Setup',
+      saveFailed: 'Setup could not be saved. Try again.',
+      saving: 'Saving setup',
     },
   },
   Common: {
@@ -5223,13 +5225,13 @@ export const usePhoneStore = defineStore('phone', {
         JSON.stringify(device.data.settings?.payload ?? null),
       )
     },
-    saveDeviceNamespace(namespace: string, payload: unknown): void {
+    saveDeviceNamespace(namespace: string, payload: unknown): Promise<boolean> {
       const imei = this.device?.imei
       if (!imei) {
         console.error(
           `[Phone persistence] Could not save ${namespace} without an active device.`,
         )
-        return
+        return Promise.resolve(false)
       }
       const generation = this.persistenceGeneration
       const session = this.persistenceSession
@@ -5243,7 +5245,7 @@ export const usePhoneStore = defineStore('phone', {
         this.deviceSessionToken === token
       const previous = namespaceQueues.get(queueKey) ?? Promise.resolve()
       const queued = previous.then(async () => {
-        if (!isCurrentScope()) return
+        if (!isCurrentScope()) return false
         const response = await nuiCall<{ revision: number }>('device:save', {
           imei,
           namespace,
@@ -5258,13 +5260,21 @@ export const usePhoneStore = defineStore('phone', {
           Number(response.data?.revision) >= 0
         ) {
           this.deviceRevisions[namespace] = Number(response.data?.revision)
+          return true
         }
+        if (isCurrentScope()) {
+          console.error(
+            `[Phone persistence] Could not save ${namespace}: ${response.error ?? 'request_failed'}`,
+          )
+        }
+        return false
       })
       const tracked = queued.finally(() => {
         if (namespaceQueues.get(queueKey) === tracked)
           namespaceQueues.delete(queueKey)
       })
       namespaceQueues.set(queueKey, tracked)
+      return tracked
     },
     async flushDevicePersistence(): Promise<void> {
       const imei = this.device?.imei
@@ -5329,10 +5339,16 @@ export const usePhoneStore = defineStore('phone', {
       )
       this.saveDeviceNamespace('settings', this.preferences)
     },
-    completeSetup(): void {
-      this.preferences.settings.setupCompleted = true
-      this.preferences.settings.setupStep = PHONE_SETUP_LAST_STEP
-      this.saveDeviceNamespace('settings', this.preferences)
+    async completeSetup(): Promise<boolean> {
+      const completedPreferences = cloneJsonData(this.preferences)
+      completedPreferences.settings.setupCompleted = true
+      completedPreferences.settings.setupStep = PHONE_SETUP_LAST_STEP
+      const saved = await this.saveDeviceNamespace(
+        'settings',
+        completedPreferences,
+      )
+      if (saved) this.preferences = completedPreferences
+      return saved
     },
     resetAfterFactoryReset(): void {
       this.persistenceGeneration += 1

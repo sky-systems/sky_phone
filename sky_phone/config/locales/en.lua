@@ -123,6 +123,7 @@ Locales["en"] = {
             ready = {
                 eyebrow = "Setup Complete", title = "Welcome, {name}", body = "Your Sky Phone is configured and ready. Your choices can always be refined in Settings.",
                 localOnly = "Stored on this phone", enter = "Enter Sky Phone", review = "Review Setup",
+                saving = "Saving setup", saveFailed = "Setup could not be saved. Try again.",
             },
         },
         Common = {
