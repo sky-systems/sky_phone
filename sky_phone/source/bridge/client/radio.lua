@@ -101,6 +101,10 @@ function Bridge.Radio.Join(primary, secondary)
     local selected = resolve_provider()
     if selected == "yaca" then
         local voice = exports["yaca-voice"]
+        if not voice:isEnabled() then
+            Bridge.Debug("error", "[sky_phone] Yaca is started but its voice system is disabled.")
+            return false
+        end
         if not voice:isRadioEnabled() then
             voice:enableRadio(true)
             Wait(100)
@@ -150,9 +154,9 @@ end
 function Bridge.Radio.SetVolume(volume)
     local selected = resolve_provider()
     if selected == "yaca" then
-        exports["yaca-voice"]:changeRadioChannelVolumeRaw(1, volume / 100)
+        exports["yaca-voice"]:changeRadioChannelVolumeRaw(volume / 100, 1)
         if Bridge.Radio.SupportsSecondary() then
-            exports["yaca-voice"]:changeRadioChannelVolumeRaw(2, volume / 100)
+            exports["yaca-voice"]:changeRadioChannelVolumeRaw(volume / 100, 2)
         end
     elseif selected == "pma" then
         exports["pma-voice"]:setRadioVolume(volume)

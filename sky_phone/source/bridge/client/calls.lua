@@ -1,8 +1,10 @@
 local provider_resources = {
+    yaca = "yaca-voice",
     pma = "pma-voice",
     saltychat = "saltychat",
 }
 local provider_aliases = {
+    ["yaca-voice"] = "yaca",
     ["pma-voice"] = "pma",
     salty = "saltychat",
 }
@@ -22,7 +24,12 @@ function Bridge.Calls.GetProvider()
 end
 
 function Bridge.Calls.SupportsSpeaker()
-    return Bridge.Speaker.IsEnabled() and resolve_provider() == "saltychat"
+    local selected = resolve_provider()
+    return Bridge.Speaker.IsEnabled() and (selected == "yaca" or selected == "saltychat")
+end
+
+function Bridge.Calls.SupportsMute()
+    return resolve_provider() == "yaca"
 end
 
 function Bridge.Calls.Join(channel)
@@ -37,8 +44,8 @@ function Bridge.Calls.Join(channel)
         return true
     end
 
-    if selected == "saltychat" then
-        -- SaltyChat call membership is owned by the server bridge.
+    if selected == "yaca" or selected == "saltychat" then
+        -- Yaca and SaltyChat call membership is owned by the server bridge.
         return true
     end
 

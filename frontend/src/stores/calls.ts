@@ -130,6 +130,30 @@ export const useCallsStore = defineStore('calls', () => {
     return response
   }
 
+  async function setMuted(
+    enabled: boolean,
+  ): Promise<NuiResponse<{ muted: boolean }>> {
+    const call = activeCall.value
+    if (!call || call.state !== 'connected') {
+      return { success: false, error: 'call_not_connected' }
+    }
+    if (!call.muteSupported) {
+      return { success: false, error: 'mute_unavailable' }
+    }
+
+    const response = await nuiCall<{ muted: boolean }>('calls:set-muted', {
+      enabled,
+      id: call.id,
+    })
+    if (response.success && response.data && activeCall.value?.id === call.id) {
+      activeCall.value = {
+        ...activeCall.value,
+        muted: response.data.muted === true,
+      }
+    }
+    return response
+  }
+
   async function blockNumber(phoneNumber: string): Promise<NuiResponse> {
     const response = await nuiCall('calls:block', { phoneNumber })
     if (response.success && activeCall.value?.otherNumber === phoneNumber) {
@@ -179,6 +203,7 @@ export const useCallsStore = defineStore('calls', () => {
     recents,
     saveContact,
     setContactFavorite,
+    setMuted,
     setSpeaker,
   }
 })

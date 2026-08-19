@@ -156,6 +156,54 @@ describe('calls store', () => {
     expect(calls.activeCall?.speakerEnabled).toBe(false)
   })
 
+  it('applies the provider-authoritative mute state for a Yaca call', async () => {
+    vi.mocked(nuiCall).mockResolvedValueOnce({
+      success: true,
+      data: { muted: true },
+    })
+    const calls = useCallsStore()
+    calls.applyCallState({
+      direction: 'outgoing',
+      id: 'call-yaca-mute',
+      muted: false,
+      muteSupported: true,
+      otherNumber: '5551110025',
+      startedAt: 1,
+      state: 'connected',
+    })
+
+    const response = await calls.setMuted(true)
+
+    expect(response.success).toBe(true)
+    expect(nuiCall).toHaveBeenCalledWith('calls:set-muted', {
+      enabled: true,
+      id: 'call-yaca-mute',
+    })
+    expect(calls.activeCall?.muted).toBe(true)
+  })
+
+  it('does not simulate mute state for unsupported voice providers', async () => {
+    const calls = useCallsStore()
+    calls.applyCallState({
+      direction: 'outgoing',
+      id: 'call-pma-mute',
+      muted: false,
+      muteSupported: false,
+      otherNumber: '5551110025',
+      startedAt: 1,
+      state: 'connected',
+    })
+
+    const response = await calls.setMuted(true)
+
+    expect(response).toEqual({
+      error: 'mute_unavailable',
+      success: false,
+    })
+    expect(nuiCall).not.toHaveBeenCalled()
+    expect(calls.activeCall?.muted).toBe(false)
+  })
+
   it('updates a contact favorite and refreshes the contact list', async () => {
     vi.mocked(nuiCall)
       .mockResolvedValueOnce({

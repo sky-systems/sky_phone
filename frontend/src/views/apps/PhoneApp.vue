@@ -100,7 +100,7 @@ const inCallKeypad = ref('')
 const blockDialogOpened = ref(false)
 const blockTargetNumber = ref('')
 const callSpeakerPending = ref(false)
-const callMuted = ref(false)
+const callMutePending = ref(false)
 const callElapsedSeconds = ref(0)
 let callClock: number | null = null
 const tabs = [
@@ -459,6 +459,26 @@ async function toggleCallSpeaker(): Promise<void> {
   callSpeakerPending.value = true
   const response = await calls.setSpeaker(!call.speakerEnabled)
   callSpeakerPending.value = false
+  if (!response.success) {
+    error.value = phone.t(`Apps.phone.errors.${response.error ?? 'default'}`)
+  }
+}
+
+async function toggleCallMute(): Promise<void> {
+  const call = calls.activeCall
+  if (
+    !call ||
+    call.state !== 'connected' ||
+    !call.muteSupported ||
+    callMutePending.value
+  ) {
+    return
+  }
+
+  error.value = ''
+  callMutePending.value = true
+  const response = await calls.setMuted(!call.muted)
+  callMutePending.value = false
   if (!response.success) {
     error.value = phone.t(`Apps.phone.errors.${response.error ?? 'default'}`)
   }
@@ -853,8 +873,20 @@ onBeforeUnmount(() => {
             <sky-button
               rounded
               class="phone-call-action"
-              :class="{ 'is-active': callMuted }"
-              @click="callMuted = !callMuted"
+              :class="{
+                'is-active': calls.activeCall.muted,
+                'is-disabled':
+                  calls.activeCall.state !== 'connected' ||
+                  !calls.activeCall.muteSupported,
+              }"
+              :disabled="
+                calls.activeCall.state !== 'connected' ||
+                !calls.activeCall.muteSupported ||
+                callMutePending
+              "
+              :aria-busy="callMutePending || undefined"
+              :aria-pressed="calls.activeCall.muted === true"
+              @click="toggleCallMute"
             >
               <MicOff />
               <span>{{ phone.t('Apps.phone.mute') }}</span>

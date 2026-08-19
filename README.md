@@ -87,7 +87,7 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | --- | --- |
 | **Frameworks** | ESX Legacy, QBCore, Qbox |
 | **Inventories** | ox_inventory, qb-inventory, lj-inventory, qs-inventory, codem-inventory, core_inventory, mf-inventory, smx-inventory, hex_4_inventory, and native ESX inventory |
-| **Calls** | PMA Voice, SaltyChat |
+| **Calls** | YACA, PMA Voice, SaltyChat |
 | **Radio** | YACA, PMA Voice, SaltyChat |
 | **Housing** | ESX Property, qbx_properties |
 | **Garages** | Built-in/custom data and a broad set of popular garage providers configured through the bridge |
@@ -140,6 +140,7 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 
 Phone calls support:
 
+- YACA
 - PMA Voice
 - SaltyChat
 
@@ -433,10 +434,11 @@ Config.Calls.VoiceProvider = "pma"
 
 Supported values:
 
+- `yaca` or `yaca-voice`
 - `pma` or `pma-voice`
 - `saltychat` or `salty`
 
-SaltyChat supports the provider-backed call speaker feature. PMA Voice keeps the speaker option unavailable.
+YACA supports calls, payphone calls, provider-backed speaker mode, and real microphone mute. SaltyChat supports provider-backed speaker mode. PMA Voice keeps speaker and mute controls unavailable.
 
 ### Radio
 

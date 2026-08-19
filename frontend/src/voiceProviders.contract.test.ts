@@ -22,6 +22,10 @@ const clientMain = readFileSync(
   new URL('../../sky_phone/source/client/main.lua', import.meta.url),
   'utf8',
 )
+const phoneApp = readFileSync(
+  new URL('./views/apps/PhoneApp.vue', import.meta.url),
+  'utf8',
+)
 const clientRadio = readFileSync(
   new URL('../../sky_phone/source/bridge/client/radio.lua', import.meta.url),
   'utf8',
@@ -76,18 +80,49 @@ describe('voice provider contracts', () => {
     expect(config).toMatch(/Config\.Speaker\s*=\s*\{\s*Enabled\s*=\s*true,/)
     expect(sharedBridge).toContain('function Bridge.Speaker.IsEnabled()')
     expect(clientCalls).toContain(
-      'Bridge.Speaker.IsEnabled() and resolve_provider() == "saltychat"',
+      'Bridge.Speaker.IsEnabled() and (selected == "yaca" or selected == "saltychat")',
     )
     expect(clientRadio).toContain(
       'Bridge.Speaker.IsEnabled() and resolve_provider() == "saltychat"',
     )
     expect(serverVoice).toContain(
-      'Bridge.Speaker.IsEnabled() and resolve_call_provider() == "saltychat"',
+      'Bridge.Speaker.IsEnabled() and (selected == "yaca" or selected == "saltychat")',
     )
     expect(serverVoice).toContain(
       'Bridge.Speaker.IsEnabled() and resolve_radio_provider() == "saltychat"',
     )
     expect(serverCalls).toContain('if not Bridge.Speaker.IsEnabled() then')
+  })
+
+  it('integrates Yaca calls, speaker mode and provider-backed mute end to end', () => {
+    expect(config).toContain('yaca (alias: yaca-voice)')
+    expect(clientCalls).toContain('yaca = "yaca-voice"')
+    expect(clientCalls).toContain(
+      'Yaca and SaltyChat call membership is owned by the server bridge.',
+    )
+    expect(serverVoice).toContain(
+      'exports["yaca-voice"]:callPlayer(caller_source, target_source, true)',
+    )
+    expect(serverVoice).toContain(
+      'exports["yaca-voice"]:callPlayer(caller_source, target_source, false)',
+    )
+    expect(serverVoice).toContain('exports["yaca-voice"]:enablePhoneSpeaker(')
+    expect(serverVoice).toContain('exports["yaca-voice"]:muteOnPhone(')
+    expect(serverCalls).toContain(
+      'Bridge.Callbacks.Register("sky_phone:calls:set-muted"',
+    )
+    expect(clientMain).toContain('"calls:set-muted"')
+    expect(phoneApp).toContain('@click="toggleCallMute"')
+    expect(phoneApp).not.toContain('callMuted = !callMuted')
+  })
+
+  it('passes Yaca radio volume arguments in the documented order', () => {
+    expect(clientRadio).toContain(
+      'changeRadioChannelVolumeRaw(volume / 100, 1)',
+    )
+    expect(clientRadio).toContain(
+      'changeRadioChannelVolumeRaw(volume / 100, 2)',
+    )
   })
 
   it('provides safe shared defaults for the optional server radio speaker adapter', () => {

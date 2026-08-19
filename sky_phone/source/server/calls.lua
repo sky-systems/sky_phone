@@ -113,9 +113,12 @@ end
 local function send_state(call, source, state, channel)
     local outgoing = source == call.caller_source
     local speaker_supported = Bridge.Speaker.IsEnabled() and (
-        call.voice_provider == "saltychat"
+        call.voice_provider == "yaca"
+        or call.voice_provider == "saltychat"
         or (not call.voice_provider and Bridge.Calls.SupportsSpeaker())
     )
+    local mute_supported = call.voice_provider == "yaca"
+        or (not call.voice_provider and Bridge.Calls.SupportsMute())
     local payload = {
         id = call.id,
         state = state,
@@ -126,6 +129,8 @@ local function send_state(call, source, state, channel)
         channel = channel,
         speakerEnabled = call.speakers and call.speakers[source] == true or false,
         speakerSupported = speaker_supported,
+        muted = call.muted and call.muted[source] == true or false,
+        muteSupported = mute_supported,
     }
     if call.payphone and outgoing then
         payload.elapsedSeconds = call.payphone.elapsed_seconds or 0
@@ -252,6 +257,7 @@ local function finish_call(call, status)
         end
         Bridge.Calls.Stop(call.id, player_handles, call.voice_provider)
         call.speakers = {}
+        call.muted = {}
         call.voice_started = false
     end
     local ended_at = os.time()
@@ -1247,6 +1253,7 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     call.voice_provider = voice_provider
     call.voice_started = true
     call.speakers = {}
+    call.muted = {}
     call.answered_at = os.time()
     call.channel = next_voice_channel
     next_voice_channel = next_voice_channel + 1
@@ -1281,7 +1288,7 @@ Bridge.Callbacks.Register("sky_phone:calls:set-speaker", function(source, data)
     if not call or call.id ~= data.id or not call.answered_at or call.ended or not call.voice_started then
         return { success = false, error = "call_not_found" }
     end
-    if call.voice_provider ~= "saltychat" then
+    if call.voice_provider ~= "yaca" and call.voice_provider ~= "saltychat" then
         return { success = false, error = "speaker_unsupported" }
     end
     if not Bridge.Speaker.IsEnabled() then
@@ -1298,6 +1305,37 @@ Bridge.Callbacks.Register("sky_phone:calls:set-speaker", function(source, data)
         data = {
             speakerEnabled = data.enabled,
             speakerSupported = true,
+        },
+    }
+end)
+
+Bridge.Callbacks.Register("sky_phone:calls:set-muted", function(source, data)
+    if type(data) ~= "table" or type(data.id) ~= "string" or type(data.enabled) ~= "boolean" then
+        return { success = false, error = "invalid_request" }
+    end
+    if not SkyPhone.AllowOperation(source, "call_mute", 30, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+
+    local call_id = active_by_source[source]
+    local call = call_id and calls[call_id] or nil
+    if not call or call.id ~= data.id or not call.answered_at or call.ended or not call.voice_started then
+        return { success = false, error = "call_not_found" }
+    end
+    if call.voice_provider ~= "yaca" then
+        return { success = false, error = "mute_unsupported" }
+    end
+    if not Bridge.Calls.SetMuted(source, data.enabled, call.voice_provider) then
+        return { success = false, error = "voice_unavailable" }
+    end
+
+    call.muted[source] = data.enabled
+    send_state(call, source, "connected", call.channel)
+    return {
+        success = true,
+        data = {
+            muted = data.enabled,
+            muteSupported = true,
         },
     }
 end)

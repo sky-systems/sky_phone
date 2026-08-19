@@ -82,7 +82,7 @@ Config.Speaker = {
 }
 
 Config.Calls = {
-    VoiceProvider = "pma", -- pma (alias: pma-voice), saltychat (alias: salty)
+    VoiceProvider = "pma", -- yaca (alias: yaca-voice), pma (alias: pma-voice), saltychat (alias: salty)
     RingSeconds = 30,
     ContactNameMaxLength = 80,
     ContactNotesMaxLength = 500,

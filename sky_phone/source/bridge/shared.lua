@@ -11,6 +11,14 @@ function Bridge.Speaker.IsEnabled()
     return not Config.Speaker or Config.Speaker.Enabled ~= false
 end
 
+function Bridge.Calls.SupportsMute()
+    return false
+end
+
+function Bridge.Calls.SetMuted()
+    return false
+end
+
 function Bridge.Radio.SupportsSpeaker()
     return false
 end

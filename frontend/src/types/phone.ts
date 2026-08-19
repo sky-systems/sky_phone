@@ -48,6 +48,8 @@ export type PhoneCall = {
   device?: { imei: string; name: string }
   direction: CallDirection
   id: string
+  muted?: boolean
+  muteSupported?: boolean
   otherNumber: string
   speakerEnabled?: boolean
   speakerSupported?: boolean

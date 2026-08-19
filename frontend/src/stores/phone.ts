@@ -2658,11 +2658,16 @@ const defaultLocales: LocaleTree = {
         readonly_contact: 'Official company contacts cannot be changed.',
         rate_limited: 'Too many calls. Try again in a minute.',
         voice_unavailable: 'The configured phone voice service is unavailable.',
-        call_not_connected: 'Connect the call before enabling speaker mode.',
+        call_not_connected:
+          'Connect the call before changing its audio controls.',
         speaker_unavailable:
           'Speaker mode is not available for the configured phone voice service.',
         speaker_unsupported:
           'The configured phone voice service does not support speaker mode.',
+        mute_unavailable:
+          'Mute is not available for the configured phone voice service.',
+        mute_unsupported:
+          'The configured phone voice service does not support mute.',
         inventory_full: 'There is no room for the ejected SIM card.',
         operation_in_progress:
           'Another phone operation is already in progress.',

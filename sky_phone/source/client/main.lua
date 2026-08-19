@@ -245,6 +245,7 @@ local server_callbacks = {
     "calls:dial",
     "calls:answer",
     "calls:set-speaker",
+    "calls:set-muted",
     "calls:decline",
     "calls:hangup",
     "calls:block",
