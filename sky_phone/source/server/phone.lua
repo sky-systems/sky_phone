@@ -56,6 +56,8 @@ local unique_phones = Config.Phone.Unique ~= false
 local sim_cards_enabled = Config.Sim.Enabled ~= false
 local sessions = {}
 local preferred_device_imeis = {}
+local equipped_phone_numbers = {}
+local equipped_phone_identifiers = {}
 local auth_attempts = {}
 local operation_attempts = {}
 local character_device_cache = {}
@@ -134,25 +136,6 @@ local function character_identifier(source)
         return nil
     end
     return identifier
-end
-
-local function resolve_player_source(player)
-    local numeric_source = tonumber(player)
-    if numeric_source then
-        return numeric_source
-    end
-    if type(player) ~= "string" or player == "" then
-        return nil
-    end
-
-    for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
-        local identifier = Bridge.Framework.GetIdentifier(player_source)
-        if identifier and tostring(identifier) == player then
-            return player_source
-        end
-    end
-
-    return nil
 end
 
 local function migrated_device_for_character(source)
@@ -650,6 +633,17 @@ local function bootstrap(source, security, security_loaded)
     session.account_id = device.account_id and tonumber(device.account_id) or nil
     session.account_email = session.account_id and device.email or nil
 
+    local previous_identifier = equipped_phone_identifiers[source]
+    if previous_identifier then
+        equipped_phone_numbers[previous_identifier] = nil
+    end
+    local identifier = character_identifier(source)
+    equipped_phone_identifiers[source] = identifier
+    equipped_phone_numbers[source] = device.phone_number
+    if identifier then
+        equipped_phone_numbers[identifier] = device.phone_number
+    end
+
     return {
         token = session.token,
         security = security_status(device.imei, security, security_loaded),
@@ -692,19 +686,15 @@ SkyPhone.LoadDevice = load_device
 SkyPhone.RefreshSource = refresh_source
 
 function SkyPhone.GetEquippedPhoneNumber(player)
-    local player_source = resolve_player_source(player)
-    if not player_source then
+    local player_source = tonumber(player)
+    if player_source then
+        return equipped_phone_numbers[player_source]
+    end
+    if type(player) ~= "string" or player == "" then
         return nil
     end
 
-    local session = sessions[player_source]
-    local imei = session and session.imei or preferred_device_imeis[player_source]
-    if not imei or not find_device_slots(player_source, imei)[1] then
-        return nil
-    end
-
-    local device = load_device(imei)
-    return device and device.phone_number or nil
+    return equipped_phone_numbers[player]
 end
 
 SkyPhoneCompatibility.RegisterExportAlias(
@@ -888,6 +878,12 @@ function SkyPhone.RequireDeviceSession(source)
     if not matches[1] then
         SkyPhoneCompanies.ClearCallAvailability(source)
         sessions[source] = nil
+        local identifier = equipped_phone_identifiers[source]
+        equipped_phone_numbers[source] = nil
+        equipped_phone_identifiers[source] = nil
+        if identifier then
+            equipped_phone_numbers[identifier] = nil
+        end
         TriggerClientEvent("sky_phone:device:invalidated", source)
         return nil, { success = false, error = "device_not_owned" }
     end
@@ -1513,6 +1509,12 @@ end)
 AddEventHandler("playerDropped", function()
     SkyPhoneCompanies.ClearCallAvailability(source)
     sessions[source] = nil
+    local identifier = equipped_phone_identifiers[source]
+    equipped_phone_numbers[source] = nil
+    equipped_phone_identifiers[source] = nil
+    if identifier then
+        equipped_phone_numbers[identifier] = nil
+    end
     auth_attempts[source] = nil
     operation_attempts[source] = nil
     character_device_cache[source] = nil
@@ -1526,6 +1528,8 @@ AddEventHandler("onResourceStop", function(resource_name)
         operation_attempts = {}
         character_device_cache = {}
         preferred_device_imeis = {}
+        equipped_phone_numbers = {}
+        equipped_phone_identifiers = {}
     end
 end)
 end)

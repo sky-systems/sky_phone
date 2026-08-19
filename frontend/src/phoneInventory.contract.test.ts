@@ -71,8 +71,20 @@ describe('phone inventory contracts', () => {
       'function SkyPhone.GetEquippedPhoneNumber(player)',
     )
     expect(phoneServer).toContain(
-      'not find_device_slots(player_source, imei)[1]',
+      'equipped_phone_numbers[source] = device.phone_number',
     )
+    expect(phoneServer).toContain(
+      'equipped_phone_numbers[identifier] = device.phone_number',
+    )
+    expect(phoneServer).toContain(
+      'return equipped_phone_numbers[player_source]',
+    )
+    const equippedNumberExport = phoneServer.match(
+      /function SkyPhone\.GetEquippedPhoneNumber\(player\)([\s\S]*?)\nSkyPhoneCompatibility\.RegisterExportAlias/,
+    )?.[1]
+    expect(equippedNumberExport).toBeDefined()
+    expect(equippedNumberExport).not.toContain('find_device_slots')
+    expect(equippedNumberExport).not.toContain('load_device')
     expect(phoneServer).toMatch(
       /"GetEquippedPhoneNumber",\s+SkyPhone\.GetEquippedPhoneNumber/,
     )
