@@ -249,6 +249,11 @@ When enabled, Sky Phone prints debug and informational messages. Warnings and er
 
 The short LB Phone detection notice also remains visible when debug mode is disabled.
 
+On every resource start, Sky Phone compares the `version` in `fxmanifest.lua` with the tag of the
+latest published [GitHub release](https://github.com/sky-systems/sky_phone/releases/latest). The
+server console reports whether the installed version is current and shows the release link when an
+update is available. A failed GitHub request is reported but does not prevent the phone from starting.
+
 ## Security values
 
 Sky Phone ships with stable generated defaults in `Config.Server`:
