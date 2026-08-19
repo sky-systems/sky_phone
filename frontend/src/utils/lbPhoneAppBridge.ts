@@ -70,6 +70,10 @@ function applySettings(nextSettings) {
 globalThis.resourceName = config.resourceName;
 globalThis.appName = config.appName;
 globalThis.components = globalThis.components ?? {};
+// Official LB app templates use this binding to distinguish live NUI from browser preview mode.
+if (typeof globalThis.invokeNative !== 'function') {
+  globalThis.invokeNative = () => undefined;
+}
 globalThis.GetParentResourceName = () => config.resourceName;
 globalThis.fetchNui = async (eventName, data, requestedResource) => {
   if (typeof eventName !== 'string' || !eventPattern.test(eventName) || eventName.includes('..')) {

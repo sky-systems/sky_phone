@@ -90,7 +90,7 @@ describe('LB Phone app bridge', () => {
 
   it('injects the LB runtime and asset base before the vendor bundle', () => {
     const html =
-      '<!doctype html><html><head><script type="module" src="/ui/dist/assets/index.js"></script></head><body></body></html>'
+      '<!doctype html><html><head><script>globalThis.previewMode = !window.invokeNative</script><script type="module" src="/ui/dist/assets/index.js"></script></head><body></body></html>'
     const document = createLbPhoneFrameDocument(html, {
       appName: 'snake-game',
       resourceName: 'snake_app',
@@ -109,8 +109,12 @@ describe('LB Phone app bridge', () => {
     )
     expect(document).toContain('globalThis.fetchNui = async')
     expect(document).toContain('globalThis.onNuiEvent = globalThis.useNuiEvent')
+    expect(document).toContain("globalThis.invokeNative = () => undefined")
     expect(document).toContain('https://cfx-nui-snake_app/ui/dist/')
     expect(document).not.toContain('</script><script>window.injected=true')
+    expect(document.indexOf('globalThis.invokeNative')).toBeLessThan(
+      document.indexOf('globalThis.previewMode'),
+    )
 
     const runtime = /<script>([\s\S]*?)<\/script>/.exec(document)?.[1]
     expect(runtime).toBeTruthy()
