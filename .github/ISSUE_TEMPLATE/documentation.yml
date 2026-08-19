@@ -1,0 +1,35 @@
+name: Documentation improvement
+description: Report missing, incorrect, or unclear project documentation.
+title: "[Docs] "
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Documentation location
+      description: Link the section or provide the repository path and heading.
+      placeholder: README.md, Quick installation
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is unclear or incorrect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+      description: Include verified runtime, configuration, or version context where relevant.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmation
+      options:
+        - label: I checked the current default branch before reporting this.
+          required: true

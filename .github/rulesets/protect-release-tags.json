@@ -1,0 +1,36 @@
+{
+  "name": "Protect semantic release tags",
+  "target": "tag",
+  "source_type": "Repository",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~ALL"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "tag_name_pattern",
+      "parameters": {
+        "name": "Numeric semantic version without v prefix",
+        "negate": false,
+        "operator": "regex",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\n?$"
+      }
+    }
+  ],
+  "bypass_actors": [
+    {
+      "actor_id": 2,
+      "actor_type": "RepositoryRole",
+      "bypass_mode": "always"
+    }
+  ]
+}

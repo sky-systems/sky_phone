@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v6
+
+      - name: Validate tag and manifest version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must use numeric semantic versions without v: $GITHUB_REF_NAME"
+            exit 1
+          fi
+          manifest_version=$(sed -n "s/^version '\([^']*\)'/\1/p" sky_phone/fxmanifest.lua)
+          if [[ "$manifest_version" != "$GITHUB_REF_NAME" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match fxmanifest version $manifest_version"
+            exit 1
+          fi
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate, test, and build frontend
+        working-directory: frontend
+        run: |
+          pnpm lint
+          pnpm test
+          pnpm build
+
+      - name: Verify deployable phone resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f sky_phone/fxmanifest.lua
+          test -f sky_phone/source/html/index.html
+          test -d sky_phone/source/html/assets
+
+      - name: Validate repository contracts
+        run: node .github/scripts/validate-repository.mjs
+
+      - name: Install Lua compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes lua5.4
+
+      - name: Check Lua syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            luac5.4 -p "$file"
+          done < <(find sky_phone tests -type f -name '*.lua' -print0)
+
+      - name: Create release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="sky_phone-${GITHUB_REF_NAME}.zip"
+          zip -r "$archive" sky_phone
+          unzip -t "$archive"
+          unzip -Z1 "$archive" | grep -Fx "sky_phone/fxmanifest.lua"
+          unzip -Z1 "$archive" | grep -Fx "sky_phone/source/html/index.html"
+          sha256sum "$archive" > "${archive}.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: sky_phone-${{ github.ref_name }}
+          path: |
+            sky_phone-${{ github.ref_name }}.zip
+            sky_phone-${{ github.ref_name }}.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          "sky_phone-${GITHUB_REF_NAME}.zip"
+          "sky_phone-${GITHUB_REF_NAME}.zip.sha256"
+          --verify-tag
+          --generate-notes
+          --title "Sky Phone $GITHUB_REF_NAME"

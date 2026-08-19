@@ -1,0 +1,61 @@
+name: Pull request policy
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    name: Pull request policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_REF: ${{ github.base_ref }}
+      HEAD_REF: ${{ github.head_ref }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+    steps:
+      - name: Validate target branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$BASE_REF" != "dev" ]]; then
+            echo "Pull requests must target dev; received: $BASE_REF"
+            exit 1
+          fi
+
+      - name: Validate source branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch_pattern='^(feat|feature|fix|hotfix|docs|refactor|perf|test|build|ci|chore|release)/[a-z0-9]+([._-][a-z0-9]+)*$'
+          if [[ "$HEAD_REF" == dependabot/* ]]; then
+            exit 0
+          fi
+          if [[ ! "$HEAD_REF" =~ $branch_pattern ]]; then
+            echo "Invalid branch name: $HEAD_REF"
+            echo "Expected type/lowercase-kebab-case; see CONTRIBUTING.md."
+            exit 1
+          fi
+
+      - name: Validate pull request title
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$PR_AUTHOR" == "dependabot[bot]" ]]; then
+            exit 0
+          fi
+          title_pattern='^(ENH|ADD|FIX|DOC|BLD|PERF|CLN|TRY) - [^[:space:]].{4,72}$'
+          if [[ ! "$PR_TITLE" =~ $title_pattern ]] || (( ${#PR_TITLE} > 80 )); then
+            echo "Invalid pull request title: $PR_TITLE"
+            echo "Expected: TAG - short imperative summary (maximum 80 characters)."
+            exit 1
+          fi

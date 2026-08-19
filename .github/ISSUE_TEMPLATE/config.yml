@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/sky-systems/sky_phone/security/advisories/new
+    about: Report exploitable vulnerabilities privately. Do not open a public issue.
+  - name: Installation and configuration support
+    url: https://discord.gg/sky-systems
+    about: Ask for setup help in the Sky-Systems community.

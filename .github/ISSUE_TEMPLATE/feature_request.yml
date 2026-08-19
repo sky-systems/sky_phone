@@ -1,0 +1,82 @@
+name: Feature request
+description: Propose a focused improvement to Sky Phone.
+title: "[Feature] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain the user problem before the proposed implementation. New features must preserve Sky Phone's standalone architecture and server-authoritative state changes.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Who needs this, and what can they not do today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the user-visible result and the expected client, server, NUI, or persistence flow.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Primary area
+      options:
+        - Phone app or NUI
+        - Client behavior
+        - Server behavior
+        - Framework or third-party integration
+        - Configuration or localization
+        - Database or migration
+        - Developer API or custom apps
+        - Build, release, or documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: authority
+    attributes:
+      label: Authority and data ownership
+      description: For state-changing behavior, explain what the server validates and which sky_phone-owned data changes.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe existing configuration, integrations, or workflows that were considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: Note affected frameworks, providers, configs, locales, schemas, exports, or public events.
+    validations:
+      required: false
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References or mockups
+      description: Attach concise examples, diagrams, or screenshots when they materially clarify the request.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmation
+      options:
+        - label: This proposal does not require sky_base, sky_jobs_base, or another Sky resource.
+          required: true
+        - label: I searched for an existing issue covering the same request.
+          required: true

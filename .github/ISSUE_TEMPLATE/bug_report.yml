@@ -1,0 +1,114 @@
+name: Bug report
+description: Report a reproducible problem in Sky Phone.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Sky Phone. Search existing issues first and remove secrets, tokens, player identifiers, and private URLs from all logs.
+
+  - type: input
+    id: version
+    attributes:
+      label: Sky Phone version
+      description: Use the release tag or exact commit SHA. "Latest" is not a version.
+      placeholder: 0.1.0 or 0123456789abcdef...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework
+      options:
+        - ESX Legacy
+        - QBCore
+        - Qbox
+        - Other or custom bridge
+    validations:
+      required: true
+
+  - type: input
+    id: artifacts
+    attributes:
+      label: FiveM server artifact
+      description: Provide the exact artifact build number.
+      placeholder: "12345"
+    validations:
+      required: true
+
+  - type: input
+    id: database
+    attributes:
+      label: Database
+      description: Include product and version, for example MariaDB 11.4.
+      placeholder: MariaDB 11.4
+    validations:
+      required: true
+
+  - type: textarea
+    id: integrations
+    attributes:
+      label: Relevant integrations
+      description: List the configured inventory, voice, housing, garage, media, and other providers involved.
+      placeholder: |
+        Inventory: ox_inventory 2.x
+        Voice: pma-voice 1.x
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem description
+      description: Describe what happens and which player or server state is affected.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest reliable sequence, starting from a clean resource restart where possible.
+      placeholder: |
+        1. Start ...
+        2. Open ...
+        3. Select ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Client, server, and NUI evidence
+      description: Attach relevant F8, server console, NUI console, network, or database output. Include the first error, not only follow-up errors.
+    validations:
+      required: true
+
+  - type: textarea
+    id: regression
+    attributes:
+      label: Regression information
+      description: State the last known working tag or commit, if applicable.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmation
+      options:
+        - label: I reproduced this with the resource from this repository and included its exact version.
+          required: true
+        - label: I removed secrets, credentials, private URLs, and player-identifying data.
+          required: true
+        - label: This is not an exploitable security vulnerability that should be reported privately.
+          required: true
