@@ -113,6 +113,8 @@ describe('LB Phone app bridge', () => {
     )
     expect(document).toContain('globalThis.fetchNui = async')
     expect(document).toContain('globalThis.onNuiEvent = globalThis.useNuiEvent')
+    expect(document).toContain('globalThis.createCall = globalThis.CreateCall')
+    expect(document).toContain('globalThis.createSMS = globalThis.CreateSMS')
     expect(document).toContain('globalThis.invokeNative = () => undefined')
     expect(document).toContain(
       "Object.defineProperty(globalThis, 'localStorage'",

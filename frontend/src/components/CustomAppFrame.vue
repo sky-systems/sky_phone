@@ -10,6 +10,8 @@ import { useRouter } from 'vue-router'
 
 import { getPhoneApp, isExternalPhoneApp } from '@/config/apps'
 import { useAppCatalogStore } from '@/stores/app-catalog'
+import { useCallsStore } from '@/stores/calls'
+import { useMessagesStore } from '@/stores/messages'
 import { useNotificationsStore } from '@/stores/notifications'
 import { usePhoneStore } from '@/stores/phone'
 import type {
@@ -34,6 +36,7 @@ import {
 } from '@/utils/customAppLifecycle'
 import {
   LB_PHONE_STORAGE_MESSAGE_TYPE,
+  LB_PHONE_ACTION_MESSAGE_TYPE,
   createLbPhoneFrameDocument,
   createLbPhoneHostSettings,
   getLbPhoneCallbackResource,
@@ -43,6 +46,7 @@ import {
 } from '@/utils/lbPhoneAppBridge'
 import { cloneJsonData } from '@/utils/clone'
 import { nuiCall } from '@/utils/nui'
+import type { PhoneCall } from '@/types/phone'
 
 const props = defineProps<{
   app: ExternalPhoneAppDefinition
@@ -51,6 +55,8 @@ const props = defineProps<{
 const PROTOCOL_VERSION = 1
 
 const catalog = useAppCatalogStore()
+const calls = useCallsStore()
+const messages = useMessagesStore()
 const notifications = useNotificationsStore()
 const phone = usePhoneStore()
 const router = useRouter()
@@ -296,6 +302,55 @@ async function handleBridgeRequest(
   }
 }
 
+async function handleLbPhoneAction(message: Record<string, unknown>) {
+  if (message.action === 'createCall') {
+    const options = message.options
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      console.error(
+        `[Custom apps] Rejected invalid LB call action from ${props.app.id}.`,
+      )
+      return
+    }
+    const target = options as Record<string, unknown>
+    if (
+      typeof target.number !== 'string' &&
+      typeof target.company !== 'string'
+    ) {
+      console.error(
+        `[Custom apps] Rejected invalid LB call target from ${props.app.id}.`,
+      )
+      return
+    }
+    const response = await nuiCall<PhoneCall>('calls:dial', {
+      company: target.company,
+      phoneNumber: target.number,
+    })
+    if (response.success && response.data) calls.applyCallState(response.data)
+    return
+  }
+
+  if (message.action === 'createSMS') {
+    const options = message.options
+    const phoneNumber =
+      typeof options === 'string'
+        ? options
+        : options && typeof options === 'object' && !Array.isArray(options)
+          ? ((options as Record<string, unknown>).number ??
+            (options as Record<string, unknown>).phoneNumber)
+          : undefined
+    if (
+      typeof phoneNumber !== 'string' ||
+      !(await messages.openThread(phoneNumber))
+    ) {
+      console.error(
+        `[Custom apps] Rejected invalid LB SMS target from ${props.app.id}.`,
+      )
+      return
+    }
+    void router.push('/apps/messages')
+  }
+}
+
 function isTrustedFrameMessage(event: MessageEvent): boolean {
   if (event.source !== frame.value?.contentWindow) return false
   if (props.app.bundled || lbHostRuntime.value) {
@@ -337,6 +392,11 @@ function onFrameMessage(event: MessageEvent): void {
         error,
       )
     }
+    return
+  }
+
+  if (message.type === LB_PHONE_ACTION_MESSAGE_TYPE) {
+    void handleLbPhoneAction(message)
     return
   }
 

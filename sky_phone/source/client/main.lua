@@ -25,10 +25,47 @@ local function get_equipped_phone_number()
     return device_payload.device.sim.number
 end
 
+local function create_lb_call(options)
+    if type(options) ~= "table"
+        or (type(options.number) ~= "string" and type(options.company) ~= "string")
+    then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid LB CreateCall options.")
+        return false, "invalid_request"
+    end
+
+    local result = Bridge.Callbacks.Trigger("sky_phone:calls:dial", {
+        company = options.company,
+        phoneNumber = options.number,
+    })
+    if not result or not result.success then
+        local call_error = result and result.error or "request_failed"
+        Bridge.Debug("error", "[sky_phone] LB CreateCall failed: %s.", tostring(call_error))
+        return false, call_error
+    end
+
+    return true
+end
+
+local function create_lb_sms(options)
+    local phone_number = type(options) == "table" and (options.number or options.phoneNumber) or options
+    if type(phone_number) ~= "string" or phone_number == "" then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid LB CreateSMS target.")
+        return false, "invalid_number"
+    end
+
+    SendNUIMessage({
+        type = "compat:open-messages",
+        data = { phoneNumber = phone_number },
+    })
+    return true
+end
+
 SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsOpen", function()
     return is_open
 end)
 SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "GetEquippedPhoneNumber", get_equipped_phone_number)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "CreateCall", create_lb_call)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "CreateSMS", create_lb_sms)
 
 Bridge.Debug("debug", "[sky_phone] Client script initialized.", { always = true })
 

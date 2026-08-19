@@ -10,6 +10,7 @@ const MAX_STORAGE_KEY_LENGTH = 512
 const STORAGE_KEY_PREFIX = 'sky_phone:lb-app-storage:v1:'
 
 export const LB_PHONE_STORAGE_MESSAGE_TYPE = 'sky-phone:lb-storage'
+export const LB_PHONE_ACTION_MESSAGE_TYPE = 'sky-phone:lb-action'
 
 export type LbPhoneStorageSnapshot = Record<string, string>
 
@@ -137,6 +138,17 @@ if (typeof globalThis.invokeNative !== 'function') {
   globalThis.invokeNative = () => undefined;
 }
 globalThis.GetParentResourceName = () => config.resourceName;
+function requestPhoneAction(action, options) {
+  globalThis.parent.postMessage({
+    action,
+    appId: config.appName,
+    options,
+    protocolVersion: 1,
+    type: '${LB_PHONE_ACTION_MESSAGE_TYPE}'
+  }, '*');
+}
+globalThis.createCall = globalThis.CreateCall = (options) => requestPhoneAction('createCall', options);
+globalThis.createSMS = globalThis.CreateSMS = (options) => requestPhoneAction('createSMS', options);
 globalThis.fetchNui = async (eventName, data, requestedResource) => {
   if (typeof eventName !== 'string' || !eventPattern.test(eventName) || eventName.includes('..')) {
     throw new TypeError('Invalid NUI callback name');

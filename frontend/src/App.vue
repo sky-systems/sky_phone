@@ -699,6 +699,13 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     if (typeof data?.appId === 'string' && route.params.appId === data.appId) {
       void router.push('/')
     }
+  } else if (event.data?.type === 'compat:open-messages') {
+    const data = event.data.data as MessagesEventData | undefined
+    if (typeof data?.phoneNumber === 'string') {
+      void messages.openThread(data.phoneNumber).then((opened) => {
+        if (opened) void router.push('/apps/messages')
+      })
+    }
   } else if (event.data?.type === 'app:open') {
     hydratePhone(event.data.data as PhoneOpenPayload)
     void nuiCall('ui:opened')

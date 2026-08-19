@@ -979,7 +979,9 @@ Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
         dial_locks[source] = nil
         return { success = false, error = "airplane_mode" }
     end
-    local service_line = SkyPhoneCompanies.GetServiceLine(data.phoneNumber)
+    local service_line = type(data.company) == "string"
+        and SkyPhoneCompanies.GetServiceLineForCompany(data.company)
+        or SkyPhoneCompanies.GetServiceLine(data.phoneNumber)
     local number = service_line and service_line.number
         or SkyPhoneSimNumber.Normalize(data.phoneNumber, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
     if not number then

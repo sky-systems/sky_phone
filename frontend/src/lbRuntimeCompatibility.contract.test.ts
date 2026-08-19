@@ -1,0 +1,52 @@
+import { readFileSync } from 'node:fs'
+
+import { describe, expect, it } from 'vitest'
+
+const readResourceFile = (path: string) =>
+  readFileSync(new URL(`../../sky_phone/${path}`, import.meta.url), 'utf8')
+
+describe('LB runtime compatibility contracts', () => {
+  it('routes legacy call and SMS actions through Sky Phone', () => {
+    const phoneClient = readResourceFile('source/client/main.lua')
+    const callsServer = readResourceFile('source/server/calls.lua')
+    const phoneUi = readFileSync(new URL('./App.vue', import.meta.url), 'utf8')
+    const customAppFrame = readFileSync(
+      new URL('./components/CustomAppFrame.vue', import.meta.url),
+      'utf8',
+    )
+
+    expect(phoneClient).toContain(
+      'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "CreateCall", create_lb_call)',
+    )
+    expect(phoneClient).toContain(
+      'Bridge.Callbacks.Trigger("sky_phone:calls:dial"',
+    )
+    expect(callsServer).toContain(
+      'SkyPhoneCompanies.GetServiceLineForCompany(data.company)',
+    )
+    expect(phoneClient).toContain(
+      'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "CreateSMS", create_lb_sms)',
+    )
+    expect(phoneClient).toContain('type = "compat:open-messages"')
+    expect(phoneUi).toContain("event.data?.type === 'compat:open-messages'")
+    expect(phoneUi).toContain('messages.openThread(data.phoneNumber)')
+    expect(customAppFrame).toContain("message.action === 'createCall'")
+    expect(customAppFrame).toContain("message.action === 'createSMS'")
+  })
+
+  it('redirects PicChat phone identity to the Sky SIM table without deleting orphaned data', () => {
+    const manifest = readResourceFile('fxmanifest.lua')
+    const migration = readResourceFile(
+      'source/server/lb_app_compat_migration.lua',
+    )
+
+    expect(manifest).toContain("'source/server/lb_app_compat_migration.lua'")
+    expect(migration).toContain('"lbpicchat_logged_in"')
+    expect(migration).toContain('"phone_phones"')
+    expect(migration).toContain('"sky_phone_sims"')
+    expect(migration).toContain('DROP FOREIGN KEY')
+    expect(migration).toContain('ON DELETE CASCADE ON UPDATE CASCADE')
+    expect(migration).toContain('Legacy data was preserved')
+    expect(migration).not.toMatch(/DELETE\s+FROM\s+/i)
+  })
+})
