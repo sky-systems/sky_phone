@@ -15,6 +15,11 @@
     "test": "vitest run && pnpm test:browser-mocks",
     "test:browser-mocks": "node testserver/smoke.cjs"
   },
+  "pnpm": {
+    "overrides": {
+      "nanoid@<3.3.18": "3.3.18"
+    }
+  },
   "dependencies": {
     "@tiptap/core": "^3.29.2",
     "@tiptap/extension-placeholder": "^3.29.2",
