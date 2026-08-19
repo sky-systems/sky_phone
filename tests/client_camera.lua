@@ -135,9 +135,16 @@ assert(type(lb_camera_exports.EnableWalkableCam) == "function", "LB walkable cam
 assert(type(lb_camera_exports.DisableWalkableCam) == "function", "LB walkable camera disable export must exist")
 assert(type(lb_camera_exports.ToggleSelfieCam) == "function", "LB selfie camera export must exist")
 assert(type(lb_camera_exports.ToggleCameraFrozen) == "function", "LB frozen camera export must exist")
+assert(type(lb_camera_exports.ToggleFlashlight) == "function", "LB flashlight toggle export must exist")
+assert(type(lb_camera_exports.GetFlashlight) == "function", "LB flashlight state export must exist")
 assert(type(lb_camera_exports.IsWalkingCamEnabled) == "function", "LB walkable camera state export must exist")
 assert(type(lb_camera_exports.IsSelfieCam) == "function", "LB selfie camera state export must exist")
 assert(type(lb_camera_exports.IsCameraOpen) == "function", "LB camera open state export must exist")
+
+lb_camera_exports.ToggleFlashlight(true)
+assert(lb_camera_exports.GetFlashlight(), "LB flashlight state must report enabled")
+lb_camera_exports.ToggleFlashlight(false)
+assert(not lb_camera_exports.GetFlashlight(), "LB flashlight state must report disabled")
 
 lb_camera_exports.EnableWalkableCam(true)
 assert(lb_camera_exports.IsWalkingCamEnabled(), "LB walkable camera must report enabled")

@@ -17,9 +17,18 @@ local phone_block_look = false
 local phone_game_input = false
 local phone_cursor_disabled = false
 
+local function get_equipped_phone_number()
+    if not device_payload or not device_payload.device.sim then
+        return nil
+    end
+
+    return device_payload.device.sim.number
+end
+
 SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsOpen", function()
     return is_open
 end)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "GetEquippedPhoneNumber", get_equipped_phone_number)
 
 Bridge.Debug("debug", "[sky_phone] Client script initialized.", { always = true })
 

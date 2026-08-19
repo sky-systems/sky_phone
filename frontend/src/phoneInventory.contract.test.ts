@@ -59,6 +59,25 @@ describe('phone inventory contracts', () => {
     expect(phoneClient).toContain('return is_open')
   })
 
+  it('provides the LB equipped phone number exports from authoritative device state', () => {
+    const phoneClient = readResourceFile('source/client/main.lua')
+    const phoneServer = readResourceFile('source/server/phone.lua')
+
+    expect(phoneClient).toContain(
+      'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "GetEquippedPhoneNumber"',
+    )
+    expect(phoneClient).toContain('return device_payload.device.sim.number')
+    expect(phoneServer).toContain(
+      'function SkyPhone.GetEquippedPhoneNumber(player)',
+    )
+    expect(phoneServer).toContain(
+      'not find_device_slots(player_source, imei)[1]',
+    )
+    expect(phoneServer).toMatch(
+      /"GetEquippedPhoneNumber",\s+SkyPhone\.GetEquippedPhoneNumber/,
+    )
+  })
+
   it('opens from a configurable F1 mapping without client-provided device identity', () => {
     const config = readResourceFile('config/config.lua')
     const phoneClient = readResourceFile('source/client/main.lua')

@@ -360,6 +360,10 @@ SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "EnableWalkableCam", enabl
 SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "DisableWalkableCam", disable_walkable_camera)
 SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleSelfieCam", set_front_camera)
 SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleCameraFrozen", toggle_camera_frozen)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleFlashlight", set_flash_enabled)
+SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "GetFlashlight", function()
+    return camera_state.flash_enabled
+end)
 SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsWalkingCamEnabled", function()
     return camera_state.walkable and camera_state.active
 end)

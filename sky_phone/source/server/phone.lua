@@ -136,6 +136,25 @@ local function character_identifier(source)
     return identifier
 end
 
+local function resolve_player_source(player)
+    local numeric_source = tonumber(player)
+    if numeric_source then
+        return numeric_source
+    end
+    if type(player) ~= "string" or player == "" then
+        return nil
+    end
+
+    for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
+        local identifier = Bridge.Framework.GetIdentifier(player_source)
+        if identifier and tostring(identifier) == player then
+            return player_source
+        end
+    end
+
+    return nil
+end
+
 local function migrated_device_for_character(source)
     local identifier = character_identifier(source)
     if not identifier then
@@ -671,6 +690,28 @@ SkyPhone.EnsureDevice = ensure_device
 SkyPhone.FindDeviceSlots = find_device_slots
 SkyPhone.LoadDevice = load_device
 SkyPhone.RefreshSource = refresh_source
+
+function SkyPhone.GetEquippedPhoneNumber(player)
+    local player_source = resolve_player_source(player)
+    if not player_source then
+        return nil
+    end
+
+    local session = sessions[player_source]
+    local imei = session and session.imei or preferred_device_imeis[player_source]
+    if not imei or not find_device_slots(player_source, imei)[1] then
+        return nil
+    end
+
+    local device = load_device(imei)
+    return device and device.phone_number or nil
+end
+
+SkyPhoneCompatibility.RegisterExportAlias(
+    "lb-phone",
+    "GetEquippedPhoneNumber",
+    SkyPhone.GetEquippedPhoneNumber
+)
 
 local function allow_auth_attempt(source)
     local now = os.time()
