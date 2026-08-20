@@ -64,4 +64,10 @@ describe('SettingsApp Sky UI contract', () => {
     expect(source).toContain("phone.t('Apps.settings.keepCloudData')")
     expect(source).toContain('phone.resetAfterFactoryReset()')
   })
+
+  it('provides a non-destructive development preview for the reset progress screen', () => {
+    expect(source).toContain("import.meta.env.DEV")
+    expect(source).toContain("has('factoryResetPreview')")
+    expect(source).toContain('factoryResetProgress.value = 46')
+  })
 })

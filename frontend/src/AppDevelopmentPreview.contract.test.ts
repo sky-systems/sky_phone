@@ -9,6 +9,17 @@ const mainCss = readFileSync(
 )
 
 describe('browser development preview contract', () => {
+  it('keeps setup light until the appearance choice has been confirmed', () => {
+    expect(source).toContain('const displayedDarkMode = computed(')
+    expect(source).toContain('phone.preferences.settings.setupStep > 4')
+    expect(source).toContain('setupAppearanceSelected.value')
+    expect(source).toContain(
+      '@appearance-selected="setupAppearanceSelected = $event"',
+    )
+    expect(source).toContain(':dark="displayedDarkMode"')
+    expect(source).toContain('dark: displayedDarkMode')
+  })
+
   it('starts unlocked while preserving an explicit lock screen preview', () => {
     expect(source).toContain("developmentParameters.has('lockScreenPreview')")
     expect(source).toContain(': !isDevelopment || developmentLockScreenPreview')
@@ -87,6 +98,7 @@ describe('browser development preview contract', () => {
 
   it('fills the dedicated browser embed without clipping the hardware controls', () => {
     expect(source).toContain("developmentParameters.has('browserPreview')")
+    expect(source).toContain('import.meta.env.DEV ||')
     expect(source).toContain("'phone-stage--browser-preview': isBrowserPreview")
     expect(source).toContain('return (availableScale * 0.94) / PHONE_BASE_SCALE')
     expect(mainCss).toMatch(
