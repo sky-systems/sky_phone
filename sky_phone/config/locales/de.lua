@@ -1,5 +1,13 @@
 Locales["de"] = {
     CommandDescription = "Öffne dein Handy.",
+    AdminCommand = {
+        CommandDescription = "Öffne das geschützte Handy-Admin-Panel.",
+        Errors = {
+            disabled = "Das Handy-Admin-Panel ist deaktiviert.",
+            not_authorized = "Du hast keinen Zugriff auf das Handy-Admin-Panel.",
+            default = "Das Handy-Admin-Panel konnte nicht geöffnet werden.",
+        },
+    },
     Controls = {
         OpenPhone = "Handy öffnen",
     },

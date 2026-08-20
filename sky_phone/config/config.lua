@@ -63,6 +63,7 @@ Config.Security = {
 
 Config.AdminPanel = {
     Enabled = true,
+    Command = "phoneadmin",
     AdminGroups = { "admin", "superadmin" },
     MaximumPlayers = 128,
     ReadRequestsPerMinute = 60,

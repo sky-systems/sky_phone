@@ -630,6 +630,8 @@ function loadUnlockedPhoneData(): void {
 }
 
 function completePhoneSetup(): void {
+  const requestedRoute = pendingUnlockRoute.value
+  pendingUnlockRoute.value = null
   setupPreviewDismissed.value = true
   setupAppearanceSelected.value = false
   isLocked.value = false
@@ -637,7 +639,7 @@ function completePhoneSetup(): void {
   passcodeVisible.value = false
   passcodeRequired.value = false
   controlCenterOpened.value = false
-  void router.replace('/')
+  void router.replace(requestedRoute ?? '/')
   loadUnlockedPhoneData()
 }
 
@@ -766,7 +768,12 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       isPhoneAppId(data.appId) &&
       appStore.isInstalled(data.appId)
     ) {
-      void router.push(`/apps/${data.appId}`)
+      const requestedRoute = `/apps/${data.appId}`
+      if (setupRequired.value || isLocked.value) {
+        pendingUnlockRoute.value = requestedRoute
+      } else {
+        void router.push(requestedRoute)
+      }
     } else {
       console.error('[Navigation] Ignored an unavailable app target.')
     }

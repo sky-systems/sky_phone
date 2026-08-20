@@ -11,6 +11,14 @@ const server = readFileSync(
   new URL('../../../../sky_phone/source/server/admin.lua', import.meta.url),
   'utf8',
 )
+const phoneServer = readFileSync(
+  new URL('../../../../sky_phone/source/server/phone.lua', import.meta.url),
+  'utf8',
+)
+const phoneClient = readFileSync(
+  new URL('../../../../sky_phone/source/client/main.lua', import.meta.url),
+  'utf8',
+)
 const bridge = readFileSync(
   new URL(
     '../../../../sky_phone/source/client/nui_server_bridge.lua',
@@ -69,6 +77,24 @@ describe('admin command center contracts', () => {
     expect(server).toContain('Config.AdminPanel.ActionRequestsPerMinute')
     expect(server).toContain('Config.AdminPanel.CredentialRevealsPerMinute')
     expect(config).toContain('Config.AdminPanel = {')
+  })
+
+  it('opens directly from a server-authorized configurable command', () => {
+    expect(config).toContain('Command = "phoneadmin"')
+    expect(phoneServer).toContain(
+      'RegisterCommand(Config.AdminPanel.Command, function(command_source)',
+    )
+    expect(phoneServer).toContain(
+      'Bridge.Framework.HasAdminGroup(player_source, Config.AdminPanel.AdminGroups)',
+    )
+    expect(phoneServer).toContain(
+      'TriggerClientEvent("sky_phone:admin:launch", player_source)',
+    )
+    expect(phoneServer).toContain('if not sessions[player_source] then')
+    expect(phoneClient).toContain(
+      'RegisterNetEvent("sky_phone:admin:launch"',
+    )
+    expect(phoneClient).toContain('requested_app_id = "admin"')
   })
 
   it('validates ownership and app policy before remote device mutation', () => {

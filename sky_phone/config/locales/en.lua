@@ -1,5 +1,13 @@
 Locales["en"] = {
     CommandDescription = "Open your phone.",
+    AdminCommand = {
+        CommandDescription = "Open the protected phone admin panel.",
+        Errors = {
+            disabled = "The phone admin panel is disabled.",
+            not_authorized = "You do not have access to the phone admin panel.",
+            default = "The phone admin panel could not be opened.",
+        },
+    },
     Controls = {
         OpenPhone = "Open phone",
     },

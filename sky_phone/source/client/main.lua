@@ -8,6 +8,7 @@ local equipped_phone_number = nil
 local nui_generation = 0
 local live_activity_active = false
 local open_home_requested = false
+local requested_app_id = nil
 
 local function get_equipped_phone_number()
     if not device_payload or not device_payload.device.sim then
@@ -60,6 +61,24 @@ end
 SkyPhoneClient.GetState = get_phone_state
 SkyPhoneClient.GetEquippedPhoneNumber = get_authoritative_phone_number
 
+local function open_requested_app()
+    if not requested_app_id then
+        return
+    end
+
+    local app_id = requested_app_id
+    requested_app_id = nil
+    local opened, error_code = SkyPhoneNavigation.Open(app_id)
+    if not opened then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone] Could not open requested app '%s': %s.",
+            app_id,
+            tostring(error_code)
+        )
+    end
+end
+
 Bridge.Debug("debug", "[sky_phone] Client script initialized.", { always = true })
 
 local locale, locale_name = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
@@ -95,6 +114,7 @@ local function close_phone(close_device_session)
     local was_open = is_open
     open_requested = false
     open_without_focus = false
+    requested_app_id = nil
     TriggerEvent("sky_phone:animation:phone", false)
     is_open = false
     if was_open then
@@ -266,7 +286,25 @@ RegisterNUICallback("ui:opened", function(data, cb)
     end
     SkyPhoneFocus.SetPhone(true, open_without_focus)
     TriggerEvent("sky_phone:animation:phone", true)
+    open_requested_app()
     cb({ success = true })
+end)
+
+RegisterNetEvent("sky_phone:admin:launch", function()
+    requested_app_id = "admin"
+    if is_open then
+        open_requested_app()
+    end
+end)
+
+RegisterNetEvent("sky_phone:admin:command-error", function(error_code)
+    local messages = locale.AdminCommand.Errors
+    Bridge.Framework.Notify(
+        "iFruit",
+        messages[error_code] or messages.default,
+        "error",
+        5000
+    )
 end)
 
 RegisterNUICallback("ui:input-focus", function(data, cb)
@@ -336,9 +374,11 @@ RegisterNetEvent("sky_phone:device:invalidated", function()
     update_equipped_phone_number(nil)
     live_activity_active = false
     open_home_requested = false
+    requested_app_id = nil
 end)
 
 RegisterNetEvent("sky_phone:device:error", function(error_code)
+    requested_app_id = nil
     if not is_open and not open_requested then
         open_without_focus = false
     end
@@ -359,6 +399,13 @@ CreateThread(function()
     if Config.TestData.Enabled then
         TriggerEvent("chat:addSuggestion", "/" .. Config.TestData.Command, locale.TestData.CommandDescription)
     end
+    if Config.AdminPanel.Enabled then
+        TriggerEvent(
+            "chat:addSuggestion",
+            "/" .. Config.AdminPanel.Command,
+            locale.AdminCommand.CommandDescription
+        )
+    end
 end)
 
 AddEventHandler("onResourceStop", function(resource_name)
@@ -369,6 +416,7 @@ AddEventHandler("onResourceStop", function(resource_name)
     is_open = false
     open_requested = false
     open_without_focus = false
+    requested_app_id = nil
 
     TriggerEvent("sky_phone:animation:reset")
     SkyPhoneCalls.Reset()
@@ -380,5 +428,8 @@ AddEventHandler("onResourceStop", function(resource_name)
     end
     if Config.TestData.Enabled then
         TriggerEvent("chat:removeSuggestion", "/" .. Config.TestData.Command)
+    end
+    if Config.AdminPanel.Enabled then
+        TriggerEvent("chat:removeSuggestion", "/" .. Config.AdminPanel.Command)
     end
 end)
