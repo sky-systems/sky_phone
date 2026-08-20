@@ -158,6 +158,7 @@ describe('media utilities', () => {
     expect(mediaErrorKey('profile_photo_required')).toBe(
       'profile_photo_required',
     )
+    expect(mediaErrorKey('media_in_use')).toBe('media_in_use')
     expect(mediaErrorKey('private_provider_error')).toBe('request_failed')
   })
 })

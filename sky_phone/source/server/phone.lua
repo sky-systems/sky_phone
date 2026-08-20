@@ -910,12 +910,16 @@ function SkyPhone.NotifyAccount(account_id, event_name, data)
     end
 end
 
-function SkyPhone.NotifyAccountDevices(account_id, event_name, data)
+function SkyPhone.NotifyAccountDevices(account_id, event_name, data, required_app_auth)
     local rows = Bridge.Database.Query([[
-        SELECT d.`imei`, d.`device_name`, settings.`payload` AS `settings`
+        SELECT d.`imei`, d.`device_name`, account.`email` AS `account_email`,
+            settings.`payload` AS `settings`, app_auth.`payload` AS `app_auth`
         FROM `sky_phone_devices` d
+        JOIN `sky_phone_accounts` account ON account.`id` = d.`account_id`
         LEFT JOIN `sky_phone_device_data` settings
             ON settings.`device_imei` = d.`imei` AND settings.`namespace` = 'settings'
+        LEFT JOIN `sky_phone_device_data` app_auth
+            ON app_auth.`device_imei` = d.`imei` AND app_auth.`namespace` = 'appAuth'
         WHERE d.`account_id` = ?
     ]], { account_id })
     local devices = {}
@@ -923,7 +927,31 @@ function SkyPhone.NotifyAccountDevices(account_id, event_name, data)
         devices[row.imei] = row
     end
 
+    local function has_required_app_session(device)
+        if required_app_auth == nil then
+            return true
+        end
+        if type(required_app_auth) ~= 'string' or type(device.app_auth) ~= 'string' then
+            return false
+        end
+        local decoded, app_auth = pcall(json.decode, device.app_auth)
+        if not decoded or type(app_auth) ~= 'table' or app_auth.version ~= 1
+            or app_auth.accountEmail ~= device.account_email or type(app_auth.signedIn) ~= 'table'
+        then
+            return false
+        end
+        for _, app_id in ipairs(app_auth.signedIn) do
+            if app_id == required_app_auth then
+                return true
+            end
+        end
+        return false
+    end
+
     local function notify_device(source, device)
+        if not has_required_app_session(device) then
+            return
+        end
         local payload = {}
         for key, value in pairs(data) do
             payload[key] = value

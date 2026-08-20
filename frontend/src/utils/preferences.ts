@@ -118,6 +118,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   'weazel-news': { enabled: true, sounds: true },
   'local-pages': { enabled: true, sounds: true },
   picstagram: { enabled: true, sounds: true },
+  skypic: { enabled: true, sounds: true },
   fliptok: { enabled: true, sounds: true },
   feather: { enabled: true, sounds: true },
   crewlink: { enabled: true, sounds: true },

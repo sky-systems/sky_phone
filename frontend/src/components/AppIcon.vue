@@ -10,6 +10,7 @@ import { useBillingStore } from '@/stores/billing'
 import { useCompaniesStore } from '@/stores/companies'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useDarkChatStore } from '@/stores/darkchat'
+import { useSkyPicStore } from '@/stores/skypic'
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneAppDefinition } from '@/types/apps'
 import {
@@ -54,6 +55,7 @@ const billing = useBillingStore()
 const companies = useCompaniesStore()
 const marketplace = useMarketplaceStore()
 const darkchat = useDarkChatStore()
+const skypic = useSkyPicStore()
 const router = useRouter()
 const iconFailed = ref(false)
 const isDragging = ref(false)
@@ -102,6 +104,7 @@ const unreadCount = computed(() => {
   if (props.app.id === 'darkchat') return darkchat.unreadCount
   if (props.app.id === 'billing') return billing.overview?.unreadCount ?? 0
   if (props.app.id === 'companies') return companies.unreadCount
+  if (props.app.id === 'skypic') return skypic.unreadCount
   return 0
 })
 const calendarWeekday = computed(() =>

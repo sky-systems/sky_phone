@@ -106,6 +106,7 @@ export function mediaErrorKey(error?: string): string {
     'import_url_not_allowed',
     'import_url_unavailable',
     'import_size_unavailable',
+    'media_in_use',
     'not_found',
     'operation_in_progress',
     'owner_changed',

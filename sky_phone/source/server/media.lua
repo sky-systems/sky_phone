@@ -20,6 +20,16 @@ local allowed_remote_mimes = {
     },
 }
 
+local function affected_rows(result)
+    if type(result) == "number" then
+        return result
+    end
+    if type(result) == "table" then
+        return tonumber(result.affectedRows) or tonumber(result.affected_rows) or 0
+    end
+    return 0
+end
+
 local function media_config()
     return Config.Media.FiveManage
 end
@@ -821,6 +831,20 @@ local function is_required_flare_profile_photo(media_id)
     return rows[1] ~= nil
 end
 
+local function is_referenced_by_skypic(media_id)
+    local rows = Bridge.Database.Query([[
+        SELECT 1 AS `in_use`
+        FROM `sky_phone_skypic_messages`
+        WHERE `media_id` = ?
+        UNION ALL
+        SELECT 1 AS `in_use`
+        FROM `sky_phone_skypic_stories`
+        WHERE `media_id` = ?
+        LIMIT 1
+    ]], { media_id, media_id })
+    return rows[1] ~= nil
+end
+
 local function delete_owned_media(src, owner, media_id)
     local condition, params = owner_condition(owner)
     local query_params = { media_id }
@@ -838,25 +862,69 @@ local function delete_owned_media(src, owner, media_id)
     if row.media_type == "photo" and is_required_flare_profile_photo(media_id) then
         return false, "profile_photo_required"
     end
+    -- Both SkyPic foreign keys are RESTRICT. Keep the remote object intact until
+    -- cleanup has physically removed every referencing row.
+    if is_referenced_by_skypic(media_id) then
+        return false, "media_in_use"
+    end
     local delete_key = row.origin == "phone_upload" and row.remote_id or ("import:%s"):format(media_id)
     if pending_deletes[delete_key] then
         return false, "operation_in_progress"
     end
     pending_deletes[delete_key] = src
+    local delete_remote = false
     if row.origin == "phone_upload" then
         local references = Bridge.Database.Query(
             "SELECT COUNT(*) AS `count` FROM `sky_phone_media` WHERE `remote_id` = ?",
             { row.remote_id }
         )
-        if (tonumber(references[1] and references[1].count) or 0) <= 1 then
-            local deleted, delete_error = delete_remote_file(row.remote_id)
-            if not deleted then
-                pending_deletes[delete_key] = nil
-                return false, delete_error
-            end
+        delete_remote = (tonumber(references[1] and references[1].count) or 0) <= 1
+    end
+    -- Delete the database parent first and repeat the SkyPic guard inside the
+    -- same statement. The RESTRICT foreign keys then make this atomic against
+    -- a concurrent snap/story insert: either that insert wins and this DELETE
+    -- affects zero rows, or this DELETE wins and the later insert cannot refer
+    -- to a missing media row.
+    local delete_params = {}
+    for _, value in ipairs(query_params) do
+        delete_params[#delete_params + 1] = value
+    end
+    delete_params[#delete_params + 1] = media_id
+    delete_params[#delete_params + 1] = media_id
+    local result = Bridge.Database.Query(([[
+        DELETE FROM `sky_phone_media`
+        WHERE `id` = ? AND %s
+            AND NOT EXISTS (
+                SELECT 1 FROM `sky_phone_skypic_messages`
+                WHERE `media_id` = ?
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM `sky_phone_skypic_stories`
+                WHERE `media_id` = ?
+            )
+    ]]):format(condition), delete_params)
+    if affected_rows(result) ~= 1 then
+        pending_deletes[delete_key] = nil
+        if is_referenced_by_skypic(media_id) then
+            return false, "media_in_use"
+        end
+        return false, "not_found"
+    end
+    if delete_remote then
+        local deleted, delete_error = delete_remote_file(row.remote_id)
+        if not deleted then
+            -- The user-visible record is already gone and no new FK reference
+            -- can be created. Report the logical delete as complete and leave a
+            -- precise audit trail for provider-side orphan cleanup.
+            Bridge.Debug(
+                "error",
+                "[sky_phone] Media %s was deleted locally but remote object %s could not be removed (%s).",
+                tostring(media_id),
+                tostring(row.remote_id),
+                tostring(delete_error)
+            )
         end
     end
-    Bridge.Database.Query(("DELETE FROM `sky_phone_media` WHERE `id` = ? AND %s"):format(condition), query_params)
     pending_deletes[delete_key] = nil
     return true
 end

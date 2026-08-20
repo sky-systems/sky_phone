@@ -7,6 +7,7 @@ export const APP_AUTH_IDS = [
   'local-pages',
   'feather',
   'crewlink',
+  'skypic',
 ] as const
 
 export type AppAuthId = (typeof APP_AUTH_IDS)[number]
@@ -23,6 +24,7 @@ function emptySessions(): Record<AppAuthId, boolean> {
     'local-pages': false,
     feather: false,
     crewlink: false,
+    skypic: false,
   }
 }
 

@@ -2907,9 +2907,197 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_skypic_profiles",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "account_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "handle", type = "VARCHAR(24) NOT NULL", characterSet = "ascii", collation = "ascii_general_ci" },
+            { name = "display_name", type = "VARCHAR(40) NOT NULL" },
+            { name = "bio", type = "VARCHAR(160) NOT NULL DEFAULT ''" },
+            { name = "avatar_media_id", type = "BIGINT UNSIGNED NULL" },
+            { name = "avatar_seed", type = "INT UNSIGNED NOT NULL DEFAULT 1" },
+            { name = "story_privacy", type = "ENUM('friends', 'everyone') NOT NULL DEFAULT 'friends'" },
+            { name = "quick_add", type = "TINYINT(1) NOT NULL DEFAULT 1" },
+            { name = "allow_story_replies", type = "TINYINT(1) NOT NULL DEFAULT 1" },
+            { name = "snap_score", type = "BIGINT UNSIGNED NOT NULL DEFAULT 0" },
+            { name = "friend_count", type = "INT UNSIGNED NOT NULL DEFAULT 0" },
+            { name = "status", type = "ENUM('active', 'hidden', 'removed') NOT NULL DEFAULT 'active'" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_skypic_profile_account", columns = "(`account_id`)" },
+            { name = "uniq_sky_phone_skypic_profile_handle", columns = "(`handle`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_skypic_quick_add", columns = "(`status`, `quick_add`, `updated_at`)" },
+        },
+        foreignKeys = {
+            { column = "account_id", references = "`sky_phone_accounts` (`id`) ON DELETE CASCADE" },
+            { column = "avatar_media_id", references = "`sky_phone_media` (`id`) ON DELETE SET NULL" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_skypic_friendships",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "profile_a_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "profile_b_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "requested_by_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "status", type = "ENUM('pending', 'accepted') NOT NULL DEFAULT 'pending'" },
+            { name = "profile_a_last_snap_on", type = "DATE NULL" },
+            { name = "profile_b_last_snap_on", type = "DATE NULL" },
+            { name = "streak_updated_on", type = "DATE NULL" },
+            { name = "streak_count", type = "INT UNSIGNED NOT NULL DEFAULT 0" },
+            { name = "best_streak", type = "INT UNSIGNED NOT NULL DEFAULT 0" },
+            { name = "accepted_at", type = "DATETIME NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_skypic_friend_pair", columns = "(`profile_a_id`, `profile_b_id`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_skypic_friend_a", columns = "(`profile_a_id`, `status`, `updated_at`)" },
+            { name = "idx_sky_phone_skypic_friend_b", columns = "(`profile_b_id`, `status`, `updated_at`)" },
+            { name = "idx_sky_phone_skypic_friend_requests", columns = "(`status`, `requested_by_id`, `created_at`)" },
+            { name = "idx_sky_phone_skypic_streaks", columns = "(`status`, `streak_updated_on`)" },
+        },
+        foreignKeys = {
+            { column = "profile_a_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "profile_b_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "requested_by_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_skypic_blocks",
+        columns = {
+            { name = "blocker_profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "blocked_profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = { "blocker_profile_id", "blocked_profile_id" },
+        indexes = {
+            { name = "idx_sky_phone_skypic_blocked", columns = "(`blocked_profile_id`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "blocker_profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "blocked_profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_skypic_messages",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "friendship_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "sender_profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "recipient_profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "message_type", type = "ENUM('text', 'snap_photo', 'snap_video') NOT NULL" },
+            { name = "body", type = "VARCHAR(2000) NOT NULL DEFAULT ''" },
+            { name = "caption", type = "VARCHAR(160) NOT NULL DEFAULT ''" },
+            { name = "overlay_text", type = "VARCHAR(160) NOT NULL DEFAULT ''" },
+            { name = "overlay_color", type = "CHAR(7) NOT NULL DEFAULT '#FFFFFF'", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "media_id", type = "BIGINT UNSIGNED NULL" },
+            { name = "view_seconds", type = "TINYINT UNSIGNED NULL" },
+            { name = "allow_replay", type = "TINYINT(1) NOT NULL DEFAULT 0" },
+            { name = "read_at", type = "DATETIME(6) NULL" },
+            { name = "opened_at", type = "DATETIME(6) NULL" },
+            { name = "replayed_at", type = "DATETIME(6) NULL" },
+            { name = "saved_at", type = "DATETIME(6) NULL" },
+            { name = "expires_at", type = "DATETIME(6) NULL" },
+            { name = "sender_deleted_at", type = "DATETIME(6) NULL" },
+            { name = "recipient_deleted_at", type = "DATETIME(6) NULL" },
+            { name = "deleted_at", type = "DATETIME(6) NULL" },
+            { name = "created_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_skypic_message_thread", columns = "(`friendship_id`, `created_at`, `id`)" },
+            { name = "idx_sky_phone_skypic_message_inbox", columns = "(`recipient_profile_id`, `read_at`, `created_at`)" },
+            { name = "idx_sky_phone_skypic_message_expiry", columns = "(`message_type`, `expires_at`)" },
+            { name = "idx_sky_phone_skypic_message_deleted", columns = "(`deleted_at`)" },
+            { name = "idx_sky_phone_skypic_message_media", columns = "(`media_id`)" },
+        },
+        foreignKeys = {
+            { column = "friendship_id", references = "`sky_phone_skypic_friendships` (`id`) ON DELETE CASCADE" },
+            { column = "sender_profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "recipient_profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "media_id", references = "`sky_phone_media` (`id`) ON DELETE RESTRICT" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_skypic_stories",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "media_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "caption", type = "VARCHAR(160) NOT NULL DEFAULT ''" },
+            { name = "overlay_text", type = "VARCHAR(160) NOT NULL DEFAULT ''" },
+            { name = "overlay_color", type = "CHAR(7) NOT NULL DEFAULT '#FFFFFF'", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "view_seconds", type = "TINYINT UNSIGNED NOT NULL" },
+            { name = "privacy", type = "ENUM('friends', 'everyone') NOT NULL" },
+            { name = "status", type = "ENUM('active', 'removed') NOT NULL DEFAULT 'active'" },
+            { name = "expires_at", type = "DATETIME(6) NOT NULL" },
+            { name = "created_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)" },
+            { name = "updated_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_skypic_story_profile", columns = "(`profile_id`, `status`, `expires_at`)" },
+            { name = "idx_sky_phone_skypic_story_expiry", columns = "(`status`, `expires_at`)" },
+            { name = "idx_sky_phone_skypic_story_media", columns = "(`media_id`)" },
+        },
+        foreignKeys = {
+            { column = "profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "media_id", references = "`sky_phone_media` (`id`) ON DELETE RESTRICT" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_skypic_story_views",
+        columns = {
+            { name = "story_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "viewer_profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "viewed_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)" },
+        },
+        primaryKey = { "story_id", "viewer_profile_id" },
+        indexes = {
+            { name = "idx_sky_phone_skypic_story_viewer", columns = "(`viewer_profile_id`, `viewed_at`)" },
+        },
+        foreignKeys = {
+            { column = "story_id", references = "`sky_phone_skypic_stories` (`id`) ON DELETE CASCADE" },
+            { column = "viewer_profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Bridge.Database.Migrate("sky_phone", schema)
+Bridge.Database.EnsureIndex(
+    "sky_phone_skypic_profiles",
+    "uniq_sky_phone_skypic_profile_account",
+    "(`account_id`)",
+    { unique = true }
+)
+Bridge.Database.EnsureIndex(
+    "sky_phone_skypic_profiles",
+    "uniq_sky_phone_skypic_profile_handle",
+    "(`handle`)",
+    { unique = true }
+)
+Bridge.Database.EnsureIndex(
+    "sky_phone_skypic_friendships",
+    "uniq_sky_phone_skypic_friend_pair",
+    "(`profile_a_id`, `profile_b_id`)",
+    { unique = true }
+)
 Bridge.Database.Query([[
     INSERT IGNORE INTO `sky_phone_fliptok_video_media` (`video_id`, `media_id`, `sort_order`)
     SELECT `id`, `media_id`, 1 FROM `sky_phone_fliptok_videos`

@@ -160,6 +160,28 @@ local server_callbacks = {
     "picstagram:report",
     "picstagram:admin-reports",
     "picstagram:admin-resolve-report",
+    "skypic:bootstrap",
+    "skypic:create-profile",
+    "skypic:delete-account",
+    "skypic:update-profile",
+    "skypic:search",
+    "skypic:add-friend",
+    "skypic:respond-friend",
+    "skypic:remove-friend",
+    "skypic:block",
+    "skypic:send-snap",
+    "skypic:open-snap",
+    "skypic:replay-snap",
+    "skypic:publish-story",
+    "skypic:stories",
+    "skypic:view-story",
+    "skypic:story-viewers",
+    "skypic:remove-story",
+    "skypic:thread",
+    "skypic:send-message",
+    "skypic:mark-thread",
+    "skypic:save-message",
+    "skypic:delete-message",
     "feather:bootstrap",
     "feather:create-profile",
     "feather:update-profile",
@@ -871,6 +893,18 @@ RegisterNetEvent("sky_phone:picstagram:new", function(data)
     data.title = picstagram_locale.name
     data.text = notification_text:gsub("{actor}", tostring(data.actor or ""))
     SendNUIMessage({ type = "picstagram:new", data = data })
+end)
+
+RegisterNetEvent("sky_phone:skypic:new", function(data)
+    local skypic_locale = locale.Nui.Apps.skypic
+    local notification_text = skypic_locale.notifications[data.kind] or skypic_locale.notifications.default
+    data.title = skypic_locale.name
+    data.text = notification_text:gsub("{actor}", tostring(data.actor or ""))
+    SendNUIMessage({ type = "skypic:new", data = data })
+end)
+
+RegisterNetEvent("sky_phone:skypic:changed", function(data)
+    SendNUIMessage({ type = "skypic:changed", data = data })
 end)
 
 RegisterNetEvent("sky_phone:feather:new", function(data)

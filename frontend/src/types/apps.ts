@@ -36,6 +36,7 @@ export type BuiltinPhoneAppId =
   | 'flare'
   | 'fliptok'
   | 'picstagram'
+  | 'skypic'
   | 'skyride'
   | 'feather'
   | 'crewlink'

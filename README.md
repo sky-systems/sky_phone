@@ -577,6 +577,11 @@ pnpm install
 pnpm dev
 ```
 
+The browser mock links `demo@ifruit.com` and signs in the seeded SkyPic profile
+`@alexm` by default. To exercise SkyPic registration with an empty profile, open
+`http://localhost:5174/?testScenario=skypic-onboarding#/apps/skypic` while the
+development server is running.
+
 Create a production frontend build with:
 
 ```powershell
