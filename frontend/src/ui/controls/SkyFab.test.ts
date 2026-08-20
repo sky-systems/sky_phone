@@ -73,4 +73,33 @@ describe('SkyFab', () => {
       /\.sky-glass\.sky-fab--neutral\s*\{[^}]*background:\s*var\(--sky-glass-solid/s,
     )
   })
+
+  it('offers a translucent glass variant for adjacent floating controls', async () => {
+    const html = await renderToString(
+      createSSRApp({
+        render: () => h(SkyFab, { ariaLabel: 'Create', variant: 'glass' }),
+      }),
+    )
+
+    expect(html).toContain('sky-fab--glass')
+
+    const controls = readFileSync(
+      fileURLToPath(new URL('../controls.css', import.meta.url)),
+      'utf8',
+    )
+    expect(controls).toMatch(
+      /\.sky-glass\.sky-fab--glass\s*\{[^}]*border:\s*1px solid var\(--sky-hairline[^}]*background:\s*var\(--sky-glass[^}]*box-shadow:\s*var\(--sky-shadow-glass\)/s,
+    )
+  })
+
+  it('keeps icon-only fabs perfectly square inside stretching toolbars', () => {
+    const controls = readFileSync(
+      fileURLToPath(new URL('../controls.css', import.meta.url)),
+      'utf8',
+    )
+
+    expect(controls).toMatch(
+      /\.sky-fab--icon-only\s*\{[^}]*width:\s*var\(--sky-touch-target, 44px\);[^}]*height:\s*var\(--sky-touch-target, 44px\);[^}]*flex:\s*none;[^}]*align-self:\s*center;/s,
+    )
+  })
 })

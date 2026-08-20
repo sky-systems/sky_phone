@@ -206,6 +206,7 @@ function shareNote(): void {
     :aria-label="phone.t('Apps.notes.name')"
   >
     <sky-navbar
+      class="notes-list-navbar"
       variant="large"
       transparent
       :title="phone.t('Apps.notes.name')"
@@ -273,7 +274,7 @@ function shareNote(): void {
       />
       <SkyFab
         :aria-label="phone.t('Apps.notes.newNote')"
-        variant="neutral"
+        variant="glass"
         @click="createNote"
       >
         <template #icon>
@@ -305,7 +306,7 @@ function shareNote(): void {
     </SkyDialog>
   </sky-app-page>
 
-  <sky-app-page v-else class="notes-editor-page !pt-[44px] !pb-0">
+  <sky-app-page v-else class="notes-editor-page !pb-0">
     <sky-navbar :title="phone.t('Apps.notes.note')">
       <template #left>
         <sky-navbar-back-link
@@ -384,6 +385,16 @@ function shareNote(): void {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+:deep(.notes-list-navbar.sky-navbar--large) {
+  min-height: calc(
+    var(--sky-navbar-safe-area-top) + var(--sky-navbar-large-title-height)
+  );
+}
+
+:deep(.notes-list-navbar.sky-navbar--large.sky-navbar--no-navigation) {
+  padding-top: calc(var(--sky-navbar-safe-area-top) + var(--sky-space-3));
 }
 
 .notes-delete-confirm {

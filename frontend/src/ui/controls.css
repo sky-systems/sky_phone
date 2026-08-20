@@ -2733,6 +2733,9 @@ label.sky-list-item__row {
 
 .sky-fab--icon-only {
   width: var(--sky-touch-target, 44px);
+  height: var(--sky-touch-target, 44px);
+  flex: none;
+  align-self: center;
   padding: 0;
 }
 
@@ -2741,6 +2744,16 @@ label.sky-list-item__row {
   color: var(--sky-text, #000000);
 }
 
+.sky-glass.sky-fab--glass {
+  border: 1px solid var(--sky-hairline, rgba(0, 0, 0, 0.2));
+  background: var(--sky-glass, rgba(255, 255, 255, 0.75));
+  color: var(--sky-text, #000000);
+  box-shadow: var(--sky-shadow-glass);
+}
+
+.sky-fab--glass .sky-fab__accent-layer,
+.sky-fab--glass .sky-fab__dark-accent-layer,
+.sky-fab--glass .sky-fab__surface-layer,
 .sky-fab--neutral .sky-fab__accent-layer,
 .sky-fab--neutral .sky-fab__dark-accent-layer,
 .sky-fab--neutral .sky-fab__surface-layer {
@@ -2753,6 +2766,10 @@ label.sky-list-item__row {
 
 .sky-glass.sky-fab--neutral:active:not(:disabled) {
   background: var(--sky-glass-solid, rgba(247, 247, 248, 0.96));
+}
+
+.sky-glass.sky-fab--glass:active:not(:disabled) {
+  background: var(--sky-glass, rgba(255, 255, 255, 0.75));
 }
 
 .sky-fab--disabled {
