@@ -31,6 +31,22 @@ const builtInWallpaperCss = mainCss.slice(
   mainCss.indexOf('.wallpaper--midnight'),
   mainCss.indexOf('.wallpaper--custom'),
 )
+const folderOverlayBlock =
+  viewSource.match(/<HomeFolderOverlay\b[\s\S]*?\/>/)?.[0] ?? ''
+
+function handlerName(block: string, event: string): string {
+  return (
+    block.match(new RegExp(`@${event}="([A-Za-z][A-Za-z0-9_]*)"`))?.[1] ?? ''
+  )
+}
+
+function functionSource(name: string): string {
+  if (!name) return ''
+  const start = viewSource.indexOf(`function ${name}(`)
+  if (start < 0) return ''
+  const next = viewSource.indexOf('\nfunction ', start + 1)
+  return viewSource.slice(start, next < 0 ? viewSource.length : next)
+}
 
 describe('Springboard page swipe contract', () => {
   it('keeps app and widget labels on the larger shared home typography', () => {
@@ -136,7 +152,7 @@ describe('Springboard page swipe contract', () => {
     )
     expect(
       viewSource.match(/:external-drag-visual="homeDragVisualActive"/g),
-    ).toHaveLength(4)
+    ).toHaveLength(5)
     expect(viewSource).toContain('updateHomeDragGhost(event)')
     expect(viewSource).toContain('const dropGhost = homeDragGhost')
     expect(viewSource).toContain('const dropOrigin = homeDragPreviewBounds')
@@ -157,6 +173,65 @@ describe('Springboard page swipe contract', () => {
     expect(mainCss).toMatch(/\.springboard\s*\{[\s\S]*?overflow:\s*hidden;/)
     expect(mainCss).toMatch(
       /\.springboard-page--apps\s*\{[^}]*overflow:\s*hidden;/s,
+    )
+  })
+
+  it('owns one external drag session for an app leaving an opened folder', () => {
+    expect(folderOverlayBlock).toContain(
+      ':external-drag-visual="homeDragVisualActive"',
+    )
+
+    const startSource = functionSource(
+      handlerName(folderOverlayBlock, 'dragstart'),
+    )
+    const moveSource = functionSource(
+      handlerName(folderOverlayBlock, 'dragmove'),
+    )
+    const cancelSource = functionSource(
+      handlerName(folderOverlayBlock, 'dragcancel'),
+    )
+
+    expect(startSource).toContain('createHomeDragGhost(event)')
+    expect(startSource).toMatch(/\.value\s*=\s*\{[\s\S]*?sourceIndex/)
+    expect(moveSource).toContain('updateHomeDragGhost(event)')
+    expect(moveSource).toContain('folderDraggingOutside.value')
+    expect(moveSource).toContain('resolveHomeEdgeTurn(event)')
+    expect(moveSource).toContain("queueEdgePageTurn(event, 'app')")
+    expect(viewSource).toContain(
+      '(draggingHomeApp.value || draggingFolderApp.value)',
+    )
+    expect(cancelSource).toContain('clearHomeDragGhost()')
+    expect(cancelSource).toContain('clearTemporaryHomePage()')
+  })
+
+  it('settles an extracted folder app from the tracked viewport preview', () => {
+    const extractSource = functionSource('extractOpenedFolderApp')
+    const targetSource = functionSource('folderExtractionDropTarget')
+
+    expect(extractSource).toContain('const dropGhost = homeDragGhost')
+    expect(extractSource).toContain('homeDragPreviewBounds')
+    expect(targetSource).toContain('page > appStore.homeLayout.pageCount')
+    expect(extractSource).not.toContain('sourceElement')
+    expect(extractSource).not.toContain('getBoundingClientRect()')
+    expect(extractSource).toMatch(
+      /animateHomeItemDrop\([\s\S]*?dropOrigin[\s\S]*?\)\.finally\(/,
+    )
+    expect(extractSource).toContain('clearHomeDragGhost(dropGhost)')
+    expect(extractSource).toMatch(
+      /if \(!target\) \{[\s\S]*?clearHomeDragGhost\(\)/,
+    )
+  })
+
+  it('cleans the opened-folder drag preview after an internal move, cancellation, or unmount', () => {
+    const moveSource = functionSource('moveOpenedFolderApp')
+    const cancelSource = functionSource(
+      handlerName(folderOverlayBlock, 'dragcancel'),
+    )
+
+    expect(moveSource).toContain('stopOpenedFolderAppDrag()')
+    expect(cancelSource).toContain('clearHomeDragGhost()')
+    expect(viewSource).toMatch(
+      /onBeforeUnmount\(\(\) => \{[\s\S]*?clearHomeDragGhost\(\)/,
     )
   })
 

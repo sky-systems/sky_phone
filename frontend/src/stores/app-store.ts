@@ -19,6 +19,7 @@ import {
   createDefaultHomeLayout,
   deleteHomePage,
   extractHomeFolderApp,
+  HOME_GRID_PAGE_SIZE,
   moveHomeFolderApp,
   moveHomeApp,
   moveHomeAppToGridPage,
@@ -463,14 +464,23 @@ export const useAppStoreStore = defineStore('app-store', {
       to: HomeArea,
       targetIndex: number,
     ): boolean {
+      let sourceLayout = this.homeLayout
+      if (to === 'grid' && Number.isInteger(targetIndex) && targetIndex >= 0) {
+        const targetPage = Math.floor(targetIndex / HOME_GRID_PAGE_SIZE) + 1
+        while (sourceLayout.pageCount < targetPage) {
+          const expanded = addHomePage(sourceLayout)
+          if (expanded === sourceLayout) return false
+          sourceLayout = expanded
+        }
+      }
       const next = extractHomeFolderApp(
-        this.homeLayout,
+        sourceLayout,
         folderId,
         sourceIndex,
         to,
         targetIndex,
       )
-      if (next === this.homeLayout) return false
+      if (next === sourceLayout) return false
       this.homeLayout = next
       this.persist()
       return true

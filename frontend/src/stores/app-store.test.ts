@@ -452,6 +452,41 @@ describe('app store', () => {
     expect(mocks.phone.saveDeviceNamespace).toHaveBeenCalledTimes(5)
   })
 
+  it('materializes a trailing page only for a successful folder extraction', () => {
+    const apps = useAppStoreStore()
+    apps.hydrate(null)
+
+    const notesIndex = apps.homeLayout.grid.indexOf('notes')
+    const settingsIndex = apps.homeLayout.grid.indexOf('settings')
+    const folderId = apps.createHomeFolder(
+      'grid',
+      notesIndex,
+      'grid',
+      settingsIndex,
+      'Utilities',
+    )
+    expect(folderId).toBeTruthy()
+
+    const originalPageCount = apps.homeLayout.pageCount
+    const targetPage = originalPageCount + 1
+    const targetIndex = originalPageCount * HOME_GRID_PAGE_SIZE
+    expect(apps.homeLayout.grid[targetIndex]).toBeUndefined()
+
+    expect(
+      apps.extractHomeFolderApp('missing-folder', 0, 'grid', targetIndex),
+    ).toBe(false)
+    expect(apps.homeLayout.pageCount).toBe(originalPageCount)
+    expect(apps.homeLayout.grid[targetIndex]).toBeUndefined()
+
+    mocks.phone.saveDeviceNamespace.mockClear()
+    expect(apps.extractHomeFolderApp(folderId!, 0, 'grid', targetIndex)).toBe(
+      true,
+    )
+    expect(apps.homeLayout.pageCount).toBe(targetPage)
+    expect(apps.homeLayout.grid[targetIndex]).toBe('settings')
+    expect(mocks.phone.saveDeviceNamespace).toHaveBeenCalledTimes(1)
+  })
+
   it('does not commit an installation to a different phone', () => {
     vi.useFakeTimers()
     const apps = useAppStoreStore()

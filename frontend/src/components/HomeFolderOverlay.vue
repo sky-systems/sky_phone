@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check, Pencil, X } from 'lucide-vue-next'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import AppIcon from '@/components/AppIcon.vue'
 import { usePhoneStore } from '@/stores/phone'
@@ -11,20 +11,35 @@ import {
   HOME_FOLDER_PAGE_SIZE,
   type HomeFolder,
 } from '@/utils/homeLayout'
+import {
+  phoneViewportRectContainsPoint,
+  readPhoneViewportGeometry,
+  type PhoneViewportGeometry,
+  type PhoneViewportRect,
+} from '@/utils/phoneViewportGeometry'
 
 type FolderAppEntry = {
   app: PhoneAppDefinition
   index: number
 }
 
-const props = defineProps<{
-  apps: FolderAppEntry[]
-  editMode: boolean
-  folder: HomeFolder
-  renameOnOpen: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    apps: FolderAppEntry[]
+    editMode: boolean
+    externalDragVisual?: boolean
+    folder: HomeFolder
+    renameOnOpen: boolean
+  }>(),
+  {
+    externalDragVisual: false,
+  },
+)
 const emit = defineEmits<{
   close: []
+  dragcancel: []
+  dragmove: [event: PointerEvent]
+  dragstart: [index: number, event: PointerEvent]
   'drag-outside-change': [outside: boolean]
   edit: []
   extract: [index: number, event: PointerEvent]
@@ -43,6 +58,7 @@ const renameOpened = ref(false)
 const renameDraft = ref('')
 let pagePointerStart = 0
 let pagePointerId: number | null = null
+let dragGeometry: PhoneViewportGeometry | null = null
 
 const folderName = computed(
   () => props.folder.name || phone.t('Home.folders.defaultName'),
@@ -113,25 +129,48 @@ function saveRename(): void {
   renameOpened.value = false
 }
 
-function startFolderAppDrag(index: number): void {
+function startFolderAppDrag(index: number, event: PointerEvent): void {
   draggingIndex.value = index
+  dragGeometry = readPhoneViewportGeometry(panelElement.value)
   setDraggingOutside(false)
+  emit('dragstart', index, event)
+}
+
+function fallbackViewportRect(element: Element): PhoneViewportRect {
+  const bounds = element.getBoundingClientRect()
+  return {
+    bottom: bounds.bottom,
+    height: bounds.height,
+    left: bounds.left,
+    right: bounds.right,
+    top: bounds.top,
+    width: bounds.width,
+  }
+}
+
+function folderDragViewportRect(element: Element): PhoneViewportRect {
+  const geometry = dragGeometry ?? readPhoneViewportGeometry(element)
+  return geometry?.rect(element) ?? fallbackViewportRect(element)
 }
 
 function isPointerInsidePanel(event: PointerEvent): boolean {
-  const panelBounds = panelElement.value?.getBoundingClientRect()
-  if (!panelBounds) return false
+  const panel = panelElement.value
   return (
-    event.clientX >= panelBounds.left &&
-    event.clientX <= panelBounds.right &&
-    event.clientY >= panelBounds.top &&
-    event.clientY <= panelBounds.bottom
+    panel !== null &&
+    phoneViewportRectContainsPoint(
+      folderDragViewportRect(panel),
+      event.clientX,
+      event.clientY,
+    )
   )
 }
 
 function moveFolderAppDrag(event: PointerEvent): void {
-  if (draggingIndex.value === null || draggingOutside.value) return
-  if (!isPointerInsidePanel(event)) setDraggingOutside(true)
+  if (draggingIndex.value === null) return
+  if (!draggingOutside.value && !isPointerInsidePanel(event)) {
+    setDraggingOutside(true)
+  }
+  emit('dragmove', event)
 }
 
 function setDraggingOutside(outside: boolean): void {
@@ -145,31 +184,52 @@ function finishFolderAppDrag(event: PointerEvent): void {
   const shouldExtract = draggingOutside.value || !isPointerInsidePanel(event)
   draggingIndex.value = null
   if (sourceIndex === null) {
+    dragGeometry = null
     setDraggingOutside(false)
+    emit('dragcancel')
     return
   }
   if (shouldExtract) {
     emit('extract', sourceIndex, event)
+    dragGeometry = null
     setDraggingOutside(false)
     return
   }
   setDraggingOutside(false)
 
-  const target = document
-    .elementsFromPoint(event.clientX, event.clientY)
-    .map((element) => element.closest<HTMLElement>('[data-folder-app-index]'))
-    .find(
-      (element) =>
-        element && Number(element.dataset.folderAppIndex) !== sourceIndex,
-    )
-  if (!target) return
+  const target = Array.from(
+    panelElement.value?.querySelectorAll<HTMLElement>(
+      '[data-folder-app-index]',
+    ) ?? [],
+  ).find(
+    (element) =>
+      Number(element.dataset.folderAppIndex) !== sourceIndex &&
+      phoneViewportRectContainsPoint(
+        folderDragViewportRect(element),
+        event.clientX,
+        event.clientY,
+      ),
+  )
+  if (!target) {
+    dragGeometry = null
+    emit('dragcancel')
+    return
+  }
   const targetIndex = Number(target.dataset.folderAppIndex)
-  if (Number.isInteger(targetIndex)) emit('move', sourceIndex, targetIndex)
+  dragGeometry = null
+  if (!Number.isInteger(targetIndex)) {
+    emit('dragcancel')
+    return
+  }
+  emit('move', sourceIndex, targetIndex)
 }
 
 function stopFolderAppDrag(): void {
+  const wasDragging = draggingIndex.value !== null
   draggingIndex.value = null
+  dragGeometry = null
   setDraggingOutside(false)
+  if (wasDragging) emit('dragcancel')
 }
 
 function goToPage(page: number): void {
@@ -195,6 +255,11 @@ function finishPageSwipe(event: PointerEvent): void {
   }
   pagePointerId = null
 }
+
+onBeforeUnmount(() => {
+  stopFolderAppDrag()
+  pagePointerId = null
+})
 </script>
 
 <template>
@@ -290,10 +355,11 @@ function finishPageSwipe(event: PointerEvent): void {
                 :app="entry.app"
                 :data-folder-app-index="entry.index"
                 :edit-mode="editMode"
+                :external-drag-visual="externalDragVisual"
                 @dragcancel="stopFolderAppDrag"
                 @dragend="finishFolderAppDrag"
                 @dragmove="moveFolderAppDrag"
-                @dragstart="startFolderAppDrag(entry.index)"
+                @dragstart="startFolderAppDrag(entry.index, $event)"
                 @edit="emit('edit')"
               />
             </div>
