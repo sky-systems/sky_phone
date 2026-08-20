@@ -157,7 +157,7 @@ describe('LB Phone app bridge', () => {
         ui: 'https://cfx-nui-lb-radioapp/ui/dist/index.html',
       },
     )
-    const runtime = /<script>([\s\S]*?)<\/script>/.exec(document)?.[1]
+    const runtime = /<script>([\s\S]*?)<\/script>/i.exec(document)?.[1]
     expect(runtime).toBeTruthy()
 
     const messageListeners: Array<(event: { data: unknown }) => void> = []
