@@ -1,3 +1,5 @@
+import { registerPhoneMediaElement } from '@/utils/phoneAudio'
+
 import gameOverUrl from '@/assets/audio/number-merge/game-over.wav?url'
 import mergeUrl from '@/assets/audio/number-merge/merge.wav?url'
 import moveUrl from '@/assets/audio/number-merge/move.wav?url'
@@ -18,7 +20,7 @@ function getPlayers(sound: NumberMergeSound): HTMLAudioElement[] {
   if (existing) return existing
 
   const players = Array.from({ length: 3 }, () => {
-    const player = new Audio(soundUrls[sound])
+    const player = registerPhoneMediaElement(new Audio(soundUrls[sound]))
     player.preload = 'auto'
     player.volume = 0.82
     return player

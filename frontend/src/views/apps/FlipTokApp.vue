@@ -77,6 +77,10 @@ import {
   SkyToggle,
 } from '@/ui'
 import { nuiCall } from '@/utils/nui'
+import {
+  getPhoneOutputVolume,
+  subscribePhoneOutputVolume,
+} from '@/utils/phoneAudio'
 
 type Tab = 'feed' | 'discover' | 'create' | 'activity' | 'profile'
 type AuthMode = 'login' | 'register'
@@ -194,6 +198,8 @@ let flipTokYoutubePlayer: YouTubePlayer | null = null
 let flipTokYoutubeApi: YouTubeApi | null = null
 let flipTokYoutubeOwner = ''
 let flipTokYoutubeVideoId = ''
+let flipTokYoutubeVolume = 0
+let removePhoneOutputVolumeListener: (() => void) | undefined
 let observer: IntersectionObserver | null = null
 let videoClickTimer: number | null = null
 let likePulseTimer: number | null = null
@@ -786,6 +792,7 @@ async function playFlipTokYoutube(
   seconds = 0,
 ): Promise<void> {
   flipTokYoutubeOwner = owner
+  flipTokYoutubeVolume = volume
   try {
     const api = await loadYouTubeApi()
     flipTokYoutubeApi = api
@@ -794,7 +801,7 @@ async function playFlipTokYoutube(
         flipTokYoutubeVideoId = videoId
         flipTokYoutubePlayer.loadVideoById(videoId)
       }
-      flipTokYoutubePlayer.setVolume(volume)
+      flipTokYoutubePlayer.setVolume(volume * getPhoneOutputVolume())
       flipTokYoutubePlayer.seekTo(Math.max(0, seconds), true)
       flipTokYoutubePlayer.playVideo()
       if (owner === 'composer') customMusicLoadFailed.value = false
@@ -835,7 +842,7 @@ async function playFlipTokYoutube(
           },
           onReady: (event) => {
             flipTokYoutubePlayer = event.target
-            event.target.setVolume(volume)
+            event.target.setVolume(volume * getPhoneOutputVolume())
             event.target.seekTo(Math.max(0, seconds), true)
             event.target.playVideo()
             if (owner === 'composer') customMusicLoadFailed.value = false
@@ -1627,7 +1634,10 @@ watch(originalVolume, (value) => {
 
 watch(musicVolume, (value) => {
   if (composerMusic.value) composerMusic.value.volume = value / 100
-  if (flipTokYoutubeOwner === 'composer') flipTokYoutubePlayer?.setVolume(value)
+  if (flipTokYoutubeOwner === 'composer') {
+    flipTokYoutubeVolume = value
+    flipTokYoutubePlayer?.setVolume(value * getPhoneOutputVolume())
+  }
 })
 
 watch(
@@ -1655,6 +1665,9 @@ watch(
 )
 
 onMounted(async () => {
+  removePhoneOutputVolumeListener = subscribePhoneOutputVolume((volume) => {
+    flipTokYoutubePlayer?.setVolume(flipTokYoutubeVolume * volume)
+  })
   const profileSelection = messageMedia.consumeMany<ProfileMediaContext>(
     'fliptok:profile-avatar',
   )
@@ -1731,6 +1744,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  removePhoneOutputVolumeListener?.()
   observer?.disconnect()
   if (videoClickTimer !== null) window.clearTimeout(videoClickTimer)
   if (likePulseTimer !== null) window.clearTimeout(likePulseTimer)

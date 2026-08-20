@@ -16,6 +16,8 @@ local phone_block_game = false
 local phone_block_look = false
 local phone_game_input = false
 local phone_text_input_focused = false
+local live_activity_active = false
+local open_home_requested = false
 
 SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsOpen", function()
     return is_open
@@ -394,7 +396,9 @@ local function send_open_message()
     SendNUIMessage({
         type = "app:open",
         data = payload,
+        openHome = open_home_requested,
     })
+    open_home_requested = false
 end
 
 local function open_phone()
@@ -466,6 +470,25 @@ RegisterCommand("sky_phone_toggle", function()
 
     Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})
 end, false)
+
+RegisterCommand("sky_phone_live_activity_open", function()
+    if not live_activity_active or is_open or open_requested then
+        return
+    end
+
+    open_home_requested = true
+    local result = Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})
+    if not result or not result.success then
+        open_home_requested = false
+    end
+end, false)
+
+RegisterKeyMapping(
+    "sky_phone_live_activity_open",
+    locale.Controls.OpenPhone,
+    "keyboard",
+    "SPACE"
+)
 
 if Config.Phone.Keybind then
     if type(Config.Phone.Keybind) ~= "string" or Config.Phone.Keybind == "" then
@@ -557,6 +580,15 @@ RegisterNUICallback("ui:input-focus", function(data, cb)
     end
     phone_text_input_focused = data.active and (is_open or open_requested)
     update_nui_focus()
+    cb({ success = true })
+end)
+
+RegisterNUICallback("ui:live-activity", function(data, cb)
+    if type(data) ~= "table" or type(data.active) ~= "boolean" then
+        cb({ success = false, error = "invalid_request" })
+        return
+    end
+    live_activity_active = data.active
     cb({ success = true })
 end)
 
@@ -783,6 +815,8 @@ RegisterNetEvent("sky_phone:device:invalidated", function()
     TriggerEvent("sky_phone:animation:reset")
     close_phone(false)
     device_payload = nil
+    live_activity_active = false
+    open_home_requested = false
 end)
 
 RegisterNetEvent("sky_phone:device:error", function(error_code)

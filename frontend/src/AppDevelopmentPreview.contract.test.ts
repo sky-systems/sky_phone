@@ -22,20 +22,32 @@ describe('browser development preview contract', () => {
 
   it('starts unlocked while preserving an explicit lock screen preview', () => {
     expect(source).toContain("developmentParameters.has('lockScreenPreview')")
-    expect(source).toContain(': !isDevelopment || developmentLockScreenPreview')
+    expect(source).toContain(
+      'developmentLockScreenPreview ||\n        (!isDevelopment && phone.security.enabled)',
+    )
     expect(source).toContain("developmentParameters.has('setupPreview')")
   })
 
   it('restores the active route after the lock screen', () => {
-    expect(source).toContain(
-      "if (setupRequired.value) void router.replace('/')",
+    expect(source).toMatch(
+      /if \(setupRequired\.value\) \{[\s\S]*?router\.replace\('\/'\)/,
     )
-    expect(source).toContain(
-      'else if (!isLocked.value) loadUnlockedPhoneData()',
+    expect(source).toMatch(
+      /else if \(!isLocked\.value\) \{\s*loadUnlockedPhoneData\(\)/,
     )
     expect(source).not.toContain(
       "if (isLocked.value || setupRequired.value) void router.replace('/')",
     )
+  })
+
+  it('opens Space-triggered live activities on Home or the enabled lock screen', () => {
+    expect(source).toContain(
+      'openHomeRequested.value = event.data.openHome === true',
+    )
+    expect(source).toContain(
+      "if (isLocked.value) pendingUnlockRoute.value = '/'",
+    )
+    expect(source).toContain("void router.replace('/')")
   })
 
   it('requires the passcode again after a full device lock', () => {

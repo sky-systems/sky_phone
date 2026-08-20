@@ -76,6 +76,22 @@ describe('phone inventory contracts', () => {
     )
   })
 
+  it('opens a running live activity with Space without affecting normal gameplay', () => {
+    const phoneClient = readResourceFile('source/client/main.lua')
+
+    expect(phoneClient).toContain(
+      'RegisterCommand("sky_phone_live_activity_open"',
+    )
+    expect(phoneClient).toContain(
+      'if not live_activity_active or is_open or open_requested then',
+    )
+    expect(phoneClient).toContain(
+      'RegisterKeyMapping(\n    "sky_phone_live_activity_open"',
+    )
+    expect(phoneClient).toContain('"SPACE"')
+    expect(phoneClient).toContain('RegisterNUICallback("ui:live-activity"')
+  })
+
   it('keeps a server-selected unique handset as the preferred hotkey device', () => {
     const phoneServer = readResourceFile('source/server/phone.lua')
 

@@ -56,6 +56,7 @@ import { useNotesStore } from '@/stores/notes'
 import { useMemosStore } from '@/stores/memos'
 import { useWeatherStore } from '@/stores/weather'
 import { useEasyShareStore } from '@/stores/easyshare'
+import { useRadioStore } from '@/stores/radio'
 import {
   useNotificationsStore,
   type PhoneNotification,
@@ -75,6 +76,10 @@ import type { EasyShareEvent } from '@/types/easyshare'
 import type { CryptoMarketChangedData } from '@/types/crypto'
 import type { CityWarnEventData } from '@/types/citywarn'
 import { nuiCall } from '@/utils/nui'
+import {
+  installPhoneAudioController,
+  setPhoneOutputVolume,
+} from '@/utils/phoneAudio'
 import { formatTimer } from '@/utils/clock'
 import { parsePhonePreferences } from '@/utils/preferences'
 import { getHairlinePixelStyle } from '@/utils/rendering'
@@ -83,6 +88,7 @@ import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 import SpringboardView from '@/views/SpringboardView.vue'
 
 type AppMessage = {
+  openHome?: boolean
   type?: string
   data?:
     | CalendarReminderData
@@ -309,6 +315,7 @@ const notes = useNotesStore()
 const memos = useMemosStore()
 const weather = useWeatherStore()
 const easyShare = useEasyShareStore()
+const radio = useRadioStore()
 const notifications = useNotificationsStore()
 const route = useRoute()
 const router = useRouter()
@@ -357,6 +364,7 @@ const setupPreviewDismissed = ref(false)
 const setupDevelopmentSkipped = ref(false)
 const setupAppearanceSelected = ref(false)
 const pendingUnlockRoute = ref<string | null>(null)
+const openHomeRequested = ref(false)
 const unlockedServicesLoaded = ref(false)
 const controlCenterOpened = ref(false)
 const activitySuspended = ref(false)
@@ -458,6 +466,7 @@ let unlockTimer: number | undefined
 let passcodeLockTimer: number | undefined
 let hardwareVolumeHudTimer: number | undefined
 let unlockedServicesIdle: number | undefined
+let removePhoneAudioController: (() => void) | undefined
 let phoneClosePending = false
 let simPickerClosePending = false
 
@@ -726,6 +735,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       void router.push('/')
     }
   } else if (event.data?.type === 'app:open') {
+    openHomeRequested.value = event.data.openHome === true
     hydratePhone(event.data.data as PhoneOpenPayload)
     void nuiCall('ui:opened')
   } else if (event.data?.type === 'device:updated') {
@@ -1441,6 +1451,7 @@ function onFocusOut(event: FocusEvent): void {
 }
 
 onMounted(() => {
+  removePhoneAudioController = installPhoneAudioController()
   document.addEventListener('focusin', onFocusIn)
   document.addEventListener('focusout', onFocusOut)
   window.addEventListener('message', onMessage)
@@ -1544,6 +1555,23 @@ watch(
 )
 
 watch(
+  () => Boolean(dynamicIslandActivity.value || calls.activeCall),
+  (active) => {
+    void nuiCall('ui:live-activity', { active })
+  },
+  { immediate: true },
+)
+
+watch(
+  hardwareAlertVolume,
+  (volume) => {
+    setPhoneOutputVolume(volume / 100)
+    if (radio.data.connected) void radio.setVolume(volume)
+  },
+  { immediate: true },
+)
+
+watch(
   () => phone.isOpen,
   (isOpen) => {
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
@@ -1575,7 +1603,8 @@ watch(
     }
     isLocked.value = setupRequired.value
       ? false
-      : !isDevelopment || developmentLockScreenPreview
+      : developmentLockScreenPreview ||
+        (!isDevelopment && phone.security.enabled)
     passcodeRequired.value = isLocked.value && phone.security.enabled
     unlockedServicesLoaded.value = false
     controlCenterOpened.value = false
@@ -1593,8 +1622,18 @@ watch(
       startPasscodeLock(passcodeRetrySeconds.value)
     }
     phone.setLaunchOrigin(null)
-    if (setupRequired.value) void router.replace('/')
-    else if (!isLocked.value) loadUnlockedPhoneData()
+    if (setupRequired.value) {
+      void router.replace('/')
+    } else if (openHomeRequested.value) {
+      openHomeRequested.value = false
+      if (isLocked.value) pendingUnlockRoute.value = '/'
+      else {
+        void router.replace('/')
+        loadUnlockedPhoneData()
+      }
+    } else if (!isLocked.value) {
+      loadUnlockedPhoneData()
+    }
   },
 )
 
@@ -1606,6 +1645,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  removePhoneAudioController?.()
   updateTextInputFocus(false)
   cancelUnlockedPhoneDataLoad()
   weather.stop()

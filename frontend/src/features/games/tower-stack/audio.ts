@@ -1,3 +1,5 @@
+import { registerPhoneMediaElement } from '@/utils/phoneAudio'
+
 import fallUrl from '@/assets/audio/tower-stack/fall.wav?url'
 import hitUrl from '@/assets/audio/tower-stack/hit.wav?url'
 import perfectUrl from '@/assets/audio/tower-stack/perfect.wav?url'
@@ -18,7 +20,7 @@ function getPlayers(sound: TowerStackSound): HTMLAudioElement[] {
   if (existing) return existing
 
   const players = Array.from({ length: 3 }, () => {
-    const player = new Audio(soundUrls[sound])
+    const player = registerPhoneMediaElement(new Audio(soundUrls[sound]))
     player.preload = 'auto'
     player.volume = 0.84
     return player

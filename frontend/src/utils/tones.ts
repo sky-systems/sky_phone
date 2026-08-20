@@ -1,3 +1,4 @@
+import { registerPhoneMediaElement } from '@/utils/phoneAudio'
 import type { AlarmSoundId } from '@/utils/alarms'
 import type { NotificationSoundId } from '@/utils/preferences'
 
@@ -495,8 +496,8 @@ export function playPhoneVibration(
   kind: PhoneVibrationKind,
   loop: boolean,
 ): () => void {
-  const player = new Audio(
-    `${import.meta.env.BASE_URL}${VIBRATION_SOUND_PATHS[kind]}`,
+  const player = registerPhoneMediaElement(
+    new Audio(`${import.meta.env.BASE_URL}${VIBRATION_SOUND_PATHS[kind]}`),
   )
   let stopped = false
   player.loop = loop

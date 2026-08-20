@@ -1,3 +1,5 @@
+import { getPhoneOutputVolume } from '@/utils/phoneAudio'
+
 export type MemorySound = 'flip' | 'match' | 'mismatch' | 'win'
 
 type Tone = {
@@ -46,7 +48,10 @@ export function playMemorySound(sound: MemorySound, enabled: boolean): void {
     oscillator.type = tone.type
     oscillator.frequency.setValueAtTime(tone.frequency, start)
     gain.gain.setValueAtTime(0.0001, start)
-    gain.gain.exponentialRampToValueAtTime(tone.volume, start + 0.012)
+    gain.gain.exponentialRampToValueAtTime(
+      Math.max(0.0001, tone.volume * getPhoneOutputVolume()),
+      start + 0.012,
+    )
     gain.gain.exponentialRampToValueAtTime(0.0001, end)
     oscillator.connect(gain)
     gain.connect(audioContext.destination)

@@ -32,7 +32,7 @@ describe('phone tones', () => {
       }> = []
       vi.stubGlobal(
         'Audio',
-        class {
+        class extends EventTarget {
           currentTime = 7
           loop = false
           pause = pause
@@ -42,6 +42,7 @@ describe('phone tones', () => {
           volume = 0
 
           constructor(src: string) {
+            super()
             this.src = src
             players.push(this)
           }
