@@ -130,6 +130,25 @@ function applySettings(nextSettings) {
   if (document.body) document.body.dataset.theme = theme;
 }
 
+function prepareDocument() {
+  Object.assign(document.documentElement.style, {
+    height: '100%',
+    margin: '0',
+    padding: '0',
+    width: '100%'
+  });
+  if (!document.body) return;
+
+  document.body.dataset.device = 'phone';
+  Object.assign(document.body.style, {
+    height: '100%',
+    margin: '0',
+    padding: '0',
+    visibility: 'visible',
+    width: '100%'
+  });
+}
+
 globalThis.resourceName = config.resourceName;
 globalThis.appName = config.appName;
 globalThis.components = globalThis.components ?? {};
@@ -189,6 +208,11 @@ globalThis.getSettings = async () => globalThis.settings;
 
 globalThis.addEventListener('message', (event) => {
   const message = event.data;
+  if (message === 'componentsLoaded') {
+    globalThis.componentsLoaded = true;
+    prepareDocument();
+    return;
+  }
   if (!message || typeof message !== 'object') return;
 
   if (message.type === 'sky-phone:lb-settings') {
@@ -210,7 +234,10 @@ globalThis.addEventListener('message', (event) => {
 });
 
 applySettings(config.settings);
-document.addEventListener('DOMContentLoaded', () => applySettings(globalThis.settings), { once: true });
+document.addEventListener('DOMContentLoaded', () => {
+  prepareDocument();
+  applySettings(globalThis.settings);
+}, { once: true });
 `
 
 function escapeAttribute(value: string): string {
