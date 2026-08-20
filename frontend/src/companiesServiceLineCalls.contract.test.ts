@@ -14,6 +14,10 @@ const callsServer = readFileSync(
   new URL('../../sky_phone/source/server/calls.lua', import.meta.url),
   'utf8',
 ).replace(/\r\n/g, '\n')
+const phoneServer = readFileSync(
+  new URL('../../sky_phone/source/server/phone.lua', import.meta.url),
+  'utf8',
+).replace(/\r\n/g, '\n')
 const companiesStore = readFileSync(
   new URL('./stores/companies.ts', import.meta.url),
   'utf8',
@@ -83,5 +87,37 @@ describe('Companies outbound service-line call contract', () => {
     expect(startCompanyCall).toContain('caller_number = service_line.number')
     expect(startCompanyCall).not.toContain('data.companyId')
     expect(startCompanyCall).not.toContain('data.callerNumber')
+  })
+})
+
+describe('Companies background call availability contract', () => {
+  it('keeps call availability enabled after the phone UI closes', () => {
+    const closeDevice = sourceBlock(
+      phoneServer,
+      `Bridge.Callbacks.Register(${quote}sky_phone:device:close${quote}`,
+      `Bridge.Callbacks.Register(${quote}sky_phone:device:notification-open${quote}`,
+    )
+
+    expect(closeDevice).toContain('sessions[source] = nil')
+    expect(closeDevice).not.toContain(
+      'SkyPhoneCompanies.ClearCallAvailability(source)',
+    )
+  })
+
+  it('routes background calls only to an owned phone with the same registered SIM', () => {
+    const getCallTargets = sourceBlock(
+      companiesServer,
+      'function SkyPhoneCompanies.GetCallTargets(',
+      '\n\nlocal function profile_row(',
+    )
+
+    expect(getCallTargets).toContain('SkyPhone.LoadDevice(readiness.imei)')
+    expect(getCallTargets).toContain(
+      'SkyPhone.FindDeviceSlots(source, readiness.imei)',
+    )
+    expect(getCallTargets).toContain('device.sim_id == readiness.sim_id')
+    expect(getCallTargets).toContain('device.sim_type == "registered"')
+    expect(getCallTargets).toContain('device.registered_at ~= nil')
+    expect(getCallTargets).not.toContain('current_device(source, true)')
   })
 })

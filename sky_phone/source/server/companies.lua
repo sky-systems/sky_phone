@@ -679,18 +679,16 @@ function SkyPhoneCompanies.GetCallTargets(company_id)
     end
     for source, readiness in pairs(call_availability) do
         local member = online[source] and call_member(source) or nil
-        local device = member and current_device(source, true) or nil
-        if not member or not device or member.company_id ~= readiness.company_id
-            or readiness.company_id ~= company_id or readiness.imei ~= device.imei
-            or readiness.sim_id ~= device.sim_id
-        then
-            if not member or not device or member.company_id ~= readiness.company_id
-                or readiness.imei ~= (device and device.imei)
-                or readiness.sim_id ~= (device and device.sim_id)
-            then
-                call_availability[source] = nil
-            end
-        else
+        local device = member and SkyPhone.LoadDevice(readiness.imei) or nil
+        local device_slots = device and SkyPhone.FindDeviceSlots(source, readiness.imei) or {}
+        local readiness_valid = member and device and device_slots[1]
+            and member.company_id == readiness.company_id
+            and device.sim_id == readiness.sim_id
+            and device.sim_type == "registered"
+            and device.registered_at ~= nil
+        if not readiness_valid then
+            call_availability[source] = nil
+        elseif readiness.company_id == company_id then
             targets[#targets + 1] = {
                 source = source,
                 simId = device.sim_id,

@@ -1101,7 +1101,6 @@ Bridge.Debug(
 )
 
 Bridge.Callbacks.Register("sky_phone:device:close", function(source)
-    SkyPhoneCompanies.ClearCallAvailability(source)
     sessions[source] = nil
     return { success = true }
 end)
