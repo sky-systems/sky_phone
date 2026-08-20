@@ -548,6 +548,8 @@ Unlisted jobs can read news but cannot manage articles.
 
 Sky Phone is not limited to the apps that ship with it. Other resources can register installable custom apps, publish them through the App Store, exchange messages with their NUI, send notifications, and use server-controlled permissions and storage.
 
+For the complete first-party export, ownership, readiness, and iframe protocol contract, see the [Creator API](CREATOR_API.md).
+
 Its native custom app surface includes client and server exports for app registration, lifecycle control, messaging, notifications, capability discovery, and policy management. Sky Phone also normalizes supported custom-app contracts from:
 
 - LB Phone
