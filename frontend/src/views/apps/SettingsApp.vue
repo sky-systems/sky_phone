@@ -779,6 +779,7 @@ onBeforeUnmount(() => {
     :label="phone.t('Apps.settings.name')"
   >
     <SkyNavbar
+      class="settings-navbar"
       :title="
         activeView === 'root' ? phone.t('Apps.settings.name') : activeTitle
       "
@@ -1871,6 +1872,16 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+:deep(.settings-navbar.sky-navbar--large) {
+  min-height: calc(
+    var(--sky-navbar-safe-area-top) + var(--sky-navbar-large-title-height)
+  );
+}
+
+:deep(.settings-navbar.sky-navbar--large.sky-navbar--no-navigation) {
+  padding-top: calc(var(--sky-navbar-safe-area-top) + var(--sky-space-3));
+}
+
 .settings-search {
   margin-bottom: var(--sky-space-4);
 }

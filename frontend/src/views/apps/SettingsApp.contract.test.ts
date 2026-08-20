@@ -13,6 +13,10 @@ describe('SettingsApp Sky UI contract', () => {
     expect(source).not.toMatch(/<\/?k-[a-z]/)
     expect(source).toContain('<SkyAppPage')
     expect(source).toContain('<SkyNavbar')
+    expect(source).toContain('class="settings-navbar"')
+    expect(source).toContain(
+      '.settings-navbar.sky-navbar--large.sky-navbar--no-navigation',
+    )
     expect(source).toContain(
       ":variant=\"activeView === 'root' ? 'large' : 'compact'\"",
     )
@@ -66,7 +70,7 @@ describe('SettingsApp Sky UI contract', () => {
   })
 
   it('provides a non-destructive development preview for the reset progress screen', () => {
-    expect(source).toContain("import.meta.env.DEV")
+    expect(source).toContain('import.meta.env.DEV')
     expect(source).toContain("has('factoryResetPreview')")
     expect(source).toContain('factoryResetProgress.value = 46')
   })
