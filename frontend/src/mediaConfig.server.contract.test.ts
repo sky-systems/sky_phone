@@ -28,6 +28,10 @@ const mediaServer = readFileSync(
   new URL('../../sky_phone/source/server/media.lua', import.meta.url),
   'utf8',
 )
+const memoServer = readFileSync(
+  new URL('../../sky_phone/source/server/memos.lua', import.meta.url),
+  'utf8',
+)
 const mediaCapture = readFileSync(
   new URL('./components/PhoneMediaCapture.vue', import.meta.url),
   'utf8',
@@ -58,15 +62,25 @@ describe('FiveManage server configuration contract', () => {
     )
   })
 
-  it('resolves uploads through their server-generated FiveManage path', () => {
+  it('uses the direct FiveManage upload response flow for Camera media', () => {
     expect(mediaConfig).not.toContain('VerificationRetryDelaysMs')
-    expect(mediaServer).toContain('upload_path = "sky_phone-" .. capture_token')
+    expect(mediaCapture).toContain("form.append('file', blob, fileName)")
+    expect(mediaCapture).not.toContain("form.append('path'")
+    expect(mediaCapture).not.toContain("form.append(\n    'metadata'")
+    expect(mediaServer).toContain('if state.media_type ~= "audio" then')
+    expect(mediaServer).toContain(
+      'Accepting the direct FiveManage camera upload response',
+    )
+    expect(mediaServer).toContain('remote_id = remote_id')
+    expect(mediaServer).toContain('url = uploaded_url')
+  })
+
+  it('keeps server-generated upload path verification for voice memos', () => {
+    expect(memoServer).toContain('upload_path = "sky_phone-" .. capture_token')
     expect(mediaServer).toContain(
       '"?limit=100&page=1&path=" .. SkyPhoneMediaImport.UrlEncode(state.upload_path)',
     )
-    expect(mediaCapture).toContain("form.append('path', ready.uploadPath)")
     expect(memoRecorder).toContain("form.append('path', ready.uploadPath)")
-    expect(mediaCapture).toContain('originalUrl: uploaded.originalUrl')
     expect(memoRecorder).toContain('originalUrl: uploaded.originalUrl')
     expect(mediaServer).toContain(
       'local verified_url = remote.url or remote.originalUrl',
@@ -76,7 +90,7 @@ describe('FiveManage server configuration contract', () => {
   it('binds metadata verification to the FiveManage host that issued the upload URL', () => {
     expect(mediaServer).toContain('["api.fivemanage.com"] = true')
     expect(mediaServer).toContain('["fmapi.net"] = true')
-    expect(mediaServer).toContain('provider_base_url = provider_base_url')
+    expect(memoServer).toContain('provider_base_url = provider_base_url')
     expect(mediaServer).toContain('state.provider_base_url')
   })
 

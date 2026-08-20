@@ -484,12 +484,7 @@ async function uploadReady(ready: UploadReady): Promise<void> {
   })
 
   const form = new FormData()
-  form.append('path', ready.uploadPath)
   form.append('file', blob, fileName)
-  form.append(
-    'metadata',
-    JSON.stringify({ captureToken: ready.captureToken, source: 'sky_phone' }),
-  )
   const controller = new AbortController()
   const timeout = window.setTimeout(
     () => controller.abort(),
@@ -511,11 +506,10 @@ async function uploadReady(ready: UploadReady): Promise<void> {
     })
     const text = await response.text()
     const body = JSON.parse(text) as {
-      data?: { id?: string; originalUrl?: string; url?: string }
+      data?: { id?: string; url?: string }
       error?: string
       id?: string
       message?: string
-      originalUrl?: string
       url?: string
     }
     const uploaded = body.data ?? body
@@ -529,7 +523,6 @@ async function uploadReady(ready: UploadReady): Promise<void> {
     debugStage = 'completion_callback'
     const completion = await nuiCall('media:completeUpload', {
       correlationId: ready.correlationId,
-      originalUrl: uploaded.originalUrl,
       remoteId: uploaded.id,
       requestId: ready.requestId,
       url: uploaded.url,

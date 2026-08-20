@@ -500,6 +500,27 @@ local function verify_remote_upload(state, remote_id, uploaded_url, original_url
         )
         return nil, "invalid_upload"
     end
+
+    if state.media_type ~= "audio" then
+        local uploaded_host = uploaded_url:match("^https://([^/%?#]+)")
+        if not uploaded_host or uploaded_host:lower() ~= "r2.fivemanage.com" then
+            Bridge.Debug(
+                "error",
+                "[sky_phone][media-debug] FiveManage camera upload returned an unexpected media host."
+            )
+            return nil, "invalid_upload"
+        end
+        media_debug(
+            "Accepting the direct FiveManage camera upload response (type=%s).",
+            tostring(state.media_type)
+        )
+        return {
+            mime_type = state.mime_type,
+            remote_id = remote_id,
+            url = uploaded_url,
+        }, nil, true
+    end
+
     media_debug("Verifying uploaded file with FiveManage (type=%s).", tostring(state.media_type))
     local remote, remote_error, remote_path = get_remote_file(state, remote_id, uploaded_url)
     if not remote then
@@ -909,7 +930,7 @@ RegisterNetEvent("sky_phone:media:request-upload", function(data)
         diagnostic_text(correlation_id, 80),
         owner.account_id and "account" or "device"
     )
-    local presigned_url, presigned_error, provider_base_url = request_presigned_url()
+    local presigned_url, presigned_error = request_presigned_url()
     if not presigned_url then
         Bridge.Debug(
             "error",
@@ -921,33 +942,28 @@ RegisterNetEvent("sky_phone:media:request-upload", function(data)
         upload_result(src, correlation_id, false, presigned_error)
         return
     end
-    local ids = Bridge.Database.Query("SELECT UUID() AS `request_id`, UUID() AS `capture_token`", {})
+    local ids = Bridge.Database.Query("SELECT UUID() AS `request_id`", {})
     local request_id = ids[1] and ids[1].request_id
-    local capture_token = ids[1] and ids[1].capture_token
-    if type(request_id) ~= "string" or type(capture_token) ~= "string" then
+    if type(request_id) ~= "string" then
         Bridge.Debug(
             "error",
-            "[sky_phone][media-debug] Database did not generate upload session identifiers (source=%s, correlation=%s, rows=%s, request-id=%s, capture-token=%s).",
+            "[sky_phone][media-debug] Database did not generate an upload request ID (source=%s, correlation=%s, rows=%s, request-id=%s).",
             tostring(src),
             diagnostic_text(correlation_id, 80),
             tostring(type(ids) == "table" and #ids or 0),
-            type(request_id),
-            type(capture_token)
+            type(request_id)
         )
         upload_result(src, correlation_id, false, "request_failed")
         return
     end
     pending_uploads[request_id] = {
-        capture_token = capture_token,
         correlation_id = correlation_id,
         media_type = media_type,
         mime_type = media_type == "video" and "video/webm"
             or ({ png = "image/png", webp = "image/webp" })[tostring(Config.Media.Photo.Encoding):lower()]
             or "image/jpeg",
         owner = owner,
-        provider_base_url = provider_base_url,
         source = src,
-        upload_path = "sky_phone-" .. capture_token,
     }
     SetTimeout(tonumber(Config.Media.UploadSessionTimeoutMs) or 60000, function()
         expire_upload(request_id)
@@ -959,13 +975,11 @@ RegisterNetEvent("sky_phone:media:request-upload", function(data)
         tostring(media_type)
     )
     TriggerClientEvent("sky_phone:media:upload-ready", src, {
-        captureToken = capture_token,
         correlationId = correlation_id,
         mediaType = media_type,
         photo = Config.Media.Photo,
         presignedUrl = presigned_url,
         requestId = request_id,
-        uploadPath = pending_uploads[request_id].upload_path,
         uploadTimeoutMs = Config.Media.FiveManage.UploadTimeoutMs,
         video = Config.Media.Video,
     })

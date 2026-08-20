@@ -70,7 +70,6 @@ export type MediaImportResult = {
 }
 
 export type UploadReady = {
-  captureToken: string
   correlationId: string
   mediaType: MediaType
   photo?: {
@@ -79,7 +78,6 @@ export type UploadReady = {
   }
   presignedUrl: string
   requestId: string
-  uploadPath: string
   uploadTimeoutMs?: number
   video?: {
     BitrateKbps?: number
