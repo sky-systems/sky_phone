@@ -57,6 +57,21 @@ describe('GalleryApp import action', () => {
     )
   })
 
+  it('uses the shared app tab bar for gallery filters', () => {
+    expect(source).toContain('<SkyTabBar')
+    expect(source).toContain('class="gallery-filter-tabbar"')
+    expect(source).toContain('icons')
+    expect(source).toContain('<Images :size="21" />')
+    expect(source).toContain('<Image :size="21" />')
+    expect(source).toContain('<Video :size="21" />')
+    expect(source).toContain('<SkyTabButton')
+    expect(source).toContain(':active="filter === \'all\'"')
+    expect(source).toContain(':active="filter === \'photo\'"')
+    expect(source).toContain(':active="filter === \'video\'"')
+    expect(source).not.toContain('gallery-filter-navbar')
+    expect(source).not.toContain('<sky-segmented')
+  })
+
   it('opens an accessible sort menu from the large header', () => {
     expect(headerActions).toContain('<ListFilter')
     expect(headerActions).toContain('aria-haspopup="menu"')
