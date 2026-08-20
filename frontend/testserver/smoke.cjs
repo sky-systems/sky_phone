@@ -1178,6 +1178,18 @@ async function main() {
       'factory reset did not restore a browser-testable setup state',
     )
 
+    const loggedRequests = []
+    const originalConsoleLog = console.log
+    try {
+      console.log = (...values) => loggedRequests.push(values)
+      await post(baseUrl, '%25s', { marker: 'format-string' })
+    } finally {
+      console.log = originalConsoleLog
+    }
+    assert.deepEqual(loggedRequests, [
+      ['[NUI]', '%s', { marker: 'format-string' }],
+    ])
+
     const unknown = await post(baseUrl, 'development:missing-mock', {})
     assert.deepEqual(unknown, {
       error: 'mock_endpoint_missing',

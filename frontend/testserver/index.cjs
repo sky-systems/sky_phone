@@ -4658,7 +4658,7 @@ app.post('/api/:endpoint', async (request, response, next) => {
   if (endpoint === 'memos:devCapture') {
     loggedBody.audioDataUrl = `<${String(request.body.audioDataUrl ?? '').length} characters>`
   }
-  console.log(`[NUI] ${endpoint}`, loggedBody)
+  console.log('[NUI]', endpoint, loggedBody)
   if (endpoint === 'music:bootstrap') {
     response.json({ success: true, data: musicBootstrap() })
     return
