@@ -112,8 +112,16 @@ describe('LB Phone app bridge', () => {
     expect(document).toContain('https://cfx-nui-snake_app/ui/dist/')
     expect(document).not.toContain('</script><script>window.injected=true')
 
-    const runtime = /<script>([\s\S]*?)<\/script>/.exec(document)?.[1]
-    expect(runtime).toBeTruthy()
-    expect(() => new Function(runtime ?? '')).not.toThrow()
+    const openingTag = '<script>'
+    const runtimeStart = document.indexOf(openingTag)
+    const runtimeEnd = document.indexOf(
+      '</script>',
+      runtimeStart + openingTag.length,
+    )
+    expect(runtimeStart).toBeGreaterThanOrEqual(0)
+    expect(runtimeEnd).toBeGreaterThan(runtimeStart)
+
+    const runtime = document.slice(runtimeStart + openingTag.length, runtimeEnd)
+    expect(() => new Function(runtime)).not.toThrow()
   })
 })

@@ -10,6 +10,10 @@ import {
   PREVIEWABLE_BUILTIN_APP_IDS,
 } from '@/utils/appStorePreviews'
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 describe('App Store preview catalog', () => {
   it('contains a real captured screenshot for every built-in store app', () => {
     const storeAppIds = PHONE_APPS.filter(
@@ -56,10 +60,11 @@ describe('App Store preview catalog', () => {
     ]
 
     for (const appId of PREVIEWABLE_BUILTIN_APP_IDS) {
+      const escapedAppId = escapeRegExp(appId)
       for (const source of localeSources) {
         expect(source).toMatch(
           new RegExp(
-            `(?:["']${appId}["']\\]?|${appId.replace(/-/g, '\\-')})\\s*[:=]\\s*\\{\\s*first\\s*[:=]`,
+            `(?:["']${escapedAppId}["']\\]?|${escapedAppId})\\s*[:=]\\s*\\{\\s*first\\s*[:=]`,
           ),
         )
       }
