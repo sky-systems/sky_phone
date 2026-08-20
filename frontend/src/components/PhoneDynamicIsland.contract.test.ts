@@ -23,6 +23,10 @@ const clockSource = readFileSync(
   new URL('../views/apps/ClockApp.vue', import.meta.url),
   'utf8',
 )
+const serverMemosSource = readFileSync(
+  new URL('../../../sky_phone/source/server/memos.lua', import.meta.url),
+  'utf8',
+)
 
 describe('Phone Dynamic Island contract', () => {
   it('renders once at phone shell level instead of forcing calls into Phone', () => {
@@ -66,7 +70,7 @@ describe('Phone Dynamic Island contract', () => {
     )
   })
 
-  it('keeps a non-interactive phone peek visible for background live activities', () => {
+  it('shows only a compact frame and island for background live activities', () => {
     expect(source).toContain("'live-activity-change': [activity:")
     expect(source).toContain("emit('live-activity-change', nextActivity)")
     expect(appSource).toContain(
@@ -75,9 +79,12 @@ describe('Phone Dynamic Island contract', () => {
     expect(mainCss).toMatch(
       /\.phone-stage--live-activity[\s\S]*?pointer-events:\s*none;[\s\S]*?--phone-live-activity-peek-height/,
     )
+    expect(mainCss).toMatch(
+      /\.phone-stage--live-activity[\s\S]*?> :not\(\.phone-screen\):not\(\.phone-device__frame\):not\(\.phone-dynamic-island\)[\s\S]*?\.phone-screen > \*[\s\S]*?visibility:\s*hidden;/,
+    )
     expect(appSource).toContain("? '190px'")
-    expect(appSource).toContain("? '155px'")
-    expect(appSource).toContain(": '145px'")
+    expect(appSource).toContain("? '132px'")
+    expect(appSource).toContain(": '112px'")
     expect(source).toContain(
       "!phone.isOpen ||\n            activity.value === 'incoming-call' ||",
     )
@@ -115,7 +122,7 @@ describe('Phone Dynamic Island contract', () => {
     expect(source).toContain('gap: 34px')
   })
 
-  it('keeps recorder state available across app changes', () => {
+  it('keeps recorder state available across app changes and phone closes', () => {
     expect(recorderSource).toContain(
       "message.type === 'memo:recordStateRequest'",
     )
@@ -124,6 +131,15 @@ describe('Phone Dynamic Island contract', () => {
     )
     expect(memosSource).not.toContain(
       "if (recordingActive.value) postRecorderCommand('memo:recordCancel')",
+    )
+    expect(recorderSource).toContain('() => phone.device?.imei ?? null')
+    expect(recorderSource).not.toContain(
+      'if (!isOpen || deviceSessionChanged) cancelRecording()',
+    )
+    expect(recorderSource).toContain('deviceImei: finalDeviceImei')
+    expect(serverMemosSource).toContain('device_owner(src, data.deviceImei)')
+    expect(serverMemosSource).toContain(
+      'SkyPhone.FindDeviceSlots(source, imei)[1]',
     )
   })
 

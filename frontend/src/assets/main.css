@@ -267,6 +267,12 @@ button {
   );
   transform-origin: right bottom;
 }
+.phone-stage--live-activity
+  .phone-device
+  > :not(.phone-screen):not(.phone-device__frame):not(.phone-dynamic-island),
+.phone-stage--live-activity .phone-screen > * {
+  visibility: hidden;
+}
 .phone-lift-enter-active {
   transition: opacity 0.52s linear;
 }

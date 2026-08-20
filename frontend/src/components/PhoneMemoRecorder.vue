@@ -54,6 +54,7 @@ let metadata: MemoRecordingMetadata = { note: '', pinned: false, title: '' }
 let currentState: MemoRecorderStateName = 'idle'
 let currentElapsedMs = 0
 let currentCorrelationId = ''
+let recordingDeviceImei = ''
 let removeRecorderErrorListener: (() => void) | null = null
 
 function postRecorderState(state: MemoRecorderStateName, error?: string): void {
@@ -153,6 +154,7 @@ function resetRecordingData(): void {
   pausedStartedAt = 0
   totalPausedMs = 0
   currentElapsedMs = 0
+  recordingDeviceImei = ''
   liveLevels = Array(LIVE_LEVEL_SAMPLES).fill(0.08)
 }
 
@@ -189,7 +191,8 @@ function failRecording(error: string, generation = recordingGeneration): void {
 }
 
 async function startRecording(data: Record<string, unknown>): Promise<void> {
-  if (!phone.isOpen) {
+  const deviceImei = phone.device?.imei
+  if (!phone.isOpen || !deviceImei) {
     console.error('[Memos] Cannot start a recording while the phone is closed.')
     return
   }
@@ -217,6 +220,7 @@ async function startRecording(data: Record<string, unknown>): Promise<void> {
   metadata = { note: '', pinned: false, title: '' }
   updateMetadata(data)
   resetRecordingData()
+  recordingDeviceImei = deviceImei
   postRecorderState('starting')
   try {
     const acquiredStream = await navigator.mediaDevices.getUserMedia({
@@ -340,6 +344,7 @@ async function stopRecording(data: Record<string, unknown>): Promise<void> {
     if (generation !== recordingGeneration) return
     const waveform = compressedWaveform()
     const finalMetadata = { ...metadata }
+    const finalDeviceImei = recordingDeviceImei
     const exceededSizeLimit = recordingTooLarge
     cleanupRecorder(false)
     resetRecordingData()
@@ -355,6 +360,7 @@ async function stopRecording(data: Record<string, unknown>): Promise<void> {
     liveLevels = waveform.slice(-LIVE_LEVEL_SAMPLES)
     const uploadData = {
       correlationId,
+      deviceImei: finalDeviceImei,
       durationMs,
       mimeType,
       note: finalMetadata.note,
@@ -569,18 +575,9 @@ function onMessage(event: MessageEvent): void {
 onMounted(() => window.addEventListener('message', onMessage))
 
 watch(
-  () =>
-    [
-      phone.isOpen,
-      phone.device?.imei ?? null,
-      phone.deviceSessionToken,
-    ] as const,
-  ([isOpen, imei, sessionToken], previous) => {
-    const deviceSessionChanged =
-      previous !== undefined &&
-      previous[0] &&
-      (previous[1] !== imei || previous[2] !== sessionToken)
-    if (!isOpen || deviceSessionChanged) cancelRecording()
+  () => phone.device?.imei ?? null,
+  (imei, previousImei) => {
+    if (previousImei && imei !== previousImei) cancelRecording()
   },
 )
 

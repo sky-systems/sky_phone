@@ -51,6 +51,23 @@ local function session_owner(source)
     }
 end
 
+local function device_owner(source, imei)
+    if not SkyPhoneImei.IsValid(imei) then
+        return nil, { success = false, error = "invalid_request" }
+    end
+    if not SkyPhone.FindDeviceSlots(source, imei)[1] then
+        return nil, { success = false, error = "owner_changed" }
+    end
+    local device = SkyPhone.LoadDevice(imei)
+    if not device then
+        return nil, { success = false, error = "device_not_found" }
+    end
+    return {
+        account_id = device.account_id and tonumber(device.account_id) or nil,
+        imei = imei,
+    }
+end
+
 local function owner_condition(owner, alias)
     local prefix = alias and ("`%s`."):format(alias) or ""
     if owner.account_id then
@@ -317,7 +334,7 @@ RegisterNetEvent("sky_phone:memos:request-upload", function(data)
         upload_result(src, type(data) == "table" and data.correlationId or nil, false, "invalid_memo")
         return
     end
-    local owner, error_response = session_owner(src)
+    local owner, error_response = device_owner(src, data.deviceImei)
     if not owner then
         upload_result(src, memo.correlation_id, false, error_response.error)
         return
@@ -392,7 +409,7 @@ RegisterNetEvent("sky_phone:memos:complete-upload", function(data)
         return
     end
     state.completing = true
-    local owner, error_response = session_owner(src)
+    local owner, error_response = device_owner(src, state.owner.imei)
     if not owner or owner.imei ~= state.owner.imei or owner.account_id ~= state.owner.account_id then
         pending_uploads[request_id] = nil
         local rejected, _, trusted_remote = SkyPhoneMedia.VerifyRemoteUpload(state, data.remoteId, data.url)

@@ -439,8 +439,8 @@ const phoneStageStyle = computed<CSSProperties>(() => ({
     dynamicIslandActivity.value === 'music'
       ? '190px'
       : dynamicIslandActivity.value === 'recording'
-        ? '155px'
-        : '145px',
+        ? '132px'
+        : '112px',
   visibility: activitySuspended.value ? 'hidden' : 'visible',
 }))
 const phoneDisplayStyle = computed<CSSProperties>(() => ({
@@ -1593,8 +1593,8 @@ watch(
       startPasscodeLock(passcodeRetrySeconds.value)
     }
     phone.setLaunchOrigin(null)
-    if (isLocked.value || setupRequired.value) void router.replace('/')
-    else loadUnlockedPhoneData()
+    if (setupRequired.value) void router.replace('/')
+    else if (!isLocked.value) loadUnlockedPhoneData()
   },
 )
 

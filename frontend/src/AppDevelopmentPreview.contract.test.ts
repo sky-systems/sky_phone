@@ -26,11 +26,16 @@ describe('browser development preview contract', () => {
     expect(source).toContain("developmentParameters.has('setupPreview')")
   })
 
-  it('loads authenticated app data without replacing direct app routes', () => {
+  it('restores the active route after the lock screen', () => {
     expect(source).toContain(
+      "if (setupRequired.value) void router.replace('/')",
+    )
+    expect(source).toContain(
+      'else if (!isLocked.value) loadUnlockedPhoneData()',
+    )
+    expect(source).not.toContain(
       "if (isLocked.value || setupRequired.value) void router.replace('/')",
     )
-    expect(source).toContain('else loadUnlockedPhoneData()')
   })
 
   it('requires the passcode again after a full device lock', () => {
@@ -100,7 +105,9 @@ describe('browser development preview contract', () => {
     expect(source).toContain("developmentParameters.has('browserPreview')")
     expect(source).toContain('import.meta.env.DEV ||')
     expect(source).toContain("'phone-stage--browser-preview': isBrowserPreview")
-    expect(source).toContain('return (availableScale * 0.94) / PHONE_BASE_SCALE')
+    expect(source).toContain(
+      'return (availableScale * 0.94) / PHONE_BASE_SCALE',
+    )
     expect(mainCss).toMatch(
       /\.phone-stage--browser-preview\s*\{[^}]*place-items:\s*center;[^}]*padding:\s*0;/s,
     )
