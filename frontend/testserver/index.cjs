@@ -22,6 +22,7 @@ const lifecycleEndpoints = new Set([
   'device:notification-open',
   'notification:focus',
   'sim:picker-close',
+  'ui:input-focus',
   'ui:opened',
   'ui:ready',
 ])
