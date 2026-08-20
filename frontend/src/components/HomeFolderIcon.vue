@@ -22,11 +22,13 @@ const props = withDefaults(
     apps: PhoneAppDefinition[]
     defaultName: string
     editMode?: boolean
+    externalDragVisual?: boolean
     folder: HomeFolder
     showLabel?: boolean
   }>(),
   {
     editMode: false,
+    externalDragVisual: false,
     showLabel: true,
   },
 )
@@ -55,14 +57,14 @@ let stopPointerSession: (() => void) | null = null
 
 const folderName = computed(() => props.folder.name || props.defaultName)
 const dragStyle = computed(() =>
-  isDragging.value
+  isDragging.value && !props.externalDragVisual
     ? {
         transform: `translate3d(${springboardPageDragCompensation(dragStartPage, phone.currentPage, dragPageWidth)}px, 0, 0)`,
       }
     : undefined,
 )
 const dragPointerStyle = computed(() =>
-  isDragging.value
+  isDragging.value && !props.externalDragVisual
     ? {
         transform: `translate3d(${dragOffset.value.x}px, ${dragOffset.value.y}px, 0)`,
       }
@@ -232,6 +234,7 @@ onBeforeUnmount(() => {
   <div
     class="home-folder-item app-icon-item"
     :class="{
+      'app-icon-item--drag-source': isDragging && externalDragVisual,
       'app-icon-item--dragging': isDragging,
       'app-icon-item--editing': editMode,
       'home-folder-item--dragging': isDragging,

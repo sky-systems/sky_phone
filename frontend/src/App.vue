@@ -1778,6 +1778,11 @@ onBeforeUnmount(() => {
           "
           class="phone-resolution-wrapper phone-resolution-wrapper--primary"
         >
+          <div
+            id="phone-home-drag-portal"
+            class="phone-home-drag-portal"
+            aria-hidden="true"
+          ></div>
           <div class="phone-resolution-canvas phone-resolution-canvas--primary">
             <section
               class="phone-device"

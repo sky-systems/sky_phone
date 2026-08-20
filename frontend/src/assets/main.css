@@ -295,6 +295,18 @@ button {
   height: var(--phone-rendered-height, 844px);
 }
 
+.phone-home-drag-portal {
+  position: absolute;
+  z-index: 70;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.phone-home-drag-portal * {
+  pointer-events: none !important;
+}
+
 .phone-resolution-canvas {
   position: absolute;
   top: 0;
@@ -2622,8 +2634,30 @@ button {
 .springboard--widget-dragging .springboard-widget-page-scroll {
   overflow: visible;
 }
-.springboard--home-dragging .springboard-page--apps {
-  overflow: visible;
+.home-drag-layer {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+.home-drag-layer * {
+  pointer-events: none !important;
+}
+.home-drag-position {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+.home-drag-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  opacity: 1;
+  transition: none !important;
+  animation: none !important;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 .app-grid {
   display: grid;
@@ -2657,6 +2691,9 @@ button {
   opacity: 1;
   transition: transform var(--springboard-page-duration)
     var(--springboard-page-easing);
+}
+.app-icon-item--drag-source {
+  opacity: 0;
 }
 .app-icon-remove {
   position: absolute;
