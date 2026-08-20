@@ -59,6 +59,25 @@ describe('standalone admin panel contracts', () => {
     expect(source).toContain('@media (prefers-reduced-motion: reduce)')
   })
 
+  it('uses a compact transparent shell with dedicated admin workspaces', () => {
+    expect(source).toContain('background: transparent')
+    expect(source).toContain('width: min(84vw, 1420px)')
+    expect(source).toContain('height: min(82vh, 820px)')
+    expect(source).not.toContain('backdrop-filter: blur(2px)')
+
+    for (const tab of [
+      'overview',
+      'players',
+      'devices',
+      'apps',
+      'security',
+      'audit',
+    ]) {
+      expect(source).toContain(`selectTab('${tab}')`)
+      expect(source).toContain(`t('tabs.${tab}')`)
+    }
+  })
+
   it('stages app changes locally and saves them only from the toolbar action', () => {
     expect(source).toContain('const drafts = ref<')
     expect(source).toContain('@click="saveChanges"')

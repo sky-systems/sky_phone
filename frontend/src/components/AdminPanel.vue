@@ -8,6 +8,7 @@ import {
   Clipboard,
   Database,
   Eye,
+  Grid2X2,
   HardDrive,
   KeyRound,
   LayoutDashboard,
@@ -45,17 +46,22 @@ import { copyText } from '@/utils/clipboard'
 import { parseDatabaseDate } from '@/utils/date'
 import { nuiCall } from '@/utils/nui'
 
-type AdminTab = 'players' | 'audit'
+type AdminTab =
+  | 'overview'
+  | 'players'
+  | 'devices'
+  | 'apps'
+  | 'security'
+  | 'audit'
 type PendingAction =
   | { kind: 'close' }
   | { kind: 'player'; source: number }
   | { kind: 'refresh' }
-  | { kind: 'tab'; tab: AdminTab }
 
 const emit = defineEmits<{ close: [] }>()
 const admin = useAdminStore()
 const phone = usePhoneStore()
-const tab = ref<AdminTab>('players')
+const tab = ref<AdminTab>('overview')
 const playerQuery = ref('')
 const appQuery = ref('')
 const selectedImei = ref('')
@@ -251,6 +257,10 @@ function queueAction(action: PendingAction): void {
   discardDialog.value = true
 }
 
+function selectTab(nextTab: AdminTab): void {
+  tab.value = nextTab
+}
+
 async function runAction(action: PendingAction): Promise<void> {
   if (action.kind === 'close') {
     const response = await nuiCall('admin:close')
@@ -260,10 +270,6 @@ async function runAction(action: PendingAction): Promise<void> {
   }
   if (action.kind === 'refresh') {
     await refreshData()
-    return
-  }
-  if (action.kind === 'tab') {
-    tab.value = action.tab
     return
   }
   await loadPlayer(action.source)
@@ -387,7 +393,7 @@ onBeforeUnmount(() => {
 
         <div class="admin-panel-context">
           <span class="admin-panel-context__path">
-            {{ tab === 'players' ? t('editor.players') : t('editor.audit') }}
+            {{ t('tabs.' + tab) }}
           </span>
           <ChevronRight :size="14" />
           <strong>{{
@@ -437,19 +443,55 @@ onBeforeUnmount(() => {
         <nav class="admin-panel-rail" :aria-label="t('navigation')">
           <button
             type="button"
+            :class="{ 'is-active': tab === 'overview' }"
+            :aria-label="t('tabs.overview')"
+            :title="t('tabs.overview')"
+            @click="selectTab('overview')"
+          >
+            <LayoutDashboard :size="19" />
+          </button>
+          <button
+            type="button"
             :class="{ 'is-active': tab === 'players' }"
             :aria-label="t('tabs.players')"
             :title="t('tabs.players')"
-            @click="queueAction({ kind: 'tab', tab: 'players' })"
+            @click="selectTab('players')"
           >
             <UsersRound :size="19" />
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': tab === 'devices' }"
+            :aria-label="t('tabs.devices')"
+            :title="t('tabs.devices')"
+            @click="selectTab('devices')"
+          >
+            <Smartphone :size="19" />
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': tab === 'apps' }"
+            :aria-label="t('tabs.apps')"
+            :title="t('tabs.apps')"
+            @click="selectTab('apps')"
+          >
+            <Grid2X2 :size="19" />
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': tab === 'security' }"
+            :aria-label="t('tabs.security')"
+            :title="t('tabs.security')"
+            @click="selectTab('security')"
+          >
+            <KeyRound :size="19" />
           </button>
           <button
             type="button"
             :class="{ 'is-active': tab === 'audit' }"
             :aria-label="t('tabs.audit')"
             :title="t('tabs.audit')"
-            @click="queueAction({ kind: 'tab', tab: 'audit' })"
+            @click="selectTab('audit')"
           >
             <ScrollText :size="19" />
           </button>
@@ -460,7 +502,59 @@ onBeforeUnmount(() => {
         </nav>
 
         <aside class="admin-panel-directory">
-          <template v-if="tab === 'players'">
+          <template v-if="tab === 'overview'">
+            <div class="admin-panel-directory__header">
+              <div>
+                <span>{{ t('overview.eyebrow') }}</span>
+                <h2>{{ t('overview.features') }}</h2>
+              </div>
+              <strong>{{ admin.stats.online }}</strong>
+            </div>
+            <div class="admin-panel-overview-directory">
+              <button type="button" @click="selectTab('players')">
+                <UsersRound :size="17" />
+                <span>
+                  <strong>{{ t('tabs.players') }}</strong>
+                  <small>{{ t('overview.playerFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
+              <button type="button" @click="selectTab('devices')">
+                <Smartphone :size="17" />
+                <span>
+                  <strong>{{ t('tabs.devices') }}</strong>
+                  <small>{{ t('overview.deviceFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
+              <button type="button" @click="selectTab('apps')">
+                <Grid2X2 :size="17" />
+                <span>
+                  <strong>{{ t('tabs.apps') }}</strong>
+                  <small>{{ t('overview.appFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
+              <button type="button" @click="selectTab('security')">
+                <KeyRound :size="17" />
+                <span>
+                  <strong>{{ t('tabs.security') }}</strong>
+                  <small>{{ t('overview.securityFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
+              <button type="button" @click="selectTab('audit')">
+                <ScrollText :size="17" />
+                <span>
+                  <strong>{{ t('tabs.audit') }}</strong>
+                  <small>{{ t('overview.auditFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
+            </div>
+          </template>
+
+          <template v-else-if="tab !== 'audit'">
             <div class="admin-panel-directory__header">
               <div>
                 <span>{{ t('players.eyebrow') }}</span>
@@ -545,6 +639,123 @@ onBeforeUnmount(() => {
           </div>
 
           <section
+            v-else-if="tab === 'overview'"
+            class="admin-panel-editor__scroll"
+          >
+            <div class="admin-panel-page-heading">
+              <div class="admin-panel-heading-icon">
+                <LayoutDashboard :size="23" />
+              </div>
+              <div>
+                <span>{{ t('overview.eyebrow') }}</span>
+                <h1>{{ t('overview.title') }}</h1>
+                <p>{{ t('overview.body') }}</p>
+              </div>
+            </div>
+
+            <div class="admin-panel-stat-grid">
+              <article>
+                <UsersRound :size="18" />
+                <span>{{ t('overview.online') }}</span>
+                <strong>{{ admin.stats.online }}</strong>
+              </article>
+              <article>
+                <Smartphone :size="18" />
+                <span>{{ t('overview.devices') }}</span>
+                <strong>{{ admin.stats.devices }}</strong>
+              </article>
+              <article>
+                <Database :size="18" />
+                <span>{{ t('overview.accounts') }}</span>
+                <strong>{{ admin.stats.accounts }}</strong>
+              </article>
+              <article>
+                <ScrollText :size="18" />
+                <span>{{ t('overview.audit') }}</span>
+                <strong>{{ admin.audit.length }}</strong>
+              </article>
+            </div>
+
+            <article class="admin-panel-section-card">
+              <div class="admin-panel-section-card__heading">
+                <div>
+                  <span>{{ t('overview.control') }}</span>
+                  <h2>{{ t('overview.features') }}</h2>
+                  <p>{{ t('overview.featuresBody') }}</p>
+                </div>
+                <ShieldCheck :size="20" />
+              </div>
+              <div class="admin-panel-feature-grid">
+                <button type="button" @click="selectTab('players')">
+                  <UsersRound :size="20" />
+                  <span>
+                    <strong>{{ t('tabs.players') }}</strong>
+                    <small>{{ t('overview.playerFeature') }}</small>
+                  </span>
+                  <ChevronRight :size="15" />
+                </button>
+                <button type="button" @click="selectTab('devices')">
+                  <Smartphone :size="20" />
+                  <span>
+                    <strong>{{ t('tabs.devices') }}</strong>
+                    <small>{{ t('overview.deviceFeature') }}</small>
+                  </span>
+                  <ChevronRight :size="15" />
+                </button>
+                <button type="button" @click="selectTab('apps')">
+                  <Grid2X2 :size="20" />
+                  <span>
+                    <strong>{{ t('tabs.apps') }}</strong>
+                    <small>{{ t('overview.appFeature') }}</small>
+                  </span>
+                  <ChevronRight :size="15" />
+                </button>
+                <button type="button" @click="selectTab('security')">
+                  <KeyRound :size="20" />
+                  <span>
+                    <strong>{{ t('tabs.security') }}</strong>
+                    <small>{{ t('overview.securityFeature') }}</small>
+                  </span>
+                  <ChevronRight :size="15" />
+                </button>
+              </div>
+            </article>
+
+            <article class="admin-panel-section-card">
+              <div class="admin-panel-section-card__heading">
+                <div>
+                  <span>{{ t('audit.eyebrow') }}</span>
+                  <h2>{{ t('overview.recent') }}</h2>
+                </div>
+                <ScrollText :size="20" />
+              </div>
+              <div v-if="admin.audit.length" class="admin-panel-audit-grid">
+                <article
+                  v-for="entry in admin.audit.slice(0, 4)"
+                  :key="entry.id"
+                >
+                  <div class="admin-panel-audit-grid__topline">
+                    <span>{{ t('audit.actions.' + entry.action) }}</span>
+                    <time>{{ formatDate(entry.createdAt) }}</time>
+                  </div>
+                  <strong>{{ auditDescription(entry) }}</strong>
+                  <p>
+                    {{
+                      t('audit.by', {
+                        actor: entry.actorName,
+                        target: String(entry.targetSource ?? '—'),
+                      })
+                    }}
+                  </p>
+                </article>
+              </div>
+              <div v-else class="admin-panel-inline-empty">
+                {{ t('audit.emptyBody') }}
+              </div>
+            </article>
+          </section>
+
+          <section
             v-else-if="tab === 'audit'"
             class="admin-panel-editor__scroll"
           >
@@ -602,6 +813,7 @@ onBeforeUnmount(() => {
             </div>
 
             <div
+              v-if="tab === 'devices' || tab === 'apps' || tab === 'security'"
               class="admin-panel-device-tabs"
               :aria-label="t('devices.choose')"
             >
@@ -623,7 +835,7 @@ onBeforeUnmount(() => {
               </button>
             </div>
 
-            <div class="admin-panel-stat-grid">
+            <div v-if="tab === 'players'" class="admin-panel-stat-grid">
               <article>
                 <WalletCards :size="18" />
                 <span>{{ t('detail.cash') }}</span>
@@ -663,7 +875,7 @@ onBeforeUnmount(() => {
               </article>
             </div>
 
-            <div class="admin-panel-section-grid">
+            <div v-if="tab === 'players'" class="admin-panel-section-grid">
               <article class="admin-panel-section-card">
                 <div class="admin-panel-section-card__heading">
                   <div>
@@ -736,7 +948,64 @@ onBeforeUnmount(() => {
               </article>
             </div>
 
-            <article v-if="selectedDevice" class="admin-panel-section-card">
+            <article
+              v-if="tab === 'devices'"
+              class="admin-panel-section-card admin-panel-section-card--focused"
+            >
+              <div class="admin-panel-section-card__heading">
+                <div>
+                  <span>{{ t('editor.device') }}</span>
+                  <h2>{{ t('devices.title') }}</h2>
+                  <p>{{ t('devices.body') }}</p>
+                </div>
+                <HardDrive :size="20" />
+              </div>
+              <div v-if="selectedDevice" class="admin-panel-device-summary">
+                <span class="admin-panel-device-summary__icon">
+                  <Smartphone :size="23" />
+                </span>
+                <div>
+                  <strong>{{ selectedDevice.name }}</strong>
+                  <span>{{
+                    selectedDevice.number || t('devices.noNumber')
+                  }}</span>
+                </div>
+                <small>{{
+                  selectedDevice.simType || t('devices.noSim')
+                }}</small>
+              </div>
+              <dl v-if="selectedDevice" class="admin-panel-field-list">
+                <div>
+                  <dt>{{ t('devices.imei') }}</dt>
+                  <dd>{{ selectedDevice.imei }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('devices.updated') }}</dt>
+                  <dd>{{ formatDate(selectedDevice.updatedAt) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('devices.apps') }}</dt>
+                  <dd>{{ selectedDevice.apps.claimed.length }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('devices.account') }}</dt>
+                  <dd>
+                    {{
+                      selectedDevice.account?.email ||
+                      t('credentials.noAccount')
+                    }}
+                  </dd>
+                </div>
+              </dl>
+              <div v-else class="admin-panel-inline-empty">
+                {{ t('devices.emptyBody') }}
+              </div>
+            </article>
+
+            <article
+              v-if="tab === 'security' && selectedDevice"
+              class="admin-panel-section-card admin-panel-section-card--focused"
+            >
               <div class="admin-panel-section-card__heading">
                 <div>
                   <span>{{ t('editor.security') }}</span>
@@ -792,7 +1061,10 @@ onBeforeUnmount(() => {
               </div>
             </article>
 
-            <article v-if="selectedDevice" class="admin-panel-section-card">
+            <article
+              v-if="tab === 'apps' && selectedDevice"
+              class="admin-panel-section-card admin-panel-section-card--focused"
+            >
               <div
                 class="admin-panel-section-card__heading admin-panel-app-heading"
               >
@@ -864,6 +1136,15 @@ onBeforeUnmount(() => {
                     <span></span>
                   </span>
                 </button>
+              </div>
+            </article>
+
+            <article
+              v-if="(tab === 'apps' || tab === 'security') && !selectedDevice"
+              class="admin-panel-section-card admin-panel-section-card--focused"
+            >
+              <div class="admin-panel-inline-empty">
+                {{ t('devices.emptyBody') }}
               </div>
             </article>
           </section>
@@ -968,25 +1249,22 @@ onBeforeUnmount(() => {
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 3.2vh 3vw;
+  padding: 2.5vh 2.5vw;
   color: var(--admin-text);
-  background:
-    radial-gradient(circle at 50% 30%, rgba(28, 39, 29, 0.18), transparent 55%),
-    rgba(1, 3, 2, 0.56);
+  background: transparent;
   font-family: var(--sky-font-family, Inter, sans-serif);
-  backdrop-filter: blur(2px);
   pointer-events: auto;
 }
 
 .admin-panel-window {
-  width: min(94vw, 1600px);
-  height: min(91vh, 940px);
+  width: min(84vw, 1420px);
+  height: min(82vh, 820px);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
   background: var(--admin-bg);
   box-shadow:
-    0 35px 110px rgba(0, 0, 0, 0.72),
+    0 24px 70px rgba(0, 0, 0, 0.68),
     inset 0 1px rgba(255, 255, 255, 0.025);
 }
 
@@ -1248,6 +1526,69 @@ button:disabled {
   background: #1b1e1b;
   font-size: 10px;
   text-align: center;
+}
+
+.admin-panel-overview-directory {
+  height: calc(100% - 70px);
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  overflow-y: auto;
+  padding: 0 10px 14px;
+}
+
+.admin-panel-overview-directory button,
+.admin-panel-feature-grid button {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 5px;
+  color: var(--admin-muted);
+  background: #151715;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-panel-overview-directory button:hover,
+.admin-panel-feature-grid button:hover {
+  border-color: rgba(116, 214, 111, 0.24);
+  color: var(--admin-green);
+  background: #1a1d1a;
+}
+
+.admin-panel-overview-directory button > svg:first-child,
+.admin-panel-feature-grid button > svg:first-child {
+  color: var(--admin-green);
+}
+
+.admin-panel-overview-directory button > span,
+.admin-panel-feature-grid button > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.admin-panel-overview-directory strong,
+.admin-panel-feature-grid strong {
+  overflow: hidden;
+  color: var(--admin-text);
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-overview-directory small,
+.admin-panel-feature-grid small {
+  overflow: hidden;
+  color: var(--admin-muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-panel-search {
@@ -1619,6 +1960,16 @@ button:disabled {
   border-radius: 7px;
   background: var(--admin-panel);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.015);
+}
+
+.admin-panel-section-card--focused {
+  min-height: 210px;
+}
+
+.admin-panel-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .admin-panel-section-card__heading {
