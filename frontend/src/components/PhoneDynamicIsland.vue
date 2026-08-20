@@ -47,6 +47,9 @@ type IslandActivity =
   | 'stopwatch'
   | 'timer'
 
+const emit = defineEmits<{
+  'expanded-change': [expanded: boolean]
+}>()
 const router = useRouter()
 const calls = useCallsStore()
 const clock = useClockStore()
@@ -233,6 +236,14 @@ watch(activityKey, (nextActivity) => {
   }
 })
 
+watch(
+  [isExpanded, activity],
+  ([nextExpanded, nextActivity]) => {
+    emit('expanded-change', Boolean(nextActivity && nextExpanded))
+  },
+  { immediate: true },
+)
+
 function formatDuration(milliseconds: number): string {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000))
   const hours = Math.floor(totalSeconds / 3600)
@@ -320,6 +331,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  emit('expanded-change', false)
   window.removeEventListener('message', onMessage)
   window.clearInterval(ticker)
   window.clearTimeout(collapseTimer)
@@ -708,19 +720,11 @@ onBeforeUnmount(() => {
   </Transition>
 </template>
 
-<style>
-.phone-dynamic-island[data-expanded='true']
-  ~ .phone-notification-provider
-  .phone-notification {
-  top: 130px !important;
-}
-</style>
-
 <style scoped>
 .phone-dynamic-island {
   position: absolute;
-  z-index: 99;
-  top: 6px;
+  z-index: 102;
+  top: 30px;
   left: 50%;
   width: 132px;
   max-width: calc(100% - 24px);

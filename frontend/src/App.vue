@@ -354,6 +354,7 @@ const pendingUnlockRoute = ref<string | null>(null)
 const unlockedServicesLoaded = ref(false)
 const controlCenterOpened = ref(false)
 const activitySuspended = ref(false)
+const dynamicIslandExpanded = ref(false)
 const simPicker = ref<SimPickerPayload | null>(null)
 const setupRequired = computed(
   () =>
@@ -1663,6 +1664,7 @@ onBeforeUnmount(() => {
               class="phone-device"
               :class="{
                 'phone-app--light': !displayedDarkMode,
+                'phone-device--island-expanded': dynamicIslandExpanded,
                 [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
               }"
               :aria-label="phone.t('Common.phone')"
@@ -1774,7 +1776,6 @@ onBeforeUnmount(() => {
                     @control-center="toggleControlCenter"
                     @lock="lockPhone"
                   />
-                  <PhoneDynamicIsland v-if="!setupRequired" />
                   <SpringboardView
                     v-if="!isDevelopmentRoute && !setupRequired"
                     @edit-mode-change="springboardEditing = $event"
@@ -1859,6 +1860,10 @@ onBeforeUnmount(() => {
                 alt=""
                 aria-hidden="true"
                 draggable="false"
+              />
+              <PhoneDynamicIsland
+                v-if="!setupRequired"
+                @expanded-change="dynamicIslandExpanded = $event"
               />
             </section>
           </div>
