@@ -9,8 +9,6 @@ import {
   SkyNavbarBackLink,
   SkyAppPage,
   SkySpinner,
-  SkySegmented,
-  SkySegmentedButton,
   SkyNotification,
 } from '@/ui'
 import {
@@ -19,11 +17,14 @@ import {
   Download,
   Globe2,
   Heart,
+  Image,
+  Images,
   Link2,
   ListFilter,
   Play,
   Share2,
   Trash2,
+  Video,
 } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -35,6 +36,8 @@ import {
   SkyButton,
   SkyDropdown,
   SkyNavbar,
+  SkyTabBar,
+  SkyTabButton,
   SkyToolbar,
   SkyToolbarPane,
 } from '@/ui'
@@ -68,11 +71,6 @@ const developmentParameters = isDevelopment
 const developmentApiEnabled = Boolean(developmentParameters?.has('apiPort'))
 const developmentGalleryState =
   developmentParameters?.get('galleryMock') ?? null
-const filterItems = [
-  { id: 'all', label: 'all' },
-  { id: 'photo', label: 'photos' },
-  { id: 'video', label: 'videos' },
-] as const
 const phone = usePhoneStore()
 const easyShare = useEasyShareStore()
 const messageMedia = useMessageMediaStore()
@@ -1378,28 +1376,35 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <sky-navbar
+    <SkyTabBar
       v-if="!requestedMessageMedia && !selectionMode"
-      component="nav"
-      class="gallery-filter-navbar"
-      :aria-label="phone.t('Apps.photos.name')"
+      icons
+      labels
+      class="gallery-filter-tabbar"
+      :label="phone.t('Apps.photos.name')"
     >
-      <template #subnavbar>
-        <sky-segmented strong rounded :data-active-filter="filter">
-          <sky-segmented-button
-            v-for="item in filterItems"
-            :key="item.id"
-            large
-            :active="filter === item.id"
-            :class="filter === item.id ? 'text-white' : 'text-[#8e8e93]'"
-            :aria-pressed="filter === item.id"
-            @click="filter = item.id"
-          >
-            {{ phone.t(`Apps.photos.filters.${item.label}`) }}
-          </sky-segmented-button>
-        </sky-segmented>
-      </template>
-    </sky-navbar>
+      <SkyTabButton
+        :active="filter === 'all'"
+        :label="phone.t('Apps.photos.filters.all')"
+        @click="filter = 'all'"
+      >
+        <template #icon><Images :size="21" /></template>
+      </SkyTabButton>
+      <SkyTabButton
+        :active="filter === 'photo'"
+        :label="phone.t('Apps.photos.filters.photos')"
+        @click="filter = 'photo'"
+      >
+        <template #icon><Image :size="21" /></template>
+      </SkyTabButton>
+      <SkyTabButton
+        :active="filter === 'video'"
+        :label="phone.t('Apps.photos.filters.videos')"
+        @click="filter = 'video'"
+      >
+        <template #icon><Video :size="21" /></template>
+      </SkyTabButton>
+    </SkyTabBar>
 
     <SkyToolbar
       v-if="selectionMode"
@@ -1693,14 +1698,6 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-}
-.gallery-filter-navbar {
-  position: absolute !important;
-  top: auto !important;
-  bottom: 24px;
-}
-.gallery-filter-navbar :deep(> div:nth-child(-n + 2)) {
-  display: none;
 }
 .gallery-grid {
   position: relative;

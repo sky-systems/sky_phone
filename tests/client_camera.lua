@@ -67,6 +67,7 @@ end
 function CreateCam(name, active)
     assert(name == "DEFAULT_SCRIPTED_CAMERA" and active, "selfie camera must be created active")
     camera_created = true
+    camera_destroyed = false
     return 73
 end
 
@@ -121,5 +122,30 @@ assert(close_enough(camera_target.z, 2.73))
 
 assert(response_from("camera:setFacing", { front = false }).success)
 assert(camera_destroyed and not scripted_camera_rendering, "rear mode must release the selfie camera")
+
+assert(type(SkyPhoneCamera.EnableWalkable) == "function", "walkable camera enable seam must exist")
+assert(type(SkyPhoneCamera.DisableWalkable) == "function", "walkable camera disable seam must exist")
+assert(type(SkyPhoneCamera.SetSelfie) == "function", "selfie camera seam must exist")
+assert(type(SkyPhoneCamera.ToggleFrozen) == "function", "frozen camera seam must exist")
+assert(type(SkyPhoneCamera.SetFlashlight) == "function", "flashlight seam must exist")
+assert(type(SkyPhoneCamera.GetState) == "function", "camera state seam must exist")
+
+SkyPhoneCamera.SetFlashlight(true)
+assert(SkyPhoneCamera.GetState().flashEnabled, "flashlight state must report enabled")
+SkyPhoneCamera.SetFlashlight(false)
+assert(not SkyPhoneCamera.GetState().flashEnabled, "flashlight state must report disabled")
+
+SkyPhoneCamera.EnableWalkable(true)
+local walkable_state = SkyPhoneCamera.GetState()
+assert(walkable_state.walkable, "walkable camera must report enabled")
+assert(walkable_state.selfie, "walkable camera must preserve selfie mode")
+assert(walkable_state.active, "walkable camera must open the camera")
+SkyPhoneCamera.SetSelfie(false)
+assert(not SkyPhoneCamera.GetState().selfie, "selfie camera must switch back to rear mode")
+SkyPhoneCamera.ToggleFrozen()
+SkyPhoneCamera.DisableWalkable()
+local closed_state = SkyPhoneCamera.GetState()
+assert(not closed_state.walkable, "walkable camera must report disabled")
+assert(not closed_state.active, "walkable camera disable must close the camera")
 
 print("Client camera tests passed")

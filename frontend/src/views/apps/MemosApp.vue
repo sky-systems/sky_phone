@@ -457,7 +457,7 @@ onBeforeUnmount(() => {
       :title="phone.t('Apps.memos.name')"
     />
 
-    <SkyScrollArea class="memos-page__content">
+    <SkyScrollArea padded class="memos-page__content">
       <div v-if="memos.loading" class="memos-loading">
         <SkySpinner :label="phone.t('Common.loading')" :size="24" />
       </div>
@@ -581,7 +581,7 @@ onBeforeUnmount(() => {
       </template>
     </SkyNavbar>
 
-    <SkyScrollArea class="memo-detail-scroll">
+    <SkyScrollArea padded class="memo-detail-scroll">
       <SkyGlass class="memo-fields-glass" :highlight="false">
         <SkyList nested :dividers="false">
           <SkyField
@@ -648,8 +648,10 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.memos.skipBack')"
           @click="skipPlayback(-15)"
         >
-          <RotateCcw :size="22" aria-hidden="true" />
-          <small>15</small>
+          <span class="memo-skip-icon" aria-hidden="true">
+            <RotateCcw :size="24" />
+            <small>15</small>
+          </span>
         </SkyButton>
         <SkyButton
           rounded
@@ -678,8 +680,10 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.memos.skipForward')"
           @click="skipPlayback(15)"
         >
-          <RotateCw :size="22" aria-hidden="true" />
-          <small>15</small>
+          <span class="memo-skip-icon" aria-hidden="true">
+            <RotateCw :size="24" />
+            <small>15</small>
+          </span>
         </SkyButton>
       </SkyGlass>
 
@@ -699,7 +703,7 @@ onBeforeUnmount(() => {
             :active="playbackRate === rate"
             @click="setPlaybackRate(rate)"
           >
-            {{ rate }}×
+            <span class="memo-speed-label">{{ rate }}×</span>
           </SkySegmentedButton>
         </SkySegmented>
       </SkyGlass>
@@ -1062,10 +1066,25 @@ onBeforeUnmount(() => {
   padding: 0;
 }
 
-.memo-player-control small {
+.memo-skip-icon {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  flex: none;
+  place-items: center;
+}
+
+.memo-skip-icon small {
   position: absolute;
-  font-size: 8px;
+  inset: 0;
+  display: grid;
+  padding-top: 1px;
+  font-size: 7px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  place-items: center;
 }
 
 .memo-player-control--main {
@@ -1088,6 +1107,10 @@ onBeforeUnmount(() => {
 
 .memo-speed-block :deep(.sky-segmented) {
   background: transparent;
+}
+
+.memo-speed-label {
+  transform: translateY(1px);
 }
 
 .memo-delete-action {

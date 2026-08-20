@@ -25,6 +25,7 @@ import type {
   NeonDropPieceKind,
 } from '@/features/games/neon-drop/types'
 import { usePhoneStore } from '@/stores/phone'
+import { SkyButton } from '@/ui'
 
 type RenderCell = {
   active: boolean
@@ -206,7 +207,10 @@ onBeforeUnmount(() => {
         <span>{{ phone.t('Apps.neonDrop.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.neonDrop.name') }}</h1>
       </div>
-      <button
+      <SkyButton
+        glass
+        icon-only
+        rounded
         type="button"
         :aria-label="
           phone.t(
@@ -219,7 +223,7 @@ onBeforeUnmount(() => {
           v-else
           :size="18"
         />
-      </button>
+      </SkyButton>
     </header>
 
     <section v-if="neon.menuOpen" class="neon-menu">
@@ -274,13 +278,16 @@ onBeforeUnmount(() => {
 
     <section v-else-if="game" class="neon-game">
       <div class="neon-toolbar">
-        <button
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
           :aria-label="phone.t('Apps.neonDrop.backToMenu')"
           @click="neon.showMenu()"
         >
           <ChevronLeft :size="19" />
-        </button>
+        </SkyButton>
         <div>
           <span>{{ phone.t('Apps.neonDrop.score') }}</span
           ><strong>{{ game.score }}</strong>
@@ -289,7 +296,10 @@ onBeforeUnmount(() => {
           <span>{{ phone.t('Apps.neonDrop.lines') }}</span
           ><strong>{{ game.lines }}</strong>
         </div>
-        <button
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
           :aria-label="phone.t('Apps.neonDrop.pause')"
           @click="togglePause"
@@ -299,7 +309,7 @@ onBeforeUnmount(() => {
             :size="16"
             fill="currentColor"
           /><Play v-else :size="16" fill="currentColor" />
-        </button>
+        </SkyButton>
       </div>
 
       <div class="neon-play-area">
@@ -403,8 +413,8 @@ onBeforeUnmount(() => {
   font-size: 32px;
   line-height: 1;
 }
-.neon-header button,
-.neon-toolbar button {
+.neon-header button:not(.sky-button--glass),
+.neon-toolbar button:not(.sky-button--glass) {
   width: 35px;
   height: 35px;
   display: grid;
@@ -414,6 +424,10 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   color: #fff;
   background: #ffffff0d;
+}
+.neon-header .sky-button--glass,
+.neon-toolbar .sky-button--glass {
+  color: #fff;
 }
 .neon-menu {
   height: calc(100% - 54px);
@@ -614,11 +628,9 @@ onBeforeUnmount(() => {
   line-height: 20px;
 }
 .neon-toolbar button {
+  --sky-touch-target: 32px;
   width: 32px;
   height: 32px;
-  border: 0;
-  border-radius: 50%;
-  box-shadow: none;
 }
 .neon-play-area {
   position: absolute;

@@ -323,15 +323,156 @@ end
 local function get_custom_app_capabilities()
     return {
         abiVersion = 1,
-        enabled = Config.CustomApps.Enabled,
+        enabled = Config.CustomApps.Enabled == true,
+        exports = {
+            "AddCustomAppPolicy",
+            "GetCustomAppCapabilities",
+            "GetCustomAppPolicy",
+            "HasCustomAppPermission",
+            "RemoveCustomAppPolicy",
+            "SendAppMessage",
+            "SendCustomAppMessage",
+            "SendCustomAppNotification",
+            "UpdateCustomAppPolicy",
+        },
+        externalApps = Config.CustomApps.Enabled == true
+            and Config.CustomApps.ExternalApps == true,
+        messageDispatch = true,
+        notificationDispatch = true,
         policyRegistration = true,
         policyUpdate = true,
         protocolVersion = SkyPhoneApps.ProtocolVersion,
     }
 end
 
+local function normalize_player_source(player_source)
+    if type(player_source) ~= "number"
+        or player_source ~= player_source
+        or player_source <= 0
+        or player_source >= math.huge
+        or player_source ~= math.floor(player_source)
+    then
+        return nil
+    end
+    return player_source
+end
+
+local function normalize_message_payload(payload)
+    local encoded_success, encoded = pcall(json.encode, payload)
+    if not encoded_success or type(encoded) ~= "string" then
+        return nil, "invalid_payload"
+    end
+    if #encoded > Config.CustomApps.MaximumMessageBytes then
+        return nil, "payload_too_large"
+    end
+
+    local decoded_success, decoded = pcall(json.decode, encoded)
+    if not decoded_success then
+        return nil, "invalid_payload"
+    end
+    return decoded
+end
+
+local function send_custom_app_message(player_source, app_id, payload)
+    local owner_resource, owner_error = get_direct_owner()
+    if not owner_resource then
+        return false, owner_error
+    end
+
+    local policy, policy_error = verify_owned_policy(owner_resource, app_id)
+    if not policy then
+        return false, policy_error
+    end
+
+    player_source = normalize_player_source(player_source)
+    if not player_source then
+        return false, "invalid_source"
+    end
+    if not Bridge.Framework.GetIdentifier(player_source) then
+        return false, "player_unavailable"
+    end
+
+    local normalized_payload, payload_error = normalize_message_payload(payload)
+    if payload_error then
+        return false, payload_error
+    end
+
+    TriggerClientEvent(
+        "sky_phone:custom-app:message",
+        player_source,
+        owner_resource,
+        app_id,
+        normalized_payload
+    )
+    return true
+end
+
+local function send_custom_app_notification(player_source, app_id, notification)
+    local owner_resource, owner_error = get_direct_owner()
+    if not owner_resource then
+        return false, owner_error
+    end
+
+    local policy, policy_error = verify_owned_policy(owner_resource, app_id)
+    if not policy then
+        return false, policy_error
+    end
+    if not policy.permissions.notifications then
+        return false, "permission_denied"
+    end
+
+    player_source = normalize_player_source(player_source)
+    if not player_source then
+        return false, "invalid_source"
+    end
+    if type(notification) ~= "table" then
+        return false, "invalid_notification"
+    end
+    if notification.appId ~= nil and notification.appId ~= app_id then
+        return false, "invalid_app_id"
+    end
+    if notification.app_id ~= nil and notification.app_id ~= app_id then
+        return false, "invalid_app_id"
+    end
+
+    local notifications = SkyPhoneNotifications
+    if type(notifications) ~= "table" or type(notifications.Send) ~= "function" then
+        return false, "api_not_ready"
+    end
+
+    local result, notification_error = notifications.Send(
+        { kind = "source", value = player_source },
+        {
+            appId = app_id,
+            text = notification.text or notification.content,
+            title = notification.title,
+        }
+    )
+    if not result then
+        return false, notification_error
+    end
+    if result.delivered ~= 1 then
+        return false, "device_not_equipped"
+    end
+    return true, result
+end
+
 SkyPhoneApps.GetPolicy = get_custom_app_policy
 SkyPhoneApps.HasPermission = has_custom_app_permission
+SkyPhoneApps.ServerPublicApi = {
+    AddCustomAppPolicy = add_custom_app_policy,
+    AddCustomAppPolicyFromAdapter = add_custom_app_policy_from_adapter,
+    GetCustomAppCapabilities = get_custom_app_capabilities,
+    GetCustomAppPolicy = get_custom_app_policy,
+    HasCustomAppPermission = has_custom_app_permission,
+    RemoveCustomAppPolicy = remove_custom_app_policy,
+    RemoveCustomAppPolicyFromAdapter = remove_custom_app_policy_from_adapter,
+    SendAppMessage = send_custom_app_message,
+    SendCustomAppMessage = send_custom_app_message,
+    SendCustomAppNotification = send_custom_app_notification,
+    UpdateCustomAppPolicy = update_custom_app_policy,
+    UpdateCustomAppPolicyFromAdapter = update_custom_app_policy_from_adapter,
+}
 
 if Config.CustomApps.Enabled and Config.CustomApps.BundledApps then
     local bundled = SkyPhoneApps.GetBundledManifests()
@@ -352,16 +493,6 @@ if Config.CustomApps.Enabled and Config.CustomApps.BundledApps then
         end
     end
 end
-
-exports("AddCustomAppPolicy", add_custom_app_policy)
-exports("AddCustomAppPolicyFromAdapter", add_custom_app_policy_from_adapter)
-exports("GetCustomAppCapabilities", get_custom_app_capabilities)
-exports("GetCustomAppPolicy", get_custom_app_policy)
-exports("HasCustomAppPermission", has_custom_app_permission)
-exports("RemoveCustomAppPolicy", remove_custom_app_policy)
-exports("RemoveCustomAppPolicyFromAdapter", remove_custom_app_policy_from_adapter)
-exports("UpdateCustomAppPolicy", update_custom_app_policy)
-exports("UpdateCustomAppPolicyFromAdapter", update_custom_app_policy_from_adapter)
 
 AddEventHandler("onResourceStop", function(resource_name)
     if resource_name == current_resource then

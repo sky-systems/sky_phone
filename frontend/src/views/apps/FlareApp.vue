@@ -2037,14 +2037,17 @@ onBeforeUnmount(() => {
       role="dialog"
       aria-modal="true"
     >
-      <button
+      <SkyButton
+        glass
+        icon-only
+        rounded
         type="button"
         class="flare-match-reveal__close"
         :aria-label="phone.t('Common.close')"
         @click="matchReveal = null"
       >
         <X />
-      </button>
+      </SkyButton>
       <Flame class="flare-match-reveal__flame" fill="currentColor" />
       <h2>{{ phone.t('Apps.flare.itsAMatch') }}</h2>
       <p>
@@ -3419,14 +3422,13 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 24px;
   right: 18px;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
   display: grid;
   place-items: center;
-  border: 0;
-  border-radius: 50%;
   color: #fff;
-  background: rgb(0 0 0 / 18%);
 }
 .flare-match-reveal__flame {
   width: 58px;

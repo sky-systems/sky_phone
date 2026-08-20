@@ -4123,8 +4123,8 @@ button {
   display: flex;
   align-items: center;
   flex-direction: column;
-  min-height: 218px;
-  padding: 1px 0 16px;
+  min-height: 206px;
+  padding: 1px 0 10px;
   text-align: center;
 }
 .weather-location {
@@ -4176,7 +4176,7 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sky-space-2);
-  margin-bottom: var(--sky-space-4);
+  margin-bottom: var(--sky-space-3);
 }
 .weather-detail-card,
 .weather-panel {
@@ -4187,18 +4187,21 @@ button {
     0 8px 22px rgba(5, 16, 32, 0.14);
   color: #fff;
 }
-.weather-detail-card {
+.weather-details > .weather-detail-card {
   display: grid;
   grid-template-columns: 21px 1fr;
-  gap: 4px 7px;
-  min-height: 94px;
+  grid-template-rows: auto auto;
+  align-content: center;
+  gap: 7px;
+  min-height: 76px;
   margin: 0;
-  padding: 14px;
+  padding: 11px 12px;
   border-radius: calc(var(--sky-radius-card) - 6px);
 }
 .weather-detail-card svg {
   grid-row: span 2;
-  margin-top: 2px;
+  align-self: center;
+  margin-top: 0;
   color: #b7d9ec;
 }
 .weather-detail-card:nth-child(1) svg {
@@ -4218,7 +4221,7 @@ button {
   text-transform: uppercase;
 }
 .weather-detail-card strong {
-  align-self: end;
+  align-self: auto;
   font-size: 18px;
   font-weight: 680;
   line-height: 1.1;
@@ -4226,7 +4229,7 @@ button {
 .weather-detail-card:nth-child(4) strong {
   color: var(--weather-accent-cyan);
 }
-.weather-panel {
+.weather-scroll > .weather-panel {
   margin: 0;
   overflow: hidden;
   border-radius: var(--sky-radius-card);
@@ -4260,10 +4263,11 @@ button {
   min-height: 108px;
   padding: 7px 2px 4px;
   border-left: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--sky-radius-control);
+  border-radius: 0;
 }
 .weather-hour:first-child {
   border-left: 0;
+  border-radius: var(--sky-radius-control);
   background: rgba(255, 255, 255, 0.07);
 }
 .weather-hour span {
@@ -6556,9 +6560,47 @@ button {
   display: block;
   object-fit: contain;
 }
+.messages-media-picker__gifs--masonry {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.messages-gif-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 8px;
+}
+.messages-gif-column {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.messages-media-picker__gifs--masonry .messages-gif-result {
+  width: 100%;
+  min-height: 0;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgb(60 60 67 / 10%);
+  border-radius: 12px;
+  background: var(--sky-surface-muted);
+  box-shadow: none;
+}
+.messages-media-picker__gifs--masonry .messages-gif-result img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
 .messages-media-picker__gifs .messages-gif-more {
+  width: 100%;
   min-height: 36px;
-  grid-column: 1 / -1;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   color: var(--ios-blue);
   font-size: 12px;
   font-weight: 650;
@@ -6879,6 +6921,12 @@ button {
 }
 .phone-app.dark .messages-media-picker__gifs button {
   background: #2c2c2e;
+}
+.phone-app.dark
+  .messages-media-picker__gifs--masonry
+  .messages-gif-result {
+  border-color: rgb(255 255 255 / 10%);
+  background: var(--sky-surface-muted);
 }
 .phone-app.dark .messages-media-picker__gifs .messages-gif-more,
 .phone-app.dark .messages-media-picker__gifs .messages-gif-error button {

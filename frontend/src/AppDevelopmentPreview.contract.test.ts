@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-const source = readFileSync(new URL('./App.vue', import.meta.url), 'utf8')
+const source = readFileSync(new URL('./App.vue', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 const mainCss = readFileSync(
   new URL('./assets/main.css', import.meta.url),
   'utf8',

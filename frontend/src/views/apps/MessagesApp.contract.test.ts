@@ -90,7 +90,7 @@ describe('MessagesApp Sky UI contract', () => {
     expect(searchbarStart).toBeGreaterThan(-1)
     expect(fabStart).toBeGreaterThan(searchbarStart)
     expect(toolbar).toContain('v-model="search"')
-    expect(toolbar).toContain('variant="neutral"')
+    expect(toolbar).toContain('variant="glass"')
     expect(toolbar).toContain('@click="beginCompose"')
     expect(toolbar).toContain('<SquarePen :size="21" />')
     expect(inbox).not.toContain('messages-sky-compose-navigation')
@@ -185,6 +185,13 @@ describe('MessagesApp Sky UI contract', () => {
   it('uses provider dimensions for proportional GIF picker results', () => {
     expect(source).toContain(
       'aspectRatio: `${Math.max(1, gif.width)} / ${Math.max(1, gif.height)}`',
+    )
+    expect(source).toContain('const gifColumns = computed')
+    expect(source).toContain('class="messages-gif-grid"')
+    expect(source).toContain('class="messages-gif-column"')
+    expect(source).toContain('class="messages-gif-result"')
+    expect(styles).toMatch(
+      /\.messages-media-picker__gifs--masonry \.messages-gif-result img\s*\{[^}]*object-fit:\s*cover/s,
     )
   })
 

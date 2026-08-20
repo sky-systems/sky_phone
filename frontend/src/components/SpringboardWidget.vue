@@ -1076,6 +1076,39 @@ onBeforeUnmount(() => {
   background: rgb(39 39 42 / 95%);
 }
 
+.home-widget--music-empty::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  content: '';
+  border-radius: inherit;
+  background: linear-gradient(
+    to bottom,
+    transparent 34%,
+    rgb(20 20 22 / 18%) 62%,
+    rgb(16 16 18 / 82%) 100%
+  );
+  pointer-events: none;
+}
+
+.home-widget--music-empty .widget-album,
+.home-widget--music-empty .widget-music-placeholder {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 42%,
+    rgb(0 0 0 / 42%) 72%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 42%,
+    rgb(0 0 0 / 42%) 72%,
+    transparent 100%
+  );
+}
+
 .home-widget-shell--large .home-widget--music {
   align-content: start;
   grid-template-columns: 1fr;
@@ -1168,12 +1201,12 @@ onBeforeUnmount(() => {
 .widget-music-empty {
   position: absolute;
   right: 15px;
-  bottom: 11px;
+  bottom: 14px;
   left: 15px;
-  z-index: 0;
+  z-index: 2;
   margin: 0;
   color: rgb(255 255 255 / 72%);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 650;
   line-height: 17px;
   text-align: center;

@@ -2207,12 +2207,12 @@ const attachmentAssets = {
   video: new Set(['city-loop', 'ocean-loop', 'sunset-loop']),
 }
 const gifMocks = [
-  ['ICOgUNjpvO0PC', 'Cat reaction'],
-  ['MDJ9IbxxvDUQM', 'Happy dog'],
-  ['l0HlPystfePnAI3G8', 'Celebrate'],
-  ['26ufdipQqU2lhNA4g', 'Wow'],
-  ['3o7abKhOpu0NwenH3O', 'Perfect'],
-  ['xT0xeJpnrWC4XWblEk', 'Party'],
+  ['JIX9t2j0ZTN9S', 'Cat reaction', 200, 200],
+  ['MDJ9IbxxvDUQM', 'Happy dog', 200, 112],
+  ['l0HlPystfePnAI3G8', 'Celebrate', 200, 200],
+  ['26ufdipQqU2lhNA4g', 'Wow', 200, 200],
+  ['3o7abKhOpu0NwenH3O', 'Perfect', 200, 112],
+  ['xT0xeJpnrWC4XWblEk', 'Party', 200, 132],
   ['111ebonMs90YLu', 'Thumbs up'],
   ['5GoVLqeAOo6PK', 'Excited'],
   ['TdfyKrN7HGTIY', 'Happy dance'],
@@ -9649,13 +9649,13 @@ app.post('/api/:endpoint', (request, response) => {
     const pageSize = 6
     const results = gifMocks
       .slice(offset, offset + pageSize)
-      .map(([id, title]) => ({
-        height: 200,
+      .map(([id, title, width, height]) => ({
+        height: height ?? 200,
         id,
         previewUrl: `https://media.giphy.com/media/${id}/200w.gif`,
         title,
         url: `https://media.giphy.com/media/${id}/giphy.gif`,
-        width: 200,
+        width: width ?? 200,
       }))
     response.json({
       success: true,

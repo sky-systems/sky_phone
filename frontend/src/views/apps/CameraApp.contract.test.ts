@@ -31,6 +31,14 @@ const cameraAnimations = readFileSync(
 )
 
 describe('Camera app controls', () => {
+  it('uses shared liquid glass for camera interaction buttons', () => {
+    expect(cameraView.match(/variant="glass"/g)).toHaveLength(5)
+    expect(cameraView).toMatch(
+      /<sky-glass\s+component="button"\s+class="camera-latest"/,
+    )
+    expect(cameraView).not.toContain('variant="neutral"')
+  })
+
   it('uses the Sky UI moving segment for photo and video modes', () => {
     expect(cameraView).toContain('SkySegmented')
     expect(cameraView).toContain(':active-index="mode === \'photo\' ? 0 : 1"')

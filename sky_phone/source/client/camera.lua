@@ -1,3 +1,5 @@
+SkyPhoneCamera = {}
+
 local minimum_zoom = 0.5
 local maximum_zoom = 3.0
 local mouse_wheel_zoom_step = 0.08
@@ -51,6 +53,7 @@ local camera_state = {
     previous_ped_view = nil,
     previous_radar_hidden = nil,
     previous_vehicle_view = nil,
+    walkable = false,
     zoom = 1.0,
 }
 
@@ -250,6 +253,7 @@ local function set_camera_active(active)
         return
     end
     camera_state.active = active
+    TriggerEvent("sky_phone:client:cameraActiveChanged", active)
     if active then
         camera_state.front_camera = false
         camera_state.landscape = false
@@ -289,6 +293,7 @@ local function set_camera_active(active)
     camera_state.game_input = false
     camera_state.landscape = false
     camera_state.locked = false
+    camera_state.walkable = false
     clear_front_camera()
     restore_camera_view()
     camera_state.nui_focused = true
@@ -335,10 +340,49 @@ local function set_camera_landscape(active)
     end
 end
 
+local function enable_walkable_camera(selfie_mode)
+    set_camera_active(true)
+    camera_state.walkable = true
+    set_front_camera(selfie_mode == true)
+    set_camera_focus(false)
+end
+
+local function disable_walkable_camera()
+    if not camera_state.walkable then
+        return
+    end
+
+    set_camera_active(false)
+end
+
+local function toggle_camera_frozen()
+    camera_state.locked = not camera_state.locked
+end
+
+local function get_camera_state()
+    return {
+        active = camera_state.active,
+        flashEnabled = camera_state.flash_enabled,
+        frozen = camera_state.locked,
+        selfie = camera_state.front_camera,
+        walkable = camera_state.walkable and camera_state.active,
+    }
+end
+
+SkyPhoneCamera.DisableWalkable = disable_walkable_camera
+SkyPhoneCamera.EnableWalkable = enable_walkable_camera
+SkyPhoneCamera.GetState = get_camera_state
+SkyPhoneCamera.SetFlashlight = set_flash_enabled
+SkyPhoneCamera.SetSelfie = set_front_camera
+SkyPhoneCamera.ToggleFrozen = toggle_camera_frozen
+
 RegisterNUICallback("camera:setActive", function(data, cb)
     if type(data) ~= "table" then
         cb({ success = false, error = "invalid_request" })
         return
+    end
+    if data.active == true then
+        camera_state.walkable = false
     end
     set_camera_active(data.active == true)
     cb({ success = true })

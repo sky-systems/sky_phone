@@ -48,6 +48,52 @@ local vehicle_mods = {
 local phone_locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
 local garage_locale = phone_locale.Nui.Apps.garage
 
+local function vehicle_kind(model_hash, fallback)
+    if IsThisModelABoat(model_hash) then
+        return "boat"
+    end
+    if IsThisModelAPlane(model_hash) then
+        return "plane"
+    end
+    if IsThisModelAHeli(model_hash) then
+        return "helicopter"
+    end
+    if IsThisModelABike(model_hash) or IsThisModelABicycle(model_hash) then
+        return "bike"
+    end
+    return fallback
+end
+
+RegisterNUICallback("garage:vehicles", function(data, cb)
+    if type(data) ~= "table" then
+        cb({ success = false, error = "invalid_request" })
+        return
+    end
+
+    local result = Bridge.Callbacks.Trigger("sky_phone:garage:vehicles", data)
+    if type(result) ~= "table" or not result.success or type(result.data) ~= "table" then
+        cb(type(result) == "table" and result or { success = false, error = "request_failed" })
+        return
+    end
+    for _, vehicle in ipairs(result.data.vehicles or {}) do
+        local model_hash = tonumber(vehicle.model)
+        if not model_hash and type(vehicle.model) == "string" and vehicle.model ~= "" then
+            model_hash = joaat(vehicle.model)
+        end
+        if model_hash then
+            local display_name = GetDisplayNameFromVehicleModel(model_hash)
+            local label = display_name and GetLabelText(display_name) or nil
+            if label and label ~= "NULL" and label ~= "CARNOTFOUND" then
+                vehicle.name = label
+            elseif type(vehicle.model) == "string" and vehicle.model ~= "" then
+                vehicle.name = vehicle.model
+            end
+            vehicle.kind = vehicle_kind(model_hash, vehicle.kind)
+        end
+    end
+    cb(result)
+end)
+
 local function normalized_plate(value)
     return tostring(value or ""):match("^%s*(.-)%s*$")
 end

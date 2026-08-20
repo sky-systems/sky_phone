@@ -8,6 +8,8 @@ import {
   SkyList,
   SkyField,
   SkyAppPage,
+  SkySegmented,
+  SkySegmentedButton,
   SkySheet,
   SkyTabBar,
   SkyTabButton,
@@ -764,18 +766,20 @@ onBeforeUnmount(() => {
             class="phone-in-call-keypad"
           >
             <div class="phone-in-call-keypad__grid">
-              <button
+              <sky-glass
                 v-for="key in keypadKeys"
                 :key="key.digit"
+                component="button"
                 type="button"
                 @click="addInCallDigit(key.digit)"
               >
                 <span>{{ key.digit }}</span>
                 <small>{{ key.letters }}</small>
-              </button>
+              </sky-glass>
             </div>
             <div class="phone-in-call-keypad__footer">
               <sky-button
+                glass
                 rounded
                 class="phone-in-call-keypad__end"
                 variant="danger"
@@ -784,6 +788,7 @@ onBeforeUnmount(() => {
                 <PhoneOff />
               </sky-button>
               <sky-button
+                glass
                 clear
                 class="phone-in-call-keypad__hide"
                 @click="callKeypadOpened = false"
@@ -800,6 +805,7 @@ onBeforeUnmount(() => {
           >
             <div class="phone-call-more__list">
               <sky-button
+                glass
                 class="phone-call-more__item phone-call-more__contact-card"
                 @click="openCallContact"
               >
@@ -819,6 +825,7 @@ onBeforeUnmount(() => {
               </sky-button>
 
               <sky-button
+                glass
                 class="phone-call-more__item"
                 @click="messageActiveCaller"
               >
@@ -827,6 +834,7 @@ onBeforeUnmount(() => {
               </sky-button>
 
               <sky-button
+                glass
                 v-if="activeCallContact"
                 class="phone-call-more__item phone-call-more__item--danger"
                 @click="removeActiveCallerContact"
@@ -836,6 +844,7 @@ onBeforeUnmount(() => {
               </sky-button>
 
               <sky-button
+                glass
                 class="phone-call-more__item phone-call-more__item--danger"
                 @click="confirmBlockNumber(calls.activeCall.otherNumber)"
               >
@@ -847,6 +856,7 @@ onBeforeUnmount(() => {
 
           <div v-else key="actions" class="phone-active-call__actions">
             <sky-button
+              glass
               rounded
               class="phone-call-action"
               :class="{
@@ -866,11 +876,17 @@ onBeforeUnmount(() => {
               <Volume2 />
               <span>{{ phone.t('Apps.phone.speaker') }}</span>
             </sky-button>
-            <sky-button rounded class="phone-call-action is-disabled" disabled>
+            <sky-button
+              glass
+              rounded
+              class="phone-call-action is-disabled"
+              disabled
+            >
               <Video />
               <span>{{ phone.t('Apps.phone.faceTime') }}</span>
             </sky-button>
             <sky-button
+              glass
               rounded
               class="phone-call-action"
               :class="{
@@ -894,6 +910,7 @@ onBeforeUnmount(() => {
 
             <div class="phone-call-action-anchor">
               <sky-button
+                glass
                 rounded
                 class="phone-call-action"
                 @click="callMoreOpened = !callMoreOpened"
@@ -903,6 +920,7 @@ onBeforeUnmount(() => {
               </sky-button>
             </div>
             <sky-button
+              glass
               rounded
               class="phone-call-action phone-call-action--end"
               variant="danger"
@@ -924,6 +942,7 @@ onBeforeUnmount(() => {
               }}</span>
             </sky-button>
             <sky-button
+              glass
               v-if="
                 calls.activeCall.direction === 'incoming' &&
                 calls.activeCall.state === 'ringing'
@@ -936,6 +955,7 @@ onBeforeUnmount(() => {
               <span>{{ phone.t('Apps.phone.answer') }}</span>
             </sky-button>
             <sky-button
+              glass
               v-else
               rounded
               class="phone-call-action"
@@ -964,6 +984,7 @@ onBeforeUnmount(() => {
           <section class="phone-contact-detail">
             <header class="phone-detail-header">
               <sky-button
+                glass
                 rounded
                 class="phone-detail-header-button phone-detail-back"
                 :aria-label="phone.t('Common.back')"
@@ -975,6 +996,7 @@ onBeforeUnmount(() => {
               <span class="phone-detail-header-spacer" />
 
               <sky-button
+                glass
                 v-if="!viewingOwnCard"
                 rounded
                 class="phone-detail-edit"
@@ -1016,8 +1038,10 @@ onBeforeUnmount(() => {
 
               <div class="phone-contact-actions">
                 <sky-button
+                  glass
                   v-for="action in contactProfileActions"
                   :key="action.id"
+                  icon-only
                   rounded
                   class="phone-profile-action"
                   :disabled="
@@ -1170,24 +1194,35 @@ onBeforeUnmount(() => {
         <template v-else-if="tab === 'recents'">
           <section class="phone-recents">
             <header class="phone-recents-header">
-              <div class="phone-recents-filter" role="group">
-                <button
-                  type="button"
-                  :class="{ active: recentFilter === 'all' }"
+              <sky-segmented
+                :active-index="recentFilter === 'all' ? 0 : 1"
+                :aria-label="phone.t('Apps.phone.recents')"
+                class="phone-recents-filter"
+                compact
+                :item-count="2"
+                navigation
+                rounded
+                strong
+              >
+                <sky-segmented-button
+                  :active="recentFilter === 'all'"
                   @click="recentFilter = 'all'"
                 >
                   {{ phone.t('Apps.phone.allCalls') }}
-                </button>
-                <button
-                  type="button"
-                  :class="{ active: recentFilter === 'missed' }"
+                </sky-segmented-button>
+                <sky-segmented-button
+                  :active="recentFilter === 'missed'"
                   @click="recentFilter = 'missed'"
                 >
                   {{ phone.t('Apps.phone.missedCalls') }}
-                </button>
-              </div>
+                </sky-segmented-button>
+              </sky-segmented>
               <h1>{{ phone.t('Apps.phone.recents') }}</h1>
-              <label class="phone-recents-search">
+              <sky-glass
+                component="label"
+                :highlight="false"
+                class="phone-recents-search"
+              >
                 <Search :size="21" />
                 <input
                   :value="recentQuery"
@@ -1195,7 +1230,7 @@ onBeforeUnmount(() => {
                   type="search"
                   @input="recentQuery = eventValue($event)"
                 />
-              </label>
+              </sky-glass>
             </header>
 
             <div v-if="visibleRecents.length" class="phone-recents-list">
@@ -1246,14 +1281,15 @@ onBeforeUnmount(() => {
                 <time class="phone-recent-date">{{
                   formatRecentDate(recent.created_at)
                 }}</time>
-                <button
+                <sky-glass
+                  component="button"
                   class="phone-recent-info"
                   type="button"
                   :aria-label="phone.t('Apps.phone.contactDetails')"
                   @click="openRecentDetail(recent.other_number)"
                 >
                   <Info :size="21" />
-                </button>
+                </sky-glass>
               </article>
             </div>
             <sky-block v-else class="text-center text-[#8e8e93]">{{
@@ -1268,17 +1304,22 @@ onBeforeUnmount(() => {
               <div class="phone-contacts-toolbar">
                 <span aria-hidden="true" />
                 <h1>{{ phone.t('Apps.phone.contacts') }}</h1>
-                <button
+                <sky-glass
+                  component="button"
                   class="phone-contacts-add"
                   type="button"
                   :aria-label="phone.t('Apps.phone.addContact')"
                   @click="openContact()"
                 >
                   <Plus :size="28" />
-                </button>
+                </sky-glass>
               </div>
 
-              <label class="phone-contacts-search">
+              <sky-glass
+                component="label"
+                :highlight="false"
+                class="phone-contacts-search"
+              >
                 <Search :size="21" />
                 <input
                   :value="query"
@@ -1286,7 +1327,7 @@ onBeforeUnmount(() => {
                   type="search"
                   @input="query = eventValue($event)"
                 />
-              </label>
+              </sky-glass>
             </header>
 
             <button class="phone-my-card" type="button" @click="openMyCard">
@@ -1408,9 +1449,10 @@ onBeforeUnmount(() => {
                 class="phone-keypad-suggestions"
                 aria-live="polite"
               >
-                <button
+                <sky-glass
                   v-for="contact in keypadSuggestions"
                   :key="contact.id"
+                  component="button"
                   class="phone-keypad-suggestion"
                   type="button"
                   @click="chooseKeypadSuggestion(contact)"
@@ -1429,16 +1471,17 @@ onBeforeUnmount(() => {
                     <strong>{{ contact.name }}</strong>
                     <small>{{ formatPhoneNumber(contact.phone_number) }}</small>
                   </span>
-                </button>
+                </sky-glass>
               </div>
             </Transition>
             <div class="phone-keypad-number" aria-live="polite">
               {{ keypadDisplay }}
             </div>
             <div class="phone-keypad-grid">
-              <button
+              <sky-glass
                 v-for="key in keypadKeys"
                 :key="key.digit"
+                component="button"
                 class="phone-keypad-key"
                 type="button"
                 @click="addDigit(key.digit)"
@@ -1447,25 +1490,27 @@ onBeforeUnmount(() => {
                 <small :class="{ 'phone-keypad-plus': key.digit === '0' }">
                   {{ key.letters }}
                 </small>
-              </button>
+              </sky-glass>
             </div>
             <div class="phone-keypad-actions">
-              <button
+              <sky-glass
+                component="button"
                 class="phone-keypad-call"
                 type="button"
                 @click="startCall(keypad)"
               >
                 <Phone :size="31" fill="currentColor" />
-              </button>
-              <button
+              </sky-glass>
+              <sky-glass
                 v-if="keypad"
+                component="button"
                 class="phone-keypad-delete"
                 type="button"
                 :aria-label="phone.t('Common.delete')"
                 @click="keypad = keypad.slice(0, -1)"
               >
                 <Delete :size="27" />
-              </button>
+              </sky-glass>
             </div>
           </section>
         </template>
@@ -1515,6 +1560,7 @@ onBeforeUnmount(() => {
       >
         <header class="phone-contact-editor__header">
           <sky-button
+            glass
             rounded
             class="phone-contact-editor__header-button"
             :aria-label="phone.t('Common.cancel')"
@@ -1534,6 +1580,7 @@ onBeforeUnmount(() => {
             }}
           </h2>
           <sky-button
+            glass
             v-if="!editingContact?.readonly"
             rounded
             class="phone-contact-editor__header-button"
@@ -1553,7 +1600,8 @@ onBeforeUnmount(() => {
                   contactAvatarUrl,
               }"
             >
-              <button
+              <sky-glass
+                component="button"
                 class="phone-contact-editor__avatar"
                 type="button"
                 :aria-label="phone.t('Apps.phone.choosePhoto')"
@@ -1565,8 +1613,9 @@ onBeforeUnmount(() => {
                   contactEditorInitials
                 }}</span>
                 <UserRound v-else :size="72" :stroke-width="1.35" />
-              </button>
+              </sky-glass>
               <sky-button
+                glass
                 v-if="contactAvatarUrl && !editingContact?.readonly"
                 rounded
                 class="phone-contact-editor__remove-photo"
@@ -1582,6 +1631,7 @@ onBeforeUnmount(() => {
               class="phone-contact-editor__photo-actions"
             >
               <sky-button
+                glass
                 small
                 rounded
                 tonal
@@ -1591,6 +1641,7 @@ onBeforeUnmount(() => {
                 {{ phone.t('Apps.phone.chooseGallery') }}
               </sky-button>
               <sky-button
+                glass
                 small
                 rounded
                 tonal
@@ -1667,6 +1718,7 @@ onBeforeUnmount(() => {
           <p v-if="error" class="phone-contact-editor__error">{{ error }}</p>
 
           <sky-button
+            glass
             v-if="editingContact && !editingContact.readonly"
             class="phone-contact-editor__delete"
             @click="deleteEditedContact"
@@ -1710,7 +1762,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  background: linear-gradient(180deg, #2f4a98 0%, #2a468f 44%, #293044 100%);
+  background: linear-gradient(180deg, #3a3a3c 0%, #1c1c1e 44%, #090909 100%);
   color: white;
   text-align: center;
 }
@@ -1719,7 +1771,7 @@ onBeforeUnmount(() => {
   position: absolute;
   z-index: 0;
   inset: 0;
-  background: rgba(4, 12, 30, 0.48);
+  background: rgba(0, 0, 0, 0.48);
   content: '';
   opacity: 0;
   pointer-events: none;
@@ -1792,7 +1844,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  color: rgba(224, 230, 255, 0.66);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 25px;
   font-variant-numeric: tabular-nums;
   font-weight: 500;
@@ -1806,7 +1858,7 @@ onBeforeUnmount(() => {
   place-items: center;
   border-radius: 3px;
   background: white;
-  color: #172758;
+  color: #2c2c2e;
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
@@ -1872,10 +1924,10 @@ onBeforeUnmount(() => {
   left: 50%;
   width: 80px;
   height: 80px;
-  border: 1px solid rgba(215, 225, 255, 0.72);
+  border: 1px solid var(--sky-hairline);
   border-radius: 50%;
-  background: rgba(145, 164, 215, 0.22);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
   content: '';
   transform: translateX(-50%);
   transition:
@@ -1891,6 +1943,17 @@ onBeforeUnmount(() => {
 .phone-call-action > span {
   position: relative;
   z-index: 1;
+}
+
+.phone-call-action.sky-glass::after {
+  top: 1px;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  transform: translateX(-50%);
 }
 
 .phone-call-action > svg {
@@ -1913,20 +1976,20 @@ onBeforeUnmount(() => {
 }
 
 .phone-call-action.is-active {
-  color: #25458e !important;
+  color: #fff !important;
 }
 
 .phone-call-action.is-active::before {
-  background: white;
+  background: rgba(255, 255, 255, 0.24);
 }
 
 .phone-call-action.is-disabled {
-  color: rgba(232, 236, 250, 0.56) !important;
+  color: rgba(255, 255, 255, 0.38) !important;
   opacity: 1 !important;
 }
 
 .phone-call-action.is-disabled > span {
-  color: rgba(232, 236, 250, 0.56);
+  color: rgba(255, 255, 255, 0.38);
 }
 
 .phone-call-action--end::before {
@@ -1962,16 +2025,16 @@ onBeforeUnmount(() => {
   justify-content: flex-start !important;
   gap: 13px !important;
   padding: 0 27px !important;
-  border: 1px solid rgba(118, 137, 191, 0.38) !important;
+  border: 1px solid var(--sky-hairline) !important;
   border-radius: 30px !important;
-  background: rgba(20, 23, 39, 0.55) !important;
+  background: var(--sky-glass) !important;
   color: white !important;
-  box-shadow: none !important;
+  box-shadow: var(--sky-shadow-glass) !important;
   text-transform: none !important;
 }
 
 .phone-call-more__item:active {
-  background: rgba(49, 57, 84, 0.68) !important;
+  background: var(--sky-glass) !important;
 }
 
 .phone-call-more__contact-card {
@@ -1997,7 +2060,7 @@ onBeforeUnmount(() => {
   flex: none;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(145deg, #4b92d1, #195287);
+  background: linear-gradient(145deg, #636366, #2c2c2e);
   font-size: 17px;
   font-weight: 700;
 }
@@ -2038,16 +2101,10 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--sky-hairline);
   border-radius: 50%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.16),
-    rgba(255, 255, 255, 0.09)
-  );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 5px 14px rgba(8, 20, 55, 0.2);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
   backdrop-filter: blur(18px) saturate(145%);
   -webkit-backdrop-filter: blur(18px) saturate(145%);
   color: white;
@@ -2059,7 +2116,7 @@ onBeforeUnmount(() => {
 }
 
 .phone-in-call-keypad__grid button:active {
-  background: rgba(151, 176, 231, 0.44);
+  background: rgba(255, 255, 255, 0.24);
   transform: scale(0.95);
 }
 
@@ -2178,7 +2235,7 @@ onBeforeUnmount(() => {
 }
 
 .phone-bottom-tabbar {
-  --sky-app-accent: #007aff;
+  --sky-app-accent: #ffffff;
 }
 
 .phone-recents,
@@ -2219,9 +2276,10 @@ onBeforeUnmount(() => {
   height: 42px;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(142, 142, 147, 0.18);
+  border: 1px solid var(--sky-hairline);
   border-radius: 50%;
-  background: rgba(118, 118, 128, 0.14);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
   color: inherit;
 }
 
@@ -2232,7 +2290,8 @@ onBeforeUnmount(() => {
   gap: 9px;
   padding: 0 14px;
   border-radius: 16px;
-  background: rgba(118, 118, 128, 0.16);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
   color: #8e8e93;
 }
 
@@ -2295,7 +2354,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-start;
   gap: 5px;
-  color: #ffcc00;
+  color: #d1d1d6;
 }
 
 .phone-contact-row {
@@ -2355,7 +2414,7 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #0a84ff;
+  color: #d1d1d6;
   font: inherit;
   font-size: 9px;
   font-weight: 700;
@@ -2371,7 +2430,7 @@ onBeforeUnmount(() => {
 
 .phone-contact-index button:active {
   border-radius: 7px;
-  background: rgba(10, 132, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .phone-keypad {
@@ -2430,13 +2489,11 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   padding: 5px 12px 5px 6px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--sky-hairline);
   border-radius: 18px;
   color: #fff;
-  background: rgba(44, 44, 46, 0.82);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    0 4px 12px rgba(0, 0, 0, 0.16);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
   font: inherit;
   text-align: left;
   backdrop-filter: blur(16px) saturate(140%);
@@ -2454,7 +2511,7 @@ onBeforeUnmount(() => {
   place-items: center;
   overflow: hidden;
   border-radius: 50%;
-  background: linear-gradient(145deg, #4b92d1, #195287);
+  background: linear-gradient(145deg, #636366, #2c2c2e);
   font-size: 12px;
   font-weight: 700;
 }
@@ -2517,16 +2574,10 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--sky-hairline);
   border-radius: 50%;
-  background: linear-gradient(
-    180deg,
-    rgba(58, 58, 60, 0.92),
-    rgba(28, 28, 30, 0.88)
-  );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 5px 14px rgba(0, 0, 0, 0.24);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
   backdrop-filter: blur(18px) saturate(145%);
   -webkit-backdrop-filter: blur(18px) saturate(145%);
   color: white;
@@ -2604,15 +2655,9 @@ onBeforeUnmount(() => {
   left: calc(50% + 62px);
   width: 48px;
   height: 48px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(
-    180deg,
-    rgba(58, 58, 60, 0.92),
-    rgba(28, 28, 30, 0.88)
-  );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 5px 14px rgba(0, 0, 0, 0.24);
+  border: 1px solid var(--sky-hairline);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
   backdrop-filter: blur(18px) saturate(145%);
   -webkit-backdrop-filter: blur(18px) saturate(145%);
   color: #d1d1d6;
@@ -2666,30 +2711,31 @@ onBeforeUnmount(() => {
 }
 
 .phone-recents-filter {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   width: 174px;
   margin: 0 auto 14px;
-  padding: 3px;
-  border: 1px solid rgba(142, 142, 147, 0.25);
-  border-radius: 15px;
-  background: rgba(118, 118, 128, 0.14);
+  border: 1px solid var(--sky-hairline);
+  border-radius: var(--sky-radius-pill);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
 }
 
-.phone-recents-filter button {
-  min-height: 30px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
+.phone-recents-filter :deep(.sky-segmented-button) {
+  border-radius: var(--sky-radius-pill);
+  color: #8e8e93;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1;
 }
 
-.phone-recents-filter button.active {
-  background: rgba(118, 118, 128, 0.34);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+.phone-recents-filter :deep(.sky-segmented-button--active) {
+  color: var(--sky-text);
+}
+
+.phone-recents-filter :deep(.sky-segmented__highlight) {
+  top: 4px;
+  bottom: 4px;
+  background: var(--sky-tabbar-highlight-background);
+  box-shadow: none;
 }
 
 .phone-recents-header h1 {
@@ -2706,7 +2752,8 @@ onBeforeUnmount(() => {
   min-height: 42px;
   padding: 0 14px;
   border-radius: 16px;
-  background: rgba(118, 118, 128, 0.16);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
   color: #8e8e93;
 }
 
@@ -2726,7 +2773,7 @@ onBeforeUnmount(() => {
 
 .phone-recent-row {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto 38px;
+  grid-template-columns: 52px minmax(0, 1fr) auto 44px;
   align-items: center;
   min-height: 76px;
   column-gap: 10px;
@@ -2744,7 +2791,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: linear-gradient(145deg, #5b91c2, #22527d);
+  background: linear-gradient(145deg, #636366, #2c2c2e);
   color: white;
   font-size: 19px;
   font-weight: 700;
@@ -2806,14 +2853,14 @@ onBeforeUnmount(() => {
 
 .phone-recent-info {
   display: flex;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   align-items: center;
   justify-content: center;
   border: 0;
   border-radius: 50%;
   background: rgba(118, 118, 128, 0.14);
-  color: #0a84ff;
+  color: #d1d1d6;
 }
 
 .phone-detail-header {
@@ -2828,7 +2875,7 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #0a84ff;
+  color: #fff;
   font: inherit;
   font-size: 15px;
 }
@@ -2889,7 +2936,7 @@ onBeforeUnmount(() => {
   border: 0;
   border-radius: 14px;
   background: rgba(118, 118, 128, 0.15);
-  color: #0a84ff;
+  color: #fff;
   font: inherit;
   font-size: 12px;
 }
@@ -2927,7 +2974,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #0a84ff;
+  background: rgba(255, 255, 255, 0.14);
   color: white;
 }
 
@@ -2975,7 +3022,7 @@ onBeforeUnmount(() => {
 }
 
 .phone-history-direction {
-  color: #0a84ff;
+  color: #d1d1d6;
 }
 
 .phone-history-direction--missed {
@@ -3018,10 +3065,10 @@ onBeforeUnmount(() => {
 .phone-calls-app--profile {
   background: linear-gradient(
     180deg,
-    #a8b3b7 0,
-    #8991a2 18%,
-    #172f50 55%,
-    #061426 100%
+    #6e6e73 0,
+    #3a3a3c 18%,
+    #1c1c1e 55%,
+    #000000 100%
   ) !important;
   color: #fff;
 }
@@ -3050,10 +3097,10 @@ onBeforeUnmount(() => {
   min-width: 0;
   height: 44px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--sky-hairline);
   color: #fff;
-  background: rgba(21, 35, 45, 0.88);
-  box-shadow: 0 2px 9px rgba(7, 12, 20, 0.16);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
 }
 
 .phone-detail-header-button {
@@ -3087,12 +3134,12 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(255, 255, 255, 0.28);
   background: linear-gradient(
     155deg,
-    rgba(176, 188, 195, 0.74),
-    rgba(45, 105, 158, 0.66)
+    rgba(174, 174, 178, 0.72),
+    rgba(72, 72, 74, 0.72)
   );
   box-shadow:
     inset 0 1px 2px rgba(255, 255, 255, 0.38),
-    0 2px 3px rgba(18, 15, 43, 0.25);
+    0 2px 3px rgba(0, 0, 0, 0.28);
   font-size: 64px;
   font-weight: 400;
 }
@@ -3115,22 +3162,33 @@ onBeforeUnmount(() => {
 }
 
 .phone-profile-action {
-  width: 62px;
-  min-width: 62px;
-  height: 62px;
-  min-height: 62px;
+  --phone-profile-action-size: 62px;
+  box-sizing: border-box !important;
+  width: var(--phone-profile-action-size) !important;
+  min-width: var(--phone-profile-action-size) !important;
+  max-width: var(--phone-profile-action-size) !important;
+  height: var(--phone-profile-action-size) !important;
+  min-height: var(--phone-profile-action-size) !important;
+  max-height: var(--phone-profile-action-size) !important;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 var(--phone-profile-action-size) !important;
+  align-self: center;
+  justify-self: center;
   padding: 0;
-  border: 1px solid rgba(10, 132, 255, 0.58);
-  border-radius: 50%;
-  color: #fff;
-  background: rgba(18, 82, 145, 0.72);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 4px 14px rgba(13, 9, 33, 0.18);
+  border: 1px solid var(--sky-hairline);
+  border-radius: 50% !important;
+  overflow: hidden;
+  color: #fff !important;
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
+}
+
+.phone-profile-action :deep(svg) {
+  color: inherit;
 }
 
 .phone-profile-action:disabled {
-  color: rgba(255, 255, 255, 0.32);
+  color: rgba(255, 255, 255, 0.32) !important;
   opacity: 1;
 }
 
@@ -3146,8 +3204,8 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(255, 255, 255, 0.035);
   border-radius: 24px;
   color: #fff;
-  background: rgba(18, 43, 69, 0.8);
-  box-shadow: 0 8px 22px rgba(5, 4, 20, 0.12);
+  background: rgba(28, 28, 30, 0.8);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(20px) saturate(125%);
   -webkit-backdrop-filter: blur(20px) saturate(125%);
 }
@@ -3184,7 +3242,7 @@ onBeforeUnmount(() => {
 }
 
 .phone-profile-info-card small {
-  color: #64a8ff;
+  color: #a7a7ac;
   font-size: 13px;
 }
 
@@ -3199,7 +3257,7 @@ onBeforeUnmount(() => {
 
 .phone-profile-info-card > button > svg {
   flex: none;
-  color: #0a84ff;
+  color: #fff;
   transition:
     color 160ms ease-out,
     filter 160ms ease-out,
@@ -3322,15 +3380,15 @@ onBeforeUnmount(() => {
   height: 46px;
   min-height: 46px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--sky-hairline);
   color: #fff;
-  background: rgba(28, 28, 30, 0.58);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
 }
 
 .phone-contact-editor__header-button:last-child {
   justify-self: end;
-  background: rgba(72, 72, 74, 0.76);
+  background: var(--sky-glass);
 }
 
 .phone-contact-editor__scroll {
@@ -3359,10 +3417,10 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 50%;
   color: #fff;
-  background: linear-gradient(155deg, #4b92d1 0%, #195287 100%);
+  background: linear-gradient(155deg, #636366 0%, #2c2c2e 100%);
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.16),
-    0 8px 18px rgba(5, 42, 78, 0.24);
+    0 8px 18px rgba(0, 0, 0, 0.28);
   cursor: pointer;
   overflow: hidden;
 }
@@ -3388,7 +3446,7 @@ onBeforeUnmount(() => {
   border: 0 !important;
   border-radius: 50% !important;
   color: #fff !important;
-  background: rgba(7, 35, 62, 0.7) !important;
+  background: rgba(28, 28, 30, 0.78) !important;
   opacity: 0;
   pointer-events: none;
   transform: scale(0.96);
@@ -3446,7 +3504,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   min-height: 34px;
   padding-inline: 16px;
-  color: #0a84ff;
+  color: #d1d1d6;
 }
 
 .phone-contact-editor__name-list,
@@ -3527,9 +3585,9 @@ onBeforeUnmount(() => {
 }
 
 .phone-contact-editor--light .phone-contact-editor__header-button {
-  border-color: rgba(60, 60, 67, 0.18);
+  border-color: var(--sky-hairline);
   color: #111;
-  background: rgba(255, 255, 255, 0.62);
+  background: var(--sky-glass);
 }
 
 .phone-contact-editor--light .phone-contact-editor__name-list,
@@ -3569,10 +3627,7 @@ onBeforeUnmount(() => {
   }
 
   .phone-profile-action {
-    width: 56px;
-    min-width: 56px;
-    height: 56px;
-    min-height: 56px;
+    --phone-profile-action-size: 56px;
   }
 }
 
@@ -3581,7 +3636,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.phone-recents-filter button,
+.phone-recents-filter :deep(.sky-segmented-button),
 .phone-recents-search,
 .phone-contacts-search,
 .phone-recent-row,
@@ -3613,7 +3668,7 @@ onBeforeUnmount(() => {
 
 .phone-calls-app button:focus-visible,
 .phone-contact-editor button:focus-visible {
-  outline: 2px solid #64a8ff;
+  outline: 2px solid #fff;
   outline-offset: 2px;
 }
 
@@ -3647,23 +3702,24 @@ onBeforeUnmount(() => {
     rgba(255, 255, 255, 0.2),
     rgba(255, 255, 255, 0.12)
   );
-  box-shadow: 0 3px 9px rgba(10, 30, 80, 0.15);
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.22);
   transform: translateY(-1px);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .phone-keypad-suggestion:hover .phone-keypad-suggestion__copy strong {
-    color: #68adff;
+    color: #fff;
   }
 
-  .phone-recents-filter button:not(.active):hover {
+  .phone-recents-filter
+    :deep(.sky-segmented-button:not(.sky-segmented-button--active):hover) {
     background: rgba(118, 118, 128, 0.22);
   }
 
   .phone-recents-search:hover,
   .phone-contacts-search:hover {
-    background: rgba(118, 118, 128, 0.24);
-    box-shadow: inset 0 0 0 1px rgba(142, 142, 147, 0.18);
+    background: var(--sky-glass);
+    box-shadow: var(--sky-shadow-glass);
   }
 
   .phone-recent-row:hover,
@@ -3677,18 +3733,18 @@ onBeforeUnmount(() => {
   .phone-recent-info:hover,
   .phone-contacts-add:hover,
   .phone-contact-index button:hover {
-    background: rgba(10, 132, 255, 0.16);
-    color: #55aaff;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
     transform: translateY(-1px);
   }
 
   .phone-call-action:not(:disabled):not(.phone-call-action--end):not(
       .phone-call-action--answer
     ):hover::before {
-    background: rgba(170, 187, 231, 0.32);
+    background: rgba(255, 255, 255, 0.22);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      0 4px 12px rgba(11, 23, 62, 0.16);
+      0 4px 12px rgba(0, 0, 0, 0.22);
     transform: translateX(-50%) translateY(-1px) scale(1.012);
   }
 
@@ -3711,35 +3767,33 @@ onBeforeUnmount(() => {
   }
 
   .phone-call-more__item:not(:disabled):hover {
-    border-color: rgba(140, 165, 229, 0.66) !important;
-    background: rgba(49, 57, 84, 0.68) !important;
+    border-color: var(--sky-hairline) !important;
+    background: var(--sky-glass) !important;
     transform: translateY(-1px);
   }
 
   .phone-detail-header-button:not(:disabled):hover,
   .phone-detail-edit:not(:disabled):hover {
-    border-color: rgba(255, 255, 255, 0.22);
-    background: rgba(37, 54, 66, 0.96);
+    border-color: var(--sky-hairline);
+    background: var(--sky-glass);
     transform: translateY(-1px);
   }
 
   .phone-profile-action:not(:disabled):hover {
-    border-color: rgba(100, 168, 255, 0.7);
-    background: rgba(22, 92, 158, 0.84);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      0 4px 12px rgba(5, 42, 78, 0.2);
+    border-color: var(--sky-hairline);
+    background: var(--sky-glass);
+    box-shadow: var(--sky-shadow-glass);
     transform: translateY(-1px);
   }
 
   .phone-profile-options-card > button:not(:disabled):hover > span,
   .phone-profile-single-option > button:not(:disabled):hover > span {
-    color: #64a8ff;
+    color: #fff;
     transform: translateX(2px);
   }
 
   .phone-profile-info-card > button:not(:disabled):hover > svg {
-    color: #64a8ff;
+    color: #fff;
     filter: brightness(1.08);
     transform: translateX(1px);
   }
@@ -3774,7 +3828,7 @@ onBeforeUnmount(() => {
     inset: auto 5px 5px auto;
     width: 44px !important;
     height: 44px !important;
-    background: rgba(7, 35, 62, 0.86) !important;
+    background: rgba(28, 28, 30, 0.9) !important;
     opacity: 1;
     pointer-events: auto;
     transform: none;
@@ -3802,16 +3856,30 @@ onBeforeUnmount(() => {
 .phone-app--light .phone-contact-actions button,
 .phone-app--light .phone-own-profile-card,
 .phone-app--light .phone-history-card {
-  background: rgba(118, 118, 128, 0.1);
+  background: var(--sky-glass);
+}
+
+.phone-app--light .phone-bottom-tabbar {
+  --sky-app-accent: #3a3a3c;
+}
+
+.phone-app--light .phone-contact-index button,
+.phone-app--light .phone-recent-info,
+.phone-app--light .phone-history-direction {
+  color: #3a3a3c;
+}
+
+.phone-contact-editor--light
+  .phone-contact-editor__photo-actions
+  :deep(button) {
+  color: #3a3a3c;
 }
 
 .phone-app--light .phone-keypad-suggestion {
-  border-color: rgba(60, 60, 67, 0.1);
+  border-color: var(--sky-hairline);
   color: #111;
-  background: rgba(229, 229, 234, 0.88);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 4px 12px rgba(60, 60, 67, 0.12);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
 }
 
 .phone-app--light .phone-keypad-suggestion__copy small {
@@ -3820,15 +3888,9 @@ onBeforeUnmount(() => {
 
 .phone-app--light .phone-keypad-key,
 .phone-app--light .phone-keypad-delete {
-  border-color: rgba(60, 60, 67, 0.1);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.9),
-    rgba(229, 229, 234, 0.88)
-  );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 5px 14px rgba(60, 60, 67, 0.14);
+  border-color: var(--sky-hairline);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
   color: #000;
 }
 

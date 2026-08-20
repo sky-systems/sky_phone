@@ -497,6 +497,18 @@ export const useAppStoreStore = defineStore('app-store', {
       }
       this.homeLayout = removeHomeApp(this.homeLayout, appId)
       this.persist()
+      if (isExternalPhoneApp(app)) {
+        void nuiCall('custom-app:lifecycle', {
+          appId,
+          event: 'delete',
+        }).then((response) => {
+          if (!response.success) {
+            console.error(
+              `[Custom apps] Delete lifecycle failed for ${appId}: ${response.error ?? 'request_failed'}`,
+            )
+          }
+        })
+      }
 
       return true
     },

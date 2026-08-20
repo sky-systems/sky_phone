@@ -23,6 +23,7 @@ import type {
   TowerBlock,
 } from '@/features/games/tower-stack/types'
 import { usePhoneStore } from '@/stores/phone'
+import { SkyButton } from '@/ui'
 
 const phone = usePhoneStore()
 const tower = useTowerStackStore()
@@ -185,14 +186,17 @@ onBeforeUnmount(() => {
         <span>{{ phone.t('Apps.towerStack.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.towerStack.name') }}</h1>
       </div>
-      <button
+      <SkyButton
+        glass
+        icon-only
+        rounded
         type="button"
         :aria-label="phone.t(tower.soundEnabled ? 'Apps.towerStack.mute' : 'Apps.towerStack.unmute')"
         @click="toggleSound"
       >
         <Volume2 v-if="tower.soundEnabled" :size="18" aria-hidden="true" />
         <VolumeX v-else :size="18" aria-hidden="true" />
-      </button>
+      </SkyButton>
     </header>
 
     <section v-if="tower.menuOpen" class="tower-menu">
@@ -232,18 +236,21 @@ onBeforeUnmount(() => {
 
     <section v-else-if="game" class="tower-game">
       <div class="tower-toolbar">
-        <button
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
           :aria-label="phone.t('Apps.towerStack.backToMenu')"
           @pointerdown.stop="tower.showMenu()"
           @click.stop="tower.showMenu()"
-        ><ChevronLeft :size="19" /></button>
+        ><ChevronLeft :size="19" /></SkyButton>
         <div><span>{{ phone.t('Apps.towerStack.height') }}</span><strong>{{ game.blocks.length - 1 }}</strong></div>
         <div><span>{{ phone.t('Apps.towerStack.score') }}</span><strong>{{ game.score }}</strong></div>
-        <button type="button" :aria-label="phone.t('Apps.towerStack.pause')" @click="togglePause">
+        <SkyButton glass icon-only rounded type="button" :aria-label="phone.t('Apps.towerStack.pause')" @click="togglePause">
           <Pause v-if="game.status === 'playing'" :size="17" fill="currentColor" />
           <Play v-else :size="17" fill="currentColor" />
-        </button>
+        </SkyButton>
       </div>
 
       <button
@@ -319,7 +326,8 @@ onBeforeUnmount(() => {
 .tower-header { height: 50px; display: flex; align-items: center; justify-content: space-between; }
 .tower-header span { display: block; color: #c1b8f1; font-size: 10px; font-weight: 850; letter-spacing: 1.1px; text-transform: uppercase; }
 .tower-header h1 { margin: 1px 0 0; font-size: 27px; line-height: 1; letter-spacing: -0.8px; }
-.tower-header button, .tower-toolbar button { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid #ffffff14; border-radius: 12px; color: #f2edff; background: #ffffff0d; }
+.tower-header button:not(.sky-button--glass), .tower-toolbar button:not(.sky-button--glass) { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid #ffffff14; border-radius: 12px; color: #f2edff; background: #ffffff0d; }
+.tower-header .sky-button--glass, .tower-toolbar .sky-button--glass { color: #f2edff; }
 .tower-menu { height: calc(100% - 50px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; text-align: center; }
 .tower-menu__preview { position: relative; flex: 0 0 124px; width: 158px; height: 124px; }
 .tower-menu__preview i { position: absolute; right: 12px; bottom: calc((var(--preview-index) - 1) * 15px); left: 23px; height: 21px; border-radius: 6px; background: hsl(calc(var(--preview-index) * 49deg + 5deg) 82% 62%); box-shadow: inset 0 3px 0 #ffffff35, 0 5px 11px #08091c5c; transform: perspective(200px) rotateX(5deg); }
@@ -341,7 +349,7 @@ onBeforeUnmount(() => {
 .tower-toolbar div { height: 32px; display: grid; grid-template-rows: 10px 20px; align-content: center; justify-items: center; }
 .tower-toolbar span { color: #c9c2e9; font-size: 11px; font-weight: 850; line-height: 10px; letter-spacing: .35px; text-transform: uppercase; }
 .tower-toolbar strong { display: block; font-size: 19px; line-height: 20px; }
-.tower-toolbar button { width: 32px; height: 32px; border: 0; border-radius: 50%; box-shadow: none; }
+.tower-toolbar button { --sky-touch-target: 32px; width: 32px; height: 32px; }
 .tower-stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: hidden; padding: 0; border: 0; border-radius: 0; background: linear-gradient(#1d1b52, #433078 60%, #8e4c78); box-shadow: inset 0 0 35px #08091d80; touch-action: manipulation; }
 .tower-sky { position: absolute; inset: 0; pointer-events: none; }
 .tower-sky i { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; box-shadow: 0 0 7px #c5c2ff; opacity: .65; }

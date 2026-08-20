@@ -90,4 +90,31 @@ describe('phone apps use Sky UI', () => {
       expect(source, file).not.toMatch(/(?:citymarkt|pages)__toast/)
     }
   })
+
+  it('uses shared liquid glass for remaining compact interaction controls', () => {
+    const minimumGlassButtons: Record<string, number> = {
+      'CameraApp.vue': 2,
+      'FeatherApp.vue': 2,
+      'FlareApp.vue': 1,
+      'FlipTokApp.vue': 2,
+      'MemoryApp.vue': 2,
+      'MinesweeperApp.vue': 3,
+      'NeonDropApp.vue': 3,
+      'NumberMergeApp.vue': 3,
+      'PicstagramApp.vue': 6,
+      'SkyFlappyApp.vue': 3,
+      'SnakeApp.vue': 2,
+      'TowerStackApp.vue': 3,
+      'WeazelNewsApp.vue': 2,
+    }
+
+    for (const [file, minimum] of Object.entries(minimumGlassButtons)) {
+      const source = appSources.find((app) => app.file === file)?.source ?? ''
+      const glassButtons = source.match(
+        /<(?:SkyButton|sky-button)(?=[^>]*\bglass\b)[^>]*>/g,
+      )
+
+      expect(glassButtons?.length ?? 0, file).toBeGreaterThanOrEqual(minimum)
+    }
+  })
 })

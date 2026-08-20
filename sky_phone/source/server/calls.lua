@@ -18,11 +18,27 @@ local function uuid()
     return rows[1].id
 end
 
+local function is_uuid(value)
+    return type(value) == "string"
+        and value:match(
+            "^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$"
+        ) ~= nil
+end
+
 local function trim(value)
     if type(value) ~= "string" then
         return nil
     end
     return value:match("^%s*(.-)%s*$")
+end
+
+local function is_player_source(value)
+    return type(value) == "number"
+        and value == value
+        and value ~= math.huge
+        and value ~= -math.huge
+        and value >= 1
+        and value % 1 == 0
 end
 
 local function normalize_contact_email(value)
@@ -110,7 +126,7 @@ local function add_call_entry(call_id, device, direction, status, other_number)
     ]], { call_id, account_id, device_imei, direction, status, other_number })
 end
 
-local function send_state(call, source, state, channel)
+local function call_payload(call, source, state, channel)
     local outgoing = source == call.caller_source
     local speaker_supported = Bridge.Speaker.IsEnabled() and (
         call.voice_provider == "yaca"
@@ -135,6 +151,32 @@ local function send_state(call, source, state, channel)
     if call.payphone and outgoing then
         payload.elapsedSeconds = call.payphone.elapsed_seconds or 0
         payload.totalCost = call.payphone.total_cost or 0
+    end
+    return payload, outgoing
+end
+
+local function call_snapshot(call, source)
+    local state = call.answered_at and "connected" or "ringing"
+    local channel = state == "connected" and call.channel or nil
+    local payload = call_payload(call, source, state, channel)
+    payload.anonymous = false
+    payload.caller = {
+        number = call.caller_number,
+        source = call.caller_source,
+    }
+    payload.callee = {
+        number = call.callee_number,
+        source = call.callee_source,
+    }
+    payload.companyId = call.company_id
+    payload.payphone = call.payphone ~= nil
+    payload.video = false
+    return payload
+end
+
+local function send_state(call, source, state, channel)
+    local payload, outgoing = call_payload(call, source, state, channel)
+    if call.payphone and outgoing then
         TriggerClientEvent("sky_phone:payphone:state", source, payload)
         return
     end
@@ -328,6 +370,94 @@ local function finish_call(call, status)
         send_payphone_visual(call, "stop", hangup_duration)
     end
     calls[call.id] = nil
+end
+
+local function active_call_for_source(source)
+    local call_id = active_by_source[source]
+    local call = call_id and calls[call_id] or nil
+    if not call or call.ended
+        or (call.caller_source ~= source and call.callee_source ~= source)
+    then
+        return nil
+    end
+    return call
+end
+
+local function end_active_call(call, source)
+    if call.company_service_call and not call.answered_at and call.callee_source == source then
+        if call.rerouting then
+            return false, "call_not_found"
+        end
+        if not reroute_company_call(call, "declined") then
+            finish_call(call, "declined")
+        end
+        return true
+    end
+
+    finish_call(call, call.answered_at and "completed" or "cancelled")
+    return true
+end
+
+function SkyPhoneCalls.GetForSource(source)
+    if not is_player_source(source) then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid player source for call lookup.")
+        return nil, "invalid_source"
+    end
+
+    local call = active_call_for_source(source)
+    if not call then
+        return nil, "call_not_found"
+    end
+
+    return call_snapshot(call, source)
+end
+
+function SkyPhoneCalls.GetById(call_id)
+    if not is_uuid(call_id) then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid call ID for call lookup.")
+        return nil, "invalid_call_id"
+    end
+
+    local call = calls[call_id]
+    if not call or call.ended then
+        return nil, "call_not_found"
+    end
+
+    return call_snapshot(call, call.caller_source)
+end
+
+function SkyPhoneCalls.IsActiveForSource(source)
+    if not is_player_source(source) then
+        return false
+    end
+    return active_call_for_source(source) ~= nil
+end
+
+function SkyPhoneCalls.EndForSource(source)
+    if not is_player_source(source) then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid player source for call termination.")
+        return false, "invalid_source"
+    end
+
+    local call = active_call_for_source(source)
+    if not call then
+        return false, "call_not_found"
+    end
+    return end_active_call(call, source)
+end
+
+function SkyPhoneCalls.TerminateForSource(source)
+    if not is_player_source(source) then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid player source for forced call termination.")
+        return false, "invalid_source"
+    end
+
+    local call = active_call_for_source(source)
+    if not call then
+        return false, "call_not_found"
+    end
+    finish_call(call, call.answered_at and "completed" or "cancelled")
+    return true
 end
 
 function SkyPhoneCalls.EndForSim(sim_id, reason)
@@ -979,7 +1109,9 @@ Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
         dial_locks[source] = nil
         return { success = false, error = "airplane_mode" }
     end
-    local service_line = SkyPhoneCompanies.GetServiceLine(data.phoneNumber)
+    local service_line = type(data.company) == "string"
+        and SkyPhoneCompanies.GetServiceLineForCompany(data.company)
+        or SkyPhoneCompanies.GetServiceLine(data.phoneNumber)
     local number = service_line and service_line.number
         or SkyPhoneSimNumber.Normalize(data.phoneNumber, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
     if not number then
@@ -1359,14 +1491,18 @@ Bridge.Callbacks.Register("sky_phone:calls:hangup", function(source, data)
     then
         return { success = false, error = "call_not_found" }
     end
-    if call.company_service_call and not call.answered_at and call.callee_source == source then
-        if call.rerouting then
-            return { success = false, error = "call_not_found" }
-        end
-        if not reroute_company_call(call, "declined") then
-            finish_call(call, "declined")
-        end
-        return { success = true }
+    local success, call_error = end_active_call(call, source)
+    return { success = success, error = call_error }
+end)
+
+Bridge.Callbacks.Register("sky_phone:calls:terminate", function(source, data)
+    local call_id = active_by_source[source]
+    local call = call_id and calls[call_id] or nil
+    if not call
+        or type(data) ~= "table"
+        or data.id ~= call.id
+    then
+        return { success = false, error = "call_not_found" }
     end
     finish_call(call, call.answered_at and "completed" or "cancelled")
     return { success = true }

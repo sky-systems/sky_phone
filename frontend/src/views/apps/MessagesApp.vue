@@ -126,6 +126,19 @@ const gifLoading = ref(false)
 const gifError = ref<string | null>(null)
 const gifHasMore = ref(true)
 const gifNextOffset = ref(0)
+const gifColumns = computed<[GifSearchResult[], GifSearchResult[]]>(() => {
+  const columns: [GifSearchResult[], GifSearchResult[]] = [[], []]
+  const columnHeights = [0, 0]
+
+  for (const gif of gifResults.value) {
+    const columnIndex = columnHeights[0] <= columnHeights[1] ? 0 : 1
+    columns[columnIndex].push(gif)
+    columnHeights[columnIndex] +=
+      Math.max(1, gif.height) / Math.max(1, gif.width)
+  }
+
+  return columns
+})
 const recording = ref(false)
 const recordingStarting = ref(false)
 const recordingElapsedMs = ref(0)
@@ -1235,7 +1248,7 @@ onBeforeUnmount(() => {
         :clear-label="phone.t('Common.clear')"
       />
       <SkyFab
-        variant="neutral"
+        variant="glass"
         :aria-label="phone.t('Apps.messages.compose')"
         @click="beginCompose"
       >
@@ -1714,7 +1727,10 @@ onBeforeUnmount(() => {
             {{ phone.t('Apps.messages.noContactsToShare') }}
           </p>
         </SkyList>
-        <div v-else class="messages-media-picker__gifs">
+        <div
+          v-else
+          class="messages-media-picker__gifs messages-media-picker__gifs--masonry"
+        >
           <SkySearchbar
             v-model="gifQuery"
             class="messages-gif-search"
@@ -1724,18 +1740,27 @@ onBeforeUnmount(() => {
             @input="queueGifSearch"
             @clear="queueGifSearch"
           />
-          <button
-            v-for="gif in gifResults"
-            :key="gif.id"
-            type="button"
-            :aria-label="gif.title"
-            :style="{
-              aspectRatio: `${Math.max(1, gif.width)} / ${Math.max(1, gif.height)}`,
-            }"
-            @click="sendAttachment('gif', gif.url)"
-          >
-            <img :src="gif.previewUrl" :alt="gif.title" loading="lazy" />
-          </button>
+          <div v-if="gifResults.length" class="messages-gif-grid">
+            <div
+              v-for="(column, columnIndex) in gifColumns"
+              :key="columnIndex"
+              class="messages-gif-column"
+            >
+              <button
+                v-for="gif in column"
+                :key="gif.id"
+                type="button"
+                class="messages-gif-result"
+                :aria-label="gif.title"
+                :style="{
+                  aspectRatio: `${Math.max(1, gif.width)} / ${Math.max(1, gif.height)}`,
+                }"
+                @click="sendAttachment('gif', gif.url)"
+              >
+                <img :src="gif.previewUrl" :alt="gif.title" loading="lazy" />
+              </button>
+            </div>
+          </div>
           <button
             v-if="gifResults.length && gifHasMore && !gifLoading"
             type="button"
