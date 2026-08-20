@@ -20,6 +20,17 @@ const phoneServer = readFileSync(
   new URL('../../../sky_phone/source/server/phone.lua', import.meta.url),
   'utf8',
 )
+const persistenceServer = readFileSync(
+  new URL(
+    '../../../sky_phone/source/server/phone_persistence.lua',
+    import.meta.url,
+  ),
+  'utf8',
+)
+const simServer = readFileSync(
+  new URL('../../../sky_phone/source/server/sim.lua', import.meta.url),
+  'utf8',
+)
 const phoneClient = readFileSync(
   new URL('../../../sky_phone/source/client/main.lua', import.meta.url),
   'utf8',
@@ -61,8 +72,8 @@ describe('standalone admin panel contracts', () => {
 
   it('uses a compact transparent shell with dedicated admin workspaces', () => {
     expect(source).toContain('background: transparent')
-    expect(source).toContain('width: min(84vw, 1420px)')
-    expect(source).toContain('height: min(82vh, 820px)')
+    expect(source).toContain('width: min(76vw, 1220px)')
+    expect(source).toContain('height: min(74vh, 700px)')
     expect(source).not.toContain('backdrop-filter: blur(2px)')
 
     for (const tab of [
@@ -70,12 +81,23 @@ describe('standalone admin panel contracts', () => {
       'players',
       'devices',
       'apps',
-      'security',
+      'accounts',
+      'messages',
+      'calls',
+      'moderation',
       'audit',
     ]) {
       expect(source).toContain(`selectTab('${tab}')`)
       expect(source).toContain(`t('tabs.${tab}')`)
     }
+  })
+
+  it('removes manual reload and applies a persistent global accent choice', () => {
+    expect(source).not.toContain('<RefreshCw')
+    expect(source).not.toContain("kind: 'refresh'")
+    expect(source).toContain("'sky-phone-admin-accent'")
+    expect(source).toContain(':style="{ \'--admin-accent\': accentColor }"')
+    expect(source).toContain('color-mix(in srgb, var(--admin-green)')
   })
 
   it('stages app changes locally and saves them only from the toolbar action', () => {
@@ -90,17 +112,44 @@ describe('standalone admin panel contracts', () => {
   })
 
   it('connects every operation through the standard NUI callback bridge', () => {
-    expect(bridge).toContain(
-      'admin = [[bootstrap player save-apps reveal-password]]',
-    )
+    expect(bridge).toContain('admin = [[')
     for (const endpoint of [
       'admin:bootstrap',
       'admin:player',
       'admin:save-apps',
       'admin:reveal-password',
+      'admin:activity',
+      'admin:reset-passcode',
+      'admin:change-number',
+      'admin:factory-reset',
     ]) {
       expect(store).toContain(endpoint)
     }
+  })
+
+  it('protects activity views and device moderation with ownership and audit checks', () => {
+    for (const endpoint of [
+      'activity',
+      'reset-passcode',
+      'change-number',
+      'factory-reset',
+    ]) {
+      expect(server).toContain(
+        `Bridge.Callbacks.Register("sky_phone:admin:${endpoint}"`,
+      )
+    }
+    expect(server).toContain('data.kind ~= "messages"')
+    expect(server).toContain('data.kind ~= "calls"')
+    expect(server).toContain('"view_messages"')
+    expect(server).toContain('"view_calls"')
+    expect(server).toContain('"reset_passcode"')
+    expect(server).toContain('"change_number"')
+    expect(server).toContain('"factory_reset"')
+    expect(simServer).toContain('function SkyPhoneSim.ChangeNumber(')
+    expect(simServer).toContain('UPDATE IGNORE `sky_phone_sims`')
+    expect(persistenceServer).toContain(
+      'function SkyPhonePersistence.FactoryReset(imei)',
+    )
   })
 
   it('authorizes every server request without requiring a phone session', () => {

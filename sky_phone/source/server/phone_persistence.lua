@@ -1,4 +1,6 @@
 Bridge.Database.AfterMigration("sky_phone", function()
+SkyPhonePersistence = {}
+
 local max_device_data_bytes = 100000
 local allowed_device_namespaces = {
     settings = true,
@@ -150,6 +152,69 @@ Bridge.Callbacks.Register("sky_phone:notifications:save", function(source, data)
     return { success = true }
 end)
 
+function SkyPhonePersistence.FactoryReset(imei)
+    if not SkyPhoneImei.IsValid(imei) then
+        return false, "invalid_request"
+    end
+
+    local device = SkyPhone.LoadDevice(imei)
+    if not device then
+        return false, "device_not_found"
+    end
+    local phone_number = device and device.phone_number or nil
+    local media_remote_ids = SkyPhoneMedia.GetDeviceRemoteIds(imei)
+    if not Bridge.Database.Transaction({
+        {
+            query = "DELETE FROM `sky_phone_device_security` WHERE `device_imei` = ?",
+            params = { imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_device_data` WHERE `device_imei` = ?",
+            params = { imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_custom_app_data` WHERE `device_imei` = ?",
+            params = { imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_notes` WHERE `device_imei` = ? AND `account_id` IS NULL",
+            params = { imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_media` WHERE `device_imei` = ? AND `account_id` IS NULL",
+            params = { imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_music_playlists` WHERE `device_imei` = ? AND `account_id` IS NULL",
+            params = { imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_music_youtube_songs` WHERE `device_imei` = ? AND `account_id` IS NULL",
+            params = { imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_contacts` WHERE `device_imei` = ? AND `account_id` IS NULL",
+            params = { imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_call_entries` WHERE `device_imei` = ? AND `account_id` IS NULL",
+            params = { imei },
+        },
+        {
+            query = "DELETE FROM `sky_phone_fliptok_sessions` WHERE `device_imei` = ?",
+            params = { imei },
+        },
+        {
+            query = "UPDATE `sky_phone_devices` SET `account_id` = NULL, `device_name` = ? WHERE `imei` = ?",
+            params = { Config.Phone.DeviceName, imei },
+        },
+    }) then
+        return false, "request_failed"
+    end
+    SkyPhoneMedia.CleanupRemoteFiles(media_remote_ids)
+    return true, phone_number
+end
+
 Bridge.Callbacks.Register("sky_phone:device:factory-reset", function(source)
     if not SkyPhone.AllowOperation(source, "factory_reset", 3, 60) then
         return { success = false, error = "rate_limited" }
@@ -158,58 +223,11 @@ Bridge.Callbacks.Register("sky_phone:device:factory-reset", function(source)
     if not session then
         return error_response
     end
-    local device = SkyPhone.LoadDevice(session.imei)
-    local phone_number = device and device.phone_number or nil
-    local media_remote_ids = SkyPhoneMedia.GetDeviceRemoteIds(session.imei)
-    if not Bridge.Database.Transaction({
-        {
-            query = "DELETE FROM `sky_phone_device_security` WHERE `device_imei` = ?",
-            params = { session.imei },
-        },
-        {
-            query = "DELETE FROM `sky_phone_device_data` WHERE `device_imei` = ?",
-            params = { session.imei },
-        },
-        {
-            query = "DELETE FROM `sky_phone_custom_app_data` WHERE `device_imei` = ?",
-            params = { session.imei },
-        },
-        {
-            query = "DELETE FROM `sky_phone_notes` WHERE `device_imei` = ? AND `account_id` IS NULL",
-            params = { session.imei },
-        },
-        {
-            query = "DELETE FROM `sky_phone_media` WHERE `device_imei` = ? AND `account_id` IS NULL",
-            params = { session.imei },
-        },
-        {
-            query = "DELETE FROM `sky_phone_music_playlists` WHERE `device_imei` = ? AND `account_id` IS NULL",
-            params = { session.imei },
-        },
-        {
-            query = "DELETE FROM `sky_phone_music_youtube_songs` WHERE `device_imei` = ? AND `account_id` IS NULL",
-            params = { session.imei },
-        },
-        {
-            query = "DELETE FROM `sky_phone_contacts` WHERE `device_imei` = ? AND `account_id` IS NULL",
-            params = { session.imei },
-        },
-        {
-            query = "DELETE FROM `sky_phone_call_entries` WHERE `device_imei` = ? AND `account_id` IS NULL",
-            params = { session.imei },
-        },
-        {
-            query = "DELETE FROM `sky_phone_fliptok_sessions` WHERE `device_imei` = ?",
-            params = { session.imei },
-        },
-        {
-            query = "UPDATE `sky_phone_devices` SET `account_id` = NULL, `device_name` = ? WHERE `imei` = ?",
-            params = { Config.Phone.DeviceName, session.imei },
-        },
-    }) then
-        return { success = false, error = "request_failed" }
+
+    local reset, phone_number = SkyPhonePersistence.FactoryReset(session.imei)
+    if not reset then
+        return { success = false, error = phone_number }
     end
-    SkyPhoneMedia.CleanupRemoteFiles(media_remote_ids)
     session.unlocked = true
     if phone_number then
         TriggerEvent("sky_phone:server:factoryReset", source, phone_number)

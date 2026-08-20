@@ -14,12 +14,17 @@ import {
   LayoutDashboard,
   LoaderCircle,
   LockKeyhole,
-  RefreshCw,
+  MessageSquare,
+  Palette,
+  PhoneCall,
+  PhoneForwarded,
   Save,
   ScrollText,
   Search,
+  ShieldAlert,
   ShieldCheck,
   Smartphone,
+  Trash2,
   TriangleAlert,
   UsersRound,
   WalletCards,
@@ -51,12 +56,13 @@ type AdminTab =
   | 'players'
   | 'devices'
   | 'apps'
-  | 'security'
+  | 'accounts'
+  | 'messages'
+  | 'calls'
+  | 'moderation'
   | 'audit'
-type PendingAction =
-  | { kind: 'close' }
-  | { kind: 'player'; source: number }
-  | { kind: 'refresh' }
+type DeviceAction = 'reset-passcode' | 'change-number' | 'factory-reset'
+type PendingAction = { kind: 'close' } | { kind: 'player'; source: number }
 
 const emit = defineEmits<{ close: [] }>()
 const admin = useAdminStore()
@@ -68,11 +74,22 @@ const selectedImei = ref('')
 const drafts = ref<Record<string, Record<string, boolean>>>({})
 const saving = ref(false)
 const revealDialogImei = ref('')
+const deviceAction = ref<DeviceAction | null>(null)
+const deviceActionInput = ref('')
 const discardDialog = ref(false)
 const pendingAction = ref<PendingAction | null>(null)
 const toast = ref('')
 const toastTone = ref<'error' | 'success'>('success')
 let toastTimer: number | undefined
+
+const accentOptions = [
+  { color: '#74d66f', key: 'emerald' },
+  { color: '#4f9cff', key: 'blue' },
+  { color: '#a875ff', key: 'violet' },
+  { color: '#f0a24b', key: 'orange' },
+  { color: '#ef6969', key: 'red' },
+] as const
+const accentColor = ref<(typeof accentOptions)[number]['color']>('#74d66f')
 
 const filteredPlayers = computed(() => {
   const needle = playerQuery.value.trim().toLocaleLowerCase(phone.lang)
@@ -139,6 +156,16 @@ const revealedCredential = computed(() =>
     ? admin.revealedCredentials[selectedDevice.value.imei]
     : undefined,
 )
+const selectedMessages = computed(() =>
+  selectedDevice.value
+    ? (admin.deviceActivity[selectedDevice.value.imei]?.messages ?? [])
+    : [],
+)
+const selectedCalls = computed(() =>
+  selectedDevice.value
+    ? (admin.deviceActivity[selectedDevice.value.imei]?.calls ?? [])
+    : [],
+)
 
 watch(
   () => admin.selectedPlayer,
@@ -146,6 +173,22 @@ watch(
     if (!player?.devices.some((device) => device.imei === selectedImei.value)) {
       selectedImei.value = player?.devices[0]?.imei ?? ''
     }
+  },
+)
+
+watch(
+  [tab, selectedImei, () => admin.selectedPlayer?.source],
+  ([currentTab, imei, source]) => {
+    if (
+      !source ||
+      !imei ||
+      (currentTab !== 'messages' && currentTab !== 'calls')
+    ) {
+      return
+    }
+    void admin.loadActivity(source, imei, currentTab).then((loaded) => {
+      if (!loaded) showToast(errorText(), 'error')
+    })
   },
 )
 
@@ -178,6 +221,12 @@ function formatDate(value: string): string {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(date)
+}
+
+function formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+  const remainder = Math.max(0, seconds % 60)
+  return `${minutes}:${String(remainder).padStart(2, '0')}`
 }
 
 function initials(name: string): string {
@@ -261,15 +310,16 @@ function selectTab(nextTab: AdminTab): void {
   tab.value = nextTab
 }
 
+function selectAccent(color: (typeof accentOptions)[number]['color']): void {
+  accentColor.value = color
+  window.localStorage.setItem('sky-phone-admin-accent', color)
+}
+
 async function runAction(action: PendingAction): Promise<void> {
   if (action.kind === 'close') {
     const response = await nuiCall('admin:close')
     if (response.success) emit('close')
     else showToast(errorText(response.error), 'error')
-    return
-  }
-  if (action.kind === 'refresh') {
-    await refreshData()
     return
   }
   await loadPlayer(action.source)
@@ -340,6 +390,48 @@ async function copyPassword(): Promise<void> {
   }
 }
 
+function openDeviceAction(action: DeviceAction): void {
+  if (!selectedDevice.value) return
+  deviceActionInput.value =
+    action === 'change-number' ? (selectedDevice.value.number ?? '') : ''
+  deviceAction.value = action
+}
+
+function cancelDeviceAction(): void {
+  deviceAction.value = null
+  deviceActionInput.value = ''
+}
+
+async function confirmDeviceAction(): Promise<void> {
+  const player = admin.selectedPlayer
+  const device = selectedDevice.value
+  const action = deviceAction.value
+  if (!player || !device || !action || admin.actionKey) return
+
+  let response
+  if (action === 'reset-passcode') {
+    response = await admin.resetPasscode(player.source, device.imei)
+  } else if (action === 'change-number') {
+    response = await admin.changeNumber(
+      player.source,
+      device.imei,
+      deviceActionInput.value,
+    )
+  } else {
+    response = await admin.factoryReset(player.source, device.imei)
+  }
+  if (!response.success) {
+    showToast(errorText(response.error), 'error')
+    return
+  }
+
+  if (action === 'factory-reset') delete drafts.value[device.imei]
+  deviceAction.value = null
+  deviceActionInput.value = ''
+  showToast(t(`moderation.${action}Success`))
+  await admin.load()
+}
+
 function auditDescription(entry: AdminAuditEntry): string {
   const appId =
     typeof entry.details.appId === 'string' ? entry.details.appId : ''
@@ -358,6 +450,11 @@ function onKeydown(event: KeyboardEvent): void {
     revealDialogImei.value = ''
     return
   }
+  if (deviceAction.value) {
+    deviceAction.value = null
+    deviceActionInput.value = ''
+    return
+  }
   if (discardDialog.value) {
     discardDialog.value = false
     pendingAction.value = null
@@ -368,6 +465,11 @@ function onKeydown(event: KeyboardEvent): void {
 
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
+  const storedAccent = window.localStorage.getItem('sky-phone-admin-accent')
+  const storedOption = accentOptions.find(
+    (option) => option.color === storedAccent,
+  )
+  if (storedOption) accentColor.value = storedOption.color
   void refreshData()
 })
 
@@ -378,7 +480,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="admin-panel-overlay" role="dialog" :aria-label="t('name')">
+  <div
+    class="admin-panel-overlay"
+    role="dialog"
+    :aria-label="t('name')"
+    :style="{ '--admin-accent': accentColor }"
+  >
     <div class="admin-panel-window">
       <header class="admin-panel-header">
         <div class="admin-panel-brand">
@@ -405,16 +512,6 @@ onBeforeUnmount(() => {
           <span v-if="hasChanges" class="admin-panel-dirty">
             <span></span>{{ t('editor.unsaved') }} · {{ pendingCount }}
           </span>
-          <button
-            type="button"
-            class="admin-panel-icon-button"
-            :aria-label="t('editor.refresh')"
-            :title="t('editor.refresh')"
-            :disabled="admin.loading || saving"
-            @click="queueAction({ kind: 'refresh' })"
-          >
-            <RefreshCw :size="17" :class="{ 'is-spinning': admin.loading }" />
-          </button>
           <button
             type="button"
             class="admin-panel-save"
@@ -479,12 +576,39 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
-            :class="{ 'is-active': tab === 'security' }"
-            :aria-label="t('tabs.security')"
-            :title="t('tabs.security')"
-            @click="selectTab('security')"
+            :class="{ 'is-active': tab === 'accounts' }"
+            :aria-label="t('tabs.accounts')"
+            :title="t('tabs.accounts')"
+            @click="selectTab('accounts')"
           >
             <KeyRound :size="19" />
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': tab === 'messages' }"
+            :aria-label="t('tabs.messages')"
+            :title="t('tabs.messages')"
+            @click="selectTab('messages')"
+          >
+            <MessageSquare :size="19" />
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': tab === 'calls' }"
+            :aria-label="t('tabs.calls')"
+            :title="t('tabs.calls')"
+            @click="selectTab('calls')"
+          >
+            <PhoneCall :size="19" />
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': tab === 'moderation' }"
+            :aria-label="t('tabs.moderation')"
+            :title="t('tabs.moderation')"
+            @click="selectTab('moderation')"
+          >
+            <ShieldAlert :size="19" />
           </button>
           <button
             type="button"
@@ -495,10 +619,6 @@ onBeforeUnmount(() => {
           >
             <ScrollText :size="19" />
           </button>
-          <div class="admin-panel-rail__spacer"></div>
-          <span class="admin-panel-live" :title="t('players.online')">
-            <span></span>{{ t('editor.online') }}
-          </span>
         </nav>
 
         <aside class="admin-panel-directory">
@@ -535,11 +655,35 @@ onBeforeUnmount(() => {
                 </span>
                 <ChevronRight :size="14" />
               </button>
-              <button type="button" @click="selectTab('security')">
+              <button type="button" @click="selectTab('accounts')">
                 <KeyRound :size="17" />
                 <span>
-                  <strong>{{ t('tabs.security') }}</strong>
-                  <small>{{ t('overview.securityFeature') }}</small>
+                  <strong>{{ t('tabs.accounts') }}</strong>
+                  <small>{{ t('overview.accountFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
+              <button type="button" @click="selectTab('messages')">
+                <MessageSquare :size="17" />
+                <span>
+                  <strong>{{ t('tabs.messages') }}</strong>
+                  <small>{{ t('overview.messageFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
+              <button type="button" @click="selectTab('calls')">
+                <PhoneCall :size="17" />
+                <span>
+                  <strong>{{ t('tabs.calls') }}</strong>
+                  <small>{{ t('overview.callFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
+              <button type="button" @click="selectTab('moderation')">
+                <ShieldAlert :size="17" />
+                <span>
+                  <strong>{{ t('tabs.moderation') }}</strong>
+                  <small>{{ t('overview.moderationFeature') }}</small>
                 </span>
                 <ChevronRight :size="14" />
               </button>
@@ -643,9 +787,6 @@ onBeforeUnmount(() => {
             class="admin-panel-editor__scroll"
           >
             <div class="admin-panel-page-heading">
-              <div class="admin-panel-heading-icon">
-                <LayoutDashboard :size="23" />
-              </div>
               <div>
                 <span>{{ t('overview.eyebrow') }}</span>
                 <h1>{{ t('overview.title') }}</h1>
@@ -676,52 +817,37 @@ onBeforeUnmount(() => {
               </article>
             </div>
 
-            <article class="admin-panel-section-card">
+            <article
+              class="admin-panel-section-card admin-panel-section-card--compact"
+            >
               <div class="admin-panel-section-card__heading">
                 <div>
-                  <span>{{ t('overview.control') }}</span>
-                  <h2>{{ t('overview.features') }}</h2>
-                  <p>{{ t('overview.featuresBody') }}</p>
+                  <span>{{ t('appearance.eyebrow') }}</span>
+                  <h2>{{ t('appearance.title') }}</h2>
+                  <p>{{ t('appearance.body') }}</p>
                 </div>
-                <ShieldCheck :size="20" />
+                <Palette :size="20" />
               </div>
-              <div class="admin-panel-feature-grid">
-                <button type="button" @click="selectTab('players')">
-                  <UsersRound :size="20" />
-                  <span>
-                    <strong>{{ t('tabs.players') }}</strong>
-                    <small>{{ t('overview.playerFeature') }}</small>
-                  </span>
-                  <ChevronRight :size="15" />
-                </button>
-                <button type="button" @click="selectTab('devices')">
-                  <Smartphone :size="20" />
-                  <span>
-                    <strong>{{ t('tabs.devices') }}</strong>
-                    <small>{{ t('overview.deviceFeature') }}</small>
-                  </span>
-                  <ChevronRight :size="15" />
-                </button>
-                <button type="button" @click="selectTab('apps')">
-                  <Grid2X2 :size="20" />
-                  <span>
-                    <strong>{{ t('tabs.apps') }}</strong>
-                    <small>{{ t('overview.appFeature') }}</small>
-                  </span>
-                  <ChevronRight :size="15" />
-                </button>
-                <button type="button" @click="selectTab('security')">
-                  <KeyRound :size="20" />
-                  <span>
-                    <strong>{{ t('tabs.security') }}</strong>
-                    <small>{{ t('overview.securityFeature') }}</small>
-                  </span>
-                  <ChevronRight :size="15" />
+              <div class="admin-panel-accent-picker">
+                <button
+                  v-for="option in accentOptions"
+                  :key="option.color"
+                  type="button"
+                  :class="{ 'is-active': accentColor === option.color }"
+                  :aria-label="t('appearance.colors.' + option.key)"
+                  :title="t('appearance.colors.' + option.key)"
+                  @click="selectAccent(option.color)"
+                >
+                  <span :style="{ backgroundColor: option.color }"></span>
+                  <strong>{{ t('appearance.colors.' + option.key) }}</strong>
+                  <Check v-if="accentColor === option.color" :size="15" />
                 </button>
               </div>
             </article>
 
-            <article class="admin-panel-section-card">
+            <article
+              class="admin-panel-section-card admin-panel-section-card--compact"
+            >
               <div class="admin-panel-section-card__heading">
                 <div>
                   <span>{{ t('audit.eyebrow') }}</span>
@@ -806,6 +932,35 @@ onBeforeUnmount(() => {
                 <h1>{{ admin.selectedPlayer.name }}</h1>
                 <p>{{ admin.selectedPlayer.serverName }}</p>
               </div>
+              <div v-if="selectedDevice" class="admin-panel-player-actions">
+                <button
+                  type="button"
+                  :disabled="
+                    !selectedDevice.security.enabled || !!admin.actionKey
+                  "
+                  @click="openDeviceAction('reset-passcode')"
+                >
+                  <KeyRound :size="15" />{{ t('moderation.resetPasscode') }}
+                </button>
+                <button
+                  type="button"
+                  :disabled="!selectedDevice.number || !!admin.actionKey"
+                  @click="openDeviceAction('change-number')"
+                >
+                  <PhoneForwarded :size="15" />{{
+                    t('moderation.changeNumber')
+                  }}
+                </button>
+                <button
+                  type="button"
+                  class="is-danger"
+                  :disabled="hasChanges || !!admin.actionKey"
+                  :title="hasChanges ? t('moderation.saveFirst') : ''"
+                  @click="openDeviceAction('factory-reset')"
+                >
+                  <Trash2 :size="15" />{{ t('moderation.factoryReset') }}
+                </button>
+              </div>
               <div class="admin-panel-profile-heading__status">
                 <span><span></span>{{ t('players.online') }}</span>
                 <strong>ID {{ admin.selectedPlayer.source }}</strong>
@@ -813,7 +968,14 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-              v-if="tab === 'devices' || tab === 'apps' || tab === 'security'"
+              v-if="
+                tab === 'devices' ||
+                tab === 'apps' ||
+                tab === 'accounts' ||
+                tab === 'messages' ||
+                tab === 'calls' ||
+                tab === 'moderation'
+              "
               class="admin-panel-device-tabs"
               :aria-label="t('devices.choose')"
             >
@@ -1003,7 +1165,152 @@ onBeforeUnmount(() => {
             </article>
 
             <article
-              v-if="tab === 'security' && selectedDevice"
+              v-if="tab === 'messages' && selectedDevice"
+              class="admin-panel-section-card admin-panel-section-card--focused"
+            >
+              <div class="admin-panel-section-card__heading">
+                <div>
+                  <span>{{ t('activity.protected') }}</span>
+                  <h2>{{ t('activity.messagesTitle') }}</h2>
+                  <p>{{ t('activity.messagesBody') }}</p>
+                </div>
+                <MessageSquare :size="20" />
+              </div>
+              <div
+                v-if="admin.activityKey === selectedDevice.imei + ':messages'"
+                class="admin-panel-inline-empty"
+              >
+                <LoaderCircle :size="20" class="is-spinning" />
+                {{ t('activity.loading') }}
+              </div>
+              <div
+                v-else-if="selectedMessages.length"
+                class="admin-panel-activity-list"
+              >
+                <article v-for="entry in selectedMessages" :key="entry.id">
+                  <span class="admin-panel-activity-icon">
+                    <MessageSquare :size="17" />
+                  </span>
+                  <div>
+                    <span class="admin-panel-activity-meta">
+                      {{ t('activity.' + entry.direction) }} ·
+                      {{ entry.otherNumber }}
+                    </span>
+                    <strong>{{
+                      entry.body ||
+                      t('activity.mediaMessage', { type: entry.messageType })
+                    }}</strong>
+                    <small>{{ formatDate(entry.createdAt) }}</small>
+                  </div>
+                </article>
+              </div>
+              <div v-else class="admin-panel-inline-empty">
+                {{ t('activity.noMessages') }}
+              </div>
+            </article>
+
+            <article
+              v-if="tab === 'calls' && selectedDevice"
+              class="admin-panel-section-card admin-panel-section-card--focused"
+            >
+              <div class="admin-panel-section-card__heading">
+                <div>
+                  <span>{{ t('activity.protected') }}</span>
+                  <h2>{{ t('activity.callsTitle') }}</h2>
+                  <p>{{ t('activity.callsBody') }}</p>
+                </div>
+                <PhoneCall :size="20" />
+              </div>
+              <div
+                v-if="admin.activityKey === selectedDevice.imei + ':calls'"
+                class="admin-panel-inline-empty"
+              >
+                <LoaderCircle :size="20" class="is-spinning" />
+                {{ t('activity.loading') }}
+              </div>
+              <div
+                v-else-if="selectedCalls.length"
+                class="admin-panel-activity-list"
+              >
+                <article v-for="entry in selectedCalls" :key="entry.id">
+                  <span class="admin-panel-activity-icon">
+                    <PhoneCall :size="17" />
+                  </span>
+                  <div>
+                    <span class="admin-panel-activity-meta">
+                      {{ t('activity.' + entry.direction) }} ·
+                      {{ entry.otherNumber }}
+                    </span>
+                    <strong>
+                      {{ t('activity.status.' + entry.status) }} ·
+                      {{ formatDuration(entry.durationSeconds) }}
+                    </strong>
+                    <small>{{ formatDate(entry.startedAt) }}</small>
+                  </div>
+                </article>
+              </div>
+              <div v-else class="admin-panel-inline-empty">
+                {{ t('activity.noCalls') }}
+              </div>
+            </article>
+
+            <article
+              v-if="tab === 'moderation' && selectedDevice"
+              class="admin-panel-section-card admin-panel-section-card--focused"
+            >
+              <div class="admin-panel-section-card__heading">
+                <div>
+                  <span>{{ t('moderation.eyebrow') }}</span>
+                  <h2>{{ t('moderation.title') }}</h2>
+                  <p>{{ t('moderation.body') }}</p>
+                </div>
+                <ShieldAlert :size="20" />
+              </div>
+              <div class="admin-panel-moderation-grid">
+                <button
+                  type="button"
+                  :disabled="
+                    !selectedDevice.security.enabled || !!admin.actionKey
+                  "
+                  @click="openDeviceAction('reset-passcode')"
+                >
+                  <KeyRound :size="20" />
+                  <span>
+                    <strong>{{ t('moderation.resetPasscode') }}</strong>
+                    <small>{{ t('moderation.resetPasscodeBody') }}</small>
+                  </span>
+                  <ChevronRight :size="15" />
+                </button>
+                <button
+                  type="button"
+                  :disabled="!selectedDevice.number || !!admin.actionKey"
+                  @click="openDeviceAction('change-number')"
+                >
+                  <PhoneForwarded :size="20" />
+                  <span>
+                    <strong>{{ t('moderation.changeNumber') }}</strong>
+                    <small>{{ t('moderation.changeNumberBody') }}</small>
+                  </span>
+                  <ChevronRight :size="15" />
+                </button>
+                <button
+                  type="button"
+                  class="is-danger"
+                  :disabled="hasChanges || !!admin.actionKey"
+                  @click="openDeviceAction('factory-reset')"
+                >
+                  <Trash2 :size="20" />
+                  <span>
+                    <strong>{{ t('moderation.factoryReset') }}</strong>
+                    <small>{{ t('moderation.factoryResetBody') }}</small>
+                  </span>
+                  <ChevronRight :size="15" />
+                </button>
+              </div>
+            </article>
+
+            <article
+              v-if="tab === 'accounts' && selectedDevice"
               class="admin-panel-section-card admin-panel-section-card--focused"
             >
               <div class="admin-panel-section-card__heading">
@@ -1140,7 +1447,14 @@ onBeforeUnmount(() => {
             </article>
 
             <article
-              v-if="(tab === 'apps' || tab === 'security') && !selectedDevice"
+              v-if="
+                (tab === 'apps' ||
+                  tab === 'accounts' ||
+                  tab === 'messages' ||
+                  tab === 'calls' ||
+                  tab === 'moderation') &&
+                !selectedDevice
+              "
               class="admin-panel-section-card admin-panel-section-card--focused"
             >
               <div class="admin-panel-inline-empty">
@@ -1204,6 +1518,77 @@ onBeforeUnmount(() => {
       </section>
     </div>
 
+    <div v-if="deviceAction" class="admin-panel-dialog-backdrop">
+      <section class="admin-panel-dialog" role="alertdialog">
+        <span
+          class="admin-panel-dialog__icon"
+          :class="{ 'is-warning': deviceAction === 'factory-reset' }"
+        >
+          <Trash2 v-if="deviceAction === 'factory-reset'" :size="21" />
+          <PhoneForwarded
+            v-else-if="deviceAction === 'change-number'"
+            :size="21"
+          />
+          <KeyRound v-else :size="21" />
+        </span>
+        <div>
+          <h2>{{ t(`moderation.dialogs.${deviceAction}Title`) }}</h2>
+          <p>{{ t(`moderation.dialogs.${deviceAction}Body`) }}</p>
+        </div>
+        <label
+          v-if="deviceAction === 'change-number'"
+          class="admin-panel-action-input"
+        >
+          <span>{{ t('moderation.phoneNumber') }}</span>
+          <input
+            v-model="deviceActionInput"
+            type="text"
+            maxlength="24"
+            :placeholder="t('moderation.phoneNumberPlaceholder')"
+          />
+        </label>
+        <label
+          v-else-if="deviceAction === 'factory-reset'"
+          class="admin-panel-action-input"
+        >
+          <span>{{
+            t('moderation.typeToConfirm', {
+              word: t('moderation.confirmWord'),
+            })
+          }}</span>
+          <input
+            v-model="deviceActionInput"
+            type="text"
+            maxlength="16"
+            :placeholder="t('moderation.confirmWord')"
+          />
+        </label>
+        <div class="admin-panel-dialog__actions">
+          <SkyButton variant="secondary" @click="cancelDeviceAction">
+            {{ t('moderation.cancel') }}
+          </SkyButton>
+          <SkyButton
+            :class="{ 'is-danger': deviceAction === 'factory-reset' }"
+            :variant="deviceAction === 'factory-reset' ? 'danger' : 'primary'"
+            :disabled="
+              !!admin.actionKey ||
+              (deviceAction === 'change-number' && !deviceActionInput.trim()) ||
+              (deviceAction === 'factory-reset' &&
+                deviceActionInput !== t('moderation.confirmWord'))
+            "
+            @click="confirmDeviceAction"
+          >
+            <LoaderCircle
+              v-if="admin.actionKey"
+              :size="15"
+              class="is-spinning"
+            />
+            {{ t(`moderation.confirm.${deviceAction}`) }}
+          </SkyButton>
+        </div>
+      </section>
+    </div>
+
     <div v-if="discardDialog" class="admin-panel-dialog-backdrop">
       <section class="admin-panel-dialog" role="alertdialog">
         <span class="admin-panel-dialog__icon is-warning">
@@ -1241,8 +1626,8 @@ onBeforeUnmount(() => {
   --admin-text: #f0f3f0;
   --admin-muted: #818781;
   --admin-dim: #555b55;
-  --admin-green: #74d66f;
-  --admin-green-soft: rgba(116, 214, 111, 0.14);
+  --admin-green: var(--admin-accent, #74d66f);
+  --admin-green-soft: color-mix(in srgb, var(--admin-green) 14%, transparent);
   --admin-red: #ef6969;
   position: fixed;
   z-index: 10000;
@@ -1257,21 +1642,21 @@ onBeforeUnmount(() => {
 }
 
 .admin-panel-window {
-  width: min(84vw, 1420px);
-  height: min(82vh, 820px);
+  width: min(76vw, 1220px);
+  height: min(74vh, 700px);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--admin-bg);
   box-shadow:
-    0 24px 70px rgba(0, 0, 0, 0.68),
+    0 18px 52px rgba(0, 0, 0, 0.62),
     inset 0 1px rgba(255, 255, 255, 0.025);
 }
 
 .admin-panel-header {
-  height: 54px;
+  height: 50px;
   display: grid;
-  grid-template-columns: 250px 1fr auto;
+  grid-template-columns: 220px 1fr auto;
   align-items: center;
   border-bottom: 1px solid var(--admin-border);
   background: #0b0d0c;
@@ -1291,17 +1676,17 @@ onBeforeUnmount(() => {
 
 .admin-panel-brand {
   height: 100%;
-  gap: 10px;
-  padding: 0 15px;
+  gap: 9px;
+  padding: 0 12px;
   border-right: 1px solid var(--admin-border);
 }
 
 .admin-panel-brand__mark {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(116, 214, 111, 0.26);
+  border: 1px solid color-mix(in srgb, var(--admin-green) 26%, transparent);
   border-radius: 7px;
   color: var(--admin-green);
   background: var(--admin-green-soft);
@@ -1358,13 +1743,12 @@ onBeforeUnmount(() => {
 
 .admin-panel-dirty > span,
 .admin-panel-online-dot,
-.admin-panel-live > span,
 .admin-panel-profile-heading__status span span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--admin-green);
-  box-shadow: 0 0 8px rgba(116, 214, 111, 0.75);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--admin-green) 75%, transparent);
 }
 
 .admin-panel-dirty > span {
@@ -1382,8 +1766,8 @@ onBeforeUnmount(() => {
 
 .admin-panel-icon-button,
 .admin-panel-save {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   border-radius: 6px;
@@ -1402,10 +1786,10 @@ onBeforeUnmount(() => {
 }
 
 .admin-panel-save.is-ready {
-  border-color: rgba(116, 214, 111, 0.5);
+  border-color: color-mix(in srgb, var(--admin-green) 50%, transparent);
   color: #091009;
   background: var(--admin-green);
-  box-shadow: 0 0 18px rgba(116, 214, 111, 0.18);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--admin-green) 18%, transparent);
 }
 
 .admin-panel-save.is-ready:hover:not(:disabled) {
@@ -1423,24 +1807,24 @@ button:disabled {
 }
 
 .admin-panel-body {
-  height: calc(100% - 54px);
+  height: calc(100% - 50px);
   display: grid;
-  grid-template-columns: 54px 300px minmax(0, 1fr);
+  grid-template-columns: 50px 270px minmax(0, 1fr);
 }
 
 .admin-panel-rail {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  padding: 11px 0 10px;
+  gap: 5px;
+  padding: 8px 0;
   border-right: 1px solid var(--admin-border);
   background: #0b0d0c;
 }
 
 .admin-panel-rail button {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border-radius: 6px;
@@ -1457,20 +1841,6 @@ button:disabled {
   box-shadow: inset 2px 0 var(--admin-green);
 }
 
-.admin-panel-rail__spacer {
-  flex: 1;
-}
-
-.admin-panel-live {
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  color: var(--admin-dim);
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
-
 .admin-panel-directory {
   min-width: 0;
   overflow: hidden;
@@ -1479,7 +1849,7 @@ button:disabled {
 }
 
 .admin-panel-directory__header {
-  height: 70px;
+  height: 62px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1529,12 +1899,13 @@ button:disabled {
 }
 
 .admin-panel-overview-directory {
-  height: calc(100% - 70px);
+  height: calc(100% - 62px);
   display: grid;
   align-content: start;
-  gap: 6px;
+  gap: 0;
   overflow-y: auto;
-  padding: 0 10px 14px;
+  margin: 0 14px;
+  border-top: 1px solid var(--admin-border);
 }
 
 .admin-panel-overview-directory button,
@@ -1543,21 +1914,22 @@ button:disabled {
   grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
-  min-height: 52px;
-  padding: 8px 10px;
-  border: 1px solid var(--admin-border);
-  border-radius: 5px;
+  min-height: 47px;
+  padding: 7px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--admin-border);
+  border-radius: 0;
   color: var(--admin-muted);
-  background: #151715;
+  background: transparent;
   text-align: left;
   cursor: pointer;
 }
 
 .admin-panel-overview-directory button:hover,
 .admin-panel-feature-grid button:hover {
-  border-color: rgba(116, 214, 111, 0.24);
+  border-color: color-mix(in srgb, var(--admin-green) 24%, transparent);
   color: var(--admin-green);
-  background: #1a1d1a;
+  background: color-mix(in srgb, var(--admin-green) 5%, transparent);
 }
 
 .admin-panel-overview-directory button > svg:first-child,
@@ -1592,7 +1964,7 @@ button:disabled {
 }
 
 .admin-panel-search {
-  height: 44px;
+  height: 38px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1605,7 +1977,7 @@ button:disabled {
 }
 
 .admin-panel-search:focus-within {
-  border-color: rgba(116, 214, 111, 0.3);
+  border-color: color-mix(in srgb, var(--admin-green) 30%, transparent);
   color: var(--admin-green);
 }
 
@@ -1663,7 +2035,7 @@ button:disabled {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border: 1px solid rgba(116, 214, 111, 0.16);
+  border: 1px solid color-mix(in srgb, var(--admin-green) 16%, transparent);
   border-radius: 7px;
   color: #c7e8c4;
   background: linear-gradient(145deg, #263126, #182018);
@@ -1732,7 +2104,7 @@ button:disabled {
 }
 
 .admin-panel-audit-mini-list {
-  height: calc(100% - 70px);
+  height: calc(100% - 62px);
   padding-inline: 10px;
 }
 
@@ -1773,15 +2145,13 @@ button:disabled {
 .admin-panel-editor {
   min-width: 0;
   overflow: hidden;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px), #0b0d0c;
-  background-size: 100% 44px;
+  background: #0b0d0c;
 }
 
 .admin-panel-editor__scroll {
   height: 100%;
   overflow-y: auto;
-  padding: 18px;
+  padding: 14px;
   scrollbar-color: #343834 transparent;
   scrollbar-width: thin;
 }
@@ -1795,19 +2165,19 @@ button:disabled {
 
 .admin-panel-profile-heading {
   gap: 13px;
-  min-height: 72px;
-  padding: 4px 5px 16px;
+  min-height: 64px;
+  padding: 2px 3px 12px;
 }
 
 .admin-panel-profile-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 9px;
-  font-size: 13px;
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  font-size: 12px;
 }
 
 .admin-panel-profile-heading h1 {
-  font-size: 21px;
+  font-size: 18px;
   letter-spacing: -0.025em;
 }
 
@@ -1827,6 +2197,44 @@ button:disabled {
   justify-items: end;
   gap: 5px;
   margin-left: auto;
+}
+
+.admin-panel-player-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.admin-panel-player-actions + .admin-panel-profile-heading__status {
+  margin-left: 0;
+}
+
+.admin-panel-player-actions button {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--admin-border);
+  border-radius: 5px;
+  color: #b9beb9;
+  background: #181a18;
+  font-size: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-panel-player-actions button:hover:not(:disabled) {
+  border-color: var(--admin-border-strong);
+  color: var(--admin-text);
+  background: var(--admin-panel-hover);
+}
+
+.admin-panel-player-actions button.is-danger {
+  border-color: rgba(239, 105, 105, 0.22);
+  color: #efaaaa;
+  background: rgba(239, 105, 105, 0.08);
 }
 
 .admin-panel-profile-heading__status > span {
@@ -1886,7 +2294,7 @@ button:disabled {
 }
 
 .admin-panel-device-tabs button.is-active {
-  border-color: rgba(116, 214, 111, 0.3);
+  border-color: color-mix(in srgb, var(--admin-green) 30%, transparent);
   color: var(--admin-green);
   background: var(--admin-green-soft);
 }
@@ -1916,6 +2324,11 @@ button:disabled {
 .admin-panel-stat-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 10px;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 3px;
+  background: var(--admin-panel);
 }
 
 .admin-panel-stat-grid article {
@@ -1925,9 +2338,14 @@ button:disabled {
   gap: 1px 8px;
   min-width: 0;
   padding: 10px 12px;
-  border: 1px solid var(--admin-border);
-  border-radius: 6px;
-  background: var(--admin-panel);
+  border: 0;
+  border-right: 1px solid var(--admin-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-panel-stat-grid article:last-child {
+  border-right: 0;
 }
 
 .admin-panel-stat-grid svg {
@@ -1957,9 +2375,12 @@ button:disabled {
   margin-bottom: 10px;
   padding: 13px;
   border: 1px solid var(--admin-border);
-  border-radius: 7px;
-  background: var(--admin-panel);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.015);
+  border-radius: 3px;
+  background: #0f110f;
+}
+
+.admin-panel-section-card--compact {
+  padding: 11px 12px;
 }
 
 .admin-panel-section-card--focused {
@@ -1970,6 +2391,56 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.admin-panel-accent-picker {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--admin-border);
+  border-radius: 3px;
+  background: #0b0d0c;
+}
+
+.admin-panel-accent-picker button {
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--admin-muted);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-panel-accent-picker button:hover,
+.admin-panel-accent-picker button.is-active {
+  border-color: color-mix(in srgb, var(--admin-green) 38%, transparent);
+  color: var(--admin-text);
+  background: var(--admin-green-soft);
+}
+
+.admin-panel-accent-picker button > span {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.admin-panel-accent-picker strong {
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-accent-picker svg {
+  color: var(--admin-green);
 }
 
 .admin-panel-section-card__heading {
@@ -2030,7 +2501,7 @@ button:disabled {
 .admin-panel-empty-editor__icon {
   display: grid;
   place-items: center;
-  border: 1px solid rgba(116, 214, 111, 0.16);
+  border: 1px solid color-mix(in srgb, var(--admin-green) 16%, transparent);
   color: var(--admin-green);
   background: var(--admin-green-soft);
 }
@@ -2059,6 +2530,10 @@ button:disabled {
 }
 
 .admin-panel-inline-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 18px;
   color: var(--admin-muted);
   font-size: 10px;
@@ -2167,10 +2642,10 @@ button:disabled {
   gap: 9px;
   margin-bottom: 10px;
   padding: 8px 10px;
-  border: 1px solid rgba(116, 214, 111, 0.16);
+  border: 1px solid color-mix(in srgb, var(--admin-green) 16%, transparent);
   border-radius: 5px;
   color: var(--admin-green);
-  background: rgba(116, 214, 111, 0.055);
+  background: color-mix(in srgb, var(--admin-green) 5.5%, transparent);
 }
 
 .admin-panel-manual-save-note strong {
@@ -2271,12 +2746,122 @@ button:disabled {
   background: #0b100b;
 }
 
+.admin-panel-activity-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 3px;
+}
+
+.admin-panel-activity-list article {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--admin-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-panel-activity-list article:last-child {
+  border-bottom: 0;
+}
+
+.admin-panel-activity-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--admin-green);
+  background: var(--admin-green-soft);
+}
+
+.admin-panel-activity-list article > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.admin-panel-activity-list strong,
+.admin-panel-activity-list small,
+.admin-panel-activity-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-activity-list strong {
+  font-size: 10px;
+  font-weight: 550;
+}
+
+.admin-panel-activity-list small,
+.admin-panel-activity-meta {
+  color: var(--admin-muted);
+  font-size: 8px;
+}
+
+.admin-panel-moderation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-panel-moderation-grid button {
+  min-height: 84px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid var(--admin-border);
+  border-radius: 5px;
+  color: var(--admin-green);
+  background: #161816;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-panel-moderation-grid button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--admin-green) 30%, transparent);
+  background: var(--admin-green-soft);
+}
+
+.admin-panel-moderation-grid button > span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.admin-panel-moderation-grid strong {
+  color: var(--admin-text);
+  font-size: 10px;
+}
+
+.admin-panel-moderation-grid small {
+  color: var(--admin-muted);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.admin-panel-moderation-grid button.is-danger {
+  border-color: rgba(239, 105, 105, 0.22);
+  color: #ef6969;
+  background: rgba(239, 105, 105, 0.07);
+}
+
 .admin-panel-page-heading {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 15px;
-  padding: 5px;
+  margin-bottom: 12px;
+  padding: 2px 0;
 }
 
 .admin-panel-heading-icon,
@@ -2288,20 +2873,29 @@ button:disabled {
 
 .admin-panel-page-heading h1,
 .admin-panel-empty-editor h1 {
-  font-size: 19px;
+  font-size: 17px;
 }
 
 .admin-panel-audit-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 3px;
 }
 
 .admin-panel-audit-grid article {
   display: grid;
-  gap: 7px;
-  padding: 13px;
-  border: 1px solid var(--admin-border);
-  border-radius: 6px;
-  background: var(--admin-panel);
+  gap: 5px;
+  padding: 10px 11px;
+  border: 0;
+  border-bottom: 1px solid var(--admin-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-panel-audit-grid article:last-child {
+  border-bottom: 0;
 }
 
 .admin-panel-audit-grid__topline {
@@ -2370,7 +2964,7 @@ button:disabled {
   gap: 8px;
   max-width: 390px;
   padding: 10px 13px;
-  border: 1px solid rgba(116, 214, 111, 0.25);
+  border: 1px solid color-mix(in srgb, var(--admin-green) 25%, transparent);
   border-radius: 6px;
   color: #d7ecd5;
   background: #152015;
@@ -2433,6 +3027,34 @@ button:disabled {
   margin-top: 5px;
 }
 
+.admin-panel-action-input {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+}
+
+.admin-panel-action-input span {
+  color: var(--admin-muted);
+  font-size: 9px;
+}
+
+.admin-panel-action-input input {
+  width: 100%;
+  height: 44px;
+  padding: 0 11px;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 5px;
+  outline: 0;
+  color: var(--admin-text);
+  background: #1a1c1a;
+  font: inherit;
+  font-size: 10px;
+}
+
+.admin-panel-action-input input:focus {
+  border-color: color-mix(in srgb, var(--admin-green) 45%, transparent);
+}
+
 .admin-panel-dialog__actions button {
   display: flex;
   align-items: center;
@@ -2453,9 +3075,9 @@ button:disabled {
 }
 
 .admin-panel-dialog__actions button.is-primary {
-  border-color: rgba(116, 214, 111, 0.3);
+  border-color: color-mix(in srgb, var(--admin-green) 30%, transparent);
   color: #d9eed7;
-  background: rgba(116, 214, 111, 0.14);
+  background: var(--admin-green-soft);
 }
 
 .admin-panel-dialog__actions button.is-danger {

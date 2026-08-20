@@ -340,6 +340,17 @@ local function find_owned_device(source, imei)
     return nil, identifier
 end
 
+local function load_device_sim(imei)
+    local rows = Bridge.Database.Query([[
+        SELECT sim.`id`, sim.`phone_number`
+        FROM `sky_phone_devices` device
+        JOIN `sky_phone_sims` sim ON sim.`id` = device.`sim_id`
+        WHERE device.`imei` = ?
+        LIMIT 1
+    ]], { imei })
+    return rows[1]
+end
+
 local function app_metadata(app_id)
     if BUILTIN_APPS[app_id] then
         return {
@@ -635,5 +646,219 @@ Bridge.Callbacks.Register("sky_phone:admin:reveal-password", function(source, da
             password = accounts[1].password,
         },
     }
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:activity", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "activity",
+        Config.AdminPanel.ReadRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+    if type(data) ~= "table"
+        or not SkyPhoneImei.IsValid(data.imei)
+        or (data.kind ~= "messages" and data.kind ~= "calls")
+    then
+        return { success = false, error = "invalid_request" }
+    end
+
+    local target_source = normalize_source(data.source)
+    if not target_source then
+        return { success = false, error = "player_unavailable" }
+    end
+    local device, target_identifier = find_owned_device(target_source, data.imei)
+    if not device then
+        return { success = false, error = "device_not_owned" }
+    end
+    local audit_action = data.kind == "messages" and "view_messages" or "view_calls"
+    local sim = load_device_sim(data.imei)
+    if not sim then
+        write_audit(
+            source,
+            target_source,
+            target_identifier,
+            data.imei,
+            audit_action,
+            { count = 0 }
+        )
+        return { success = true, data = { kind = data.kind, entries = {} } }
+    end
+
+    local limit = math.max(1, math.min(100, math.floor(tonumber(Config.AdminPanel.ActivityLimit) or 40)))
+    local entries = {}
+    if data.kind == "messages" then
+        local rows = Bridge.Database.Query(([[
+            SELECT `id`, `sender_sim_id`, `sender_number`, `recipient_number`, `message_type`,
+                `body`, `read_at`, `created_at`
+            FROM `sky_phone_sms_messages`
+            WHERE `sender_sim_id` = ? OR `recipient_sim_id` = ?
+            ORDER BY `created_at` DESC
+            LIMIT %s
+        ]]):format(limit), { sim.id, sim.id })
+        for _, row in ipairs(rows) do
+            local outgoing = row.sender_sim_id == sim.id
+            entries[#entries + 1] = {
+                id = row.id,
+                direction = outgoing and "outgoing" or "incoming",
+                otherNumber = outgoing and row.recipient_number or row.sender_number,
+                messageType = row.message_type,
+                body = row.body,
+                readAt = row.read_at,
+                createdAt = row.created_at,
+            }
+        end
+    else
+        local rows = Bridge.Database.Query(([[
+            SELECT `id`, `caller_sim_id`, `caller_number`, `callee_number`, `status`,
+                `started_at`, `answered_at`, `ended_at`, `duration_seconds`
+            FROM `sky_phone_calls`
+            WHERE `caller_sim_id` = ? OR `callee_sim_id` = ?
+            ORDER BY `started_at` DESC
+            LIMIT %s
+        ]]):format(limit), { sim.id, sim.id })
+        for _, row in ipairs(rows) do
+            local outgoing = row.caller_sim_id == sim.id
+            entries[#entries + 1] = {
+                id = row.id,
+                direction = outgoing and "outgoing" or "incoming",
+                otherNumber = outgoing and row.callee_number or row.caller_number,
+                status = row.status,
+                startedAt = row.started_at,
+                answeredAt = row.answered_at,
+                endedAt = row.ended_at,
+                durationSeconds = tonumber(row.duration_seconds) or 0,
+            }
+        end
+    end
+
+    write_audit(
+        source,
+        target_source,
+        target_identifier,
+        data.imei,
+        audit_action,
+        { count = #entries }
+    )
+    return { success = true, data = { kind = data.kind, entries = entries } }
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:reset-passcode", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "reset_passcode",
+        Config.AdminPanel.ActionRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+    if type(data) ~= "table" or not SkyPhoneImei.IsValid(data.imei) then
+        return { success = false, error = "invalid_request" }
+    end
+
+    local target_source = normalize_source(data.source)
+    if not target_source then
+        return { success = false, error = "player_unavailable" }
+    end
+    local device, target_identifier = find_owned_device(target_source, data.imei)
+    if not device then
+        return { success = false, error = "device_not_owned" }
+    end
+    local result = Bridge.Database.Query(
+        "DELETE FROM `sky_phone_device_security` WHERE `device_imei` = ?",
+        { data.imei }
+    )
+    if affected_rows(result) ~= 1 then
+        return { success = false, error = "passcode_not_set" }
+    end
+
+    write_audit(source, target_source, target_identifier, data.imei, "reset_passcode", {})
+    SkyPhone.RefreshDevice(data.imei)
+    return { success = true, data = load_player_detail(target_source) }
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:change-number", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "change_number",
+        Config.AdminPanel.ActionRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+    if type(data) ~= "table"
+        or not SkyPhoneImei.IsValid(data.imei)
+        or (type(data.phoneNumber) ~= "string" and type(data.phoneNumber) ~= "number")
+    then
+        return { success = false, error = "invalid_request" }
+    end
+
+    local target_source = normalize_source(data.source)
+    if not target_source then
+        return { success = false, error = "player_unavailable" }
+    end
+    local device, target_identifier = find_owned_device(target_source, data.imei)
+    if not device then
+        return { success = false, error = "device_not_owned" }
+    end
+    local sim = load_device_sim(data.imei)
+    if not sim then
+        return { success = false, error = "no_sim" }
+    end
+
+    local changed, number_or_error = SkyPhoneSim.ChangeNumber(
+        target_source,
+        data.imei,
+        sim.id,
+        data.phoneNumber
+    )
+    if not changed then
+        return { success = false, error = number_or_error }
+    end
+
+    SkyPhoneCompanies.ClearCallAvailability(target_source)
+    SkyPhoneCalls.EndForSim(sim.id, "number_changed")
+    write_audit(source, target_source, target_identifier, data.imei, "change_number", {
+        previousNumber = sim.phone_number,
+        phoneNumber = number_or_error,
+    })
+    SkyPhone.RefreshDevice(data.imei)
+    return { success = true, data = load_player_detail(target_source) }
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:factory-reset", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "factory_reset",
+        Config.AdminPanel.ActionRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+    if type(data) ~= "table" or not SkyPhoneImei.IsValid(data.imei) then
+        return { success = false, error = "invalid_request" }
+    end
+
+    local target_source = normalize_source(data.source)
+    if not target_source then
+        return { success = false, error = "player_unavailable" }
+    end
+    local device, target_identifier = find_owned_device(target_source, data.imei)
+    if not device then
+        return { success = false, error = "device_not_owned" }
+    end
+
+    local reset, phone_number_or_error = SkyPhonePersistence.FactoryReset(data.imei)
+    if not reset then
+        return { success = false, error = phone_number_or_error }
+    end
+
+    write_audit(source, target_source, target_identifier, data.imei, "factory_reset", {})
+    if phone_number_or_error then
+        TriggerEvent("sky_phone:server:factoryReset", target_source, phone_number_or_error)
+    end
+    SkyPhone.RefreshDevice(data.imei)
+    return { success = true, data = load_player_detail(target_source) }
 end)
 end)

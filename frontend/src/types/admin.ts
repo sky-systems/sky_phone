@@ -86,3 +86,28 @@ export type AdminCredential = {
   email: string
   password: string
 }
+
+export type AdminMessageActivity = {
+  body: string
+  createdAt: string
+  direction: 'incoming' | 'outgoing'
+  id: string
+  messageType: string
+  otherNumber: string
+  readAt: string | null
+}
+
+export type AdminCallActivity = {
+  answeredAt: string | null
+  direction: 'incoming' | 'outgoing'
+  durationSeconds: number
+  endedAt: string | null
+  id: string
+  otherNumber: string
+  startedAt: string
+  status: string
+}
+
+export type AdminActivityResponse =
+  | { entries: AdminMessageActivity[]; kind: 'messages' }
+  | { entries: AdminCallActivity[]; kind: 'calls' }

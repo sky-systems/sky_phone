@@ -153,6 +153,62 @@ end
 
 SkyPhoneSim.PrepareDevice = prepare_device
 
+function SkyPhoneSim.ChangeNumber(source, imei, sim_id, value)
+    local number = SkyPhoneSimNumber.Normalize(value, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+    if not number or SkyPhoneCompanies.IsServiceNumber(number) then
+        return false, "invalid_phone_number"
+    end
+
+    local sim = load_sim(sim_id)
+    if not sim then
+        return false, "no_sim"
+    end
+    if sim.phone_number == number then
+        return false, "phone_number_unchanged"
+    end
+
+    local existing = Bridge.Database.Query(
+        "SELECT `id` FROM `sky_phone_sims` WHERE `phone_number` = ? AND `id` <> ? LIMIT 1",
+        { number, sim_id }
+    )
+    if existing[1] then
+        return false, "phone_number_taken"
+    end
+
+    local phone_slot
+    if unique_phones then
+        for _, slot in ipairs(Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)) do
+            if slot.metadata and slot.metadata.imei == imei then
+                phone_slot = slot
+                break
+            end
+        end
+    end
+
+    local previous_number = sim.phone_number
+    sim.phone_number = number
+    if phone_slot and not set_phone_sim_metadata(source, phone_slot, sim) then
+        return false, "metadata_unsupported"
+    end
+
+    local result = Bridge.Database.Query([[
+        UPDATE IGNORE `sky_phone_sims`
+        SET `phone_number` = ?
+        WHERE `id` = ? AND `phone_number` = ?
+    ]], { number, sim_id, previous_number })
+    if affected_rows(result) ~= 1 then
+        if phone_slot then
+            sim.phone_number = previous_number
+            if not set_phone_sim_metadata(source, phone_slot, sim) then
+                error("[sky_phone] Could not restore SIM metadata after a failed admin number change.")
+            end
+        end
+        return false, "phone_number_taken"
+    end
+
+    return true, number
+end
+
 local function resolve_used_sim(source, used_item, item_name)
     local slot_id = used_item and (used_item.slot or used_item.id)
     local slot = slot_id and Bridge.Inventory.GetSlot(source, slot_id) or nil

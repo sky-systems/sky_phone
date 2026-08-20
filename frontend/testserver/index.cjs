@@ -3098,9 +3098,7 @@ const deviceData = {
         ringtoneVolume: 80,
         streamerMode: false,
         wallpaper: 'custom',
-        wallpaperHistory: [
-          { imageUrl: demoWallpaperUrl, wallpaper: 'custom' },
-        ],
+        wallpaperHistory: [{ imageUrl: demoWallpaperUrl, wallpaper: 'custom' }],
         wallpaperImageUrl: demoWallpaperUrl,
       },
       version: 1,
@@ -4656,26 +4654,34 @@ const adminMockApps = {
   uninstalled: ['crypto', 'skyride'],
 }
 
+const adminMockDevices = {
+  1: { account: true, number: '555-0101', security: true },
+  2: { account: true, number: '555-0102', security: true },
+}
+
 function adminMockPlayerDetail(source = 1) {
   const primary = source === 1
+  const deviceState = adminMockDevices[source] ?? adminMockDevices[1]
   return {
     birthdate: primary ? '1994-04-16' : '1998-11-03',
     devices: [
       {
-        account: {
-          email: primary ? 'demo@ifruit.com' : 'jordan@ifruit.com',
-          id: primary ? 1 : 2,
-          passwordAvailable: true,
-        },
+        account: deviceState.account
+          ? {
+              email: primary ? 'demo@ifruit.com' : 'jordan@ifruit.com',
+              id: primary ? 1 : 2,
+              passwordAvailable: true,
+            }
+          : null,
         apps: { ...adminMockApps },
         createdAt: '2026-08-15 18:42:00',
         imei: primary ? '356938035643809' : '356938035643810',
         name: primary ? 'Personal iFruit Phone' : 'Service iFruit Phone',
-        number: primary ? '555-0101' : '555-0102',
+        number: deviceState.number,
         security: {
-          enabled: true,
+          enabled: deviceState.security,
           failedAttempts: 0,
-          length: 6,
+          length: deviceState.security ? 6 : null,
           lockedUntil: 0,
         },
         simRegistered: true,
@@ -4790,6 +4796,85 @@ app.post('/api/:endpoint', async (request, response, next) => {
       success: true,
       data: { email: 'demo@ifruit.com', password: 'mock-only-password' },
     })
+    return
+  }
+  if (endpoint === 'admin:activity') {
+    if (request.body.kind === 'messages') {
+      response.json({
+        success: true,
+        data: {
+          kind: 'messages',
+          entries: [
+            {
+              body: 'Meet at Mission Row in ten minutes.',
+              createdAt: '2026-08-20 19:03:00',
+              direction: 'outgoing',
+              id: 'admin-message-1',
+              messageType: 'text',
+              otherNumber: '555-0144',
+              readAt: '2026-08-20 19:03:30',
+            },
+            {
+              body: 'Copy, I am on my way.',
+              createdAt: '2026-08-20 18:58:00',
+              direction: 'incoming',
+              id: 'admin-message-2',
+              messageType: 'text',
+              otherNumber: '555-0199',
+              readAt: null,
+            },
+          ],
+        },
+      })
+      return
+    }
+    response.json({
+      success: true,
+      data: {
+        kind: 'calls',
+        entries: [
+          {
+            answeredAt: '2026-08-20 18:49:05',
+            direction: 'incoming',
+            durationSeconds: 184,
+            endedAt: '2026-08-20 18:52:09',
+            id: 'admin-call-1',
+            otherNumber: '555-0177',
+            startedAt: '2026-08-20 18:49:00',
+            status: 'completed',
+          },
+          {
+            answeredAt: null,
+            direction: 'outgoing',
+            durationSeconds: 0,
+            endedAt: '2026-08-20 17:13:18',
+            id: 'admin-call-2',
+            otherNumber: '555-0112',
+            startedAt: '2026-08-20 17:13:00',
+            status: 'missed',
+          },
+        ],
+      },
+    })
+    return
+  }
+  if (endpoint === 'admin:reset-passcode') {
+    const source = Number(request.body.source) || 1
+    adminMockDevices[source].security = false
+    response.json({ success: true, data: adminMockPlayerDetail(source) })
+    return
+  }
+  if (endpoint === 'admin:change-number') {
+    const source = Number(request.body.source) || 1
+    adminMockDevices[source].number = String(request.body.phoneNumber ?? '')
+    response.json({ success: true, data: adminMockPlayerDetail(source) })
+    return
+  }
+  if (endpoint === 'admin:factory-reset') {
+    const source = Number(request.body.source) || 1
+    adminMockDevices[source].account = false
+    adminMockDevices[source].security = false
+    response.json({ success: true, data: adminMockPlayerDetail(source) })
     return
   }
   if (endpoint === 'music:add-youtube') {

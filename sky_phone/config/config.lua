@@ -70,6 +70,7 @@ Config.AdminPanel = {
     ActionRequestsPerMinute = 30,
     CredentialRevealsPerMinute = 6,
     AuditLimit = 40,
+    ActivityLimit = 40,
 }
 
 Config.Sim = {

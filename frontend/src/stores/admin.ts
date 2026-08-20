@@ -2,8 +2,11 @@ import { defineStore } from 'pinia'
 
 import type {
   AdminAuditEntry,
+  AdminActivityResponse,
   AdminBootstrap,
+  AdminCallActivity,
   AdminCredential,
+  AdminMessageActivity,
   AdminPlayerDetail,
   AdminPlayerSummary,
   AdminStats,
@@ -15,6 +18,7 @@ const EMPTY_STATS: AdminStats = { accounts: 0, devices: 0, online: 0 }
 export const useAdminStore = defineStore('admin', {
   state: () => ({
     actionKey: '',
+    activityKey: '',
     audit: [] as AdminAuditEntry[],
     detailLoading: false,
     error: '',
@@ -22,6 +26,10 @@ export const useAdminStore = defineStore('admin', {
     loading: false,
     players: [] as AdminPlayerSummary[],
     revealedCredentials: {} as Record<string, AdminCredential>,
+    deviceActivity: {} as Record<
+      string,
+      { calls?: AdminCallActivity[]; messages?: AdminMessageActivity[] }
+    >,
     selectedPlayer: null as AdminPlayerDetail | null,
     stats: { ...EMPTY_STATS },
   }),
@@ -94,6 +102,92 @@ export const useAdminStore = defineStore('admin', {
       this.actionKey = ''
       if (response.success && response.data) {
         this.revealedCredentials[imei] = response.data
+        this.error = ''
+      } else {
+        this.error = response.error ?? 'request_failed'
+      }
+      return response
+    },
+    async loadActivity(
+      source: number,
+      imei: string,
+      kind: 'messages' | 'calls',
+    ): Promise<boolean> {
+      this.activityKey = `${imei}:${kind}`
+      const response = await nuiCall<AdminActivityResponse>('admin:activity', {
+        imei,
+        kind,
+        source,
+      })
+      this.activityKey = ''
+      if (!response.success || !response.data) {
+        this.error = response.error ?? 'request_failed'
+        return false
+      }
+      const activity = this.deviceActivity[imei] ?? {}
+      if (response.data.kind === 'messages') {
+        activity.messages = response.data.entries
+      } else {
+        activity.calls = response.data.entries
+      }
+      this.deviceActivity[imei] = activity
+      this.error = ''
+      return true
+    },
+    async resetPasscode(
+      source: number,
+      imei: string,
+    ): Promise<NuiResponse<AdminPlayerDetail>> {
+      this.actionKey = `${imei}:reset-passcode`
+      const response = await nuiCall<AdminPlayerDetail>(
+        'admin:reset-passcode',
+        { imei, source },
+      )
+      this.actionKey = ''
+      if (response.success && response.data) {
+        this.selectedPlayer = response.data
+        delete this.revealedCredentials[imei]
+        this.error = ''
+      } else {
+        this.error = response.error ?? 'request_failed'
+      }
+      return response
+    },
+    async changeNumber(
+      source: number,
+      imei: string,
+      phoneNumber: string,
+    ): Promise<NuiResponse<AdminPlayerDetail>> {
+      this.actionKey = `${imei}:change-number`
+      const response = await nuiCall<AdminPlayerDetail>('admin:change-number', {
+        imei,
+        phoneNumber,
+        source,
+      })
+      this.actionKey = ''
+      if (response.success && response.data) {
+        this.selectedPlayer = response.data
+        delete this.deviceActivity[imei]
+        this.error = ''
+      } else {
+        this.error = response.error ?? 'request_failed'
+      }
+      return response
+    },
+    async factoryReset(
+      source: number,
+      imei: string,
+    ): Promise<NuiResponse<AdminPlayerDetail>> {
+      this.actionKey = `${imei}:factory-reset`
+      const response = await nuiCall<AdminPlayerDetail>('admin:factory-reset', {
+        imei,
+        source,
+      })
+      this.actionKey = ''
+      if (response.success && response.data) {
+        this.selectedPlayer = response.data
+        delete this.deviceActivity[imei]
+        delete this.revealedCredentials[imei]
         this.error = ''
       } else {
         this.error = response.error ?? 'request_failed'
