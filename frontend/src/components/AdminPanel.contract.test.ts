@@ -74,6 +74,11 @@ describe('standalone admin panel contracts', () => {
     expect(source).toContain('background: transparent')
     expect(source).toContain('width: min(76vw, 1220px)')
     expect(source).toContain('height: min(74vh, 700px)')
+    expect(source).toContain('--admin-row-hover: linear-gradient')
+    expect(source).toContain('--admin-row-active: linear-gradient')
+    expect(source).toContain('background: var(--admin-nav-active)')
+    expect(source).not.toContain('admin-panel-brand__mark')
+    expect(source).not.toContain('admin-panel-profile-heading__status')
     expect(source).not.toContain('backdrop-filter: blur(2px)')
 
     for (const tab of [

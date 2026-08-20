@@ -22,7 +22,6 @@ import {
   ScrollText,
   Search,
   ShieldAlert,
-  ShieldCheck,
   Smartphone,
   Trash2,
   TriangleAlert,
@@ -489,9 +488,6 @@ onBeforeUnmount(() => {
     <div class="admin-panel-window">
       <header class="admin-panel-header">
         <div class="admin-panel-brand">
-          <span class="admin-panel-brand__mark"
-            ><ShieldCheck :size="19"
-          /></span>
           <div>
             <strong>{{ t('editor.brand') }}</strong>
             <span>{{ t('editor.workspace') }}</span>
@@ -960,10 +956,6 @@ onBeforeUnmount(() => {
                 >
                   <Trash2 :size="15" />{{ t('moderation.factoryReset') }}
                 </button>
-              </div>
-              <div class="admin-panel-profile-heading__status">
-                <span><span></span>{{ t('players.online') }}</span>
-                <strong>ID {{ admin.selectedPlayer.source }}</strong>
               </div>
             </div>
 
@@ -1620,14 +1612,27 @@ onBeforeUnmount(() => {
   --admin-bg: #090b0a;
   --admin-panel: #111311;
   --admin-panel-raised: #171917;
-  --admin-panel-hover: #1d201d;
-  --admin-border: rgba(255, 255, 255, 0.075);
-  --admin-border-strong: rgba(255, 255, 255, 0.12);
+  --admin-panel-hover: #202320;
+  --admin-nav-active: #292c29;
+  --admin-border: rgba(255, 255, 255, 0.045);
+  --admin-border-strong: rgba(255, 255, 255, 0.085);
   --admin-text: #f0f3f0;
   --admin-muted: #818781;
   --admin-dim: #555b55;
   --admin-green: var(--admin-accent, #74d66f);
   --admin-green-soft: color-mix(in srgb, var(--admin-green) 14%, transparent);
+  --admin-row-hover: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--admin-green) 10%, #1b1e1b) 0%,
+    rgba(27, 30, 27, 0.52) 48%,
+    transparent 100%
+  );
+  --admin-row-active: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--admin-green) 19%, #1d201d) 0%,
+    color-mix(in srgb, var(--admin-green) 7%, #171917) 45%,
+    transparent 100%
+  );
   --admin-red: #ef6969;
   position: fixed;
   z-index: 10000;
@@ -1656,7 +1661,7 @@ onBeforeUnmount(() => {
 .admin-panel-header {
   height: 50px;
   display: grid;
-  grid-template-columns: 220px 1fr auto;
+  grid-template-columns: 320px 1fr auto;
   align-items: center;
   border-bottom: 1px solid var(--admin-border);
   background: #0b0d0c;
@@ -1676,20 +1681,8 @@ onBeforeUnmount(() => {
 
 .admin-panel-brand {
   height: 100%;
-  gap: 9px;
-  padding: 0 12px;
+  padding: 0 17px;
   border-right: 1px solid var(--admin-border);
-}
-
-.admin-panel-brand__mark {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--admin-green) 26%, transparent);
-  border-radius: 7px;
-  color: var(--admin-green);
-  background: var(--admin-green-soft);
 }
 
 .admin-panel-brand div,
@@ -1742,8 +1735,7 @@ onBeforeUnmount(() => {
 }
 
 .admin-panel-dirty > span,
-.admin-panel-online-dot,
-.admin-panel-profile-heading__status span span {
+.admin-panel-online-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -1819,7 +1811,7 @@ button:disabled {
   gap: 5px;
   padding: 8px 0;
   border-right: 1px solid var(--admin-border);
-  background: #0b0d0c;
+  background: #111311;
 }
 
 .admin-panel-rail button {
@@ -1834,11 +1826,12 @@ button:disabled {
 .admin-panel-rail button:hover,
 .admin-panel-rail button.is-active {
   color: var(--admin-text);
-  background: var(--admin-panel-hover);
+  background: #222522;
 }
 
 .admin-panel-rail button.is-active {
-  box-shadow: inset 2px 0 var(--admin-green);
+  color: #f4f6f4;
+  background: var(--admin-nav-active);
 }
 
 .admin-panel-directory {
@@ -1905,7 +1898,6 @@ button:disabled {
   gap: 0;
   overflow-y: auto;
   margin: 0 14px;
-  border-top: 1px solid var(--admin-border);
 }
 
 .admin-panel-overview-directory button,
@@ -1917,8 +1909,7 @@ button:disabled {
   min-height: 47px;
   padding: 7px 4px;
   border: 0;
-  border-bottom: 1px solid var(--admin-border);
-  border-radius: 0;
+  border-radius: 3px;
   color: var(--admin-muted);
   background: transparent;
   text-align: left;
@@ -1927,9 +1918,8 @@ button:disabled {
 
 .admin-panel-overview-directory button:hover,
 .admin-panel-feature-grid button:hover {
-  border-color: color-mix(in srgb, var(--admin-green) 24%, transparent);
   color: var(--admin-green);
-  background: color-mix(in srgb, var(--admin-green) 5%, transparent);
+  background: var(--admin-row-hover);
 }
 
 .admin-panel-overview-directory button > svg:first-child,
@@ -2012,8 +2002,8 @@ button:disabled {
   align-items: center;
   gap: 10px;
   padding: 9px 9px;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  border: 0;
+  border-radius: 3px;
   color: var(--admin-text);
   background: transparent;
   text-align: left;
@@ -2021,12 +2011,11 @@ button:disabled {
 }
 
 .admin-panel-player-list > button:hover {
-  background: #171a17;
+  background: var(--admin-row-hover);
 }
 
 .admin-panel-player-list > button.is-active {
-  border-color: var(--admin-border);
-  background: #1b1e1b;
+  background: var(--admin-row-active);
   box-shadow: inset 2px 0 var(--admin-green);
 }
 
@@ -2035,7 +2024,7 @@ button:disabled {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--admin-green) 16%, transparent);
+  border: 0;
   border-radius: 7px;
   color: #c7e8c4;
   background: linear-gradient(145deg, #263126, #182018);
@@ -2113,7 +2102,11 @@ button:disabled {
   grid-template-columns: 28px 1fr;
   gap: 9px;
   padding: 10px 5px;
-  border-bottom: 1px solid var(--admin-border);
+  border-radius: 3px;
+}
+
+.admin-panel-audit-mini-list article:hover {
+  background: var(--admin-row-hover);
 }
 
 .admin-panel-audit-icon {
@@ -2192,22 +2185,11 @@ button:disabled {
   line-height: 1.55;
 }
 
-.admin-panel-profile-heading__status {
-  display: grid;
-  justify-items: end;
-  gap: 5px;
-  margin-left: auto;
-}
-
 .admin-panel-player-actions {
   display: flex;
   align-items: center;
   gap: 5px;
   margin-left: auto;
-}
-
-.admin-panel-player-actions + .admin-panel-profile-heading__status {
-  margin-left: 0;
 }
 
 .admin-panel-player-actions button {
@@ -2237,25 +2219,6 @@ button:disabled {
   background: rgba(239, 105, 105, 0.08);
 }
 
-.admin-panel-profile-heading__status > span {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--admin-green);
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.07em;
-}
-
-.admin-panel-profile-heading__status strong {
-  padding: 4px 7px;
-  border: 1px solid var(--admin-border);
-  border-radius: 4px;
-  color: #a8aea8;
-  background: #151715;
-  font-size: 9px;
-}
-
 .admin-panel-device-tabs {
   display: flex;
   gap: 6px;
@@ -2272,8 +2235,8 @@ button:disabled {
   align-items: center;
   gap: 1px 7px;
   padding: 8px 10px;
-  border: 1px solid var(--admin-border);
-  border-radius: 6px;
+  border: 0;
+  border-radius: 3px;
   color: var(--admin-muted);
   background: #121412;
   text-align: left;
@@ -2294,9 +2257,13 @@ button:disabled {
 }
 
 .admin-panel-device-tabs button.is-active {
-  border-color: color-mix(in srgb, var(--admin-green) 30%, transparent);
   color: var(--admin-green);
-  background: var(--admin-green-soft);
+  background: var(--admin-row-active);
+  box-shadow: inset 2px 0 var(--admin-green);
+}
+
+.admin-panel-device-tabs button:hover:not(.is-active) {
+  background: var(--admin-row-hover);
 }
 
 .admin-panel-device-tabs button.is-dirty::after {
@@ -2324,11 +2291,10 @@ button:disabled {
 .admin-panel-stat-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 10px;
-  gap: 0;
+  gap: 2px;
   overflow: hidden;
-  border: 1px solid var(--admin-border);
   border-radius: 3px;
-  background: var(--admin-panel);
+  background: transparent;
 }
 
 .admin-panel-stat-grid article {
@@ -2339,13 +2305,9 @@ button:disabled {
   min-width: 0;
   padding: 10px 12px;
   border: 0;
-  border-right: 1px solid var(--admin-border);
-  border-radius: 0;
-  background: transparent;
-}
-
-.admin-panel-stat-grid article:last-child {
   border-right: 0;
+  border-radius: 0;
+  background: var(--admin-panel);
 }
 
 .admin-panel-stat-grid svg {
@@ -2374,7 +2336,7 @@ button:disabled {
 .admin-panel-section-card {
   margin-bottom: 10px;
   padding: 13px;
-  border: 1px solid var(--admin-border);
+  border: 0;
   border-radius: 3px;
   background: #0f110f;
 }
@@ -2398,7 +2360,7 @@ button:disabled {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 3px;
   padding: 3px;
-  border: 1px solid var(--admin-border);
+  border: 0;
   border-radius: 3px;
   background: #0b0d0c;
 }
@@ -2420,9 +2382,8 @@ button:disabled {
 
 .admin-panel-accent-picker button:hover,
 .admin-panel-accent-picker button.is-active {
-  border-color: color-mix(in srgb, var(--admin-green) 38%, transparent);
   color: var(--admin-text);
-  background: var(--admin-green-soft);
+  background: var(--admin-row-active);
 }
 
 .admin-panel-accent-picker button > span {
@@ -2642,7 +2603,7 @@ button:disabled {
   gap: 9px;
   margin-bottom: 10px;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--admin-green) 16%, transparent);
+  border: 0;
   border-radius: 5px;
   color: var(--admin-green);
   background: color-mix(in srgb, var(--admin-green) 5.5%, transparent);
@@ -2668,8 +2629,8 @@ button:disabled {
   gap: 8px;
   min-width: 0;
   padding: 8px;
-  border: 1px solid var(--admin-border);
-  border-radius: 5px;
+  border: 0;
+  border-radius: 3px;
   color: var(--admin-text);
   background: #161816;
   text-align: left;
@@ -2677,12 +2638,16 @@ button:disabled {
 }
 
 .admin-panel-app-grid > button:hover:not(:disabled) {
-  border-color: var(--admin-border-strong);
-  background: var(--admin-panel-hover);
+  background: var(--admin-row-hover);
 }
 
 .admin-panel-app-grid > button.is-dirty {
-  border-color: rgba(216, 170, 94, 0.32);
+  background: linear-gradient(
+    90deg,
+    rgba(216, 170, 94, 0.19) 0%,
+    rgba(216, 170, 94, 0.04) 52%,
+    transparent 100%
+  );
   box-shadow: inset 2px 0 #d8aa5e;
 }
 
@@ -2749,9 +2714,9 @@ button:disabled {
 .admin-panel-activity-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0;
+  gap: 2px;
   overflow: hidden;
-  border: 1px solid var(--admin-border);
+  border: 0;
   border-radius: 3px;
 }
 
@@ -2763,13 +2728,13 @@ button:disabled {
   min-width: 0;
   padding: 9px 10px;
   border: 0;
-  border-bottom: 1px solid var(--admin-border);
-  border-radius: 0;
-  background: transparent;
+  border-bottom: 0;
+  border-radius: 3px;
+  background: #141614;
 }
 
-.admin-panel-activity-list article:last-child {
-  border-bottom: 0;
+.admin-panel-activity-list article:hover {
+  background: var(--admin-row-hover);
 }
 
 .admin-panel-activity-icon {
@@ -2878,9 +2843,9 @@ button:disabled {
 
 .admin-panel-audit-grid {
   grid-template-columns: minmax(0, 1fr);
-  gap: 0;
+  gap: 2px;
   overflow: hidden;
-  border: 1px solid var(--admin-border);
+  border: 0;
   border-radius: 3px;
 }
 
@@ -2889,13 +2854,13 @@ button:disabled {
   gap: 5px;
   padding: 10px 11px;
   border: 0;
-  border-bottom: 1px solid var(--admin-border);
-  border-radius: 0;
-  background: transparent;
+  border-bottom: 0;
+  border-radius: 3px;
+  background: #141614;
 }
 
-.admin-panel-audit-grid article:last-child {
-  border-bottom: 0;
+.admin-panel-audit-grid article:hover {
+  background: var(--admin-row-hover);
 }
 
 .admin-panel-audit-grid__topline {
@@ -3072,6 +3037,11 @@ button:disabled {
 .admin-panel-overlay input:focus-visible {
   outline: 2px solid var(--admin-green);
   outline-offset: 2px;
+}
+
+.admin-panel-overlay .admin-panel-rail button:focus-visible {
+  outline: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.13);
 }
 
 .admin-panel-dialog__actions button.is-primary {
