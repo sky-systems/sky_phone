@@ -64,6 +64,7 @@ local function resolve(overrides)
         notification_focus = false,
         payphone_focus = false,
         sim_picker_open = false,
+        text_input_focused = false,
     }
     for key, value in pairs(overrides or {}) do
         state[key] = value
@@ -101,22 +102,23 @@ assert(
         and movable_phone.focused
         and movable_phone.keep_input
         and movable_phone.game_input
-        and movable_phone.block_game,
-    "an open phone with the cursor active must block GTA hotkeys while keeping NUI input"
+        and not movable_phone.block_game
+        and movable_phone.block_look,
+    "an open phone must allow movement without hiding the NUI cursor"
 )
 
-local cursor_disabled_phone = resolve({
+local typing_phone = resolve({
     allow_movement = true,
-    cursor_disabled = true,
     is_open = true,
+    text_input_focused = true,
 })
 assert(
-    not cursor_disabled_phone.cursor
-        and cursor_disabled_phone.focused
-        and cursor_disabled_phone.keep_input
-        and cursor_disabled_phone.game_input
-        and not cursor_disabled_phone.block_game,
-    "toggling Alt must release the NUI cursor while preserving phone and GTA input"
+    typing_phone.cursor
+        and typing_phone.focused
+        and typing_phone.keep_input
+        and typing_phone.game_input
+        and typing_phone.block_game,
+    "a focused phone text input must block GTA controls without hiding the NUI cursor"
 )
 
 local external_movement_phone = resolve({
@@ -132,6 +134,20 @@ assert(
     "an external input claim must preserve movement while the app cursor is active"
 )
 
+local external_movement_typing_phone = resolve({
+    external_game_input = true,
+    is_open = true,
+    text_input_focused = true,
+})
+assert(
+    external_movement_typing_phone.cursor
+        and external_movement_typing_phone.focused
+        and external_movement_typing_phone.keep_input
+        and external_movement_typing_phone.game_input
+        and external_movement_typing_phone.block_game,
+    "a focused text input must override an external movement claim"
+)
+
 local external_typing_phone = resolve({
     allow_movement = true,
     external_game_input = false,
@@ -144,6 +160,21 @@ assert(
         and not external_typing_phone.game_input
         and external_typing_phone.block_game,
     "an external typing claim must block GTA input"
+)
+
+local movable_cursor_disabled_phone = resolve({
+    allow_movement = true,
+    cursor_disabled = true,
+    is_open = true,
+})
+assert(
+    not movable_cursor_disabled_phone.cursor
+        and movable_cursor_disabled_phone.focused
+        and movable_cursor_disabled_phone.keep_input
+        and movable_cursor_disabled_phone.game_input
+        and not movable_cursor_disabled_phone.block_game
+        and not movable_cursor_disabled_phone.block_look,
+    "LB noFocus must preserve movement and camera look without retaining the NUI cursor"
 )
 
 local stationary_cursor_disabled_phone = resolve({
@@ -166,9 +197,10 @@ assert(firing_disabled, "focused phone cursor must block attacks while typing")
 all_controls_disabled = {}
 firing_disabled = false
 SkyPhoneFocus.ApplyGameInputControls(true)
-for _, control in ipairs({ 19, 24, 140, 141, 142, 257, 263, 264 }) do
+for _, control in ipairs({ 24, 140, 141, 142, 257, 263, 264 }) do
     assert(disabled_controls[control], ("phone control %d must remain disabled"):format(control))
 end
+assert(not disabled_controls[19], "Alt must remain available while no phone text input is focused")
 for _, control in ipairs({ 1, 2, 3, 4, 5, 6 }) do
     assert(disabled_controls[control], ("look control %d must be disabled while the phone cursor is active"):format(control))
 end
@@ -179,8 +211,8 @@ assert(firing_disabled, "player attacks must remain disabled while the phone is 
 disabled_controls = {}
 firing_disabled = false
 SkyPhoneFocus.ApplyGameInputControls(false)
-assert(not disabled_controls[1] and not disabled_controls[2], "Alt cursor toggle must restore camera look")
-assert(firing_disabled, "player attacks must remain disabled after the cursor is toggled off")
+assert(not disabled_controls[1] and not disabled_controls[2], "camera passthrough must preserve camera look")
+assert(firing_disabled, "player attacks must remain disabled during camera passthrough")
 
 local movable_notification = resolve({ allow_movement = true, notification_focus = true })
 assert(

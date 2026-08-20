@@ -193,8 +193,8 @@ RegisterNUICallback("ui:ready", function(data, cb)
 
     end
     nui_generation = nui_generation + 1
-    -- Browser state is recreated on a CEF reload. A notification focus claim
-    -- cannot survive unless its notification is replayed as part of this handshake.
+    -- Browser state is recreated on a CEF reload. Browser-owned focus claims
+    -- cannot survive unless their UI is replayed as part of this handshake.
     SkyPhoneFocus.BeginNuiHydration()
     Bridge.Debug("debug", "[sky_phone] NUI reported ready.", { always = true })
     SkyPhoneApps.SendCatalog()
@@ -243,6 +243,15 @@ RegisterNUICallback("ui:opened", function(data, cb)
     end
     SkyPhoneFocus.SetPhone(true, open_without_focus)
     TriggerEvent("sky_phone:animation:phone", true)
+    cb({ success = true })
+end)
+
+RegisterNUICallback("ui:input-focus", function(data, cb)
+    if type(data) ~= "table" or type(data.active) ~= "boolean" then
+        cb({ success = false, error = "invalid_request" })
+        return
+    end
+    SkyPhoneFocus.SetTextInputFocused(data.active and (is_open or open_requested))
     cb({ success = true })
 end)
 

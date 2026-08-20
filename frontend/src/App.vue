@@ -77,6 +77,7 @@ import { nuiCall } from '@/utils/nui'
 import { formatTimer } from '@/utils/clock'
 import { parsePhonePreferences } from '@/utils/preferences'
 import { getHairlinePixelStyle } from '@/utils/rendering'
+import { isTextInputElement } from '@/utils/textInputFocus'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 import SpringboardView from '@/views/SpringboardView.vue'
 
@@ -283,6 +284,7 @@ const isDevelopment =
   developmentParameters.get('apiBase')?.startsWith('/') === true
 const developmentLockScreenPreview =
   isDevelopment && developmentParameters.has('lockScreenPreview')
+let textInputFocused = false
 
 const phone = usePhoneStore()
 const account = useAccountStore()
@@ -1450,7 +1452,29 @@ function unlockCamera(): void {
   window.setTimeout(() => void router.push('/apps/camera'), 0)
 }
 
+function updateTextInputFocus(active: boolean): void {
+  if (textInputFocused === active) return
+  textInputFocused = active
+  void nuiCall('ui:input-focus', { active })
+}
+
+function onFocusIn(event: FocusEvent): void {
+  const target = event.target
+  updateTextInputFocus(
+    target instanceof HTMLElement && isTextInputElement(target),
+  )
+}
+
+function onFocusOut(event: FocusEvent): void {
+  const nextTarget = event.relatedTarget
+  updateTextInputFocus(
+    nextTarget instanceof HTMLElement && isTextInputElement(nextTarget),
+  )
+}
+
 onMounted(() => {
+  document.addEventListener('focusin', onFocusIn)
+  document.addEventListener('focusout', onFocusOut)
   window.addEventListener('message', onMessage)
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('resize', updateViewportScale)
@@ -1568,6 +1592,7 @@ watch(
   (isOpen) => {
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
     if (!isOpen) {
+      updateTextInputFocus(false)
       cancelUnlockedPhoneDataLoad()
       appStore.cancelPendingInstalls()
       activitySuspended.value = false
@@ -1625,6 +1650,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  updateTextInputFocus(false)
   cancelUnlockedPhoneDataLoad()
   weather.stop()
   if (clockTicker) clearInterval(clockTicker)
@@ -1639,6 +1665,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', updateViewportScale)
+  document.removeEventListener('focusin', onFocusIn)
+  document.removeEventListener('focusout', onFocusOut)
   systemColorScheme.removeEventListener('change', onSystemColorSchemeChange)
 })
 </script>

@@ -1,6 +1,6 @@
 SkyPhoneFocus = {}
 
-local blocked_phone_controls = { 19, 24, 140, 141, 142, 257, 263, 264 }
+local blocked_phone_controls = { 24, 140, 141, 142, 257, 263, 264 }
 local blocked_phone_look_controls = { 1, 2, 3, 4, 5, 6 }
 local focused_control_groups = { 0, 1, 2 }
 local state = {
@@ -16,6 +16,7 @@ local state = {
     notification_focus = false,
     payphone_focus = false,
     sim_picker_open = false,
+    text_input_focused = false,
 }
 local block_game = false
 local block_look = false
@@ -62,7 +63,7 @@ function SkyPhoneFocus.Resolve(state)
         or (state.camera_active and state.camera_nui_focused)
     local cursor = focused and not (state.is_open and state.cursor_disabled)
     return {
-        block_game = cursor and not (game_input and state.external_game_input == true),
+        block_game = cursor and (not game_input or state.text_input_focused),
         block_look = game_input and not state.cursor_disabled,
         cursor = cursor,
         focused = focused,
@@ -87,8 +88,9 @@ function SkyPhoneFocus.Reapply()
 end
 
 function SkyPhoneFocus.BeginNuiHydration()
-    -- Notification focus belongs to the browser instance and cannot survive a CEF reload.
+    -- Browser-owned focus claims cannot survive a CEF reload.
     state.notification_focus = false
+    state.text_input_focused = false
 end
 
 function SkyPhoneFocus.SetPhone(open, cursor_disabled)
@@ -105,6 +107,7 @@ function SkyPhoneFocus.SetPhone(open, cursor_disabled)
         state.cursor_disabled = false
         state.external_game_input = nil
         state.external_game_input_owner = nil
+        state.text_input_focused = false
     end
     SkyPhoneFocus.Reapply()
 end
@@ -116,6 +119,11 @@ end
 
 function SkyPhoneFocus.SetSimPicker(active)
     state.sim_picker_open = active == true
+    SkyPhoneFocus.Reapply()
+end
+
+function SkyPhoneFocus.SetTextInputFocused(active)
+    state.text_input_focused = active == true
     SkyPhoneFocus.Reapply()
 end
 
@@ -145,6 +153,7 @@ function SkyPhoneFocus.Reset()
     state.notification_focus = false
     state.payphone_focus = false
     state.sim_picker_open = false
+    state.text_input_focused = false
     block_game = false
     block_look = false
     game_input = false
@@ -159,10 +168,6 @@ CreateThread(function()
                 SkyPhoneFocus.ApplyFocusedControls()
             else
                 SkyPhoneFocus.ApplyGameInputControls(block_look)
-            end
-            if IsDisabledControlJustPressed(0, 19) then
-                state.cursor_disabled = not state.cursor_disabled
-                SkyPhoneFocus.Reapply()
             end
             Wait(0)
         else

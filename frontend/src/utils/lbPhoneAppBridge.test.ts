@@ -126,9 +126,17 @@ describe('LB Phone app bridge', () => {
       document.indexOf('globalThis.previewMode'),
     )
 
-    const runtime = /<script>([\s\S]*?)<\/script>/.exec(document)?.[1]
-    expect(runtime).toBeTruthy()
-    expect(() => new Function(runtime ?? '')).not.toThrow()
+    const openingTag = '<script>'
+    const runtimeStart = document.indexOf(openingTag)
+    const runtimeEnd = document.indexOf(
+      '</script>',
+      runtimeStart + openingTag.length,
+    )
+    expect(runtimeStart).toBeGreaterThanOrEqual(0)
+    expect(runtimeEnd).toBeGreaterThan(runtimeStart)
+
+    const runtime = document.slice(runtimeStart + openingTag.length, runtimeEnd)
+    expect(() => new Function(runtime)).not.toThrow()
   })
 
   it('persists isolated LB localStorage snapshots without app changes', () => {
