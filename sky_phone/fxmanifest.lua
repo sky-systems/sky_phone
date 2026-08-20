@@ -99,6 +99,7 @@ server_scripts {
     'source/server/phone.lua',
     'source/server/device_directory.lua',
     'source/server/db_migrate.lua',
+    'source/server/admin.lua',
     'source/server/lb_phone_migration.lua',
     'source/server/custom_app_storage.lua',
     'source/server/payphones.lua',

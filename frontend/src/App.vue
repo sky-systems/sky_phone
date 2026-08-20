@@ -518,7 +518,10 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   clock.hydrate(payload.device?.data.alarms?.payload)
   games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
-  appStore.hydrate(payload.device?.data.apps?.payload)
+  appStore.hydrate(
+    payload.device?.data.apps?.payload,
+    phone.permissions.adminPanel,
+  )
   widgets.hydrate(payload.device?.data.widgets?.payload)
 }
 

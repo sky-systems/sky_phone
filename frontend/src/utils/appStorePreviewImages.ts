@@ -1,6 +1,9 @@
 import type { BuiltinPhoneAppId } from '@/types/apps'
 
-type PreviewableBuiltinAppId = Exclude<BuiltinPhoneAppId, 'app-store'>
+type PreviewableBuiltinAppId = Exclude<
+  BuiltinPhoneAppId,
+  'admin' | 'app-store'
+>
 
 const previewModules = import.meta.glob<string>(
   '../assets/img/app-previews/*.jpg',

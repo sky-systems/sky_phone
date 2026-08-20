@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   phone: {
     device: { imei: 'phone-a' },
     isOpen: true,
+    permissions: { adminPanel: false },
     saveDeviceNamespace: vi.fn(),
   },
 }))
@@ -26,6 +27,7 @@ describe('app store', () => {
     setActivePinia(createPinia())
     mocks.phone.device.imei = 'phone-a'
     mocks.phone.isOpen = true
+    mocks.phone.permissions.adminPanel = false
     mocks.phone.saveDeviceNamespace.mockReset()
   })
 
@@ -73,6 +75,19 @@ describe('app store', () => {
     for (const dockAppId of ['phone', 'messages', 'camera', 'clock']) {
       expect(apps.homeLayout.grid).not.toContain(dockAppId)
     }
+  })
+
+  it('exposes the protected admin app only with server-granted access', () => {
+    const apps = useAppStoreStore()
+
+    apps.hydrate({ claimedApps: ['admin'] })
+    expect(apps.isInstalled('admin')).toBe(false)
+    expect(apps.homeLayout.grid).not.toContain('admin')
+
+    mocks.phone.permissions.adminPanel = true
+    apps.hydrate(null, true)
+    expect(apps.isInstalled('admin')).toBe(true)
+    expect(apps.homeLayout.grid).toContain('admin')
   })
 
   it('migrates current layouts so dock apps are not repeated in the grid', () => {

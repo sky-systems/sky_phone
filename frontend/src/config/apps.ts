@@ -42,6 +42,7 @@ import {
 import { defineAsyncComponent, markRaw, shallowReactive } from 'vue'
 
 import appStoreIcon from '@/assets/img/app-icons/apps.webp'
+import adminIcon from '@/assets/img/app-icons/admin.svg'
 import calculatorIcon from '@/assets/img/app-icons/calculator.webp'
 import cameraIcon from '@/assets/img/app-icons/camera.webp'
 import clockIcon from '@/assets/img/app-icons/clock.webp'
@@ -93,6 +94,21 @@ import type {
 } from '@/types/apps'
 
 export const PHONE_APPS = shallowReactive<PhoneAppDefinition[]>([
+  {
+    adminOnly: true,
+    category: 'utilities',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/AdminApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 31,
+    icon: markRaw(ShieldCheck),
+    iconClass: 'app-icon--admin',
+    iconImage: adminIcon,
+    id: 'admin',
+    labelKey: 'Apps.admin.name',
+    route: '/apps/admin',
+  },
   {
     category: 'utilities',
     component: markRaw(
@@ -748,6 +764,7 @@ export function getPhoneAppLabel(
 }
 
 export function isPhoneAppRemovable(app: PhoneAppDefinition): boolean {
+  if (app.adminOnly) return false
   return app.kind === 'external'
     ? app.removable && !app.defaultInstalled
     : !DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id) &&

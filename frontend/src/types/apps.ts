@@ -1,6 +1,7 @@
 import type { Component } from 'vue'
 
 export type BuiltinPhoneAppId =
+  | 'admin'
   | 'phone'
   | 'messages'
   | 'darkchat'
@@ -68,6 +69,7 @@ export type AppLaunchOrigin = {
 }
 
 type PhoneAppDefinitionBase = {
+  adminOnly?: boolean
   category: PhoneAppCategory
   dockOrder: number | null
   gridOrder: number

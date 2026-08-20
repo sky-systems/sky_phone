@@ -5,7 +5,7 @@ export type AppStorePreviewVisual = {
   surface: string
 }
 
-type PreviewableBuiltinAppId = Exclude<BuiltinPhoneAppId, 'app-store'>
+type PreviewableBuiltinAppId = Exclude<BuiltinPhoneAppId, 'admin' | 'app-store'>
 
 const APP_STORE_PREVIEW_STYLES = {
   citywarn: { accent: '#ff4f5e', surface: '#250e17' },

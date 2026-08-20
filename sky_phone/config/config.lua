@@ -61,6 +61,16 @@ Config.Security = {
     AttemptsPerMinute = 12,
 }
 
+Config.AdminPanel = {
+    Enabled = true,
+    AdminGroups = { "admin", "superadmin" },
+    MaximumPlayers = 128,
+    ReadRequestsPerMinute = 60,
+    ActionRequestsPerMinute = 30,
+    CredentialRevealsPerMinute = 6,
+    AuditLimit = 40,
+}
+
 Config.Sim = {
     Enabled = true, -- false: devices receive a persistent random number automatically; hex/esx require false
     RegisteredItem = "sky_phone_sim_registered",

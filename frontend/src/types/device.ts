@@ -50,6 +50,9 @@ export type DeviceBootstrap = {
   device: PhoneDevice
   memos: MemoDto[]
   notes: Note[]
+  permissions: {
+    adminPanel: boolean
+  }
   player: PhonePlayerIdentity
   security: DeviceSecurity
   token: string

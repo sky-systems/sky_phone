@@ -4650,6 +4650,91 @@ function companyWorkContext(testScenario = '') {
   }
 }
 
+const adminMockApps = {
+  claimed: ['citymarkt', 'darkchat', 'feather', 'local-pages'],
+  revision: 3,
+  uninstalled: ['crypto', 'skyride'],
+}
+
+function adminMockPlayerDetail(source = 1) {
+  const primary = source === 1
+  return {
+    birthdate: primary ? '1994-04-16' : '1998-11-03',
+    devices: [
+      {
+        account: {
+          email: primary ? 'demo@ifruit.com' : 'jordan@ifruit.com',
+          id: primary ? 1 : 2,
+          passwordAvailable: true,
+        },
+        apps: { ...adminMockApps },
+        createdAt: '2026-08-15 18:42:00',
+        imei: primary ? '356938035643809' : '356938035643810',
+        name: primary ? 'Personal iFruit Phone' : 'Service iFruit Phone',
+        number: primary ? '555-0101' : '555-0102',
+        security: {
+          enabled: true,
+          failedAttempts: 0,
+          length: 6,
+          lockedUntil: 0,
+        },
+        simRegistered: true,
+        simType: 'standard',
+        updatedAt: '2026-08-20 19:04:00',
+      },
+    ],
+    firstName: primary ? 'Alex' : 'Jordan',
+    identifier: primary ? 'char1:demo' : 'char1:jordan',
+    job: {
+      grade: primary ? 4 : 1,
+      gradeLabel: primary ? 'Chief' : 'Officer',
+      label: 'Los Santos Police Department',
+      name: 'police',
+      onDuty: true,
+    },
+    lastName: primary ? 'Morgan' : 'Blake',
+    money: {
+      bank: primary ? 182450 : 28450,
+      cash: primary ? 2740 : 950,
+    },
+    name: primary ? 'Alex Morgan' : 'Jordan Blake',
+    serverName: primary ? 'Skyline' : 'JordanB',
+    source,
+  }
+}
+
+function adminMockBootstrap() {
+  return {
+    audit: [
+      {
+        action: 'grant_app',
+        actorName: 'Skyline',
+        createdAt: '2026-08-20 19:04:00',
+        details: { appId: 'darkchat' },
+        deviceImei: '356938035643810',
+        id: 1,
+        targetIdentifier: 'char1:jordan',
+        targetSource: 2,
+      },
+    ],
+    players: [1, 2].map((source) => {
+      const player = adminMockPlayerDetail(source)
+      return {
+        deviceCount: player.devices.length,
+        grade: player.job.grade,
+        identifier: player.identifier,
+        job: player.job.name,
+        name: player.name,
+        onDuty: player.job.onDuty,
+        phoneNumber: player.devices[0]?.number ?? null,
+        serverName: player.serverName,
+        source,
+      }
+    }),
+    stats: { accounts: 24, devices: 31, online: 2 },
+  }
+}
+
 app.post('/api/:endpoint', async (request, response, next) => {
   const endpoint = request.params.endpoint
   const loggedBody = { ...request.body }
@@ -4661,6 +4746,40 @@ app.post('/api/:endpoint', async (request, response, next) => {
   console.log('[NUI]', endpoint, loggedBody)
   if (endpoint === 'music:bootstrap') {
     response.json({ success: true, data: musicBootstrap() })
+    return
+  }
+  if (endpoint === 'admin:bootstrap') {
+    response.json({ success: true, data: adminMockBootstrap() })
+    return
+  }
+  if (endpoint === 'admin:player') {
+    response.json({
+      success: true,
+      data: adminMockPlayerDetail(Number(request.body.source) || 1),
+    })
+    return
+  }
+  if (endpoint === 'admin:set-app') {
+    const appId = String(request.body.appId ?? '')
+    const installed = request.body.installed === true
+    adminMockApps.claimed = adminMockApps.claimed.filter((id) => id !== appId)
+    adminMockApps.uninstalled = adminMockApps.uninstalled.filter(
+      (id) => id !== appId,
+    )
+    if (installed) adminMockApps.claimed.push(appId)
+    else adminMockApps.uninstalled.push(appId)
+    adminMockApps.revision += 1
+    response.json({
+      success: true,
+      data: adminMockPlayerDetail(Number(request.body.source) || 1),
+    })
+    return
+  }
+  if (endpoint === 'admin:reveal-password') {
+    response.json({
+      success: true,
+      data: { email: 'demo@ifruit.com', password: 'mock-only-password' },
+    })
     return
   }
   if (endpoint === 'music:add-youtube') {
@@ -9862,6 +9981,9 @@ app.post('/api/:endpoint', (request, response) => {
         player: {
           firstName: 'Alex',
           lastName: 'Morgan',
+        },
+        permissions: {
+          adminPanel: true,
         },
         security: mockSecurity,
         token: 'development',

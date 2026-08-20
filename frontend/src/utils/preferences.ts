@@ -98,6 +98,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   LaunchablePhoneAppId,
   AppNotificationPreferences
 > = {
+  admin: { enabled: true, sounds: true },
   phone: { enabled: true, sounds: true },
   messages: { enabled: true, sounds: true },
   darkchat: { enabled: true, sounds: true },

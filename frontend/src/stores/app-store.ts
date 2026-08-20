@@ -57,12 +57,15 @@ function getDefaultDockIds(): LaunchablePhoneAppId[] {
     .map((app) => app.id)
 }
 
-function getDefaultInstalledIds(): LaunchablePhoneAppId[] {
-  return PHONE_APPS.filter((app) =>
-    isExternalPhoneApp(app)
+function getDefaultInstalledIds(
+  adminPanelAccess = false,
+): LaunchablePhoneAppId[] {
+  return PHONE_APPS.filter((app) => {
+    if (app.adminOnly) return adminPanelAccess
+    return isExternalPhoneApp(app)
       ? app.defaultInstalled
-      : DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id),
-  ).map((app) => app.id)
+      : DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id)
+  }).map((app) => app.id)
 }
 
 function isProtectedHomeApp(appId: LaunchablePhoneAppId): boolean {
@@ -219,7 +222,7 @@ export const useAppStoreStore = defineStore('app-store', {
       installations.set(id, { deviceImei, timer, token })
       pendingInstallations.set(this, installations)
     },
-    hydrate(payload: unknown): void {
+    hydrate(payload: unknown, adminPanelAccess = false): void {
       this.cancelPendingInstalls()
       const data = payload as {
         claimedApps?: unknown
@@ -237,13 +240,15 @@ export const useAppStoreStore = defineStore('app-store', {
         layoutVersion === 5 ||
         layoutVersion === 6
       this.claimedApps = Array.isArray(data?.claimedApps)
-        ? data.claimedApps.filter(
-            (id): id is LaunchablePhoneAppId =>
-              typeof id === 'string' &&
-              (isPhoneAppId(id) ||
-                (supportsPersistedExternalApps &&
-                  isValidExternalPhoneAppId(id))),
-          )
+        ? data.claimedApps.filter((id): id is LaunchablePhoneAppId => {
+            if (typeof id !== 'string') return false
+            const app = getPhoneApp(id)
+            if (app?.adminOnly) return false
+            return (
+              isPhoneAppId(id) ||
+              (supportsPersistedExternalApps && isValidExternalPhoneAppId(id))
+            )
+          })
         : []
       this.uninstalledApps = Array.isArray(data?.uninstalledApps)
         ? data.uninstalledApps.filter((id): id is LaunchablePhoneAppId => {
@@ -253,7 +258,10 @@ export const useAppStoreStore = defineStore('app-store', {
           })
         : []
       const installedIds = [
-        ...new Set([...getDefaultInstalledIds(), ...this.claimedApps]),
+        ...new Set([
+          ...getDefaultInstalledIds(adminPanelAccess),
+          ...this.claimedApps,
+        ]),
       ].filter((id) => !this.uninstalledApps.includes(id))
       const removedLegacyDefaults = hasUninstalledBuiltinApp(
         data?.homeLayout,
@@ -308,9 +316,10 @@ export const useAppStoreStore = defineStore('app-store', {
       }
     },
     isInstalled(appId: LaunchablePhoneAppId): boolean {
+      const app = getPhoneApp(appId)
+      if (app?.adminOnly) return usePhoneStore().permissions.adminPanel
       if (this.uninstalledApps.includes(appId)) return false
       if (this.claimedApps.includes(appId)) return true
-      const app = getPhoneApp(appId)
       if (!app) return false
       return isExternalPhoneApp(app)
         ? app.defaultInstalled
@@ -318,7 +327,10 @@ export const useAppStoreStore = defineStore('app-store', {
     },
     reconcileCatalog(): void {
       const installedIds = [
-        ...new Set([...getDefaultInstalledIds(), ...this.claimedApps]),
+        ...new Set([
+          ...getDefaultInstalledIds(usePhoneStore().permissions.adminPanel),
+          ...this.claimedApps,
+        ]),
       ].filter((id) => !this.uninstalledApps.includes(id))
       const defaults = createDefaultHomeLayout(
         installedIds,

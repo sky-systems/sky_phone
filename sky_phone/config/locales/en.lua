@@ -194,6 +194,19 @@ Locales["en"] = {
             },
         },
         Apps = {
+            admin = {
+                name = "Command Center", subtitle = "Protected administration", navigation = "Admin navigation", refresh = "Refresh admin data", loading = "Loading protected data...",
+                tabs = { players = "Players", audit = "Audit" },
+                overview = { eyebrow = "Live operations", title = "Command Center", body = "Manage active phone devices, app access, and protected account data.", stats = "Server phone statistics", online = "Online", devices = "Devices", accounts = "Accounts" },
+                players = { eyebrow = "Active sessions", title = "Online players", online = "Online now", empty = "No players found", emptyBody = "Adjust the search or refresh the live player list." },
+                search = { players = "Search name, ID, job, or number", clear = "Clear search" },
+                detail = { character = "Character profile", data = "Player data overview", cash = "Cash", bank = "Bank", job = "Job", duty = "Duty", onDuty = "On duty", offDuty = "Off duty", identity = "Identity", playerData = "Player data", identifier = "Character identifier", birthdate = "Birthdate", grade = "Job grade", unknown = "Unknown" },
+                devices = { eyebrow = "Device control", title = "Phones", choose = "Choose phone", empty = "No phone found", emptyBody = "This player currently has no phone device that can be managed.", noNumber = "No phone number", noSim = "No SIM", imei = "IMEI", updated = "Last activity" },
+                credentials = { eyebrow = "Protected data", title = "Credentials", email = "iFruit email", password = "iFruit password", reveal = "Reveal", copy = "Copy password", copied = "Password copied.", noAccount = "No iFruit account is linked to this phone.", passcode = "Device passcode", passcodeHashed = "{length}-digit PIN · securely hashed and not recoverable", passcodeDisabled = "No passcode configured", revealTitle = "Reveal protected password?", revealBody = "This action is server-authorized, rate-limited, and written to the admin audit log.", cancel = "Cancel", confirmReveal = "Reveal password" },
+                apps = { eyebrow = "Remote management", title = "App access", search = "Search apps", installed = "Installed", available = "Available", grant = "Install", revoke = "Remove", granted = "App installed on the selected phone.", revoked = "App removed from the selected phone." },
+                audit = { eyebrow = "Accountability", title = "Audit trail", body = "Sensitive reveals and remote app changes are recorded here.", empty = "No admin actions yet", emptyBody = "Protected actions will appear here after they are performed.", by = "{actor} · target ID {target}", actions = { grant_app = "App installed", revoke_app = "App removed", reveal_account_password = "Password revealed" } },
+                errors = { not_authorized = "You do not have access to the admin panel.", rate_limited = "Too many admin requests. Please wait.", player_unavailable = "That player is no longer online.", device_not_owned = "That phone no longer belongs to the selected player.", invalid_app = "That app is not registered on the server.", app_protected = "This system app cannot be removed.", revision_conflict = "The phone changed in the meantime. Refresh and try again.", account_not_found = "No iFruit account is linked to this phone.", invalid_request = "The admin request was invalid.", device_locked = "Unlock your phone before using the admin panel.", request_failed = "The admin request failed.", default = "The admin panel is temporarily unavailable." },
+            },
             health = {
                 name = "Health",
                 navigation = "Health navigation",

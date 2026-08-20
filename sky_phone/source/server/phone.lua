@@ -571,6 +571,11 @@ local function bootstrap(source, security, security_loaded)
             firstName = trim(Bridge.Framework.GetFirstname(source)) or "",
             lastName = trim(Bridge.Framework.GetLastname(source)) or "",
         },
+        permissions = {
+            adminPanel = Config.AdminPanel.Enabled
+                and Bridge.Framework.HasAdminGroup(source, Config.AdminPanel.AdminGroups)
+                or false,
+        },
     }
 end
 
