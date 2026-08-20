@@ -22,7 +22,7 @@ describe('phone app theme contract', () => {
   it('provides the reactive phone theme to every routed app', () => {
     expect(appShellSource).toContain('import { SkyProvider }')
     expect(appShellSource).toContain('class="phone-app-theme"')
-    expect(appShellSource).toContain(':dark="phone.isDarkMode"')
+    expect(appShellSource).toContain(':dark="displayedDarkMode"')
     expect(appShellSource).toMatch(
       /<SkyProvider[\s\S]*?<RouterView[\s\S]*?<component/,
     )

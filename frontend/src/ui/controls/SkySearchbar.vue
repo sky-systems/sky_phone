@@ -141,7 +141,13 @@ function disable(event: MouseEvent): void {
       <label v-if="label" class="sky-visually-hidden" :for="resolvedInputId">
         {{ label }}
       </label>
-      <span class="sky-searchbar__icon" aria-hidden="true" />
+      <svg class="sky-searchbar__icon" aria-hidden="true" viewBox="0 0 24 24">
+        <path
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M9.5 3a6.5 6.5 0 1 0 3.98 11.64l4.44 4.44a1 1 0 0 0 1.42-1.42l-4.44-4.44A6.5 6.5 0 0 0 9.5 3Zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z"
+        />
+      </svg>
       <input
         :id="resolvedInputId"
         ref="input"

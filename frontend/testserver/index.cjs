@@ -10407,6 +10407,16 @@ app.post('/api/:endpoint', (request, response) => {
     mockPasscode = ''
     mockSecurity = { enabled: false, length: null, lockedUntil: 0 }
     for (const key of Object.keys(deviceData)) delete deviceData[key]
+    Object.assign(deviceData, {
+      apps: { payload: { claimedApps: [] }, revision: 0 },
+      settings: {
+        payload: {
+          settings: { setupCompleted: false, setupStep: 0 },
+          version: 1,
+        },
+        revision: 0,
+      },
+    })
     response.json({ success: true })
     return
   }
