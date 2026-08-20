@@ -147,6 +147,7 @@ local function prepare_device(source, phone_slot, imei)
         Bridge.Database.Query("DELETE FROM `sky_phone_sims` WHERE `id` = ?", { automatic_sim.id })
         return false, "metadata_unsupported"
     end
+    TriggerEvent("sky_phone:server:phoneNumberGenerated", source, automatic_sim.phone_number)
     return true
 end
 
@@ -189,12 +190,17 @@ local function ensure_sim(source, slot, sim_type)
         )
         return nil, "invalid_sim"
     end
+    local generated = false
     if not sim then
         sim = reserve_sim(sim_type)
         if not Bridge.Inventory.SetSlotMetadata(source, slot.slot, sim_metadata(sim)) then
             Bridge.Database.Query("DELETE FROM `sky_phone_sims` WHERE `id` = ?", { sim.id })
             return nil, "metadata_unsupported"
         end
+        generated = true
+    end
+    if generated then
+        TriggerEvent("sky_phone:server:phoneNumberGenerated", source, sim.phone_number)
     end
     return sim
 end

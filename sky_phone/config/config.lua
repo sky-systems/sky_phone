@@ -52,9 +52,6 @@ Config.CustomApps = {
     MaximumStorageKeyLength = 64, -- Bridge v1 ceiling; lower values tighten the server policy.
     MaximumStorageKeysPerApp = 128,
     StorageRequestsPerMinute = 120,
-    AllowRemoteOrigins = {
-        -- ["https://apps.example.com"] = true,
-    },
     TrustedAdapters = {},
 }
 

@@ -18,8 +18,8 @@ const clientCalls = readFileSync(
   new URL('../../sky_phone/source/bridge/client/calls.lua', import.meta.url),
   'utf8',
 )
-const clientMain = readFileSync(
-  new URL('../../sky_phone/source/client/main.lua', import.meta.url),
+const clientNuiBridge = readFileSync(
+  new URL('../../sky_phone/source/client/nui_server_bridge.lua', import.meta.url),
   'utf8',
 )
 const phoneApp = readFileSync(
@@ -70,7 +70,7 @@ describe('voice provider contracts', () => {
     expect(serverCalls).toMatch(
       /call\.speakers\[source\] = data\.enabled\s+send_state\(call, source, "connected", call\.channel\)/,
     )
-    expect(clientMain).toContain('"calls:set-speaker"')
+    expect(clientNuiBridge).toMatch(/calls\s*=\s*\[\[[^\]]*set-speaker/)
     expect(clientCalls).toContain(
       'SaltyChat call membership is owned by the server bridge.',
     )
@@ -111,7 +111,7 @@ describe('voice provider contracts', () => {
     expect(serverCalls).toContain(
       'Bridge.Callbacks.Register("sky_phone:calls:set-muted"',
     )
-    expect(clientMain).toContain('"calls:set-muted"')
+    expect(clientNuiBridge).toMatch(/calls\s*=\s*\[\[[^\]]*set-muted/)
     expect(phoneApp).toContain('@click="toggleCallMute"')
     expect(phoneApp).not.toContain('callMuted = !callMuted')
   })

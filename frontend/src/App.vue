@@ -51,7 +51,7 @@ import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAppCatalogStore } from '@/stores/app-catalog'
 import { useAppStoreStore } from '@/stores/app-store'
 import { useWidgetsStore } from '@/stores/widgets'
-import { isPhoneAppId } from '@/config/apps'
+import { isPhoneAppId, PHONE_APPS } from '@/config/apps'
 import { useNotesStore } from '@/stores/notes'
 import { useMemosStore } from '@/stores/memos'
 import { useWeatherStore } from '@/stores/weather'
@@ -106,6 +106,7 @@ type AppMessage = {
     | PhoneOpenPayload
     | CustomAppCatalogEventData
     | CustomAppEventData
+    | NavigationEventData
 }
 
 type CustomAppCatalogEventData = {
@@ -116,6 +117,10 @@ type CustomAppEventData = {
   appId?: unknown
   data?: unknown
   payload?: unknown
+}
+
+type NavigationEventData = {
+  appId?: unknown
 }
 
 type SimPickerPayload = {
@@ -494,6 +499,23 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   widgets.hydrate(payload.device?.data.widgets?.payload)
 }
 
+function getInstalledNavigationAppIds(): string[] {
+  const installedAppIds: string[] = []
+  for (const app of PHONE_APPS) {
+    if (isPhoneAppId(app.id) && appStore.isInstalled(app.id)) {
+      installedAppIds.push(app.id)
+    }
+  }
+  return installedAppIds
+}
+
+function syncNavigationState(): ReturnType<typeof nuiCall> {
+  return nuiCall('navigation:state', {
+    currentApp: activeAppId.value || null,
+    installedApps: getInstalledNavigationAppIds(),
+  })
+}
+
 function cancelUnlockedPhoneDataLoad(): void {
   if (unlockedServicesIdle === undefined) return
   if (typeof window.cancelIdleCallback === 'function') {
@@ -711,9 +733,33 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     if (typeof data?.appId === 'string' && route.params.appId === data.appId) {
       void router.push('/')
     }
+  } else if (event.data?.type === 'navigation:open-app') {
+    const data = event.data.data as NavigationEventData | undefined
+    if (
+      typeof data?.appId === 'string' &&
+      isPhoneAppId(data.appId) &&
+      appStore.isInstalled(data.appId)
+    ) {
+      void router.push(`/apps/${data.appId}`)
+    } else {
+      console.error('[Navigation] Ignored an unavailable app target.')
+    }
+  } else if (event.data?.type === 'navigation:close-app') {
+    const data = event.data.data as NavigationEventData | undefined
+    const currentApp = route.params.appId
+    if (data?.appId === undefined || currentApp === data.appId) {
+      void router.push('/')
+    }
+  } else if (event.data?.type === 'compat:open-messages') {
+    const data = event.data.data as MessagesEventData | undefined
+    if (typeof data?.phoneNumber === 'string') {
+      void messages.openThread(data.phoneNumber).then((opened) => {
+        if (opened) void router.push('/apps/messages')
+      })
+    }
   } else if (event.data?.type === 'app:open') {
     hydratePhone(event.data.data as PhoneOpenPayload)
-    void nuiCall('ui:opened')
+    void syncNavigationState().then(() => nuiCall('ui:opened'))
   } else if (event.data?.type === 'device:updated') {
     hydratePhone(event.data.data as PhoneOpenPayload)
   } else if (event.data?.type === 'app:close') {
@@ -1520,6 +1566,18 @@ watch(
       appStore.recordLaunch(appId)
     }
   },
+)
+
+watch(
+  () => ({
+    appIds: getInstalledNavigationAppIds(),
+    currentApp: activeAppId.value,
+    open: phone.isOpen,
+  }),
+  () => {
+    if (phone.isOpen && appStore.hydrated) void syncNavigationState()
+  },
+  { deep: true },
 )
 
 watch(

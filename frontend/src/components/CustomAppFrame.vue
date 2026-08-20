@@ -10,6 +10,8 @@ import { useRouter } from 'vue-router'
 
 import { getPhoneApp, isExternalPhoneApp } from '@/config/apps'
 import { useAppCatalogStore } from '@/stores/app-catalog'
+import { useCallsStore } from '@/stores/calls'
+import { useMessagesStore } from '@/stores/messages'
 import { useNotificationsStore } from '@/stores/notifications'
 import { usePhoneStore } from '@/stores/phone'
 import type {
@@ -33,13 +35,18 @@ import {
   getCustomAppSafeArea,
 } from '@/utils/customAppLifecycle'
 import {
+  LB_PHONE_STORAGE_MESSAGE_TYPE,
+  LB_PHONE_ACTION_MESSAGE_TYPE,
   createLbPhoneFrameDocument,
   createLbPhoneHostSettings,
   getLbPhoneCallbackResource,
+  readLbPhoneStorage,
   usesLbPhoneHostRuntime,
+  writeLbPhoneStorage,
 } from '@/utils/lbPhoneAppBridge'
 import { cloneJsonData } from '@/utils/clone'
 import { nuiCall } from '@/utils/nui'
+import type { PhoneCall } from '@/types/phone'
 
 const props = defineProps<{
   app: ExternalPhoneAppDefinition
@@ -48,6 +55,8 @@ const props = defineProps<{
 const PROTOCOL_VERSION = 1
 
 const catalog = useAppCatalogStore()
+const calls = useCallsStore()
+const messages = useMessagesStore()
 const notifications = useNotificationsStore()
 const phone = usePhoneStore()
 const router = useRouter()
@@ -128,19 +137,28 @@ const frameReady = computed(
     frameLoaded.value &&
     (props.app.bridgeMode === 'legacy' || skyBridgeReady.value),
 )
-const context = computed<SkyPhoneAppContextV1>(() => ({
-  appId: props.app.id,
-  capabilities: getSkyPhoneAppCapabilities(props.app.capabilities),
-  colorScheme: phone.isDarkMode ? 'dark' : 'light',
-  language: phone.lang,
-  locale: {
-    description: props.app.description,
-    name: props.app.name,
-  },
-  phoneScale: phone.preferences.settings.phoneScale / 100,
-  protocolVersion: PROTOCOL_VERSION,
-  safeArea: getCustomAppSafeArea(props.app.orientation),
-}))
+const context = computed<SkyPhoneAppContextV1>(() => {
+  const capabilities = getSkyPhoneAppCapabilities(props.app.capabilities)
+  return {
+    appId: props.app.id,
+    capabilities,
+    ...(capabilities.includes('theme.read')
+      ? { colorScheme: phone.isDarkMode ? ('dark' as const) : ('light' as const) }
+      : {}),
+    ...(capabilities.includes('locale.read')
+      ? {
+          language: phone.lang,
+          locale: {
+            description: props.app.description,
+            name: props.app.name,
+          },
+        }
+      : {}),
+    phoneScale: phone.preferences.settings.phoneScale / 100,
+    protocolVersion: PROTOCOL_VERSION,
+    safeArea: getCustomAppSafeArea(props.app.orientation),
+  }
+})
 const lbSettings = computed(() =>
   createLbPhoneHostSettings({
     deviceName: phone.device?.name ?? '',
@@ -191,6 +209,16 @@ async function prepareLbFrameDocument(): Promise<void> {
   const controller = new AbortController()
   frameDocumentController = controller
   try {
+    let appStorage = {}
+    try {
+      appStorage = readLbPhoneStorage(window.localStorage, props.app.id)
+    } catch (error) {
+      console.error(
+        `[Custom apps] Could not read LB Phone storage for ${props.app.id}.`,
+        error,
+      )
+    }
+
     const response = await fetch(frameUrl.value, {
       credentials: 'omit',
       signal: controller.signal,
@@ -201,6 +229,7 @@ async function prepareLbFrameDocument(): Promise<void> {
     const html = await response.text()
     lbFrameDocument.value = createLbPhoneFrameDocument(html, {
       appName: props.app.id,
+      localStorage: appStorage,
       resourceName: getLbPhoneCallbackResource(props.app),
       settings: lbSettings.value,
       ui: props.app.ui,
@@ -282,6 +311,55 @@ async function handleBridgeRequest(
   }
 }
 
+async function handleLbPhoneAction(message: Record<string, unknown>) {
+  if (message.action === 'createCall') {
+    const options = message.options
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      console.error(
+        `[Custom apps] Rejected invalid LB call action from ${props.app.id}.`,
+      )
+      return
+    }
+    const target = options as Record<string, unknown>
+    if (
+      typeof target.number !== 'string' &&
+      typeof target.company !== 'string'
+    ) {
+      console.error(
+        `[Custom apps] Rejected invalid LB call target from ${props.app.id}.`,
+      )
+      return
+    }
+    const response = await nuiCall<PhoneCall>('calls:dial', {
+      company: target.company,
+      phoneNumber: target.number,
+    })
+    if (response.success && response.data) calls.applyCallState(response.data)
+    return
+  }
+
+  if (message.action === 'createSMS') {
+    const options = message.options
+    const phoneNumber =
+      typeof options === 'string'
+        ? options
+        : options && typeof options === 'object' && !Array.isArray(options)
+          ? ((options as Record<string, unknown>).number ??
+            (options as Record<string, unknown>).phoneNumber)
+          : undefined
+    if (
+      typeof phoneNumber !== 'string' ||
+      !(await messages.openThread(phoneNumber))
+    ) {
+      console.error(
+        `[Custom apps] Rejected invalid LB SMS target from ${props.app.id}.`,
+      )
+      return
+    }
+    void router.push('/apps/messages')
+  }
+}
+
 function isTrustedFrameMessage(event: MessageEvent): boolean {
   if (event.source !== frame.value?.contentWindow) return false
   if (props.app.bundled || lbHostRuntime.value) {
@@ -305,6 +383,29 @@ function onFrameMessage(event: MessageEvent): void {
     message.appId !== props.app.id ||
     message.protocolVersion !== PROTOCOL_VERSION
   ) {
+    return
+  }
+
+  if (message.type === LB_PHONE_STORAGE_MESSAGE_TYPE) {
+    try {
+      if (
+        !writeLbPhoneStorage(window.localStorage, props.app.id, message.storage)
+      ) {
+        console.error(
+          `[Custom apps] Rejected invalid LB Phone storage for ${props.app.id}.`,
+        )
+      }
+    } catch (error) {
+      console.error(
+        `[Custom apps] Could not persist LB Phone storage for ${props.app.id}.`,
+        error,
+      )
+    }
+    return
+  }
+
+  if (message.type === LB_PHONE_ACTION_MESSAGE_TYPE) {
+    void handleLbPhoneAction(message)
     return
   }
 

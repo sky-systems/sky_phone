@@ -5,7 +5,10 @@ import {
   createLbPhoneFrameDocument,
   createLbPhoneHostSettings,
   getLbPhoneCallbackResource,
+  getLbPhoneStorageKey,
+  readLbPhoneStorage,
   usesLbPhoneHostRuntime,
+  writeLbPhoneStorage,
 } from '@/utils/lbPhoneAppBridge'
 import { DEFAULT_PHONE_PREFERENCES } from '@/utils/preferences'
 
@@ -90,9 +93,10 @@ describe('LB Phone app bridge', () => {
 
   it('injects the LB runtime and asset base before the vendor bundle', () => {
     const html =
-      '<!doctype html><html><head><script type="module" src="/ui/dist/assets/index.js"></script></head><body></body></html>'
+      '<!doctype html><html><head><script>globalThis.previewMode = !window.invokeNative</script><script type="module" src="/ui/dist/assets/index.js"></script></head><body></body></html>'
     const document = createLbPhoneFrameDocument(html, {
       appName: 'snake-game',
+      localStorage: { theme: 'dark' },
       resourceName: 'snake_app',
       settings: createLbPhoneHostSettings({
         deviceName: '</script><script>window.injected=true</script>',
@@ -109,8 +113,18 @@ describe('LB Phone app bridge', () => {
     )
     expect(document).toContain('globalThis.fetchNui = async')
     expect(document).toContain('globalThis.onNuiEvent = globalThis.useNuiEvent')
+    expect(document).toContain('globalThis.createCall = globalThis.CreateCall')
+    expect(document).toContain('globalThis.createSMS = globalThis.CreateSMS')
+    expect(document).toContain('globalThis.invokeNative = () => undefined')
+    expect(document).toContain(
+      "Object.defineProperty(globalThis, 'localStorage'",
+    )
+    expect(document).toContain('"localStorage":{"theme":"dark"}')
     expect(document).toContain('https://cfx-nui-snake_app/ui/dist/')
     expect(document).not.toContain('</script><script>window.injected=true')
+    expect(document.indexOf('globalThis.invokeNative')).toBeLessThan(
+      document.indexOf('globalThis.previewMode'),
+    )
 
     const openingTag = '<script>'
     const runtimeStart = document.indexOf(openingTag)
@@ -123,5 +137,28 @@ describe('LB Phone app bridge', () => {
 
     const runtime = document.slice(runtimeStart + openingTag.length, runtimeEnd)
     expect(() => new Function(runtime)).not.toThrow()
+  })
+
+  it('persists isolated LB localStorage snapshots without app changes', () => {
+    const values = new Map<string, string>()
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    }
+
+    expect(
+      writeLbPhoneStorage(storage, 'snake-game', {
+        language: 'de',
+        volume: '0.8',
+      }),
+    ).toBe(true)
+    expect(values.has(getLbPhoneStorageKey('snake-game'))).toBe(true)
+    expect(readLbPhoneStorage(storage, 'snake-game')).toEqual({
+      language: 'de',
+      volume: '0.8',
+    })
+    expect(writeLbPhoneStorage(storage, 'snake-game', { invalid: 5 })).toBe(
+      false,
+    )
   })
 })

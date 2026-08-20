@@ -1,6 +1,35 @@
 local disabled_controls = {}
 local all_controls_disabled = {}
 local firing_disabled = false
+local event_handlers = {}
+local nui_callbacks = {}
+local nui_focus = nil
+local nui_keep_input = nil
+
+Config = { Phone = { AllowMovement = true } }
+Bridge = { Debug = function() end }
+
+function CreateThread(callback)
+    assert(type(callback) == "function", "focus runtime must register its control thread")
+end
+
+function AddEventHandler(event_name, callback)
+    event_handlers[event_name] = callback
+end
+
+function RegisterNUICallback(callback_name, callback)
+    nui_callbacks[callback_name] = callback
+end
+
+function SetNuiFocus(focused, cursor)
+    nui_focus = { focused = focused, cursor = cursor }
+end
+
+function SetNuiFocusKeepInput(keep_input)
+    nui_keep_input = keep_input
+end
+
+function TriggerEvent() end
 
 function DisableControlAction(group, control, disabled)
     assert(group == 0 and disabled, "phone controls must be disabled in the primary input group")
@@ -29,6 +58,8 @@ local function resolve(overrides)
         call_focus = false,
         camera_active = false,
         camera_nui_focused = true,
+        cursor_disabled = false,
+        external_game_input = nil,
         is_open = false,
         notification_focus = false,
         payphone_focus = false,
@@ -88,6 +119,73 @@ assert(
         and typing_phone.game_input
         and typing_phone.block_game,
     "a focused phone text input must block GTA controls without hiding the NUI cursor"
+)
+
+local external_movement_phone = resolve({
+    external_game_input = true,
+    is_open = true,
+})
+assert(
+    external_movement_phone.cursor
+        and external_movement_phone.focused
+        and external_movement_phone.keep_input
+        and external_movement_phone.game_input
+        and not external_movement_phone.block_game,
+    "an external input claim must preserve movement while the app cursor is active"
+)
+
+local external_movement_typing_phone = resolve({
+    external_game_input = true,
+    is_open = true,
+    text_input_focused = true,
+})
+assert(
+    external_movement_typing_phone.cursor
+        and external_movement_typing_phone.focused
+        and external_movement_typing_phone.keep_input
+        and external_movement_typing_phone.game_input
+        and external_movement_typing_phone.block_game,
+    "a focused text input must override an external movement claim"
+)
+
+local external_typing_phone = resolve({
+    allow_movement = true,
+    external_game_input = false,
+    is_open = true,
+})
+assert(
+    external_typing_phone.cursor
+        and external_typing_phone.focused
+        and not external_typing_phone.keep_input
+        and not external_typing_phone.game_input
+        and external_typing_phone.block_game,
+    "an external typing claim must block GTA input"
+)
+
+local movable_cursor_disabled_phone = resolve({
+    allow_movement = true,
+    cursor_disabled = true,
+    is_open = true,
+})
+assert(
+    not movable_cursor_disabled_phone.cursor
+        and movable_cursor_disabled_phone.focused
+        and movable_cursor_disabled_phone.keep_input
+        and movable_cursor_disabled_phone.game_input
+        and not movable_cursor_disabled_phone.block_game
+        and not movable_cursor_disabled_phone.block_look,
+    "LB noFocus must preserve movement and camera look without retaining the NUI cursor"
+)
+
+local stationary_cursor_disabled_phone = resolve({
+    cursor_disabled = true,
+    is_open = true,
+})
+assert(
+    not stationary_cursor_disabled_phone.cursor
+        and stationary_cursor_disabled_phone.focused
+        and not stationary_cursor_disabled_phone.keep_input,
+    "LB noFocus must hide the cursor even when phone movement is disabled"
 )
 
 SkyPhoneFocus.ApplyFocusedControls()
@@ -181,5 +279,40 @@ assert(payphone_closed_behind_phone.focused, "releasing payphone focus must not 
 
 local suspended = resolve({ activity_suspended = true, call_focus = true, is_open = true })
 assert(not suspended.focused and not suspended.keep_input, "suspended activities must mask every focus claim")
+
+SkyPhoneFocus.SetPhone(true, true)
+assert(
+    nui_focus.focused and not nui_focus.cursor and nui_keep_input,
+    "runtime phone focus must preserve the no-focus opening contract"
+)
+
+SkyPhoneFocus.SetPhone(false)
+SkyPhoneFocus.SetPhone(true)
+assert(nui_focus.cursor, "closing the phone must clear the previous no-focus claim")
+
+local external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", true)
+assert(external_success and external_error == nil and nui_keep_input, "external movement claim must apply")
+external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", false)
+assert(external_success and external_error == nil and not nui_keep_input, "external typing claim must apply")
+event_handlers["onClientResourceStop"]("custom_app")
+assert(nui_keep_input, "resource stop must restore configured phone movement")
+
+SkyPhoneFocus.SetPhone(false)
+external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", true)
+assert(not external_success and external_error == "phone_closed", "closed phones must reject external focus claims")
+
+local notification_result
+SkyPhoneFocus.SetPhone(false)
+nui_callbacks["notification:focus"]({ active = true }, function(result)
+    notification_result = result
+end)
+assert(notification_result.success and nui_focus.focused, "notification focus must be applied through the focus owner")
+
+SkyPhoneFocus.BeginNuiHydration()
+SkyPhoneFocus.Reapply()
+assert(not nui_focus.focused, "CEF hydration must discard browser-owned notification focus")
+
+SkyPhoneFocus.Reset()
+assert(not nui_focus.focused and not nui_focus.cursor and not nui_keep_input, "focus reset must release NUI input")
 
 print("Client focus tests passed")
