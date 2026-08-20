@@ -78,6 +78,7 @@ import { nuiCall } from '@/utils/nui'
 import { formatTimer } from '@/utils/clock'
 import { parsePhonePreferences } from '@/utils/preferences'
 import { getHairlinePixelStyle } from '@/utils/rendering'
+import { isTextInputElement } from '@/utils/textInputFocus'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 import SpringboardView from '@/views/SpringboardView.vue'
 
@@ -296,12 +297,14 @@ const MIN_PRODUCTION_PHONE_ZOOM = 260 / PHONE_PORTRAIT_WIDTH
 const developmentParameters = new URLSearchParams(window.location.search)
 const isBrowserPreview =
   developmentParameters.has('browserPreview') &&
-  developmentParameters.get('apiBase')?.startsWith('/') === true
+  (import.meta.env.DEV ||
+    developmentParameters.get('apiBase')?.startsWith('/') === true)
 const isDevelopment =
   import.meta.env.DEV ||
   developmentParameters.get('apiBase')?.startsWith('/') === true
 const developmentLockScreenPreview =
   isDevelopment && developmentParameters.has('lockScreenPreview')
+let textInputFocused = false
 
 const phone = usePhoneStore()
 const account = useAccountStore()
@@ -373,6 +376,7 @@ const previousHardwareAlertVolume = ref(75)
 const hardwareVolumeHudVisible = ref(false)
 const setupPreviewDismissed = ref(false)
 const setupDevelopmentSkipped = ref(false)
+const setupAppearanceSelected = ref(false)
 const pendingUnlockRoute = ref<string | null>(null)
 const unlockedServicesLoaded = ref(false)
 const controlCenterOpened = ref(false)
@@ -385,6 +389,13 @@ const setupRequired = computed(
       (isDevelopment &&
         developmentParameters.has('setupPreview') &&
         !setupPreviewDismissed.value)),
+)
+const displayedDarkMode = computed(
+  () =>
+    phone.isDarkMode &&
+    (!setupRequired.value ||
+      setupAppearanceSelected.value ||
+      phone.preferences.settings.setupStep > 4),
 )
 const hardwareAlertVolume = computed(() =>
   Math.round(
@@ -629,6 +640,7 @@ function loadUnlockedPhoneData(): void {
 
 function completePhoneSetup(): void {
   setupPreviewDismissed.value = true
+  setupAppearanceSelected.value = false
   isLocked.value = false
   isUnlocking.value = false
   passcodeVisible.value = false
@@ -1505,7 +1517,29 @@ function unlockCamera(): void {
   window.setTimeout(() => void router.push('/apps/camera'), 0)
 }
 
+function updateTextInputFocus(active: boolean): void {
+  if (textInputFocused === active) return
+  textInputFocused = active
+  void nuiCall('ui:input-focus', { active })
+}
+
+function onFocusIn(event: FocusEvent): void {
+  const target = event.target
+  updateTextInputFocus(
+    target instanceof HTMLElement && isTextInputElement(target),
+  )
+}
+
+function onFocusOut(event: FocusEvent): void {
+  const nextTarget = event.relatedTarget
+  updateTextInputFocus(
+    nextTarget instanceof HTMLElement && isTextInputElement(nextTarget),
+  )
+}
+
 onMounted(() => {
+  document.addEventListener('focusin', onFocusIn)
+  document.addEventListener('focusout', onFocusOut)
   window.addEventListener('message', onMessage)
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('resize', updateViewportScale)
@@ -1611,6 +1645,7 @@ watch(
   (isOpen) => {
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
     if (!isOpen) {
+      updateTextInputFocus(false)
       cancelUnlockedPhoneDataLoad()
       skypic.resetSession()
       appStore.cancelPendingInstalls()
@@ -1682,6 +1717,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  updateTextInputFocus(false)
   cancelUnlockedPhoneDataLoad()
   weather.stop()
   if (clockTicker) clearInterval(clockTicker)
@@ -1696,6 +1732,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', updateViewportScale)
+  document.removeEventListener('focusin', onFocusIn)
+  document.removeEventListener('focusout', onFocusOut)
   systemColorScheme.removeEventListener('change', onSystemColorSchemeChange)
 })
 </script>
@@ -1749,7 +1787,7 @@ onBeforeUnmount(() => {
             <section
               class="phone-device"
               :class="{
-                'phone-app--light': !phone.isDarkMode,
+                'phone-app--light': !displayedDarkMode,
                 [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
               }"
               :aria-label="phone.t('Common.phone')"
@@ -1799,7 +1837,7 @@ onBeforeUnmount(() => {
                 class="phone-screen"
                 :class="{
                   'phone-screen--app': isAppRoute || isDevelopmentRoute,
-                  'phone-app--light': !phone.isDarkMode,
+                  'phone-app--light': !displayedDarkMode,
                   [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
                 }"
               >
@@ -1836,18 +1874,19 @@ onBeforeUnmount(() => {
                 </Transition>
                 <k-app
                   theme="ios"
-                  :dark="phone.isDarkMode"
+                  :dark="displayedDarkMode"
                   safe-areas
                   class="phone-app"
                   :style="phoneDisplayStyle"
                   :class="{
-                    dark: phone.isDarkMode,
-                    'phone-app--light': !phone.isDarkMode,
+                    dark: displayedDarkMode,
+                    'phone-app--light': !displayedDarkMode,
                     'phone-app--messages': route.params.appId === 'messages',
                     'phone-app--status-light':
                       WHITE_STATUS_BAR_APP_IDS.has(activeAppId),
                     'phone-app--status-dark':
                       DARK_STATUS_BAR_APP_IDS.has(activeAppId),
+                    'phone-app--setup': setupRequired,
                     [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
                     'phone-app--unlocking': isUnlocking,
                   }"
@@ -1867,7 +1906,7 @@ onBeforeUnmount(() => {
                   />
                   <SkyProvider
                     class="phone-app-theme"
-                    :dark="phone.isDarkMode"
+                    :dark="displayedDarkMode"
                     safe-areas
                   >
                     <RouterView v-slot="{ Component }">
@@ -1926,6 +1965,7 @@ onBeforeUnmount(() => {
                   </Transition>
                   <PhoneSetupAssistant
                     v-if="setupRequired"
+                    @appearance-selected="setupAppearanceSelected = $event"
                     @complete="completePhoneSetup"
                     @skip="skipPhoneSetupForDevelopment"
                   />

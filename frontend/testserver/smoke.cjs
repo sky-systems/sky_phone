@@ -1952,12 +1952,26 @@ async function main() {
       'device:notification-open',
       'notification:focus',
       'sim:picker-close',
+      'ui:input-focus',
       'ui:opened',
       'ui:ready',
     ]
     for (const endpoint of lifecycleEndpoints) {
       await expectSuccess(baseUrl, endpoint)
     }
+
+    await expectSuccess(baseUrl, 'device:factory-reset')
+    const resetBootstrap = await expectSuccess(
+      baseUrl,
+      'development:bootstrap',
+      { _testScenario: 'setupPreview' },
+      true,
+    )
+    assert.equal(
+      resetBootstrap.device.data.settings.payload.settings.setupCompleted,
+      false,
+      'factory reset did not restore a browser-testable setup state',
+    )
 
     const unknown = await post(baseUrl, 'development:missing-mock', {})
     assert.deepEqual(unknown, {

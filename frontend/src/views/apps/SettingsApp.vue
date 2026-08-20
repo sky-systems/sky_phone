@@ -740,6 +740,14 @@ async function confirmSimEject(): Promise<void> {
 }
 
 onMounted(() => {
+  if (
+    import.meta.env.DEV &&
+    new URLSearchParams(window.location.search).has('factoryResetPreview')
+  ) {
+    factoryResetting.value = true
+    factoryResetProgress.value = 46
+  }
+
   if (route.query.wallpaper === '1') {
     activeView.value = 'wallpaper'
     wallpaperTarget.value =
@@ -771,6 +779,7 @@ onBeforeUnmount(() => {
     :label="phone.t('Apps.settings.name')"
   >
     <SkyNavbar
+      class="settings-navbar"
       :title="
         activeView === 'root' ? phone.t('Apps.settings.name') : activeTitle
       "
@@ -1699,17 +1708,8 @@ onBeforeUnmount(() => {
     >
       <div class="settings-reset-content">
         <div class="settings-reset-mark" aria-hidden="true">
-          <span
-            class="settings-reset-mark__layer settings-reset-mark__layer--back"
-          ></span>
-          <span
-            class="settings-reset-mark__layer settings-reset-mark__layer--middle"
-          ></span>
           <div class="settings-reset-mark__face">
-            <Smartphone :size="35" :stroke-width="1.45" />
-            <span class="settings-reset-mark__erase">
-              <i></i><i></i><i></i>
-            </span>
+            <Smartphone :size="38" :stroke-width="1.45" />
           </div>
         </div>
 
@@ -1872,6 +1872,16 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+:deep(.settings-navbar.sky-navbar--large) {
+  min-height: calc(
+    var(--sky-navbar-safe-area-top) + var(--sky-navbar-large-title-height)
+  );
+}
+
+:deep(.settings-navbar.sky-navbar--large.sky-navbar--no-navigation) {
+  padding-top: calc(var(--sky-navbar-safe-area-top) + var(--sky-space-3));
+}
+
 .settings-search {
   margin-bottom: var(--sky-space-4);
 }
@@ -2508,6 +2518,102 @@ onBeforeUnmount(() => {
   color: rgb(255 255 255 / 34%);
   font-size: 9px;
   line-height: 14px;
+}
+
+/* Factory reset stays intentionally quiet: white, direct and system-like. */
+.settings-reset-hero__icon {
+  border: 0;
+  border-radius: 50%;
+  color: #ff3b30;
+  background: #f2f2f7;
+  box-shadow: none;
+}
+.settings-reset-overlay {
+  padding: 58px 30px 34px;
+  color: #1d1d1f;
+  background: #ffffff;
+}
+.settings-reset-overlay::before,
+.settings-reset-overlay::after {
+  content: none;
+}
+.settings-reset-content {
+  max-width: 300px;
+}
+.settings-reset-mark {
+  display: grid;
+  width: 88px;
+  height: 88px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f2f2f7;
+}
+.settings-reset-mark__face {
+  position: static;
+  display: grid;
+  width: 88px;
+  height: 88px;
+  border: 0;
+  border-radius: 50%;
+  color: #ff3b30;
+  background: transparent;
+  box-shadow: none;
+  place-items: center;
+}
+.settings-reset-heading {
+  margin-top: 28px;
+}
+.settings-reset-heading h2 {
+  color: #1d1d1f;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.settings-reset-heading p {
+  color: #6e6e73;
+}
+.settings-reset-progress-copy {
+  margin-top: 40px;
+}
+.settings-reset-progress-copy strong {
+  color: #1d1d1f;
+  font-size: 15px;
+}
+.settings-reset-progress-copy span {
+  color: #8e8e93;
+}
+.settings-reset-progress {
+  height: 5px;
+  background: #e5e5ea;
+}
+.settings-reset-progress > span {
+  background: #007aff;
+  box-shadow: none;
+}
+.settings-reset-detail {
+  color: #8e8e93;
+}
+.settings-reset-assurance {
+  margin-top: 34px;
+  padding: 14px;
+  border: 0;
+  border-radius: 16px;
+  background: #f2f2f7;
+  box-shadow: none;
+}
+.settings-reset-assurance__icon {
+  border-radius: 50%;
+  color: #007aff;
+  background: #e4f1ff;
+}
+.settings-reset-assurance strong {
+  color: #1d1d1f;
+}
+.settings-reset-assurance small {
+  color: #6e6e73;
+}
+.settings-reset-warning {
+  color: #8e8e93;
 }
 
 .settings-dialog-button--danger:not(:disabled) {

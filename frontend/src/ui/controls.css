@@ -1465,26 +1465,13 @@ label.sky-list-item__row {
 }
 
 .sky-searchbar__icon {
-  width: 14px;
-  height: 14px;
-  position: relative;
+  width: 18px;
+  height: 18px;
+  display: block;
   flex: none;
-  border: 1.6px solid var(--sky-muted, rgba(0, 0, 0, 0.55));
-  border-radius: 50%;
-  opacity: 0.8;
-}
-
-.sky-searchbar__icon::after {
-  width: 6px;
-  height: 1.6px;
-  position: absolute;
-  right: -5px;
-  bottom: -2px;
-  content: '';
-  border-radius: 2px;
-  background: var(--sky-muted, rgba(0, 0, 0, 0.55));
-  transform: rotate(45deg);
-  transform-origin: left center;
+  color: var(--sky-muted, rgba(0, 0, 0, 0.55));
+  fill: currentColor;
+  opacity: 0.72;
 }
 
 .sky-searchbar__input {

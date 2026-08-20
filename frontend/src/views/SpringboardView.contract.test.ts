@@ -19,7 +19,17 @@ const mainCss = readFileSync(
   new URL('../assets/main.css', import.meta.url),
   'utf8',
 )
+const builtInWallpaperCss = mainCss.slice(
+  mainCss.indexOf('.wallpaper--midnight'),
+  mainCss.indexOf('.wallpaper--custom'),
+)
 describe('Springboard page swipe contract', () => {
+  it('keeps the built-in wallpapers visually restrained', () => {
+    expect(builtInWallpaperCss).not.toMatch(/(?:conic|repeating-\w+)-gradient/)
+    expect(builtInWallpaperCss.match(/radial-gradient/g)).toHaveLength(12)
+    expect(builtInWallpaperCss.match(/linear-gradient/g)).toHaveLength(12)
+  })
+
   it('replaces the home status row with the edit controls', () => {
     expect(viewSource).toContain("emit('editModeChange', editing)")
     expect(viewSource).toContain("emit('editModeChange', false)")

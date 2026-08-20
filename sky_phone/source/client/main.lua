@@ -15,7 +15,7 @@ local activity_suspended = false
 local phone_block_game = false
 local phone_block_look = false
 local phone_game_input = false
-local phone_cursor_disabled = false
+local phone_text_input_focused = false
 
 SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsOpen", function()
     return is_open
@@ -349,20 +349,17 @@ local function update_nui_focus()
         call_focus = call_focus,
         camera_active = camera_active,
         camera_nui_focused = camera_nui_focused,
-        cursor_disabled = phone_cursor_disabled,
         is_open = is_open,
         notification_focus = notification_focus,
         payphone_focus = payphone_focus,
         sim_picker_open = sim_picker_open,
+        text_input_focused = phone_text_input_focused,
     })
     SetNuiFocus(focus.focused, focus.cursor)
     SetNuiFocusKeepInput(focus.keep_input)
     phone_block_game = focus.block_game == true
     phone_block_look = focus.block_look == true
     phone_game_input = focus.game_input
-    if not phone_game_input and not phone_block_game then
-        phone_cursor_disabled = false
-    end
     TriggerEvent("sky_phone:client:cameraFocusApplied", {
         active = camera_active,
         cursor = focus.cursor,
@@ -378,10 +375,6 @@ CreateThread(function()
                 SkyPhoneFocus.ApplyFocusedControls()
             else
                 SkyPhoneFocus.ApplyGameInputControls(phone_block_look)
-            end
-            if IsDisabledControlJustPressed(0, 19) then
-                phone_cursor_disabled = not phone_cursor_disabled
-                update_nui_focus()
             end
             Wait(0)
         else
@@ -440,6 +433,7 @@ local function close_phone(close_device_session)
     open_requested = false
     call_focus = false
     activity_suspended = false
+    phone_text_input_focused = false
     TriggerEvent("sky_phone:animation:phone", false)
     is_open = false
     if was_open then
@@ -522,6 +516,7 @@ RegisterNUICallback("ui:ready", function(data, cb)
     -- Browser state is recreated on a CEF reload. A notification focus claim
     -- cannot survive unless its notification is replayed as part of this handshake.
     notification_focus = false
+    phone_text_input_focused = false
     Bridge.Debug("debug", "[sky_phone] NUI reported ready.", { always = true })
     SkyPhoneApps.SendCatalog()
     if open_requested and device_payload then
@@ -574,6 +569,16 @@ RegisterNUICallback("ui:opened", function(data, cb)
     call_focus = false
     update_nui_focus()
     TriggerEvent("sky_phone:animation:phone", true)
+    cb({ success = true })
+end)
+
+RegisterNUICallback("ui:input-focus", function(data, cb)
+    if type(data) ~= "table" or type(data.active) ~= "boolean" then
+        cb({ success = false, error = "invalid_request" })
+        return
+    end
+    phone_text_input_focused = data.active and (is_open or open_requested)
+    update_nui_focus()
     cb({ success = true })
 end)
 
@@ -1120,7 +1125,7 @@ AddEventHandler("onResourceStop", function(resource_name)
     active_call_payload = nil
     activity_suspended = false
     phone_game_input = false
-    phone_cursor_disabled = false
+    phone_text_input_focused = false
     SetNuiFocusKeepInput(false)
     SetNuiFocus(false, false)
 

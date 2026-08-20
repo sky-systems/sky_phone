@@ -9,6 +9,7 @@ import {
   Palette,
   ShieldCheck,
   Signal,
+  Smartphone,
   Sparkles,
   Wifi,
 } from 'lucide-vue-next'
@@ -30,7 +31,11 @@ import {
   type WallpaperId,
 } from '@/utils/preferences'
 
-const emit = defineEmits<{ complete: []; skip: [] }>()
+const emit = defineEmits<{
+  appearanceSelected: [selected: boolean]
+  complete: []
+  skip: []
+}>()
 
 const phone = usePhoneStore()
 const account = useAccountStore()
@@ -38,6 +43,10 @@ const appStore = useAppStoreStore()
 const step = ref(
   Math.min(PHONE_SETUP_LAST_STEP, phone.preferences.settings.setupStep),
 )
+const appearanceSelected = ref(step.value > 4)
+if (step.value === 4) {
+  phone.setPreference('appearanceMode', 'light')
+}
 const direction = ref<'back' | 'forward'>('forward')
 const accountMode = ref<'login' | 'register'>('login')
 const email = ref('')
@@ -93,6 +102,13 @@ const showDevelopmentSkip = import.meta.env.DEV
 function moveTo(nextStep: number): void {
   direction.value = nextStep < step.value ? 'back' : 'forward'
   step.value = Math.min(PHONE_SETUP_LAST_STEP, Math.max(0, nextStep))
+  if (step.value < 4) {
+    appearanceSelected.value = false
+    emit('appearanceSelected', false)
+  }
+  if (step.value === 4 && !appearanceSelected.value) {
+    phone.setPreference('appearanceMode', 'light')
+  }
   phone.setSetupStep(step.value)
 }
 
@@ -105,12 +121,16 @@ function continueSetup(): void {
   }
   if (step.value === 8) {
     for (const appId of selectedApps.value) appStore.claimApp(appId)
+    void finish()
+    return
   }
   moveTo(step.value + 1)
 }
 
 function chooseAppearance(mode: AppearanceMode): void {
+  appearanceSelected.value = true
   phone.setPreference('appearanceMode', mode)
+  emit('appearanceSelected', true)
 }
 
 function choosePerformance(mode: GraphicsMode): void {
@@ -227,13 +247,22 @@ function skipSetupForDevelopment(): void {
 <template>
   <section
     class="setup-assistant"
-    :class="`setup-assistant--step-${step}`"
+    :class="[
+      `setup-assistant--step-${step}`,
+      {
+        'setup-assistant--dark':
+          (appearanceSelected || step > 4) && phone.isDarkMode,
+        'setup-assistant--performance':
+          phone.preferences.settings.graphicsMode === 'performance',
+        'setup-assistant--ultimate':
+          phone.preferences.settings.graphicsMode === 'ultimate',
+      },
+    ]"
     :style="currentWallpaperStyle"
     :aria-label="phone.t('Setup.title')"
   >
-    <div class="setup-assistant__aurora" aria-hidden="true"></div>
     <button
-      v-if="showDevelopmentSkip"
+      v-if="showDevelopmentSkip && step === 0"
       type="button"
       class="setup-assistant__development-skip"
       @click="skipSetupForDevelopment"
@@ -262,15 +291,8 @@ function skipSetupForDevelopment(): void {
       <main :key="step" class="setup-assistant__page">
         <template v-if="step === 0">
           <div class="setup-welcome__hero" aria-hidden="true">
-            <div class="setup-welcome__greetings">
-              <span>{{ phone.t('Setup.welcome.hello') }}</span>
-              <span>{{ phone.t('Setup.welcome.hallo') }}</span>
-              <span>{{ phone.t('Setup.welcome.bonjour') }}</span>
-            </div>
-            <div class="setup-welcome__signature">
-              <span></span>
-              <span></span>
-              <span></span>
+            <div class="setup-welcome__device">
+              <Smartphone :size="43" :stroke-width="1.55" />
             </div>
           </div>
           <div class="setup-welcome__copy">
@@ -283,19 +305,6 @@ function skipSetupForDevelopment(): void {
             </p>
           </div>
           <footer class="setup-welcome__footer">
-            <div class="setup-welcome__privacy">
-              <span
-                ><ShieldCheck :size="14" />{{
-                  phone.t('Setup.welcome.private')
-                }}</span
-              >
-              <i aria-hidden="true"></i>
-              <span
-                ><Sparkles :size="14" />{{
-                  phone.t('Setup.welcome.personal')
-                }}</span
-              >
-            </div>
             <SkyButton class="setup-assistant__primary" @click="continueSetup">
               {{ phone.t('Setup.getStarted') }}
             </SkyButton>
@@ -632,7 +641,20 @@ function skipSetupForDevelopment(): void {
               <span
                 class="setup-mode-stack__orb"
                 :class="`setup-mode-stack__orb--${mode}`"
-              ></span>
+                aria-hidden="true"
+              >
+                <i class="setup-mode-preview__backdrop"></i>
+                <i
+                  class="setup-mode-preview__card setup-mode-preview__card--back"
+                ></i>
+                <i
+                  class="setup-mode-preview__card setup-mode-preview__card--front"
+                ></i>
+                <i
+                  class="setup-mode-preview__line setup-mode-preview__line--wide"
+                ></i>
+                <i class="setup-mode-preview__line"></i>
+              </span>
               <span
                 ><strong>{{ phone.t(`Apps.settings.${mode}Mode`) }}</strong
                 ><small>{{ phone.t(`Setup.performance.${mode}`) }}</small></span
@@ -2125,6 +2147,462 @@ function skipSetupForDevelopment(): void {
 .setup-back-leave-to {
   opacity: 0;
   transform: translateX(16px);
+}
+
+/* Minimal system setup language, matching the restrained iOS setup hierarchy. */
+.setup-assistant,
+.setup-assistant--step-0 {
+  --setup-background: #ffffff;
+  --setup-text: #1d1d1f;
+  --setup-secondary: #6e6e73;
+  --setup-tertiary: #8e8e93;
+  --setup-muted: #aeaeb2;
+  --setup-surface: #f2f2f7;
+  --setup-selected-surface: #eef6ff;
+  --setup-control: #e9e9eb;
+  --setup-control-fill: #ffffff;
+  --setup-separator: #d1d1d6;
+  --setup-blue: #007aff;
+  --setup-green: #34c759;
+  --setup-red: #ff3b30;
+  --setup-orb: #dcecff;
+  --setup-orb-ultimate: #e7e2ff;
+  --setup-home-indicator: #1d1d1f;
+  color: var(--setup-text);
+  background: var(--setup-background);
+}
+.setup-assistant--dark,
+.setup-assistant--dark.setup-assistant--step-0 {
+  --setup-background: #000000;
+  --setup-text: #f5f5f7;
+  --setup-secondary: #98989d;
+  --setup-tertiary: #8e8e93;
+  --setup-muted: #636366;
+  --setup-surface: #1c1c1e;
+  --setup-selected-surface: #102a43;
+  --setup-control: #2c2c2e;
+  --setup-control-fill: #636366;
+  --setup-separator: #38383a;
+  --setup-blue: #0a84ff;
+  --setup-green: #30d158;
+  --setup-red: #ff453a;
+  --setup-orb: #102a43;
+  --setup-orb-ultimate: #28203d;
+  --setup-home-indicator: #ffffff;
+}
+.setup-assistant__development-skip {
+  top: 48px;
+  right: 13px;
+  border: 0;
+  color: var(--setup-blue);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+}
+.setup-assistant__chrome {
+  gap: 10px;
+}
+.setup-assistant__back {
+  border: 0;
+  color: var(--setup-blue);
+  background: transparent;
+  backdrop-filter: none;
+}
+.setup-assistant__progress {
+  height: 3px;
+  background: var(--setup-separator);
+}
+.setup-assistant__progress span {
+  background: var(--setup-blue);
+}
+.setup-assistant__counter {
+  color: var(--setup-tertiary);
+  font-weight: 600;
+}
+.setup-assistant__page h1 {
+  margin: 12px 0 10px;
+  color: var(--setup-text);
+  font-size: 31px;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+.setup-assistant__lead {
+  color: var(--setup-secondary);
+  font-size: 14px;
+  line-height: 1.42;
+}
+.setup-assistant__eyebrow,
+.setup-welcome__eyebrow {
+  display: none;
+}
+.setup-assistant__icon {
+  width: 72px;
+  height: 72px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--setup-blue);
+  background: var(--setup-surface);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.setup-assistant__icon--signal,
+.setup-assistant__icon--cloud,
+.setup-assistant__icon--security,
+.setup-assistant__icon--appearance,
+.setup-assistant__icon--performance,
+.setup-assistant__icon--wallpaper,
+.setup-assistant__icon--notifications,
+.setup-assistant__icon--apps {
+  color: var(--setup-blue);
+}
+.setup-assistant__primary {
+  min-height: 50px;
+  border-radius: 14px !important;
+  background: var(--setup-blue) !important;
+  box-shadow: none !important;
+  font-weight: 650;
+}
+.setup-assistant__later {
+  color: var(--setup-blue);
+  font-weight: 500;
+}
+.setup-assistant__notice {
+  padding: 5px 4px;
+  border: 0;
+  color: var(--setup-blue);
+  background: transparent;
+}
+.setup-assistant__notice p {
+  color: var(--setup-secondary);
+}
+.setup-assistant__error {
+  color: var(--setup-red);
+}
+.setup-assistant--step-0 .setup-assistant__page {
+  padding: 105px 28px 0;
+}
+.setup-welcome__hero {
+  width: 94px;
+  height: 94px;
+  border-radius: 50%;
+  background: var(--setup-surface);
+}
+.setup-welcome__hero::before,
+.setup-welcome__hero::after {
+  content: none;
+}
+.setup-welcome__device {
+  display: grid;
+  width: 94px;
+  height: 94px;
+  color: var(--setup-blue);
+  place-items: center;
+}
+.setup-welcome__copy {
+  margin-top: 31px;
+}
+.setup-welcome__copy h1 {
+  margin-top: 0;
+  font-size: 32px;
+}
+.setup-welcome__footer {
+  width: calc(100% + 56px);
+  margin-right: -28px;
+  margin-left: -28px;
+  padding: 0 28px 13px;
+  border: 0;
+  background: var(--setup-background);
+  backdrop-filter: none;
+}
+.setup-welcome__footer .setup-assistant__primary {
+  margin-top: 0;
+  box-shadow: none;
+}
+.setup-welcome__home-indicator {
+  background: var(--setup-home-indicator);
+}
+.setup-connectivity-card {
+  min-height: 142px;
+  border: 0;
+  border-radius: 22px;
+  color: var(--setup-text);
+  background: var(--setup-surface);
+  box-shadow: none;
+}
+.setup-connectivity-card__waves {
+  display: none;
+}
+.setup-connectivity-card__label,
+.setup-connectivity-card svg {
+  color: var(--setup-blue);
+}
+.setup-connectivity-card > span:last-of-type {
+  color: var(--setup-tertiary);
+}
+.setup-cloud-hero {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  color: var(--setup-blue);
+  background: var(--setup-surface);
+}
+.setup-cloud-hero__orbit,
+.setup-cloud-hero__glow,
+.setup-cloud-hero i {
+  display: none;
+}
+.setup-cloud-hero svg {
+  filter: none;
+}
+.setup-cloud-identity {
+  border: 0;
+  background: var(--setup-surface);
+}
+.setup-cloud-identity > span {
+  border: 0;
+  background: var(--setup-blue);
+  box-shadow: none;
+}
+.setup-cloud-identity small,
+.setup-cloud-strength,
+.setup-cloud-security-note {
+  color: var(--setup-tertiary);
+}
+.setup-cloud-identity strong,
+.setup-cloud-connected strong {
+  color: var(--setup-text);
+}
+.setup-cloud-identity em,
+.setup-cloud-suffix {
+  color: var(--setup-blue);
+}
+.setup-cloud-fields {
+  border: 0;
+  background: var(--setup-surface);
+}
+.setup-cloud-fields :deep(.sky-field + .sky-field) {
+  border-top-color: var(--setup-separator);
+}
+.setup-cloud-fields :deep(.sky-field__label) {
+  color: var(--setup-tertiary);
+}
+.setup-cloud-fields :deep(.sky-field__input) {
+  color: var(--setup-text);
+  caret-color: var(--setup-blue);
+}
+.setup-cloud-fields :deep(.sky-field__input::placeholder) {
+  color: var(--setup-muted);
+}
+.setup-cloud-strength span {
+  background: var(--setup-separator);
+}
+.setup-cloud-strength span.active {
+  background: var(--setup-blue);
+  box-shadow: none;
+}
+.setup-assistant__selector {
+  background: var(--setup-control);
+}
+.setup-assistant__selector-indicator {
+  border: 0;
+  background: var(--setup-control-fill);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 14%);
+}
+.setup-assistant__selector button {
+  color: var(--setup-secondary);
+}
+.setup-assistant__selector button.active {
+  color: var(--setup-text);
+}
+.setup-cloud-connected {
+  color: var(--setup-green);
+}
+.setup-cloud-connected span {
+  color: var(--setup-secondary);
+}
+.setup-security-visual {
+  border: 0;
+  background: var(--setup-surface);
+}
+.setup-security-visual span {
+  background: var(--setup-text);
+  box-shadow: none;
+}
+.setup-security-visual svg {
+  color: var(--setup-muted);
+}
+.setup-passcode-length button,
+.setup-choice-grid button,
+.setup-mode-stack button,
+.setup-toggle-card,
+.setup-app-list button,
+.setup-ready__summary span {
+  border-color: transparent;
+  color: var(--setup-text);
+  background: var(--setup-surface);
+  box-shadow: none;
+}
+.setup-passcode-length button.selected,
+.setup-choice-grid button.selected,
+.setup-mode-stack button.selected,
+.setup-app-list button.selected {
+  border-color: var(--setup-blue);
+  background: var(--setup-selected-surface);
+  box-shadow: none;
+}
+.setup-passcode-length small,
+.setup-mode-stack small,
+.setup-toggle-card small,
+.setup-app-list small {
+  color: var(--setup-secondary);
+}
+.setup-mode-stack__orb {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 18px;
+  background: var(--setup-orb);
+  box-shadow: none;
+}
+.setup-mode-stack__orb--ultimate {
+  background: var(--setup-orb-ultimate);
+  box-shadow: none;
+}
+.setup-mode-preview__backdrop,
+.setup-mode-preview__card,
+.setup-mode-preview__line {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+.setup-mode-preview__backdrop {
+  inset: 0;
+  background: linear-gradient(145deg, #d9eaff 0%, #b9d8ff 100%);
+}
+.setup-mode-preview__card {
+  width: 37px;
+  height: 26px;
+  border-radius: 8px;
+}
+.setup-mode-preview__card--back {
+  top: 11px;
+  left: 9px;
+  background: #ffffff;
+}
+.setup-mode-preview__card--front {
+  right: 8px;
+  bottom: 10px;
+  background: #e7f1ff;
+}
+.setup-mode-preview__line {
+  z-index: 2;
+  right: 15px;
+  bottom: 17px;
+  width: 17px;
+  height: 3px;
+  border-radius: 999px;
+  background: #5d80ad;
+}
+.setup-mode-preview__line--wide {
+  bottom: 23px;
+  width: 24px;
+}
+.setup-mode-stack__orb--ultimate .setup-mode-preview__backdrop {
+  background:
+    radial-gradient(circle at 20% 25%, #f4c7ff 0 12%, transparent 35%),
+    linear-gradient(145deg, #776de4 0%, #342760 100%);
+}
+.setup-mode-stack__orb--ultimate .setup-mode-preview__card {
+  border: 1px solid rgb(255 255 255 / 38%);
+  background: rgb(255 255 255 / 25%);
+  box-shadow: 0 7px 14px rgb(31 18 70 / 24%);
+  backdrop-filter: blur(5px);
+}
+.setup-mode-stack__orb--ultimate .setup-mode-preview__card--back {
+  transform: rotate(-8deg);
+}
+.setup-mode-stack__orb--ultimate .setup-mode-preview__card--front {
+  background: rgb(255 255 255 / 34%);
+  transform: rotate(5deg);
+}
+.setup-mode-stack__orb--ultimate .setup-mode-preview__line {
+  background: rgb(255 255 255 / 72%);
+}
+.setup-assistant--dark
+  .setup-mode-stack__orb--performance
+  .setup-mode-preview__backdrop {
+  background: linear-gradient(145deg, #203147 0%, #142133 100%);
+}
+.setup-assistant--dark
+  .setup-mode-stack__orb--performance
+  .setup-mode-preview__card--back {
+  background: #334965;
+}
+.setup-assistant--dark
+  .setup-mode-stack__orb--performance
+  .setup-mode-preview__card--front {
+  background: #29405d;
+}
+.setup-assistant--dark
+  .setup-mode-stack__orb--performance
+  .setup-mode-preview__line {
+  background: #a9c7e9;
+}
+.setup-mode-stack__check,
+.setup-app-list button > i {
+  border-color: var(--setup-muted);
+}
+.selected .setup-mode-stack__check,
+.setup-app-list button.selected > i {
+  border-color: var(--setup-blue);
+  background: var(--setup-blue);
+}
+.setup-wallpapers button.selected {
+  border-color: var(--setup-background);
+  box-shadow: 0 0 0 2px var(--setup-blue);
+}
+.setup-toggle-card {
+  border: 0;
+}
+.setup-toggle-card button {
+  color: var(--setup-text);
+}
+.setup-toggle-card button + button {
+  border-top-color: var(--setup-separator);
+}
+.setup-toggle-card i {
+  background: var(--setup-separator);
+}
+.setup-ready__halo {
+  width: 112px;
+  height: 112px;
+  border: 0;
+  color: var(--setup-blue);
+  background: var(--setup-surface);
+  box-shadow: none;
+}
+.setup-ready__summary span {
+  color: var(--setup-blue);
+}
+.setup-ready__summary b {
+  color: var(--setup-text);
+}
+.setup-assistant--performance .setup-forward-enter-active,
+.setup-assistant--performance .setup-forward-leave-active,
+.setup-assistant--performance .setup-back-enter-active,
+.setup-assistant--performance .setup-back-leave-active,
+.setup-assistant--performance .setup-assistant__progress span,
+.setup-assistant--performance .setup-mode-stack button,
+.setup-assistant--performance .setup-mode-stack__orb {
+  transition-duration: 0.01ms;
+}
+.setup-assistant--ultimate .setup-mode-stack button,
+.setup-assistant--ultimate .setup-mode-stack__orb {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @media (prefers-reduced-motion: reduce) {
   .setup-assistant,
