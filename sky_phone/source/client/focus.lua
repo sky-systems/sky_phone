@@ -1,6 +1,6 @@
 SkyPhoneFocus = {}
 
-local blocked_phone_controls = { 19, 24, 140, 141, 142, 257, 263, 264 }
+local blocked_phone_controls = { 24, 140, 141, 142, 257, 263, 264 }
 local blocked_phone_look_controls = { 1, 2, 3, 4, 5, 6 }
 local focused_control_groups = { 0, 1, 2 }
 
@@ -39,10 +39,10 @@ function SkyPhoneFocus.Resolve(state)
         or state.payphone_focus
         or state.sim_picker_open
         or (state.camera_active and state.camera_nui_focused)
-    local cursor = focused and not (game_input and state.cursor_disabled)
+    local cursor = focused
     return {
-        block_game = cursor,
-        block_look = game_input and not state.cursor_disabled,
+        block_game = cursor and (not game_input or state.text_input_focused),
+        block_look = game_input,
         cursor = cursor,
         focused = focused,
         game_input = game_input,

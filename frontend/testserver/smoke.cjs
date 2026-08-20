@@ -1156,6 +1156,7 @@ async function main() {
       'device:notification-open',
       'notification:focus',
       'sim:picker-close',
+      'ui:input-focus',
       'ui:opened',
       'ui:ready',
     ]
