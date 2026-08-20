@@ -92,7 +92,8 @@ describe('FiveManage server configuration contract', () => {
     expect(mediaServer).toContain(
       'path:find("/" .. state.upload_path .. "/", 1, true)',
     )
-    expect(mediaServer).toContain('object_id ~= remote_id')
+    expect(mediaServer).toContain('local storage_key = path:sub(2)')
+    expect(mediaServer).toContain('}, nil, storage_key')
     expect(mediaServer).toContain('"HEAD"')
     expect(mediaServer).toContain(
       'SkyPhoneMediaImport.ResponseHeader(response.headers, "content-type")',

@@ -203,10 +203,11 @@ local function probe_uploaded_object(state, remote_id, uploaded_url)
         Bridge.Debug("error", "[sky_phone][media-debug] FiveManage upload URL is not bound to the server upload path.")
         return nil, "invalid_upload_token"
     end
-    local filename = path:match("/([^/]+)$")
-    local object_id = filename and filename:match("^([%w_%-]+)%.[%w]+$") or nil
-    if object_id ~= remote_id then
-        Bridge.Debug("error", "[sky_phone][media-debug] FiveManage upload URL does not contain the returned file ID.")
+    local storage_key = path:sub(2)
+    if #storage_key > 128 or storage_key:find("//", 1, true)
+        or not storage_key:match("^[%w%._%-%/]+$")
+    then
+        Bridge.Debug("error", "[sky_phone][media-debug] FiveManage upload URL contains an invalid storage key.")
         return nil, "invalid_upload"
     end
 
@@ -255,7 +256,7 @@ local function probe_uploaded_object(state, remote_id, uploaded_url)
         size = size,
         type = mime_type,
         url = uploaded_url,
-    }, nil, remote_id
+    }, nil, storage_key
 end
 
 local function get_remote_file(state, remote_id, uploaded_url)
