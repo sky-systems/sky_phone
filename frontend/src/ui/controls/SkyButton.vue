@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import SkyGlass from './SkyGlass.vue'
+
 defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
@@ -9,6 +11,7 @@ const props = withDefaults(
     clear?: boolean
     component?: 'a' | 'button'
     disabled?: boolean
+    glass?: boolean
     href?: string
     iconOnly?: boolean
     inline?: boolean
@@ -26,6 +29,7 @@ const props = withDefaults(
     clear: false,
     component: 'button',
     disabled: false,
+    glass: false,
     href: undefined,
     iconOnly: false,
     inline: false,
@@ -43,6 +47,23 @@ const props = withDefaults(
 const emit = defineEmits<{
   click: [event: MouseEvent]
 }>()
+
+const buttonClasses = computed(() => [
+  `sky-button--${props.variant}`,
+  {
+    'sky-button--block': props.block,
+    'sky-button--clear': props.clear,
+    'sky-button--glass': props.glass,
+    'sky-button--icon-only': props.iconOnly,
+    'sky-button--inline': props.inline,
+    'sky-button--large': props.large,
+    'sky-button--outline': props.outline,
+    'sky-button--raised': props.raised,
+    'sky-button--rounded': props.rounded,
+    'sky-button--small': props.small && !props.large,
+    'sky-button--tonal': props.tonal,
+  },
+])
 
 const elementProps = computed<Record<string, unknown>>(() => {
   if (props.component === 'a') {
@@ -71,25 +92,25 @@ function handleClick(event: MouseEvent): void {
 </script>
 
 <template>
+  <SkyGlass
+    v-if="glass"
+    :component="component"
+    v-bind="{ ...$attrs, ...elementProps }"
+    class="sky-button"
+    :class="buttonClasses"
+    :disabled="disabled"
+    :href="href"
+    :type="type"
+    @click="handleClick"
+  >
+    <slot />
+  </SkyGlass>
   <component
+    v-else
     :is="component"
     v-bind="{ ...$attrs, ...elementProps }"
     class="sky-button"
-    :class="[
-      `sky-button--${variant}`,
-      {
-        'sky-button--block': block,
-        'sky-button--clear': clear,
-        'sky-button--icon-only': iconOnly,
-        'sky-button--inline': inline,
-        'sky-button--large': large,
-        'sky-button--outline': outline,
-        'sky-button--raised': raised,
-        'sky-button--rounded': rounded,
-        'sky-button--small': small && !large,
-        'sky-button--tonal': tonal,
-      },
-    ]"
+    :class="buttonClasses"
     @click="handleClick"
   >
     <slot />

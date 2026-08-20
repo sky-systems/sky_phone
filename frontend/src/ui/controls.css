@@ -111,6 +111,18 @@
   color: var(--sky-text, #111827);
 }
 
+.sky-glass.sky-button--glass {
+  border-color: var(--sky-hairline, rgba(0, 0, 0, 0.2));
+  background: var(--sky-glass, rgba(255, 255, 255, 0.75));
+  color: var(--sky-text, #000000);
+  box-shadow: var(--sky-shadow-glass);
+}
+
+.sky-glass.sky-button--glass:active:not(:disabled) {
+  background: var(--sky-glass, rgba(255, 255, 255, 0.75));
+  filter: brightness(0.94);
+}
+
 .sky-button--danger {
   background: var(--sky-danger, #dc2626);
 }

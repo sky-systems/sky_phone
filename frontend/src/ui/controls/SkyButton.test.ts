@@ -28,6 +28,27 @@ describe('SkyButton', () => {
     expect(html).toContain('Continue')
   })
 
+  it('renders interactive liquid glass buttons through the shared glass surface', async () => {
+    const html = await renderToString(
+      createSSRApp({
+        render: () =>
+          h(SkyButton, { glass: true, rounded: true }, () => 'Edit'),
+      }),
+    )
+
+    expect(html).toContain('sky-button--glass')
+    expect(html).toContain('sky-glass')
+    expect(html).toContain('sky-glass--interactive')
+
+    const controls = readFileSync(
+      fileURLToPath(new URL('../controls.css', import.meta.url)),
+      'utf8',
+    )
+    expect(controls).toMatch(
+      /\.sky-glass\.sky-button--glass\s*\{[^}]*background:\s*var\(--sky-glass[^}]*box-shadow:\s*var\(--sky-shadow-glass\)/s,
+    )
+  })
+
   it('keeps focus and pressed feedback on the contextual accent', () => {
     const uiDirectory = fileURLToPath(new URL('..', import.meta.url))
     const controls = readFileSync(`${uiDirectory}/controls.css`, 'utf8')
