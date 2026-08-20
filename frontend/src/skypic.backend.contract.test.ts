@@ -389,8 +389,8 @@ describe('SkyPic backend contracts', () => {
       deletion.indexOf('delete_remote_file(row.remote_id)'),
     )
     expect(mediaUtils).toContain("'media_in_use'")
-    expect(fallbackLocales).toContain(
-      "media_in_use:\n          'This media is still used by SkyPic and cannot be deleted yet.'",
+    expect(fallbackLocales).toMatch(
+      /media_in_use:\s*'This media is still used by SkyPic and cannot be deleted yet\.'/,
     )
     expect(englishLocale).toContain(
       'media_in_use = "This media is still used by SkyPic and cannot be deleted yet."',

@@ -123,6 +123,10 @@ function expectSkyPicMetadataSafe(items, label) {
 
 function verifyBrowserTestData(dataByEndpoint) {
   const development = dataByEndpoint.get('development:bootstrap')
+  assert(
+    development.device.data.appAuth.payload.signedIn.includes('skypic'),
+    'default browser demo did not sign in the seeded SkyPic profile',
+  )
   expectItems(development.device.data.alarms.payload, 'clock alarms', 3)
   expectItems(
     development.device.data.media.payload.captures,
@@ -853,6 +857,22 @@ async function verifySkyPicActions(baseUrl) {
       success: false,
     },
   )
+  const onboardingDevelopment = await expectSuccess(
+    baseUrl,
+    'development:bootstrap',
+    { _testScenario: 'skypic-onboarding' },
+    true,
+  )
+  assert.deepEqual(
+    onboardingDevelopment.device.data.apps.payload.homeLayout.grid,
+    ['skypic'],
+  )
+  assert(
+    !onboardingDevelopment.device.data.appAuth.payload.signedIn.includes(
+      'skypic',
+    ),
+    'SkyPic onboarding browser demo started with an existing app session',
+  )
   const onboarding = await expectSuccess(
     baseUrl,
     'skypic:bootstrap',
@@ -878,6 +898,81 @@ async function verifySkyPicActions(baseUrl) {
   )
   assert.equal(createdOnboarding.profile.handle, 'alexm')
   assert.equal(createdOnboarding.profile.snapScore, 0)
+  const onboardingProfileUpdate = {
+    _testScenario: 'skypic-onboarding',
+    allowStoryReplies: false,
+    avatarMediaId: null,
+    avatarSeed: 144,
+    bio: 'Updated inside the isolated SkyPic onboarding preview.',
+    displayName: 'Onboarding Alex',
+    handle: 'onboarding.alex',
+    showInQuickAdd: false,
+    storyPrivacy: 'everyone',
+  }
+  const updatedOnboardingProfile = await expectSuccess(
+    baseUrl,
+    'skypic:update-profile',
+    onboardingProfileUpdate,
+    true,
+  )
+  assert.equal(updatedOnboardingProfile.handle, 'onboarding.alex')
+  assert.equal(updatedOnboardingProfile.displayName, 'Onboarding Alex')
+  assert.equal(updatedOnboardingProfile.avatarSeed, 144)
+  assert.equal(updatedOnboardingProfile.avatarMediaId, null)
+  assert.equal(updatedOnboardingProfile.avatarUrl, null)
+  assert.equal(updatedOnboardingProfile.snapScore, 0)
+  const updatedOnboarding = await expectSuccess(
+    baseUrl,
+    'skypic:bootstrap',
+    { _testScenario: 'skypic-onboarding' },
+    true,
+  )
+  assert.equal(updatedOnboarding.profile.handle, 'onboarding.alex')
+  assert.equal(updatedOnboarding.profile.bio, onboardingProfileUpdate.bio)
+  const defaultProfileAfterOnboardingUpdate = await expectSuccess(
+    baseUrl,
+    'skypic:bootstrap',
+    {},
+    true,
+  )
+  assert.equal(
+    defaultProfileAfterOnboardingUpdate.profile.handle,
+    profile.handle,
+  )
+  assert.equal(
+    defaultProfileAfterOnboardingUpdate.profile.displayName,
+    profile.displayName,
+  )
+
+  const reloadedOnboardingDevelopment = await expectSuccess(
+    baseUrl,
+    'development:bootstrap',
+    { _testScenario: 'skypic-onboarding' },
+    true,
+  )
+  assert(
+    !reloadedOnboardingDevelopment.device.data.appAuth.payload.signedIn.includes(
+      'skypic',
+    ),
+    'reloaded SkyPic onboarding browser demo restored an app session',
+  )
+  const reloadedOnboarding = await expectSuccess(
+    baseUrl,
+    'skypic:bootstrap',
+    { _testScenario: 'skypic-onboarding' },
+    true,
+  )
+  assert.equal(reloadedOnboarding.profile, null)
+  const recreatedAfterReload = await expectSuccess(
+    baseUrl,
+    'skypic:create-profile',
+    {
+      ...createProfile,
+      _testScenario: 'skypic-onboarding',
+    },
+    true,
+  )
+  assert.equal(recreatedAfterReload.handle, 'alexm')
   assert.deepEqual(
     await post(baseUrl, 'skypic:create-profile', {
       ...createProfile,

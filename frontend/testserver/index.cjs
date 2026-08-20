@@ -2955,7 +2955,7 @@ const deviceData = {
   appAuth: {
     payload: {
       accountEmail: 'demo@ifruit.com',
-      signedIn: ['citymarkt', 'local-pages', 'feather', 'crewlink'],
+      signedIn: ['citymarkt', 'local-pages', 'feather', 'crewlink', 'skypic'],
       version: 1,
     },
     revision: 1,
@@ -8103,7 +8103,11 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'skypic:update-profile') {
-    if (!skyPicProfile) {
+    const onboardingScenario = testScenario === 'skypic-onboarding'
+    const currentProfile = onboardingScenario
+      ? skyPicOnboardingProfile
+      : skyPicProfile
+    if (!currentProfile) {
       response.json({ success: false, error: 'profile_required' })
       return
     }
@@ -8126,7 +8130,7 @@ app.post('/api/:endpoint', (request, response) => {
     }
     const avatarSeed = skyPicAvatarSeed(
       request.body.avatarSeed,
-      skyPicProfile.avatarSeed,
+      currentProfile.avatarSeed,
     )
     if (avatarSeed === null) {
       response.json({ success: false, error: 'invalid_avatar_seed' })
@@ -8142,22 +8146,22 @@ app.post('/api/:endpoint', (request, response) => {
         : mockMedia.find(
             (item) => item.id === avatarMediaId && item.mediaType === 'photo',
           )
-    Object.assign(skyPicProfiles[0], {
+    const summary = {
       avatarSeed,
       avatarUrl:
         request.body.avatarMediaId === undefined
-          ? skyPicProfile.avatarUrl
+          ? currentProfile.avatarUrl
           : (avatar?.url ?? null),
       displayName,
       handle,
-    })
-    skyPicProfile = {
-      ...skyPicProfile,
-      ...skyPicProfiles[0],
+    }
+    const updatedProfile = {
+      ...currentProfile,
+      ...summary,
       allowStoryReplies: request.body.allowStoryReplies === true,
       avatarMediaId:
         request.body.avatarMediaId === undefined
-          ? skyPicProfile.avatarMediaId
+          ? currentProfile.avatarMediaId
           : (avatar?.id ?? null),
       bio: String(request.body.bio ?? '')
         .trim()
@@ -8165,7 +8169,18 @@ app.post('/api/:endpoint', (request, response) => {
       showInQuickAdd: request.body.showInQuickAdd === true,
       storyPrivacy,
     }
-    response.json({ success: true, data: { ...skyPicProfile } })
+    if (onboardingScenario) {
+      skyPicOnboardingProfile = updatedProfile
+    } else {
+      Object.assign(skyPicProfiles[0], summary)
+      skyPicProfile = { ...updatedProfile, ...skyPicProfiles[0] }
+    }
+    response.json({
+      success: true,
+      data: {
+        ...(onboardingScenario ? skyPicOnboardingProfile : skyPicProfile),
+      },
+    })
     return
   }
   if (endpoint === 'skypic:search') {
@@ -10931,6 +10946,9 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'development:bootstrap') {
+    if (testScenario === 'skypic-onboarding') {
+      skyPicOnboardingProfile = null
+    }
     cryptoRegistered = testScenario !== 'crypto-register'
     cryptoAuthenticated = !['crypto-login', 'crypto-register'].includes(
       testScenario,
@@ -11067,7 +11085,8 @@ app.post('/api/:endpoint', (request, response) => {
             testScenario.startsWith('citymarkt-') ||
             testScenario.startsWith('feather-') ||
             testScenario.startsWith('local-pages-') ||
-            testScenario.startsWith('crewlink-')
+            testScenario.startsWith('crewlink-') ||
+            testScenario.startsWith('skypic-')
               ? {
                   ...deviceData,
                   apps: {
@@ -11078,9 +11097,11 @@ app.post('/api/:endpoint', (request, response) => {
                         dock: [],
                         grid: testScenario.startsWith('crewlink-')
                           ? ['crewlink']
-                          : testScenario === 'citymarkt-local-pages-missing'
-                            ? ['citymarkt']
-                            : ['citymarkt', 'local-pages'],
+                          : testScenario.startsWith('skypic-')
+                            ? ['skypic']
+                            : testScenario === 'citymarkt-local-pages-missing'
+                              ? ['citymarkt']
+                              : ['citymarkt', 'local-pages'],
                         hidden:
                           testScenario === 'citymarkt-local-pages-missing'
                             ? ['local-pages']
@@ -11098,17 +11119,35 @@ app.post('/api/:endpoint', (request, response) => {
                     'local-pages-register',
                     'crewlink-login',
                     'crewlink-register',
+                    'skypic-onboarding',
                   ].includes(testScenario)
                     ? {
                         payload: {
                           accountEmail: linkedAccount?.email ?? '',
                           signedIn: testScenario.startsWith('feather-')
-                            ? ['citymarkt', 'local-pages', 'crewlink']
+                            ? ['citymarkt', 'local-pages', 'crewlink', 'skypic']
                             : testScenario.startsWith('local-pages-')
-                              ? ['citymarkt', 'feather', 'crewlink']
+                              ? ['citymarkt', 'feather', 'crewlink', 'skypic']
                               : testScenario.startsWith('crewlink-')
-                                ? ['citymarkt', 'local-pages', 'feather']
-                                : ['local-pages', 'feather', 'crewlink'],
+                                ? [
+                                    'citymarkt',
+                                    'local-pages',
+                                    'feather',
+                                    'skypic',
+                                  ]
+                                : testScenario.startsWith('skypic-')
+                                  ? [
+                                      'citymarkt',
+                                      'local-pages',
+                                      'feather',
+                                      'crewlink',
+                                    ]
+                                  : [
+                                      'local-pages',
+                                      'feather',
+                                      'crewlink',
+                                      'skypic',
+                                    ],
                           version: 1,
                         },
                         revision: deviceData.appAuth?.revision ?? 0,

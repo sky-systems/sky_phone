@@ -30,14 +30,17 @@ const props = withDefaults(
     eyebrow: string
     galleryLabel: string
     loginLabel: string
+    loginModeLabel?: string
     maxUsernameLength?: number
     minUsernameLength?: number
     mode: 'login' | 'register'
+    movingModeHighlight?: boolean
     password?: string
     passwordLabel?: string
     passwordPlaceholder?: string
     pending: boolean
     registerLabel: string
+    registerModeLabel?: string
     requirePassword?: boolean
     submitEnabled?: boolean
     title: string
@@ -62,10 +65,13 @@ const props = withDefaults(
     emailAsField: false,
     maxUsernameLength: 40,
     minUsernameLength: 2,
+    loginModeLabel: '',
+    movingModeHighlight: false,
     password: '',
     passwordLabel: 'Password',
     passwordPlaceholder: '',
     requirePassword: false,
+    registerModeLabel: '',
     showConfirmPassword: false,
     submitEnabled: undefined,
     usernameAutocomplete: 'username',
@@ -101,6 +107,10 @@ const canSubmit = computed(() => {
     )
   )
 })
+const modeLoginLabel = computed(() => props.loginModeLabel || props.loginLabel)
+const modeRegisterLabel = computed(
+  () => props.registerModeLabel || props.registerLabel,
+)
 </script>
 
 <template>
@@ -119,9 +129,15 @@ const canSubmit = computed(() => {
 
     <SkyGlass class="app-profile-auth__card">
       <SkySegmented
+        :active-index="movingModeHighlight ? (mode === 'login' ? 0 : 1) : undefined"
+        :aria-label="eyebrow"
+        :item-count="movingModeHighlight ? 2 : undefined"
         raised
+        :rounded="movingModeHighlight"
+        :strong="movingModeHighlight"
         class="app-profile-auth__mode"
         :class="{
+          'app-profile-auth__mode--moving-highlight': movingModeHighlight,
           'app-profile-auth__mode--register': mode === 'register',
         }"
       >
@@ -133,7 +149,7 @@ const canSubmit = computed(() => {
           :active="mode === 'login'"
           @click="emit('update:mode', 'login')"
         >
-          {{ loginLabel }}
+          {{ modeLoginLabel }}
         </SkySegmentedButton>
         <SkySegmentedButton
           class="app-profile-auth__mode-button app-profile-auth__mode-button--register"
@@ -143,7 +159,7 @@ const canSubmit = computed(() => {
           :active="mode === 'register'"
           @click="emit('update:mode', 'register')"
         >
-          {{ registerLabel }}
+          {{ modeRegisterLabel }}
         </SkySegmentedButton>
       </SkySegmented>
 
@@ -372,21 +388,24 @@ const canSubmit = computed(() => {
   position: relative;
   z-index: 1;
   margin: 0 0 12px;
+}
+.app-profile-auth__mode:not(.app-profile-auth__mode--moving-highlight) {
   padding: 3px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   background: rgba(0, 0, 0, 0.16);
 }
-.app-profile-auth__mode :deep(.app-profile-auth__mode-button) {
+.app-profile-auth__mode:not(.app-profile-auth__mode--moving-highlight)
+  :deep(.app-profile-auth__mode-button) {
   border-radius: 3px;
 }
-.app-profile-auth__mode
+.app-profile-auth__mode:not(.app-profile-auth__mode--moving-highlight)
   :deep(
     .app-profile-auth__mode-button--login.app-profile-auth__mode-button--active
   ) {
   border-radius: 10px 3px 3px 10px;
 }
-.app-profile-auth__mode
+.app-profile-auth__mode:not(.app-profile-auth__mode--moving-highlight)
   :deep(
     .app-profile-auth__mode-button--register.app-profile-auth__mode-button--active
   ) {
@@ -685,7 +704,8 @@ const canSubmit = computed(() => {
   padding: 14px;
   border-radius: 28px;
 }
-.app-profile-auth--centered .app-profile-auth__mode {
+.app-profile-auth--centered
+  .app-profile-auth__mode:not(.app-profile-auth__mode--moving-highlight) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
