@@ -19,7 +19,7 @@ const migrationSource = readFileSync(
   'utf8',
 )
 const clientSource = readFileSync(
-  new URL('../../../../sky_phone/source/client/main.lua', import.meta.url),
+  new URL('../../../../sky_phone/source/client/nui_server_bridge.lua', import.meta.url),
   'utf8',
 )
 
@@ -295,7 +295,10 @@ describe('Mail custom mailbox server contract', () => {
       'mail:delete-mailbox',
       'mail:move',
     ]) {
-      expect(clientSource).toContain(`"${endpoint}"`)
+      const callback = endpoint.slice('mail:'.length)
+      expect(clientSource).toMatch(
+        new RegExp(`mail\\s*=\\s*\\[\\[[^\\]]*(?:^|\\s)${callback}(?:\\s|\\]\\])`),
+      )
     }
   })
 })

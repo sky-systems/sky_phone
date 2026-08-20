@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const client = readFileSync(
-  new URL('../../sky_phone/source/client/main.lua', import.meta.url),
+  new URL('../../sky_phone/source/client/nui_server_bridge.lua', import.meta.url),
   'utf8',
 ).replace(/\r\n/g, '\n')
 const companiesServer = readFileSync(
@@ -32,7 +32,7 @@ function sourceBlock(source: string, startMarker: string, endMarker: string) {
 
 describe('Companies outbound service-line call contract', () => {
   it('exposes the dedicated callback through the NUI client bridge', () => {
-    expect(client).toContain(`${quote}companies:dial-service-line${quote}`)
+    expect(client).toMatch(/companies\s*=\s*\[\[[^\]]*dial-service-line/)
   })
 
   it('accepts only a target number and derives the company from the live server member', () => {

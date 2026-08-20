@@ -204,6 +204,7 @@ local function session_owner(source)
     return {
         account_id = device.account_id and tonumber(device.account_id) or nil,
         imei = session.imei,
+        phone_number = device.phone_number,
     }
 end
 
@@ -828,7 +829,7 @@ local function delete_owned_media(src, owner, media_id)
         query_params[#query_params + 1] = value
     end
     local rows = Bridge.Database.Query(([[
-        SELECT `id`, `remote_id`, `origin`, `media_type` FROM `sky_phone_media`
+        SELECT `id`, `remote_id`, `origin`, `media_type`, `url` FROM `sky_phone_media`
         WHERE `id` = ? AND %s AND `media_type` IN ('photo', 'video') LIMIT 1
     ]]):format(condition), query_params)
     local row = rows[1]
@@ -858,7 +859,7 @@ local function delete_owned_media(src, owner, media_id)
     end
     Bridge.Database.Query(("DELETE FROM `sky_phone_media` WHERE `id` = ? AND %s"):format(condition), query_params)
     pending_deletes[delete_key] = nil
-    return true
+    return true, nil, row.url
 end
 
 RegisterNetEvent("sky_phone:media:delete", function(data)
@@ -879,10 +880,14 @@ RegisterNetEvent("sky_phone:media:delete", function(data)
         delete_result(src, correlation_id, false, error_response.error, media_id)
         return
     end
-    local deleted, delete_error = delete_owned_media(src, owner, media_id)
+    local deleted, delete_error, deleted_link = delete_owned_media(src, owner, media_id)
     if not deleted then
         delete_result(src, correlation_id, false, delete_error, media_id)
         return
+    end
+    local phone_number = owner.phone_number
+    if phone_number and deleted_link then
+        TriggerEvent("sky_phone:server:galleryMediaDeleted", src, phone_number, deleted_link)
     end
     delete_result(src, correlation_id, true, nil, media_id)
 end)
@@ -919,10 +924,14 @@ RegisterNetEvent("sky_phone:media:delete-many", function(data)
     end
     local deleted_ids = {}
     for _, media_id in ipairs(media_ids) do
-        local deleted, delete_error = delete_owned_media(src, owner, media_id)
+        local deleted, delete_error, deleted_link = delete_owned_media(src, owner, media_id)
         if not deleted then
             delete_many_result(src, correlation_id, false, delete_error, deleted_ids)
             return
+        end
+        local phone_number = owner.phone_number
+        if phone_number and deleted_link then
+            TriggerEvent("sky_phone:server:galleryMediaDeleted", src, phone_number, deleted_link)
         end
         deleted_ids[#deleted_ids + 1] = media_id
     end

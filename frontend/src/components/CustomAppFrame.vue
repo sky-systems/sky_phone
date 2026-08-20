@@ -137,19 +137,28 @@ const frameReady = computed(
     frameLoaded.value &&
     (props.app.bridgeMode === 'legacy' || skyBridgeReady.value),
 )
-const context = computed<SkyPhoneAppContextV1>(() => ({
-  appId: props.app.id,
-  capabilities: getSkyPhoneAppCapabilities(props.app.capabilities),
-  colorScheme: phone.isDarkMode ? 'dark' : 'light',
-  language: phone.lang,
-  locale: {
-    description: props.app.description,
-    name: props.app.name,
-  },
-  phoneScale: phone.preferences.settings.phoneScale / 100,
-  protocolVersion: PROTOCOL_VERSION,
-  safeArea: getCustomAppSafeArea(props.app.orientation),
-}))
+const context = computed<SkyPhoneAppContextV1>(() => {
+  const capabilities = getSkyPhoneAppCapabilities(props.app.capabilities)
+  return {
+    appId: props.app.id,
+    capabilities,
+    ...(capabilities.includes('theme.read')
+      ? { colorScheme: phone.isDarkMode ? ('dark' as const) : ('light' as const) }
+      : {}),
+    ...(capabilities.includes('locale.read')
+      ? {
+          language: phone.lang,
+          locale: {
+            description: props.app.description,
+            name: props.app.name,
+          },
+        }
+      : {}),
+    phoneScale: phone.preferences.settings.phoneScale / 100,
+    protocolVersion: PROTOCOL_VERSION,
+    safeArea: getCustomAppSafeArea(props.app.orientation),
+  }
+})
 const lbSettings = computed(() =>
   createLbPhoneHostSettings({
     deviceName: phone.device?.name ?? '',

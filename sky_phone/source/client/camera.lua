@@ -1,3 +1,5 @@
+SkyPhoneCamera = {}
+
 local minimum_zoom = 0.5
 local maximum_zoom = 3.0
 local mouse_wheel_zoom_step = 0.08
@@ -251,6 +253,7 @@ local function set_camera_active(active)
         return
     end
     camera_state.active = active
+    TriggerEvent("sky_phone:client:cameraActiveChanged", active)
     if active then
         camera_state.front_camera = false
         camera_state.landscape = false
@@ -356,23 +359,22 @@ local function toggle_camera_frozen()
     camera_state.locked = not camera_state.locked
 end
 
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "EnableWalkableCam", enable_walkable_camera)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "DisableWalkableCam", disable_walkable_camera)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleSelfieCam", set_front_camera)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleCameraFrozen", toggle_camera_frozen)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleFlashlight", set_flash_enabled)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "GetFlashlight", function()
-    return camera_state.flash_enabled
-end)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsWalkingCamEnabled", function()
-    return camera_state.walkable and camera_state.active
-end)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsSelfieCam", function()
-    return camera_state.front_camera
-end)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsCameraOpen", function()
-    return camera_state.active
-end)
+local function get_camera_state()
+    return {
+        active = camera_state.active,
+        flashEnabled = camera_state.flash_enabled,
+        frozen = camera_state.locked,
+        selfie = camera_state.front_camera,
+        walkable = camera_state.walkable and camera_state.active,
+    }
+end
+
+SkyPhoneCamera.DisableWalkable = disable_walkable_camera
+SkyPhoneCamera.EnableWalkable = enable_walkable_camera
+SkyPhoneCamera.GetState = get_camera_state
+SkyPhoneCamera.SetFlashlight = set_flash_enabled
+SkyPhoneCamera.SetSelfie = set_front_camera
+SkyPhoneCamera.ToggleFrozen = toggle_camera_frozen
 
 RegisterNUICallback("camera:setActive", function(data, cb)
     if type(data) ~= "table" then

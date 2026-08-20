@@ -3,6 +3,23 @@ SkyPhoneFocus = {}
 local blocked_phone_controls = { 19, 24, 140, 141, 142, 257, 263, 264 }
 local blocked_phone_look_controls = { 1, 2, 3, 4, 5, 6 }
 local focused_control_groups = { 0, 1, 2 }
+local state = {
+    activity_suspended = false,
+    allow_movement = Config.Phone.AllowMovement,
+    call_focus = false,
+    camera_active = false,
+    camera_nui_focused = true,
+    cursor_disabled = false,
+    external_game_input = nil,
+    external_game_input_owner = nil,
+    is_open = false,
+    notification_focus = false,
+    payphone_focus = false,
+    sim_picker_open = false,
+}
+local block_game = false
+local block_look = false
+local game_input = false
 
 function SkyPhoneFocus.ApplyFocusedControls()
     for _, group in ipairs(focused_control_groups) do
@@ -33,15 +50,19 @@ function SkyPhoneFocus.Resolve(state)
     if state.camera_active and not state.camera_nui_focused then
         return { block_game = false, block_look = false, cursor = false, focused = true, game_input = true, keep_input = true }
     end
-    local game_input = state.is_open and state.allow_movement and not state.camera_active
+    local allow_game_input = state.external_game_input
+    if allow_game_input == nil then
+        allow_game_input = state.allow_movement
+    end
+    local game_input = state.is_open and allow_game_input and not state.camera_active
     local focused = state.is_open
         or state.notification_focus
         or state.payphone_focus
         or state.sim_picker_open
         or (state.camera_active and state.camera_nui_focused)
-    local cursor = focused and not (game_input and state.cursor_disabled)
+    local cursor = focused and not (state.is_open and state.cursor_disabled)
     return {
-        block_game = cursor,
+        block_game = cursor and not (game_input and state.external_game_input == true),
         block_look = game_input and not state.cursor_disabled,
         cursor = cursor,
         focused = focused,
@@ -49,3 +70,143 @@ function SkyPhoneFocus.Resolve(state)
         keep_input = game_input,
     }
 end
+
+function SkyPhoneFocus.Reapply()
+    local focus = SkyPhoneFocus.Resolve(state)
+    SetNuiFocus(focus.focused, focus.cursor)
+    SetNuiFocusKeepInput(focus.keep_input)
+    block_game = focus.block_game == true
+    block_look = focus.block_look == true
+    game_input = focus.game_input == true
+    TriggerEvent("sky_phone:client:cameraFocusApplied", {
+        active = state.camera_active,
+        cursor = focus.cursor,
+        focused = focus.focused,
+        gameInput = focus.keep_input,
+    })
+end
+
+function SkyPhoneFocus.BeginNuiHydration()
+    -- Notification focus belongs to the browser instance and cannot survive a CEF reload.
+    state.notification_focus = false
+end
+
+function SkyPhoneFocus.SetPhone(open, cursor_disabled)
+    state.is_open = open == true
+    if cursor_disabled ~= nil then
+        state.cursor_disabled = cursor_disabled == true
+    end
+    if state.is_open then
+        state.notification_focus = false
+        state.call_focus = false
+    else
+        state.activity_suspended = false
+        state.call_focus = false
+        state.cursor_disabled = false
+        state.external_game_input = nil
+        state.external_game_input_owner = nil
+    end
+    SkyPhoneFocus.Reapply()
+end
+
+function SkyPhoneFocus.SetCall(active)
+    state.call_focus = active == true
+    SkyPhoneFocus.Reapply()
+end
+
+function SkyPhoneFocus.SetSimPicker(active)
+    state.sim_picker_open = active == true
+    SkyPhoneFocus.Reapply()
+end
+
+function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
+    if type(owner_resource) ~= "string" or owner_resource == "" or type(allow_game_input) ~= "boolean" then
+        return false, "invalid_focus_claim"
+    end
+    if not state.is_open then
+        return false, "phone_closed"
+    end
+
+    state.external_game_input = allow_game_input
+    state.external_game_input_owner = owner_resource
+    SkyPhoneFocus.Reapply()
+    return true
+end
+
+function SkyPhoneFocus.Reset()
+    state.activity_suspended = false
+    state.call_focus = false
+    state.camera_active = false
+    state.camera_nui_focused = true
+    state.cursor_disabled = false
+    state.external_game_input = nil
+    state.external_game_input_owner = nil
+    state.is_open = false
+    state.notification_focus = false
+    state.payphone_focus = false
+    state.sim_picker_open = false
+    block_game = false
+    block_look = false
+    game_input = false
+    SetNuiFocusKeepInput(false)
+    SetNuiFocus(false, false)
+end
+
+CreateThread(function()
+    while true do
+        if game_input or block_game then
+            if block_game then
+                SkyPhoneFocus.ApplyFocusedControls()
+            else
+                SkyPhoneFocus.ApplyGameInputControls(block_look)
+            end
+            if IsDisabledControlJustPressed(0, 19) then
+                state.cursor_disabled = not state.cursor_disabled
+                SkyPhoneFocus.Reapply()
+            end
+            Wait(0)
+        else
+            Wait(250)
+        end
+    end
+end)
+
+AddEventHandler("sky_phone:client:setSuspended", function(suspended)
+    state.activity_suspended = suspended == true
+    SkyPhoneFocus.Reapply()
+end)
+
+AddEventHandler("sky_phone:client:setPayphoneFocus", function(focused)
+    state.payphone_focus = focused == true
+    SkyPhoneFocus.Reapply()
+end)
+
+AddEventHandler("sky_phone:client:setCameraFocus", function(data)
+    if type(data) ~= "table" or type(data.active) ~= "boolean" or type(data.nuiFocused) ~= "boolean" then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid camera focus claim.")
+        return
+    end
+    state.camera_active = data.active
+    state.camera_nui_focused = data.nuiFocused
+    SkyPhoneFocus.Reapply()
+end)
+
+AddEventHandler("onClientResourceStop", function(resource_name)
+    if resource_name ~= state.external_game_input_owner then
+        return
+    end
+
+    state.external_game_input = nil
+    state.external_game_input_owner = nil
+    SkyPhoneFocus.Reapply()
+end)
+
+RegisterNUICallback("notification:focus", function(data, cb)
+    if type(data) ~= "table" or type(data.active) ~= "boolean" then
+        cb({ success = false, error = "invalid_request" })
+        return
+    end
+    state.notification_focus = data.active == true and not state.is_open
+    SkyPhoneFocus.Reapply()
+    cb({ success = true })
+end)

@@ -7,7 +7,8 @@ const readResourceFile = (path: string) =>
 
 describe('LB runtime compatibility contracts', () => {
   it('routes legacy call and SMS actions through Sky Phone', () => {
-    const phoneClient = readResourceFile('source/client/main.lua')
+    const callsClient = readResourceFile('source/client/calls.lua')
+    const phoneBridge = readResourceFile('source/bridge/phones/client/lb.lua')
     const callsServer = readResourceFile('source/server/calls.lua')
     const phoneUi = readFileSync(new URL('./App.vue', import.meta.url), 'utf8')
     const customAppFrame = readFileSync(
@@ -15,19 +16,19 @@ describe('LB runtime compatibility contracts', () => {
       'utf8',
     )
 
-    expect(phoneClient).toContain(
-      'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "CreateCall", create_lb_call)',
+    expect(phoneBridge).toContain(
+      'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "CreateCall", create_call)',
     )
-    expect(phoneClient).toContain(
+    expect(callsClient).toContain(
       'Bridge.Callbacks.Trigger("sky_phone:calls:dial"',
     )
     expect(callsServer).toContain(
       'SkyPhoneCompanies.GetServiceLineForCompany(data.company)',
     )
-    expect(phoneClient).toContain(
-      'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "CreateSMS", create_lb_sms)',
+    expect(phoneBridge).toContain(
+      'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "CreateSMS", create_sms)',
     )
-    expect(phoneClient).toContain('type = "compat:open-messages"')
+    expect(phoneBridge).toContain('type = "compat:open-messages"')
     expect(phoneUi).toContain("event.data?.type === 'compat:open-messages'")
     expect(phoneUi).toContain('messages.openThread(data.phoneNumber)')
     expect(customAppFrame).toContain("message.action === 'createCall'")

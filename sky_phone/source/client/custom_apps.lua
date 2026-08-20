@@ -13,6 +13,7 @@ local NOTIFICATION_SOUNDS = {
 
 local HOOK_NAMES = {
     onClose = true,
+    onDelete = true,
     onInstall = true,
     onOpen = true,
     onReady = true,
@@ -59,7 +60,7 @@ local function is_callable(value)
     return type(value_metatable) == "table" and type(value_metatable.__call) == "function"
 end
 
-local function validate_owner_resource(owner_resource, allow_stopping)
+local function validate_owner_resource_name(owner_resource)
     if type(owner_resource) ~= "string"
         or #owner_resource == 0
         or #owner_resource > 64
@@ -67,7 +68,14 @@ local function validate_owner_resource(owner_resource, allow_stopping)
     then
         return false, "invalid_owner_resource"
     end
+    return true
+end
 
+local function validate_owner_resource(owner_resource, allow_stopping)
+    local valid_owner, owner_error = validate_owner_resource_name(owner_resource)
+    if not valid_owner then
+        return false, owner_error
+    end
     local state = GetResourceState(owner_resource)
     if state == "started" or state == "starting" or (allow_stopping and state == "stopping") then
         return true
@@ -299,10 +307,6 @@ local function normalize_external_definition_value(owner_resource, adapter_resou
     if definition.schemaVersion ~= nil and definition.schemaVersion ~= SkyPhoneApps.ProtocolVersion then
         return nil, "unsupported_schema_version"
     end
-    if definition.onDelete ~= nil then
-        return nil, "unsupported_on_delete"
-    end
-
     local valid_id, id_error = SkyPhoneApps.ValidateAppId(definition.id)
     if not valid_id then
         return nil, id_error
@@ -593,13 +597,13 @@ local function send_catalog()
     })
 end
 
-local function sync_catalog_if_open()
-    if phone_open then
-        debug_custom_app("catalog", "phone is open; synchronizing catalog")
-        send_catalog()
-    else
-        debug_custom_app("catalog", "phone is closed; catalog sync deferred")
-    end
+local function sync_catalog()
+    debug_custom_app(
+        "catalog",
+        "synchronizing catalog phone_open=%s",
+        tostring(phone_open)
+    )
+    send_catalog()
 end
 
 local function add_owner_index(index, resource_name, app_id)
@@ -659,7 +663,7 @@ local function register_app(app)
         tostring(app.catalog.defaultInstalled),
         tostring(phone_open)
     )
-    sync_catalog_if_open()
+    sync_catalog()
     return true
 end
 
@@ -741,11 +745,9 @@ local function remove_registered_app(app_id, invoke_close_hook, synchronize)
     if app.adapterResource then
         remove_owner_index(app_ids_by_adapter, app.adapterResource, app_id)
     end
-    if SkyPhoneApps.OnCompatibilityAppRemoved then
-        SkyPhoneApps.OnCompatibilityAppRemoved(app.ownerResource, app_id)
-    end
+    TriggerEvent("sky_phone:client:customAppRemoved", app.ownerResource, app_id)
     if synchronize then
-        sync_catalog_if_open()
+        sync_catalog()
     end
     debug_custom_app(
         "remove",
@@ -909,7 +911,45 @@ local function add_compatibility_app(owner_resource, definition)
     return success, register_error
 end
 
-local function replace_registered_app(app, adapter_resource)
+local function normalize_server_authorized_app(owner_resource, provider, definition)
+    local valid_owner, owner_error = validate_owner_resource_name(owner_resource)
+    if not valid_owner then
+        return nil, owner_error
+    end
+    if type(provider) ~= "string" or provider == "" or #provider > 64 then
+        return nil, "invalid_provider"
+    end
+    if type(definition) ~= "table"
+        or type(definition.compatibility) ~= "table"
+        or definition.compatibility.provider ~= provider
+    then
+        return nil, "app_provider_mismatch"
+    end
+
+    local app, definition_error = normalize_external_definition(owner_resource, nil, definition)
+    if not app then
+        return nil, definition_error
+    end
+    app.authority = {
+        provider = provider,
+        side = "server",
+    }
+    return app
+end
+
+local function add_server_authorized_compatibility_app(owner_resource, provider, definition)
+    if not Config.CustomApps.Enabled or not Config.CustomApps.ExternalApps then
+        return false, "external_apps_disabled"
+    end
+
+    local app, app_error = normalize_server_authorized_app(owner_resource, provider, definition)
+    if not app then
+        return false, app_error
+    end
+    return register_app(app)
+end
+
+local function replace_registered_app(app, adapter_resource, allow_server_promotion)
     local app_id = app.catalog.id
     local existing = apps_by_id[app_id]
     if not existing then
@@ -924,6 +964,24 @@ local function replace_registered_app(app, adapter_resource)
     if existing.adapterResource ~= adapter_resource then
         return false, "app_adapter_mismatch"
     end
+    local existing_authority = existing.authority
+    local next_authority = app.authority
+    local same_authority = type(existing_authority) == "table"
+        and type(next_authority) == "table"
+        and existing_authority.side == next_authority.side
+        and existing_authority.provider == next_authority.provider
+    local server_promotion = allow_server_promotion == true
+        and existing_authority == nil
+        and type(next_authority) == "table"
+        and next_authority.side == "server"
+        and type(existing.catalog.compatibility) == "table"
+        and existing.catalog.compatibility.provider == next_authority.provider
+    if (existing_authority ~= nil or next_authority ~= nil)
+        and not same_authority
+        and not server_promotion
+    then
+        return false, "app_authority_mismatch"
+    end
 
     apps_by_id[app_id] = app
     debug_custom_app(
@@ -934,7 +992,7 @@ local function replace_registered_app(app, adapter_resource)
         tostring(adapter_resource),
         tostring(app.catalog.defaultInstalled)
     )
-    sync_catalog_if_open()
+    sync_catalog()
     return true
 end
 
@@ -1016,6 +1074,18 @@ local function update_compatibility_app(owner_resource, definition)
     return success, update_error
 end
 
+local function update_server_authorized_compatibility_app(owner_resource, provider, definition)
+    if not Config.CustomApps.Enabled or not Config.CustomApps.ExternalApps then
+        return false, "external_apps_disabled"
+    end
+
+    local app, app_error = normalize_server_authorized_app(owner_resource, provider, definition)
+    if not app then
+        return false, app_error
+    end
+    return replace_registered_app(app, nil, true)
+end
+
 local function remove_custom_app(app_id)
     local owner_resource, owner_error = get_direct_owner()
     if not owner_resource then
@@ -1028,6 +1098,9 @@ local function remove_custom_app(app_id)
     end
     if app.catalog.bundled then
         return false, "bundled_app"
+    end
+    if app.authority then
+        return false, "app_authority_mismatch"
     end
 
     return remove_registered_app(app_id, true, true)
@@ -1060,7 +1133,38 @@ local function remove_compatibility_app(owner_resource, app_id)
     if app.catalog.bundled then
         return false, "bundled_app"
     end
+    if app.authority then
+        return false, "app_authority_mismatch"
+    end
 
+    return remove_registered_app(app_id, true, true)
+end
+
+local function remove_server_authorized_compatibility_app(owner_resource, provider, app_id)
+    local valid_owner, owner_error = validate_owner_resource_name(owner_resource)
+    if not valid_owner then
+        return false, owner_error
+    end
+    if type(provider) ~= "string" or provider == "" or #provider > 64 then
+        return false, "invalid_provider"
+    end
+
+    local app, app_error = verify_owned_app(owner_resource, app_id)
+    if not app then
+        return false, app_error
+    end
+    local authority = app.authority
+    if type(authority) ~= "table"
+        or authority.side ~= "server"
+        or authority.provider ~= provider
+    then
+        return false, "app_authority_mismatch"
+    end
+    if type(app.catalog.compatibility) ~= "table"
+        or app.catalog.compatibility.provider ~= provider
+    then
+        return false, "app_provider_mismatch"
+    end
     return remove_registered_app(app_id, true, true)
 end
 
@@ -1364,7 +1468,7 @@ end
 local function get_custom_app_capabilities()
     return {
         abiVersion = 1,
-        enabled = Config.CustomApps.Enabled,
+        enabled = Config.CustomApps.Enabled == true,
         bridgeMethods = {
             "app.close",
             "app.open",
@@ -1386,6 +1490,7 @@ local function get_custom_app_capabilities()
             "OpenCustomAppFromAdapter",
             "RemoveCustomApp",
             "RemoveCustomAppFromAdapter",
+            "SendAppMessage",
             "SendCustomAppMessage",
             "SendCustomAppMessageFromAdapter",
             "SendCustomAppNotification",
@@ -1393,10 +1498,13 @@ local function get_custom_app_capabilities()
             "UpdateCustomApp",
             "UpdateCustomAppFromAdapter",
         },
+        externalApps = Config.CustomApps.Enabled == true
+            and Config.CustomApps.ExternalApps == true,
         maximumMessageBytes = Config.CustomApps.MaximumMessageBytes,
         maximumStorageBytesPerApp = Config.CustomApps.MaximumStorageBytesPerApp,
         maximumStorageKeyLength = math.min(Config.CustomApps.MaximumStorageKeyLength, 64),
         maximumStorageValueBytes = math.min(Config.CustomApps.MaximumStorageValueBytes, 65536),
+        messageDispatch = true,
         protocolVersion = SkyPhoneApps.ProtocolVersion,
     }
 end
@@ -1447,6 +1555,14 @@ local function register_bundled_client_hooks(app_id, hooks)
     return true
 end
 
+function SkyPhoneApps.CanReceiveNotification(app_id)
+    local valid_id = SkyPhoneApps.ValidateAppId(app_id)
+    if not valid_id then
+        return false
+    end
+    return SkyPhoneApps.ReservedAppIds[app_id] == true or apps_by_id[app_id] ~= nil
+end
+
 SkyPhoneApps.SendCatalog = send_catalog
 SkyPhoneApps.SetPhoneOpen = set_phone_open
 SkyPhoneApps.RegisterClientHooks = register_bundled_client_hooks
@@ -1464,92 +1580,59 @@ if Config.CustomApps.Enabled and Config.CustomApps.BundledApps then
     end
 end
 
-local function add_custom_app_export(definition)
-    debug_custom_app(
-        "dispatch",
-        "AddCustomApp received type=%s id=%s identifier=%s key=%s invoking_resource=%s",
-        type(definition),
-        type(definition) == "table" and tostring(definition.id) or "nil",
-        type(definition) == "table" and tostring(definition.identifier) or "nil",
-        type(definition) == "table" and tostring(definition.key) or "nil",
-        tostring(GetInvokingResource())
-    )
-    if type(definition) ~= "table" then
-        return add_custom_app(definition)
-    end
-
-    local provider_markers = 0
-    if definition.id ~= nil then
-        provider_markers = provider_markers + 1
-    end
-    if definition.identifier ~= nil then
-        provider_markers = provider_markers + 1
-    end
-    if definition.key ~= nil then
-        provider_markers = provider_markers + 1
-    end
-    if provider_markers > 1 then
-        debug_custom_app("dispatch", "AddCustomApp rejected error=ambiguous_app_provider")
-        return false, "ambiguous_app_provider"
-    end
-    if definition.identifier == nil and definition.key == nil then
-        debug_custom_app("dispatch", "routing AddCustomApp through native sky_phone registration")
-        return add_custom_app(definition)
-    end
-
-    local owner_resource, owner_error = get_direct_owner()
-    if not owner_resource then
-        debug_custom_app(
-            "dispatch",
-            "compatibility AddCustomApp rejected error=%s",
-            tostring(owner_error)
-        )
-        return false, owner_error
-    end
-    if not SkyPhoneApps.RegisterCompatibilityExport then
-        debug_custom_app("dispatch", "compatibility AddCustomApp rejected error=compatibility_not_ready")
-        return false, "compatibility_not_ready"
-    end
-    debug_custom_app(
-        "dispatch",
-        "routing AddCustomApp through compatibility provider owner=%s",
-        owner_resource
-    )
-    return SkyPhoneApps.RegisterCompatibilityExport(owner_resource, definition)
-end
-
 SkyPhoneApps.CompatibilityCore = {
     Add = add_compatibility_app,
+    AddServerAuthorized = add_server_authorized_compatibility_app,
     Close = close_compatibility_app,
     CloseActive = close_active_compatibility_app,
     Open = open_compatibility_app,
     Remove = remove_compatibility_app,
+    RemoveServerAuthorized = remove_server_authorized_compatibility_app,
     SendMessage = send_compatibility_app_message,
     Update = update_compatibility_app,
+    UpdateServerAuthorized = update_server_authorized_compatibility_app,
 }
 
-exports("AddCustomApp", add_custom_app_export)
-exports("AddCustomAppFromAdapter", add_custom_app_from_adapter)
-exports("CloseActiveCustomAppFromAdapter", close_active_custom_app_from_adapter)
-exports("CloseCustomApp", close_custom_app)
-exports("CloseCustomAppFromAdapter", close_custom_app_from_adapter)
-exports("GetCustomAppCapabilities", get_custom_app_capabilities)
-exports("OpenCustomApp", open_custom_app)
-exports("OpenCustomAppFromAdapter", open_custom_app_from_adapter)
-exports("RemoveCustomApp", remove_custom_app)
-exports("RemoveCustomAppFromAdapter", remove_custom_app_from_adapter)
-exports("SendCustomAppMessage", send_custom_app_message)
-exports("SendCustomAppMessageFromAdapter", send_custom_app_message_from_adapter)
-exports("SendCustomAppNotification", send_custom_app_notification)
-exports("SendCustomAppNotificationFromAdapter", send_custom_app_notification_from_adapter)
-exports("UpdateCustomApp", update_custom_app)
-exports("UpdateCustomAppFromAdapter", update_custom_app_from_adapter)
+SkyPhoneApps.ClientPublicApi = {
+    AddCustomApp = add_custom_app,
+    AddCustomAppFromAdapter = add_custom_app_from_adapter,
+    CloseActiveCustomAppFromAdapter = close_active_custom_app_from_adapter,
+    CloseCustomApp = close_custom_app,
+    CloseCustomAppFromAdapter = close_custom_app_from_adapter,
+    GetCustomAppCapabilities = get_custom_app_capabilities,
+    OpenCustomApp = open_custom_app,
+    OpenCustomAppFromAdapter = open_custom_app_from_adapter,
+    RemoveCustomApp = remove_custom_app,
+    RemoveCustomAppFromAdapter = remove_custom_app_from_adapter,
+    SendAppMessage = send_custom_app_message,
+    SendCustomAppMessage = send_custom_app_message,
+    SendCustomAppMessageFromAdapter = send_custom_app_message_from_adapter,
+    SendCustomAppNotification = send_custom_app_notification,
+    SendCustomAppNotificationFromAdapter = send_custom_app_notification_from_adapter,
+    UpdateCustomApp = update_custom_app,
+    UpdateCustomAppFromAdapter = update_custom_app_from_adapter,
+}
 
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "AddCustomApp", add_custom_app_export)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "RemoveCustomApp", remove_custom_app)
-SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "SendCustomAppMessage", send_custom_app_message)
-SkyPhoneCompatibility.RegisterExportAlias("yseries", "AddCustomApp", add_custom_app_export)
-SkyPhoneCompatibility.RegisterExportAlias("yseries", "RemoveCustomApp", remove_custom_app)
+RegisterNetEvent("sky_phone:custom-app:message", function(owner_resource, app_id, payload)
+    if source ~= 65535 then
+        Bridge.Debug("warn", "[sky_phone] Rejected a client-triggered custom app message.")
+        return
+    end
+
+    local success, message_error = send_compatibility_app_message(
+        owner_resource,
+        app_id,
+        payload
+    )
+    if not success then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone] Server custom app message for %s could not be delivered: %s.",
+            tostring(app_id),
+            tostring(message_error)
+        )
+    end
+end)
 
 RegisterNUICallback("custom-app:catalog-debug", function(data, cb)
     local accepted_ids = type(data) == "table" and data.acceptedIds or nil
@@ -1616,6 +1699,7 @@ RegisterNUICallback("custom-app:lifecycle", function(data, cb)
 
     local lifecycle_event = data.event
     if lifecycle_event ~= "install"
+        and lifecycle_event ~= "delete"
         and lifecycle_event ~= "open"
         and lifecycle_event ~= "ready"
         and lifecycle_event ~= "close"
@@ -1653,6 +1737,8 @@ RegisterNUICallback("custom-app:lifecycle", function(data, cb)
     local hook_success = true
     if lifecycle_event == "install" then
         hook_success = invoke_or_defer_hook(app, "onInstall", lifecycle_payload, deferred_hooks)
+    elseif lifecycle_event == "delete" then
+        hook_success = invoke_or_defer_hook(app, "onDelete", lifecycle_payload, deferred_hooks)
     elseif lifecycle_event == "open" then
         if active_app_id and active_app_id ~= data.appId then
             clear_active_app(true, deferred_hooks)
@@ -1723,7 +1809,7 @@ AddEventHandler("onClientResourceStop", function(resource_name)
         removed = success or removed
     end
     if removed then
-        sync_catalog_if_open()
+        sync_catalog()
     end
     debug_custom_app(
         "resource",

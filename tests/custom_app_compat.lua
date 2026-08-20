@@ -1,5 +1,38 @@
-dofile("sky_phone/source/shared/custom_app_compat.lua")
+dofile("sky_phone/source/bridge/phones/shared.lua")
 
+assert(type(SkyPhoneCompatibility.RegisterExportAlias) == "function", "Shared core must expose export aliases")
+assert(type(SkyPhoneCompatibility.EmitServerProviderStop) == "function", "Shared core must expose stop lifecycle")
+assert(type(SkyPhoneCompatibility.EmitServerProviderStart) == "function", "Shared core must expose start lifecycle")
+assert(type(SkyPhoneCompatibility.NormalizeAtResourceUrl) == "function", "Shared core must expose URL validation")
+assert(SkyPhoneCompatibility.Providers.lb == "lb_phone", "Shared core must expose provider constants")
+assert(SkyPhoneCompatibility.BuildLbDefinition == nil, "Shared core must not contain the LB mapper")
+assert(SkyPhoneCompatibility.Build17MovDefinition == nil, "Shared core must not contain the 17mov mapper")
+assert(SkyPhoneCompatibility.BuildHighDefinition == nil, "Shared core must not contain the High mapper")
+assert(SkyPhoneCompatibility.BuildQuasarDefinition == nil, "Shared core must not contain the Quasar mapper")
+assert(SkyPhoneCompatibility.BuildYSeriesDefinition == nil, "Shared core must not contain the YSeries mapper")
+
+dofile("sky_phone/source/bridge/phones/shared/lb.lua")
+assert(type(SkyPhoneCompatibility.BuildLbDefinition) == "function", "LB provider must expose its mapper")
+assert(SkyPhoneCompatibility.Build17MovDefinition == nil, "LB provider must not expose the 17mov mapper")
+
+dofile("sky_phone/source/bridge/phones/shared/seventeen.lua")
+assert(type(SkyPhoneCompatibility.Build17MovDefinition) == "function", "17mov provider must expose its mapper")
+assert(SkyPhoneCompatibility.BuildHighDefinition == nil, "17mov provider must not expose the High mapper")
+
+dofile("sky_phone/source/bridge/phones/shared/high.lua")
+assert(type(SkyPhoneCompatibility.BuildHighDefinition) == "function", "High provider must expose its mapper")
+assert(SkyPhoneCompatibility.BuildQuasarDefinition == nil, "High provider must not expose the Quasar mapper")
+
+dofile("sky_phone/source/bridge/phones/shared/quasar.lua")
+assert(type(SkyPhoneCompatibility.CopyQuasarData) == "function", "Quasar provider must expose its copier")
+assert(type(SkyPhoneCompatibility.BuildQuasarDefinition) == "function", "Quasar provider must expose its mapper")
+assert(SkyPhoneCompatibility.BuildYSeriesDefinition == nil, "Quasar provider must not expose the YSeries mapper")
+
+dofile("sky_phone/source/bridge/phones/shared/yseries.lua")
+assert(type(SkyPhoneCompatibility.BuildYSeriesDefinition) == "function", "YSeries provider must expose its mapper")
+
+local lb_on_open_calls = 0
+local lb_on_use_calls = 0
 local lb_definition = assert(SkyPhoneCompatibility.BuildLbDefinition("lb_app", {
     identifier = "dispatch",
     name = "Dispatch",
@@ -8,12 +41,22 @@ local lb_definition = assert(SkyPhoneCompatibility.BuildLbDefinition("lb_app", {
     defaultApp = true,
     fixBlur = true,
     landscape = true,
-    onUse = function() end,
+    onOpen = function()
+        lb_on_open_calls = lb_on_open_calls + 1
+    end,
+    onUse = function()
+        lb_on_use_calls = lb_on_use_calls + 1
+    end,
+    onDelete = function() end,
 }))
 assert(lb_definition.id == "dispatch", "LB identifier must map to the Sky app ID")
 assert(lb_definition.ui == "ui/index.html", "LB relative UI must remain owner-relative")
 assert(lb_definition.orientation == "landscape", "LB landscape flag must be preserved")
 assert(type(lb_definition.onOpen) == "function", "LB onUse must map to the open lifecycle")
+lb_definition.onOpen()
+assert(lb_on_open_calls == 1, "LB onOpen must run when the app opens")
+assert(lb_on_use_calls == 1, "LB onUse must also run when the app opens")
+assert(type(lb_definition.onDelete) == "function", "LB onDelete must map to the uninstall lifecycle")
 assert(lb_definition.compatibility.resourceName == "lb_app", "LB callbacks must target the registering resource")
 assert(lb_definition.compatibility.fixBlur, "LB fixBlur must be preserved")
 

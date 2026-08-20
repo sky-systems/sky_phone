@@ -4,14 +4,6 @@ local camera_target = nil
 local camera_created = false
 local camera_destroyed = false
 local scripted_camera_rendering = false
-local lb_camera_exports = {}
-
-SkyPhoneCompatibility = {
-    RegisterExportAlias = function(resource_name, export_name, handler)
-        assert(resource_name == "lb-phone", "camera compatibility exports must target LB Phone")
-        lb_camera_exports[export_name] = handler
-    end,
-}
 
 local vector_meta = {}
 vector_meta.__index = vector_meta
@@ -131,30 +123,29 @@ assert(close_enough(camera_target.z, 2.73))
 assert(response_from("camera:setFacing", { front = false }).success)
 assert(camera_destroyed and not scripted_camera_rendering, "rear mode must release the selfie camera")
 
-assert(type(lb_camera_exports.EnableWalkableCam) == "function", "LB walkable camera enable export must exist")
-assert(type(lb_camera_exports.DisableWalkableCam) == "function", "LB walkable camera disable export must exist")
-assert(type(lb_camera_exports.ToggleSelfieCam) == "function", "LB selfie camera export must exist")
-assert(type(lb_camera_exports.ToggleCameraFrozen) == "function", "LB frozen camera export must exist")
-assert(type(lb_camera_exports.ToggleFlashlight) == "function", "LB flashlight toggle export must exist")
-assert(type(lb_camera_exports.GetFlashlight) == "function", "LB flashlight state export must exist")
-assert(type(lb_camera_exports.IsWalkingCamEnabled) == "function", "LB walkable camera state export must exist")
-assert(type(lb_camera_exports.IsSelfieCam) == "function", "LB selfie camera state export must exist")
-assert(type(lb_camera_exports.IsCameraOpen) == "function", "LB camera open state export must exist")
+assert(type(SkyPhoneCamera.EnableWalkable) == "function", "walkable camera enable seam must exist")
+assert(type(SkyPhoneCamera.DisableWalkable) == "function", "walkable camera disable seam must exist")
+assert(type(SkyPhoneCamera.SetSelfie) == "function", "selfie camera seam must exist")
+assert(type(SkyPhoneCamera.ToggleFrozen) == "function", "frozen camera seam must exist")
+assert(type(SkyPhoneCamera.SetFlashlight) == "function", "flashlight seam must exist")
+assert(type(SkyPhoneCamera.GetState) == "function", "camera state seam must exist")
 
-lb_camera_exports.ToggleFlashlight(true)
-assert(lb_camera_exports.GetFlashlight(), "LB flashlight state must report enabled")
-lb_camera_exports.ToggleFlashlight(false)
-assert(not lb_camera_exports.GetFlashlight(), "LB flashlight state must report disabled")
+SkyPhoneCamera.SetFlashlight(true)
+assert(SkyPhoneCamera.GetState().flashEnabled, "flashlight state must report enabled")
+SkyPhoneCamera.SetFlashlight(false)
+assert(not SkyPhoneCamera.GetState().flashEnabled, "flashlight state must report disabled")
 
-lb_camera_exports.EnableWalkableCam(true)
-assert(lb_camera_exports.IsWalkingCamEnabled(), "LB walkable camera must report enabled")
-assert(lb_camera_exports.IsSelfieCam(), "LB walkable camera must preserve selfie mode")
-assert(lb_camera_exports.IsCameraOpen(), "LB walkable camera must open the camera")
-lb_camera_exports.ToggleSelfieCam(false)
-assert(not lb_camera_exports.IsSelfieCam(), "LB selfie camera must switch back to rear mode")
-lb_camera_exports.ToggleCameraFrozen()
-lb_camera_exports.DisableWalkableCam()
-assert(not lb_camera_exports.IsWalkingCamEnabled(), "LB walkable camera must report disabled")
-assert(not lb_camera_exports.IsCameraOpen(), "LB walkable camera disable must close the camera")
+SkyPhoneCamera.EnableWalkable(true)
+local walkable_state = SkyPhoneCamera.GetState()
+assert(walkable_state.walkable, "walkable camera must report enabled")
+assert(walkable_state.selfie, "walkable camera must preserve selfie mode")
+assert(walkable_state.active, "walkable camera must open the camera")
+SkyPhoneCamera.SetSelfie(false)
+assert(not SkyPhoneCamera.GetState().selfie, "selfie camera must switch back to rear mode")
+SkyPhoneCamera.ToggleFrozen()
+SkyPhoneCamera.DisableWalkable()
+local closed_state = SkyPhoneCamera.GetState()
+assert(not closed_state.walkable, "walkable camera must report disabled")
+assert(not closed_state.active, "walkable camera disable must close the camera")
 
 print("Client camera tests passed")
