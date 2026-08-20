@@ -62,58 +62,42 @@ describe('FiveManage server configuration contract', () => {
     )
   })
 
-  it('uses the direct FiveManage upload response flow for Camera media', () => {
+  it('uses the direct FiveManage upload response flow for Camera and voice memos', () => {
     expect(mediaConfig).not.toContain('VerificationRetryDelaysMs')
     expect(mediaCapture).toContain("form.append('file', blob, fileName)")
     expect(mediaCapture).not.toContain("form.append('path'")
     expect(mediaCapture).not.toContain("form.append(\n    'metadata'")
-    expect(mediaServer).toContain('if state.media_type ~= "audio" then')
+    expect(memoRecorder).toContain(
+      "form.append('file', pending.blob, pending.fileName)",
+    )
+    expect(memoRecorder).not.toContain("form.append('path'")
+    expect(memoRecorder).not.toContain("form.append(\n    'metadata'")
     expect(mediaServer).toContain(
-      'Accepting the direct FiveManage camera upload response',
+      'Accepting the direct FiveManage upload response',
     )
     expect(mediaServer).toContain('remote_id = remote_id')
     expect(mediaServer).toContain('url = uploaded_url')
+    expect(mediaServer).not.toContain('"HEAD"')
+    expect(mediaServer).not.toContain('authenticated upload-path lookup')
   })
 
-  it('keeps server-generated upload path verification for voice memos', () => {
-    expect(memoServer).toContain('upload_path = "sky_phone-" .. capture_token')
-    expect(mediaServer).toContain(
-      '"?limit=100&page=1&path=" .. SkyPhoneMediaImport.UrlEncode(state.upload_path)',
-    )
-    expect(memoRecorder).toContain("form.append('path', ready.uploadPath)")
-    expect(memoRecorder).toContain('originalUrl: uploaded.originalUrl')
-    expect(mediaServer).toContain(
-      'local verified_url = remote.url or remote.originalUrl',
-    )
-  })
-
-  it('binds metadata verification to the FiveManage host that issued the upload URL', () => {
+  it('allowlists the FiveManage API and media hosts', () => {
     expect(mediaServer).toContain('["api.fivemanage.com"] = true')
     expect(mediaServer).toContain('["fmapi.net"] = true')
-    expect(memoServer).toContain('provider_base_url = provider_base_url')
-    expect(mediaServer).toContain('state.provider_base_url')
-  })
-
-  it('authenticates the exact returned ID from the filtered file list', () => {
-    expect(mediaServer).toContain('remote.id == remote_id')
     expect(mediaServer).toContain(
-      'FiveManage upload-path lookup found the exact uploaded file ID.',
+      'uploaded_host:lower() ~= "r2.fivemanage.com"',
     )
   })
 
-  it('binds an unindexed upload to the server path before probing R2', () => {
-    expect(mediaServer).toContain('host:lower() ~= "r2.fivemanage.com"')
-    expect(mediaServer).toContain(
-      'path:find("/" .. state.upload_path .. "/", 1, true)',
+  it('validates and preserves the recorded memo size before upload', () => {
+    expect(memoRecorder).toContain('sizeBytes: blob.size')
+    expect(memoServer).toContain(
+      'local size_bytes = tonumber(data.sizeBytes)',
     )
-    expect(mediaServer).toContain('local storage_key = path:sub(2)')
-    expect(mediaServer).toContain('}, nil, storage_key')
-    expect(mediaServer).toContain('"HEAD"')
-    expect(mediaServer).toContain(
-      'SkyPhoneMediaImport.ResponseHeader(response.headers, "content-type")',
+    expect(memoServer).toContain(
+      'size_bytes < 1 or size_bytes > Config.Memos.MaximumBytes',
     )
-    expect(mediaServer).toContain(
-      'SkyPhoneMediaImport.ResponseHeader(response.headers, "content-length")',
-    )
+    expect(memoServer).toContain('size_bytes = memo.size_bytes')
+    expect(mediaServer).toContain('size = state.size_bytes')
   })
 })
