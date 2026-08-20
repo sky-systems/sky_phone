@@ -1,3 +1,5 @@
+import { readPhoneViewportGeometry } from '@/utils/phoneViewportGeometry'
+
 export type PageTurnDirection = -1 | 0 | 1
 
 export type SpringboardEdgeTurn = {
@@ -39,7 +41,9 @@ export function readSpringboardDragMetrics(
     '.springboard-page, .home-folder-panel',
   )
   if (!surface) return null
-  const bounds = surface.getBoundingClientRect()
+  const bounds =
+    readPhoneViewportGeometry(surface)?.rect(surface) ??
+    surface.getBoundingClientRect()
   return {
     layoutHeight: surface.offsetHeight,
     layoutWidth: surface.offsetWidth,

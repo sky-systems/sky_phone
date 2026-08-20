@@ -791,7 +791,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   color: #f6f7f9;
   background: #07090c;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--sky-font-family);
 }
 .billing-app--light {
   --billing-border: rgb(15 23 42 / 10%);

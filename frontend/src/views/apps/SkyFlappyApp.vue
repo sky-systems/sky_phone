@@ -167,7 +167,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.flappy-app { --sky-a:#50d8f2;--sky-b:#765ce8;--tower:#574be8;--tower-light:#9b94ff;--tower-dark:#3429a6;--tower-glow:#79e7ff; position:absolute;inset:0;overflow:hidden;padding:52px 16px 27px;color:#fff;background:linear-gradient(160deg,#19375e,#433b80);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;user-select:none;touch-action:manipulation; }
+.flappy-app { --sky-a:#50d8f2;--sky-b:#765ce8;--tower:#574be8;--tower-light:#9b94ff;--tower-dark:#3429a6;--tower-glow:#79e7ff; position:absolute;inset:0;overflow:hidden;padding:52px 16px 27px;color:#fff;background:linear-gradient(160deg,#19375e,#433b80);font-family:var(--sky-font-family);user-select:none;touch-action:manipulation; }
 .flappy-app--playing { padding:0; }
 .flappy-app--neon { --sky-a:#151c58;--sky-b:#a329a2;--tower:#19dfe6;--tower-light:#82ffff;--tower-dark:#087f91;--tower-glow:#26fbff; }.flappy-app--storm { --sky-a:#6f8497;--sky-b:#2b3955;--tower:#df765f;--tower-light:#ffb18e;--tower-dark:#8d3e39;--tower-glow:#ff997d; }
 .flappy-header{height:55px;display:flex;align-items:center;justify-content:space-between}.flappy-header span{display:block;color:#d9e9fa;font-size:14px;font-weight:850;letter-spacing:1.1px;text-transform:uppercase}.flappy-header h1{margin:1px 0 0;font-size:32px;line-height:1}.flappy-header button:not(.sky-button--glass),.flappy-toolbar button:not(.sky-button--glass){width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid #ffffff35;border-radius:12px;color:#fff;background:#ffffff18}.flappy-header .sky-button--glass,.flappy-toolbar .sky-button--glass{color:#fff}

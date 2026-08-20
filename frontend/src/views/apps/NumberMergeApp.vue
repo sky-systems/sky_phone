@@ -335,7 +335,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   background:
     radial-gradient(circle at 86% 8%, rgb(255 192 94 / 28%), transparent 29%),
     linear-gradient(155deg, #fff3dc 0%, #f3d8b7 55%, #e8b98d 100%);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--sky-font-family);
   touch-action: none;
   user-select: none;
 }

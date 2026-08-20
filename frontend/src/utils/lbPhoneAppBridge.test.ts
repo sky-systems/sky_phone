@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { runInNewContext } from 'node:vm'
 
 import type { ExternalPhoneAppDefinition } from '@/types/apps'
 import {
@@ -137,6 +138,79 @@ describe('LB Phone app bridge', () => {
 
     const runtime = document.slice(runtimeStart + openingTag.length, runtimeEnd)
     expect(() => new Function(runtime)).not.toThrow()
+  })
+
+  it('applies the LB iframe layout contract before revealing vendor apps', () => {
+    const document = createLbPhoneFrameDocument(
+      '<!doctype html><html><head></head><body style="visibility:hidden"></body></html>',
+      {
+        appName: 'radio-app',
+        localStorage: {},
+        resourceName: 'lb-radioapp',
+        settings: createLbPhoneHostSettings({
+          deviceName: 'Main phone',
+          isDarkMode: true,
+          language: 'en',
+          preferences: DEFAULT_PHONE_PREFERENCES,
+          securityEnabled: false,
+        }),
+        ui: 'https://cfx-nui-lb-radioapp/ui/dist/index.html',
+      },
+    )
+    const runtime = /<script>([\s\S]*?)<\/script>/i.exec(document)?.[1]
+    expect(runtime).toBeTruthy()
+
+    const messageListeners: Array<(event: { data: unknown }) => void> = []
+    const readyListeners: Array<() => void> = []
+    const documentElement = { dataset: {}, style: {} }
+    const body = {
+      dataset: {},
+      style: { visibility: 'hidden' },
+    }
+    const sandbox = {
+      addEventListener(
+        eventName: string,
+        listener: (event: { data: unknown }) => void,
+      ) {
+        if (eventName === 'message') messageListeners.push(listener)
+      },
+      componentsLoaded: undefined as boolean | undefined,
+      console,
+      document: {
+        addEventListener(eventName: string, listener: () => void) {
+          if (eventName === 'DOMContentLoaded') readyListeners.push(listener)
+        },
+        body,
+        documentElement,
+      },
+      parent: { postMessage() {} },
+    }
+
+    runInNewContext(runtime ?? '', sandbox)
+    expect(body.style.visibility).toBe('hidden')
+
+    expect(readyListeners).toHaveLength(1)
+    readyListeners[0]?.()
+    expect(documentElement.style).toMatchObject({
+      height: '100%',
+      margin: '0',
+      padding: '0',
+      width: '100%',
+    })
+    expect(body.dataset).toMatchObject({ device: 'phone', theme: 'dark' })
+    expect(body.style).toMatchObject({
+      height: '100%',
+      margin: '0',
+      padding: '0',
+      visibility: 'visible',
+      width: '100%',
+    })
+
+    body.style.visibility = 'hidden'
+    expect(messageListeners).toHaveLength(1)
+    messageListeners[0]?.({ data: 'componentsLoaded' })
+    expect(body.style.visibility).toBe('visible')
+    expect(sandbox.componentsLoaded).toBe(true)
   })
 
   it('persists isolated LB localStorage snapshots without app changes', () => {

@@ -321,7 +321,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.tower-app { position: absolute; inset: 0; overflow: hidden; padding: 52px 16px 27px; color: #eef5ff; background: radial-gradient(circle at 75% 8%, #7146c866, transparent 35%), linear-gradient(170deg, #161634, #242054 52%, #10132c); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; user-select: none; touch-action: manipulation; }
+.tower-app { position: absolute; inset: 0; overflow: hidden; padding: 52px 16px 27px; color: #eef5ff; background: radial-gradient(circle at 75% 8%, #7146c866, transparent 35%), linear-gradient(170deg, #161634, #242054 52%, #10132c); font-family: var(--sky-font-family); user-select: none; touch-action: manipulation; }
 .tower-app--playing { padding: 0; }
 .tower-header { height: 50px; display: flex; align-items: center; justify-content: space-between; }
 .tower-header span { display: block; color: #c1b8f1; font-size: 10px; font-weight: 850; letter-spacing: 1.1px; text-transform: uppercase; }

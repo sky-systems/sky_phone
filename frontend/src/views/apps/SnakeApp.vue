@@ -306,7 +306,7 @@ onBeforeUnmount(() => {
   background:
     radial-gradient(circle at 85% 8%, rgb(100 211 91 / 22%), transparent 30%),
     linear-gradient(165deg, #142b25 0%, #0c1715 62%, #08100f 100%);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--sky-font-family);
   user-select: none;
   touch-action: none;
 }

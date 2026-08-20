@@ -1,3 +1,19 @@
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/InterVariable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/InterVariable-Italic.woff2') format('woff2');
+}
+
 :root {
   --sky-device-pixel-ratio: 1;
   --sky-hairline-scale: 1;
@@ -26,9 +42,7 @@
   --sky-font-title: 17px;
   --sky-font-medium-title: 24px;
   --sky-font-large-title: 34px;
-  --sky-font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF UI Text',
-    'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --sky-font-family: 'Inter', Arial, sans-serif;
   --sky-transition-fast: 100ms;
   --sky-transition-normal: 200ms;
   --sky-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -55,8 +69,10 @@
   --sky-shadow-thumb:
     0 0.5px 4px rgba(0, 0, 0, 0.12), 0 6px 13px rgba(0, 0, 0, 0.12);
   --sky-glass-highlight-color: rgba(255, 255, 255, 0.5);
+  --sky-home-label-font-size: 13px;
+  --sky-home-label-height: 16px;
   --sky-widget-label-gap: 5px;
-  --sky-widget-label-height: 15px;
+  --sky-widget-label-height: var(--sky-home-label-height);
   --sky-widget-radius-small: 23px;
   --sky-widget-radius-medium: 25px;
   --sky-widget-radius-large: 28px;

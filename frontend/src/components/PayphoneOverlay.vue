@@ -402,7 +402,7 @@ onBeforeUnmount(() => {
     rgb(30 38 42 / 35%),
     rgb(0 0 0 / 84%) 72%
   );
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: var(--sky-font-family);
   pointer-events: auto;
   user-select: none;
 }

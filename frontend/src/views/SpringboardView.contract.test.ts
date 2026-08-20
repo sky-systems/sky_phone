@@ -19,11 +19,31 @@ const mainCss = readFileSync(
   new URL('../assets/main.css', import.meta.url),
   'utf8',
 )
+const tokensCss = readFileSync(
+  new URL('../ui/tokens.css', import.meta.url),
+  'utf8',
+)
+const foundationCss = readFileSync(
+  new URL('../ui/foundation.css', import.meta.url),
+  'utf8',
+)
 const builtInWallpaperCss = mainCss.slice(
   mainCss.indexOf('.wallpaper--midnight'),
   mainCss.indexOf('.wallpaper--custom'),
 )
+
 describe('Springboard page swipe contract', () => {
+  it('keeps app and widget labels on the larger shared home typography', () => {
+    expect(tokensCss).toContain('--sky-home-label-font-size: 13px;')
+    expect(tokensCss).toContain('--sky-home-label-height: 16px;')
+    expect(mainCss).toMatch(
+      /\.app-icon-label\s*\{[\s\S]*?font-size:\s*var\(--sky-home-label-font-size\);/,
+    )
+    expect(foundationCss).toMatch(
+      /\.sky-widget-frame__label\s*\{[\s\S]*?font-size:\s*var\(--sky-home-label-font-size\);/,
+    )
+  })
+
   it('keeps the built-in wallpapers visually restrained', () => {
     expect(builtInWallpaperCss).not.toMatch(/(?:conic|repeating-\w+)-gradient/)
     expect(builtInWallpaperCss.match(/radial-gradient/g)).toHaveLength(12)
@@ -94,25 +114,76 @@ describe('Springboard page swipe contract', () => {
     expect(folderIconSource).toContain(':style="dragPointerStyle"')
   })
 
-  it('uses the same scale-aware in-phone drag path as widgets', () => {
-    expect(viewSource).not.toContain('source.cloneNode(true)')
-    expect(viewSource).not.toContain('<Teleport to="body">')
-    expect(viewSource).not.toContain(':external-drag-visual')
+  it('renders the home drag visual through the unzoomed phone portal', () => {
+    expect(viewSource).toContain('source.cloneNode(true)')
     expect(viewSource).toContain(
-      "'springboard--home-dragging': draggingHomeApp !== null",
+      '<Teleport defer to="#phone-home-drag-portal">',
     )
-    expect(viewSource).toContain('draggedElement?.getBoundingClientRect()')
-    expect(appIconSource).not.toContain('externalDragVisual')
-    expect(folderIconSource).not.toContain('externalDragVisual')
-    expect(mainCss).not.toContain('.home-drag-layer')
-    expect(mainCss).not.toContain('.home-drag-ghost')
-    expect(mainCss).not.toContain('.app-icon-item--drag-source')
+    expect(viewSource).toContain(
+      '<div ref="homeDragLayer" class="home-drag-layer" aria-hidden="true"></div>',
+    )
+    expect(viewSource).toContain('readPhoneViewportGeometry')
+    expect(viewSource).toMatch(/const sourceBounds = \w+\.rect\(source\)/)
+    expect(viewSource).toMatch(/const clipBounds = \w+\.rect\(\w+\)/)
+    expect(viewSource).not.toContain('homeDragLocalPoint')
+    expect(viewSource).not.toContain('springboardViewportToLocal')
+    expect(viewSource).toContain("position.className = 'home-drag-position'")
+    expect(viewSource).toMatch(
+      /homeDragGrip = \{\s*x: event\.clientX - sourceBounds\.left,\s*y: event\.clientY - sourceBounds\.top,/,
+    )
+    expect(viewSource).toMatch(
+      /ghost\.style\.transform = `scale\(\$\{\w+\.scaleX\}, \$\{\w+\.scaleY\}\)`/,
+    )
+    expect(
+      viewSource.match(/:external-drag-visual="homeDragVisualActive"/g),
+    ).toHaveLength(4)
+    expect(viewSource).toContain('updateHomeDragGhost(event)')
+    expect(viewSource).toContain('const dropGhost = homeDragGhost')
+    expect(viewSource).toContain('const dropOrigin = homeDragPreviewBounds')
+    expect(viewSource).not.toContain('dropGhost?.getBoundingClientRect()')
+    expect(viewSource).toContain('clearHomeDragGhost(dropGhost)')
+    expect(viewSource).not.toContain('draggedElement?.getBoundingClientRect()')
+    expect(viewSource).not.toContain('springboard--home-dragging')
+    expect(appIconSource).toContain('externalDragVisual?: boolean')
+    expect(folderIconSource).toContain('externalDragVisual?: boolean')
+    expect(appIconSource).toContain('app-icon-item--drag-source')
+    expect(folderIconSource).toContain('app-icon-item--drag-source')
     expect(mainCss).toMatch(
-      /\.springboard--home-dragging \.springboard-page--apps\s*\{[^}]*overflow:\s*visible;/s,
+      /\.phone-home-drag-portal\s*\{[^}]*pointer-events:\s*none;/s,
     )
+    expect(mainCss).toContain('.home-drag-position')
+    expect(mainCss).toContain('.home-drag-ghost')
+    expect(mainCss).toContain('.app-icon-item--drag-source')
     expect(mainCss).toMatch(/\.springboard\s*\{[\s\S]*?overflow:\s*hidden;/)
     expect(mainCss).toMatch(
       /\.springboard-page--apps\s*\{[^}]*overflow:\s*hidden;/s,
+    )
+  })
+
+  it('cleans up the external drag visual on every terminal path', () => {
+    expect(
+      viewSource.match(
+        /@dragstart="startHomeDrag\('(grid|dock)', [^,]+, \$event\)"/g,
+      ),
+    ).toHaveLength(4)
+    expect(viewSource.match(/@dragcancel="stopHomeDrag"/g)).toHaveLength(4)
+    expect(viewSource).toContain(
+      'if (expectedGhost && homeDragGhost !== expectedGhost) return',
+    )
+    expect(viewSource).toMatch(
+      /if \(!dragged\) \{\s*clearHomeDragGhost\(\)\s*return/,
+    )
+    expect(viewSource).toMatch(
+      /animateHomeItemDrop\(\s*draggedItem,\s*dropArea,\s*dropIndex,\s*dropOrigin,?\s*\)\.finally\(/,
+    )
+    expect(viewSource).toMatch(
+      /function stopHomeDrag[\s\S]*?clearHomeDragGhost\(\)/,
+    )
+    expect(viewSource).toMatch(
+      /if \(folderId\) \{[\s\S]*?clearHomeDragGhost\(\)/,
+    )
+    expect(viewSource).toMatch(
+      /onBeforeUnmount\(\(\) => \{[\s\S]*?clearHomeDragGhost\(\)/,
     )
   })
 
@@ -122,8 +193,20 @@ describe('Springboard page swipe contract', () => {
     expect(viewSource).toContain('nearestGridDropTarget')
     expect(viewSource).toContain('moveHomeAppToGridPage')
     expect(viewSource).not.toContain("draggingHomeApp.value?.area === 'grid'")
-    expect(viewSource).toContain('event.clientX < pageBounds.left')
-    expect(viewSource).toContain('event.clientY > pageBounds.bottom')
+    expect(viewSource).toContain('event.clientX < springboardBounds.left')
+    expect(viewSource).toContain('event.clientY > springboardBounds.bottom')
+    expect(viewSource).toContain('function homeDragViewportRect(')
+    expect(viewSource).toContain('if (geometry) return geometry.rect(element)')
+    expect(viewSource).toContain('homeDragViewportRect(pageElement, geometry)')
+    expect(viewSource).toContain('homeDragViewportRect(springboard, geometry)')
+    expect(viewSource).toContain('homeDragViewportRect(slot, geometry)')
+    expect(viewSource).toContain('homeDragViewportRect(dock, geometry)')
+    expect(viewSource).toMatch(
+      /homeDragViewportRect\(\s*appElement,\s*readPhoneViewportGeometry\(appElement\),?\s*\)/,
+    )
+    expect(viewSource).toContain(
+      'springboardBounds.left + (bounds.left - pageBounds.left)',
+    )
     expect(viewSource).toContain('nearestSpringboardRectIndex')
     expect(viewSource).toContain("queueEdgePageTurn(lastHomePointer, 'app')")
     expect(viewSource).toContain("edgePageLocked = dragType === 'widget'")

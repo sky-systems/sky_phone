@@ -677,9 +677,7 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(26px) saturate(125%);
   -webkit-backdrop-filter: blur(26px) saturate(125%);
   cursor: pointer;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
-    'Segoe UI', sans-serif;
+  font-family: var(--sky-font-family);
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;

@@ -3586,7 +3586,7 @@ onMounted(async () => {
   overflow: hidden;
   background: #12171b !important;
   color: #f7f8f4;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--sky-font-family);
 }
 .feather-app--active.feather-app--light {
   --feather-panel: #f0f1ec;

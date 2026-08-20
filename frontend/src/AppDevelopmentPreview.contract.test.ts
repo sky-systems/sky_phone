@@ -92,6 +92,10 @@ describe('browser development preview contract', () => {
 
   it('uses layout zoom so the fixed-resolution phone stays sharply rasterized', () => {
     expect(source).toContain('phone-resolution-canvas--primary')
+    expect(source).toMatch(
+      /phone-resolution-wrapper--primary[\s\S]*?id="phone-home-drag-portal"[\s\S]*?phone-resolution-canvas--primary/,
+    )
+    expect(source.match(/id="phone-home-drag-portal"/g)).toHaveLength(1)
     expect(source).toContain("'--phone-rendered-height'")
     expect(source).toContain("'--phone-rendered-width'")
     expect(mainCss).toMatch(

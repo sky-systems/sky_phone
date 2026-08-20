@@ -331,8 +331,7 @@ function finishPageSwipe(event: PointerEvent): void {
   z-index: 70;
   inset: 0;
   color: #fff;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  font-family: var(--sky-font-family);
 }
 
 .home-folder-backdrop {

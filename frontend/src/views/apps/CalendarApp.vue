@@ -1156,13 +1156,7 @@ onMounted(async () => {
   padding: 47px 0 24px;
   background: var(--bg);
   color: var(--label);
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'SF Pro Display',
-    system-ui,
-    sans-serif;
+  font-family: var(--sky-font-family);
 }
 
 .calendar--light {
