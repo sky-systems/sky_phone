@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
   Gauge,
-  Maximize2,
   Mic,
   Pause,
   Phone,
@@ -75,6 +74,14 @@ const recorderState = ref<MemoRecorderState>({
 let collapseTimer: number | undefined
 let ticker: number | undefined
 
+const activeAppId = computed(() => {
+  const currentRoute = router.currentRoute.value
+  return currentRoute.name === 'app' &&
+    typeof currentRoute.params.appId === 'string'
+    ? currentRoute.params.appId
+    : ''
+})
+
 const recordingActive = computed(() =>
   ['paused', 'recording', 'starting', 'stopping', 'uploading'].includes(
     recorderState.value.state,
@@ -94,14 +101,18 @@ const stopwatchActive = computed(
 )
 const runtimeActivity = computed<DynamicIslandActivity | null>(() => {
   const call = calls.activeCall
-  if (call?.direction === 'incoming' && call.state === 'ringing') {
-    return 'incoming-call'
+  if (activeAppId.value !== 'phone') {
+    if (call?.direction === 'incoming' && call.state === 'ringing') {
+      return 'incoming-call'
+    }
+    if (call) return 'call'
   }
-  if (call) return 'call'
-  if (recordingActive.value) return 'recording'
-  if (timerActive.value) return 'timer'
-  if (stopwatchActive.value) return 'stopwatch'
-  if (music.currentTrack) return 'music'
+  if (recordingActive.value && activeAppId.value !== 'memos') return 'recording'
+  if (timerActive.value && activeAppId.value !== 'clock') return 'timer'
+  if (stopwatchActive.value && activeAppId.value !== 'clock') {
+    return 'stopwatch'
+  }
+  if (music.currentTrack && activeAppId.value !== 'music') return 'music'
   return null
 })
 const activity = computed<DynamicIslandActivity | null>(() =>
@@ -544,11 +555,6 @@ onBeforeUnmount(() => {
                 {{ expandedSubtitle }}
               </span>
             </span>
-            <Maximize2
-              v-if="activity !== 'incoming-call'"
-              class="phone-dynamic-island__open-icon"
-              aria-hidden="true"
-            />
           </button>
 
           <div
@@ -584,18 +590,18 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="phone-dynamic-island__call-action phone-dynamic-island__call-action--decline"
+              :aria-label="phone.t('Apps.phone.decline')"
               @click.stop="endCall"
             >
               <PhoneOff aria-hidden="true" />
-              <span>{{ phone.t('Apps.phone.decline') }}</span>
             </button>
             <button
               type="button"
               class="phone-dynamic-island__call-action phone-dynamic-island__call-action--answer"
+              :aria-label="phone.t('Apps.phone.answer')"
               @click.stop="calls.answer()"
             >
               <Phone aria-hidden="true" />
-              <span>{{ phone.t('Apps.phone.answer') }}</span>
             </button>
           </div>
           <div
@@ -772,11 +778,11 @@ onBeforeUnmount(() => {
   z-index: 102;
   top: 30px;
   left: 50%;
-  width: 132px;
+  width: 126px;
   max-width: calc(100% - 24px);
-  height: 44px;
+  height: 38px;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: 20px;
   color: #fff;
   background: #000;
   box-shadow: 0 5px 18px rgb(0 0 0 / 22%);
@@ -789,19 +795,49 @@ onBeforeUnmount(() => {
     box-shadow 360ms ease;
 }
 
+.phone-dynamic-island--call:not([data-expanded='true']) {
+  width: 138px;
+}
+
+.phone-dynamic-island--music:not([data-expanded='true']) {
+  width: 172px;
+}
+
+.phone-dynamic-island--recording:not([data-expanded='true']) {
+  width: 148px;
+}
+
+.phone-dynamic-island--timer:not([data-expanded='true']) {
+  width: 144px;
+}
+
+.phone-dynamic-island--stopwatch:not([data-expanded='true']) {
+  width: 156px;
+}
+
 .phone-dynamic-island[data-preview='true'] {
   pointer-events: none;
 }
 
 .phone-dynamic-island[data-expanded='true'] {
-  width: 356px;
-  height: 118px;
-  border-radius: 30px;
+  width: 318px;
+  height: 82px;
+  border-radius: 26px;
   box-shadow: 0 12px 32px rgb(0 0 0 / 32%);
 }
 
 .phone-dynamic-island--incoming-call[data-expanded='true'] {
-  height: 124px;
+  height: 78px;
+}
+
+.phone-dynamic-island--music[data-expanded='true'] {
+  width: 326px;
+  height: 136px;
+  border-radius: 28px;
+}
+
+.phone-dynamic-island--recording[data-expanded='true'] {
+  height: 92px;
 }
 
 .phone-dynamic-island__compact,
@@ -818,16 +854,16 @@ onBeforeUnmount(() => {
 .phone-dynamic-island__compact {
   display: flex;
   width: 100%;
-  height: 44px;
-  padding: 0 10px;
+  height: 38px;
+  padding: 0 9px;
   align-items: center;
   gap: 7px;
   background: transparent;
 }
 
 .phone-dynamic-island__compact-icon {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   flex: 0 0 auto;
   stroke-width: 2.4;
 }
@@ -849,8 +885,8 @@ onBeforeUnmount(() => {
 }
 
 .phone-dynamic-island__compact-artwork {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   flex: 0 0 auto;
   border-radius: 7px;
   object-fit: cover;
@@ -860,7 +896,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   overflow: hidden;
   flex: 1 1 auto;
-  font-size: 12px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: -0.15px;
@@ -914,10 +950,22 @@ onBeforeUnmount(() => {
   position: relative;
   display: grid;
   height: 100%;
-  padding: 10px 11px;
+  padding: 8px 10px;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr) auto;
   column-gap: 10px;
+}
+
+.phone-dynamic-island--music .phone-dynamic-island__expanded {
+  padding: 10px 12px 8px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 48px minmax(0, 1fr);
+  row-gap: 12px;
+}
+
+.phone-dynamic-island--music .phone-dynamic-island__summary {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .phone-dynamic-island__summary {
@@ -1035,13 +1083,6 @@ onBeforeUnmount(() => {
   line-height: 13px;
 }
 
-.phone-dynamic-island__open-icon {
-  width: 13px;
-  height: 13px;
-  margin-left: auto;
-  color: #71717a;
-}
-
 .phone-dynamic-island__waveform {
   position: absolute;
   right: 118px;
@@ -1066,12 +1107,18 @@ onBeforeUnmount(() => {
 .phone-dynamic-island__progress {
   position: absolute;
   right: 12px;
-  bottom: 10px;
+  bottom: 8px;
   left: 12px;
   height: 2px;
   overflow: hidden;
   border-radius: 2px;
   background: #27272a;
+}
+
+.phone-dynamic-island--music .phone-dynamic-island__progress {
+  right: 14px;
+  bottom: 65px;
+  left: 64px;
 }
 
 .phone-dynamic-island__progress::after {
@@ -1103,8 +1150,16 @@ onBeforeUnmount(() => {
   gap: 5px;
 }
 
+.phone-dynamic-island--music .phone-dynamic-island__actions--media {
+  min-width: 0;
+  justify-content: center;
+  gap: 20px;
+  grid-column: 1;
+  grid-row: 2;
+}
+
 .phone-dynamic-island__actions--incoming {
-  min-width: 126px;
+  min-width: 98px;
   gap: 10px;
 }
 
@@ -1152,15 +1207,13 @@ onBeforeUnmount(() => {
 }
 
 .phone-dynamic-island__call-action {
-  display: flex;
-  width: 58px;
-  min-height: 64px;
-  padding: 4px 0 0;
-  align-items: center;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  border-radius: 50%;
   background: transparent;
-  font-size: 9px;
 }
 
 .phone-dynamic-island__call-action svg {

@@ -54,6 +54,22 @@ describe('Phone Dynamic Island contract', () => {
     expect(source).toContain('call.answeredAt ?? call.startedAt')
   })
 
+  it('shows an activity only after leaving its owning app', () => {
+    expect(source).toContain("activeAppId.value !== 'phone'")
+    expect(source).toContain(
+      "recordingActive.value && activeAppId.value !== 'memos'",
+    )
+    expect(source).toContain(
+      "timerActive.value && activeAppId.value !== 'clock'",
+    )
+    expect(source).toContain(
+      "stopwatchActive.value && activeAppId.value !== 'clock'",
+    )
+    expect(source).toContain(
+      "music.currentTrack && activeAppId.value !== 'music'",
+    )
+  })
+
   it('connects music, recorder, timer, and stopwatch controls to their stores', () => {
     expect(source).toContain('@click.stop="music.previous()"')
     expect(source).toContain('@click.stop="music.toggle()"')
@@ -84,6 +100,13 @@ describe('Phone Dynamic Island contract', () => {
     )
   })
 
+  it('opens activities by tapping the island without a separate expand icon', () => {
+    expect(source).toContain('@click.stop="toggleExpanded"')
+    expect(source).toContain('@click.stop="openActivity"')
+    expect(source).not.toContain('Maximize2')
+    expect(source).not.toContain('phone-dynamic-island__open-icon')
+  })
+
   it('animates state changes and moves popup notifications below expanded UI', () => {
     expect(source).toContain('<Transition name="phone-dynamic-island">')
     expect(source).toContain(
@@ -102,5 +125,20 @@ describe('Phone Dynamic Island contract', () => {
       /\.phone-dynamic-island\s*\{[^}]*z-index:\s*102;[^}]*top:\s*30px;/s,
     )
     expect(mainCss).not.toMatch(/\.phone-dynamic-island\s*\{/)
+  })
+
+  it('keeps compact and expanded islands close to the physical camera proportions', () => {
+    expect(source).toMatch(
+      /\.phone-dynamic-island\s*\{[^}]*width:\s*126px;[^}]*height:\s*38px;/s,
+    )
+    expect(source).toMatch(
+      /\.phone-dynamic-island\[data-expanded='true'\]\s*\{[^}]*width:\s*318px;[^}]*height:\s*82px;/s,
+    )
+    expect(source).toMatch(
+      /\.phone-dynamic-island--incoming-call\[data-expanded='true'\]\s*\{[^}]*height:\s*78px;/s,
+    )
+    expect(source).toMatch(
+      /\.phone-dynamic-island--music\[data-expanded='true'\]\s*\{[^}]*width:\s*326px;[^}]*height:\s*136px;/s,
+    )
   })
 })

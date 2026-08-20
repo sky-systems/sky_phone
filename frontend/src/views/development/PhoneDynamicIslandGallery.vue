@@ -291,14 +291,8 @@ const galleryGroups: GalleryGroup[] = [
   position: relative;
   top: auto;
   left: auto;
-  max-width: none;
+  max-width: calc(100% - 12px);
   transform: none;
-}
-
-:deep(
-  .dynamic-island-gallery__preview.phone-dynamic-island[data-expanded='true']
-) {
-  width: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {

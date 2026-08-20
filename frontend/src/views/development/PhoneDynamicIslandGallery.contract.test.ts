@@ -51,7 +51,9 @@ describe('Dynamic Island development gallery contract', () => {
     expect(gallerySource).toMatch(
       /\.dynamic-island-gallery__stage\s*\{[^}]*width:\s*100%;/s,
     )
-    expect(gallerySource).toContain("[data-expanded='true']")
+    expect(gallerySource).toMatch(
+      /dynamic-island-gallery__preview\.phone-dynamic-island[\s\S]*?max-width:\s*calc\(100% - 12px\);/,
+    )
   })
 
   it('keeps the gallery development-only and hides the live island above it', () => {
