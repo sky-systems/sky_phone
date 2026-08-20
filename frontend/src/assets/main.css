@@ -259,6 +259,14 @@ button {
   transform: translateY(calc(100% - 190px));
   transform-origin: right bottom;
 }
+
+.phone-stage--live-activity .phone-resolution-wrapper--primary .phone-device {
+  pointer-events: none;
+  transform: translateY(
+    calc(100% - var(--phone-live-activity-peek-height, 145px))
+  );
+  transform-origin: right bottom;
+}
 .phone-lift-enter-active {
   transition: opacity 0.52s linear;
 }

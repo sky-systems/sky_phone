@@ -33,11 +33,9 @@ describe('Phone Dynamic Island contract', () => {
       "'phone-device--island-expanded': dynamicIslandExpanded",
     )
     expect(appSource).toMatch(
-      /class="phone-device__frame"[\s\S]*?<PhoneDynamicIsland[\s\S]*?@expanded-change="dynamicIslandExpanded = \$event"/,
+      /class="phone-device__frame"[\s\S]*?<PhoneDynamicIsland[\s\S]*?@expanded-change="dynamicIslandExpanded = \$event"[\s\S]*?@live-activity-change="dynamicIslandActivity = \$event"/,
     )
-    expect(appSource).toContain(
-      'phone.isOpen || notifications.current || calls.activeCall',
-    )
+    expect(appSource).toContain('dynamicIslandActivity ||')
     expect(appSource).not.toContain(
       "window.setTimeout(() => void router.push('/apps/phone'), 0)",
     )
@@ -54,19 +52,34 @@ describe('Phone Dynamic Island contract', () => {
     expect(source).toContain('call.answeredAt ?? call.startedAt')
   })
 
-  it('shows an activity only after leaving its owning app', () => {
-    expect(source).toContain("activeAppId.value !== 'phone'")
+  it('hides an activity in its owning foreground app but restores it after closing', () => {
     expect(source).toContain(
-      "recordingActive.value && activeAppId.value !== 'memos'",
+      'if (!currentActivity || !phone.isOpen) return currentActivity',
     )
+    expect(source).toContain("activeAppId.value === 'phone'")
     expect(source).toContain(
-      "timerActive.value && activeAppId.value !== 'clock'",
+      "currentActivity === 'recording' && activeAppId.value === 'memos'",
     )
+    expect(source).toContain("activeAppId.value === 'clock'")
     expect(source).toContain(
-      "stopwatchActive.value && activeAppId.value !== 'clock'",
+      "currentActivity === 'music' && activeAppId.value === 'music'",
     )
+  })
+
+  it('keeps a non-interactive phone peek visible for background live activities', () => {
+    expect(source).toContain("'live-activity-change': [activity:")
+    expect(source).toContain("emit('live-activity-change', nextActivity)")
+    expect(appSource).toContain(
+      "'phone-stage--live-activity':\n          !phone.isOpen && Boolean(dynamicIslandActivity || calls.activeCall)",
+    )
+    expect(mainCss).toMatch(
+      /\.phone-stage--live-activity[\s\S]*?pointer-events:\s*none;[\s\S]*?--phone-live-activity-peek-height/,
+    )
+    expect(appSource).toContain("? '190px'")
+    expect(appSource).toContain("? '155px'")
+    expect(appSource).toContain(": '145px'")
     expect(source).toContain(
-      "music.currentTrack && activeAppId.value !== 'music'",
+      "!phone.isOpen ||\n            activity.value === 'incoming-call' ||",
     )
   })
 
@@ -78,6 +91,28 @@ describe('Phone Dynamic Island contract', () => {
     expect(source).toContain('clock.pauseTimer(Date.now())')
     expect(source).toContain('clock.pauseStopwatch(Date.now())')
     expect(source).toContain('clock.addLap(Date.now())')
+    expect(source).not.toContain('phone-dynamic-island__lap')
+    expect(source).toContain('phone-dynamic-island__stopwatch-meta')
+    expect(source).toContain('{{ stopwatchLapLabel }}')
+    expect(source).toContain('{{ stopwatchLapValue }}')
+    expect(source).toContain('{{ stopwatchTotalDisplay }}')
+  })
+
+  it('matches the reference music player and timer control layouts', () => {
+    expect(source).toContain('phone-dynamic-island__music-equalizer')
+    expect(source).toContain('phone-dynamic-island__progress-track')
+    expect(source).toContain('{{ musicElapsedLabel }}')
+    expect(source).toContain('{{ musicRemainingLabel }}')
+    expect(source).not.toContain('Airplay')
+    expect(source).toContain('<X aria-hidden="true" />')
+    expect(source).toMatch(
+      /\.phone-dynamic-island--timer\.phone-dynamic-island__copy|\.phone-dynamic-island--timer \.phone-dynamic-island__copy/,
+    )
+    expect(source).toContain(
+      '.phone-dynamic-island--music .phone-dynamic-island__actions--media',
+    )
+    expect(source).toContain('justify-content: center')
+    expect(source).toContain('gap: 34px')
   })
 
   it('keeps recorder state available across app changes', () => {
@@ -107,6 +142,24 @@ describe('Phone Dynamic Island contract', () => {
     expect(source).not.toContain('phone-dynamic-island__open-icon')
   })
 
+  it('collapses expanded activities on taps, swipes, and scrolling outside', () => {
+    expect(source).toContain('ref="islandElement"')
+    expect(source).toContain(
+      "document.addEventListener('pointerdown', onOutsidePointerDown, true)",
+    )
+    expect(source).toContain(
+      "document.addEventListener('scroll', collapseExpanded, true)",
+    )
+    expect(source).toContain('islandElement.value?.contains(event.target)')
+    expect(source).toContain('expanded.value = false')
+    expect(source).toContain(
+      "document.removeEventListener('pointerdown', onOutsidePointerDown, true)",
+    )
+    expect(source).toContain(
+      "document.removeEventListener('scroll', collapseExpanded, true)",
+    )
+  })
+
   it('animates state changes and moves popup notifications below expanded UI', () => {
     expect(source).toContain('<Transition name="phone-dynamic-island">')
     expect(source).toContain(
@@ -132,13 +185,18 @@ describe('Phone Dynamic Island contract', () => {
       /\.phone-dynamic-island\s*\{[^}]*width:\s*126px;[^}]*height:\s*38px;/s,
     )
     expect(source).toMatch(
-      /\.phone-dynamic-island\[data-expanded='true'\]\s*\{[^}]*width:\s*318px;[^}]*height:\s*82px;/s,
+      /\.phone-dynamic-island\[data-expanded='true'\]\s*\{[^}]*width:\s*318px;[^}]*height:\s*74px;/s,
     )
     expect(source).toMatch(
-      /\.phone-dynamic-island--incoming-call\[data-expanded='true'\]\s*\{[^}]*height:\s*78px;/s,
+      /\.phone-dynamic-island--incoming-call\[data-expanded='true'\]\s*\{[^}]*height:\s*68px;/s,
     )
     expect(source).toMatch(
-      /\.phone-dynamic-island--music\[data-expanded='true'\]\s*\{[^}]*width:\s*326px;[^}]*height:\s*136px;/s,
+      /\.phone-dynamic-island--music\[data-expanded='true'\]\s*\{[^}]*width:\s*316px;[^}]*height:\s*150px;/s,
     )
+    expect(source).toMatch(
+      /\.phone-dynamic-island--stopwatch\[data-expanded='true'\]\s*\{[^}]*height:\s*70px;/s,
+    )
+    expect(source).toContain('box-sizing: border-box')
+    expect(source).toContain('padding: 8px 16px 8px 10px')
   })
 })

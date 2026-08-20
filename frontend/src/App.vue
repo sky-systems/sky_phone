@@ -70,6 +70,7 @@ import type {
   CompanyUnreadCounts,
 } from '@/types/companies'
 import type { PhoneCall } from '@/types/phone'
+import type { DynamicIslandActivity } from '@/types/dynamicIsland'
 import type { EasyShareEvent } from '@/types/easyshare'
 import type { CryptoMarketChangedData } from '@/types/crypto'
 import type { CityWarnEventData } from '@/types/citywarn'
@@ -360,6 +361,7 @@ const unlockedServicesLoaded = ref(false)
 const controlCenterOpened = ref(false)
 const activitySuspended = ref(false)
 const dynamicIslandExpanded = ref(false)
+const dynamicIslandActivity = ref<DynamicIslandActivity | null>(null)
 const simPicker = ref<SimPickerPayload | null>(null)
 const setupRequired = computed(
   () =>
@@ -433,6 +435,12 @@ const phoneResolutionStyle = computed<CSSProperties>(() => ({
 }))
 const phoneStageStyle = computed<CSSProperties>(() => ({
   ...phoneResolutionStyle.value,
+  '--phone-live-activity-peek-height':
+    dynamicIslandActivity.value === 'music'
+      ? '190px'
+      : dynamicIslandActivity.value === 'recording'
+        ? '155px'
+        : '145px',
   visibility: activitySuspended.value ? 'hidden' : 'visible',
 }))
 const phoneDisplayStyle = computed<CSSProperties>(() => ({
@@ -1636,12 +1644,15 @@ onBeforeUnmount(() => {
         phone.isOpen ||
         notifications.current ||
         calls.activeCall ||
+        dynamicIslandActivity ||
         notifications.devicePreviews.length
       "
       class="phone-stage"
       :class="{
         'phone-stage--browser-preview': isBrowserPreview,
         'phone-stage--landscape': phone.cameraLandscape,
+        'phone-stage--live-activity':
+          !phone.isOpen && Boolean(dynamicIslandActivity || calls.activeCall),
         'phone-stage--peek': notifications.isPeeking,
       }"
       :style="phoneStageStyle"
@@ -1661,7 +1672,12 @@ onBeforeUnmount(() => {
           @open="openNotificationPreview"
         />
         <div
-          v-if="phone.isOpen || notifications.current || calls.activeCall"
+          v-if="
+            phone.isOpen ||
+            notifications.current ||
+            calls.activeCall ||
+            dynamicIslandActivity
+          "
           class="phone-resolution-wrapper phone-resolution-wrapper--primary"
         >
           <div class="phone-resolution-canvas phone-resolution-canvas--primary">
@@ -1869,6 +1885,7 @@ onBeforeUnmount(() => {
               <PhoneDynamicIsland
                 v-if="!setupRequired && !isDynamicIslandGalleryRoute"
                 @expanded-change="dynamicIslandExpanded = $event"
+                @live-activity-change="dynamicIslandActivity = $event"
               />
             </section>
           </div>
