@@ -86,4 +86,19 @@ describe('FiveManage server configuration contract', () => {
       'FiveManage upload-path lookup found the exact uploaded file ID.',
     )
   })
+
+  it('binds an unindexed upload to the server path before probing R2', () => {
+    expect(mediaServer).toContain('host:lower() ~= "r2.fivemanage.com"')
+    expect(mediaServer).toContain(
+      'path:find("/" .. state.upload_path .. "/", 1, true)',
+    )
+    expect(mediaServer).toContain('object_id ~= remote_id')
+    expect(mediaServer).toContain('"HEAD"')
+    expect(mediaServer).toContain(
+      'SkyPhoneMediaImport.ResponseHeader(response.headers, "content-type")',
+    )
+    expect(mediaServer).toContain(
+      'SkyPhoneMediaImport.ResponseHeader(response.headers, "content-length")',
+    )
+  })
 })

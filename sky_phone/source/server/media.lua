@@ -191,7 +191,74 @@ local function encode_remote_path(value)
     return table.concat(segments, "/")
 end
 
-local function get_remote_file(state, remote_id)
+local function probe_uploaded_object(state, remote_id, uploaded_url)
+    if type(uploaded_url) ~= "string" or #uploaded_url > Config.Media.UrlMaxLength then
+        return nil, "invalid_upload"
+    end
+    local host, path = uploaded_url:match("^https://([^/%?#]+)(/[^?#]+)$")
+    if not host or host:lower() ~= "r2.fivemanage.com" or path:find("%", 1, true) then
+        return nil, "invalid_upload"
+    end
+    if not path:find("/" .. state.upload_path .. "/", 1, true) then
+        Bridge.Debug("error", "[sky_phone][media-debug] FiveManage upload URL is not bound to the server upload path.")
+        return nil, "invalid_upload_token"
+    end
+    local filename = path:match("/([^/]+)$")
+    local object_id = filename and filename:match("^([%w_%-]+)%.[%w]+$") or nil
+    if object_id ~= remote_id then
+        Bridge.Debug("error", "[sky_phone][media-debug] FiveManage upload URL does not contain the returned file ID.")
+        return nil, "invalid_upload"
+    end
+
+    local response = SkyPhoneMediaImport.HttpRequest(
+        uploaded_url,
+        {},
+        tonumber(Config.Media.FiveManage.RequestTimeoutMs) or 10000,
+        "HEAD"
+    )
+    media_debug("FiveManage bound object HEAD probe returned HTTP %s.", tostring(response.status))
+    if response.status == 0 then
+        return nil, "request_timeout"
+    end
+    if response.status < 200 or response.status >= 300 then
+        return nil, ("request_failed_%s"):format(response.status)
+    end
+
+    local mime_type = SkyPhoneMediaImport.ResponseHeader(response.headers, "content-type")
+    mime_type = type(mime_type) == "string" and mime_type:lower():match("^%s*([^;%s]+)") or nil
+    local allowed_mimes = allowed_remote_mimes[state.media_type]
+    if not mime_type or not allowed_mimes or not allowed_mimes[mime_type] then
+        return nil, "invalid_media_type"
+    end
+    local size = tonumber(SkyPhoneMediaImport.ResponseHeader(response.headers, "content-length"))
+    local maximum_size = state.media_type == "photo" and tonumber(Config.Media.Import.MaxPhotoBytes)
+        or state.media_type == "video" and tonumber(Config.Media.Import.MaxVideoBytes)
+        or state.media_type == "audio" and tonumber(Config.Memos.MaximumBytes)
+    if not size or size ~= math.floor(size) or size < 1 or not maximum_size or size > maximum_size then
+        return nil, "invalid_upload"
+    end
+
+    media_debug(
+        "FiveManage capability-bound object verification succeeded (type=%s, mime=%s, size=%s).",
+        tostring(state.media_type),
+        mime_type,
+        tostring(size)
+    )
+    return {
+        id = remote_id,
+        metadata = {
+            captureToken = state.capture_token,
+            purpose = state.purpose,
+            source = "sky_phone",
+        },
+        mimeType = mime_type,
+        size = size,
+        type = mime_type,
+        url = uploaded_url,
+    }, nil, remote_id
+end
+
+local function get_remote_file(state, remote_id, uploaded_url)
     local api_key = SkyPhoneMediaProviderConfig.FiveManageApiKey()
     if api_key == "" then
         return nil, "missing_config"
@@ -209,6 +276,7 @@ local function get_remote_file(state, remote_id)
         base_urls[#base_urls + 1] = configured_base_url
     end
     local last_error = "request_failed_404"
+    local authenticated_index_checked = false
     for _, base_url in ipairs(base_urls) do
         local provider_host = base_url:match("^https://([^/]+)") or "invalid"
         local response = http_request(
@@ -227,6 +295,7 @@ local function get_remote_file(state, remote_id)
             diagnostic_text(response_error_message(response), 160)
         )
         if files then
+            authenticated_index_checked = true
             for _, remote in ipairs(files) do
                 if type(remote) == "table" and remote.id == remote_id then
                     media_debug("FiveManage upload-path lookup found the exact uploaded file ID.")
@@ -238,7 +307,11 @@ local function get_remote_file(state, remote_id)
             last_error = response_error
         end
     end
-    return nil, last_error
+    if not authenticated_index_checked then
+        return nil, last_error
+    end
+    media_debug("FiveManage authenticated index omitted the uploaded file; verifying the bound storage object.")
+    return probe_uploaded_object(state, remote_id, uploaded_url)
 end
 
 local function delete_remote_file(remote_id)
@@ -427,7 +500,7 @@ local function verify_remote_upload(state, remote_id, uploaded_url, original_url
         return nil, "invalid_upload"
     end
     media_debug("Verifying uploaded file with FiveManage (type=%s).", tostring(state.media_type))
-    local remote, remote_error, remote_path = get_remote_file(state, remote_id)
+    local remote, remote_error, remote_path = get_remote_file(state, remote_id, uploaded_url)
     if not remote then
         Bridge.Debug(
             "error",
