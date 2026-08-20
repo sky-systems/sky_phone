@@ -17,7 +17,9 @@ describe('PhoneSetupAssistant contract', () => {
     expect(source).toContain('WALLPAPER_IDS')
     expect(source).toContain('setAllAppNotifications')
     expect(source).toContain('appStore.claimApp')
-    expect(source).toContain('phone.completeSetup()')
+    expect(source).toContain('await phone.completeSetup()')
+    expect(source).toContain(':disabled="setupCompleteBusy"')
+    expect(source).toContain("phone.t('Setup.ready.saveFailed')")
   })
 
   it('persists progress and supports resuming or moving backward', () => {

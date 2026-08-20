@@ -76,6 +76,7 @@ server_scripts {
     'config/media.lua',
     'config/locales/en.lua',
     'config/locales/de.lua',
+    'source/server/update_check.lua',
     'source/bridge/server/database.lua',
     'source/bridge/server/migrations.lua',
     'source/bridge/server/callbacks.lua',

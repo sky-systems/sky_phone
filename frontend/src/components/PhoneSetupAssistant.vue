@@ -53,6 +53,8 @@ const passcodeLength = ref<4 | 6>(phone.security.length === 4 ? 4 : 6)
 const notificationsEnabled = ref(true)
 const notificationSounds = ref(true)
 const selectedApps = ref<BuiltinPhoneAppId[]>(['banking', 'garage', 'skyride'])
+const setupCompleteBusy = ref(false)
+const setupCompleteError = ref('')
 
 const setupApps = (
   ['banking', 'garage', 'skyride', 'citymarkt', 'picstagram', 'snake'] as const
@@ -204,8 +206,16 @@ function choosePasscodeLength(length: 4 | 6): void {
   passcodeResetKey.value += 1
 }
 
-function finish(): void {
-  phone.completeSetup()
+async function finish(): Promise<void> {
+  if (setupCompleteBusy.value) return
+  setupCompleteBusy.value = true
+  setupCompleteError.value = ''
+  const completed = await phone.completeSetup()
+  setupCompleteBusy.value = false
+  if (!completed) {
+    setupCompleteError.value = phone.t('Setup.ready.saveFailed')
+    return
+  }
   emit('complete')
 }
 
@@ -794,12 +804,29 @@ function skipSetupForDevelopment(): void {
               }}</b></span
             >
           </div>
-          <SkyButton class="setup-assistant__primary" @click="finish">{{
-            phone.t('Setup.ready.enter')
-          }}</SkyButton>
+          <SkyButton
+            class="setup-assistant__primary"
+            :disabled="setupCompleteBusy"
+            @click="finish"
+          >
+            <SkySpinner
+              v-if="setupCompleteBusy"
+              :label="phone.t('Setup.ready.saving')"
+              :size="18"
+            />
+            <span v-else>{{ phone.t('Setup.ready.enter') }}</span>
+          </SkyButton>
+          <p
+            v-if="setupCompleteError"
+            class="setup-assistant__error"
+            role="alert"
+          >
+            {{ setupCompleteError }}
+          </p>
           <button
             type="button"
             class="setup-assistant__later"
+            :disabled="setupCompleteBusy"
             @click="moveTo(0)"
           >
             {{ phone.t('Setup.ready.review') }}

@@ -34,7 +34,7 @@ Config.Phone = {
 }
 
 Config.TestData = {
-    Enabled = true,
+    Enabled = false, -- development/test servers only; keep disabled in production
     Command = "phonetestdata",
     AdminOnly = false, -- enable only on development servers; every run is scoped to the executing player's phone
     AdminGroups = { "admin", "superadmin" },
@@ -365,8 +365,8 @@ Config.Garage = {
 }
 
 Config.Housing = {
-    System = "auto", -- auto, esx_property, qbx_properties
-    AutoPriority = { "esx_property", "qbx_properties" },
+    System = "auto", -- auto, rtx, quasar, vms, rx, nolag, sn, esx_property, qbx_properties
+    AutoPriority = { "esx_property", "qbx_properties", "rtx", "quasar", "vms", "rx", "nolag", "sn" },
     MaximumProperties = 50,
     OverviewRequestsPerMinute = 30,
     ActionsPerMinute = 12,

@@ -464,6 +464,7 @@ onBeforeUnmount(() => {
               ><strong>{{ phone.t('Apps.house.keys') }}</strong></span
             >
             <sky-button
+              v-if="selectedProperty.capabilities.keyGrant !== false"
               rounded
               small
               inline

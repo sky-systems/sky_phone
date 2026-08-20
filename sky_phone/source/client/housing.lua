@@ -169,6 +169,17 @@ RegisterNUICallback("housing:overview", function(data, cb)
         return
     end
     local result = Bridge.Callbacks.Trigger("sky_phone:housing:overview", {})
+    if type(result) == "table" and result.success and type(result.data) == "table" then
+        local properties, error_code = Bridge.Housing.EnrichOverview(
+            result.data.provider,
+            result.data.properties
+        )
+        if not properties then
+            cb({ success = false, error = error_code or "provider_error" })
+            return
+        end
+        result.data.properties = properties
+    end
     cb(type(result) == "table" and result or { success = false, error = "request_failed" })
 end)
 
@@ -211,11 +222,24 @@ RegisterNUICallback("housing:command", function(data, cb)
     end
     if data.action == "set_waypoint" then
         local coords = prepared.data.coords
-        if type(coords) ~= "table" or not tonumber(coords.x) or not tonumber(coords.y) then
+        if coords == nil then
+            local success, error_code = Bridge.Housing.Execute(
+                prepared.data.provider,
+                data.action,
+                prepared.data
+            )
+            cb(success and { success = true }
+                or { success = false, error = error_code or "invalid_coordinates" })
+            return
+        end
+
+        local x = type(coords) == "table" and camera_number(coords.x) or nil
+        local y = type(coords) == "table" and camera_number(coords.y) or nil
+        if not x or not y then
             cb({ success = false, error = "invalid_coordinates" })
             return
         end
-        SetNewWaypoint(tonumber(coords.x) + 0.0, tonumber(coords.y) + 0.0)
+        SetNewWaypoint(x + 0.0, y + 0.0)
         cb({ success = true })
         return
     end

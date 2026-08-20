@@ -241,4 +241,16 @@ describe('phone inventory contracts', () => {
     )
     expect(phoneServer).toContain('preferred_device_imeis[source] = imei')
   })
+
+  it('keeps non-unique phones bound to one persistent device per character', () => {
+    const phoneServer = readResourceFile('source/server/phone.lua')
+    const migration = readResourceFile('source/server/db_migrate.lua')
+
+    expect(phoneServer).toContain('if not unique_phones then')
+    expect(phoneServer).toContain('return map_character_device(source, slot)')
+    expect(phoneServer).toContain('FROM `sky_phone_character_devices`')
+    expect(phoneServer).toContain('WHERE `owner_identifier` = ?')
+    expect(migration).toContain('name = "sky_phone_character_devices"')
+    expect(migration).toContain('primaryKey = "owner_identifier"')
+  })
 })
