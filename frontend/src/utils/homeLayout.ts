@@ -505,6 +505,37 @@ export function createDefaultHomeLayout(
   }
 }
 
+export function removeDockGridDuplicates(layout: HomeLayout): HomeLayout {
+  const dockAppIds = new Set<LaunchablePhoneAppId>()
+  for (const item of layout.dock) {
+    if (typeof item === 'string') dockAppIds.add(item)
+    if (isHomeFolder(item)) {
+      for (const appId of item.apps) dockAppIds.add(appId)
+    }
+  }
+  if (!dockAppIds.size) return layout
+
+  let changed = false
+  const grid = layout.grid.map((item): HomeSlot => {
+    if (typeof item === 'string') {
+      if (!dockAppIds.has(item)) return item
+      changed = true
+      return null
+    }
+    if (!isHomeFolder(item)) return null
+
+    const apps = item.apps.filter((appId) => !dockAppIds.has(appId))
+    if (apps.length === item.apps.length) return cloneItem(item)
+    changed = true
+    return normalizeFolder({ ...item, apps })
+  })
+  if (!changed) return layout
+
+  const next = cloneLayout(layout)
+  next.grid = compactGridPages(grid)
+  return next
+}
+
 export function parseHomeLayout(
   value: unknown,
   defaults: HomeLayout,

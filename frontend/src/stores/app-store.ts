@@ -25,6 +25,7 @@ import {
   parseHomeLayout,
   reflowHomeGridForWidgetChange,
   renameHomeFolder,
+  removeDockGridDuplicates,
   removeHomeApp,
   restoreHomeApp,
   type HomeArea,
@@ -45,7 +46,7 @@ const pendingInstallations = new WeakMap<
 >()
 
 function getDefaultGridIds(): LaunchablePhoneAppId[] {
-  return [...PHONE_APPS]
+  return PHONE_APPS.filter((app) => app.dockOrder === null)
     .sort((a, b) => a.gridOrder - b.gridOrder)
     .map((app) => app.id)
 }
@@ -263,12 +264,16 @@ export const useAppStoreStore = defineStore('app-store', {
         getDefaultGridIds(),
         getDefaultDockIds(),
       )
-      this.homeLayout = parseHomeLayout(
+      const parsedHomeLayout = parseHomeLayout(
         data?.homeLayout,
         defaults,
         installedIds,
         false,
       )
+      const normalizedHomeLayout = removeDockGridDuplicates(parsedHomeLayout)
+      const removedDockGridDuplicates =
+        normalizedHomeLayout !== parsedHomeLayout
+      this.homeLayout = normalizedHomeLayout
       const protectedHiddenAppIds =
         this.homeLayout.hidden.filter(isProtectedHomeApp)
       for (const appId of protectedHiddenAppIds) {
@@ -292,6 +297,7 @@ export const useAppStoreStore = defineStore('app-store', {
       this.hydrated = true
       if (
         protectedHiddenAppIds.length ||
+        removedDockGridDuplicates ||
         removedLegacyDefaults ||
         layoutVersion === 2 ||
         layoutVersion === 3 ||
@@ -320,11 +326,8 @@ export const useAppStoreStore = defineStore('app-store', {
         getDefaultDockIds(),
       )
       const previous = JSON.stringify(this.homeLayout)
-      this.homeLayout = parseHomeLayout(
-        this.homeLayout,
-        defaults,
-        installedIds,
-        false,
+      this.homeLayout = removeDockGridDuplicates(
+        parseHomeLayout(this.homeLayout, defaults, installedIds, false),
       )
 
       for (const appId of [...this.homeLayout.hidden]) {

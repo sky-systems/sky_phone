@@ -21,6 +21,7 @@ import {
   moveHomeFolderApp,
   parseHomeLayout,
   reflowHomeGridForWidgetChange,
+  removeDockGridDuplicates,
   removeHomeApp,
   renameHomeFolder,
   restoreHomeApp,
@@ -76,6 +77,40 @@ describe('home layout', () => {
     ])
     expect(layout.dock).toEqual(['phone', 'messages', 'clock', null])
     expect(layout.version).toBe(HOME_LAYOUT_VERSION)
+  })
+
+  it('removes dock apps from the grid and normalizes affected folders', () => {
+    const layout: HomeLayout = {
+      ...defaults,
+      dock: [
+        'phone',
+        {
+          apps: ['messages', 'mail'],
+          id: 'folder-abcdef',
+          name: 'Dock',
+          type: 'folder',
+        },
+        null,
+        null,
+      ],
+      grid: [
+        'phone',
+        {
+          apps: ['messages', 'notes'],
+          id: 'folder-ghijkl',
+          name: 'Grid',
+          type: 'folder',
+        },
+        'mail',
+        'clock',
+        ...Array.from({ length: HOME_GRID_PAGE_SIZE - 4 }, () => null),
+      ],
+    }
+
+    const normalized = removeDockGridDuplicates(layout)
+
+    expect(normalized.grid.slice(0, 3)).toEqual(['notes', 'clock', null])
+    expect(normalized.dock).toEqual(layout.dock)
   })
 
   it('migrates compact persisted arrays and appends newly installed apps', () => {
