@@ -4742,11 +4742,204 @@ function adminMockBootstrap() {
   }
 }
 
+const adminMockConfigurator = {
+  enabled: true,
+  revision: 4,
+  sections: [
+    {
+      id: 'config:Bridge',
+      label: 'Bridge',
+      scope: 'config',
+      fields: [
+        {
+          label: 'Framework',
+          path: 'Bridge.Framework',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'auto',
+        },
+        {
+          label: 'Inventory',
+          path: 'Bridge.Inventory',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'auto',
+        },
+        {
+          label: 'Locale',
+          path: 'Bridge.Locale',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'de',
+        },
+        {
+          label: 'Callback Timeout',
+          path: 'Bridge.CallbackTimeout',
+          scope: 'config',
+          sensitive: false,
+          type: 'number',
+          value: 15000,
+        },
+        {
+          label: 'Debug',
+          path: 'Bridge.Debug',
+          scope: 'config',
+          sensitive: false,
+          type: 'boolean',
+          value: false,
+        },
+      ],
+    },
+    {
+      id: 'config:Phone',
+      label: 'Phone',
+      scope: 'config',
+      fields: [
+        {
+          label: 'Item',
+          path: 'Phone.Item',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'phone',
+        },
+        {
+          label: 'Unique',
+          path: 'Phone.Unique',
+          scope: 'config',
+          sensitive: false,
+          type: 'boolean',
+          value: true,
+        },
+        {
+          label: 'Keybind',
+          path: 'Phone.Keybind',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'F1',
+        },
+        {
+          label: 'Device Name',
+          path: 'Phone.DeviceName',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'iFruit Phone',
+        },
+      ],
+    },
+    {
+      id: 'config:Companies',
+      label: 'Companies',
+      scope: 'config',
+      fields: [
+        {
+          label: 'Enabled',
+          path: 'Companies.Enabled',
+          scope: 'config',
+          sensitive: false,
+          type: 'boolean',
+          value: true,
+        },
+        {
+          label: 'Categories',
+          path: 'Companies.Categories',
+          scope: 'config',
+          sensitive: false,
+          type: 'json',
+          value: ['public_services', 'vehicles', 'transport'],
+        },
+      ],
+    },
+    {
+      id: 'media:FiveManage',
+      label: 'Five Manage',
+      scope: 'media',
+      fields: [
+        {
+          configured: true,
+          label: 'Api Key',
+          path: 'FiveManage.ApiKey',
+          scope: 'media',
+          sensitive: true,
+          type: 'string',
+          value: '',
+        },
+        {
+          label: 'Base Url',
+          path: 'FiveManage.BaseUrl',
+          scope: 'media',
+          sensitive: false,
+          type: 'string',
+          value: 'https://api.fivemanage.com/api/v3/file',
+        },
+        {
+          label: 'Upload Timeout Ms',
+          path: 'FiveManage.UploadTimeoutMs',
+          scope: 'media',
+          sensitive: false,
+          type: 'number',
+          value: 25000,
+        },
+      ],
+    },
+    {
+      id: 'media:Import',
+      label: 'Import',
+      scope: 'media',
+      fields: [
+        {
+          label: 'Enabled',
+          path: 'Import.Enabled',
+          scope: 'media',
+          sensitive: false,
+          type: 'boolean',
+          value: true,
+        },
+        {
+          label: 'Websites',
+          path: 'Import.Websites',
+          scope: 'media',
+          sensitive: false,
+          type: 'json',
+          value: [
+            {
+              Adapter: 'fivemanage',
+              Enabled: true,
+              Id: 'fivemanage',
+              Label: 'FiveManage',
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  updatedAt: '2026-08-20 20:15:00',
+  updatedBy: 'Alex Morgan',
+}
+
 app.post('/api/:endpoint', async (request, response, next) => {
   const endpoint = request.params.endpoint
   const loggedBody = { ...request.body }
   if (typeof loggedBody.password === 'string')
     loggedBody.password = '<redacted>'
+  if (
+    endpoint === 'admin:save-configurator' &&
+    Array.isArray(loggedBody.changes)
+  ) {
+    loggedBody.changes = loggedBody.changes.map((change) => ({
+      ...change,
+      value: /api.?key|pepper|secret|token|password/i.test(
+        String(change.path ?? ''),
+      )
+        ? '<redacted>'
+        : change.value,
+    }))
+  }
   if (endpoint === 'memos:devCapture') {
     loggedBody.audioDataUrl = `<${String(request.body.audioDataUrl ?? '').length} characters>`
   }
@@ -4757,6 +4950,31 @@ app.post('/api/:endpoint', async (request, response, next) => {
   }
   if (endpoint === 'admin:bootstrap') {
     response.json({ success: true, data: adminMockBootstrap() })
+    return
+  }
+  if (endpoint === 'admin:configurator') {
+    response.json({ success: true, data: adminMockConfigurator })
+    return
+  }
+  if (endpoint === 'admin:save-configurator') {
+    const changes = Array.isArray(request.body.changes)
+      ? request.body.changes
+      : []
+    for (const change of changes) {
+      for (const section of adminMockConfigurator.sections) {
+        const field = section.fields.find(
+          (candidate) =>
+            candidate.scope === change.scope && candidate.path === change.path,
+        )
+        if (!field) continue
+        if (field.sensitive)
+          field.configured = String(change.value ?? '') !== ''
+        else field.value = change.value
+      }
+    }
+    adminMockConfigurator.revision += 1
+    adminMockConfigurator.updatedAt = new Date().toISOString()
+    response.json({ success: true, data: adminMockConfigurator })
     return
   }
   if (endpoint === 'admin:player') {

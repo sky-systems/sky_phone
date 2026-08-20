@@ -1,8 +1,9 @@
 --[[
     Sky Phone media configuration
 
-    This file is loaded on the server only. Keep API keys private and restart
-    sky_phone after changing providers, upload limits, or import sources.
+    This file is loaded on the server only. Keep API keys private. When the
+    phone configurator is enabled in config.lua, these values are first-run
+    defaults and the active media configuration is loaded from SQL.
 ]]
 
 Config.Media = {

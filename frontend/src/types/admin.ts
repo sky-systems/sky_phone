@@ -111,3 +111,34 @@ export type AdminCallActivity = {
 export type AdminActivityResponse =
   | { entries: AdminMessageActivity[]; kind: 'messages' }
   | { entries: AdminCallActivity[]; kind: 'calls' }
+
+export type AdminConfiguratorField = {
+  configured?: boolean
+  label: string
+  path: string
+  scope: 'config' | 'media'
+  sensitive: boolean
+  type: 'boolean' | 'json' | 'number' | 'string'
+  value: unknown
+}
+
+export type AdminConfiguratorSection = {
+  fields: AdminConfiguratorField[]
+  id: string
+  label: string
+  scope: 'config' | 'media'
+}
+
+export type AdminConfigurator = {
+  enabled: boolean
+  revision: number
+  sections: AdminConfiguratorSection[]
+  updatedAt: string | null
+  updatedBy: string | null
+}
+
+export type AdminConfiguratorChange = {
+  path: string
+  scope: 'config' | 'media'
+  value: unknown
+}

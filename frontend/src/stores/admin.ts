@@ -5,6 +5,8 @@ import type {
   AdminActivityResponse,
   AdminBootstrap,
   AdminCallActivity,
+  AdminConfigurator,
+  AdminConfiguratorChange,
   AdminCredential,
   AdminMessageActivity,
   AdminPlayerDetail,
@@ -20,6 +22,8 @@ export const useAdminStore = defineStore('admin', {
     actionKey: '',
     activityKey: '',
     audit: [] as AdminAuditEntry[],
+    configurator: null as AdminConfigurator | null,
+    configuratorLoading: false,
     detailLoading: false,
     error: '',
     initialized: false,
@@ -133,6 +137,42 @@ export const useAdminStore = defineStore('admin', {
       this.deviceActivity[imei] = activity
       this.error = ''
       return true
+    },
+    async loadConfigurator(): Promise<boolean> {
+      this.configuratorLoading = true
+      const response = await nuiCall<AdminConfigurator>('admin:configurator')
+      this.configuratorLoading = false
+      if (!response.success || !response.data) {
+        this.error = response.error ?? 'request_failed'
+        return false
+      }
+      this.configurator = response.data
+      this.error = ''
+      return true
+    },
+    async saveConfigurator(
+      changes: AdminConfiguratorChange[],
+    ): Promise<NuiResponse<AdminConfigurator>> {
+      const current = this.configurator
+      if (!current) return { error: 'request_failed', success: false }
+
+      this.actionKey = 'configurator:save'
+      const response = await nuiCall<AdminConfigurator>(
+        'admin:save-configurator',
+        {
+          changes,
+          revision: current.revision,
+        },
+      )
+      this.actionKey = ''
+      if (response.success && response.data) {
+        this.configurator = response.data
+        this.error = ''
+      } else {
+        if (response.data) this.configurator = response.data
+        this.error = response.error ?? 'request_failed'
+      }
+      return response
     },
     async resetPasscode(
       source: number,

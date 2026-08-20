@@ -861,4 +861,50 @@ Bridge.Callbacks.Register("sky_phone:admin:factory-reset", function(source, data
     SkyPhone.RefreshDevice(data.imei)
     return { success = true, data = load_player_detail(target_source) }
 end)
+
+Bridge.Callbacks.Register("sky_phone:admin:configurator", function(source)
+    local authorized, error_response = require_admin(
+        source,
+        "configurator_read",
+        Config.AdminPanel.ReadRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+
+    return { success = true, data = SkyPhoneConfigurator.GetAdminData() }
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:save-configurator", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "configurator_save",
+        Config.AdminPanel.ActionRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+    if type(data) ~= "table" or type(data.changes) ~= "table" then
+        return { success = false, error = "invalid_request" }
+    end
+
+    local actor_identifier = Bridge.Framework.GetIdentifier(source)
+    if not actor_identifier then
+        return { success = false, error = "player_unavailable" }
+    end
+    local actor_name = player_name(source)
+    local response = SkyPhoneConfigurator.Save(
+        data.revision,
+        data.changes,
+        actor_identifier,
+        actor_name
+    )
+    if response.success then
+        write_audit(source, source, actor_identifier, nil, "save_configuration", {
+            changeCount = #data.changes,
+            revision = response.data.revision,
+        })
+    end
+    return response
+end)
 end)

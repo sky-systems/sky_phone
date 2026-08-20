@@ -54,6 +54,28 @@ const schema = readFileSync(
   new URL('../../../sky_phone/sql/install.sql', import.meta.url),
   'utf8',
 )
+const manifest = readFileSync(
+  new URL('../../../sky_phone/fxmanifest.lua', import.meta.url),
+  'utf8',
+)
+const configuratorServer = readFileSync(
+  new URL(
+    '../../../sky_phone/source/server/phone_configurator.lua',
+    import.meta.url,
+  ),
+  'utf8',
+)
+const configuratorClient = readFileSync(
+  new URL(
+    '../../../sky_phone/source/client/phone_configurator.lua',
+    import.meta.url,
+  ),
+  'utf8',
+)
+const configuratorValueEditor = readFileSync(
+  new URL('./AdminConfigValueEditor.vue', import.meta.url),
+  'utf8',
+)
 
 describe('standalone admin panel contracts', () => {
   it('renders as a dedicated full-screen editor outside the phone shell', () => {
@@ -91,6 +113,7 @@ describe('standalone admin panel contracts', () => {
       'calls',
       'moderation',
       'audit',
+      'configurator',
     ]) {
       expect(source).toContain(`selectTab('${tab}')`)
       expect(source).toContain(`t('tabs.${tab}')`)
@@ -127,6 +150,8 @@ describe('standalone admin panel contracts', () => {
       'admin:reset-passcode',
       'admin:change-number',
       'admin:factory-reset',
+      'admin:configurator',
+      'admin:save-configurator',
     ]) {
       expect(store).toContain(endpoint)
     }
@@ -169,7 +194,7 @@ describe('standalone admin panel contracts', () => {
   })
 
   it('opens directly from the configurable command with dedicated focus', () => {
-    expect(config).toContain('Command = "phoneadmin"')
+    expect(config).toContain('Command = "phonepanel"')
     expect(server).toContain(
       'RegisterCommand(Config.AdminPanel.Command, function(command_source)',
     )
@@ -202,5 +227,48 @@ describe('standalone admin panel contracts', () => {
     expect(schema).toContain(
       'CREATE TABLE IF NOT EXISTS `sky_phone_admin_audit`',
     )
+  })
+
+  it('loads the SQL phone configurator before framework-owned configuration is read', () => {
+    expect(config).toMatch(
+      /Config\.PhoneConfigurator\s*=\s*\{[\s\S]*?Enabled\s*=\s*false[\s\S]*?Config\.Bridge\s*=/,
+    )
+    expect(schema).toContain(
+      'CREATE TABLE IF NOT EXISTS `sky_phone_configurator`',
+    )
+    expect(
+      manifest.indexOf("'source/server/phone_configurator.lua'"),
+    ).toBeLessThan(manifest.indexOf("'source/bridge/server/framework.lua'"))
+    expect(
+      manifest.indexOf("'source/client/phone_configurator.lua'"),
+    ).toBeLessThan(manifest.indexOf("'source/bridge/client/framework.lua'"))
+    expect(configuratorServer).toContain('AND `revision` = ?')
+    expect(configuratorServer).toContain('configurator_enabled')
+    expect(configuratorServer).toMatch(
+      /for key, value in pairs\(Config\)[\s\S]*?key ~= "Media"[\s\S]*?key ~= "PhoneConfigurator"/,
+    )
+    expect(configuratorServer).toContain(
+      'default_media = serialize_value(Config.Media)',
+    )
+    expect(configuratorServer).toContain(
+      'build_sections("config", stored_config',
+    )
+    expect(configuratorServer).toContain('build_sections("media", stored_media')
+    expect(configuratorServer).toContain('sensitive_path')
+    expect(configuratorServer).toContain('restore_redacted_values')
+    expect(configuratorServer).not.toContain('Config.Media = client_payload')
+    expect(configuratorClient).toContain(
+      'Bridge.Callbacks.Trigger("sky_phone:configurator:runtime"',
+    )
+    expect(source).toContain('class="admin-panel-rail__configurator"')
+    expect(source).toContain(
+      '.admin-panel-rail .admin-panel-rail__configurator',
+    )
+    expect(source).toContain('<AdminConfigValueEditor')
+    expect(configuratorValueEditor).toContain('function addListRow()')
+    expect(configuratorValueEditor).toContain('function addTableField()')
+    expect(configuratorValueEditor).toContain('function removeListRow(')
+    expect(configuratorValueEditor).toContain('function removeTableField(')
+    expect(configuratorValueEditor).not.toContain('<textarea')
   })
 })

@@ -211,6 +211,25 @@ The files contain clearly separated sections for:
 
 Restart `sky_phone` after changing Lua configuration.
 
+### In-game phone configurator
+
+Set the switch at the beginning of `config/config.lua` to use SQL-backed configuration:
+
+```lua
+Config.PhoneConfigurator = {
+    Enabled = true,
+}
+```
+
+When enabled, `config.lua` and the server-only `media.lua` are first-run defaults. Sky Phone creates
+the `sky_phone_configurator` table automatically, loads its saved values before framework and phone
+modules initialize, and exposes the editor through `/phonepanel`. Nothing autosaves: stage changes
+in the Phone Configurator tool and press the green check. Restart `sky_phone` after changing
+startup-bound settings such as framework, inventory, command, item, or provider configuration.
+
+Media API keys and server peppers are never returned in plaintext to the NUI. Existing secrets are
+shown only as configured and are replaced only when an administrator enters a new value.
+
 ### Language
 
 Available locales:

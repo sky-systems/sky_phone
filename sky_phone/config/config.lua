@@ -10,6 +10,12 @@
     Keep option names unchanged. Restart sky_phone after editing this file.
 ]]
 
+-- When enabled, config.lua and media.lua only provide first-run defaults.
+-- The active configuration is loaded from SQL and managed through /phonepanel.
+Config.PhoneConfigurator = {
+    Enabled = false,
+}
+
 -- =============================================================================
 -- Core, framework and device
 -- =============================================================================
@@ -63,7 +69,7 @@ Config.Security = {
 
 Config.AdminPanel = {
     Enabled = true,
-    Command = "phoneadmin",
+    Command = "phonepanel",
     AdminGroups = { "admin", "superadmin" },
     MaximumPlayers = 128,
     ReadRequestsPerMinute = 60,

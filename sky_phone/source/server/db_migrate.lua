@@ -2949,6 +2949,8 @@ local schema = {
     },
 }
 
+schema[#schema + 1] = SkyPhoneConfiguratorSchema
+
 Bridge.Database.Migrate("sky_phone", schema)
 Bridge.Database.Query([[
     INSERT IGNORE INTO `sky_phone_fliptok_video_media` (`video_id`, `media_id`, `sort_order`)

@@ -200,6 +200,18 @@ CREATE TABLE IF NOT EXISTS `sky_phone_admin_audit` (
     KEY `idx_sky_phone_admin_audit_target` (`target_identifier`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_configurator` (
+    `id` TINYINT UNSIGNED NOT NULL,
+    `config_payload` LONGTEXT NOT NULL,
+    `media_payload` LONGTEXT NOT NULL,
+    `revision` INT UNSIGNED NOT NULL DEFAULT 1,
+    `updated_by_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NULL,
+    `updated_by_name` VARCHAR(120) NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_notes` (
     `id` VARCHAR(64) NOT NULL,
     `account_id` BIGINT UNSIGNED NULL,

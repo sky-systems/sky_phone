@@ -21,6 +21,7 @@ import {
   Save,
   ScrollText,
   Search,
+  Settings2,
   ShieldAlert,
   Smartphone,
   Trash2,
@@ -43,12 +44,21 @@ import {
 } from '@/config/apps'
 import { useAdminStore } from '@/stores/admin'
 import { usePhoneStore } from '@/stores/phone'
-import type { AdminAuditEntry, AdminDevice } from '@/types/admin'
+import type {
+  AdminAuditEntry,
+  AdminConfiguratorChange,
+  AdminConfiguratorField,
+  AdminDevice,
+} from '@/types/admin'
 import type { LaunchablePhoneAppDefinition } from '@/types/apps'
 import { SkyButton } from '@/ui'
 import { copyText } from '@/utils/clipboard'
 import { parseDatabaseDate } from '@/utils/date'
 import { nuiCall } from '@/utils/nui'
+
+import AdminConfigValueEditor, {
+  type AdminConfigEditorLabels,
+} from './AdminConfigValueEditor.vue'
 
 type AdminTab =
   | 'overview'
@@ -60,6 +70,7 @@ type AdminTab =
   | 'calls'
   | 'moderation'
   | 'audit'
+  | 'configurator'
 type DeviceAction = 'reset-passcode' | 'change-number' | 'factory-reset'
 type PendingAction = { kind: 'close' } | { kind: 'player'; source: number }
 
@@ -69,8 +80,11 @@ const phone = usePhoneStore()
 const tab = ref<AdminTab>('overview')
 const playerQuery = ref('')
 const appQuery = ref('')
+const configuratorQuery = ref('')
+const selectedConfiguratorSection = ref('')
 const selectedImei = ref('')
 const drafts = ref<Record<string, Record<string, boolean>>>({})
+const configuratorDrafts = ref<Record<string, unknown>>({})
 const saving = ref(false)
 const revealDialogImei = ref('')
 const deviceAction = ref<DeviceAction | null>(null)
@@ -138,11 +152,17 @@ const manageableApps = computed(() => {
     )
 })
 
-const pendingCount = computed(() =>
+const appPendingCount = computed(() =>
   Object.values(drafts.value).reduce(
     (total, changes) => total + Object.keys(changes).length,
     0,
   ),
+)
+const configuratorPendingCount = computed(
+  () => Object.keys(configuratorDrafts.value).length,
+)
+const pendingCount = computed(
+  () => appPendingCount.value + configuratorPendingCount.value,
 )
 const hasChanges = computed(() => pendingCount.value > 0)
 const selectedDeviceChanges = computed(() =>
@@ -165,12 +185,56 @@ const selectedCalls = computed(() =>
     ? (admin.deviceActivity[selectedDevice.value.imei]?.calls ?? [])
     : [],
 )
+const filteredConfiguratorSections = computed(() => {
+  const sections = admin.configurator?.sections ?? []
+  const needle = configuratorQuery.value.trim().toLocaleLowerCase(phone.lang)
+  if (!needle) return sections
+  return sections.filter(
+    (section) =>
+      section.label.toLocaleLowerCase(phone.lang).includes(needle) ||
+      section.scope.includes(needle) ||
+      section.fields.some(
+        (field) =>
+          field.label.toLocaleLowerCase(phone.lang).includes(needle) ||
+          field.path.toLocaleLowerCase(phone.lang).includes(needle),
+      ),
+  )
+})
+const filteredConfiguratorFieldCount = computed(() =>
+  filteredConfiguratorSections.value.reduce(
+    (total, section) => total + section.fields.length,
+    0,
+  ),
+)
+const activeConfiguratorSection = computed(() => {
+  const sections = filteredConfiguratorSections.value
+  return (
+    sections.find(
+      (section) => section.id === selectedConfiguratorSection.value,
+    ) ??
+    sections[0] ??
+    null
+  )
+})
 
 watch(
   () => admin.selectedPlayer,
   (player) => {
     if (!player?.devices.some((device) => device.imei === selectedImei.value)) {
       selectedImei.value = player?.devices[0]?.imei ?? ''
+    }
+  },
+)
+
+watch(
+  () => admin.configurator?.sections,
+  (sections) => {
+    if (
+      !sections?.some(
+        (section) => section.id === selectedConfiguratorSection.value,
+      )
+    ) {
+      selectedConfiguratorSection.value = sections?.[0]?.id ?? ''
     }
   },
 )
@@ -194,6 +258,28 @@ watch(
 function t(key: string, params?: Record<string, string>): string {
   return phone.t('AdminPanel.' + key, params)
 }
+
+const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
+  addField: t('configurator.table.addField'),
+  addRow: t('configurator.table.addRow'),
+  configuredSecret: t('configurator.secretConfigured'),
+  convertToList: t('configurator.table.convertToList'),
+  convertToTable: t('configurator.table.convertToTable'),
+  emptyList: t('configurator.table.emptyList'),
+  emptyTable: t('configurator.table.emptyTable'),
+  keyPlaceholder: t('configurator.table.keyPlaceholder'),
+  list: t('configurator.table.list'),
+  remove: t('configurator.table.remove'),
+  table: t('configurator.table.table'),
+  types: {
+    boolean: t('configurator.table.types.boolean'),
+    list: t('configurator.table.types.list'),
+    number: t('configurator.table.types.number'),
+    string: t('configurator.table.types.string'),
+    table: t('configurator.table.types.table'),
+  },
+  vector: t('configurator.table.vector'),
+}))
 
 function showToast(
   message: string,
@@ -307,6 +393,11 @@ function queueAction(action: PendingAction): void {
 
 function selectTab(nextTab: AdminTab): void {
   tab.value = nextTab
+  if (nextTab === 'configurator' && !admin.configurator) {
+    void admin.loadConfigurator().then((loaded) => {
+      if (!loaded) showToast(errorText(), 'error')
+    })
+  }
 }
 
 function selectAccent(color: (typeof accentOptions)[number]['color']): void {
@@ -327,9 +418,94 @@ async function runAction(action: PendingAction): Promise<void> {
 async function discardAndContinue(): Promise<void> {
   const action = pendingAction.value
   drafts.value = {}
+  configuratorDrafts.value = {}
   pendingAction.value = null
   discardDialog.value = false
   if (action) await runAction(action)
+}
+
+function configuratorFieldKey(field: AdminConfiguratorField): string {
+  return `${field.scope}:${field.path}`
+}
+
+function configuratorFieldValue(field: AdminConfiguratorField): unknown {
+  const key = configuratorFieldKey(field)
+  if (Object.prototype.hasOwnProperty.call(configuratorDrafts.value, key)) {
+    return configuratorDrafts.value[key]
+  }
+  return field.value
+}
+
+function updateConfiguratorField(
+  field: AdminConfiguratorField,
+  value: unknown,
+): void {
+  const key = configuratorFieldKey(field)
+  const matchesInitial =
+    field.type === 'json'
+      ? JSON.stringify(value) === JSON.stringify(field.value)
+      : field.type === 'number'
+        ? String(value) === String(field.value)
+        : value === field.value
+  if (!field.sensitive && matchesInitial) {
+    delete configuratorDrafts.value[key]
+    return
+  }
+  configuratorDrafts.value[key] = value
+}
+
+function updateConfiguratorInput(
+  field: AdminConfiguratorField,
+  event: Event,
+): void {
+  const target = event.target
+  if (target instanceof HTMLInputElement) {
+    updateConfiguratorField(field, target.value)
+  }
+}
+
+function updateConfiguratorToggle(
+  field: AdminConfiguratorField,
+  event: Event,
+): void {
+  const target = event.target
+  if (target instanceof HTMLInputElement) {
+    updateConfiguratorField(field, target.checked)
+  }
+}
+
+function findConfiguratorField(key: string): AdminConfiguratorField | null {
+  for (const section of admin.configurator?.sections ?? []) {
+    const field = section.fields.find(
+      (candidate) => configuratorFieldKey(candidate) === key,
+    )
+    if (field) return field
+  }
+  return null
+}
+
+function buildConfiguratorChanges(): AdminConfiguratorChange[] | null {
+  const changes: AdminConfiguratorChange[] = []
+  for (const [key, draft] of Object.entries(configuratorDrafts.value)) {
+    const field = findConfiguratorField(key)
+    if (!field) return null
+
+    let value: unknown = draft
+    if (field.type === 'number') {
+      value = Number(draft)
+      if (!Number.isFinite(value)) return null
+    } else if (field.type === 'json') {
+      value = draft
+      if (!value || typeof value !== 'object') return null
+    } else if (field.type === 'string') {
+      value = String(draft)
+    } else if (field.type === 'boolean' && typeof value !== 'boolean') {
+      return null
+    }
+
+    changes.push({ path: field.path, scope: field.scope, value })
+  }
+  return changes
 }
 
 function cancelDiscard(): void {
@@ -339,8 +515,35 @@ function cancelDiscard(): void {
 
 async function saveChanges(): Promise<void> {
   const player = admin.selectedPlayer
-  if (!player || !hasChanges.value || saving.value) return
+  if (!hasChanges.value || saving.value) return
   saving.value = true
+
+  if (configuratorPendingCount.value) {
+    const changes = buildConfiguratorChanges()
+    if (!changes) {
+      saving.value = false
+      showToast(t('configurator.invalidValue'), 'error')
+      return
+    }
+    const response = await admin.saveConfigurator(changes)
+    if (!response.success) {
+      saving.value = false
+      showToast(errorText(response.error), 'error')
+      return
+    }
+    configuratorDrafts.value = {}
+  }
+
+  if (!appPendingCount.value) {
+    saving.value = false
+    showToast(t('configurator.saved'))
+    return
+  }
+  if (!player) {
+    saving.value = false
+    showToast(t('editor.saveFailed'), 'error')
+    return
+  }
   const pendingDevices = Object.entries(drafts.value)
   for (const [imei, deviceChanges] of pendingDevices) {
     const device = admin.selectedPlayer?.devices.find(
@@ -500,7 +703,9 @@ onBeforeUnmount(() => {
           </span>
           <ChevronRight :size="14" />
           <strong>{{
-            admin.selectedPlayer?.name || t('editor.noSelection')
+            tab === 'configurator'
+              ? t('configurator.context')
+              : admin.selectedPlayer?.name || t('editor.noSelection')
           }}</strong>
         </div>
 
@@ -615,6 +820,16 @@ onBeforeUnmount(() => {
           >
             <ScrollText :size="19" />
           </button>
+          <button
+            type="button"
+            class="admin-panel-rail__configurator"
+            :class="{ 'is-active': tab === 'configurator' }"
+            :aria-label="t('tabs.configurator')"
+            :title="t('tabs.configurator')"
+            @click="selectTab('configurator')"
+          >
+            <Settings2 :size="19" />
+          </button>
         </nav>
 
         <aside class="admin-panel-directory">
@@ -691,6 +906,62 @@ onBeforeUnmount(() => {
                 </span>
                 <ChevronRight :size="14" />
               </button>
+              <button type="button" @click="selectTab('configurator')">
+                <Settings2 :size="17" />
+                <span>
+                  <strong>{{ t('tabs.configurator') }}</strong>
+                  <small>{{ t('overview.configuratorFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
+            </div>
+          </template>
+
+          <template v-else-if="tab === 'configurator'">
+            <div class="admin-panel-directory__header">
+              <div>
+                <span>{{ t('configurator.eyebrow') }}</span>
+                <h2>{{ t('configurator.sections') }}</h2>
+              </div>
+              <strong>{{ filteredConfiguratorFieldCount }}</strong>
+            </div>
+            <label class="admin-panel-search">
+              <Search :size="16" />
+              <input
+                v-model="configuratorQuery"
+                type="search"
+                :placeholder="t('configurator.search')"
+                :aria-label="t('configurator.search')"
+              />
+            </label>
+            <div class="admin-panel-config-sections">
+              <button
+                v-for="section in filteredConfiguratorSections"
+                :key="section.id"
+                type="button"
+                :class="{
+                  'is-active': activeConfiguratorSection?.id === section.id,
+                }"
+                @click="selectedConfiguratorSection = section.id"
+              >
+                <Settings2 :size="16" />
+                <span>
+                  <strong>{{ section.label }}</strong>
+                  <small>{{
+                    section.scope === 'media'
+                      ? t('configurator.mediaScope')
+                      : t('configurator.configScope')
+                  }}</small>
+                </span>
+                <em>{{ section.fields.length }}</em>
+              </button>
+              <div
+                v-if="!filteredConfiguratorSections.length"
+                class="admin-panel-empty-list"
+              >
+                <Search :size="24" />
+                <strong>{{ t('configurator.noResults') }}</strong>
+              </div>
             </div>
           </template>
 
@@ -875,6 +1146,142 @@ onBeforeUnmount(() => {
                 {{ t('audit.emptyBody') }}
               </div>
             </article>
+          </section>
+
+          <section
+            v-else-if="tab === 'configurator'"
+            class="admin-panel-editor__scroll"
+          >
+            <div
+              v-if="admin.configuratorLoading && !admin.configurator"
+              class="admin-panel-loading"
+            >
+              <LoaderCircle :size="26" class="is-spinning" />
+              <span>{{ t('configurator.loading') }}</span>
+            </div>
+
+            <template v-else-if="admin.configurator">
+              <div class="admin-panel-page-heading">
+                <div class="admin-panel-heading-icon">
+                  <Settings2 :size="23" />
+                </div>
+                <div class="admin-panel-config-heading-copy">
+                  <span>{{ t('configurator.eyebrow') }}</span>
+                  <h1>{{ t('configurator.title') }}</h1>
+                  <p>{{ t('configurator.body') }}</p>
+                </div>
+                <div class="admin-panel-config-meta">
+                  <span>SQL</span>
+                  <strong>R{{ admin.configurator.revision }}</strong>
+                </div>
+              </div>
+
+              <article
+                v-if="!admin.configurator.enabled"
+                class="admin-panel-config-disabled"
+              >
+                <TriangleAlert :size="20" />
+                <div>
+                  <strong>{{ t('configurator.disabledTitle') }}</strong>
+                  <p>{{ t('configurator.disabledBody') }}</p>
+                  <code>Config.PhoneConfigurator.Enabled = true</code>
+                </div>
+              </article>
+
+              <article class="admin-panel-config-notice">
+                <Save :size="18" />
+                <div>
+                  <strong>{{ t('configurator.manualSave') }}</strong>
+                  <p>{{ t('configurator.restartNotice') }}</p>
+                </div>
+              </article>
+
+              <section
+                v-if="activeConfiguratorSection"
+                class="admin-panel-config-workspace"
+              >
+                <header>
+                  <div>
+                    <span>{{
+                      activeConfiguratorSection.scope === 'media'
+                        ? t('configurator.mediaScope')
+                        : t('configurator.configScope')
+                    }}</span>
+                    <h2>{{ activeConfiguratorSection.label }}</h2>
+                  </div>
+                  <strong>{{
+                    t('configurator.fieldCount', {
+                      count: String(activeConfiguratorSection.fields.length),
+                    })
+                  }}</strong>
+                </header>
+
+                <div class="admin-panel-config-fields">
+                  <div
+                    v-for="field in activeConfiguratorSection.fields"
+                    :key="configuratorFieldKey(field)"
+                    class="admin-panel-config-field"
+                    :class="{
+                      'is-dirty': Object.prototype.hasOwnProperty.call(
+                        configuratorDrafts,
+                        configuratorFieldKey(field),
+                      ),
+                    }"
+                  >
+                    <span class="admin-panel-config-field__copy">
+                      <strong>{{ field.label }}</strong>
+                      <small>{{ field.path }}</small>
+                    </span>
+
+                    <span
+                      v-if="field.type === 'boolean'"
+                      class="admin-panel-config-toggle"
+                    >
+                      <input
+                        type="checkbox"
+                        :aria-label="`${field.label} ${field.path}`"
+                        :checked="Boolean(configuratorFieldValue(field))"
+                        :disabled="!admin.configurator.enabled"
+                        @change="updateConfiguratorToggle(field, $event)"
+                      />
+                      <i></i>
+                    </span>
+
+                    <AdminConfigValueEditor
+                      v-else-if="field.type === 'json'"
+                      :model-value="configuratorFieldValue(field)"
+                      :aria-label="`${field.label} ${field.path}`"
+                      :labels="configuratorEditorLabels"
+                      :disabled="!admin.configurator.enabled"
+                      @update:model-value="
+                        updateConfiguratorField(field, $event)
+                      "
+                    />
+
+                    <input
+                      v-else
+                      :aria-label="`${field.label} ${field.path}`"
+                      :type="
+                        field.sensitive
+                          ? 'password'
+                          : field.type === 'number'
+                            ? 'number'
+                            : 'text'
+                      "
+                      :value="String(configuratorFieldValue(field) ?? '')"
+                      :placeholder="
+                        field.sensitive && field.configured
+                          ? t('configurator.secretConfigured')
+                          : ''
+                      "
+                      :disabled="!admin.configurator.enabled"
+                      :autocomplete="field.sensitive ? 'new-password' : 'off'"
+                      @input="updateConfiguratorInput(field, $event)"
+                    />
+                  </div>
+                </div>
+              </section>
+            </template>
           </section>
 
           <section
@@ -1829,6 +2236,10 @@ button:disabled {
   background: #222522;
 }
 
+.admin-panel-rail .admin-panel-rail__configurator {
+  margin-top: auto;
+}
+
 .admin-panel-rail button.is-active {
   color: #f4f6f4;
   background: var(--admin-nav-active);
@@ -1987,12 +2398,86 @@ button:disabled {
 }
 
 .admin-panel-player-list,
-.admin-panel-audit-mini-list {
+.admin-panel-audit-mini-list,
+.admin-panel-config-sections {
   height: calc(100% - 115px);
   overflow-y: auto;
   padding: 0 8px 16px;
   scrollbar-color: #343834 transparent;
   scrollbar-width: thin;
+}
+
+.admin-panel-config-sections {
+  height: calc(100% - 111px);
+  overflow-y: auto;
+  padding: 0 8px 16px;
+  scrollbar-color: #343834 transparent;
+  scrollbar-width: thin;
+}
+
+.admin-panel-config-sections > button {
+  width: 100%;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 3px;
+  color: var(--admin-muted);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-panel-config-sections > button:hover {
+  color: var(--admin-text);
+  background: var(--admin-row-hover);
+}
+
+.admin-panel-config-sections > button.is-active {
+  color: var(--admin-green);
+  background: var(--admin-row-active);
+  box-shadow: inset 2px 0 var(--admin-green);
+}
+
+.admin-panel-config-sections > button > svg {
+  color: var(--admin-green);
+}
+
+.admin-panel-config-sections > button > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.admin-panel-config-sections strong,
+.admin-panel-config-sections small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-config-sections strong {
+  color: var(--admin-text);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.admin-panel-config-sections small,
+.admin-panel-config-sections em {
+  color: var(--admin-muted);
+  font-size: 8px;
+  font-style: normal;
+}
+
+.admin-panel-config-sections em {
+  min-width: 23px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  background: #1d201d;
+  text-align: center;
 }
 
 .admin-panel-player-list > button {
@@ -2827,6 +3312,245 @@ button:disabled {
   gap: 12px;
   margin-bottom: 12px;
   padding: 2px 0;
+}
+
+.admin-panel-config-heading-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-panel-config-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 5px 8px;
+  border-radius: 4px;
+  color: var(--admin-muted);
+  background: #171917;
+  font-size: 9px;
+}
+
+.admin-panel-config-meta strong {
+  color: var(--admin-green);
+  font-size: 9px;
+}
+
+.admin-panel-config-disabled,
+.admin-panel-config-notice {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  margin-bottom: 8px;
+  padding: 10px 11px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(240, 162, 75, 0.13), transparent 80%);
+}
+
+.admin-panel-config-notice {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--admin-green) 11%, transparent),
+    transparent 82%
+  );
+}
+
+.admin-panel-config-disabled > svg {
+  color: #f0a24b;
+}
+
+.admin-panel-config-notice > svg {
+  color: var(--admin-green);
+}
+
+.admin-panel-config-disabled div,
+.admin-panel-config-notice div {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-panel-config-disabled strong,
+.admin-panel-config-notice strong {
+  font-size: 10px;
+}
+
+.admin-panel-config-disabled p,
+.admin-panel-config-notice p {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.admin-panel-config-disabled code {
+  width: fit-content;
+  margin-top: 3px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  color: #f6c889;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 9px;
+}
+
+.admin-panel-config-workspace {
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #111311;
+}
+
+.admin-panel-config-workspace > header {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  background: #171917;
+}
+
+.admin-panel-config-workspace > header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-panel-config-workspace > header span,
+.admin-panel-config-workspace > header > strong {
+  color: var(--admin-muted);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-panel-config-workspace h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-panel-config-fields {
+  display: grid;
+  gap: 1px;
+  background: #0b0d0c;
+}
+
+.admin-panel-config-field {
+  min-height: 51px;
+  display: grid;
+  grid-template-columns: minmax(170px, 0.72fr) minmax(230px, 1.28fr);
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px;
+  background: #121412;
+}
+
+.admin-panel-config-field:hover {
+  background: var(--admin-row-hover);
+}
+
+.admin-panel-config-field.is-dirty {
+  background: var(--admin-row-active);
+  box-shadow: inset 2px 0 var(--admin-green);
+}
+
+.admin-panel-config-field__copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.admin-panel-config-field__copy strong,
+.admin-panel-config-field__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-config-field__copy strong {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.admin-panel-config-field__copy small {
+  color: var(--admin-muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 8px;
+}
+
+.admin-panel-config-field > input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 4px;
+  outline: 1px solid rgba(255, 255, 255, 0.07);
+  color: var(--admin-text);
+  background: #1b1e1b;
+  font: inherit;
+  font-size: 10px;
+}
+
+.admin-panel-config-field > input {
+  height: 31px;
+  padding: 0 9px;
+}
+
+.admin-panel-config-field > input:focus {
+  outline-color: color-mix(in srgb, var(--admin-green) 45%, transparent);
+}
+
+.admin-panel-config-field > input:disabled {
+  opacity: 0.45;
+}
+
+.admin-panel-config-toggle {
+  position: relative;
+  justify-self: end;
+  width: 32px;
+  height: 18px;
+}
+
+.admin-panel-config-toggle input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.admin-panel-config-toggle i {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #393d39;
+  transition: background 150ms ease;
+}
+
+.admin-panel-config-toggle i::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #c7ccc7;
+  transition: transform 150ms ease;
+}
+
+.admin-panel-config-toggle input:checked + i {
+  background: color-mix(in srgb, var(--admin-green) 72%, #1f321f);
+}
+
+.admin-panel-config-toggle input:checked + i::after {
+  transform: translateX(14px);
+  background: #f4f7f4;
+}
+
+.admin-panel-config-toggle input:disabled + i {
+  opacity: 0.45;
 }
 
 .admin-panel-heading-icon,
