@@ -91,6 +91,9 @@ describe('Phone Dynamic Island contract', () => {
   })
 
   it('connects music, recorder, timer, and stopwatch controls to their stores', () => {
+    expect(source).toContain(
+      "if (music.isPlaying && music.currentTrack) return 'music'",
+    )
     expect(source).toContain('@click.stop="music.previous()"')
     expect(source).toContain('@click.stop="music.toggle()"')
     expect(source).toContain('@click.stop="music.next()"')

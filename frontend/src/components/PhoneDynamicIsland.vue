@@ -110,7 +110,7 @@ const liveActivity = computed<DynamicIslandActivity | null>(() => {
   if (recordingActive.value) return 'recording'
   if (timerActive.value) return 'timer'
   if (stopwatchActive.value) return 'stopwatch'
-  if (music.currentTrack) return 'music'
+  if (music.isPlaying && music.currentTrack) return 'music'
   return null
 })
 const runtimeActivity = computed<DynamicIslandActivity | null>(() => {
