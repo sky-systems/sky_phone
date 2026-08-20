@@ -47,6 +47,9 @@ describe('SkyButton', () => {
     expect(controls).toMatch(
       /\.sky-glass\.sky-button--glass\s*\{[^}]*background:\s*var\(--sky-glass[^}]*box-shadow:\s*var\(--sky-shadow-glass\)/s,
     )
+    expect(controls).toMatch(
+      /\.sky-glass--interactive\s*\{[^}]*-webkit-backdrop-filter:\s*blur\(18px\) saturate\(145%\);[^}]*backdrop-filter:\s*blur\(18px\) saturate\(145%\);/s,
+    )
   })
 
   it('keeps focus and pressed feedback on the contextual accent', () => {

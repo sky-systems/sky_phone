@@ -2174,6 +2174,7 @@ onMounted(async () => {
         component="button"
         type="button"
         class="feather-compose-fab"
+        variant="glass"
         :aria-label="t('newPost')"
         @click="openComposer()"
       >
@@ -2331,7 +2332,8 @@ onMounted(async () => {
       />
       <template v-if="mediaPreview.items.length > 1">
         <SkyButton
-          clear
+          glass
+          icon-only
           rounded
           class="feather-media-preview__arrow feather-media-preview__arrow--left"
           :aria-label="t('previousImage')"
@@ -2340,7 +2342,8 @@ onMounted(async () => {
           <ChevronLeft :size="20" :stroke-width="2.8" />
         </SkyButton>
         <SkyButton
-          clear
+          glass
+          icon-only
           rounded
           class="feather-media-preview__arrow feather-media-preview__arrow--right"
           :aria-label="t('nextImage')"
@@ -2389,22 +2392,15 @@ onMounted(async () => {
   cursor: default;
 }
 .feather-media-preview__arrow {
-  --sky-app-accent: rgb(10 14 20 / 88%);
   --sky-button-text: #fff;
   position: absolute;
   top: 50%;
-  width: 34px !important;
-  min-width: 34px;
-  height: 34px;
-  min-height: 34px;
-  border: 1.5px solid rgb(255 255 255 / 58%);
+  width: 44px !important;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
   padding: 0;
   color: #fff !important;
-  background: rgb(10 14 20 / 88%) !important;
-  box-shadow:
-    0 5px 16px rgb(0 0 0 / 58%),
-    inset 0 0 0 1px rgb(255 255 255 / 8%);
-  backdrop-filter: blur(10px);
   transform: translateY(-50%);
 }
 .feather-media-preview__arrow--left {
@@ -4486,7 +4482,6 @@ onMounted(async () => {
   place-items: center;
 }
 .feather-compose-fab {
-  --sky-app-accent: #58a6ff;
   position: absolute;
   z-index: 12;
   right: 14px;
@@ -4494,23 +4489,14 @@ onMounted(async () => {
   width: 46px;
   height: 46px;
   min-width: 46px;
-  border: 1px solid color-mix(in srgb, var(--feather-blue) 55%, #fff);
-  color: #fff;
-  box-shadow:
-    0 9px 24px rgb(29 155 240 / 38%),
-    0 3px 8px rgb(0 0 0 / 22%),
-    inset 0 1px 0 rgb(255 255 255 / 32%);
+  color: var(--feather-blue);
   transition:
     transform 150ms ease,
     box-shadow 150ms ease,
     filter 150ms ease;
 }
 .feather-compose-fab:active {
-  filter: brightness(0.94);
   transform: scale(0.94);
-  box-shadow:
-    0 4px 12px rgb(29 155 240 / 28%),
-    inset 0 1px 0 rgb(255 255 255 / 22%);
 }
 .feather-navigation__badge-anchor b {
   position: absolute;
@@ -5415,7 +5401,6 @@ onMounted(async () => {
   .feather-edit__photo-actions :deep(.sky-button) {
     border-color: var(--feather-blue);
   }
-  .feather-compose-fab,
   .feather-edit__avatar {
     border-color: #70c5fa;
   }

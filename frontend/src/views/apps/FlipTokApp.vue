@@ -2408,7 +2408,10 @@ onBeforeUnmount(() => {
               alt=""
             />
             <template v-if="selectedMediaItems.length > 1">
-              <button
+              <SkyButton
+                glass
+                icon-only
+                rounded
                 type="button"
                 class="compose-photo-preview__arrow compose-photo-preview__arrow--previous"
                 :disabled="composerPhotoIndex === 0"
@@ -2416,8 +2419,11 @@ onBeforeUnmount(() => {
                 @click="moveComposerPhoto(-1)"
               >
                 <ChevronLeft />
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                glass
+                icon-only
+                rounded
                 type="button"
                 class="compose-photo-preview__arrow compose-photo-preview__arrow--next"
                 :disabled="composerPhotoIndex === selectedMediaItems.length - 1"
@@ -2425,7 +2431,7 @@ onBeforeUnmount(() => {
                 @click="moveComposerPhoto(1)"
               >
                 <ChevronRight />
-              </button>
+              </SkyButton>
               <span class="compose-photo-preview__count">
                 {{ composerPhotoIndex + 1 }} / {{ selectedMediaItems.length }}
               </span>
@@ -5872,12 +5878,7 @@ onBeforeUnmount(() => {
   padding: 0;
   display: grid;
   place-items: center;
-  border: 1px solid rgb(255 255 255 / 22%);
-  border-radius: 50%;
-  background: rgb(14 14 16 / 58%);
   color: #fff;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 24%);
-  backdrop-filter: blur(10px);
   pointer-events: auto;
 }
 

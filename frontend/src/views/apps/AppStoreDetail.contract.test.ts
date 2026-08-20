@@ -48,13 +48,11 @@ describe('AppStoreDetail contract', () => {
     expect(previewSource).toContain('v-if="previewImage && screen < 3"')
     expect(previewSource).toContain(':src="previewImage"')
     expect(previewSource).toContain('store-detail-preview__screenshot')
-    expect(previewSource).not.toContain("visual.scene ===")
+    expect(previewSource).not.toContain('visual.scene ===')
     expect(source).toContain('getAppStorePreviewVisual')
     expect(source).toContain('Apps.appStore.previews.${props.app.id}')
     expect(previewSource).toContain(':src="iconImage"')
-    expect(source).toMatch(
-      /previewScreens\s*=\s*\[0, 1, 2, 3, 4\] as const/,
-    )
+    expect(source).toMatch(/previewScreens\s*=\s*\[0, 1, 2, 3, 4\] as const/)
     expect(previewSource).toContain('screen === 3')
     expect(previewSource).toContain('screen === 4')
     expect(previewSource).toContain('store-detail-preview__details')
@@ -71,6 +69,16 @@ describe('AppStoreDetail contract', () => {
     expect(source).toContain('scrollToPreview(activePreviewIndex + 1)')
     expect(source).toContain('details.previousPreview')
     expect(source).toContain('details.nextPreview')
-    expect(source).toContain('.store-detail__toolbar button:hover')
+    expect(source).toContain('.store-detail__toolbar-button:hover')
+  })
+
+  it('uses shared liquid glass for toolbar and preview controls', () => {
+    expect(source).toContain("import { SkyButton } from '@/ui'")
+    expect(source.match(/<SkyButton\s+glass/g)).toHaveLength(4)
+    expect(source).toContain('class="store-detail__toolbar-button"')
+    expect(source).toContain('class="store-detail__preview-control"')
+    expect(source).toMatch(
+      /\.store-detail__preview-control\s*\{[^}]*width:\s*var\(--sky-touch-target\);[^}]*height:\s*var\(--sky-touch-target\);[^}]*border-radius:\s*50%;/s,
+    )
   })
 })

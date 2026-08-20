@@ -23,6 +23,7 @@ import type {
   MinesweeperDifficulty,
 } from '@/features/games/minesweeper/types'
 import { usePhoneStore } from '@/stores/phone'
+import { SkyButton } from '@/ui'
 
 const phone = usePhoneStore()
 const minesweeper = useMinesweeperStore()
@@ -208,7 +209,7 @@ onBeforeUnmount(() => {
         <span>{{ phone.t('Apps.minesweeper.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.minesweeper.name') }}</h1>
       </div>
-      <button
+      <SkyButton glass icon-only rounded
         type="button"
         :aria-label="
           phone.t(
@@ -221,7 +222,7 @@ onBeforeUnmount(() => {
       >
         <Volume2 v-if="minesweeper.soundEnabled" :size="18" aria-hidden="true" />
         <VolumeX v-else :size="18" aria-hidden="true" />
-      </button>
+      </SkyButton>
     </header>
 
     <section v-if="minesweeper.menuOpen" class="minesweeper-menu">
@@ -275,7 +276,7 @@ onBeforeUnmount(() => {
       }"
     >
       <div class="minesweeper-toolbar">
-        <button
+        <SkyButton glass icon-only rounded
           type="button"
           class="minesweeper-toolbar__icon"
           :aria-label="phone.t('Apps.minesweeper.backToMenu')"
@@ -283,7 +284,7 @@ onBeforeUnmount(() => {
           @click.stop="minesweeper.showMenu()"
         >
           <ChevronLeft :size="19" :stroke-width="2.7" aria-hidden="true" />
-        </button>
+        </SkyButton>
         <div>
           <span>{{ phone.t('Apps.minesweeper.mines') }}</span>
           <strong>{{ minesRemaining }}</strong>
@@ -292,14 +293,14 @@ onBeforeUnmount(() => {
           <span>{{ phone.t('Apps.minesweeper.time') }}</span>
           <strong>{{ formatTime(minesweeper.elapsedMs) }}</strong>
         </div>
-        <button
+        <SkyButton glass icon-only rounded
           type="button"
           class="minesweeper-toolbar__icon"
           :aria-label="phone.t('Apps.minesweeper.restart')"
           @click="restart"
         >
           <RotateCcw :size="17" :stroke-width="2.5" aria-hidden="true" />
-        </button>
+        </SkyButton>
       </div>
 
       <div
@@ -438,8 +439,8 @@ onBeforeUnmount(() => {
 .minesweeper-header span { display: block; color: #59878a; font-size: 9px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; }
 .minesweeper-header h1 { margin: 0; font-size: 24px; line-height: 1; letter-spacing: -0.7px; }
 
-.minesweeper-header button,
-.minesweeper-toolbar__icon {
+.minesweeper-header button:not(.sky-button--glass),
+.minesweeper-toolbar__icon:not(.sky-button--glass) {
   width: 36px;
   height: 36px;
   display: grid;
@@ -451,6 +452,9 @@ onBeforeUnmount(() => {
   background: rgb(255 255 255 / 48%);
   box-shadow: 0 4px 10px rgb(23 73 75 / 8%);
 }
+
+.minesweeper-header .sky-button--glass { color: #246871; }
+.minesweeper-toolbar .sky-button--glass { --sky-touch-target: 32px; width: 32px; height: 32px; color: #246871; }
 
 .minesweeper-menu {
   height: calc(100% - 55px);

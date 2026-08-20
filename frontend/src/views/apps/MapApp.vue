@@ -667,7 +667,7 @@ onBeforeUnmount(() => {
         component="button"
         type="button"
         class="map-control map-control--share"
-        variant="primary"
+        variant="glass"
         :aria-label="phone.t('Apps.easyShare.name')"
         @click="shareCurrentLocation"
       >
@@ -679,7 +679,7 @@ onBeforeUnmount(() => {
         component="button"
         type="button"
         class="map-control"
-        variant="neutral"
+        variant="glass"
         :aria-label="`${phone.t('Apps.map.switchStyle')}: ${phone.t(`Apps.map.styles.${mapStyle}`)}`"
         @click="cycleMapStyle"
       >
@@ -691,7 +691,7 @@ onBeforeUnmount(() => {
         component="button"
         type="button"
         class="map-control map-control--marker"
-        variant="neutral"
+        variant="glass"
         :disabled="placingMarker"
         :aria-label="phone.t('Apps.map.addMarker')"
         @click="startMarkerPlacement"
@@ -704,7 +704,7 @@ onBeforeUnmount(() => {
         component="button"
         type="button"
         class="map-control map-control--location"
-        variant="neutral"
+        variant="glass"
         :disabled="locating"
         :aria-label="phone.t('Apps.map.currentLocation')"
         @click="loadCurrentLocation(true)"
@@ -1015,14 +1015,16 @@ onBeforeUnmount(() => {
 }
 
 .map-control {
-  --sky-glass-solid: rgb(247 247 248 / 92%);
+  --sky-glass: rgb(247 247 248 / 72%);
+  --sky-hairline: rgb(0 0 0 / 16%);
   color: #151515;
 }
 .map-control--share {
-  color: #fff;
+  color: #007aff;
 }
 .sky-app-page--dark .map-control {
-  --sky-glass-solid: rgb(44 44 46 / 88%);
+  --sky-glass: rgb(44 44 46 / 62%);
+  --sky-hairline: rgb(255 255 255 / 16%);
   color: #fff;
 }
 

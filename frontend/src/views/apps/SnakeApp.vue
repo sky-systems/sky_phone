@@ -17,6 +17,7 @@ import type {
   SnakeSpeed,
 } from '@/features/games/snake/types'
 import { usePhoneStore } from '@/stores/phone'
+import { SkyButton } from '@/ui'
 
 const phone = usePhoneStore()
 const snake = useSnakeStore()
@@ -205,7 +206,7 @@ onBeforeUnmount(() => {
 
     <section v-else class="snake-game">
       <div class="snake-game__meta">
-        <button
+        <SkyButton glass icon-only rounded
           type="button"
           class="snake-game__back"
           :aria-label="phone.t('Apps.snake.backToMenu')"
@@ -213,13 +214,16 @@ onBeforeUnmount(() => {
           @click="returnToMenu"
         >
           <ChevronLeft :size="18" :stroke-width="2.7" aria-hidden="true" />
-        </button>
+        </SkyButton>
         <div>
           <span>{{ phone.t('Apps.snake.score') }}</span>
           <strong>{{ game.score }}</strong>
         </div>
-        <button
+        <SkyButton
           v-if="game.status !== 'game-over'"
+          glass
+          icon-only
+          rounded
           type="button"
           class="snake-game__pause"
           :aria-label="
@@ -233,7 +237,7 @@ onBeforeUnmount(() => {
         >
           <Play v-if="game.status === 'paused'" :size="18" fill="currentColor" />
           <Pause v-else :size="18" fill="currentColor" />
-        </button>
+        </SkyButton>
       </div>
 
       <div
@@ -517,14 +521,12 @@ onBeforeUnmount(() => {
 }
 
 .snake-game__meta button {
+  --sky-touch-target: 32px;
   width: 32px;
   height: 32px;
   display: grid;
   place-items: center;
-  border: 0;
-  border-radius: 50%;
   color: #dff6d9;
-  background: rgb(255 255 255 / 8%);
 }
 
 .snake-game__meta .snake-game__pause { justify-self: end; }

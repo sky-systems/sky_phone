@@ -24,6 +24,7 @@ import type {
   MemoryDifficulty,
 } from '@/features/games/memory/types'
 import { usePhoneStore } from '@/stores/phone'
+import { SkyButton } from '@/ui'
 
 const phone = usePhoneStore()
 const memory = useMemoryStore()
@@ -135,7 +136,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="memory-header__actions">
         <Sparkles :size="23" aria-hidden="true" />
-        <button
+        <SkyButton glass icon-only rounded
           type="button"
           :aria-label="phone.t(memory.soundEnabled ? 'Apps.memory.mute' : 'Apps.memory.unmute')"
           :title="phone.t(memory.soundEnabled ? 'Apps.memory.mute' : 'Apps.memory.unmute')"
@@ -143,7 +144,7 @@ onBeforeUnmount(() => {
         >
           <Volume2 v-if="memory.soundEnabled" :size="18" aria-hidden="true" />
           <VolumeX v-else :size="18" aria-hidden="true" />
-        </button>
+        </SkyButton>
       </div>
     </header>
 
@@ -182,7 +183,7 @@ onBeforeUnmount(() => {
 
     <section v-else class="memory-game">
       <div class="memory-stats">
-        <button
+        <SkyButton glass icon-only rounded
           type="button"
           class="memory-menu-button"
           :aria-label="phone.t('Apps.memory.backToMenu')"
@@ -190,7 +191,7 @@ onBeforeUnmount(() => {
           @click="returnToMenu"
         >
           <ChevronLeft :size="18" :stroke-width="2.6" aria-hidden="true" />
-        </button>
+        </SkyButton>
         <div>
           <span>{{ phone.t('Apps.memory.time') }}</span>
           <strong>{{ formatTime(memory.elapsedMs) }}</strong>
@@ -316,7 +317,7 @@ onBeforeUnmount(() => {
 }
 
 .memory-header__actions > svg,
-.memory-header__actions button {
+.memory-header__actions button:not(.sky-button--glass) {
   box-sizing: content-box;
   padding: 9px;
   border: 0;
@@ -324,6 +325,8 @@ onBeforeUnmount(() => {
   color: #7658c7;
   background: rgb(255 255 255 / 54%);
 }
+
+.memory-header__actions .sky-button--glass { color: #7658c7; }
 
 .memory-header__actions button {
   display: grid;
@@ -441,17 +444,16 @@ onBeforeUnmount(() => {
 .memory-stats div { height: 32px; display: grid; grid-template-rows: 10px 20px; align-content: center; justify-items: center; }
 .memory-stats span { color: #74698f; font-size: 10.5px; font-weight: 800; line-height: 10px; text-transform: uppercase; }
 .memory-stats strong { display: block; font-size: 19px; line-height: 20px; }
-.memory-stats button { justify-self: end; border: 0; color: #7052bf; background: transparent; font-size: 13px; font-weight: 800; }
+.memory-stats button:not(.sky-button--glass) { justify-self: end; border: 0; color: #7052bf; background: transparent; font-size: 13px; font-weight: 800; }
 .memory-stats .memory-menu-button {
+  --sky-touch-target: 32px;
   width: 32px;
   height: 32px;
   display: grid;
   place-items: center;
   justify-self: start;
   padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: rgb(255 255 255 / 48%);
+  color: #7052bf;
   cursor: pointer;
 }
 

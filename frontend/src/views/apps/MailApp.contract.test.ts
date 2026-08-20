@@ -112,13 +112,18 @@ describe('MailApp Sky UI contract', () => {
     expect(toolbar).toContain('{{ activeFilterSummary }}')
     expect(toolbar).toContain('<sky-searchbar')
     expect(toolbar).toContain('@update:model-value="updateSearch"')
-    expect(toolbar).toContain('variant="neutral"')
+    expect(toolbar).toContain('variant="glass"')
     expect(toolbar).toContain('@click="beginCompose()"')
     expect(source).not.toContain('class="mail-search"')
     expect(source).not.toContain('class="mail-compose-fab"')
     expect(source).toMatch(
       /\.mail-bottom-toolbar\s*\{[^}]*padding-bottom:\s*calc\([\s\S]*var\(--sky-space-6\)/,
     )
+  })
+
+  it('uses liquid glass for mailbox, filter and compose floating actions', () => {
+    expect(source.match(/variant="glass"/g)).toHaveLength(5)
+    expect(source).not.toContain('variant="neutral"')
   })
 
   it('offers multiple filter criteria in one scrolling Sky UI modal', () => {

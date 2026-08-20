@@ -90,7 +90,7 @@ describe('MessagesApp Sky UI contract', () => {
     expect(searchbarStart).toBeGreaterThan(-1)
     expect(fabStart).toBeGreaterThan(searchbarStart)
     expect(toolbar).toContain('v-model="search"')
-    expect(toolbar).toContain('variant="neutral"')
+    expect(toolbar).toContain('variant="glass"')
     expect(toolbar).toContain('@click="beginCompose"')
     expect(toolbar).toContain('<SquarePen :size="21" />')
     expect(inbox).not.toContain('messages-sky-compose-navigation')

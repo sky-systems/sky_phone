@@ -2854,6 +2854,8 @@ label.sky-list-item__row {
 .sky-glass--interactive {
   min-width: var(--sky-touch-target, 44px);
   min-height: var(--sky-touch-target, 44px);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
   cursor: pointer;
 }
 

@@ -1235,7 +1235,7 @@ onBeforeUnmount(() => {
         :clear-label="phone.t('Common.clear')"
       />
       <SkyFab
-        variant="neutral"
+        variant="glass"
         :aria-label="phone.t('Apps.messages.compose')"
         @click="beginCompose"
       >
