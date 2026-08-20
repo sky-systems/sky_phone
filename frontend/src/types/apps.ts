@@ -1,7 +1,6 @@
 import type { Component } from 'vue'
 
 export type BuiltinPhoneAppId =
-  | 'admin'
   | 'phone'
   | 'messages'
   | 'darkchat'

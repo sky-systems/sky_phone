@@ -57,11 +57,9 @@ function getDefaultDockIds(): LaunchablePhoneAppId[] {
     .map((app) => app.id)
 }
 
-function getDefaultInstalledIds(
-  adminPanelAccess = false,
-): LaunchablePhoneAppId[] {
+function getDefaultInstalledIds(): LaunchablePhoneAppId[] {
   return PHONE_APPS.filter((app) => {
-    if (app.adminOnly) return adminPanelAccess
+    if (app.adminOnly) return false
     return isExternalPhoneApp(app)
       ? app.defaultInstalled
       : DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id)
@@ -222,7 +220,7 @@ export const useAppStoreStore = defineStore('app-store', {
       installations.set(id, { deviceImei, timer, token })
       pendingInstallations.set(this, installations)
     },
-    hydrate(payload: unknown, adminPanelAccess = false): void {
+    hydrate(payload: unknown): void {
       this.cancelPendingInstalls()
       const data = payload as {
         claimedApps?: unknown
@@ -258,10 +256,7 @@ export const useAppStoreStore = defineStore('app-store', {
           })
         : []
       const installedIds = [
-        ...new Set([
-          ...getDefaultInstalledIds(adminPanelAccess),
-          ...this.claimedApps,
-        ]),
+        ...new Set([...getDefaultInstalledIds(), ...this.claimedApps]),
       ].filter((id) => !this.uninstalledApps.includes(id))
       const removedLegacyDefaults = hasUninstalledBuiltinApp(
         data?.homeLayout,
@@ -317,7 +312,7 @@ export const useAppStoreStore = defineStore('app-store', {
     },
     isInstalled(appId: LaunchablePhoneAppId): boolean {
       const app = getPhoneApp(appId)
-      if (app?.adminOnly) return usePhoneStore().permissions.adminPanel
+      if (app?.adminOnly) return false
       if (this.uninstalledApps.includes(appId)) return false
       if (this.claimedApps.includes(appId)) return true
       if (!app) return false
@@ -327,10 +322,7 @@ export const useAppStoreStore = defineStore('app-store', {
     },
     reconcileCatalog(): void {
       const installedIds = [
-        ...new Set([
-          ...getDefaultInstalledIds(usePhoneStore().permissions.adminPanel),
-          ...this.claimedApps,
-        ]),
+        ...new Set([...getDefaultInstalledIds(), ...this.claimedApps]),
       ].filter((id) => !this.uninstalledApps.includes(id))
       const defaults = createDefaultHomeLayout(
         installedIds,

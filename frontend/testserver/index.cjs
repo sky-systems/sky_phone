@@ -4696,6 +4696,7 @@ function adminMockPlayerDetail(source = 1) {
     money: {
       bank: primary ? 182450 : 28450,
       cash: primary ? 2740 : 950,
+      currency: '$',
     },
     name: primary ? 'Alex Morgan' : 'Jordan Blake',
     serverName: primary ? 'Skyline' : 'JordanB',
@@ -4759,20 +4760,29 @@ app.post('/api/:endpoint', async (request, response, next) => {
     })
     return
   }
-  if (endpoint === 'admin:set-app') {
-    const appId = String(request.body.appId ?? '')
-    const installed = request.body.installed === true
-    adminMockApps.claimed = adminMockApps.claimed.filter((id) => id !== appId)
-    adminMockApps.uninstalled = adminMockApps.uninstalled.filter(
-      (id) => id !== appId,
-    )
-    if (installed) adminMockApps.claimed.push(appId)
-    else adminMockApps.uninstalled.push(appId)
+  if (endpoint === 'admin:save-apps') {
+    const changes = Array.isArray(request.body.changes)
+      ? request.body.changes
+      : []
+    for (const change of changes) {
+      const appId = String(change.appId ?? '')
+      const installed = change.installed === true
+      adminMockApps.claimed = adminMockApps.claimed.filter((id) => id !== appId)
+      adminMockApps.uninstalled = adminMockApps.uninstalled.filter(
+        (id) => id !== appId,
+      )
+      if (installed) adminMockApps.claimed.push(appId)
+      else adminMockApps.uninstalled.push(appId)
+    }
     adminMockApps.revision += 1
     response.json({
       success: true,
       data: adminMockPlayerDetail(Number(request.body.source) || 1),
     })
+    return
+  }
+  if (endpoint === 'admin:close') {
+    response.json({ success: true })
     return
   }
   if (endpoint === 'admin:reveal-password') {
@@ -9981,9 +9991,6 @@ app.post('/api/:endpoint', (request, response) => {
         player: {
           firstName: 'Alex',
           lastName: 'Morgan',
-        },
-        permissions: {
-          adminPanel: true,
         },
         security: mockSecurity,
         token: 'development',

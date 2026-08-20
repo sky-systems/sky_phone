@@ -4,6 +4,7 @@ local blocked_phone_controls = { 24, 140, 141, 142, 257, 263, 264 }
 local blocked_phone_look_controls = { 1, 2, 3, 4, 5, 6 }
 local focused_control_groups = { 0, 1, 2 }
 local state = {
+    admin_panel_open = false,
     activity_suspended = false,
     allow_movement = Config.Phone.AllowMovement,
     call_focus = false,
@@ -42,6 +43,15 @@ function SkyPhoneFocus.ApplyGameInputControls(block_look)
 end
 
 function SkyPhoneFocus.Resolve(state)
+    if state.admin_panel_open then
+        return {
+            block_game = true,
+            cursor = true,
+            focused = true,
+            game_input = false,
+            keep_input = false,
+        }
+    end
     if state.activity_suspended then
         return { block_game = false, cursor = false, focused = false, game_input = false, keep_input = false }
     end
@@ -112,6 +122,15 @@ function SkyPhoneFocus.SetPhone(open, cursor_disabled)
     SkyPhoneFocus.Reapply()
 end
 
+function SkyPhoneFocus.SetAdminPanel(open)
+    state.admin_panel_open = open == true
+    if state.admin_panel_open then
+        state.notification_focus = false
+        state.text_input_focused = false
+    end
+    SkyPhoneFocus.Reapply()
+end
+
 function SkyPhoneFocus.SetCall(active)
     state.call_focus = active == true
     SkyPhoneFocus.Reapply()
@@ -142,6 +161,7 @@ function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
 end
 
 function SkyPhoneFocus.Reset()
+    state.admin_panel_open = false
     state.activity_suspended = false
     state.call_focus = false
     state.camera_active = false

@@ -724,7 +724,7 @@ async function confirmFactoryReset(): Promise<void> {
   if (!success) accountToast.value = accountError()
   else {
     appAuth.hydrate(undefined, '')
-    appStore.hydrate(undefined, phone.permissions.adminPanel)
+    appStore.hydrate(undefined)
     phone.resetAfterFactoryReset()
   }
 }

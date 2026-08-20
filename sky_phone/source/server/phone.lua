@@ -2,10 +2,6 @@ local phone_open_handler
 local pending_phone_opens = {}
 local server_started = false
 
-if type(Config.AdminPanel.Command) ~= "string" or Config.AdminPanel.Command == "" then
-    error("[sky_phone] Config.AdminPanel.Command must be a non-empty command name.")
-end
-
 local function flush_pending_phone_opens()
     if not server_started or not phone_open_handler then
         return
@@ -575,11 +571,6 @@ local function bootstrap(source, security, security_loaded)
             firstName = trim(Bridge.Framework.GetFirstname(source)) or "",
             lastName = trim(Bridge.Framework.GetLastname(source)) or "",
         },
-        permissions = {
-            adminPanel = Config.AdminPanel.Enabled
-                and Bridge.Framework.HasAdminGroup(source, Config.AdminPanel.AdminGroups)
-                or false,
-        },
     }
 end
 
@@ -918,32 +909,6 @@ end
 
 phone_open_handler = open_phone
 flush_pending_phone_opens()
-
-RegisterCommand(Config.AdminPanel.Command, function(command_source)
-    local player_source = tonumber(command_source)
-    if not player_source or player_source < 1 then
-        Bridge.Debug("warn", "[sky_phone] The admin panel command can only be used by a player.")
-        return
-    end
-    if not Config.AdminPanel.Enabled then
-        TriggerClientEvent("sky_phone:admin:command-error", player_source, "disabled")
-        return
-    end
-    if not Bridge.Framework.HasAdminGroup(player_source, Config.AdminPanel.AdminGroups) then
-        Bridge.Debug(
-            "warn",
-            "[sky_phone] Rejected admin panel command from source %s.",
-            tostring(player_source)
-        )
-        TriggerClientEvent("sky_phone:admin:command-error", player_source, "not_authorized")
-        return
-    end
-
-    TriggerClientEvent("sky_phone:admin:launch", player_source)
-    if not sessions[player_source] then
-        open_phone(player_source, nil)
-    end
-end, false)
 
 function SkyPhone.OpenDeviceForCall(source, imei)
     local matches = find_device_slots(source, imei)

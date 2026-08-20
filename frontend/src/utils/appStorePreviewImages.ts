@@ -1,9 +1,6 @@
 import type { BuiltinPhoneAppId } from '@/types/apps'
 
-type PreviewableBuiltinAppId = Exclude<
-  BuiltinPhoneAppId,
-  'admin' | 'app-store'
->
+type PreviewableBuiltinAppId = Exclude<BuiltinPhoneAppId, 'app-store'>
 
 const previewModules = import.meta.glob<string>(
   '../assets/img/app-previews/*.jpg',
@@ -16,7 +13,10 @@ const previewModules = import.meta.glob<string>(
 
 const APP_STORE_PREVIEW_IMAGES = Object.fromEntries(
   Object.entries(previewModules).map(([path, imageUrl]) => {
-    const appId = path.split('/').at(-1)?.replace(/\.jpg$/, '')
+    const appId = path
+      .split('/')
+      .at(-1)
+      ?.replace(/\.jpg$/, '')
     if (!appId) throw new Error(`Invalid App Store preview path: ${path}`)
     return [appId, imageUrl]
   }),

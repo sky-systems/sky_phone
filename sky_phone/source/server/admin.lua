@@ -97,10 +97,6 @@ local function player_name(source)
 end
 
 local function require_admin(source, operation, maximum)
-    local session, error_response = SkyPhone.RequireSession(source)
-    if not session then
-        return nil, error_response
-    end
     if not Config.AdminPanel.Enabled
         or not Bridge.Framework.HasAdminGroup(source, Config.AdminPanel.AdminGroups)
     then
@@ -110,8 +106,35 @@ local function require_admin(source, operation, maximum)
     if not SkyPhone.AllowOperation(source, "admin_" .. operation, maximum, 60) then
         return nil, { success = false, error = "rate_limited" }
     end
-    return session
+    return true
 end
+
+if type(Config.AdminPanel.Command) ~= "string" or Config.AdminPanel.Command == "" then
+    error("[sky_phone] Config.AdminPanel.Command must be a non-empty command name.")
+end
+
+RegisterCommand(Config.AdminPanel.Command, function(command_source)
+    local player_source = tonumber(command_source)
+    if not player_source or player_source < 1 then
+        Bridge.Debug("warn", "[sky_phone] The admin panel command can only be used by a player.")
+        return
+    end
+    if not Config.AdminPanel.Enabled then
+        TriggerClientEvent("sky_phone:admin:command-error", player_source, "disabled")
+        return
+    end
+    if not Bridge.Framework.HasAdminGroup(player_source, Config.AdminPanel.AdminGroups) then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone] Rejected admin panel command from source %s.",
+            tostring(player_source)
+        )
+        TriggerClientEvent("sky_phone:admin:command-error", player_source, "not_authorized")
+        return
+    end
+
+    TriggerClientEvent("sky_phone:admin:launch", player_source)
+end, false)
 
 local function normalize_source(value)
     local player_source = tonumber(value)
@@ -301,6 +324,7 @@ local function load_player_detail(source)
         money = {
             bank = tonumber(Bridge.Framework.GetMoney(source, "bank")) or 0,
             cash = tonumber(Bridge.Framework.GetMoney(source, "cash")) or 0,
+            currency = Config.Banking.Currency,
         },
         devices = load_player_devices(source, identifier),
     }
@@ -395,12 +419,12 @@ local function load_audit()
 end
 
 Bridge.Callbacks.Register("sky_phone:admin:bootstrap", function(source)
-    local session, error_response = require_admin(
+    local authorized, error_response = require_admin(
         source,
         "bootstrap",
         Config.AdminPanel.ReadRequestsPerMinute
     )
-    if not session then
+    if not authorized then
         return error_response
     end
 
@@ -425,12 +449,12 @@ Bridge.Callbacks.Register("sky_phone:admin:bootstrap", function(source)
 end)
 
 Bridge.Callbacks.Register("sky_phone:admin:player", function(source, data)
-    local session, error_response = require_admin(
+    local authorized, error_response = require_admin(
         source,
         "player",
         Config.AdminPanel.ReadRequestsPerMinute
     )
-    if not session then
+    if not authorized then
         return error_response
     end
     local target_source = normalize_source(data and data.source)
@@ -440,19 +464,23 @@ Bridge.Callbacks.Register("sky_phone:admin:player", function(source, data)
     return { success = true, data = load_player_detail(target_source) }
 end)
 
-Bridge.Callbacks.Register("sky_phone:admin:set-app", function(source, data)
-    local session, error_response = require_admin(
+Bridge.Callbacks.Register("sky_phone:admin:save-apps", function(source, data)
+    local authorized, error_response = require_admin(
         source,
-        "set_app",
+        "save_apps",
         Config.AdminPanel.ActionRequestsPerMinute
     )
-    if not session then
+    if not authorized then
         return error_response
     end
     if type(data) ~= "table"
         or not SkyPhoneImei.IsValid(data.imei)
-        or type(data.appId) ~= "string"
-        or type(data.installed) ~= "boolean"
+        or type(data.revision) ~= "number"
+        or data.revision < 0
+        or data.revision ~= math.floor(data.revision)
+        or type(data.changes) ~= "table"
+        or #data.changes < 1
+        or #data.changes > 128
     then
         return { success = false, error = "invalid_request" }
     end
@@ -465,12 +493,32 @@ Bridge.Callbacks.Register("sky_phone:admin:set-app", function(source, data)
     if not target_device then
         return { success = false, error = "device_not_owned" }
     end
-    local metadata = app_metadata(data.appId)
-    if not metadata then
-        return { success = false, error = "invalid_app" }
-    end
-    if not data.installed and not metadata.removable then
-        return { success = false, error = "app_protected" }
+    local normalized_changes = {}
+    local seen_apps = {}
+    for index = 1, #data.changes do
+        local change = data.changes[index]
+        if type(change) ~= "table"
+            or type(change.appId) ~= "string"
+            or #change.appId < 1
+            or #change.appId > 64
+            or type(change.installed) ~= "boolean"
+            or seen_apps[change.appId]
+        then
+            return { success = false, error = "invalid_request" }
+        end
+        local metadata = app_metadata(change.appId)
+        if not metadata then
+            return { success = false, error = "invalid_app" }
+        end
+        if not change.installed and not metadata.removable then
+            return { success = false, error = "app_protected" }
+        end
+        seen_apps[change.appId] = true
+        normalized_changes[#normalized_changes + 1] = {
+            appId = change.appId,
+            installed = change.installed,
+            metadata = metadata,
+        }
     end
 
     local rows = Bridge.Database.Query([[
@@ -479,15 +527,23 @@ Bridge.Callbacks.Register("sky_phone:admin:set-app", function(source, data)
         WHERE `device_imei` = ? AND `namespace` = 'apps'
         LIMIT 1
     ]], { data.imei })
+    local current_revision = tonumber(rows[1] and rows[1].revision) or 0
+    if current_revision ~= data.revision then
+        return { success = false, error = "revision_conflict" }
+    end
+
     local payload, claimed_apps, uninstalled_apps = load_app_payload(rows[1] and rows[1].payload)
-    if data.installed then
-        uninstalled_apps = remove_app_id(uninstalled_apps, data.appId)
-        if not metadata.defaultInstalled then
-            claimed_apps = add_app_id(claimed_apps, data.appId)
+    for index = 1, #normalized_changes do
+        local change = normalized_changes[index]
+        if change.installed then
+            uninstalled_apps = remove_app_id(uninstalled_apps, change.appId)
+            if not change.metadata.defaultInstalled then
+                claimed_apps = add_app_id(claimed_apps, change.appId)
+            end
+        else
+            claimed_apps = remove_app_id(claimed_apps, change.appId)
+            uninstalled_apps = add_app_id(uninstalled_apps, change.appId)
         end
-    else
-        claimed_apps = remove_app_id(claimed_apps, data.appId)
-        uninstalled_apps = add_app_id(uninstalled_apps, data.appId)
     end
     payload.claimedApps = claimed_apps
     payload.uninstalledApps = #uninstalled_apps > 0 and uninstalled_apps or nil
@@ -498,12 +554,11 @@ Bridge.Callbacks.Register("sky_phone:admin:set-app", function(source, data)
     end
 
     if rows[1] then
-        local revision = tonumber(rows[1].revision) or 0
         local result = Bridge.Database.Query([[
             UPDATE `sky_phone_device_data`
             SET `payload` = ?, `revision` = `revision` + 1
             WHERE `device_imei` = ? AND `namespace` = 'apps' AND `revision` = ?
-        ]], { encoded, data.imei, revision })
+        ]], { encoded, data.imei, data.revision })
         if affected_rows(result) ~= 1 then
             return { success = false, error = "revision_conflict" }
         end
@@ -517,25 +572,28 @@ Bridge.Callbacks.Register("sky_phone:admin:set-app", function(source, data)
         end
     end
 
-    write_audit(
-        source,
-        target_source,
-        target_identifier,
-        data.imei,
-        data.installed and "grant_app" or "revoke_app",
-        { appId = data.appId }
-    )
+    for index = 1, #normalized_changes do
+        local change = normalized_changes[index]
+        write_audit(
+            source,
+            target_source,
+            target_identifier,
+            data.imei,
+            change.installed and "grant_app" or "revoke_app",
+            { appId = change.appId }
+        )
+    end
     SkyPhone.RefreshDevice(data.imei)
     return { success = true, data = load_player_detail(target_source) }
 end)
 
 Bridge.Callbacks.Register("sky_phone:admin:reveal-password", function(source, data)
-    local session, error_response = require_admin(
+    local authorized, error_response = require_admin(
         source,
         "reveal_password",
         Config.AdminPanel.CredentialRevealsPerMinute
     )
-    if not session then
+    if not authorized then
         return error_response
     end
     if type(data) ~= "table" or not SkyPhoneImei.IsValid(data.imei) then

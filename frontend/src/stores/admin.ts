@@ -60,17 +60,17 @@ export const useAdminStore = defineStore('admin', {
       this.selectedPlayer = null
       this.revealedCredentials = {}
     },
-    async setApp(
+    async saveApps(
       source: number,
       imei: string,
-      appId: string,
-      installed: boolean,
+      revision: number,
+      changes: Array<{ appId: string; installed: boolean }>,
     ): Promise<NuiResponse<AdminPlayerDetail>> {
-      this.actionKey = `${imei}:${appId}`
-      const response = await nuiCall<AdminPlayerDetail>('admin:set-app', {
-        appId,
+      this.actionKey = `${imei}:save`
+      const response = await nuiCall<AdminPlayerDetail>('admin:save-apps', {
+        changes,
         imei,
-        installed,
+        revision,
         source,
       })
       this.actionKey = ''

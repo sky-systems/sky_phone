@@ -1,0 +1,2167 @@
+<script setup lang="ts">
+import {
+  BadgeDollarSign,
+  BriefcaseBusiness,
+  Check,
+  ChevronRight,
+  CircleUserRound,
+  Clipboard,
+  Database,
+  Eye,
+  HardDrive,
+  KeyRound,
+  LayoutDashboard,
+  LoaderCircle,
+  LockKeyhole,
+  RefreshCw,
+  Save,
+  ScrollText,
+  Search,
+  ShieldCheck,
+  Smartphone,
+  TriangleAlert,
+  UsersRound,
+  WalletCards,
+  Wifi,
+  X,
+} from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
+import {
+  DEFAULT_INSTALLED_PHONE_APP_IDS,
+  getPhoneApp,
+  getPhoneAppLabel,
+  isExternalPhoneApp,
+  isLaunchablePhoneApp,
+  isPhoneAppRemovable,
+  PHONE_APPS,
+} from '@/config/apps'
+import { useAdminStore } from '@/stores/admin'
+import { usePhoneStore } from '@/stores/phone'
+import type { AdminAuditEntry, AdminDevice } from '@/types/admin'
+import type { LaunchablePhoneAppDefinition } from '@/types/apps'
+import { SkyButton } from '@/ui'
+import { copyText } from '@/utils/clipboard'
+import { parseDatabaseDate } from '@/utils/date'
+import { nuiCall } from '@/utils/nui'
+
+type AdminTab = 'players' | 'audit'
+type PendingAction =
+  | { kind: 'close' }
+  | { kind: 'player'; source: number }
+  | { kind: 'refresh' }
+  | { kind: 'tab'; tab: AdminTab }
+
+const emit = defineEmits<{ close: [] }>()
+const admin = useAdminStore()
+const phone = usePhoneStore()
+const tab = ref<AdminTab>('players')
+const playerQuery = ref('')
+const appQuery = ref('')
+const selectedImei = ref('')
+const drafts = ref<Record<string, Record<string, boolean>>>({})
+const saving = ref(false)
+const revealDialogImei = ref('')
+const discardDialog = ref(false)
+const pendingAction = ref<PendingAction | null>(null)
+const toast = ref('')
+const toastTone = ref<'error' | 'success'>('success')
+let toastTimer: number | undefined
+
+const filteredPlayers = computed(() => {
+  const needle = playerQuery.value.trim().toLocaleLowerCase(phone.lang)
+  if (!needle) return admin.players
+  return admin.players.filter((player) =>
+    [
+      player.name,
+      player.serverName,
+      player.source,
+      player.identifier,
+      player.job,
+      player.phoneNumber ?? '',
+    ]
+      .join(' ')
+      .toLocaleLowerCase(phone.lang)
+      .includes(needle),
+  )
+})
+
+const selectedDevice = computed(() => {
+  const devices = admin.selectedPlayer?.devices ?? []
+  return (
+    devices.find((device) => device.imei === selectedImei.value) ??
+    devices[0] ??
+    null
+  )
+})
+
+const manageableApps = computed(() => {
+  const needle = appQuery.value.trim().toLocaleLowerCase(phone.lang)
+  return PHONE_APPS.filter(
+    (app): app is LaunchablePhoneAppDefinition =>
+      isLaunchablePhoneApp(app) && !app.adminOnly,
+  )
+    .filter(
+      (app) =>
+        !needle ||
+        getPhoneAppLabel(app, phone.t)
+          .toLocaleLowerCase(phone.lang)
+          .includes(needle),
+    )
+    .sort((left, right) =>
+      getPhoneAppLabel(left, phone.t).localeCompare(
+        getPhoneAppLabel(right, phone.t),
+        phone.lang,
+      ),
+    )
+})
+
+const pendingCount = computed(() =>
+  Object.values(drafts.value).reduce(
+    (total, changes) => total + Object.keys(changes).length,
+    0,
+  ),
+)
+const hasChanges = computed(() => pendingCount.value > 0)
+const selectedDeviceChanges = computed(() =>
+  selectedDevice.value
+    ? Object.keys(drafts.value[selectedDevice.value.imei] ?? {}).length
+    : 0,
+)
+const revealedCredential = computed(() =>
+  selectedDevice.value
+    ? admin.revealedCredentials[selectedDevice.value.imei]
+    : undefined,
+)
+
+watch(
+  () => admin.selectedPlayer,
+  (player) => {
+    if (!player?.devices.some((device) => device.imei === selectedImei.value)) {
+      selectedImei.value = player?.devices[0]?.imei ?? ''
+    }
+  },
+)
+
+function t(key: string, params?: Record<string, string>): string {
+  return phone.t('AdminPanel.' + key, params)
+}
+
+function showToast(
+  message: string,
+  tone: 'error' | 'success' = 'success',
+): void {
+  if (toastTimer) window.clearTimeout(toastTimer)
+  toast.value = message
+  toastTone.value = tone
+  toastTimer = window.setTimeout(() => (toast.value = ''), 2800)
+}
+
+function formatMoney(value: number, currency: string): string {
+  const formatted = new Intl.NumberFormat(phone.lang, {
+    maximumFractionDigits: 0,
+  }).format(value)
+  return `${currency}${formatted}`
+}
+
+function formatDate(value: string): string {
+  const date = parseDatabaseDate(value)
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat(phone.lang, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(date)
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toLocaleUpperCase(phone.lang))
+    .join('')
+}
+
+function baseInstalled(
+  device: AdminDevice,
+  app: LaunchablePhoneAppDefinition,
+): boolean {
+  if (device.apps.uninstalled.includes(app.id)) return false
+  if (device.apps.claimed.includes(app.id)) return true
+  return isExternalPhoneApp(app)
+    ? app.defaultInstalled
+    : DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id)
+}
+
+function isInstalled(
+  device: AdminDevice,
+  app: LaunchablePhoneAppDefinition,
+): boolean {
+  const deviceDraft = drafts.value[device.imei]
+  return deviceDraft &&
+    Object.prototype.hasOwnProperty.call(deviceDraft, app.id)
+    ? deviceDraft[app.id]
+    : baseInstalled(device, app)
+}
+
+function toggleApp(app: LaunchablePhoneAppDefinition): void {
+  const device = selectedDevice.value
+  if (!device) return
+  const nextInstalled = !isInstalled(device, app)
+  if (!nextInstalled && !isPhoneAppRemovable(app)) return
+
+  const deviceDraft = drafts.value[device.imei] ?? {}
+  if (nextInstalled === baseInstalled(device, app)) {
+    delete deviceDraft[app.id]
+  } else {
+    deviceDraft[app.id] = nextInstalled
+  }
+  if (Object.keys(deviceDraft).length) drafts.value[device.imei] = deviceDraft
+  else delete drafts.value[device.imei]
+}
+
+function errorText(error = admin.error): string {
+  return t('errors.' + (error || 'default'))
+}
+
+async function loadPlayer(source: number): Promise<void> {
+  if (await admin.openPlayer(source)) return
+  showToast(errorText(), 'error')
+}
+
+async function refreshData(): Promise<void> {
+  const selectedSource = admin.selectedPlayer?.source
+  if (!(await admin.load())) {
+    showToast(errorText(), 'error')
+    return
+  }
+  const nextSource =
+    admin.players.find((player) => player.source === selectedSource)?.source ??
+    admin.players[0]?.source
+  if (nextSource) await loadPlayer(nextSource)
+}
+
+function queueAction(action: PendingAction): void {
+  if (!hasChanges.value) {
+    void runAction(action)
+    return
+  }
+  pendingAction.value = action
+  discardDialog.value = true
+}
+
+async function runAction(action: PendingAction): Promise<void> {
+  if (action.kind === 'close') {
+    const response = await nuiCall('admin:close')
+    if (response.success) emit('close')
+    else showToast(errorText(response.error), 'error')
+    return
+  }
+  if (action.kind === 'refresh') {
+    await refreshData()
+    return
+  }
+  if (action.kind === 'tab') {
+    tab.value = action.tab
+    return
+  }
+  await loadPlayer(action.source)
+}
+
+async function discardAndContinue(): Promise<void> {
+  const action = pendingAction.value
+  drafts.value = {}
+  pendingAction.value = null
+  discardDialog.value = false
+  if (action) await runAction(action)
+}
+
+function cancelDiscard(): void {
+  discardDialog.value = false
+  pendingAction.value = null
+}
+
+async function saveChanges(): Promise<void> {
+  const player = admin.selectedPlayer
+  if (!player || !hasChanges.value || saving.value) return
+  saving.value = true
+  const pendingDevices = Object.entries(drafts.value)
+  for (const [imei, deviceChanges] of pendingDevices) {
+    const device = admin.selectedPlayer?.devices.find(
+      (candidate) => candidate.imei === imei,
+    )
+    if (!device) {
+      saving.value = false
+      showToast(t('editor.saveFailed'), 'error')
+      return
+    }
+    const changes = Object.entries(deviceChanges).map(([appId, installed]) => ({
+      appId,
+      installed,
+    }))
+    const response = await admin.saveApps(
+      player.source,
+      imei,
+      device.apps.revision,
+      changes,
+    )
+    if (!response.success) {
+      saving.value = false
+      showToast(errorText(response.error), 'error')
+      return
+    }
+    delete drafts.value[imei]
+  }
+  saving.value = false
+  await admin.load()
+  showToast(t('editor.saved'))
+}
+
+async function revealPassword(): Promise<void> {
+  const player = admin.selectedPlayer
+  const imei = revealDialogImei.value
+  revealDialogImei.value = ''
+  if (!player || !imei) return
+  const response = await admin.revealPassword(player.source, imei)
+  if (!response.success) showToast(errorText(response.error), 'error')
+}
+
+async function copyPassword(): Promise<void> {
+  if (!revealedCredential.value) return
+  if (await copyText(revealedCredential.value.password)) {
+    showToast(t('credentials.copied'))
+  }
+}
+
+function auditDescription(entry: AdminAuditEntry): string {
+  const appId =
+    typeof entry.details.appId === 'string' ? entry.details.appId : ''
+  const app = appId ? getPhoneApp(appId) : undefined
+  return app
+    ? getPhoneAppLabel(app, phone.t)
+    : typeof entry.details.email === 'string'
+      ? entry.details.email
+      : entry.deviceImei || entry.targetIdentifier
+}
+
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Escape') return
+  event.preventDefault()
+  if (revealDialogImei.value) {
+    revealDialogImei.value = ''
+    return
+  }
+  if (discardDialog.value) {
+    discardDialog.value = false
+    pendingAction.value = null
+    return
+  }
+  queueAction({ kind: 'close' })
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown)
+  void refreshData()
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onKeydown)
+  if (toastTimer) window.clearTimeout(toastTimer)
+})
+</script>
+
+<template>
+  <div class="admin-panel-overlay" role="dialog" :aria-label="t('name')">
+    <div class="admin-panel-window">
+      <header class="admin-panel-header">
+        <div class="admin-panel-brand">
+          <span class="admin-panel-brand__mark"
+            ><ShieldCheck :size="19"
+          /></span>
+          <div>
+            <strong>{{ t('editor.brand') }}</strong>
+            <span>{{ t('editor.workspace') }}</span>
+          </div>
+        </div>
+
+        <div class="admin-panel-context">
+          <span class="admin-panel-context__path">
+            {{ tab === 'players' ? t('editor.players') : t('editor.audit') }}
+          </span>
+          <ChevronRight :size="14" />
+          <strong>{{
+            admin.selectedPlayer?.name || t('editor.noSelection')
+          }}</strong>
+        </div>
+
+        <div class="admin-panel-actions">
+          <span v-if="hasChanges" class="admin-panel-dirty">
+            <span></span>{{ t('editor.unsaved') }} · {{ pendingCount }}
+          </span>
+          <button
+            type="button"
+            class="admin-panel-icon-button"
+            :aria-label="t('editor.refresh')"
+            :title="t('editor.refresh')"
+            :disabled="admin.loading || saving"
+            @click="queueAction({ kind: 'refresh' })"
+          >
+            <RefreshCw :size="17" :class="{ 'is-spinning': admin.loading }" />
+          </button>
+          <button
+            type="button"
+            class="admin-panel-save"
+            :class="{ 'is-ready': hasChanges }"
+            :aria-label="t('editor.save')"
+            :title="hasChanges ? t('editor.saveHint') : t('editor.save')"
+            :disabled="!hasChanges || saving"
+            @click="saveChanges"
+          >
+            <LoaderCircle v-if="saving" :size="18" class="is-spinning" />
+            <Check v-else :size="19" stroke-width="3" />
+          </button>
+          <button
+            type="button"
+            class="admin-panel-icon-button admin-panel-close"
+            :aria-label="t('editor.close')"
+            :title="t('editor.close')"
+            @click="queueAction({ kind: 'close' })"
+          >
+            <X :size="18" />
+          </button>
+        </div>
+      </header>
+
+      <div class="admin-panel-body">
+        <nav class="admin-panel-rail" :aria-label="t('navigation')">
+          <button
+            type="button"
+            :class="{ 'is-active': tab === 'players' }"
+            :aria-label="t('tabs.players')"
+            :title="t('tabs.players')"
+            @click="queueAction({ kind: 'tab', tab: 'players' })"
+          >
+            <UsersRound :size="19" />
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': tab === 'audit' }"
+            :aria-label="t('tabs.audit')"
+            :title="t('tabs.audit')"
+            @click="queueAction({ kind: 'tab', tab: 'audit' })"
+          >
+            <ScrollText :size="19" />
+          </button>
+          <div class="admin-panel-rail__spacer"></div>
+          <span class="admin-panel-live" :title="t('players.online')">
+            <span></span>{{ t('editor.online') }}
+          </span>
+        </nav>
+
+        <aside class="admin-panel-directory">
+          <template v-if="tab === 'players'">
+            <div class="admin-panel-directory__header">
+              <div>
+                <span>{{ t('players.eyebrow') }}</span>
+                <h2>{{ t('players.title') }}</h2>
+              </div>
+              <strong>{{ filteredPlayers.length }}</strong>
+            </div>
+            <label class="admin-panel-search">
+              <Search :size="16" />
+              <input
+                v-model="playerQuery"
+                type="search"
+                :placeholder="t('search.players')"
+                :aria-label="t('search.players')"
+              />
+            </label>
+
+            <div class="admin-panel-player-list">
+              <button
+                v-for="player in filteredPlayers"
+                :key="player.source"
+                type="button"
+                :class="{
+                  'is-active': admin.selectedPlayer?.source === player.source,
+                }"
+                @click="queueAction({ kind: 'player', source: player.source })"
+              >
+                <span class="admin-panel-avatar">{{
+                  initials(player.name)
+                }}</span>
+                <span class="admin-panel-player-list__copy">
+                  <strong>{{ player.name }}</strong>
+                  <small>{{ player.job }} · ID {{ player.source }}</small>
+                </span>
+                <span class="admin-panel-player-list__meta">
+                  <span class="admin-panel-online-dot"></span>
+                  {{ player.deviceCount }}
+                </span>
+              </button>
+
+              <div
+                v-if="!filteredPlayers.length"
+                class="admin-panel-empty-list"
+              >
+                <UsersRound :size="26" />
+                <strong>{{ t('players.empty') }}</strong>
+                <span>{{ t('players.emptyBody') }}</span>
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="admin-panel-directory__header">
+              <div>
+                <span>{{ t('audit.eyebrow') }}</span>
+                <h2>{{ t('audit.title') }}</h2>
+              </div>
+              <strong>{{ admin.audit.length }}</strong>
+            </div>
+            <div class="admin-panel-audit-mini-list">
+              <article v-for="entry in admin.audit" :key="entry.id">
+                <span class="admin-panel-audit-icon"
+                  ><ScrollText :size="15"
+                /></span>
+                <div>
+                  <strong>{{ t('audit.actions.' + entry.action) }}</strong>
+                  <span>{{ entry.actorName }}</span>
+                  <small>{{ formatDate(entry.createdAt) }}</small>
+                </div>
+              </article>
+            </div>
+          </template>
+        </aside>
+
+        <main class="admin-panel-editor">
+          <div
+            v-if="admin.loading && !admin.initialized"
+            class="admin-panel-loading"
+          >
+            <LoaderCircle :size="26" class="is-spinning" />
+            <span>{{ t('loading') }}</span>
+          </div>
+
+          <section
+            v-else-if="tab === 'audit'"
+            class="admin-panel-editor__scroll"
+          >
+            <div class="admin-panel-page-heading">
+              <div class="admin-panel-heading-icon">
+                <ScrollText :size="23" />
+              </div>
+              <div>
+                <span>{{ t('audit.eyebrow') }}</span>
+                <h1>{{ t('audit.title') }}</h1>
+                <p>{{ t('audit.body') }}</p>
+              </div>
+            </div>
+            <div v-if="admin.audit.length" class="admin-panel-audit-grid">
+              <article v-for="entry in admin.audit" :key="entry.id">
+                <div class="admin-panel-audit-grid__topline">
+                  <span>{{ t('audit.actions.' + entry.action) }}</span>
+                  <time>{{ formatDate(entry.createdAt) }}</time>
+                </div>
+                <strong>{{ auditDescription(entry) }}</strong>
+                <p>
+                  {{
+                    t('audit.by', {
+                      actor: entry.actorName,
+                      target: String(entry.targetSource ?? '—'),
+                    })
+                  }}
+                </p>
+              </article>
+            </div>
+            <div v-else class="admin-panel-empty-editor">
+              <ScrollText :size="34" />
+              <h2>{{ t('audit.empty') }}</h2>
+              <p>{{ t('audit.emptyBody') }}</p>
+            </div>
+          </section>
+
+          <section
+            v-else-if="admin.selectedPlayer"
+            class="admin-panel-editor__scroll"
+          >
+            <div class="admin-panel-profile-heading">
+              <span class="admin-panel-profile-avatar">
+                {{ initials(admin.selectedPlayer.name) }}
+              </span>
+              <div>
+                <span>{{ t('detail.character') }}</span>
+                <h1>{{ admin.selectedPlayer.name }}</h1>
+                <p>{{ admin.selectedPlayer.serverName }}</p>
+              </div>
+              <div class="admin-panel-profile-heading__status">
+                <span><span></span>{{ t('players.online') }}</span>
+                <strong>ID {{ admin.selectedPlayer.source }}</strong>
+              </div>
+            </div>
+
+            <div
+              class="admin-panel-device-tabs"
+              :aria-label="t('devices.choose')"
+            >
+              <button
+                v-for="device in admin.selectedPlayer.devices"
+                :key="device.imei"
+                type="button"
+                :class="{
+                  'is-active': device.imei === selectedDevice?.imei,
+                  'is-dirty': Boolean(
+                    Object.keys(drafts[device.imei] ?? {}).length,
+                  ),
+                }"
+                @click="selectedImei = device.imei"
+              >
+                <Smartphone :size="16" />
+                <span>{{ device.name }}</span>
+                <small>{{ device.number || device.imei.slice(-4) }}</small>
+              </button>
+            </div>
+
+            <div class="admin-panel-stat-grid">
+              <article>
+                <WalletCards :size="18" />
+                <span>{{ t('detail.cash') }}</span>
+                <strong>{{
+                  formatMoney(
+                    admin.selectedPlayer.money.cash,
+                    admin.selectedPlayer.money.currency,
+                  )
+                }}</strong>
+              </article>
+              <article>
+                <BadgeDollarSign :size="18" />
+                <span>{{ t('detail.bank') }}</span>
+                <strong>{{
+                  formatMoney(
+                    admin.selectedPlayer.money.bank,
+                    admin.selectedPlayer.money.currency,
+                  )
+                }}</strong>
+              </article>
+              <article>
+                <BriefcaseBusiness :size="18" />
+                <span>{{ t('detail.job') }}</span>
+                <strong>{{
+                  admin.selectedPlayer.job.label ||
+                  admin.selectedPlayer.job.name
+                }}</strong>
+              </article>
+              <article>
+                <Wifi :size="18" />
+                <span>{{ t('detail.duty') }}</span>
+                <strong>{{
+                  admin.selectedPlayer.job.onDuty
+                    ? t('detail.onDuty')
+                    : t('detail.offDuty')
+                }}</strong>
+              </article>
+            </div>
+
+            <div class="admin-panel-section-grid">
+              <article class="admin-panel-section-card">
+                <div class="admin-panel-section-card__heading">
+                  <div>
+                    <span>{{ t('editor.profile') }}</span>
+                    <h2>{{ t('detail.playerData') }}</h2>
+                  </div>
+                  <CircleUserRound :size="20" />
+                </div>
+                <dl class="admin-panel-field-list">
+                  <div>
+                    <dt>{{ t('detail.identifier') }}</dt>
+                    <dd>{{ admin.selectedPlayer.identifier }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ t('detail.birthdate') }}</dt>
+                    <dd>
+                      {{
+                        admin.selectedPlayer.birthdate || t('detail.unknown')
+                      }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{{ t('detail.grade') }}</dt>
+                    <dd>
+                      {{ admin.selectedPlayer.job.grade }} ·
+                      {{
+                        admin.selectedPlayer.job.gradeLabel ||
+                        t('detail.unknown')
+                      }}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+
+              <article class="admin-panel-section-card">
+                <div class="admin-panel-section-card__heading">
+                  <div>
+                    <span>{{ t('editor.device') }}</span>
+                    <h2>{{ t('devices.title') }}</h2>
+                  </div>
+                  <HardDrive :size="20" />
+                </div>
+                <div v-if="selectedDevice" class="admin-panel-device-summary">
+                  <span class="admin-panel-device-summary__icon">
+                    <Smartphone :size="23" />
+                  </span>
+                  <div>
+                    <strong>{{ selectedDevice.name }}</strong>
+                    <span>{{
+                      selectedDevice.number || t('devices.noNumber')
+                    }}</span>
+                  </div>
+                  <small>{{
+                    selectedDevice.simType || t('devices.noSim')
+                  }}</small>
+                </div>
+                <dl v-if="selectedDevice" class="admin-panel-field-list">
+                  <div>
+                    <dt>{{ t('devices.imei') }}</dt>
+                    <dd>{{ selectedDevice.imei }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ t('devices.updated') }}</dt>
+                    <dd>{{ formatDate(selectedDevice.updatedAt) }}</dd>
+                  </div>
+                </dl>
+                <div v-else class="admin-panel-inline-empty">
+                  {{ t('devices.emptyBody') }}
+                </div>
+              </article>
+            </div>
+
+            <article v-if="selectedDevice" class="admin-panel-section-card">
+              <div class="admin-panel-section-card__heading">
+                <div>
+                  <span>{{ t('editor.security') }}</span>
+                  <h2>{{ t('credentials.title') }}</h2>
+                </div>
+                <KeyRound :size="20" />
+              </div>
+              <div class="admin-panel-security-grid">
+                <div class="admin-panel-credential-box">
+                  <span>{{ t('credentials.email') }}</span>
+                  <strong>{{
+                    selectedDevice.account?.email || t('credentials.noAccount')
+                  }}</strong>
+                </div>
+                <div class="admin-panel-credential-box">
+                  <span>{{ t('credentials.password') }}</span>
+                  <strong class="admin-panel-password">
+                    {{ revealedCredential?.password || '••••••••••••' }}
+                  </strong>
+                  <button
+                    v-if="selectedDevice.account && !revealedCredential"
+                    type="button"
+                    :disabled="
+                      admin.actionKey === selectedDevice.imei + ':password'
+                    "
+                    @click="revealDialogImei = selectedDevice.imei"
+                  >
+                    <Eye :size="15" />{{ t('credentials.reveal') }}
+                  </button>
+                  <button
+                    v-else-if="revealedCredential"
+                    type="button"
+                    @click="copyPassword"
+                  >
+                    <Clipboard :size="15" />{{ t('credentials.copy') }}
+                  </button>
+                </div>
+                <div
+                  class="admin-panel-credential-box admin-panel-credential-box--pin"
+                >
+                  <LockKeyhole :size="18" />
+                  <div>
+                    <span>{{ t('credentials.passcode') }}</span>
+                    <strong>{{
+                      selectedDevice.security.enabled
+                        ? t('credentials.passcodeHashed', {
+                            length: String(selectedDevice.security.length ?? 0),
+                          })
+                        : t('credentials.passcodeDisabled')
+                    }}</strong>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article v-if="selectedDevice" class="admin-panel-section-card">
+              <div
+                class="admin-panel-section-card__heading admin-panel-app-heading"
+              >
+                <div>
+                  <span>{{ t('apps.eyebrow') }}</span>
+                  <h2>{{ t('apps.title') }}</h2>
+                  <p>{{ t('apps.description') }}</p>
+                </div>
+                <div class="admin-panel-app-heading__actions">
+                  <span v-if="selectedDeviceChanges">
+                    {{
+                      t('apps.changes', {
+                        count: String(selectedDeviceChanges),
+                      })
+                    }}
+                  </span>
+                  <label class="admin-panel-search admin-panel-search--apps">
+                    <Search :size="15" />
+                    <input
+                      v-model="appQuery"
+                      type="search"
+                      :placeholder="t('search.apps')"
+                      :aria-label="t('search.apps')"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div class="admin-panel-manual-save-note">
+                <Save :size="17" />
+                <div>
+                  <strong>{{ t('editor.noAutoSave') }}</strong>
+                  <span>{{ t('editor.noAutoSaveBody') }}</span>
+                </div>
+              </div>
+
+              <div class="admin-panel-app-grid">
+                <button
+                  v-for="app in manageableApps"
+                  :key="app.id"
+                  type="button"
+                  :class="{
+                    'is-enabled': isInstalled(selectedDevice, app),
+                    'is-dirty': Object.prototype.hasOwnProperty.call(
+                      drafts[selectedDevice.imei] ?? {},
+                      app.id,
+                    ),
+                  }"
+                  :disabled="
+                    isInstalled(selectedDevice, app) &&
+                    !isPhoneAppRemovable(app)
+                  "
+                  @click="toggleApp(app)"
+                >
+                  <span class="admin-panel-app-icon" :class="app.iconClass">
+                    <component :is="app.icon" :size="18" />
+                  </span>
+                  <span class="admin-panel-app-copy">
+                    <strong>{{ getPhoneAppLabel(app, phone.t) }}</strong>
+                    <small>{{
+                      !isPhoneAppRemovable(app)
+                        ? t('apps.protected')
+                        : isInstalled(selectedDevice, app)
+                          ? t('apps.installed')
+                          : t('apps.available')
+                    }}</small>
+                  </span>
+                  <span class="admin-panel-switch" aria-hidden="true">
+                    <span></span>
+                  </span>
+                </button>
+              </div>
+            </article>
+          </section>
+
+          <section v-else class="admin-panel-empty-editor">
+            <span class="admin-panel-empty-editor__icon">
+              <LayoutDashboard :size="34" />
+            </span>
+            <span>{{ t('overview.eyebrow') }}</span>
+            <h1>{{ t('overview.title') }}</h1>
+            <p>{{ t('editor.selectPlayer') }}</p>
+            <div class="admin-panel-empty-stats">
+              <article>
+                <UsersRound :size="18" />
+                <strong>{{ admin.stats.online }}</strong>
+                <span>{{ t('overview.online') }}</span>
+              </article>
+              <article>
+                <Smartphone :size="18" />
+                <strong>{{ admin.stats.devices }}</strong>
+                <span>{{ t('overview.devices') }}</span>
+              </article>
+              <article>
+                <Database :size="18" />
+                <strong>{{ admin.stats.accounts }}</strong>
+                <span>{{ t('overview.accounts') }}</span>
+              </article>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <Transition name="admin-toast">
+      <div v-if="toast" class="admin-panel-toast" :class="`is-${toastTone}`">
+        <Check v-if="toastTone === 'success'" :size="17" />
+        <TriangleAlert v-else :size="17" />
+        {{ toast }}
+      </div>
+    </Transition>
+
+    <div v-if="revealDialogImei" class="admin-panel-dialog-backdrop">
+      <section class="admin-panel-dialog" role="alertdialog">
+        <span class="admin-panel-dialog__icon"><KeyRound :size="21" /></span>
+        <div>
+          <h2>{{ t('credentials.revealTitle') }}</h2>
+          <p>{{ t('credentials.revealBody') }}</p>
+        </div>
+        <div class="admin-panel-dialog__actions">
+          <SkyButton variant="secondary" @click="revealDialogImei = ''">
+            {{ t('credentials.cancel') }}
+          </SkyButton>
+          <SkyButton class="is-primary" @click="revealPassword">
+            <Eye :size="15" />{{ t('credentials.confirmReveal') }}
+          </SkyButton>
+        </div>
+      </section>
+    </div>
+
+    <div v-if="discardDialog" class="admin-panel-dialog-backdrop">
+      <section class="admin-panel-dialog" role="alertdialog">
+        <span class="admin-panel-dialog__icon is-warning">
+          <TriangleAlert :size="21" />
+        </span>
+        <div>
+          <h2>{{ t('editor.discardTitle') }}</h2>
+          <p>{{ t('editor.discardBody') }}</p>
+        </div>
+        <div class="admin-panel-dialog__actions">
+          <SkyButton variant="secondary" @click="cancelDiscard">
+            {{ t('editor.keepEditing') }}
+          </SkyButton>
+          <SkyButton
+            class="is-danger"
+            variant="danger"
+            @click="discardAndContinue"
+          >
+            {{ t('editor.discard') }}
+          </SkyButton>
+        </div>
+      </section>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.admin-panel-overlay {
+  --admin-bg: #090b0a;
+  --admin-panel: #111311;
+  --admin-panel-raised: #171917;
+  --admin-panel-hover: #1d201d;
+  --admin-border: rgba(255, 255, 255, 0.075);
+  --admin-border-strong: rgba(255, 255, 255, 0.12);
+  --admin-text: #f0f3f0;
+  --admin-muted: #818781;
+  --admin-dim: #555b55;
+  --admin-green: #74d66f;
+  --admin-green-soft: rgba(116, 214, 111, 0.14);
+  --admin-red: #ef6969;
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 3.2vh 3vw;
+  color: var(--admin-text);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(28, 39, 29, 0.18), transparent 55%),
+    rgba(1, 3, 2, 0.56);
+  font-family: var(--sky-font-family, Inter, sans-serif);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+
+.admin-panel-window {
+  width: min(94vw, 1600px);
+  height: min(91vh, 940px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: var(--admin-bg);
+  box-shadow:
+    0 35px 110px rgba(0, 0, 0, 0.72),
+    inset 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.admin-panel-header {
+  height: 54px;
+  display: grid;
+  grid-template-columns: 250px 1fr auto;
+  align-items: center;
+  border-bottom: 1px solid var(--admin-border);
+  background: #0b0d0c;
+}
+
+.admin-panel-brand,
+.admin-panel-context,
+.admin-panel-actions,
+.admin-panel-profile-heading,
+.admin-panel-section-card__heading,
+.admin-panel-device-summary,
+.admin-panel-manual-save-note,
+.admin-panel-dialog__actions {
+  display: flex;
+  align-items: center;
+}
+
+.admin-panel-brand {
+  height: 100%;
+  gap: 10px;
+  padding: 0 15px;
+  border-right: 1px solid var(--admin-border);
+}
+
+.admin-panel-brand__mark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(116, 214, 111, 0.26);
+  border-radius: 7px;
+  color: var(--admin-green);
+  background: var(--admin-green-soft);
+}
+
+.admin-panel-brand div,
+.admin-panel-profile-heading > div:nth-child(2),
+.admin-panel-device-summary div,
+.admin-panel-manual-save-note div {
+  display: grid;
+  min-width: 0;
+}
+
+.admin-panel-brand strong {
+  font-size: 11px;
+  letter-spacing: 0.13em;
+}
+
+.admin-panel-brand span:last-child {
+  color: var(--admin-muted);
+  font-size: 9px;
+  letter-spacing: 0.11em;
+}
+
+.admin-panel-context {
+  gap: 7px;
+  min-width: 0;
+  padding: 0 16px;
+  color: var(--admin-dim);
+  font-size: 11px;
+}
+
+.admin-panel-context strong {
+  overflow: hidden;
+  color: #bfc4bf;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-actions {
+  gap: 6px;
+  padding-right: 10px;
+}
+
+.admin-panel-dirty {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 5px;
+  color: #d2a861;
+  font-size: 10px;
+}
+
+.admin-panel-dirty > span,
+.admin-panel-online-dot,
+.admin-panel-live > span,
+.admin-panel-profile-heading__status span span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--admin-green);
+  box-shadow: 0 0 8px rgba(116, 214, 111, 0.75);
+}
+
+.admin-panel-dirty > span {
+  background: #d8aa5e;
+  box-shadow: 0 0 8px rgba(216, 170, 94, 0.65);
+}
+
+.admin-panel-icon-button,
+.admin-panel-save,
+.admin-panel-rail button {
+  border: 0;
+  color: var(--admin-muted);
+  background: transparent;
+}
+
+.admin-panel-icon-button,
+.admin-panel-save {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.admin-panel-icon-button:hover:not(:disabled) {
+  color: var(--admin-text);
+  background: var(--admin-panel-hover);
+}
+
+.admin-panel-save {
+  border: 1px solid var(--admin-border);
+  color: #555b55;
+  background: #151715;
+}
+
+.admin-panel-save.is-ready {
+  border-color: rgba(116, 214, 111, 0.5);
+  color: #091009;
+  background: var(--admin-green);
+  box-shadow: 0 0 18px rgba(116, 214, 111, 0.18);
+}
+
+.admin-panel-save.is-ready:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.admin-panel-close:hover {
+  color: var(--admin-red) !important;
+  background: rgba(239, 105, 105, 0.09) !important;
+}
+
+button:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5;
+}
+
+.admin-panel-body {
+  height: calc(100% - 54px);
+  display: grid;
+  grid-template-columns: 54px 300px minmax(0, 1fr);
+}
+
+.admin-panel-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 0 10px;
+  border-right: 1px solid var(--admin-border);
+  background: #0b0d0c;
+}
+
+.admin-panel-rail button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.admin-panel-rail button:hover,
+.admin-panel-rail button.is-active {
+  color: var(--admin-text);
+  background: var(--admin-panel-hover);
+}
+
+.admin-panel-rail button.is-active {
+  box-shadow: inset 2px 0 var(--admin-green);
+}
+
+.admin-panel-rail__spacer {
+  flex: 1;
+}
+
+.admin-panel-live {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  color: var(--admin-dim);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.admin-panel-directory {
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--admin-border);
+  background: #101210;
+}
+
+.admin-panel-directory__header {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.admin-panel-directory__header div,
+.admin-panel-section-card__heading > div:first-child,
+.admin-panel-app-heading > div:first-child,
+.admin-panel-page-heading > div:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-panel-directory__header span,
+.admin-panel-section-card__heading span,
+.admin-panel-page-heading span,
+.admin-panel-profile-heading > div > span {
+  color: var(--admin-muted);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+}
+
+.admin-panel-directory__header h2,
+.admin-panel-section-card__heading h2,
+.admin-panel-page-heading h1,
+.admin-panel-profile-heading h1,
+.admin-panel-empty-editor h1,
+.admin-panel-dialog h2 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.admin-panel-directory__header h2 {
+  font-size: 14px;
+}
+
+.admin-panel-directory__header > strong {
+  min-width: 28px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  color: #b7bcb7;
+  background: #1b1e1b;
+  font-size: 10px;
+  text-align: center;
+}
+
+.admin-panel-search {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 11px;
+  padding: 0 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  color: var(--admin-dim);
+  background: #161816;
+}
+
+.admin-panel-search:focus-within {
+  border-color: rgba(116, 214, 111, 0.3);
+  color: var(--admin-green);
+}
+
+.admin-panel-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--admin-text);
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+}
+
+.admin-panel-search input::placeholder {
+  color: #5f655f;
+}
+
+.admin-panel-player-list,
+.admin-panel-audit-mini-list {
+  height: calc(100% - 115px);
+  overflow-y: auto;
+  padding: 0 8px 16px;
+  scrollbar-color: #343834 transparent;
+  scrollbar-width: thin;
+}
+
+.admin-panel-player-list > button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--admin-text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-panel-player-list > button:hover {
+  background: #171a17;
+}
+
+.admin-panel-player-list > button.is-active {
+  border-color: var(--admin-border);
+  background: #1b1e1b;
+  box-shadow: inset 2px 0 var(--admin-green);
+}
+
+.admin-panel-avatar,
+.admin-panel-profile-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(116, 214, 111, 0.16);
+  border-radius: 7px;
+  color: #c7e8c4;
+  background: linear-gradient(145deg, #263126, #182018);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-panel-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.admin-panel-player-list__copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.admin-panel-player-list__copy strong,
+.admin-panel-player-list__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-player-list__copy strong {
+  font-size: 11px;
+  font-weight: 580;
+}
+
+.admin-panel-player-list__copy small,
+.admin-panel-player-list__meta {
+  color: var(--admin-muted);
+  font-size: 9px;
+}
+
+.admin-panel-player-list__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-panel-empty-list,
+.admin-panel-empty-editor,
+.admin-panel-loading {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.admin-panel-empty-list {
+  gap: 5px;
+  padding: 40px 22px;
+  color: var(--admin-muted);
+}
+
+.admin-panel-empty-list strong {
+  color: var(--admin-text);
+  font-size: 12px;
+}
+
+.admin-panel-empty-list span {
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.admin-panel-audit-mini-list {
+  height: calc(100% - 70px);
+  padding-inline: 10px;
+}
+
+.admin-panel-audit-mini-list article {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 9px;
+  padding: 10px 5px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-panel-audit-icon {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  color: var(--admin-green);
+  background: var(--admin-green-soft);
+}
+
+.admin-panel-audit-mini-list div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-panel-audit-mini-list strong {
+  font-size: 10px;
+}
+
+.admin-panel-audit-mini-list span,
+.admin-panel-audit-mini-list small {
+  color: var(--admin-muted);
+  font-size: 9px;
+}
+
+.admin-panel-editor {
+  min-width: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px), #0b0d0c;
+  background-size: 100% 44px;
+}
+
+.admin-panel-editor__scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px;
+  scrollbar-color: #343834 transparent;
+  scrollbar-width: thin;
+}
+
+.admin-panel-loading,
+.admin-panel-empty-editor {
+  height: 100%;
+  gap: 9px;
+  color: var(--admin-muted);
+}
+
+.admin-panel-profile-heading {
+  gap: 13px;
+  min-height: 72px;
+  padding: 4px 5px 16px;
+}
+
+.admin-panel-profile-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.admin-panel-profile-heading h1 {
+  font-size: 21px;
+  letter-spacing: -0.025em;
+}
+
+.admin-panel-profile-heading p,
+.admin-panel-section-card__heading p,
+.admin-panel-page-heading p,
+.admin-panel-empty-editor p,
+.admin-panel-dialog p {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.admin-panel-profile-heading__status {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.admin-panel-profile-heading__status > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--admin-green);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+}
+
+.admin-panel-profile-heading__status strong {
+  padding: 4px 7px;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  color: #a8aea8;
+  background: #151715;
+  font-size: 9px;
+}
+
+.admin-panel-device-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+  padding-bottom: 2px;
+}
+
+.admin-panel-device-tabs button {
+  min-width: 155px;
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 1px 7px;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  color: var(--admin-muted);
+  background: #121412;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-panel-device-tabs button svg {
+  grid-row: 1 / 3;
+}
+
+.admin-panel-device-tabs button span {
+  color: #c8cdc8;
+  font-size: 10px;
+}
+
+.admin-panel-device-tabs button small {
+  font-size: 8px;
+}
+
+.admin-panel-device-tabs button.is-active {
+  border-color: rgba(116, 214, 111, 0.3);
+  color: var(--admin-green);
+  background: var(--admin-green-soft);
+}
+
+.admin-panel-device-tabs button.is-dirty::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+  justify-self: end;
+  border-radius: 50%;
+  background: #d8aa5e;
+}
+
+.admin-panel-stat-grid,
+.admin-panel-section-grid,
+.admin-panel-security-grid,
+.admin-panel-app-grid,
+.admin-panel-audit-grid,
+.admin-panel-empty-stats {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-panel-stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+
+.admin-panel-stat-grid article {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  align-items: center;
+  gap: 1px 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-panel);
+}
+
+.admin-panel-stat-grid svg {
+  grid-row: 1 / 3;
+  color: var(--admin-muted);
+}
+
+.admin-panel-stat-grid span {
+  color: var(--admin-muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.admin-panel-stat-grid strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-section-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-panel-section-card {
+  margin-bottom: 10px;
+  padding: 13px;
+  border: 1px solid var(--admin-border);
+  border-radius: 7px;
+  background: var(--admin-panel);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.015);
+}
+
+.admin-panel-section-card__heading {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-panel-section-card__heading h2 {
+  font-size: 12px;
+}
+
+.admin-panel-section-card__heading > svg {
+  color: var(--admin-muted);
+}
+
+.admin-panel-field-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.admin-panel-field-list > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.75fr) minmax(0, 1.25fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-panel-field-list dt {
+  color: var(--admin-muted);
+  font-size: 9px;
+}
+
+.admin-panel-field-list dd {
+  min-width: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--admin-border);
+  border-radius: 5px;
+  color: #d8dcd8;
+  background: #191b19;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-device-summary {
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.admin-panel-device-summary__icon,
+.admin-panel-heading-icon,
+.admin-panel-empty-editor__icon {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(116, 214, 111, 0.16);
+  color: var(--admin-green);
+  background: var(--admin-green-soft);
+}
+
+.admin-panel-device-summary__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+}
+
+.admin-panel-device-summary strong {
+  font-size: 11px;
+}
+
+.admin-panel-device-summary span,
+.admin-panel-device-summary small {
+  color: var(--admin-muted);
+  font-size: 9px;
+}
+
+.admin-panel-device-summary small {
+  margin-left: auto;
+  padding: 4px 7px;
+  border-radius: 4px;
+  background: #1b1e1b;
+}
+
+.admin-panel-inline-empty {
+  padding: 18px;
+  color: var(--admin-muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.admin-panel-security-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-panel-credential-box {
+  position: relative;
+  display: grid;
+  align-content: center;
+  min-height: 66px;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 5px;
+  background: #181a18;
+}
+
+.admin-panel-credential-box > span,
+.admin-panel-credential-box--pin div span {
+  color: var(--admin-muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.admin-panel-credential-box > strong,
+.admin-panel-credential-box--pin strong {
+  overflow: hidden;
+  padding-right: 82px;
+  font-size: 10px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-credential-box button {
+  position: absolute;
+  right: 7px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 7px;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 4px;
+  color: #bbc0bb;
+  background: #242724;
+  font-size: 8px;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.admin-panel-password {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: 0.06em;
+}
+
+.admin-panel-credential-box--pin {
+  grid-column: 1 / -1;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  min-height: 46px;
+}
+
+.admin-panel-credential-box--pin > svg {
+  color: var(--admin-muted);
+}
+
+.admin-panel-credential-box--pin div {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-panel-credential-box--pin strong {
+  padding: 0;
+  color: #b8bdb8;
+  font-size: 9px;
+}
+
+.admin-panel-app-heading {
+  align-items: flex-end;
+}
+
+.admin-panel-app-heading__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-panel-app-heading__actions > span {
+  color: #d8aa5e;
+  font-size: 9px;
+}
+
+.admin-panel-search--apps {
+  width: 190px;
+  height: 44px;
+  margin: 0;
+}
+
+.admin-panel-manual-save-note {
+  gap: 9px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(116, 214, 111, 0.16);
+  border-radius: 5px;
+  color: var(--admin-green);
+  background: rgba(116, 214, 111, 0.055);
+}
+
+.admin-panel-manual-save-note strong {
+  font-size: 9px;
+}
+
+.admin-panel-manual-save-note span {
+  color: #849184;
+  font-size: 8px;
+}
+
+.admin-panel-app-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-panel-app-grid > button {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 5px;
+  color: var(--admin-text);
+  background: #161816;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-panel-app-grid > button:hover:not(:disabled) {
+  border-color: var(--admin-border-strong);
+  background: var(--admin-panel-hover);
+}
+
+.admin-panel-app-grid > button.is-dirty {
+  border-color: rgba(216, 170, 94, 0.32);
+  box-shadow: inset 2px 0 #d8aa5e;
+}
+
+.admin-panel-app-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: white;
+  background: #292c29;
+}
+
+.admin-panel-app-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.admin-panel-app-copy strong,
+.admin-panel-app-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-app-copy strong {
+  font-size: 9px;
+  font-weight: 550;
+}
+
+.admin-panel-app-copy small {
+  color: var(--admin-muted);
+  font-size: 8px;
+}
+
+.admin-panel-switch {
+  width: 27px;
+  height: 15px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #353935;
+  transition: background 150ms ease;
+}
+
+.admin-panel-switch span {
+  width: 11px;
+  height: 11px;
+  display: block;
+  border-radius: 50%;
+  background: #c8cdc8;
+  transition: transform 150ms ease;
+}
+
+.admin-panel-app-grid > button.is-enabled .admin-panel-switch {
+  background: var(--admin-green);
+}
+
+.admin-panel-app-grid > button.is-enabled .admin-panel-switch span {
+  transform: translateX(12px);
+  background: #0b100b;
+}
+
+.admin-panel-page-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+  padding: 5px;
+}
+
+.admin-panel-heading-icon,
+.admin-panel-empty-editor__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+}
+
+.admin-panel-page-heading h1,
+.admin-panel-empty-editor h1 {
+  font-size: 19px;
+}
+
+.admin-panel-audit-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-panel-audit-grid article {
+  display: grid;
+  gap: 7px;
+  padding: 13px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-panel);
+}
+
+.admin-panel-audit-grid__topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--admin-green);
+  font-size: 9px;
+}
+
+.admin-panel-audit-grid time,
+.admin-panel-audit-grid p {
+  color: var(--admin-muted);
+  font-size: 8px;
+}
+
+.admin-panel-audit-grid strong {
+  font-size: 11px;
+}
+
+.admin-panel-empty-editor {
+  padding: 30px;
+}
+
+.admin-panel-empty-editor > p {
+  max-width: 430px;
+}
+
+.admin-panel-empty-stats {
+  grid-template-columns: repeat(3, 130px);
+  margin-top: 14px;
+}
+
+.admin-panel-empty-stats article {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-panel);
+  text-align: left;
+}
+
+.admin-panel-empty-stats svg {
+  grid-row: 1 / 3;
+  color: var(--admin-muted);
+}
+
+.admin-panel-empty-stats strong {
+  font-size: 13px;
+}
+
+.admin-panel-empty-stats span {
+  color: var(--admin-muted);
+  font-size: 8px;
+}
+
+.admin-panel-toast {
+  position: fixed;
+  z-index: 10002;
+  right: 4vw;
+  bottom: 4vh;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 390px;
+  padding: 10px 13px;
+  border: 1px solid rgba(116, 214, 111, 0.25);
+  border-radius: 6px;
+  color: #d7ecd5;
+  background: #152015;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  font-size: 10px;
+}
+
+.admin-panel-toast.is-error {
+  border-color: rgba(239, 105, 105, 0.3);
+  color: #f2c4c4;
+  background: #241414;
+}
+
+.admin-panel-dialog-backdrop {
+  position: fixed;
+  z-index: 10001;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.66);
+  backdrop-filter: blur(3px);
+}
+
+.admin-panel-dialog {
+  width: min(420px, 90vw);
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 8px;
+  background: #121412;
+  box-shadow: 0 25px 75px rgba(0, 0, 0, 0.65);
+}
+
+.admin-panel-dialog__icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--admin-green);
+  background: var(--admin-green-soft);
+}
+
+.admin-panel-dialog__icon.is-warning {
+  color: #e0ad5f;
+  background: rgba(224, 173, 95, 0.12);
+}
+
+.admin-panel-dialog h2 {
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.admin-panel-dialog__actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 5px;
+}
+
+.admin-panel-dialog__actions button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 5px;
+  color: #c6cbc6;
+  background: #202320;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.admin-panel-overlay button:focus-visible,
+.admin-panel-overlay input:focus-visible {
+  outline: 2px solid var(--admin-green);
+  outline-offset: 2px;
+}
+
+.admin-panel-dialog__actions button.is-primary {
+  border-color: rgba(116, 214, 111, 0.3);
+  color: #d9eed7;
+  background: rgba(116, 214, 111, 0.14);
+}
+
+.admin-panel-dialog__actions button.is-danger {
+  border-color: rgba(239, 105, 105, 0.3);
+  color: #efaaaa;
+  background: rgba(239, 105, 105, 0.1);
+}
+
+.is-spinning {
+  animation: admin-spin 800ms linear infinite;
+}
+
+.admin-toast-enter-active,
+.admin-toast-leave-active {
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.admin-toast-enter-from,
+.admin-toast-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+@keyframes admin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1100px) {
+  .admin-panel-window {
+    width: 97vw;
+    height: 94vh;
+  }
+
+  .admin-panel-body {
+    grid-template-columns: 50px 250px minmax(0, 1fr);
+  }
+
+  .admin-panel-header {
+    grid-template-columns: 225px 1fr auto;
+  }
+
+  .admin-panel-stat-grid,
+  .admin-panel-app-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-panel-overlay *,
+  .admin-panel-overlay *::before,
+  .admin-panel-overlay *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>

@@ -1288,19 +1288,6 @@ button {
 .app-icon--darkchat {
   background: #050507;
 }
-.app-icon--admin {
-  background:
-    radial-gradient(
-      circle at 72% 18%,
-      rgba(66, 220, 255, 0.8),
-      transparent 22%
-    ),
-    linear-gradient(145deg, #8b7bff, #3423a6 70%);
-  color: #fff;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
-    0 8px 22px rgba(80, 57, 210, 0.35);
-}
 .darkchat-page {
   --dc-purple: #8b5cf6;
   --dc-purple-dark: #5b21b6;

@@ -38,7 +38,6 @@ export type PhoneOpenPayload = {
   locales?: LocaleTree
   memos?: DeviceBootstrap['memos']
   notes?: DeviceBootstrap['notes']
-  permissions?: DeviceBootstrap['permissions']
   player?: DeviceBootstrap['player']
   security?: DeviceSecurity
   token?: string
@@ -806,7 +805,7 @@ const citywarnFallbackLocales = {
   },
 }
 
-const adminFallbackLocales = {
+const adminPanelFallbackLocales = {
   name: 'Command Center',
   subtitle: 'Protected administration',
   navigation: 'Admin navigation',
@@ -829,7 +828,11 @@ const adminFallbackLocales = {
     empty: 'No players found',
     emptyBody: 'Adjust the search or refresh the live player list.',
   },
-  search: { players: 'Search name, ID, job, or number', clear: 'Clear search' },
+  search: {
+    players: 'Search name, ID, job, or number',
+    apps: 'Search apps',
+    clear: 'Clear search',
+  },
   detail: {
     character: 'Character profile',
     data: 'Player data overview',
@@ -878,13 +881,39 @@ const adminFallbackLocales = {
   apps: {
     eyebrow: 'Remote management',
     title: 'App access',
-    search: 'Search apps',
+    description:
+      'Stage app access for this device. Nothing changes until you save.',
     installed: 'Installed',
     available: 'Available',
-    grant: 'Install',
-    revoke: 'Remove',
-    granted: 'App installed on the selected phone.',
-    revoked: 'App removed from the selected phone.',
+    protected: 'System app',
+    changes: '{count} pending changes',
+  },
+  editor: {
+    brand: 'SKY PHONE',
+    workspace: 'ADMIN WORKSPACE',
+    players: 'Player directory',
+    audit: 'Audit log',
+    selectPlayer:
+      'Select a player to inspect identity, devices, credentials, and app access.',
+    save: 'Save changes',
+    saveHint: 'Apply pending changes',
+    saved: 'Changes saved.',
+    unsaved: 'Unsaved changes',
+    close: 'Close admin panel',
+    refresh: 'Refresh live data',
+    online: 'LIVE',
+    profile: 'PROFILE',
+    financial: 'FINANCIAL',
+    device: 'DEVICE',
+    security: 'SECURITY',
+    noAutoSave: 'Manual save',
+    noAutoSaveBody: 'Changes stay local until the green check is pressed.',
+    discardTitle: 'Discard unsaved changes?',
+    discardBody: 'Your staged app changes have not been saved.',
+    keepEditing: 'Keep editing',
+    discard: 'Discard changes',
+    saveFailed: 'Some changes could not be saved.',
+    noSelection: 'No player selected',
   },
   audit: {
     eyebrow: 'Accountability',
@@ -910,15 +939,14 @@ const adminFallbackLocales = {
       'The phone changed in the meantime. Refresh and try again.',
     account_not_found: 'No iFruit account is linked to this phone.',
     invalid_request: 'The admin request was invalid.',
-    device_locked: 'Unlock your phone before using the admin panel.',
     request_failed: 'The admin request failed.',
     default: 'The admin panel is temporarily unavailable.',
   },
 }
 
 const defaultLocales: LocaleTree = {
+  AdminPanel: adminPanelFallbackLocales,
   Apps: {
-    admin: adminFallbackLocales,
     citywarn: citywarnFallbackLocales,
     crypto: cryptoFallbackLocales,
     easyShare: {
@@ -2544,46 +2572,190 @@ const defaultLocales: LocaleTree = {
         'neon-drop': 'Neon block-dropping puzzle',
       },
       previews: {
-        citywarn: { first: 'Live alerts', second: 'Safety zones', third: 'Incident updates' },
-        crypto: { first: 'Synthetic markets', second: 'Portfolio', third: 'Wallet transfers' },
-        health: { first: 'Activity rings', second: 'Medical ID', third: 'Health records' },
-        'weazel-news': { first: 'Top stories', second: 'Local reports', third: 'Breaking news' },
-        companies: { first: 'Business directory', second: 'Job requests', third: 'Services' },
-        music: { first: 'Now playing', second: 'Playlists', third: 'Music library' },
-        picstagram: { first: 'Photo feed', second: 'Stories', third: 'Profiles' },
-        feather: { first: 'Short posts', second: 'Following feed', third: 'Conversations' },
-        fliptok: { first: 'Video feed', second: 'Creator tools', third: 'Trends' },
-        flare: { first: 'Discover people', second: 'Matches', third: 'Live moments' },
-        calendar: { first: 'Upcoming events', second: 'Day planner', third: 'Reminders' },
-        radio: { first: 'Live channels', second: 'Team radio', third: 'Favorites' },
-        'local-pages': { first: 'Local pages', second: 'Reviews', third: 'City discovery' },
-        crewlink: { first: 'Crew roster', second: 'Shared locations', third: 'Coordination' },
-        phone: { first: 'Recent calls', second: 'Contacts', third: 'Voicemail' },
-        messages: { first: 'Conversations', second: 'Media sharing', third: 'Quick replies' },
-        darkchat: { first: 'Private chats', second: 'Secure groups', third: 'Invitations' },
-        garage: { first: 'Vehicle list', second: 'Parking locations', third: 'Valet' },
-        house: { first: 'Property access', second: 'Residents', third: 'Management' },
-        map: { first: 'Live navigation', second: 'Nearby places', third: 'Route guidance' },
-        skyride: { first: 'Ride booking', second: 'Driver tracking', third: 'Trip history' },
-        banking: { first: 'Account balance', second: 'Transfers', third: 'Transactions' },
-        billing: { first: 'Open invoices', second: 'Payment requests', third: 'Payment history' },
+        citywarn: {
+          first: 'Live alerts',
+          second: 'Safety zones',
+          third: 'Incident updates',
+        },
+        crypto: {
+          first: 'Synthetic markets',
+          second: 'Portfolio',
+          third: 'Wallet transfers',
+        },
+        health: {
+          first: 'Activity rings',
+          second: 'Medical ID',
+          third: 'Health records',
+        },
+        'weazel-news': {
+          first: 'Top stories',
+          second: 'Local reports',
+          third: 'Breaking news',
+        },
+        companies: {
+          first: 'Business directory',
+          second: 'Job requests',
+          third: 'Services',
+        },
+        music: {
+          first: 'Now playing',
+          second: 'Playlists',
+          third: 'Music library',
+        },
+        picstagram: {
+          first: 'Photo feed',
+          second: 'Stories',
+          third: 'Profiles',
+        },
+        feather: {
+          first: 'Short posts',
+          second: 'Following feed',
+          third: 'Conversations',
+        },
+        fliptok: {
+          first: 'Video feed',
+          second: 'Creator tools',
+          third: 'Trends',
+        },
+        flare: {
+          first: 'Discover people',
+          second: 'Matches',
+          third: 'Live moments',
+        },
+        calendar: {
+          first: 'Upcoming events',
+          second: 'Day planner',
+          third: 'Reminders',
+        },
+        radio: {
+          first: 'Live channels',
+          second: 'Team radio',
+          third: 'Favorites',
+        },
+        'local-pages': {
+          first: 'Local pages',
+          second: 'Reviews',
+          third: 'City discovery',
+        },
+        crewlink: {
+          first: 'Crew roster',
+          second: 'Shared locations',
+          third: 'Coordination',
+        },
+        phone: {
+          first: 'Recent calls',
+          second: 'Contacts',
+          third: 'Voicemail',
+        },
+        messages: {
+          first: 'Conversations',
+          second: 'Media sharing',
+          third: 'Quick replies',
+        },
+        darkchat: {
+          first: 'Private chats',
+          second: 'Secure groups',
+          third: 'Invitations',
+        },
+        garage: {
+          first: 'Vehicle list',
+          second: 'Parking locations',
+          third: 'Valet',
+        },
+        house: {
+          first: 'Property access',
+          second: 'Residents',
+          third: 'Management',
+        },
+        map: {
+          first: 'Live navigation',
+          second: 'Nearby places',
+          third: 'Route guidance',
+        },
+        skyride: {
+          first: 'Ride booking',
+          second: 'Driver tracking',
+          third: 'Trip history',
+        },
+        banking: {
+          first: 'Account balance',
+          second: 'Transfers',
+          third: 'Transactions',
+        },
+        billing: {
+          first: 'Open invoices',
+          second: 'Payment requests',
+          third: 'Payment history',
+        },
         mail: { first: 'Inbox', second: 'Attachments', third: 'Mailboxes' },
         notes: { first: 'Notes', second: 'Checklists', third: 'Pinned ideas' },
-        memos: { first: 'Voice recordings', second: 'Playback', third: 'Favorites' },
-        calculator: { first: 'Basic calculation', second: 'Scientific tools', third: 'History' },
-        camera: { first: 'Photo mode', second: 'Video capture', third: 'Zoom controls' },
+        memos: {
+          first: 'Voice recordings',
+          second: 'Playback',
+          third: 'Favorites',
+        },
+        calculator: {
+          first: 'Basic calculation',
+          second: 'Scientific tools',
+          third: 'History',
+        },
+        camera: {
+          first: 'Photo mode',
+          second: 'Video capture',
+          third: 'Zoom controls',
+        },
         clock: { first: 'World clock', second: 'Alarms', third: 'Timers' },
-        weather: { first: 'Current weather', second: 'Hourly forecast', third: 'Seven-day outlook' },
-        photos: { first: 'Media library', second: 'Albums', third: 'Shared media' },
-        settings: { first: 'Device controls', second: 'Privacy', third: 'Personalization' },
+        weather: {
+          first: 'Current weather',
+          second: 'Hourly forecast',
+          third: 'Seven-day outlook',
+        },
+        photos: {
+          first: 'Media library',
+          second: 'Albums',
+          third: 'Shared media',
+        },
+        settings: {
+          first: 'Device controls',
+          second: 'Privacy',
+          third: 'Personalization',
+        },
         snake: { first: 'High score', second: 'Speed', third: 'Classic grid' },
-        memory: { first: 'Matched pairs', second: 'Best time', third: 'Card themes' },
-        'number-merge': { first: 'Highest tile', second: 'Score', third: 'Strategy grid' },
-        minesweeper: { first: 'Mine counter', second: 'Best time', third: 'Difficulty' },
-        'tower-stack': { first: 'Tower height', second: 'Perfect drops', third: 'High score' },
-        'sky-flappy': { first: 'Flight score', second: 'Best run', third: 'Obstacles' },
-        citymarkt: { first: 'Listings', second: 'Categories', third: 'Saved offers' },
-        'neon-drop': { first: 'Lines cleared', second: 'Level', third: 'Neon pieces' },
+        memory: {
+          first: 'Matched pairs',
+          second: 'Best time',
+          third: 'Card themes',
+        },
+        'number-merge': {
+          first: 'Highest tile',
+          second: 'Score',
+          third: 'Strategy grid',
+        },
+        minesweeper: {
+          first: 'Mine counter',
+          second: 'Best time',
+          third: 'Difficulty',
+        },
+        'tower-stack': {
+          first: 'Tower height',
+          second: 'Perfect drops',
+          third: 'High score',
+        },
+        'sky-flappy': {
+          first: 'Flight score',
+          second: 'Best run',
+          third: 'Obstacles',
+        },
+        citymarkt: {
+          first: 'Listings',
+          second: 'Categories',
+          third: 'Saved offers',
+        },
+        'neon-drop': {
+          first: 'Lines cleared',
+          second: 'Level',
+          third: 'Neon pieces',
+        },
       },
       search: {
         recommended: 'Recommended',
@@ -5276,9 +5448,6 @@ export const usePhoneStore = defineStore('phone', {
       firstName: '',
       lastName: '',
     } as DeviceBootstrap['player'],
-    permissions: {
-      adminPanel: false,
-    } as DeviceBootstrap['permissions'],
     security: {
       enabled: false,
       length: null,
@@ -5298,6 +5467,15 @@ export const usePhoneStore = defineStore('phone', {
       this.cameraLandscape = false
       this.isOpen = false
     },
+    setLocale(
+      lang: string,
+      locales: LocaleTree,
+      fallbackLocales: LocaleTree,
+    ): void {
+      this.lang = lang
+      this.locales = locales
+      this.fallbackLocales = fallbackLocales
+    },
     open(payload: PhoneOpenPayload = {}): void {
       const nextImei = payload.device?.imei ?? this.device?.imei ?? null
       const nextToken = payload.token ?? this.deviceSessionToken
@@ -5313,7 +5491,6 @@ export const usePhoneStore = defineStore('phone', {
       this.locales = payload.locales ?? this.fallbackLocales
       if (payload.device) this.hydrateDevice(payload.device)
       if (payload.player) this.player = payload.player
-      this.permissions = payload.permissions ?? { adminPanel: false }
       this.security = payload.security ?? {
         enabled: false,
         length: null,
@@ -5324,7 +5501,6 @@ export const usePhoneStore = defineStore('phone', {
     endDeviceSession(): void {
       this.close()
       this.player = { firstName: '', lastName: '' }
-      this.permissions = { adminPanel: false }
       if (this.deviceSessionToken !== null) {
         this.deviceSessionToken = null
         this.persistenceGeneration += 1

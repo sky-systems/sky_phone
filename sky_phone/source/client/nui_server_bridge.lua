@@ -1,6 +1,6 @@
 local callback_groups = {
     account = [[login register logout devices remove-device]],
-    admin = [[bootstrap player set-app reveal-password]],
+    admin = [[bootstrap player save-apps reveal-password]],
     banking = [[overview transfer]],
     billing = [[overview list detail markRead pay dispute]],
     calendar = [[list create update delete]],

@@ -58,6 +58,7 @@ export type AdminPlayerDetail = {
   money: {
     bank: number
     cash: number
+    currency: string
   }
   name: string
   serverName: string
