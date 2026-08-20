@@ -6615,9 +6615,47 @@ button {
   display: block;
   object-fit: contain;
 }
+.messages-media-picker__gifs--masonry {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.messages-gif-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 8px;
+}
+.messages-gif-column {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.messages-media-picker__gifs--masonry .messages-gif-result {
+  width: 100%;
+  min-height: 0;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgb(60 60 67 / 10%);
+  border-radius: 12px;
+  background: var(--sky-surface-muted);
+  box-shadow: none;
+}
+.messages-media-picker__gifs--masonry .messages-gif-result img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
 .messages-media-picker__gifs .messages-gif-more {
+  width: 100%;
   min-height: 36px;
-  grid-column: 1 / -1;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   color: var(--ios-blue);
   font-size: 12px;
   font-weight: 650;
@@ -6938,6 +6976,12 @@ button {
 }
 .phone-app.dark .messages-media-picker__gifs button {
   background: #2c2c2e;
+}
+.phone-app.dark
+  .messages-media-picker__gifs--masonry
+  .messages-gif-result {
+  border-color: rgb(255 255 255 / 10%);
+  background: var(--sky-surface-muted);
 }
 .phone-app.dark .messages-media-picker__gifs .messages-gif-more,
 .phone-app.dark .messages-media-picker__gifs .messages-gif-error button {
