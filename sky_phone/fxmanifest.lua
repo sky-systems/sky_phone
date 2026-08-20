@@ -106,6 +106,7 @@ server_scripts {
     'source/server/notifications.lua',
     'source/shared/public_api.lua',
     'source/server/public_api.lua',
+    'source/server/media_provider_config.lua',
     'source/server/media_import.lua',
     'source/server/media_import/fivemanage.lua',
     'source/server/media_import/manifest.lua',

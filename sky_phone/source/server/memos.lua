@@ -361,7 +361,7 @@ RegisterNetEvent("sky_phone:memos:request-upload", function(data)
         upload_result(src, memo.correlation_id, false, "operation_in_progress")
         return
     end
-    local presigned_url, presigned_error = SkyPhoneMedia.RequestPresignedUrl()
+    local presigned_url, presigned_error, provider_base_url = SkyPhoneMedia.RequestPresignedUrl()
     if not presigned_url then
         Bridge.Debug(
             "error",
@@ -386,8 +386,10 @@ RegisterNetEvent("sky_phone:memos:request-upload", function(data)
         memo = memo,
         owner = owner,
         owner_key = pending_owner_key,
+        provider_base_url = provider_base_url,
         purpose = "memo",
         source = src,
+        upload_path = "sky_phone-" .. capture_token,
     }
     SetTimeout(Config.Memos.UploadSessionTimeoutMs, function()
         expire_upload(request_id)
@@ -397,6 +399,7 @@ RegisterNetEvent("sky_phone:memos:request-upload", function(data)
         correlationId = memo.correlation_id,
         captureToken = capture_token,
         presignedUrl = presigned_url,
+        uploadPath = pending_uploads[request_id].upload_path,
         uploadTimeoutMs = Config.Media.FiveManage.UploadTimeoutMs,
     })
 end)
@@ -412,14 +415,24 @@ RegisterNetEvent("sky_phone:memos:complete-upload", function(data)
     local owner, error_response = device_owner(src, state.owner.imei)
     if not owner or owner.imei ~= state.owner.imei or owner.account_id ~= state.owner.account_id then
         pending_uploads[request_id] = nil
-        local rejected, _, trusted_remote = SkyPhoneMedia.VerifyRemoteUpload(state, data.remoteId, data.url)
+        local rejected, _, trusted_remote = SkyPhoneMedia.VerifyRemoteUpload(
+            state,
+            data.remoteId,
+            data.url,
+            data.originalUrl
+        )
         if rejected or trusted_remote then
             discard_verified_upload(data.remoteId)
         end
         upload_result(src, state.memo.correlation_id, false, error_response and error_response.error or "owner_changed")
         return
     end
-    local verified, verify_error, trusted_remote = SkyPhoneMedia.VerifyRemoteUpload(state, data.remoteId, data.url)
+    local verified, verify_error, trusted_remote = SkyPhoneMedia.VerifyRemoteUpload(
+        state,
+        data.remoteId,
+        data.url,
+        data.originalUrl
+    )
     if not verified then
         pending_uploads[request_id] = nil
         if trusted_remote then

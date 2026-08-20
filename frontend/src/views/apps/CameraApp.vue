@@ -134,10 +134,30 @@ async function requestPhoto(): Promise<void> {
     window.setTimeout(() => void completeDevelopmentCapture(id, 'photo'), 700)
     return
   }
-  await nuiCall('media:requestUpload', {
+  console.info('[Sky Phone Media] Camera requested a photo upload.', {
+    correlationId: id,
+  })
+  const response = await nuiCall('media:requestUpload', {
     correlationId: id,
     mediaType: 'photo',
   })
+  if (!response.success) {
+    console.error('[Sky Phone Media] Photo upload request was rejected.', {
+      correlationId: id,
+      error: response.error,
+    })
+    window.postMessage(
+      {
+        data: {
+          correlationId: id,
+          error: response.error ?? 'request_failed',
+          success: false,
+        },
+        type: 'media:uploadResult',
+      },
+      '*',
+    )
+  }
 }
 
 function startRecording(): void {
@@ -374,6 +394,11 @@ function onMessage(event: MessageEvent): void {
   } else if (message.type === 'media:uploadResult') {
     const result = message.data as UploadResult
     if (!result?.correlationId) return
+    console.info('[Sky Phone Media] Camera received an upload result.', {
+      correlationId: result.correlationId,
+      error: result.error,
+      success: result.success,
+    })
     savingVideo.value = false
     if (result.success && result.media) {
       latestMedia.value = result.media

@@ -448,6 +448,13 @@ RegisterNUICallback("media:requestUpload", function(data, cb)
         cb({ success = false, error = "invalid_request" })
         return
     end
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] NUI requested an upload (correlation=%s, type=%s).",
+        tostring(data.correlationId),
+        tostring(data.mediaType),
+        { notice = true }
+    )
     TriggerServerEvent("sky_phone:media:request-upload", data)
     cb({ success = true })
 end)
@@ -457,6 +464,15 @@ RegisterNUICallback("media:completeUpload", function(data, cb)
         cb({ success = false, error = "invalid_request" })
         return
     end
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] NUI completed the provider upload (correlation=%s, remote-id=%s, url=%s, original-url=%s).",
+        tostring(data.correlationId),
+        type(data.remoteId) == "string" and "present" or "missing",
+        type(data.url) == "string" and "present" or "missing",
+        type(data.originalUrl) == "string" and "present" or "missing",
+        { notice = true }
+    )
     TriggerServerEvent("sky_phone:media:complete-upload", data)
     cb({ success = true })
 end)
@@ -475,6 +491,16 @@ RegisterNUICallback("media:failUpload", function(data, cb)
         cb({ success = false, error = "invalid_request" })
         return
     end
+    local debug_message = tostring(data.debugMessage or "unknown"):gsub("[\r\n]", " "):sub(1, 240)
+    Bridge.Debug(
+        "error",
+        "[sky_phone][media-debug] NUI reported an upload failure (correlation=%s, error=%s, stage=%s, status=%s, detail=%s).",
+        tostring(data.correlationId),
+        tostring(data.error),
+        tostring(data.debugStage),
+        tostring(data.debugStatus),
+        debug_message
+    )
     TriggerServerEvent("sky_phone:media:fail-upload", data)
     cb({ success = true })
 end)
@@ -534,10 +560,26 @@ RegisterNUICallback("memos:failUpload", function(data, cb)
 end)
 
 RegisterNetEvent("sky_phone:media:upload-ready", function(data)
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Client received upload-ready (correlation=%s, type=%s, presigned-url=%s).",
+        tostring(type(data) == "table" and data.correlationId),
+        tostring(type(data) == "table" and data.mediaType),
+        type(data) == "table" and type(data.presignedUrl) == "string" and "present" or "missing",
+        { notice = true }
+    )
     SendNUIMessage({ type = "media:uploadReady", data = data })
 end)
 
 RegisterNetEvent("sky_phone:media:upload-result", function(data)
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Client received upload-result (correlation=%s, success=%s, error=%s).",
+        tostring(type(data) == "table" and data.correlationId),
+        tostring(type(data) == "table" and data.success),
+        tostring(type(data) == "table" and data.error),
+        { notice = true }
+    )
     SendNUIMessage({ type = "media:uploadResult", data = data })
 end)
 

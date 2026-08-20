@@ -41,6 +41,7 @@ export type MemoUploadReady = {
   correlationId: string
   captureToken: string
   presignedUrl: string
+  uploadPath: string
   uploadTimeoutMs?: number
 }
 

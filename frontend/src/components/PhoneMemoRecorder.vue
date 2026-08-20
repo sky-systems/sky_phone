@@ -457,6 +457,7 @@ async function uploadReady(ready: MemoUploadReady): Promise<void> {
   }
   pending.requestId = ready.requestId
   const form = new FormData()
+  form.append('path', ready.uploadPath)
   form.append('file', pending.blob, pending.fileName)
   form.append(
     'metadata',
@@ -479,8 +480,9 @@ async function uploadReady(ready: MemoUploadReady): Promise<void> {
       signal: controller.signal,
     })
     const body = (await response.json()) as {
-      data?: { id?: string; url?: string }
+      data?: { id?: string; originalUrl?: string; url?: string }
       id?: string
+      originalUrl?: string
       url?: string
     }
     const uploaded = body.data ?? body
@@ -488,6 +490,7 @@ async function uploadReady(ready: MemoUploadReady): Promise<void> {
       throw new Error('upload_failed')
     }
     const complete = await nuiCall('memos:completeUpload', {
+      originalUrl: uploaded.originalUrl,
       remoteId: uploaded.id,
       requestId: ready.requestId,
       url: uploaded.url,

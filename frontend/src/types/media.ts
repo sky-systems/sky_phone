@@ -79,6 +79,7 @@ export type UploadReady = {
   }
   presignedUrl: string
   requestId: string
+  uploadPath: string
   uploadTimeoutMs?: number
   video?: {
     BitrateKbps?: number
