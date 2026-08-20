@@ -34,6 +34,15 @@ describe('SpringboardWidget UI contract', () => {
     expect(source).toContain('music.progress.value')
   })
 
+  it('fades empty music artwork downward while keeping its message above the fade', () => {
+    expect(source).toContain('.home-widget--music-empty::after')
+    expect(source).toContain(
+      '.home-widget--music-empty .widget-music-placeholder',
+    )
+    expect(source).toContain('-webkit-mask-image: linear-gradient(')
+    expect(source).toMatch(/\.widget-music-empty\s*{[\s\S]*?z-index:\s*2;/)
+  })
+
   it.each([
     'sunny',
     'clear',
