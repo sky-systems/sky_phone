@@ -330,8 +330,13 @@ const DARK_STATUS_BAR_APP_IDS = new Set([
   'minesweeper',
   'number-merge',
 ])
+const isDynamicIslandGalleryRoute = computed(
+  () => isDevelopment && route.name === 'development-dynamic-islands',
+)
 const isDevelopmentRoute = computed(
-  () => isDevelopment && route.name === 'development-sky-ui',
+  () =>
+    isDevelopment &&
+    (route.name === 'development-sky-ui' || isDynamicIslandGalleryRoute.value),
 )
 const appTransitionName = computed(() =>
   route.query.transition === 'app-switch' ? 'app-switch' : 'app-window',
@@ -1862,7 +1867,7 @@ onBeforeUnmount(() => {
                 draggable="false"
               />
               <PhoneDynamicIsland
-                v-if="!setupRequired"
+                v-if="!setupRequired && !isDynamicIslandGalleryRoute"
                 @expanded-change="dynamicIslandExpanded = $event"
               />
             </section>

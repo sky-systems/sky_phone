@@ -15,6 +15,12 @@ const developmentRoutes: RouteRecordRaw[] = import.meta.env.DEV
         name: 'development-sky-ui',
         path: '/development/sky-ui/:demo?',
       },
+      {
+        component: () =>
+          import('@/views/development/PhoneDynamicIslandGallery.vue'),
+        name: 'development-dynamic-islands',
+        path: '/development/dynamic-islands',
+      },
     ]
   : []
 

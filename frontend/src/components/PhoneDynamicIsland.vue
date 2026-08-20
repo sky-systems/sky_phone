@@ -28,6 +28,7 @@ import { useCallsStore } from '@/stores/calls'
 import { useClockStore } from '@/stores/clock'
 import { useMusicStore } from '@/stores/music'
 import { usePhoneStore } from '@/stores/phone'
+import type { DynamicIslandActivity } from '@/types/dynamicIsland'
 import type { MemoRecorderState } from '@/types/memos'
 import {
   elapsedMilliseconds,
@@ -39,14 +40,23 @@ import {
 import { formatPhoneNumber } from '@/utils/phone'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 
-type IslandActivity =
-  | 'call'
-  | 'incoming-call'
-  | 'music'
-  | 'recording'
-  | 'stopwatch'
-  | 'timer'
-
+const props = withDefaults(
+  defineProps<{
+    preview?: boolean
+    previewActivity?: DynamicIslandActivity
+    previewExpanded?: boolean
+    previewEyebrow?: string
+    previewProgress?: number
+    previewSubtitle?: string
+    previewTitle?: string
+    previewValue?: string
+  }>(),
+  {
+    preview: false,
+    previewExpanded: false,
+    previewProgress: 0,
+  },
+)
 const emit = defineEmits<{
   'expanded-change': [expanded: boolean]
 }>()
@@ -82,7 +92,7 @@ const timerActive = computed(
 const stopwatchActive = computed(
   () => clock.stopwatchStartedAt !== null || clock.stopwatchAccumulated > 0,
 )
-const activity = computed<IslandActivity | null>(() => {
+const runtimeActivity = computed<DynamicIslandActivity | null>(() => {
   const call = calls.activeCall
   if (call?.direction === 'incoming' && call.state === 'ringing') {
     return 'incoming-call'
@@ -94,6 +104,9 @@ const activity = computed<IslandActivity | null>(() => {
   if (music.currentTrack) return 'music'
   return null
 })
+const activity = computed<DynamicIslandActivity | null>(() =>
+  props.preview ? (props.previewActivity ?? null) : runtimeActivity.value,
+)
 const activityKey = computed(() => {
   if (activity.value === 'incoming-call' || activity.value === 'call') {
     return `${activity.value}:${calls.activeCall?.id ?? ''}`
@@ -103,8 +116,10 @@ const activityKey = computed(() => {
   }
   return activity.value
 })
-const isExpanded = computed(
-  () => activity.value === 'incoming-call' || expanded.value,
+const isExpanded = computed(() =>
+  props.preview
+    ? props.previewExpanded
+    : activity.value === 'incoming-call' || expanded.value,
 )
 const callContact = computed(() => {
   const number = calls.activeCall?.otherNumber
@@ -115,10 +130,17 @@ const callContact = computed(() => {
 })
 const callName = computed(() => {
   const number = calls.activeCall?.otherNumber ?? ''
-  return callContact.value?.name ?? formatPhoneNumber(number)
+  return (
+    props.previewTitle ?? callContact.value?.name ?? formatPhoneNumber(number)
+  )
 })
 const callInitials = computed(() =>
-  (callContact.value?.name ?? calls.activeCall?.otherNumber ?? '')
+  (
+    props.previewTitle ??
+    callContact.value?.name ??
+    calls.activeCall?.otherNumber ??
+    ''
+  )
     .split(/\s+/)
     .map((part) => part.charAt(0).toUpperCase())
     .filter(Boolean)
@@ -131,6 +153,7 @@ const callDuration = computed(() => {
   return formatDuration(now.value - (call.answeredAt ?? call.startedAt))
 })
 const callStatus = computed(() => {
+  if (props.previewSubtitle !== undefined) return props.previewSubtitle
   const call = calls.activeCall
   if (!call) return ''
   if (call.state === 'connected') return callDuration.value
@@ -154,6 +177,9 @@ const timerValue = computed(() =>
 const timerProgress = computed(() =>
   timerProgressRatio(timerValue.value, clock.timerDuration),
 )
+const displayedTimerProgress = computed(() =>
+  props.preview ? props.previewProgress : timerProgress.value,
+)
 const stopwatchValue = computed(() =>
   elapsedMilliseconds(
     clock.stopwatchAccumulated,
@@ -162,14 +188,17 @@ const stopwatchValue = computed(() =>
   ),
 )
 const musicProgress = computed(() =>
-  music.duration > 0
-    ? Math.max(0, Math.min(1, music.currentTime / music.duration))
-    : 0,
+  props.preview
+    ? props.previewProgress
+    : music.duration > 0
+      ? Math.max(0, Math.min(1, music.currentTime / music.duration))
+      : 0,
 )
 const progressStyle = computed<CSSProperties>(() => ({
   '--dynamic-island-progress': `${musicProgress.value * 100}%`,
 }))
 const activityTitle = computed(() => {
+  if (props.previewTitle !== undefined) return props.previewTitle
   switch (activity.value) {
     case 'incoming-call':
       return phone.t('Apps.phone.incoming')
@@ -201,6 +230,7 @@ const recordingStatus = computed(() => {
   }
 })
 const compactValue = computed(() => {
+  if (props.previewValue !== undefined) return props.previewValue
   switch (activity.value) {
     case 'call':
       return callDuration.value || callStatus.value
@@ -216,13 +246,50 @@ const compactValue = computed(() => {
       return ''
   }
 })
-const visibleLevels = computed(() =>
-  recorderState.value.levels
-    .slice(-12)
-    .map((level) => Math.max(0.12, Math.min(1, Number(level) || 0))),
-)
+const visibleLevels = computed(() => {
+  const levels = props.preview
+    ? [0.24, 0.48, 0.82, 0.38, 0.64, 0.92, 0.56, 0.76, 0.34, 0.68, 0.44, 0.86]
+    : recorderState.value.levels.slice(-12)
+  return levels.map((level) => Math.max(0.12, Math.min(1, Number(level) || 0)))
+})
+const expandedEyebrow = computed(() => {
+  if (props.previewEyebrow !== undefined) return props.previewEyebrow
+  if (activity.value === 'incoming-call') return phone.t('Apps.phone.incoming')
+  if (activity.value === 'recording') return recordingStatus.value
+  if (activity.value === 'music') return phone.t('Apps.music.nowPlaying')
+  if (activity.value === 'timer') return phone.t('Apps.clock.tabs.timer')
+  if (activity.value === 'stopwatch') {
+    return phone.t('Apps.clock.tabs.stopwatch')
+  }
+  return phone.t('Apps.phone.connected')
+})
+const expandedTitle = computed(() => {
+  if (props.previewTitle !== undefined) return props.previewTitle
+  if (activity.value === 'call' || activity.value === 'incoming-call') {
+    return callName.value
+  }
+  if (activity.value === 'music') return music.currentTrack?.title ?? ''
+  if (activity.value === 'recording') {
+    return formatDuration(recorderState.value.elapsedMs)
+  }
+  if (activity.value === 'timer') return formatTimer(timerValue.value)
+  return formatStopwatch(stopwatchValue.value)
+})
+const expandedSubtitle = computed(() => {
+  if (props.previewSubtitle !== undefined) return props.previewSubtitle
+  if (activity.value === 'call' || activity.value === 'incoming-call') {
+    return callStatus.value
+  }
+  if (activity.value === 'music') return music.currentTrack?.artist ?? ''
+  if (activity.value === 'timer') return clock.timerNote
+  if (activity.value === 'recording') return recordingStatus.value
+  return phone.t(
+    clock.stopwatchStartedAt === null ? 'Common.start' : 'Common.stop',
+  )
+})
 
 watch(activityKey, (nextActivity) => {
+  if (props.preview) return
   window.clearTimeout(collapseTimer)
   if (!nextActivity) {
     expanded.value = false
@@ -239,6 +306,7 @@ watch(activityKey, (nextActivity) => {
 watch(
   [isExpanded, activity],
   ([nextExpanded, nextActivity]) => {
+    if (props.preview) return
     emit('expanded-change', Boolean(nextActivity && nextExpanded))
   },
   { immediate: true },
@@ -255,6 +323,7 @@ function formatDuration(milliseconds: number): string {
 }
 
 function toggleExpanded(): void {
+  if (props.preview) return
   if (activity.value === 'incoming-call') return
   window.clearTimeout(collapseTimer)
   expanded.value = !expanded.value
@@ -323,6 +392,7 @@ function onMessage(event: MessageEvent): void {
 }
 
 onMounted(() => {
+  if (props.preview) return
   window.addEventListener('message', onMessage)
   ticker = window.setInterval(() => {
     now.value = Date.now()
@@ -331,7 +401,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  emit('expanded-change', false)
+  if (!props.preview) emit('expanded-change', false)
   window.removeEventListener('message', onMessage)
   window.clearInterval(ticker)
   window.clearTimeout(collapseTimer)
@@ -345,9 +415,15 @@ onBeforeUnmount(() => {
       class="phone-dynamic-island"
       :class="`phone-dynamic-island--${activity}`"
       :data-expanded="isExpanded"
+      :data-preview="props.preview ? 'true' : undefined"
       :aria-label="activityTitle"
-      :role="activity === 'incoming-call' ? 'alert' : undefined"
-      :aria-atomic="activity === 'incoming-call' ? 'true' : undefined"
+      :aria-hidden="props.preview || undefined"
+      :role="
+        !props.preview && activity === 'incoming-call' ? 'alert' : undefined
+      "
+      :aria-atomic="
+        !props.preview && activity === 'incoming-call' ? 'true' : undefined
+      "
     >
       <Transition name="phone-dynamic-island-content" mode="out-in">
         <button
@@ -459,49 +535,13 @@ onBeforeUnmount(() => {
             </span>
             <span class="phone-dynamic-island__copy">
               <span class="phone-dynamic-island__eyebrow">
-                {{
-                  activity === 'incoming-call'
-                    ? phone.t('Apps.phone.incoming')
-                    : activity === 'recording'
-                      ? recordingStatus
-                      : activity === 'music'
-                        ? phone.t('Apps.music.nowPlaying')
-                        : activity === 'timer'
-                          ? phone.t('Apps.clock.tabs.timer')
-                          : activity === 'stopwatch'
-                            ? phone.t('Apps.clock.tabs.stopwatch')
-                            : phone.t('Apps.phone.connected')
-                }}
+                {{ expandedEyebrow }}
               </span>
               <strong class="phone-dynamic-island__title">
-                {{
-                  activity === 'call' || activity === 'incoming-call'
-                    ? callName
-                    : activity === 'music'
-                      ? music.currentTrack?.title
-                      : activity === 'recording'
-                        ? formatDuration(recorderState.elapsedMs)
-                        : activity === 'timer'
-                          ? formatTimer(timerValue)
-                          : formatStopwatch(stopwatchValue)
-                }}
+                {{ expandedTitle }}
               </strong>
               <span class="phone-dynamic-island__subtitle">
-                {{
-                  activity === 'call' || activity === 'incoming-call'
-                    ? callStatus
-                    : activity === 'music'
-                      ? music.currentTrack?.artist
-                      : activity === 'timer'
-                        ? clock.timerNote
-                        : activity === 'recording'
-                          ? recordingStatus
-                          : phone.t(
-                              clock.stopwatchStartedAt === null
-                                ? 'Common.start'
-                                : 'Common.stop',
-                            )
-                }}
+                {{ expandedSubtitle }}
               </span>
             </span>
             <Maximize2
@@ -532,7 +572,7 @@ onBeforeUnmount(() => {
             v-else-if="activity === 'timer'"
             class="phone-dynamic-island__progress phone-dynamic-island__progress--timer"
             :style="{
-              '--dynamic-island-progress': `${timerProgress * 100}%`,
+              '--dynamic-island-progress': `${displayedTimerProgress * 100}%`,
             }"
             aria-hidden="true"
           ></div>
@@ -618,7 +658,10 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="phone-dynamic-island__action"
-              :disabled="!['paused', 'recording'].includes(recorderState.state)"
+              :disabled="
+                !props.preview &&
+                !['paused', 'recording'].includes(recorderState.state)
+              "
               :aria-label="
                 phone.t(
                   recorderState.state === 'paused'
@@ -637,7 +680,10 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="phone-dynamic-island__action phone-dynamic-island__action--recording"
-              :disabled="!['paused', 'recording'].includes(recorderState.state)"
+              :disabled="
+                !props.preview &&
+                !['paused', 'recording'].includes(recorderState.state)
+              "
               :aria-label="phone.t('Apps.memos.stop')"
               @click.stop="postRecorderCommand('memo:recordStop')"
             >
@@ -741,6 +787,10 @@ onBeforeUnmount(() => {
     height 420ms cubic-bezier(0.2, 0.9, 0.2, 1),
     border-radius 360ms ease,
     box-shadow 360ms ease;
+}
+
+.phone-dynamic-island[data-preview='true'] {
+  pointer-events: none;
 }
 
 .phone-dynamic-island[data-expanded='true'] {
