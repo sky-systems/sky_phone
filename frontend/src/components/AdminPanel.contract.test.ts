@@ -277,6 +277,13 @@ describe('standalone admin panel contracts', () => {
     expect(source).toContain('<AdminConfigValueEditor')
     expect(configuratorValueEditor).toContain('function addListRow()')
     expect(configuratorValueEditor).toContain('function addTableField()')
+    expect(configuratorValueEditor).toContain(
+      'const canExtendTable = computed(',
+    )
+    expect(configuratorValueEditor).toContain(
+      'tableStructure.value.mutableKeys === true',
+    )
+    expect(configuratorValueEditor).toContain('v-else-if="canExtendTable"')
     expect(configuratorValueEditor).toContain('function removeListRow(')
     expect(configuratorValueEditor).toContain('function removeTableField(')
     expect(configuratorValueEditor).toContain('function addMapEntry()')

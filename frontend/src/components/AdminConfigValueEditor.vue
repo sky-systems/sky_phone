@@ -128,6 +128,11 @@ const canAddTableField = computed(() => {
     return false
   return !tableStructure.value?.mutableKeys || /^[a-z0-9_-]+$/.test(key)
 })
+const canExtendTable = computed(
+  () =>
+    !vectorType.value &&
+    (!tableStructure.value || tableStructure.value.mutableKeys === true),
+)
 const tableEntries = computed(() =>
   Object.entries(tableValue.value).filter(
     ([key]) => key !== '__skyType' && (!mapType.value || key !== 'entries'),
@@ -821,7 +826,7 @@ function mapEntryStructure(
     </form>
 
     <form
-      v-else-if="!vectorType"
+      v-else-if="canExtendTable"
       class="config-structured-editor__add-field"
       @submit.prevent="addTableField"
     >
