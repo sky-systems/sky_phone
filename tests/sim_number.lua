@@ -9,6 +9,10 @@ assert(SkyPhoneSimNumber.NormalizeService("9-1-1", 10) == "911", "formatted serv
 assert(SkyPhoneSimNumber.NormalizeService("0", 10) == "0", "single-digit service numbers must normalize")
 assert(SkyPhoneSimNumber.NormalizeService("", 10) == nil, "empty service numbers must fail")
 assert(SkyPhoneSimNumber.NormalizeService("12345678901", 10) == nil, "long service numbers must fail")
+assert(SkyPhoneSimNumber.ValidateConfiguration(9, "555"), "numeric SIM prefixes must be valid")
+assert(SkyPhoneSimNumber.FromEntropy("550e8400-e29b-41d4-a716-446655440000", 9, "555") == "555550840")
+assert(not SkyPhoneSimNumber.ValidateConfiguration(9, "555-"), "formatted SIM prefixes must be rejected")
+assert(SkyPhoneSimNumber.FromEntropy("550e8400-e29b-41d4-a716-446655440000", 9, "555-") == nil)
 
 local attempts = 0
 local reserved = SkyPhoneSimNumber.Reserve(function()

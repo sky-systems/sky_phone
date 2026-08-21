@@ -187,6 +187,8 @@ local phone_item = {
     metadata = { imei = "123456789012345" },
 }
 local opened_event
+local device_error
+local hide_phone_during_prepare = false
 
 Bridge.Framework.GetIdentifier = function(source)
     assert(source == 1)
@@ -204,6 +206,9 @@ Bridge.Inventory.GetSlot = function(source, slot)
 end
 Bridge.Inventory.GetSlotsWithItem = function(source, item_name)
     assert(source == 1 and item_name == Config.Phone.Item)
+    if hide_phone_during_prepare == true then
+        return {}
+    end
     return { phone_item }
 end
 Bridge.Inventory.SetSlotMetadata = function()
@@ -228,6 +233,9 @@ end
 SkyPhoneSim = {
     PrepareDevice = function(source, slot, imei)
         assert(source == 1 and slot == phone_item and imei == phone_item.metadata.imei)
+        if hide_phone_during_prepare == "next" then
+            hide_phone_during_prepare = true
+        end
         return true
     end,
 }
@@ -248,6 +256,8 @@ SkyPhoneCompanies = {
 TriggerClientEvent = function(event_name, source, payload)
     if event_name == "sky_phone:device:open" then
         opened_event = { source = source, payload = payload }
+    elseif event_name == "sky_phone:device:error" then
+        device_error = { source = source, error = payload }
     end
 end
 
@@ -260,6 +270,15 @@ assert(no_sim_open.success == true, "a phone item without a SIM must still open"
 assert(opened_event and opened_event.source == 1, "no-SIM open must reach the client")
 assert(opened_event.payload.device.imei == phone_item.metadata.imei)
 assert(opened_event.payload.device.sim == nil, "no-SIM bootstrap must keep device.sim nullable")
+
+opened_event = nil
+device_error = nil
+hide_phone_during_prepare = "next"
+local lost_phone_open = registered_callbacks["sky_phone:device:open-request"](1, {})
+assert(lost_phone_open.success == false, "bootstrap ownership loss must fail the open request")
+assert(lost_phone_open.error == "device_not_owned", "bootstrap ownership loss must return its error code")
+assert(opened_event == nil, "bootstrap ownership loss must not open the NUI")
+assert(device_error and device_error.error == "device_not_owned", "bootstrap ownership loss must notify the client")
 
 local manifest_file = assert(io.open("sky_phone/fxmanifest.lua", "rb"))
 local manifest = manifest_file:read("*a")

@@ -65,9 +65,9 @@ Config.Sim = {
     Enabled = true, -- false: devices receive a persistent random number automatically; hex/esx require false
     RegisteredItem = "sky_phone_sim_registered",
     AnonymousItem = "sky_phone_sim_anonymous",
-    NumberLength = 10,
-    NumberPrefix = "",
-    NumberGroups = { 3, 3, 4 },
+    NumberLength = 10, -- total number of digits, including NumberPrefix
+    NumberPrefix = "", -- digits only; use "555", not "555-"
+    NumberGroups = { 3, 3, 4 }, -- display groups separated by spaces
 }
 
 -- =============================================================================

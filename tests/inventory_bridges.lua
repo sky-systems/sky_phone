@@ -11,6 +11,8 @@ local function reset_bridge(inventory_name, unique_phones, sim_cards_enabled)
         },
     }
     Bridge = {
+        Debug = function()
+        end,
         Framework = {
             GetName = function()
                 return inventory_name == "esx" and "esx" or "qb"
@@ -65,6 +67,71 @@ assert(metadata_write.source == 7)
 assert(metadata_write.slot == 15, "core metadata slot must be numeric")
 assert(metadata_write.metadata.imei == "123456789012345")
 assert(Bridge.Inventory.GetSlot(7, 15).metadata.imei == "123456789012345")
+
+local qb_item = {
+    name = "phone",
+    slot = 2,
+    amount = 1,
+    info = { owner = "kept" },
+}
+local qb_write_mode = "persist"
+local qb_inventory = {}
+
+function qb_inventory:GetItemBySlot(source, slot)
+    assert(source == 9 and slot == 2)
+    return qb_item
+end
+
+function qb_inventory:GetItemsByName(source, item_name)
+    assert(source == 9 and item_name == "phone")
+    return qb_item and { qb_item } or {}
+end
+
+function qb_inventory:SetItemData()
+    error("qb bridge must not rely on an unverified direct metadata setter")
+end
+
+function qb_inventory:RemoveItem(source, item_name, amount, slot, reason)
+    assert(source == 9 and item_name == "phone" and amount == 1 and slot == 2)
+    assert(reason == "sky_phone:metadata-update")
+    if not qb_item then
+        return false
+    end
+    qb_item = nil
+    return true
+end
+
+function qb_inventory:AddItem(source, item_name, amount, slot, info, reason)
+    assert(source == 9 and item_name == "phone" and amount == 1 and slot == 2)
+    assert(reason == "sky_phone:metadata-update")
+    qb_item = {
+        name = item_name,
+        slot = slot,
+        amount = amount,
+        info = qb_write_mode == "drop_metadata" and {} or info,
+    }
+    return true
+end
+
+function qb_inventory:CanAddItem()
+    return true
+end
+
+reset_bridge("qb", true, true)
+exports = {
+    ["qb-inventory"] = qb_inventory,
+}
+GetResourceState = function(resource_name)
+    return resource_name == "qb-inventory" and "started" or "missing"
+end
+load_inventory_contract("sky_phone/source/bridge/server/inventory/qb.lua")
+
+assert(Bridge.Inventory.SetSlotMetadata(9, 2, { owner = "kept", imei = "123456789012345" }))
+assert(qb_item.info.owner == "kept" and qb_item.info.imei == "123456789012345")
+
+qb_write_mode = "drop_metadata"
+assert(not Bridge.Inventory.SetSlotMetadata(9, 2, { owner = "kept", imei = "999999999999999" }))
+assert(qb_item and qb_item.slot == 2, "QB metadata verification must leave the item in its exact slot")
 
 local function create_esx()
     local usable_items = {}

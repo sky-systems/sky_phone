@@ -2,6 +2,14 @@ Bridge.Database.AfterMigration("sky_phone", function()
 
 SkyPhoneSim = {}
 
+local valid_number_configuration, number_configuration_error = SkyPhoneSimNumber.ValidateConfiguration(
+    Config.Sim.NumberLength,
+    Config.Sim.NumberPrefix
+)
+if not valid_number_configuration then
+    error(("[sky_phone] Invalid SIM number configuration: %s."):format(number_configuration_error))
+end
+
 local unique_phones = Config.Phone.Unique ~= false
 local sim_cards_enabled = Config.Sim.Enabled ~= false
 local pending_insertions = {}
