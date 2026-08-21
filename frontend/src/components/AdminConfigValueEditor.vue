@@ -414,17 +414,7 @@ function mapEntryStructure(
   >
     <header class="config-structured-editor__bar">
       <span><Rows3 :size="14" />{{ labels.list }}</span>
-      <div>
-        <select
-          v-if="!listValue.length"
-          v-model="newArrayKind"
-          :disabled="disabled"
-        >
-          <option value="string">{{ labels.types.string }}</option>
-          <option value="number">{{ labels.types.number }}</option>
-          <option value="boolean">{{ labels.types.boolean }}</option>
-          <option value="table">{{ labels.types.table }}</option>
-        </select>
+      <div class="config-structured-editor__actions">
         <button
           v-if="!listValue.length && !structure"
           type="button"
@@ -433,9 +423,6 @@ function mapEntryStructure(
           @click="emit('update:modelValue', {})"
         >
           <TableProperties :size="13" />
-        </button>
-        <button type="button" :disabled="disabled" @click="addListRow">
-          <Plus :size="13" />{{ labels.addRow }}
         </button>
       </div>
     </header>
@@ -477,6 +464,25 @@ function mapEntryStructure(
     <div v-else class="config-structured-editor__empty">
       {{ labels.emptyList }}
     </div>
+
+    <form
+      class="config-structured-editor__add-field is-list"
+      @submit.prevent="addListRow"
+    >
+      <select
+        v-if="!listValue.length"
+        v-model="newArrayKind"
+        :disabled="disabled"
+      >
+        <option value="string">{{ labels.types.string }}</option>
+        <option value="number">{{ labels.types.number }}</option>
+        <option value="boolean">{{ labels.types.boolean }}</option>
+        <option value="table">{{ labels.types.table }}</option>
+      </select>
+      <button type="submit" :disabled="disabled">
+        <Plus :size="13" />{{ labels.addRow }}
+      </button>
+    </form>
   </div>
 
   <div
@@ -491,24 +497,28 @@ function mapEntryStructure(
           vectorType ? `${labels.vector} ${vectorType.slice(-1)}` : labels.table
         }}
       </span>
-      <button
+      <div
         v-if="!structure && !mapType && !vectorType"
-        type="button"
-        :disabled="disabled"
-        :title="labels.convertToMap"
-        @click="convertTableToMap"
+        class="config-structured-editor__actions"
       >
-        <TableProperties :size="13" />{{ labels.convertToMap }}
-      </button>
-      <button
-        v-if="!structure && !mapType && !tableEntries.length && !vectorType"
-        type="button"
-        :disabled="disabled"
-        :title="labels.convertToList"
-        @click="emit('update:modelValue', [])"
-      >
-        <Rows3 :size="13" />{{ labels.convertToList }}
-      </button>
+        <button
+          type="button"
+          :disabled="disabled"
+          :title="labels.convertToMap"
+          @click="convertTableToMap"
+        >
+          <TableProperties :size="13" />{{ labels.convertToMap }}
+        </button>
+        <button
+          v-if="!tableEntries.length"
+          type="button"
+          :disabled="disabled"
+          :title="labels.convertToList"
+          @click="emit('update:modelValue', [])"
+        >
+          <Rows3 :size="13" />{{ labels.convertToList }}
+        </button>
+      </div>
     </header>
 
     <div v-if="mapType" class="config-structured-editor__properties is-map">
@@ -632,7 +642,6 @@ function mapEntryStructure(
     <form
       v-else-if="!vectorType"
       class="config-structured-editor__add-field"
-      :class="{ 'is-mutable-table': tableStructure?.mutableKeys }"
       @submit.prevent="addTableField"
     >
       <input
@@ -745,6 +754,10 @@ function mapEntryStructure(
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.config-structured-editor__actions:empty {
+  display: none;
 }
 
 .config-structured-editor__bar > span {
@@ -922,25 +935,48 @@ function mapEntryStructure(
 }
 
 .config-structured-editor__add-field {
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr) 90px auto;
+  min-height: 37px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 6px;
   padding: 6px;
-  background: #151715;
-}
-
-.config-structured-editor__add-field.is-map {
-  grid-template-columns: 76px minmax(90px, 1fr) 82px auto;
-}
-
-.config-structured-editor__add-field.is-mutable-table {
-  grid-template-columns: minmax(100px, 1fr) auto;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.012),
+    rgba(255, 255, 255, 0.035)
+  );
 }
 
 .config-structured-editor__add-field input {
   min-width: 0;
+  flex: 1 1 120px;
   height: 25px;
   padding: 0 7px;
+}
+
+.config-structured-editor__add-field select {
+  width: 90px;
+  flex: 0 0 90px;
+}
+
+.config-structured-editor__add-field button {
+  min-width: 74px;
+  flex: 0 0 auto;
+}
+
+.config-structured-editor__add-field.is-map select:first-child {
+  width: 76px;
+  flex-basis: 76px;
+}
+
+.config-structured-editor__add-field.is-map select:nth-of-type(2) {
+  width: 82px;
+  flex-basis: 82px;
+}
+
+.config-structured-editor__add-field.is-list select {
+  margin-left: auto;
 }
 
 .config-value-input {

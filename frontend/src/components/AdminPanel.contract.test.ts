@@ -290,6 +290,12 @@ describe('standalone admin panel contracts', () => {
     expect(source).toContain("'is-structured': field.type === 'json'")
     expect(configuratorValueEditor).toContain('function isStructuredValue(')
     expect(configuratorValueEditor).toContain(
+      'class="config-structured-editor__add-field is-list"',
+    )
+    expect(configuratorValueEditor).toContain(
+      'class="config-structured-editor__actions"',
+    )
+    expect(configuratorValueEditor).toContain(
       '.config-structured-editor__property.has-structured-value',
     )
     expect(configuratorValueEditor).not.toContain('<textarea')
