@@ -83,6 +83,8 @@ export type SkyPicConversation = {
 /** Direct snap lists intentionally contain no media URL or editor contents. */
 export type SkyPicSnap = {
   allowReplay: boolean
+  /** Present on successful sends so friendship streak UI can reconcile immediately. */
+  bestStreak?: number
   createdAt: string
   direction: SkyPicDirection
   durationSeconds: number
@@ -92,6 +94,8 @@ export type SkyPicSnap = {
   openedAt: string | null
   replayedAt: string | null
   sender: SkyPicProfileSummary
+  /** Present on successful sends so friendship streak UI can reconcile immediately. */
+  streakCount?: number
   type: SkyPicSnapType
 }
 

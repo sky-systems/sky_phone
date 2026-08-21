@@ -243,6 +243,77 @@ describe('SkyPic backend contracts', () => {
     expect(mockServer).toContain('mediaItems.length * recipients.length > 40')
   })
 
+  it('maintains reciprocal UTC-day streaks and returns reconciled values', () => {
+    const friendshipMigration = migrationTable('friendships')
+    const friendshipInstall = installTable('friendships')
+    const friends = block(
+      server,
+      'local function list_friends',
+      'local function list_requests',
+    )
+    const conversations = block(
+      server,
+      'local function list_conversations',
+      'Bridge.Callbacks.Register("sky_phone:skypic:bootstrap"',
+    )
+    const metadata = block(
+      server,
+      'local function load_snap_metadata',
+      'local function opened_snap_from_row',
+    )
+    const sendSnap = block(
+      server,
+      'Bridge.Callbacks.Register("sky_phone:skypic:send-snap"',
+      'Bridge.Callbacks.Register("sky_phone:skypic:open-snap"',
+    )
+
+    for (const schema of [friendshipMigration, friendshipInstall]) {
+      expect(schema).toContain('profile_a_last_snap_on')
+      expect(schema).toContain('profile_b_last_snap_on')
+      expect(schema).toContain('streak_updated_on')
+      expect(schema).toContain('streak_count')
+      expect(schema).toContain('best_streak')
+      expect(schema).toContain('idx_sky_phone_skypic_streaks')
+    }
+
+    expect(sendSnap).toContain('SET %s = UTC_DATE()')
+    expect(sendSnap).toContain(
+      'SELECT 1 FROM `sky_phone_skypic_messages` message WHERE message.`id` = ?',
+    )
+    expect(sendSnap).toContain('friendship.profile_a_id == profile.profile_id')
+    expect(sendSnap).toContain('`profile_a_last_snap_on` = UTC_DATE()')
+    expect(sendSnap).toContain('`profile_b_last_snap_on` = UTC_DATE()')
+    expect(sendSnap).toContain(
+      '`streak_updated_on` = DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)',
+    )
+    expect(sendSnap).toContain(
+      '`streak_updated_on` IS NULL OR `streak_updated_on` < UTC_DATE()',
+    )
+    expect(sendSnap).toContain('Bridge.Database.Transaction(statements)')
+
+    for (const serializer of [friends, conversations, metadata]) {
+      expect(serializer).toContain(
+        '`streak_updated_on` < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)',
+      )
+      expect(serializer).toContain(
+        'THEN 0 ELSE friendship.`streak_count` END AS `streak_count`',
+      )
+      expect(serializer).toContain('friendship.`best_streak`')
+    }
+    expect(metadata).toContain("friendship.`status` = 'accepted'")
+    expect(metadata).toContain(
+      'snap.streakCount = tonumber(row.streak_count) or 0',
+    )
+    expect(metadata).toContain(
+      'snap.bestStreak = tonumber(row.best_streak) or 0',
+    )
+
+    expect(server).toContain('SET `streak_count` = 0')
+    expect(server).toContain(
+      "WHERE `status` = 'accepted' AND `streak_count` > 0",
+    )
+  })
+
   it('keeps browser payload limits and profile creation aligned with production', () => {
     expect(config).toContain('CaptionMaxLength = 160')
     expect(server).toContain('valid_integer(data.avatarSeed, 1, 2147483647)')

@@ -342,7 +342,11 @@ end
 
 local function list_friends(profile_id)
     local rows = Bridge.Database.Query([[
-        SELECT friendship.`id` AS `friendship_id`, friendship.`streak_count`, friendship.`best_streak`,
+        SELECT friendship.`id` AS `friendship_id`,
+            CASE WHEN friendship.`streak_updated_on` IS NULL
+                    OR friendship.`streak_updated_on` < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)
+                THEN 0 ELSE friendship.`streak_count` END AS `streak_count`,
+            friendship.`best_streak`,
             friendship.`accepted_at`, friendship.`created_at`, peer.`id` AS `profile_id`, peer.`handle`,
             peer.`display_name`, peer.`avatar_seed`, peer.`snap_score`, avatar.`url` AS `avatar_url`
         FROM `sky_phone_skypic_friendships` friendship
@@ -561,7 +565,11 @@ end
 
 local function list_conversations(profile_id)
     local rows = Bridge.Database.Query([[
-        SELECT friendship.`id` AS `friendship_id`, friendship.`streak_count`, friendship.`best_streak`,
+        SELECT friendship.`id` AS `friendship_id`,
+            CASE WHEN friendship.`streak_updated_on` IS NULL
+                    OR friendship.`streak_updated_on` < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)
+                THEN 0 ELSE friendship.`streak_count` END AS `streak_count`,
+            friendship.`best_streak`,
             peer.`id` AS `profile_id`, peer.`handle`, peer.`display_name`, peer.`avatar_seed`,
             peer.`snap_score`, avatar.`url` AS `avatar_url`, message.`id` AS `last_id`,
             message.`message_type` AS `last_type`,
@@ -1617,8 +1625,14 @@ local function load_snap_metadata(message_ids, viewer_id)
             message.`message_type`, message.`view_seconds`, message.`allow_replay`, message.`opened_at`,
             message.`replayed_at`, message.`expires_at`, message.`created_at`, sender.`handle` AS `sender_handle`,
             sender.`display_name` AS `sender_display_name`, sender.`avatar_seed` AS `sender_avatar_seed`,
-            sender.`snap_score` AS `sender_snap_score`, avatar.`url` AS `sender_avatar_url`
+            sender.`snap_score` AS `sender_snap_score`, avatar.`url` AS `sender_avatar_url`,
+            CASE WHEN friendship.`streak_updated_on` IS NULL
+                    OR friendship.`streak_updated_on` < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)
+                THEN 0 ELSE friendship.`streak_count` END AS `streak_count`,
+            friendship.`best_streak`
         FROM `sky_phone_skypic_messages` message
+        JOIN `sky_phone_skypic_friendships` friendship
+            ON friendship.`id` = message.`friendship_id` AND friendship.`status` = 'accepted'
         JOIN `sky_phone_skypic_profiles` sender ON sender.`id` = message.`sender_profile_id`
         LEFT JOIN `sky_phone_media` avatar ON avatar.`id` = sender.`avatar_media_id`
         WHERE message.`id` IN (%s) AND message.`message_type` IN ('snap_photo','snap_video')
@@ -1628,6 +1642,8 @@ local function load_snap_metadata(message_ids, viewer_id)
     for _, row in ipairs(rows) do
         local snap = safe_snap_from_row(row, viewer_id)
         snap.recipientProfileId = row.recipient_profile_id
+        snap.streakCount = tonumber(row.streak_count) or 0
+        snap.bestStreak = tonumber(row.best_streak) or 0
         snaps_by_id[row.id] = snap
     end
     local snaps = {}

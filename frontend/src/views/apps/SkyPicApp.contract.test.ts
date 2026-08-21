@@ -52,6 +52,54 @@ describe('SkyPic frontend contract', () => {
     expect(viewSource).not.toContain('var(--sp-cyan)')
   })
 
+  it('uses the reference-led Sky UI hierarchy without inventing camera filters or Spotlight', () => {
+    expect(viewSource).toContain('class="sp-camera-viewfinder"')
+    expect(viewSource).toContain('class="sp-camera-dock"')
+    expect(viewSource).toContain('class="sp-chat-list"')
+    expect(viewSource).toContain('class="sp-chat-row')
+    expect(viewSource).toContain('class="sp-story-rail"')
+    expect(viewSource).toContain('class="sp-story-grid"')
+    expect(viewSource).toContain('class="sp-discovery-grid"')
+    expect(viewSource).toContain('class="sp-bottom-nav"')
+    expect(viewSource).not.toContain('sp-camera-filter')
+    expect(viewSource).not.toContain('Spotlight')
+    expect(viewSource).not.toContain('advertisement')
+  })
+
+  it('builds story discovery only from safe metadata until view-story releases media', () => {
+    const storyFeedBlock = viewSource
+      .split('<section class="sp-story-feed">')[1]
+      ?.split('</section>')[0]
+
+    expect(viewSource).toContain('const friendStoryRail = computed(')
+    expect(storyFeedBlock).toBeTruthy()
+    expect(storyFeedBlock).toContain('v-for="story in store.stories"')
+    expect(storyFeedBlock).toContain('story.author.avatarUrl')
+    expect(storyFeedBlock).toContain('story.durationSeconds')
+    expect(storyFeedBlock).not.toContain('story.url')
+    expect(storyFeedBlock).not.toContain('store.viewedStory.url')
+  })
+
+  it('renders every visible streak as an accessible Flame icon', () => {
+    expect(viewSource.match(/<Flame/g)?.length).toBeGreaterThanOrEqual(4)
+    expect(viewSource).toContain("t('profile.streaks') +")
+    expect(viewSource).toContain('class="sp-navbar-streak"')
+    expect(viewSource).toContain('class="sp-profile-streak-stat"')
+    expect(viewSource).not.toContain('🔥')
+  })
+
+  it('keeps existing Snap and Story viewers full-bleed with ordered overlays', () => {
+    expect(viewSource).toContain(
+      'class="sp-media-viewer sp-media-viewer--snap"',
+    )
+    expect(viewSource).toContain(
+      'class="sp-media-viewer sp-media-viewer--story"',
+    )
+    expect(viewSource).toContain('object-fit: cover')
+    expect(viewSource).toContain('.sp-media-viewer::before')
+    expect(viewSource).toContain('.sp-media-viewer::after')
+  })
+
   it('uses the shared Camera and Gallery media handoff with a bounded draft', () => {
     expect(viewSource).toContain('mediaPicker.begin(')
     expect(viewSource).toContain("'skypic-draft'")
@@ -161,7 +209,7 @@ describe('SkyPic frontend contract', () => {
 
   it('keeps profile editing parse-safe and composer inputs canonical', () => {
     expect(viewSource).toContain('function toggleProfileEditor(): void')
-    expect(viewSource.match(/@click="toggleProfileEditor"/g)).toHaveLength(2)
+    expect(viewSource.match(/@click="toggleProfileEditor"/g)).toHaveLength(3)
     expect(viewSource).toContain('const MAX_CAPTION_LENGTH = 160')
     expect(viewSource).toContain(':maxlength="MAX_CAPTION_LENGTH"')
     expect(viewSource).toContain('.slice(0, MAX_CAPTION_LENGTH)')

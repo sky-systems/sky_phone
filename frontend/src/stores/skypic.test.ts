@@ -537,6 +537,7 @@ describe('SkyPic store', () => {
     const store = useSkyPicStore()
     store.activeFriendshipId = friend.friendshipId
     store.conversations = [{ ...conversation }]
+    store.friends = [{ ...friend }]
     store.profile = { ...self }
 
     const response = await store.sendSnap({
@@ -566,7 +567,292 @@ describe('SkyPic store', () => {
       id: sent.id,
       type: sent.type,
     })
+    expect(store.friends[0]).toMatchObject({
+      bestStreak: friend.bestStreak,
+      streakCount: friend.streakCount,
+    })
+    expect(store.conversations[0]).toMatchObject({
+      bestStreak: conversation.bestStreak,
+      streakCount: conversation.streakCount,
+    })
     expect(store.profile.snapScore).toBe(self.snapScore + 1)
+  })
+
+  it('reconciles one authoritative streak value across an atomic snap batch', async () => {
+    const sentBatch = [1, 2, 3].map(
+      (index): SkyPicSnap => ({
+        ...snap,
+        bestStreak: 18,
+        direction: 'sent',
+        id: `snap-batch-${index}`,
+        sender: { ...self, snapScore: self.snapScore + 3 },
+        streakCount: 1,
+      }),
+    )
+    mockNuiCall.mockResolvedValueOnce({ data: sentBatch, success: true })
+    const store = useSkyPicStore()
+    store.activeFriendshipId = friend.friendshipId
+    store.conversations = [{ ...conversation }]
+    store.friends = [{ ...friend }]
+    store.profile = { ...self }
+
+    await store.sendSnap({
+      allowReplay: false,
+      caption: '',
+      durationSeconds: 5,
+      mediaIds: [1, 2, 3],
+      overlayColor: '#ffffff',
+      recipientIds: [maya.id],
+      textOverlay: '',
+    })
+
+    expect(store.threadSnaps).toHaveLength(3)
+    expect(store.friends[0]).toMatchObject({
+      bestStreak: 18,
+      streakCount: 1,
+    })
+    expect(store.conversations[0]).toMatchObject({
+      bestStreak: 18,
+      streakCount: 1,
+    })
+    expect(store.profile.snapScore).toBe(self.snapScore + 3)
+  })
+
+  it('does not let an older send response overwrite streaks from a newer bootstrap', async () => {
+    const pendingSend = deferred<NuiResponse<SkyPicSnap[]>>()
+    const refreshedProfile = { ...self, snapScore: self.snapScore + 5 }
+    const refreshedFriend = {
+      ...friend,
+      bestStreak: 20,
+      streakCount: 9,
+    }
+    const refreshedConversation: SkyPicConversation = {
+      ...conversation,
+      bestStreak: 20,
+      lastItem: {
+        body: 'Authoritative newer item',
+        createdAt: '2026-08-19T14:00:00.000Z',
+        direction: 'received',
+        id: 'message-newer-hydration',
+        openedAt: null,
+        type: 'text',
+      },
+      streakCount: 9,
+    }
+    const refreshedBootstrap: SkyPicBootstrap = {
+      ...bootstrap,
+      conversations: [refreshedConversation],
+      friends: [refreshedFriend],
+      profile: refreshedProfile,
+    }
+    mockNuiCall
+      .mockReturnValueOnce(pendingSend.promise)
+      .mockResolvedValueOnce({ data: refreshedBootstrap, success: true })
+      .mockResolvedValueOnce({ data: refreshedBootstrap, success: true })
+    const store = useSkyPicStore()
+
+    const sending = store.sendSnap({
+      allowReplay: false,
+      caption: '',
+      durationSeconds: 5,
+      mediaId: 42,
+      mediaType: 'photo',
+      overlayColor: '#ffffff',
+      recipientIds: [maya.id],
+      textOverlay: '',
+    })
+    await expect(store.bootstrap()).resolves.toBe(true)
+
+    const staleSent: SkyPicSnap = {
+      ...snap,
+      bestStreak: 18,
+      direction: 'sent',
+      id: 'snap-stale-streak',
+      sender: refreshedProfile,
+      streakCount: 1,
+    }
+    pendingSend.resolve({ data: [staleSent], success: true })
+    await expect(sending).resolves.toMatchObject({ success: true })
+
+    expect(store.friends[0]).toMatchObject({
+      bestStreak: 20,
+      streakCount: 9,
+    })
+    expect(store.conversations[0]).toMatchObject({
+      bestStreak: 20,
+      lastItem: { id: 'message-newer-hydration' },
+      streakCount: 9,
+    })
+    expect(mockNuiCall).toHaveBeenNthCalledWith(3, 'skypic:bootstrap', {})
+  })
+
+  it('waits for a pending pre-commit bootstrap before its causal refresh', async () => {
+    const pendingSend = deferred<NuiResponse<SkyPicSnap[]>>()
+    const pendingBootstrap = deferred<NuiResponse<SkyPicBootstrap>>()
+    const committedSent: SkyPicSnap = {
+      ...snap,
+      bestStreak: 12,
+      createdAt: later,
+      direction: 'sent',
+      id: 'snap-after-pending-bootstrap',
+      sender: { ...self, snapScore: self.snapScore + 1 },
+      streakCount: 6,
+    }
+    const authoritativeConversation: SkyPicConversation = {
+      ...conversation,
+      bestStreak: 12,
+      lastItem: {
+        createdAt: committedSent.createdAt,
+        direction: 'sent',
+        id: committedSent.id,
+        openedAt: null,
+        type: committedSent.type,
+      },
+      streakCount: 6,
+    }
+    const postCommitBootstrap: SkyPicBootstrap = {
+      ...bootstrap,
+      conversations: [authoritativeConversation],
+      friends: [{ ...friend, streakCount: 6 }],
+      profile: { ...self, snapScore: self.snapScore + 1 },
+    }
+    mockNuiCall
+      .mockReturnValueOnce(pendingSend.promise)
+      .mockReturnValueOnce(pendingBootstrap.promise)
+      .mockResolvedValueOnce({ data: postCommitBootstrap, success: true })
+    const store = useSkyPicStore()
+
+    const sending = store.sendSnap({
+      allowReplay: false,
+      caption: '',
+      durationSeconds: 5,
+      mediaId: 42,
+      mediaType: 'photo',
+      overlayColor: '#ffffff',
+      recipientIds: [maya.id],
+      textOverlay: '',
+    })
+    const staleRefresh = store.bootstrap()
+    pendingSend.resolve({ data: [committedSent], success: true })
+    await Promise.resolve()
+    await Promise.resolve()
+    pendingBootstrap.resolve({ data: bootstrap, success: true })
+
+    await expect(staleRefresh).resolves.toBe(true)
+    await expect(sending).resolves.toMatchObject({ success: true })
+    expect(store.friends[0]).toMatchObject({
+      bestStreak: 12,
+      streakCount: 6,
+    })
+    expect(store.conversations[0]).toMatchObject({
+      bestStreak: 12,
+      lastItem: { id: committedSent.id },
+      streakCount: 6,
+    })
+    expect(store.profile?.snapScore).toBe(self.snapScore + 1)
+    expect(mockNuiCall).toHaveBeenNthCalledWith(3, 'skypic:bootstrap', {})
+  })
+
+  it('refreshes after a bootstrap that read before the pending send committed', async () => {
+    const pendingSend = deferred<NuiResponse<SkyPicSnap[]>>()
+    const pendingPreCommitBootstrap = deferred<NuiResponse<SkyPicBootstrap>>()
+    const staleHydration: SkyPicBootstrap = {
+      ...bootstrap,
+      conversations: [{ ...conversation }],
+      friends: [{ ...friend }],
+      profile: { ...self },
+    }
+    const committedSent: SkyPicSnap = {
+      ...snap,
+      bestStreak: 12,
+      createdAt: later,
+      direction: 'sent',
+      id: 'snap-committed-after-bootstrap-read',
+      sender: { ...self, snapScore: self.snapScore + 1 },
+      streakCount: 6,
+    }
+    const committedConversation: SkyPicConversation = {
+      ...conversation,
+      bestStreak: 12,
+      lastItem: {
+        createdAt: committedSent.createdAt,
+        direction: 'sent',
+        id: committedSent.id,
+        openedAt: null,
+        type: committedSent.type,
+      },
+      streakCount: 6,
+    }
+    const postCommitBootstrap: SkyPicBootstrap = {
+      ...bootstrap,
+      conversations: [committedConversation],
+      friends: [{ ...friend, streakCount: 6 }],
+      profile: { ...self, snapScore: self.snapScore + 1 },
+    }
+    mockNuiCall
+      .mockReturnValueOnce(pendingSend.promise)
+      .mockResolvedValueOnce({ data: staleHydration, success: true })
+      .mockReturnValueOnce(pendingPreCommitBootstrap.promise)
+      .mockResolvedValueOnce({ data: postCommitBootstrap, success: true })
+    const store = useSkyPicStore()
+
+    const sending = store.sendSnap({
+      allowReplay: false,
+      caption: '',
+      durationSeconds: 5,
+      mediaId: 42,
+      mediaType: 'photo',
+      overlayColor: '#ffffff',
+      recipientIds: [maya.id],
+      textOverlay: '',
+    })
+    await expect(store.bootstrap()).resolves.toBe(true)
+    expect(store.friends[0].streakCount).toBe(friend.streakCount)
+
+    const overlappingPreCommitRefresh = store.bootstrap()
+    pendingSend.resolve({ data: [committedSent], success: true })
+    pendingPreCommitBootstrap.resolve({
+      data: staleHydration,
+      success: true,
+    })
+    await expect(overlappingPreCommitRefresh).resolves.toBe(true)
+    await expect(sending).resolves.toMatchObject({ success: true })
+
+    expect(store.friends[0]).toMatchObject({
+      bestStreak: 12,
+      streakCount: 6,
+    })
+    expect(store.conversations[0]).toMatchObject({
+      bestStreak: 12,
+      lastItem: { id: committedSent.id },
+      streakCount: 6,
+    })
+    expect(mockNuiCall).toHaveBeenNthCalledWith(4, 'skypic:bootstrap', {})
+  })
+
+  it('does not refresh an obsolete session after a pending send resolves', async () => {
+    const pendingSend = deferred<NuiResponse<SkyPicSnap[]>>()
+    mockNuiCall.mockReturnValueOnce(pendingSend.promise)
+    const store = useSkyPicStore()
+
+    const sending = store.sendSnap({
+      allowReplay: false,
+      caption: '',
+      durationSeconds: 5,
+      mediaId: 42,
+      mediaType: 'photo',
+      overlayColor: '#ffffff',
+      recipientIds: [maya.id],
+      textOverlay: '',
+    })
+    store.resetSession()
+    pendingSend.resolve({ data: [snap], success: true })
+
+    await expect(sending).resolves.toEqual({
+      error: 'request_aborted',
+      success: false,
+    })
+    expect(mockNuiCall).toHaveBeenCalledTimes(1)
   })
 
   it('deduplicates and caps a multi-photo snap batch without legacy media fields', async () => {

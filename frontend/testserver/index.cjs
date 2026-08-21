@@ -3577,6 +3577,16 @@ let skyPicFriends = [
     streakCount: 7,
   },
 ]
+const skyPicStreakStates = new Map([
+  [
+    '20000000-0000-4000-8000-000000000001',
+    {
+      friendLastSnapOn: skyPicUtcDay(),
+      selfLastSnapOn: skyPicUtcDay(),
+      streakUpdatedOn: skyPicUtcDay(),
+    },
+  ],
+])
 let skyPicRequests = [
   {
     createdAt: isoTime(-35 * 60_000),
@@ -3816,11 +3826,79 @@ function skyPicIncrementOwnScore(amount = 1) {
   if (skyPicProfile) skyPicProfile.snapScore = skyPicProfiles[0].snapScore
 }
 
+function skyPicUtcDay(timestamp = Date.now()) {
+  const value = new Date(timestamp)
+  return Number.isNaN(value.getTime()) ? null : value.toISOString().slice(0, 10)
+}
+
+function skyPicPreviousUtcDay(day) {
+  const value = new Date(`${day}T00:00:00.000Z`)
+  value.setUTCDate(value.getUTCDate() - 1)
+  return value.toISOString().slice(0, 10)
+}
+
+function skyPicApplyStreakActivity(
+  friend,
+  state,
+  side,
+  timestamp = Date.now(),
+) {
+  const day = skyPicUtcDay(timestamp)
+  if (!day || !state || !['friend', 'self'].includes(side)) return false
+
+  const previousDay = skyPicPreviousUtcDay(day)
+  if (
+    friend.streakCount > 0 &&
+    (!state.streakUpdatedOn || state.streakUpdatedOn < previousDay)
+  ) {
+    friend.streakCount = 0
+  }
+
+  state[side === 'self' ? 'selfLastSnapOn' : 'friendLastSnapOn'] = day
+  if (
+    state.selfLastSnapOn !== day ||
+    state.friendLastSnapOn !== day ||
+    state.streakUpdatedOn === day
+  ) {
+    return false
+  }
+
+  friend.streakCount =
+    state.streakUpdatedOn === previousDay ? friend.streakCount + 1 : 1
+  friend.bestStreak = Math.max(friend.bestStreak, friend.streakCount)
+  state.streakUpdatedOn = day
+  return true
+}
+
+function skyPicSyncStreak(friend) {
+  const conversation = skyPicConversation(friend.friendshipId)
+  if (!conversation) return
+  conversation.streakCount = friend.streakCount
+  conversation.bestStreak = friend.bestStreak
+}
+
+function skyPicRefreshStreaks(timestamp = Date.now()) {
+  const day = skyPicUtcDay(timestamp)
+  if (!day) return
+  const previousDay = skyPicPreviousUtcDay(day)
+  for (const friend of skyPicFriends) {
+    const state = skyPicStreakStates.get(friend.friendshipId)
+    if (
+      friend.streakCount > 0 &&
+      (!state?.streakUpdatedOn || state.streakUpdatedOn < previousDay)
+    ) {
+      friend.streakCount = 0
+      skyPicSyncStreak(friend)
+    }
+  }
+}
+
 function skyPicStoryVisible(story) {
   return story.isOwner || !skyPicBlockedProfileIds.has(story.author.id)
 }
 
 function skyPicBootstrap(testScenario = '') {
+  skyPicRefreshStreaks()
   if (testScenario === 'skypic-onboarding') {
     const profile = skyPicOnboardingProfile
       ? { ...skyPicOnboardingProfile }
@@ -8089,6 +8167,7 @@ app.post('/api/:endpoint', (request, response) => {
     }
     skyPicProfile = null
     skyPicFriends = []
+    skyPicStreakStates.clear()
     skyPicRequests = []
     skyPicConversations = []
     skyPicSnaps = []
@@ -8252,6 +8331,11 @@ app.post('/api/:endpoint', (request, response) => {
       streakCount: 0,
     }
     skyPicFriends.push(friend)
+    skyPicStreakStates.set(friendshipId, {
+      friendLastSnapOn: null,
+      selfLastSnapOn: null,
+      streakUpdatedOn: null,
+    })
     if (skyPicProfile) skyPicProfile.friendCount = skyPicFriends.length
     response.json({ success: true, data: skyPicFriendView(friend) })
     return
@@ -8277,6 +8361,7 @@ app.post('/api/:endpoint', (request, response) => {
     skyPicSnaps = skyPicSnaps.filter(
       (item) => item.friendshipId !== friendshipId,
     )
+    skyPicStreakStates.delete(friendshipId)
     skyPicMessages.delete(friendshipId)
     if (skyPicProfile) skyPicProfile.friendCount = skyPicFriends.length
     response.json({ success: true })
@@ -8317,6 +8402,7 @@ app.post('/api/:endpoint', (request, response) => {
         item.sender.id !== profileId && !friendshipIds.has(item.friendshipId),
     )
     for (const friendshipId of friendshipIds) {
+      skyPicStreakStates.delete(friendshipId)
       skyPicMessages.delete(friendshipId)
     }
     if (skyPicProfile) skyPicProfile.friendCount = skyPicFriends.length
@@ -8392,9 +8478,18 @@ app.post('/api/:endpoint', (request, response) => {
     const sent = []
     for (const friend of recipients) {
       for (const media of mediaItems) {
+        const streakState = skyPicStreakStates.get(friend.friendshipId) ?? {
+          friendLastSnapOn: null,
+          selfLastSnapOn: null,
+          streakUpdatedOn: null,
+        }
+        skyPicStreakStates.set(friend.friendshipId, streakState)
+        skyPicApplyStreakActivity(friend, streakState, 'self', createdAt)
+        skyPicSyncStreak(friend)
         const mediaType = media.mediaType === 'video' ? 'video' : 'photo'
         const snap = {
           allowReplay: request.body.allowReplay === true,
+          bestStreak: friend.bestStreak,
           createdAt,
           direction: 'sent',
           durationSeconds,
@@ -8404,6 +8499,7 @@ app.post('/api/:endpoint', (request, response) => {
           openedAt: null,
           replayedAt: null,
           sender: skyPicProfiles[0],
+          streakCount: friend.streakCount,
           type: mediaType === 'video' ? 'snap_video' : 'snap_photo',
         }
         skyPicSnaps.push(snap)
@@ -12988,6 +13084,7 @@ if (require.main === module) {
 
 module.exports = {
   app,
+  skyPicApplyStreakActivity,
   skyPicMessageBody,
   skyPicRecipientIds,
   skyPicTextOverlay,

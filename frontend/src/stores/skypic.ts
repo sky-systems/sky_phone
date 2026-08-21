@@ -100,12 +100,14 @@ export const useSkyPicStore = defineStore('skypic', () => {
   const storyViewersLoadingMore = ref(false)
   const error = ref<string | null>(null)
   let bootstrapRequest = 0
+  let bootstrapGeneration = 0
   let searchRequest = 0
   let snapRequest = 0
   let storyRequest = 0
   let storyViewersRequest = 0
   let threadRequest = 0
   let sessionVersion = 0
+  let hydrationRevision = 0
   let storyViewersStoryId: string | null = null
   let bootstrapInFlight: {
     promise: Promise<boolean>
@@ -154,6 +156,29 @@ export const useSkyPicStore = defineStore('skypic', () => {
     conversations.value = sortByLastItem(conversations.value)
   }
 
+  function reconcileFriendshipStreak(snap: SkyPicSnap): void {
+    const streakCount = Number(snap.streakCount)
+    const bestStreak = Number(snap.bestStreak)
+    if (
+      !Number.isInteger(streakCount) ||
+      streakCount < 0 ||
+      !Number.isInteger(bestStreak) ||
+      bestStreak < streakCount
+    ) {
+      return
+    }
+    friends.value = friends.value.map((friend) =>
+      friend.friendshipId === snap.friendshipId
+        ? { ...friend, bestStreak, streakCount }
+        : friend,
+    )
+    conversations.value = conversations.value.map((conversation) =>
+      conversation.friendshipId === snap.friendshipId
+        ? { ...conversation, bestStreak, streakCount }
+        : conversation,
+    )
+  }
+
   function setError(response: NuiResponse<unknown>): void {
     if (response.error === 'request_aborted') return
     error.value = response.success ? null : (response.error ?? 'unknown_error')
@@ -172,6 +197,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
 
   function resetSession(): void {
     sessionVersion += 1
+    hydrationRevision += 1
     bootstrapInFlight = null
     bootstrapPending.value = false
     bootstrapRequest += 1
@@ -217,6 +243,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
       return
     }
 
+    hydrationRevision += 1
+
     blockedProfiles.value = arrayOrEmpty(data.blockedProfiles)
     friends.value = arrayOrEmpty(data.friends)
     requests.value = arrayOrEmpty(data.requests)
@@ -234,6 +262,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
     if (bootstrapInFlight?.session === requestSession) {
       return bootstrapInFlight.promise
     }
+    bootstrapGeneration += 1
     const requestId = ++bootstrapRequest
     loading.value = true
     bootstrapPending.value = true
@@ -256,6 +285,15 @@ export const useSkyPicStore = defineStore('skypic', () => {
     })()
     bootstrapInFlight = { promise, session: requestSession, token }
     return promise
+  }
+
+  async function refreshAfterMutation(expectedSession: number): Promise<void> {
+    const pendingBootstrap = bootstrapInFlight
+    if (pendingBootstrap?.session === expectedSession) {
+      await pendingBootstrap.promise
+    }
+    if (expectedSession !== sessionVersion) return
+    await bootstrap()
   }
 
   async function createProfile(
@@ -585,6 +623,9 @@ export const useSkyPicStore = defineStore('skypic', () => {
           mediaId: input.mediaId!,
           mediaType: input.mediaType!,
         }
+    const requestHydrationRevision = hydrationRevision
+    const requestBootstrapGeneration = bootstrapGeneration
+    const requestSession = sessionVersion
     const response = await sessionCall<SkyPicSnap[]>(
       'skypic:send-snap',
       payload,
@@ -592,25 +633,35 @@ export const useSkyPicStore = defineStore('skypic', () => {
     setError(response)
     if (response.success && response.data) {
       const active = activeFriendshipId.value
+      const canReconcileResponse =
+        requestSession === sessionVersion &&
+        requestHydrationRevision === hydrationRevision &&
+        requestBootstrapGeneration === bootstrapGeneration &&
+        bootstrapInFlight?.session !== requestSession
       threadSnaps.value = uniqueById([
         ...threadSnaps.value,
         ...response.data.filter((snap) => snap.friendshipId === active),
       ])
-      for (const snap of response.data) {
-        upsertConversationLastItem(snap.friendshipId, {
-          createdAt: snap.createdAt,
-          direction: snap.direction,
-          id: snap.id,
-          openedAt: snap.openedAt,
-          type: snap.type,
-        })
-      }
-      if (profile.value && response.data.length) {
-        const serverScore = response.data.find(
-          (snap) => snap.sender.id === profile.value?.id,
-        )?.sender.snapScore
-        profile.value.snapScore =
-          serverScore ?? profile.value.snapScore + response.data.length
+      if (canReconcileResponse) {
+        for (const snap of response.data) {
+          upsertConversationLastItem(snap.friendshipId, {
+            createdAt: snap.createdAt,
+            direction: snap.direction,
+            id: snap.id,
+            openedAt: snap.openedAt,
+            type: snap.type,
+          })
+          reconcileFriendshipStreak(snap)
+        }
+        if (profile.value && response.data.length) {
+          const serverScore = response.data.find(
+            (snap) => snap.sender.id === profile.value?.id,
+          )?.sender.snapScore
+          profile.value.snapScore =
+            serverScore ?? profile.value.snapScore + response.data.length
+        }
+      } else if (requestSession === sessionVersion) {
+        await refreshAfterMutation(requestSession)
       }
     }
     return response

@@ -3,6 +3,7 @@ const { once } = require('node:events')
 
 const {
   app,
+  skyPicApplyStreakActivity,
   skyPicMessageBody,
   skyPicRecipientIds,
   skyPicTextOverlay,
@@ -318,6 +319,83 @@ async function verifySkyPicActions(baseUrl) {
     error: 'message_too_long',
   })
 
+  const streakFixture = { bestStreak: 18, streakCount: 7 }
+  const streakState = {
+    friendLastSnapOn: null,
+    selfLastSnapOn: null,
+    streakUpdatedOn: '2026-08-17',
+  }
+  assert.equal(
+    skyPicApplyStreakActivity(
+      streakFixture,
+      streakState,
+      'self',
+      '2026-08-18T08:00:00.000Z',
+    ),
+    false,
+  )
+  assert.equal(
+    skyPicApplyStreakActivity(
+      streakFixture,
+      streakState,
+      'self',
+      '2026-08-18T08:01:00.000Z',
+    ),
+    false,
+  )
+  assert.equal(
+    skyPicApplyStreakActivity(
+      streakFixture,
+      streakState,
+      'friend',
+      '2026-08-18T09:00:00.000Z',
+    ),
+    true,
+  )
+  assert.equal(streakFixture.streakCount, 8)
+  assert.equal(
+    skyPicApplyStreakActivity(
+      streakFixture,
+      streakState,
+      'friend',
+      '2026-08-18T09:01:00.000Z',
+    ),
+    false,
+  )
+  skyPicApplyStreakActivity(
+    streakFixture,
+    streakState,
+    'friend',
+    '2026-08-19T08:00:00.000Z',
+  )
+  assert.equal(
+    skyPicApplyStreakActivity(
+      streakFixture,
+      streakState,
+      'self',
+      '2026-08-19T09:00:00.000Z',
+    ),
+    true,
+  )
+  assert.equal(streakFixture.streakCount, 9)
+  skyPicApplyStreakActivity(
+    streakFixture,
+    streakState,
+    'self',
+    '2026-08-21T08:00:00.000Z',
+  )
+  assert.equal(streakFixture.streakCount, 0)
+  assert.equal(
+    skyPicApplyStreakActivity(
+      streakFixture,
+      streakState,
+      'friend',
+      '2026-08-21T09:00:00.000Z',
+    ),
+    true,
+  )
+  assert.deepEqual(streakFixture, { bestStreak: 18, streakCount: 1 })
+
   let bootstrap = await expectSuccess(baseUrl, 'skypic:bootstrap', {}, true)
   const friend = bootstrap.friends[0]
   const receivedSnap = bootstrap.inbox.find(
@@ -326,6 +404,16 @@ async function verifySkyPicActions(baseUrl) {
   assert(friend, 'skypic:bootstrap did not include a friend')
   assert(receivedSnap, 'skypic:bootstrap did not include an unopened snap')
   assert.equal(friend.profile.friendshipStatus, 'friends')
+  const streakConversation = bootstrap.conversations.find(
+    (conversation) => conversation.friendshipId === friend.friendshipId,
+  )
+  assert(streakConversation, 'SkyPic friend was missing its conversation')
+  assert.equal(typeof friend.streakCount, 'number')
+  assert.equal(typeof friend.bestStreak, 'number')
+  assert.equal(streakConversation.streakCount, friend.streakCount)
+  assert.equal(streakConversation.bestStreak, friend.bestStreak)
+  const expectedStreakCount = friend.streakCount
+  const expectedBestStreak = friend.bestStreak
   let expectedSnapScore = bootstrap.profile.snapScore
 
   const thread = await expectSuccess(
@@ -616,10 +704,14 @@ async function verifySkyPicActions(baseUrl) {
     30 * 24 * 60 * 60_000,
   )
   expectSkyPicMetadataSafe(sentSnaps, 'SkyPic sent snap response')
+  assert.equal(sentSnaps[0].streakCount, expectedStreakCount)
+  assert.equal(sentSnaps[0].bestStreak, expectedBestStreak)
   expectedSnapScore += sentSnaps.length
   assert.equal(sentSnaps[0].sender.snapScore, expectedSnapScore)
   bootstrap = await expectSuccess(baseUrl, 'skypic:bootstrap', {}, true)
   assert.equal(bootstrap.profile.snapScore, expectedSnapScore)
+  assert.equal(bootstrap.friends[0].streakCount, expectedStreakCount)
+  assert.equal(bootstrap.friends[0].bestStreak, expectedBestStreak)
 
   assert.deepEqual(
     await post(baseUrl, 'skypic:send-snap', {
@@ -704,10 +796,20 @@ async function verifySkyPicActions(baseUrl) {
   )
   assert.equal(sentPhotoBatch.length, 3)
   assert(sentPhotoBatch.every((snap) => snap.type === 'snap_photo'))
+  assert(
+    sentPhotoBatch.every(
+      (snap) =>
+        snap.streakCount === expectedStreakCount &&
+        snap.bestStreak === expectedBestStreak,
+    ),
+    'an atomic SkyPic photo batch advanced one friendship more than once per UTC day',
+  )
   assert.equal(new Set(sentPhotoBatch.map((snap) => snap.id)).size, 3)
   expectedSnapScore += sentPhotoBatch.length
   bootstrap = await expectSuccess(baseUrl, 'skypic:bootstrap', {}, true)
   assert.equal(bootstrap.profile.snapScore, expectedSnapScore)
+  assert.equal(bootstrap.friends[0].streakCount, expectedStreakCount)
+  assert.equal(bootstrap.friends[0].bestStreak, expectedBestStreak)
 
   const sentMessage = await expectSuccess(
     baseUrl,

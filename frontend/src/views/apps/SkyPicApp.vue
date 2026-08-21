@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CirclePlay,
   Eye,
+  Flame,
   Image as ImageIcon,
   Images,
   LogOut,
@@ -20,7 +21,6 @@ import {
   Shield,
   Timer,
   Trash2,
-  UserRound,
   UsersRound,
   Video,
   X,
@@ -210,6 +210,17 @@ const ownStories = computed(() =>
 )
 const communityStories = computed(() =>
   store.stories.filter((story) => !story.isOwner),
+)
+const friendStoryRail = computed(() => {
+  const authors = new Set<string>()
+  return communityStories.value.filter((story) => {
+    if (authors.has(story.author.id)) return false
+    authors.add(story.author.id)
+    return true
+  })
+})
+const bestStreak = computed(() =>
+  store.friends.reduce((best, friend) => Math.max(best, friend.bestStreak), 0),
 )
 const viewedStorySummary = computed(
   () =>
@@ -1779,14 +1790,23 @@ onBeforeUnmount(() => {
         <SkyNavbar
           :back-label="phone.t('Common.back')"
           show-back
-          :subtitle="
-            store.activeConversation.streakCount
-              ? `🔥 ${store.activeConversation.streakCount}`
-              : ''
-          "
           :title="store.activeConversation.profile.displayName"
           @back="closeThread"
         >
+          <template #subtitle>
+            <span
+              v-if="store.activeConversation.streakCount"
+              class="sp-navbar-streak"
+              :aria-label="
+                t('profile.streaks') +
+                ': ' +
+                store.activeConversation.streakCount
+              "
+            >
+              <Flame :size="13" aria-hidden="true" />
+              {{ store.activeConversation.streakCount }}
+            </span>
+          </template>
           <template #right>
             <button
               type="button"
@@ -2060,25 +2080,47 @@ onBeforeUnmount(() => {
           aria-labelledby="sp-camera-title"
         >
           <header class="sp-camera-header">
-            <span>
+            <button
+              type="button"
+              class="sp-camera-profile"
+              :aria-label="t('profile.title')"
+              @click="setTab('friends')"
+            >
+              <span
+                class="sp-avatar sp-avatar--small"
+                :style="avatarStyle(store.profile)"
+              >
+                <img
+                  v-if="store.profile.avatarUrl"
+                  :src="store.profile.avatarUrl"
+                  alt=""
+                />
+                <template v-else>{{ initials(store.profile) }}</template>
+              </span>
+            </button>
+            <span class="sp-camera-header__title">
               <small>{{ t('camera.eyebrow') }}</small>
               <h1 id="sp-camera-title">{{ t('camera.title') }}</h1>
             </span>
             <button
               type="button"
               class="sp-icon-button sp-icon-button--glass"
-              :aria-label="t('profile.title')"
-              @click="setTab('friends')"
+              :aria-label="t('chats.title')"
+              @click="setTab('chats')"
             >
-              <UserRound :size="20" aria-hidden="true" />
+              <MessageCircle :size="20" aria-hidden="true" />
             </button>
           </header>
 
-          <div class="sp-camera-preview">
-            <div class="sp-camera-preview__glow" aria-hidden="true" />
-            <Camera :size="54" aria-hidden="true" />
-            <p>{{ t('camera.body') }}</p>
-            <small>
+          <div class="sp-camera-viewfinder">
+            <span class="sp-camera-viewfinder__status">
+              <span aria-hidden="true" />
+              {{ t('camera.eyebrow') }}
+            </span>
+            <span class="sp-camera-reticle" aria-hidden="true">
+              <span />
+            </span>
+            <p class="sp-camera-viewfinder__hint">
               {{
                 t(
                   capturePurpose === 'story'
@@ -2086,96 +2128,123 @@ onBeforeUnmount(() => {
                     : 'camera.snapHint',
                 )
               }}
-            </small>
-          </div>
+            </p>
 
-          <SkySegmented
-            strong
-            rounded
-            :active-index="capturePurpose === 'snap' ? 0 : 1"
-            :aria-label="t('camera.title')"
-            :item-count="2"
-          >
-            <SkySegmentedButton
-              :active="capturePurpose === 'snap'"
-              @click="capturePurpose = 'snap'"
-            >
-              {{ t('camera.snap') }}
-            </SkySegmentedButton>
-            <SkySegmentedButton
-              :active="capturePurpose === 'story'"
-              @click="capturePurpose = 'story'"
-            >
-              {{ t('camera.story') }}
-            </SkySegmentedButton>
-          </SkySegmented>
+            <div class="sp-camera-dock">
+              <SkySegmented
+                compact
+                strong
+                :active-index="capturePurpose === 'snap' ? 0 : 1"
+                :aria-label="t('camera.title')"
+                :item-count="2"
+              >
+                <SkySegmentedButton
+                  :active="capturePurpose === 'snap'"
+                  @click="capturePurpose = 'snap'"
+                >
+                  {{ t('camera.snap') }}
+                </SkySegmentedButton>
+                <SkySegmentedButton
+                  :active="capturePurpose === 'story'"
+                  @click="capturePurpose = 'story'"
+                >
+                  {{ t('camera.story') }}
+                </SkySegmentedButton>
+              </SkySegmented>
 
-          <SkySegmented
-            compact
-            strong
-            :active-index="captureMediaType === 'photo' ? 0 : 1"
-            :aria-label="t('camera.title')"
-            :item-count="2"
-          >
-            <SkySegmentedButton
-              :active="captureMediaType === 'photo'"
-              @click="captureMediaType = 'photo'"
-            >
-              <ImageIcon :size="15" aria-hidden="true" />
-              {{ t('camera.photo') }}
-            </SkySegmentedButton>
-            <SkySegmentedButton
-              :active="captureMediaType === 'video'"
-              @click="captureMediaType = 'video'"
-            >
-              <Video :size="15" aria-hidden="true" />
-              {{ t('camera.video') }}
-            </SkySegmentedButton>
-          </SkySegmented>
+              <div class="sp-camera-actions">
+                <button
+                  type="button"
+                  class="sp-camera-secondary"
+                  :aria-label="t('camera.gallery')"
+                  @click="
+                    beginCapture('photos', captureMediaType, capturePurpose)
+                  "
+                >
+                  <Images :size="22" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  class="sp-shutter"
+                  :aria-label="
+                    t(
+                      captureMediaType === 'photo'
+                        ? 'camera.capturePhoto'
+                        : 'camera.captureVideo',
+                    )
+                  "
+                  @click="
+                    beginCapture('camera', captureMediaType, capturePurpose)
+                  "
+                >
+                  <span>
+                    <Camera
+                      v-if="captureMediaType === 'photo'"
+                      :size="28"
+                      aria-hidden="true"
+                    />
+                    <CirclePlay v-else :size="29" aria-hidden="true" />
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="sp-camera-secondary"
+                  :aria-label="
+                    t(
+                      captureMediaType === 'photo'
+                        ? 'camera.video'
+                        : 'camera.photo',
+                    )
+                  "
+                  @click="
+                    captureMediaType =
+                      captureMediaType === 'photo' ? 'video' : 'photo'
+                  "
+                >
+                  <Video
+                    v-if="captureMediaType === 'photo'"
+                    :size="22"
+                    aria-hidden="true"
+                  />
+                  <ImageIcon v-else :size="22" aria-hidden="true" />
+                </button>
+              </div>
 
-          <div class="sp-camera-actions">
-            <button
-              type="button"
-              class="sp-camera-secondary"
-              :aria-label="t('camera.gallery')"
-              @click="beginCapture('photos', captureMediaType, capturePurpose)"
-            >
-              <Images :size="22" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              class="sp-shutter"
-              :aria-label="
-                t(
-                  captureMediaType === 'photo'
-                    ? 'camera.capturePhoto'
-                    : 'camera.captureVideo',
-                )
-              "
-              @click="beginCapture('camera', captureMediaType, capturePurpose)"
-            >
-              <span>
-                <Camera
-                  v-if="captureMediaType === 'photo'"
-                  :size="28"
-                  aria-hidden="true"
-                />
-                <CirclePlay v-else :size="29" aria-hidden="true" />
+              <span class="sp-camera-format">
+                {{
+                  t(
+                    captureMediaType === 'photo'
+                      ? 'camera.photo'
+                      : 'camera.video',
+                  )
+                }}
               </span>
-            </button>
-            <button
-              type="button"
-              class="sp-camera-secondary"
-              :aria-label="t('friends.title')"
-              @click="setTab('friends')"
-            >
-              <UsersRound :size="22" aria-hidden="true" />
-            </button>
+            </div>
           </div>
         </section>
 
         <template v-else-if="activeTab === 'chats'">
-          <SkyNavbar :title="t('chats.title')">
+          <SkyNavbar class="sp-content-navbar" :title="t('chats.title')">
+            <template #left>
+              <button
+                type="button"
+                class="sp-navbar-profile"
+                :aria-label="t('profile.title')"
+                @click="setTab('friends')"
+              >
+                <span
+                  class="sp-avatar sp-avatar--small"
+                  :style="avatarStyle(store.profile)"
+                >
+                  <img
+                    v-if="store.profile.avatarUrl"
+                    :src="store.profile.avatarUrl"
+                    alt=""
+                  />
+                  <template v-else>{{ initials(store.profile) }}</template>
+                </span>
+              </button>
+            </template>
             <template #right>
               <button
                 type="button"
@@ -2187,26 +2256,27 @@ onBeforeUnmount(() => {
               </button>
             </template>
           </SkyNavbar>
-          <SkyScrollArea with-tabbar class="sp-screen">
-            <section class="sp-section">
-              <header>
-                <span>
-                  <b>{{ t('chats.incoming') }}</b>
-                  <small v-if="incomingSnaps.length">
-                    {{ incomingSnaps.length }}
-                  </small>
-                </span>
+          <SkyScrollArea with-tabbar class="sp-screen sp-chat-screen">
+            <section v-if="incomingSnaps.length" class="sp-chat-group">
+              <header class="sp-screen-heading">
+                <b>{{ t('chats.incoming') }}</b>
+                <SkyBadge small tone="danger">
+                  {{ incomingSnaps.length }}
+                </SkyBadge>
               </header>
-              <div v-if="incomingSnaps.length" class="sp-snap-strip">
+              <div class="sp-chat-list">
                 <button
                   v-for="snap in incomingSnaps"
                   :key="snap.id"
                   type="button"
-                  class="sp-snap-card"
+                  class="sp-chat-row sp-chat-row--snap"
                   :disabled="!snapCanOpen(snap)"
                   @click="openThreadSnap(snap)"
                 >
-                  <span class="sp-avatar" :style="avatarStyle(snap.sender)">
+                  <span
+                    class="sp-avatar sp-avatar--chat sp-avatar--unread"
+                    :style="avatarStyle(snap.sender)"
+                  >
                     <img
                       v-if="snap.sender.avatarUrl"
                       :src="snap.sender.avatarUrl"
@@ -2214,77 +2284,133 @@ onBeforeUnmount(() => {
                     />
                     <template v-else>{{ initials(snap.sender) }}</template>
                   </span>
-                  <span>
+                  <span class="sp-chat-row__copy">
                     <b>{{ snap.sender.displayName }}</b>
-                    <small>{{ snapLabel(snap) }}</small>
+                    <small class="sp-chat-row__meta">
+                      <span
+                        class="sp-chat-status-dot"
+                        :class="{
+                          'sp-chat-status-dot--video':
+                            snap.type === 'snap_video',
+                        }"
+                        aria-hidden="true"
+                      />
+                      {{ snapLabel(snap) }} ·
+                      {{ relativeTime(snap.createdAt) }}
+                    </small>
                   </span>
-                  <RotateCcw
-                    v-if="snap.openedAt && snap.allowReplay && !snap.replayedAt"
-                    :size="17"
-                    aria-hidden="true"
-                  />
-                  <Video
-                    v-else-if="snap.type === 'snap_video'"
-                    :size="17"
-                    aria-hidden="true"
-                  />
-                  <ImageIcon v-else :size="17" aria-hidden="true" />
+                  <span class="sp-chat-row__action">
+                    <RotateCcw
+                      v-if="
+                        snap.openedAt && snap.allowReplay && !snap.replayedAt
+                      "
+                      :size="18"
+                      aria-hidden="true"
+                    />
+                    <Video
+                      v-else-if="snap.type === 'snap_video'"
+                      :size="18"
+                      aria-hidden="true"
+                    />
+                    <ImageIcon v-else :size="18" aria-hidden="true" />
+                  </span>
                 </button>
               </div>
-              <SkyEmptyState v-else compact :title="t('chats.noSnaps')" />
             </section>
 
-            <section class="sp-section">
-              <header>
+            <section class="sp-chat-group">
+              <header class="sp-screen-heading">
                 <b>{{ t('chats.conversations') }}</b>
+                <small>{{ store.conversations.length }}</small>
               </header>
-              <button
-                v-for="conversation in store.conversations"
-                :key="conversation.friendshipId"
-                type="button"
-                class="sp-person-row sp-conversation-row"
-                @click="openThread(conversation.friendshipId)"
-              >
-                <span
-                  class="sp-avatar"
-                  :style="avatarStyle(conversation.profile)"
+              <div v-if="store.conversations.length" class="sp-chat-list">
+                <button
+                  v-for="conversation in store.conversations"
+                  :key="conversation.friendshipId"
+                  type="button"
+                  class="sp-chat-row"
+                  :class="{
+                    'sp-chat-row--unread': conversation.unreadCount,
+                  }"
+                  @click="openThread(conversation.friendshipId)"
                 >
-                  <img
-                    v-if="conversation.profile.avatarUrl"
-                    :src="conversation.profile.avatarUrl"
-                    alt=""
-                  />
-                  <template v-else>
-                    {{ initials(conversation.profile) }}
-                  </template>
-                </span>
-                <span class="sp-person-row__copy">
-                  <b>
-                    {{ conversation.profile.displayName }}
-                    <span v-if="conversation.streakCount" class="sp-streak">
-                      🔥 {{ conversation.streakCount }}
-                    </span>
-                  </b>
-                  <small>{{ lastItemLabel(conversation) }}</small>
-                </span>
-                <span class="sp-row-after">
-                  <time v-if="conversation.lastItem">
-                    {{ relativeTime(conversation.lastItem.createdAt) }}
-                  </time>
-                  <SkyBadge v-if="conversation.unreadCount" small tone="danger">
-                    {{ conversation.unreadCount }}
-                  </SkyBadge>
-                </span>
-              </button>
+                  <span
+                    class="sp-avatar sp-avatar--chat"
+                    :class="{
+                      'sp-avatar--unread': conversation.unreadCount,
+                    }"
+                    :style="avatarStyle(conversation.profile)"
+                  >
+                    <img
+                      v-if="conversation.profile.avatarUrl"
+                      :src="conversation.profile.avatarUrl"
+                      alt=""
+                    />
+                    <template v-else>
+                      {{ initials(conversation.profile) }}
+                    </template>
+                  </span>
+                  <span class="sp-chat-row__copy">
+                    <b>{{ conversation.profile.displayName }}</b>
+                    <small class="sp-chat-row__meta">
+                      <span
+                        v-if="conversation.streakCount"
+                        class="sp-streak"
+                        :aria-label="
+                          t('profile.streaks') + ': ' + conversation.streakCount
+                        "
+                      >
+                        <Flame :size="13" aria-hidden="true" />
+                        {{ conversation.streakCount }}
+                      </span>
+                      <span>{{ lastItemLabel(conversation) }}</span>
+                      <template v-if="conversation.lastItem">
+                        · {{ relativeTime(conversation.lastItem.createdAt) }}
+                      </template>
+                    </small>
+                  </span>
+                  <span class="sp-chat-row__action">
+                    <SkyBadge
+                      v-if="conversation.unreadCount"
+                      small
+                      tone="danger"
+                    >
+                      {{ conversation.unreadCount }}
+                    </SkyBadge>
+                    <Camera v-else :size="20" aria-hidden="true" />
+                  </span>
+                </button>
+              </div>
               <SkyEmptyState
                 v-if="!store.conversations.length"
+                compact
                 :title="t('chats.noConversations')"
               />
             </section>
           </SkyScrollArea>
         </template>
         <template v-else-if="activeTab === 'stories'">
-          <SkyNavbar :title="t('stories.title')">
+          <SkyNavbar class="sp-content-navbar" :title="t('stories.title')">
+            <template #left>
+              <button
+                type="button"
+                class="sp-navbar-profile"
+                :aria-label="t('profile.title')"
+                @click="setTab('friends')"
+              >
+                <span
+                  class="sp-avatar sp-avatar--small"
+                  :style="avatarStyle(store.profile)"
+                >
+                  <img
+                    v-if="store.profile.avatarUrl"
+                    :src="store.profile.avatarUrl"
+                    alt=""
+                  />
+                  <template v-else>{{ initials(store.profile) }}</template>
+                </span>
+              </button>
+            </template>
             <template #right>
               <button
                 type="button"
@@ -2296,41 +2422,67 @@ onBeforeUnmount(() => {
               </button>
             </template>
           </SkyNavbar>
-          <SkyScrollArea with-tabbar class="sp-screen">
-            <section class="sp-story-hero">
-              <span class="sp-story-hero__icon">
-                <CirclePlay :size="24" aria-hidden="true" />
-              </span>
-              <span>
-                <b>{{ t('stories.add') }}</b>
-                <small>{{ t('camera.storyHint') }}</small>
-              </span>
-              <SkyButton
-                rounded
-                small
-                @click="beginCapture('camera', 'photo', 'story', [])"
-              >
-                <Camera :size="16" aria-hidden="true" />
-                {{ t('stories.add') }}
-              </SkyButton>
-            </section>
-
-            <section v-if="ownStories.length" class="sp-section">
-              <header>
-                <b>{{ t('stories.yours') }}</b>
+          <SkyScrollArea with-tabbar class="sp-screen sp-stories-screen">
+            <section class="sp-story-rail-section">
+              <header class="sp-screen-heading">
+                <b>{{ t('stories.friends') }}</b>
+                <small>{{ friendStoryRail.length }}</small>
               </header>
-              <article
-                v-for="story in ownStories"
-                :key="story.id"
-                class="sp-story-row sp-story-row--own"
-              >
+              <div class="sp-story-rail">
                 <button
+                  v-if="ownStories.length"
                   type="button"
+                  class="sp-story-rail__item"
+                  :disabled="store.storyViewing"
+                  @click="openStory(ownStories[0].id)"
+                >
+                  <span
+                    class="sp-avatar sp-avatar--story sp-story-rail__avatar"
+                    :style="avatarStyle(store.profile)"
+                  >
+                    <img
+                      v-if="store.profile.avatarUrl"
+                      :src="store.profile.avatarUrl"
+                      alt=""
+                    />
+                    <template v-else>{{ initials(store.profile) }}</template>
+                  </span>
+                  <small>{{ t('stories.yours') }}</small>
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="sp-story-rail__item"
+                  @click="beginCapture('camera', 'photo', 'story', [])"
+                >
+                  <span
+                    class="sp-avatar sp-story-rail__avatar sp-story-rail__avatar--add"
+                    :style="avatarStyle(store.profile)"
+                  >
+                    <img
+                      v-if="store.profile.avatarUrl"
+                      :src="store.profile.avatarUrl"
+                      alt=""
+                    />
+                    <template v-else>{{ initials(store.profile) }}</template>
+                    <span class="sp-story-rail__plus" aria-hidden="true">
+                      <Plus :size="14" />
+                    </span>
+                  </span>
+                  <small>{{ t('stories.add') }}</small>
+                </button>
+
+                <button
+                  v-for="story in friendStoryRail"
+                  :key="story.id"
+                  type="button"
+                  class="sp-story-rail__item"
                   :disabled="store.storyViewing"
                   @click="openStory(story.id)"
                 >
                   <span
-                    class="sp-avatar sp-avatar--story"
+                    class="sp-avatar sp-avatar--story sp-story-rail__avatar"
+                    :class="{ 'sp-avatar--seen': story.seen }"
                     :style="avatarStyle(story.author)"
                   >
                     <img
@@ -2340,72 +2492,92 @@ onBeforeUnmount(() => {
                     />
                     <template v-else>{{ initials(story.author) }}</template>
                   </span>
-                  <span>
-                    <b>{{ t('stories.yours') }}</b>
-                    <small>
-                      {{
-                        t('stories.views', {
-                          count: String(story.viewCount),
-                        })
-                      }}
-                      · {{ relativeTime(story.createdAt) }}
-                    </small>
-                  </span>
+                  <small>{{ story.author.displayName }}</small>
                 </button>
-                <div class="sp-story-row__actions">
-                  <button
-                    type="button"
-                    :aria-label="t('stories.viewers')"
-                    @click="showStoryViewers(story)"
-                  >
-                    <Eye :size="17" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    :aria-label="t('stories.delete')"
-                    @click="deleteStory(story.id)"
-                  >
-                    <Trash2 :size="17" aria-hidden="true" />
-                  </button>
-                </div>
-              </article>
+              </div>
             </section>
 
-            <section class="sp-section">
-              <header>
-                <b>{{ t('stories.friends') }}</b>
+            <section class="sp-story-feed">
+              <header class="sp-screen-heading">
+                <b>{{ t('stories.title') }}</b>
+                <small>{{ store.stories.length }}</small>
               </header>
-              <button
-                v-for="story in communityStories"
-                :key="story.id"
-                type="button"
-                class="sp-story-row"
-                :disabled="store.storyViewing"
-                @click="openStory(story.id)"
-              >
-                <span
-                  class="sp-avatar sp-avatar--story"
-                  :class="{ 'sp-avatar--seen': story.seen }"
-                  :style="avatarStyle(story.author)"
+              <div v-if="store.stories.length" class="sp-story-grid">
+                <article
+                  v-for="story in store.stories"
+                  :key="story.id"
+                  class="sp-story-card"
+                  :class="{
+                    'sp-story-card--owner': story.isOwner,
+                    'sp-story-card--seen': story.seen,
+                  }"
                 >
-                  <img
-                    v-if="story.author.avatarUrl"
-                    :src="story.author.avatarUrl"
-                    alt=""
-                  />
-                  <template v-else>{{ initials(story.author) }}</template>
-                </span>
-                <span>
-                  <b>{{ story.author.displayName }}</b>
-                  <small>
-                    {{ t(story.seen ? 'stories.seen' : 'stories.unseen') }}
-                    · {{ relativeTime(story.createdAt) }}
-                  </small>
-                </span>
-                <ChevronLeft class="sp-chevron" :size="18" aria-hidden="true" />
-              </button>
+                  <button
+                    type="button"
+                    class="sp-story-card__open"
+                    :disabled="store.storyViewing"
+                    @click="openStory(story.id)"
+                  >
+                    <span
+                      class="sp-story-card__media"
+                      :style="avatarStyle(story.author)"
+                    >
+                      <img
+                        v-if="story.author.avatarUrl"
+                        :src="story.author.avatarUrl"
+                        alt=""
+                      />
+                      <span v-else>{{ initials(story.author) }}</span>
+                    </span>
+                    <span class="sp-story-card__duration">
+                      <CirclePlay :size="13" aria-hidden="true" />
+                      {{ story.durationSeconds }}s
+                    </span>
+                    <span class="sp-story-card__copy">
+                      <b>
+                        {{
+                          story.isOwner
+                            ? t('stories.yours')
+                            : story.author.displayName
+                        }}
+                      </b>
+                      <small>
+                        <template v-if="story.isOwner">
+                          {{
+                            t('stories.views', {
+                              count: String(story.viewCount),
+                            })
+                          }}
+                        </template>
+                        <template v-else>
+                          {{
+                            t(story.seen ? 'stories.seen' : 'stories.unseen')
+                          }}
+                        </template>
+                        · {{ relativeTime(story.createdAt) }}
+                      </small>
+                    </span>
+                  </button>
+                  <div v-if="story.isOwner" class="sp-story-card__actions">
+                    <button
+                      type="button"
+                      :aria-label="t('stories.viewers')"
+                      @click="showStoryViewers(story)"
+                    >
+                      <Eye :size="15" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      :aria-label="t('stories.delete')"
+                      @click="deleteStory(story.id)"
+                    >
+                      <Trash2 :size="15" aria-hidden="true" />
+                    </button>
+                  </div>
+                </article>
+              </div>
               <SkyEmptyState
-                v-if="!communityStories.length"
+                v-else
                 :body="t('stories.emptyBody')"
                 :title="t('stories.emptyTitle')"
               >
@@ -2430,7 +2602,27 @@ onBeforeUnmount(() => {
           </SkyScrollArea>
         </template>
         <template v-else>
-          <SkyNavbar :title="t('friends.title')">
+          <SkyNavbar class="sp-content-navbar" :title="t('friends.title')">
+            <template #left>
+              <button
+                type="button"
+                class="sp-navbar-profile"
+                :aria-label="t('profile.title')"
+                @click="toggleProfileEditor"
+              >
+                <span
+                  class="sp-avatar sp-avatar--small"
+                  :style="avatarStyle(store.profile)"
+                >
+                  <img
+                    v-if="store.profile.avatarUrl"
+                    :src="store.profile.avatarUrl"
+                    alt=""
+                  />
+                  <template v-else>{{ initials(store.profile) }}</template>
+                </span>
+              </button>
+            </template>
             <template #right>
               <button
                 type="button"
@@ -2442,7 +2634,7 @@ onBeforeUnmount(() => {
               </button>
             </template>
           </SkyNavbar>
-          <SkyScrollArea with-tabbar class="sp-screen">
+          <SkyScrollArea with-tabbar class="sp-screen sp-friends-screen">
             <section class="sp-profile-card">
               <span
                 class="sp-avatar sp-avatar--profile"
@@ -2476,13 +2668,12 @@ onBeforeUnmount(() => {
                   <small>{{ t('profile.friends') }}</small>
                 </span>
                 <span>
-                  <b>
-                    {{
-                      store.friends.reduce(
-                        (best, friend) => Math.max(best, friend.bestStreak),
-                        0,
-                      )
-                    }}
+                  <b
+                    class="sp-profile-streak-stat"
+                    :aria-label="t('profile.streaks') + ': ' + bestStreak"
+                  >
+                    <Flame :size="15" aria-hidden="true" />
+                    {{ bestStreak }}
                   </b>
                   <small>{{ t('profile.streaks') }}</small>
                 </span>
@@ -2585,7 +2776,10 @@ onBeforeUnmount(() => {
               </div>
             </form>
 
-            <section v-if="store.incomingRequests.length" class="sp-section">
+            <section
+              v-if="store.incomingRequests.length"
+              class="sp-section sp-friends-block"
+            >
               <header>
                 <b>{{ t('friends.requests') }}</b>
                 <SkyBadge tone="danger">
@@ -2633,7 +2827,10 @@ onBeforeUnmount(() => {
               </article>
             </section>
 
-            <section v-if="store.outgoingRequests.length" class="sp-section">
+            <section
+              v-if="store.outgoingRequests.length"
+              class="sp-section sp-friends-block"
+            >
               <header>
                 <b>{{ t('friends.sentRequests') }}</b>
                 <small>{{ store.outgoingRequests.length }}</small>
@@ -2667,7 +2864,10 @@ onBeforeUnmount(() => {
               </article>
             </section>
 
-            <section v-if="store.blockedProfiles.length" class="sp-section">
+            <section
+              v-if="store.blockedProfiles.length"
+              class="sp-section sp-friends-block"
+            >
               <header>
                 <b>{{ t('friends.blockedProfiles') }}</b>
                 <small>{{ store.blockedProfiles.length }}</small>
@@ -2691,7 +2891,7 @@ onBeforeUnmount(() => {
               </article>
             </section>
 
-            <section class="sp-section sp-discovery">
+            <section class="sp-section sp-discovery sp-friends-block">
               <header>
                 <b>
                   {{
@@ -2717,21 +2917,22 @@ onBeforeUnmount(() => {
               >
                 <SkySpinner />
               </div>
-              <template
-                v-for="person in searchQuery
-                  ? store.searchResults
-                  : store.suggestions"
-                v-else
-                :key="person.id"
-              >
+              <div v-else class="sp-discovery-grid">
                 <article
-                  class="sp-person-row"
+                  v-for="person in searchQuery
+                    ? store.searchResults
+                    : store.suggestions"
+                  :key="person.id"
+                  class="sp-discovery-card"
                   :class="{
                     'sp-person-row--highlighted':
                       highlightedProfileId === person.id,
                   }"
                 >
-                  <span class="sp-avatar" :style="avatarStyle(person)">
+                  <span
+                    class="sp-avatar sp-avatar--discovery"
+                    :style="avatarStyle(person)"
+                  >
                     <img
                       v-if="person.avatarUrl"
                       :src="person.avatarUrl"
@@ -2739,10 +2940,10 @@ onBeforeUnmount(() => {
                     />
                     <template v-else>{{ initials(person) }}</template>
                   </span>
-                  <span class="sp-person-row__copy">
+                  <span class="sp-discovery-card__copy">
                     <b>{{ person.displayName }}</b>
+                    <small> @{{ person.handle }} </small>
                     <small>
-                      @{{ person.handle }} ·
                       {{
                         t('friends.score', {
                           count: String(person.snapScore),
@@ -2751,6 +2952,7 @@ onBeforeUnmount(() => {
                     </small>
                   </span>
                   <SkyButton
+                    block
                     rounded
                     small
                     :disabled="person.friendshipStatus === 'outgoing'"
@@ -2759,10 +2961,10 @@ onBeforeUnmount(() => {
                     {{ profileRelationLabel(person) }}
                   </SkyButton>
                 </article>
-              </template>
+              </div>
             </section>
 
-            <section class="sp-section">
+            <section class="sp-section sp-friends-list">
               <header>
                 <b>{{ t('friends.all') }}</b>
                 <small>{{ store.friends.length }}</small>
@@ -2789,9 +2991,16 @@ onBeforeUnmount(() => {
                     <b>{{ friend.profile.displayName }}</b>
                     <small>
                       @{{ friend.profile.handle }}
-                      <template v-if="friend.streakCount">
-                        · 🔥 {{ friend.streakCount }}
-                      </template>
+                      <span
+                        v-if="friend.streakCount"
+                        class="sp-streak"
+                        :aria-label="
+                          t('profile.streaks') + ': ' + friend.streakCount
+                        "
+                      >
+                        <Flame :size="13" aria-hidden="true" />
+                        {{ friend.streakCount }}
+                      </span>
                     </small>
                   </span>
                 </div>
@@ -2835,7 +3044,11 @@ onBeforeUnmount(() => {
             </section>
           </SkyScrollArea>
         </template>
-        <SkyTabBar :aria-label="t('navigation')">
+        <SkyTabBar
+          class="sp-bottom-nav"
+          :class="{ 'sp-bottom-nav--camera': activeTab === 'camera' }"
+          :aria-label="t('navigation')"
+        >
           <SkyTabButton
             class="sp-tab sp-tab--camera"
             :active="activeTab === 'camera'"
@@ -2906,7 +3119,7 @@ onBeforeUnmount(() => {
 
     <div
       v-if="store.openedSnap"
-      class="sp-media-viewer"
+      class="sp-media-viewer sp-media-viewer--snap"
       role="dialog"
       aria-modal="true"
       :aria-label="t('viewer.snap')"
@@ -2968,7 +3181,7 @@ onBeforeUnmount(() => {
 
     <div
       v-if="store.viewedStory"
-      class="sp-media-viewer"
+      class="sp-media-viewer sp-media-viewer--story"
       role="dialog"
       aria-modal="true"
       :aria-label="t('viewer.story')"
@@ -3370,8 +3583,7 @@ onBeforeUnmount(() => {
 
 .sp-icon-button,
 .sp-send-button,
-.sp-request-actions button,
-.sp-story-row__actions button {
+.sp-request-actions button {
   display: inline-grid;
   width: var(--sky-touch-target);
   min-width: var(--sky-touch-target);
@@ -3533,8 +3745,7 @@ input:focus-visible {
   margin: var(--sky-space-3) 0 var(--sky-space-5);
 }
 
-.sp-change-media :deep(svg),
-.sp-story-hero :deep(svg) {
+.sp-change-media :deep(svg) {
   margin-right: 5px;
 }
 
@@ -3646,59 +3857,6 @@ input:focus-visible {
   line-height: 1;
 }
 
-.sp-camera-preview {
-  position: relative;
-  display: grid;
-  overflow: hidden;
-  min-height: 0;
-  flex: 1;
-  place-content: center;
-  justify-items: center;
-  padding: var(--sky-space-5);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.07);
-  text-align: center;
-  backdrop-filter: blur(18px);
-}
-
-.sp-camera-preview__glow {
-  position: absolute;
-  width: 180px;
-  height: 180px;
-  border-radius: 50%;
-  background: rgba(10, 132, 255, 0.38);
-  filter: blur(40px);
-}
-
-.sp-camera-preview > svg,
-.sp-camera-preview > p,
-.sp-camera-preview > small {
-  position: relative;
-}
-
-.sp-camera-preview > svg {
-  margin-bottom: var(--sky-space-4);
-  color: #55b4ff;
-  filter: drop-shadow(0 7px 18px rgba(10, 132, 255, 0.42));
-}
-
-.sp-camera-preview p {
-  max-width: 250px;
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.sp-camera-preview small {
-  max-width: 250px;
-  margin-top: var(--sky-space-2);
-  color: rgba(255, 255, 255, 0.64);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
 .sp-camera-screen :deep(.sky-segmented) {
   flex: 0 0 auto;
 }
@@ -3748,66 +3906,385 @@ input:focus-visible {
   );
 }
 
-.sp-snap-strip {
-  display: grid;
-  gap: var(--sky-space-2);
-  padding: var(--sky-space-3);
+.sp-content-navbar :deep(.sky-navbar__inner) {
+  padding-inline: var(--sky-page-gutter);
 }
 
-.sp-snap-card {
+.sp-navbar-profile,
+.sp-camera-profile {
+  display: grid;
+  width: var(--sky-touch-target);
+  height: var(--sky-touch-target);
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+}
+
+.sp-camera-screen {
+  position: relative;
+  isolation: isolate;
+  padding: calc(var(--sky-safe-area-top) + 8px) var(--sky-page-gutter)
+    calc(var(--sky-safe-area-bottom) + 82px);
+  gap: 8px;
+  background:
+    radial-gradient(
+      circle at 12% 4%,
+      rgba(44, 157, 255, 0.42),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 88% 64%,
+      rgba(5, 105, 210, 0.36),
+      transparent 40%
+    ),
+    linear-gradient(160deg, #06182d 0%, #0b2748 48%, #04111f 100%);
+}
+
+.sp-camera-screen::before {
+  position: absolute;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
+  content: '';
+  inset: 0;
+  mask-image: linear-gradient(to bottom, transparent, black 24%, black);
+}
+
+.sp-camera-header {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: var(--sky-touch-target) 1fr var(--sky-touch-target);
+  gap: var(--sky-space-2);
+}
+
+.sp-camera-header__title {
+  justify-items: center;
+  text-align: center;
+}
+
+.sp-camera-header h1 {
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.sp-camera-profile {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(5, 16, 30, 0.42);
+}
+
+.sp-camera-viewfinder {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 30px;
+  background:
+    radial-gradient(
+      circle at 50% 32%,
+      rgba(49, 161, 255, 0.22),
+      transparent 27%
+    ),
+    linear-gradient(180deg, rgba(12, 33, 57, 0.78), rgba(3, 12, 24, 0.96));
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.1),
+    0 26px 60px rgba(0, 7, 19, 0.34);
+}
+
+.sp-camera-viewfinder::before,
+.sp-camera-viewfinder::after {
+  position: absolute;
+  pointer-events: none;
+  content: '';
+}
+
+.sp-camera-viewfinder::before {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 26px;
+  inset: 7px;
+}
+
+.sp-camera-viewfinder::after {
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 42%;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), transparent);
+}
+
+.sp-camera-viewfinder__status {
+  position: absolute;
+  z-index: 2;
+  top: var(--sky-space-4);
+  left: var(--sky-space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--sky-radius-pill);
+  background: rgba(3, 12, 24, 0.34);
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.sp-camera-viewfinder__status > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #45dc78;
+  box-shadow: 0 0 0 4px rgba(69, 220, 120, 0.12);
+}
+
+.sp-camera-reticle {
+  position: absolute;
+  top: 39%;
+  left: 50%;
+  display: grid;
+  width: 76px;
+  height: 76px;
+  transform: translate(-50%, -50%);
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 24px;
+}
+
+.sp-camera-reticle::before,
+.sp-camera-reticle::after {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.36);
+  content: '';
+}
+
+.sp-camera-reticle::before {
+  width: 24px;
+  height: 1px;
+}
+
+.sp-camera-reticle::after {
+  width: 1px;
+  height: 24px;
+}
+
+.sp-camera-reticle > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--sp-camera-blue);
+  box-shadow: 0 0 18px rgba(10, 132, 255, 0.9);
+}
+
+.sp-camera-viewfinder__hint {
+  position: absolute;
+  z-index: 2;
+  right: var(--sky-space-5);
+  bottom: 164px;
+  left: var(--sky-space-5);
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.sp-camera-dock {
+  position: absolute;
+  z-index: 3;
+  right: var(--sky-space-4);
+  bottom: var(--sky-space-3);
+  left: var(--sky-space-4);
+  display: grid;
+  justify-items: center;
+  gap: var(--sky-space-2);
+}
+
+.sp-camera-dock :deep(.sky-segmented) {
+  width: min(228px, 76%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(4, 14, 28, 0.5);
+}
+
+.sp-camera-actions {
+  width: 100%;
+  grid-template-columns: 1fr 82px 1fr;
+  gap: var(--sky-space-3);
+}
+
+.sp-camera-secondary {
+  width: 46px;
+  height: 46px;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.sp-shutter {
+  width: 78px;
+  height: 78px;
+  border-width: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+}
+
+.sp-shutter > span {
+  width: 62px;
+  height: 62px;
+}
+
+.sp-camera-format {
+  min-height: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sp-chat-screen {
+  padding: 8px var(--sky-page-gutter) var(--sky-space-5);
+}
+
+.sp-chat-group {
+  margin-bottom: var(--sky-space-5);
+}
+
+.sp-screen-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 0 3px;
+}
+
+.sp-screen-heading b {
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+
+.sp-screen-heading small {
+  color: var(--sky-muted);
+  font-size: 10px;
+}
+
+.sp-chat-list {
+  overflow: hidden;
+  border: 1px solid var(--sky-hairline);
+  border-radius: var(--sky-radius-card);
+  background: color-mix(in srgb, var(--sky-surface) 92%, transparent);
+}
+
+.sp-chat-row {
   display: grid;
   align-items: center;
-  min-height: 66px;
-  padding: 8px 10px;
-  border: 1px solid var(--sky-hairline);
-  border-radius: var(--sky-radius-control);
-  background: linear-gradient(
-    135deg,
-    var(--sky-surface),
-    var(--sky-surface-muted)
-  );
+  width: 100%;
+  min-height: 64px;
+  padding: 7px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--sky-hairline);
+  background: transparent;
   color: var(--sky-text);
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--sky-space-3);
   text-align: left;
 }
 
-.sp-snap-card > span:nth-child(2) {
-  display: grid;
-  min-width: 0;
+.sp-chat-row:last-child {
+  border-bottom: 0;
 }
 
-.sp-snap-card small {
-  color: var(--sky-muted);
-  font-size: 11px;
+.sp-chat-row--unread,
+.sp-chat-row--snap {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sky-app-accent-soft) 60%, transparent),
+    transparent 72%
+  );
 }
 
-.sp-snap-card:not(:disabled) > svg {
-  color: var(--sp-pink);
-}
-
-.sp-snap-card:disabled {
+.sp-chat-row:disabled {
   opacity: 0.58;
 }
 
-.sp-conversation-row {
-  padding-block: 10px;
+.sp-avatar--chat {
+  width: 48px;
+  height: 48px;
 }
 
-.sp-streak {
-  color: #f36f32;
-  font-size: 11px;
+.sp-avatar--unread {
+  border-color: var(--sp-pink);
+  outline: 2px solid color-mix(in srgb, var(--sp-pink) 20%, transparent);
 }
 
-.sp-row-after {
+.sp-chat-row__copy {
   display: grid;
-  justify-items: end;
-  gap: 5px;
+  min-width: 0;
+  gap: 4px;
 }
 
-.sp-row-after time {
+.sp-chat-row__copy b,
+.sp-chat-row__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-chat-row__copy b {
+  font-size: 14px;
+}
+
+.sp-chat-row__meta {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: var(--sky-muted);
+  font-size: 10px;
+  gap: 4px;
+}
+
+.sp-chat-status-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  background: var(--sp-pink);
+}
+
+.sp-chat-status-dot--video {
+  background: #9b4dff;
+}
+
+.sp-chat-row__action {
+  display: grid;
+  min-width: 32px;
+  min-height: 32px;
+  place-items: center;
   color: var(--sky-subtle);
-  font-size: 9px;
+}
+
+.sp-navbar-streak,
+.sp-streak {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 2px;
+  color: #f36f32;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.sp-navbar-streak {
+  justify-content: center;
+  font-size: 11px;
 }
 
 .sp-thread {
@@ -4058,101 +4535,227 @@ input:focus-visible {
   opacity: 0.42;
 }
 
-.sp-story-hero {
-  display: grid;
-  align-items: center;
-  margin-bottom: var(--sky-space-4);
-  padding: var(--sky-space-4);
-  border-radius: var(--sky-radius-card);
-  background:
-    radial-gradient(
-      circle at 80% 0%,
-      rgba(66, 232, 255, 0.27),
-      transparent 44%
-    ),
-    linear-gradient(135deg, rgba(90, 108, 255, 0.18), rgba(255, 91, 189, 0.14));
-  grid-template-columns: auto 1fr auto;
-  gap: var(--sky-space-3);
+.sp-stories-screen {
+  padding: 8px var(--sky-page-gutter) var(--sky-space-5);
 }
 
-.sp-story-hero__icon {
+.sp-story-rail-section {
+  margin-bottom: var(--sky-space-5);
+}
+
+.sp-story-rail {
+  display: flex;
+  overflow-x: auto;
+  padding: 4px 1px 6px;
+  gap: var(--sky-space-3);
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.sp-story-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.sp-story-rail__item {
   display: grid;
-  width: 46px;
-  height: 46px;
+  width: 68px;
+  min-width: 68px;
+  padding: 0;
+  justify-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--sky-text);
+  gap: 7px;
+  scroll-snap-align: start;
+}
+
+.sp-story-rail__item:disabled {
+  opacity: 0.58;
+}
+
+.sp-story-rail__item small {
+  overflow: hidden;
+  width: 100%;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-story-rail__avatar {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  border-width: 3px;
+  outline-color: var(--sky-bg);
+}
+
+.sp-story-rail__avatar--add {
+  overflow: visible;
+  border-color: var(--sky-subtle);
+}
+
+.sp-story-rail__avatar--add img {
+  border-radius: inherit;
+}
+
+.sp-story-rail__plus {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  width: 22px;
+  height: 22px;
   place-items: center;
-  border-radius: 16px;
+  border: 2px solid var(--sky-bg);
+  border-radius: 50%;
   background: var(--sky-app-accent);
   color: white;
 }
 
-.sp-story-hero > span:nth-child(2) {
+.sp-story-feed {
+  margin-bottom: var(--sky-space-4);
+}
+
+.sp-story-grid {
   display: grid;
-  gap: 2px;
-}
-
-.sp-story-hero small {
-  color: var(--sky-muted);
-  font-size: 10px;
-  line-height: 1.35;
-}
-
-.sp-story-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: 72px;
-  padding: 9px var(--sky-space-4);
-  border: 0;
-  border-bottom: 1px solid var(--sky-hairline);
-  background: transparent;
-  color: var(--sky-text);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sky-space-3);
-  text-align: left;
 }
 
-.sp-story-row > span:nth-child(2),
-.sp-story-row > button > span:nth-child(2) {
-  display: grid;
-  flex: 1;
-  gap: 2px;
+.sp-story-card {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--sky-hairline);
+  border-radius: var(--sky-radius-card);
+  background: var(--sky-surface-muted);
+  box-shadow: 0 10px 28px rgba(20, 27, 55, 0.12);
 }
 
-.sp-story-row small {
-  color: var(--sky-muted);
-  font-size: 11px;
+.sp-story-card--seen {
+  opacity: 0.72;
 }
 
-.sp-story-row--own {
-  display: grid;
-  grid-template-columns: 1fr auto;
+.sp-story-card--owner {
+  border-color: color-mix(
+    in srgb,
+    var(--sky-app-accent) 44%,
+    var(--sky-hairline)
+  );
 }
 
-.sp-story-row--own > button:first-child {
-  display: flex;
-  align-items: center;
-  min-height: 54px;
+.sp-story-card__open {
+  position: absolute;
+  display: block;
+  width: 100%;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--sky-text);
-  gap: var(--sky-space-3);
+  color: white;
   text-align: left;
+  inset: 0;
 }
 
-.sp-story-row__actions {
-  display: flex;
+.sp-story-card__open:disabled {
+  opacity: 0.58;
+}
+
+.sp-story-card__media {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-size: 30px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  inset: 0;
+}
+
+.sp-story-card__media::after {
+  position: absolute;
+  background: linear-gradient(
+    180deg,
+    rgba(3, 7, 16, 0.08) 20%,
+    rgba(3, 7, 16, 0.82) 100%
+  );
+  content: '';
+  inset: 0;
+}
+
+.sp-story-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sp-story-card__duration {
+  position: absolute;
+  z-index: 2;
+  top: 9px;
+  left: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--sky-radius-pill);
+  background: rgba(4, 10, 22, 0.42);
+  font-size: 9px;
+  font-weight: 800;
+  backdrop-filter: blur(10px);
+}
+
+.sp-story-card__copy {
+  position: absolute;
+  z-index: 2;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: grid;
+  min-width: 0;
   gap: 3px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.72);
 }
 
-.sp-story-row__actions button {
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
+.sp-story-card__copy b,
+.sp-story-card__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.sp-chevron {
-  transform: rotate(180deg);
-  color: var(--sky-subtle);
+.sp-story-card__copy b {
+  font-size: 13px;
+}
+
+.sp-story-card__copy small {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 8px;
+}
+
+.sp-story-card__actions {
+  position: absolute;
+  z-index: 3;
+  top: 7px;
+  right: 7px;
+  display: flex;
+  gap: 4px;
+}
+
+.sp-story-card__actions button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: rgba(4, 10, 22, 0.48);
+  color: white;
+  backdrop-filter: blur(10px);
 }
 
 .sp-profile-card {
@@ -4339,6 +4942,142 @@ input:focus-visible {
   color: var(--sky-text);
   font-size: 9px;
   gap: 2px;
+}
+
+.sp-friends-screen {
+  padding: 8px var(--sky-page-gutter) var(--sky-space-5);
+}
+
+.sp-friends-screen .sp-profile-card {
+  border-color: color-mix(
+    in srgb,
+    var(--sky-app-accent) 22%,
+    var(--sky-hairline)
+  );
+  background:
+    radial-gradient(
+      circle at 90% 6%,
+      var(--sky-app-accent-soft),
+      transparent 48%
+    ),
+    linear-gradient(
+      145deg,
+      var(--sky-surface),
+      color-mix(in srgb, var(--sky-surface-muted) 72%, transparent)
+    );
+  box-shadow: 0 12px 34px rgba(20, 27, 55, 0.1);
+}
+
+.sp-profile-streak-stat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: #f36f32;
+}
+
+.sp-friends-block,
+.sp-friends-list {
+  border-radius: var(--sky-radius-card);
+  box-shadow: 0 8px 26px rgba(20, 27, 55, 0.06);
+}
+
+.sp-friends-block > header,
+.sp-friends-list > header {
+  min-height: 42px;
+}
+
+.sp-discovery :deep(.sky-searchbar) {
+  margin: var(--sky-space-3) var(--sky-space-3) var(--sky-space-2);
+}
+
+.sp-discovery-grid {
+  display: grid;
+  padding: var(--sky-space-2) var(--sky-space-3) var(--sky-space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sky-space-2);
+}
+
+.sp-discovery-card {
+  display: grid;
+  min-width: 0;
+  padding: var(--sky-space-3);
+  justify-items: center;
+  border: 1px solid var(--sky-hairline);
+  border-radius: var(--sky-radius-control);
+  background: var(--sky-surface-muted);
+  gap: var(--sky-space-2);
+  text-align: center;
+}
+
+.sp-discovery-card.sp-person-row--highlighted {
+  border-color: var(--sky-app-accent);
+  background: var(--sky-app-accent-soft);
+}
+
+.sp-avatar--discovery {
+  width: 58px;
+  height: 58px;
+}
+
+.sp-discovery-card__copy {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 2px;
+}
+
+.sp-discovery-card__copy b,
+.sp-discovery-card__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-discovery-card__copy b {
+  font-size: 12px;
+}
+
+.sp-discovery-card__copy small {
+  color: var(--sky-muted);
+  font-size: 9px;
+}
+
+.sp-friends-list .sp-friend-card > .sp-person-row {
+  min-height: 60px;
+}
+
+.sp-friends-list .sp-person-row__copy small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sp-friends-list .sp-friend-actions {
+  padding: 0 var(--sky-space-3) var(--sky-space-2);
+  gap: 4px;
+}
+
+.sp-friends-list .sp-friend-actions button {
+  min-height: 42px;
+  border: 1px solid var(--sky-hairline);
+  background: var(--sky-surface-muted);
+}
+
+.sp-bottom-nav {
+  z-index: 55;
+}
+
+.sp-bottom-nav :deep(.sky-tabbar__pane) {
+  border: 1px solid var(--sky-hairline);
+  box-shadow: 0 14px 34px rgba(8, 13, 29, 0.18);
+}
+
+.sp-bottom-nav--camera :deep(.sky-tabbar__pane) {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(3, 12, 24, 0.7);
+  box-shadow: 0 14px 38px rgba(0, 5, 15, 0.36);
+  backdrop-filter: blur(22px) saturate(1.18);
 }
 
 :deep(.sp-tab) {
@@ -4547,6 +5286,92 @@ input:focus-visible {
   padding-bottom: calc(var(--sky-safe-area-bottom) + var(--sky-space-3));
 }
 
+.sp-media-viewer {
+  isolation: isolate;
+}
+
+.sp-media-viewer::before,
+.sp-media-viewer::after {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  left: 0;
+  pointer-events: none;
+  content: '';
+}
+
+.sp-media-viewer::before {
+  top: 0;
+  height: 22%;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent);
+}
+
+.sp-media-viewer::after {
+  bottom: 0;
+  height: 35%;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.74), transparent);
+}
+
+.sp-media-viewer > img,
+.sp-media-viewer > video {
+  position: relative;
+  z-index: 0;
+  object-fit: cover;
+}
+
+.sp-media-viewer > header {
+  z-index: 5;
+}
+
+.sp-viewer-progress {
+  z-index: 6;
+}
+
+.sp-viewer-loading {
+  z-index: 6;
+}
+
+.sp-media-viewer__overlay {
+  z-index: 3;
+  right: 0;
+  left: 0;
+  padding: 11px var(--sky-page-gutter);
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: clamp(20px, 6vw, 30px);
+  font-weight: 800;
+  line-height: 1.12;
+}
+
+.sp-media-viewer__caption {
+  z-index: 4;
+  right: auto;
+  bottom: calc(var(--sky-safe-area-bottom) + 24px);
+  max-width: calc(100% - (2 * var(--sky-page-gutter)));
+  margin: 0 var(--sky-page-gutter);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: left;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.82);
+  backdrop-filter: none;
+}
+
+.sp-media-viewer__caption--with-reply {
+  bottom: calc(var(--sky-safe-area-bottom) + 80px);
+}
+
+.sp-story-reply {
+  z-index: 5;
+}
+
+.sp-media-viewer__owner-actions {
+  z-index: 5;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sp-viewer-progress span {
     transition: none;
@@ -4555,10 +5380,6 @@ input:focus-visible {
   .sp-thread-plus,
   :deep(.sp-tab) {
     transition: none;
-  }
-
-  .sp-camera-preview__glow {
-    filter: none;
   }
 }
 </style>
