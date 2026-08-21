@@ -417,46 +417,6 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
-        name = "sky_phone_admin_audit",
-        columns = {
-            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
-            {
-                name = "actor_identifier",
-                type = "VARCHAR(80) NOT NULL",
-                characterSet = "ascii",
-                collation = "ascii_bin",
-            },
-            { name = "actor_name", type = "VARCHAR(120) NOT NULL" },
-            {
-                name = "target_identifier",
-                type = "VARCHAR(80) NOT NULL",
-                characterSet = "ascii",
-                collation = "ascii_bin",
-            },
-            { name = "target_source", type = "INT UNSIGNED NULL" },
-            {
-                name = "device_imei",
-                type = "CHAR(15) NULL",
-                characterSet = "ascii",
-                collation = "ascii_bin",
-            },
-            {
-                name = "action",
-                type = "VARCHAR(48) NOT NULL",
-                characterSet = "ascii",
-                collation = "ascii_bin",
-            },
-            { name = "details", type = "LONGTEXT NOT NULL" },
-            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
-        },
-        primaryKey = "id",
-        indexes = {
-            { name = "idx_sky_phone_admin_audit_created", columns = "(`created_at`, `id`)" },
-            { name = "idx_sky_phone_admin_audit_target", columns = "(`target_identifier`, `created_at`)" },
-        },
-        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    },
-    {
         name = "sky_phone_notes",
         columns = {
             { name = "id", type = "VARCHAR(64) NOT NULL" },
@@ -2948,8 +2908,6 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
 }
-
-schema[#schema + 1] = SkyPhoneConfiguratorSchema
 
 Bridge.Database.Migrate("sky_phone", schema)
 Bridge.Database.Query([[

@@ -3,12 +3,19 @@ SkyPhoneFocus = {}
 local blocked_phone_controls = { 24, 140, 141, 142, 257, 263, 264 }
 local blocked_phone_look_controls = { 1, 2, 3, 4, 5, 6 }
 local focused_control_groups = { 0, 1, 2 }
-local hold_to_look_enabled = false
-local hold_to_look_control
+local hold_to_look_config = Config.Phone.HoldToLook
+local hold_to_look_enabled = type(hold_to_look_config) == "table" and hold_to_look_config.Enabled == true
+local hold_to_look_control = hold_to_look_enabled and tonumber(hold_to_look_config.Control) or nil
+if hold_to_look_enabled and (
+    not hold_to_look_control
+    or hold_to_look_control ~= math.floor(hold_to_look_control)
+    or hold_to_look_control < 0
+) then
+    error("[sky_phone] Config.Phone.HoldToLook.Control must be a non-negative whole control index.")
+end
 local state = {
-    admin_panel_open = false,
     activity_suspended = false,
-    allow_movement = false,
+    allow_movement = Config.Phone.AllowMovement,
     call_focus = false,
     camera_active = false,
     camera_nui_focused = true,
@@ -26,23 +33,6 @@ local block_game = false
 local block_look = false
 local game_input = false
 
-local function refresh_focus_configuration()
-    local hold_to_look_config = Config.Phone.HoldToLook
-    local enabled = type(hold_to_look_config) == "table" and hold_to_look_config.Enabled == true
-    local control = enabled and tonumber(hold_to_look_config.Control) or nil
-    if enabled and (
-        not control
-        or control ~= math.floor(control)
-        or control < 0
-    ) then
-        error("[sky_phone] Config.Phone.HoldToLook.Control must be a non-negative whole control index.")
-    end
-
-    hold_to_look_enabled = enabled
-    hold_to_look_control = control
-    state.allow_movement = Config.Phone.AllowMovement == true
-end
-
 local function allows_game_input(value)
     local allowed = value.external_game_input
     if allowed == nil then
@@ -50,13 +40,6 @@ local function allows_game_input(value)
     end
     return allowed == true
 end
-
-refresh_focus_configuration()
-
-AddEventHandler("sky_phone:configurator:updated", function()
-    refresh_focus_configuration()
-    SkyPhoneFocus.Reapply()
-end)
 
 function SkyPhoneFocus.ApplyFocusedControls()
     for _, group in ipairs(focused_control_groups) do
@@ -78,15 +61,6 @@ function SkyPhoneFocus.ApplyGameInputControls(block_look)
 end
 
 function SkyPhoneFocus.Resolve(state)
-    if state.admin_panel_open then
-        return {
-            block_game = true,
-            cursor = true,
-            focused = true,
-            game_input = false,
-            keep_input = false,
-        }
-    end
     if state.activity_suspended then
         return { block_game = false, cursor = false, focused = false, game_input = false, keep_input = false }
     end
@@ -168,15 +142,6 @@ function SkyPhoneFocus.SetPhone(open, cursor_disabled)
     SkyPhoneFocus.Reapply()
 end
 
-function SkyPhoneFocus.SetAdminPanel(open)
-    state.admin_panel_open = open == true
-    if state.admin_panel_open then
-        state.notification_focus = false
-        state.text_input_focused = false
-    end
-    SkyPhoneFocus.Reapply()
-end
-
 function SkyPhoneFocus.SetCall(active)
     state.call_focus = active == true
     SkyPhoneFocus.Reapply()
@@ -210,7 +175,6 @@ function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
 end
 
 function SkyPhoneFocus.Reset()
-    state.admin_panel_open = false
     state.activity_suspended = false
     state.call_focus = false
     state.camera_active = false

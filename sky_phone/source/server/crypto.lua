@@ -316,16 +316,9 @@ local function ceil_div(value, divisor)
 end
 
 local function initialize_markets()
-    local next_markets = {}
-    local next_market_order = {}
-    local next_market_dynamics = {}
     for _, config in ipairs(Config.Crypto.Markets) do
-        if next_markets[config.Id] then
-            error(("[sky_phone] Config.Crypto.Markets contains duplicate id '%s'."):format(config.Id))
-        end
-        next_markets[config.Id] = config
-        next_market_order[#next_market_order + 1] = config.Id
-        next_market_dynamics[config.Id] = market_dynamics[config.Id]
+        markets[config.Id] = config
+        market_order[#market_order + 1] = config.Id
         Bridge.Database.Query([[
             INSERT INTO `sky_phone_crypto_markets`
                 (`id`,`asset_scale`,`price_scale`,`issued_supply`,`price`,`version`,`status`)
@@ -364,10 +357,6 @@ local function initialize_markets()
         INSERT INTO `sky_phone_crypto_balances` (`account_id`,`asset_id`,`available`)
         VALUES ('treasury', 'CASH', ?) ON DUPLICATE KEY UPDATE `account_id` = VALUES(`account_id`)
     ]], { Config.Crypto.TreasuryCash * Config.Crypto.PriceScale })
-    markets = next_markets
-    market_order = next_market_order
-    market_dynamics = next_market_dynamics
-    market_cursor = math.min(market_cursor, math.max(#market_order, 1))
 end
 
 local function require_phone(source)
@@ -1367,8 +1356,6 @@ end)
 ensure_schema()
 migrate_crypto_keys()
 initialize_markets()
-
-AddEventHandler("sky_phone:configurator:serverUpdated", initialize_markets)
 
 local function reconcile_settlements(include_recent)
     local age_clause = include_recent and "" or " AND settlement.`updated_at` < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE)"

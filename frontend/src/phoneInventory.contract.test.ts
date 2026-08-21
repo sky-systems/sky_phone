@@ -34,12 +34,9 @@ describe('phone inventory contracts', () => {
     const phoneServer = readResourceFile('source/server/phone.lua')
 
     expect(phoneServer).toContain(
-      'Bridge.Inventory.RegisterUsableItem(item_name, function(...)',
+      'Bridge.Inventory.RegisterUsableItem(Config.Phone.Item, open_phone)',
     )
-    expect(phoneServer).toContain('if Config.Phone.Item == item_name then')
-    expect(phoneServer).toContain(
-      'if not Bridge.Inventory.RegisterUsableItem(item_name, function(...)',
-    )
+    expect(phoneServer).toContain('if not usable_registered then')
   })
 
   it('auto-detects HEX and limits count-based ESX inventories to metadata-free modes', () => {
@@ -224,38 +221,14 @@ describe('phone inventory contracts', () => {
     const phoneServer = readResourceFile('source/server/phone.lua')
 
     expect(config).toContain('Keybind = "F1"')
-    expect(phoneClient).toContain('refresh_phone_key_mapping = function()')
     expect(phoneClient).toContain(
-      'RegisterKeyMapping(command_name, locale.Controls.OpenPhone, "keyboard", key_name)',
-    )
-    expect(phoneClient).toContain(
-      'if active_key_mapping_command == command_name then',
+      'RegisterKeyMapping("sky_phone_toggle", locale.Controls.OpenPhone, "keyboard", Config.Phone.Keybind)',
     )
     expect(phoneClient).toContain(
       'Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})',
     )
     expect(phoneServer).toContain(
       'Bridge.Callbacks.Register("sky_phone:device:open-request", function(source)',
-    )
-  })
-
-  it('applies development command changes immediately without a resource restart', () => {
-    const phoneClient = readResourceFile('source/client/main.lua')
-
-    expect(phoneClient).toContain('local active_development_command = nil')
-    expect(phoneClient).toContain('refresh_development_command = function()')
-    expect(phoneClient).toContain(
-      'local command_name = Config.Phone.DevelopmentCommand and Config.Command or nil',
-    )
-    expect(phoneClient).toContain('RegisterCommand(command_name, function()')
-    expect(phoneClient).toContain(
-      'if active_development_command == command_name and Config.Phone.DevelopmentCommand then',
-    )
-    expect(phoneClient).toContain(
-      'TriggerEvent("chat:removeSuggestion", "/" .. active_development_command)',
-    )
-    expect(phoneClient).toMatch(
-      /AddEventHandler\("sky_phone:configurator:updated", function\(\)[\s\S]*?refresh_development_command\(\)/,
     )
   })
 
@@ -289,7 +262,7 @@ describe('phone inventory contracts', () => {
     const phoneServer = readResourceFile('source/server/phone.lua')
     const migration = readResourceFile('source/server/db_migrate.lua')
 
-    expect(phoneServer).toContain('if Config.Phone.Unique == false then')
+    expect(phoneServer).toContain('if not unique_phones then')
     expect(phoneServer).toContain('return map_character_device(source, slot)')
     expect(phoneServer).toContain('FROM `sky_phone_character_devices`')
     expect(phoneServer).toContain('WHERE `owner_identifier` = ?')

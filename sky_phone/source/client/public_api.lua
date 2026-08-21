@@ -44,18 +44,6 @@ local CLIENT_CAPABILITIES = {
     side = "client",
 }
 
-local function refresh_configured_capabilities()
-    local enabled = Config.CustomApps.Enabled == true
-    local external = enabled and Config.CustomApps.ExternalApps == true
-    CLIENT_CAPABILITIES.features.customApps.enabled = enabled
-    CLIENT_CAPABILITIES.features.customApps.external = external
-    CLIENT_CAPABILITIES.features.notifications.customApps = external
-end
-
-refresh_configured_capabilities()
-
-AddEventHandler("sky_phone:configurator:updated", refresh_configured_capabilities)
-
 local custom_app_api = SkyPhoneApps.ClientPublicApi
 if type(custom_app_api) ~= "table" then
     error("[sky_phone] Client public API initialized before the custom app API.")

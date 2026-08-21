@@ -226,18 +226,14 @@ local function validate_website(definition)
         return nil, "invalid_required_ace"
     end
 
-    local website = {}
-    for key, value in pairs(definition) do
-        website[key] = value
-    end
-    website._adapter = adapter
-    website._media_types = allowed_media_types
-    local valid, validation_error = adapter.Validate(website)
+    definition._adapter = adapter
+    definition._media_types = allowed_media_types
+    local valid, validation_error = adapter.Validate(definition)
     if not valid then
         return nil, validation_error
     end
 
-    return website
+    return definition
 end
 
 local function build_registry()
@@ -259,7 +255,7 @@ local function build_registry()
             if website_error == "missing_api_key" then
                 Bridge.Debug(
                     "warn",
-                    "[sky_phone] Media import source '%s' at index %s is disabled because Config.Media.FiveManage.ApiKey is empty. Add a FiveManage V3 token with Media access in the Phone Configurator and save it.",
+                    "[sky_phone] Media import source '%s' at index %s is disabled because Config.Media.FiveManage.ApiKey is empty in server-only config/media.lua. Add a FiveManage V3 token with Media access and restart sky_phone.",
                     tostring(source_name or "unknown"),
                     tostring(index)
                 )
@@ -760,9 +756,3 @@ function SkyPhoneMediaImport.Initialize()
         import_candidates[source] = nil
     end)
 end
-
-AddEventHandler("sky_phone:configurator:serverUpdated", function()
-    if initialized then
-        build_registry()
-    end
-end)

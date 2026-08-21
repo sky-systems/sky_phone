@@ -55,35 +55,24 @@ if type(config.Categories) ~= "table" then
 end
 
 local categories = {}
-
-local function refresh_categories()
-    local next_categories = {}
-    for _, category in ipairs(config.Categories or {}) do
-        if type(category) ~= "string" or #category < 1 or #category > 32
-            or not category:match("^[%l_]+$") or next_categories[category]
-        then
-            error(("[sky_phone] Invalid Weazel News category '%s'."):format(tostring(category)))
-        end
-        next_categories[category] = true
+for _, category in ipairs(config.Categories or {}) do
+    if type(category) ~= "string" or #category < 1 or #category > 32
+        or not category:match("^[%l_]+$") or categories[category]
+    then
+        error(("[sky_phone] Invalid Weazel News category '%s'."):format(tostring(category)))
     end
-    for category in pairs(supported_categories) do
-        if not next_categories[category] then
-            error(("[sky_phone] Config.WeazelNews.Categories is missing supported category '%s'."):format(category))
-        end
-    end
-    for category in pairs(next_categories) do
-        if not supported_categories[category] then
-            error(("[sky_phone] Config.WeazelNews.Categories contains unsupported category '%s'."):format(category))
-        end
-    end
-    categories = next_categories
+    categories[category] = true
 end
-
-refresh_categories()
-
-AddEventHandler("sky_phone:configurator:serverUpdated", function()
-    refresh_categories()
-end)
+for category in pairs(supported_categories) do
+    if not categories[category] then
+        error(("[sky_phone] Config.WeazelNews.Categories is missing supported category '%s'."):format(category))
+    end
+end
+for category in pairs(categories) do
+    if not supported_categories[category] then
+        error(("[sky_phone] Config.WeazelNews.Categories contains unsupported category '%s'."):format(category))
+    end
+end
 
 if type(config.AllowedJobs) ~= "table" then
     error("[sky_phone] Config.WeazelNews.AllowedJobs must be a table.")

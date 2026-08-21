@@ -24,11 +24,7 @@ Bridge = {
     },
     Debug = function()
     end,
-    Framework = {
-        HasAdminGroup = function()
-            return true
-        end,
-    },
+    Framework = {},
     Inventory = {
         GetResourceName = function()
             return "test_inventory"
@@ -41,11 +37,6 @@ Bridge = {
 }
 
 Config = {
-    AdminPanel = {
-        AdminGroups = { "admin" },
-        Command = "phoneadmin",
-        Enabled = true,
-    },
     Phone = {
         DevelopmentCommand = false,
         DeviceName = "Test Phone",
@@ -89,12 +80,6 @@ function AddEventHandler(name, callback)
     assert(type(callback) == "function")
     event_handlers[name] = event_handlers[name] or {}
     event_handlers[name][#event_handlers[name] + 1] = callback
-end
-
-function RegisterCommand(name, callback, restricted)
-    assert(name == "phoneadmin")
-    assert(type(callback) == "function")
-    assert(restricted == false)
 end
 
 function TriggerClientEvent()

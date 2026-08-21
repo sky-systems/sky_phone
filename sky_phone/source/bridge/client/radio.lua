@@ -1,5 +1,4 @@
 local provider
-local configured_voice_provider = Config.Radio.VoiceProvider
 local provider_resources = {
     yaca = "yaca-voice",
     pma = "pma-voice",
@@ -139,7 +138,8 @@ function Bridge.Radio.Join(primary, secondary)
     return false
 end
 
-local function leave_provider(selected)
+function Bridge.Radio.Leave()
+    local selected = resolve_provider()
     if selected == "yaca" then
         exports["yaca-voice"]:enableRadio(false)
     elseif selected == "pma" then
@@ -149,10 +149,6 @@ local function leave_provider(selected)
         exports.saltychat:SetRadioChannel("", true)
         exports.saltychat:SetRadioChannel("", false)
     end
-end
-
-function Bridge.Radio.Leave()
-    leave_provider(resolve_provider())
 end
 
 function Bridge.Radio.SetVolume(volume)
@@ -168,17 +164,6 @@ function Bridge.Radio.SetVolume(volume)
         exports.saltychat:SetRadioVolume(volume / 100)
     end
 end
-
-AddEventHandler("sky_phone:configurator:updated", function()
-    if configured_voice_provider == Config.Radio.VoiceProvider then
-        return
-    end
-
-    leave_provider(provider)
-    provider = nil
-    configured_voice_provider = Config.Radio.VoiceProvider
-    TriggerEvent("sky_phone:client:radioProviderUpdated")
-end)
 
 AddEventHandler("onResourceStop", function(resource_name)
     if resource_name == GetCurrentResourceName() then

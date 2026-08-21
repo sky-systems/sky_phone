@@ -185,33 +185,6 @@ CREATE TABLE IF NOT EXISTS `sky_phone_device_security` (
     FOREIGN KEY (`device_imei`) REFERENCES `sky_phone_devices` (`imei`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `sky_phone_admin_audit` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `actor_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-    `actor_name` VARCHAR(120) NOT NULL,
-    `target_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-    `target_source` INT UNSIGNED NULL,
-    `device_imei` CHAR(15) CHARACTER SET ascii COLLATE ascii_bin NULL,
-    `action` VARCHAR(48) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-    `details` LONGTEXT NOT NULL,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    KEY `idx_sky_phone_admin_audit_created` (`created_at`, `id`),
-    KEY `idx_sky_phone_admin_audit_target` (`target_identifier`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `sky_phone_configurator` (
-    `id` TINYINT UNSIGNED NOT NULL,
-    `config_payload` LONGTEXT NOT NULL,
-    `media_payload` LONGTEXT NOT NULL,
-    `revision` INT UNSIGNED NOT NULL DEFAULT 1,
-    `updated_by_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NULL,
-    `updated_by_name` VARCHAR(120) NULL,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE IF NOT EXISTS `sky_phone_notes` (
     `id` VARCHAR(64) NOT NULL,
     `account_id` BIGINT UNSIGNED NULL,

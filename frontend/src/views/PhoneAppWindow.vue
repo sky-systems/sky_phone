@@ -28,7 +28,7 @@ const launchStyle = computed(() => {
 
 <template>
   <div
-    v-if="app && !app.adminOnly"
+    v-if="app"
     class="app-window"
     :class="{ 'app-window--citywarn': app.id === 'citywarn' }"
     :style="launchStyle"

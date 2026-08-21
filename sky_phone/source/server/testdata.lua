@@ -1,5 +1,9 @@
 Bridge.Database.AfterMigration("sky_phone", function()
 
+if not Config.TestData.Enabled then
+    return
+end
+
 local photo_urls = {
     city = "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1200&q=80",
     car = "https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=1200&q=80",
@@ -1037,10 +1041,7 @@ local function seed_for_source(source)
     return account.email
 end
 
-local function run_test_data_command(source)
-    if not Config.TestData.Enabled then
-        return
-    end
+RegisterCommand(Config.TestData.Command, function(source)
     if source <= 0 then
         Bridge.Debug("warn", "[sky_phone] The test data command must be run by an in-game player.")
         return
@@ -1065,34 +1066,7 @@ local function run_test_data_command(source)
     end
     Bridge.Debug("info", "[sky_phone] Test data seeded for source %s.", tostring(source), { always = true })
     TriggerClientEvent("sky_phone:testdata:feedback", source, true, result)
-end
-
-local active_test_data_command = nil
-local registered_test_data_commands = {}
-
-local function refresh_test_data_command()
-    active_test_data_command = Config.TestData.Enabled and Config.TestData.Command or nil
-    if not active_test_data_command then
-        return
-    end
-    if type(active_test_data_command) ~= "string" or active_test_data_command == "" then
-        error("[sky_phone] Config.TestData.Command must be a non-empty command name.")
-    end
-    if registered_test_data_commands[active_test_data_command] then
-        return
-    end
-    local command_name = active_test_data_command
-    registered_test_data_commands[command_name] = true
-    RegisterCommand(command_name, function(source)
-        if active_test_data_command == command_name then
-            run_test_data_command(source)
-        end
-    end, false)
-end
-
-refresh_test_data_command()
-
-AddEventHandler("sky_phone:configurator:serverUpdated", refresh_test_data_command)
+end, false)
 
 AddEventHandler("playerDropped", function()
     seed_attempts[source] = nil
