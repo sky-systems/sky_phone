@@ -116,11 +116,41 @@ export type AdminConfiguratorField = {
   configured?: boolean
   label: string
   path: string
+  structure?: AdminConfiguratorStructure
   scope: 'config' | 'media'
   sensitive: boolean
-  type: 'boolean' | 'json' | 'number' | 'string'
+  type: 'boolean' | 'json' | 'number' | 'string' | 'stringOrFalse'
   value: unknown
 }
+
+export type AdminConfiguratorStructure =
+  | {
+      kind: 'list'
+      items: AdminConfiguratorStructure[]
+    }
+  | {
+      fields: Record<string, AdminConfiguratorStructure>
+      kind: 'table'
+    }
+  | {
+      entries: Array<{
+        key: number | string
+        keyType: 'number' | 'string'
+        structure: AdminConfiguratorStructure
+      }>
+      kind: 'map'
+    }
+  | {
+      kind: 'value'
+      valueType: 'boolean' | 'number' | 'string'
+    }
+  | {
+      kind: 'optionalString'
+    }
+  | {
+      kind: 'vector'
+      vectorType: 'vector2' | 'vector3' | 'vector4'
+    }
 
 export type AdminConfiguratorSection = {
   fields: AdminConfiguratorField[]

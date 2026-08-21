@@ -3,6 +3,8 @@ const { randomUUID } = require('node:crypto')
 const cors = require('cors')
 const express = require('express')
 
+const { loadConfiguratorSections } = require('./configurator-fixture.cjs')
+
 const app = express()
 const port = Number(process.argv[2]) || 3001
 
@@ -4742,7 +4744,7 @@ function adminMockBootstrap() {
   }
 }
 
-const adminMockConfigurator = {
+const adminMockConfiguratorBase = {
   enabled: true,
   revision: 4,
   sections: [
@@ -4920,6 +4922,11 @@ const adminMockConfigurator = {
   ],
   updatedAt: '2026-08-20 20:15:00',
   updatedBy: 'Alex Morgan',
+}
+
+const adminMockConfigurator = {
+  ...adminMockConfiguratorBase,
+  sections: loadConfiguratorSections(),
 }
 
 app.post('/api/:endpoint', async (request, response, next) => {

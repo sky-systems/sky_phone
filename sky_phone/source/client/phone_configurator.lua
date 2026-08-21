@@ -17,6 +17,14 @@ local function deserialize_value(value)
             tonumber(value.w) or 0.0
         )
     end
+    if value.__skyType == "map" then
+        local decoded = {}
+        for _, entry in ipairs(value.entries or {}) do
+            local key = entry.keyType == "number" and tonumber(entry.key) or entry.key
+            decoded[key] = deserialize_value(entry.value)
+        end
+        return decoded
+    end
 
     local decoded = {}
     for key, child in pairs(value) do

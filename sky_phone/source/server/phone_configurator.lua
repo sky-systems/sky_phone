@@ -4,6 +4,8 @@ local TABLE_NAME = "sky_phone_configurator"
 local CONFIG_ROW_ID = 1
 local MAX_CHANGES = 1000
 local MAX_PAYLOAD_BYTES = 8 * 1024 * 1024
+local MAX_STRUCTURED_DEPTH = 20
+local MAX_STRUCTURED_ENTRIES = 20000
 local REDACTED_VALUE = "***REDACTED***"
 local configurator_enabled = Config.PhoneConfigurator.Enabled == true
 local default_config
@@ -13,6 +15,7 @@ local stored_media
 local revision = 1
 local updated_at
 local updated_by_name
+local is_sequence
 
 local CLIENT_CONFIG_KEYS = {
     AdminPanel = true,
@@ -100,6 +103,40 @@ local function serialize_value(value, active)
     end
     active[value] = true
 
+    local has_numeric_map_key = false
+    if not is_sequence(value) then
+        for key in pairs(value) do
+            if type(key) == "number" then
+                has_numeric_map_key = true
+                break
+            end
+        end
+    end
+    if has_numeric_map_key then
+        local entries = {}
+        for key, child in pairs(value) do
+            if type(key) ~= "string" and type(key) ~= "number" then
+                error("[sky_phone] Phone configurator only supports string and numeric table keys.")
+            end
+            entries[#entries + 1] = {
+                key = key,
+                keyType = type(key),
+                value = serialize_value(child, active),
+            }
+        end
+        table.sort(entries, function(left, right)
+            if left.keyType ~= right.keyType then
+                return left.keyType < right.keyType
+            end
+            if left.keyType == "number" then
+                return left.key < right.key
+            end
+            return tostring(left.key) < tostring(right.key)
+        end)
+        active[value] = nil
+        return { __skyType = "map", entries = entries }
+    end
+
     local serialized = {}
     for key, child in pairs(value) do
         if type(key) ~= "string" and type(key) ~= "number" then
@@ -130,6 +167,14 @@ local function deserialize_value(value)
             tonumber(value.w) or 0.0
         )
     end
+    if value.__skyType == "map" then
+        local decoded = {}
+        for _, entry in ipairs(value.entries or {}) do
+            local key = entry.keyType == "number" and tonumber(entry.key) or entry.key
+            decoded[key] = deserialize_value(entry.value)
+        end
+        return decoded
+    end
 
     local decoded = {}
     for key, child in pairs(value) do
@@ -138,7 +183,7 @@ local function deserialize_value(value)
     return decoded
 end
 
-local function is_sequence(value)
+is_sequence = function(value)
     if type(value) ~= "table" then
         return false
     end
@@ -155,11 +200,85 @@ local function is_sequence(value)
     return count > 0 and count == maximum
 end
 
+local function upgrade_legacy_map(defaults, saved)
+    local default_types = {}
+    local numeric_only = true
+    for _, entry in ipairs(defaults.entries or {}) do
+        default_types[tostring(entry.key)] = entry.keyType
+        if entry.keyType ~= "number" then
+            numeric_only = false
+        end
+    end
+
+    local entries = {}
+    for key, child in pairs(saved) do
+        local key_type = default_types[tostring(key)] or (numeric_only and "number" or type(key))
+        local normalized_key = key_type == "number" and tonumber(key) or tostring(key)
+        if normalized_key == nil then
+            error("[sky_phone] Phone configurator could not migrate a numeric configuration key.")
+        end
+        entries[#entries + 1] = {
+            key = normalized_key,
+            keyType = key_type,
+            value = copy_value(child),
+        }
+    end
+    table.sort(entries, function(left, right)
+        if left.keyType ~= right.keyType then
+            return left.keyType < right.keyType
+        end
+        if left.keyType == "number" then
+            return left.key < right.key
+        end
+        return tostring(left.key) < tostring(right.key)
+    end)
+    return { __skyType = "map", entries = entries }
+end
+
 local function merge_values(defaults, saved)
     if type(defaults) ~= "table" or type(saved) ~= "table" then
         return copy_value(saved)
     end
-    if defaults.__skyType or saved.__skyType or is_sequence(defaults) or is_sequence(saved) then
+    if defaults.__skyType == "map" and not saved.__skyType then
+        saved = upgrade_legacy_map(defaults, saved)
+    end
+    if defaults.__skyType == "map" and saved.__skyType == "map" then
+        local saved_entries = {}
+        for _, entry in ipairs(saved.entries or {}) do
+            saved_entries[entry.keyType .. ":" .. tostring(entry.key)] = entry
+        end
+
+        local entries = {}
+        local included = {}
+        for _, entry in ipairs(defaults.entries or {}) do
+            local identity = entry.keyType .. ":" .. tostring(entry.key)
+            local saved_entry = saved_entries[identity]
+            entries[#entries + 1] = {
+                key = entry.key,
+                keyType = entry.keyType,
+                value = saved_entry and merge_values(entry.value, saved_entry.value) or copy_value(entry.value),
+            }
+            included[identity] = true
+        end
+        for _, entry in ipairs(saved.entries or {}) do
+            local identity = entry.keyType .. ":" .. tostring(entry.key)
+            if not included[identity] then
+                entries[#entries + 1] = copy_value(entry)
+            end
+        end
+        return { __skyType = "map", entries = entries }
+    end
+    if defaults.__skyType or saved.__skyType then
+        return copy_value(saved)
+    end
+    if is_sequence(defaults) then
+        local merged = copy_value(saved)
+        for index, child in ipairs(defaults) do
+            merged[index] = saved[index] ~= nil and merge_values(child, saved[index]) or copy_value(child)
+        end
+        return merged
+    end
+    if is_sequence(saved) then
         return copy_value(saved)
     end
 
@@ -245,6 +364,17 @@ local function mask_admin_value(value, path)
     if type(value) ~= "table" then
         return type(value) == "string" and sensitive_path(path) and REDACTED_VALUE or value
     end
+    if value.__skyType == "map" then
+        local entries = {}
+        for index, entry in ipairs(value.entries or {}) do
+            entries[index] = {
+                key = entry.key,
+                keyType = entry.keyType,
+                value = mask_admin_value(entry.value, path .. "." .. tostring(entry.key)),
+            }
+        end
+        return { __skyType = "map", entries = entries }
+    end
 
     local masked = {}
     for key, child in pairs(value) do
@@ -260,6 +390,29 @@ local function restore_redacted_values(value, current, path)
         end
         return value
     end
+    if value.__skyType == "map" then
+        local current_entries = {}
+        if type(current) == "table" and current.__skyType == "map" then
+            for _, entry in ipairs(current.entries or {}) do
+                current_entries[entry.keyType .. ":" .. tostring(entry.key)] = entry.value
+            end
+        end
+
+        local entries = {}
+        for index, entry in ipairs(value.entries or {}) do
+            local identity = entry.keyType .. ":" .. tostring(entry.key)
+            entries[index] = {
+                key = entry.key,
+                keyType = entry.keyType,
+                value = restore_redacted_values(
+                    entry.value,
+                    current_entries[identity],
+                    path .. "." .. tostring(entry.key)
+                ),
+            }
+        end
+        return { __skyType = "map", entries = entries }
+    end
 
     local restored = {}
     for key, child in pairs(value) do
@@ -269,13 +422,95 @@ local function restore_redacted_values(value, current, path)
     return restored
 end
 
-local function add_field(fields, field_index, scope, path, value)
+local function empty_structure_kind(scope, path)
+    if scope ~= "config" then
+        return nil
+    end
+    if path == "Garage.VehicleImages.ModelNames" then
+        return "map"
+    end
+    if path == "FlipTok.MusicTracks" or path:match("^Companies%.Definitions%.[^.]+%.Services$") then
+        return "list"
+    end
+    return nil
+end
+
+local function build_structure(value, scope, path)
+    local value_type = type(value)
+    if scope == "config" and path == "Phone.Keybind" then
+        return { kind = "optionalString" }
+    end
+    if value_type ~= "table" then
+        return {
+            kind = "value",
+            valueType = value_type,
+        }
+    end
+
+    if value.__skyType == "vector2" or value.__skyType == "vector3" or value.__skyType == "vector4" then
+        return {
+            kind = "vector",
+            vectorType = value.__skyType,
+        }
+    end
+    if value.__skyType == "map" then
+        local entries = {}
+        for index, entry in ipairs(value.entries or {}) do
+            entries[index] = {
+                key = entry.key,
+                keyType = entry.keyType,
+                structure = build_structure(entry.value, scope, path .. "." .. tostring(entry.key)),
+            }
+        end
+        return {
+            entries = entries,
+            kind = "map",
+        }
+    end
+    local empty_kind = next(value) == nil and empty_structure_kind(scope, path) or nil
+    if empty_kind == "map" then
+        return {
+            entries = {},
+            kind = "map",
+        }
+    end
+    if empty_kind == "list" then
+        return {
+            items = {},
+            kind = "list",
+        }
+    end
+    if is_sequence(value) then
+        local items = {}
+        for index, child in ipairs(value) do
+            items[index] = build_structure(child, scope, path .. "." .. tostring(index))
+        end
+        return {
+            items = items,
+            kind = "list",
+        }
+    end
+
+    local fields = {}
+    for key, child in pairs(value) do
+        fields[key] = build_structure(child, scope, path .. "." .. tostring(key))
+    end
+    return {
+        fields = fields,
+        kind = "table",
+    }
+end
+
+local function add_field(fields, field_index, scope, path, value, default_value)
     local value_type = type(value)
     local field_type = value_type
     if value_type == "table" then
         field_type = "json"
     elseif value_type ~= "boolean" and value_type ~= "number" and value_type ~= "string" then
         return
+    end
+    if scope == "config" and path == "Phone.Keybind" then
+        field_type = "stringOrFalse"
     end
 
     local sensitive = type(value) == "string" and sensitive_path(path)
@@ -285,6 +520,7 @@ local function add_field(fields, field_index, scope, path, value)
         path = path,
         scope = scope,
         sensitive = sensitive,
+        structure = field_type == "json" and build_structure(default_value, scope, path) or nil,
         type = field_type,
         value = sensitive and "" or mask_admin_value(value, path),
     }
@@ -292,26 +528,7 @@ local function add_field(fields, field_index, scope, path, value)
     field_index[scope .. ":" .. path] = field
 end
 
-local function flatten_fields(fields, field_index, scope, path, value)
-    if type(value) ~= "table" or value.__skyType or is_sequence(value) or next(value) == nil then
-        add_field(fields, field_index, scope, path, value)
-        return
-    end
-
-    local keys = {}
-    for key in pairs(value) do
-        keys[#keys + 1] = key
-    end
-    table.sort(keys, function(left, right)
-        return tostring(left) < tostring(right)
-    end)
-    for _, key in ipairs(keys) do
-        local child_path = path == "" and tostring(key) or (path .. "." .. tostring(key))
-        flatten_fields(fields, field_index, scope, child_path, value[key])
-    end
-end
-
-local function build_sections(scope, payload, sections, field_index)
+local function build_sections(scope, payload, defaults, sections, field_index)
     local general_fields = {}
     local keys = {}
     for key in pairs(payload) do
@@ -325,10 +542,7 @@ local function build_sections(scope, payload, sections, field_index)
         local value = payload[key]
         if type(value) == "table" and not value.__skyType and not is_sequence(value) and next(value) ~= nil then
             local fields = {}
-            flatten_fields(fields, field_index, scope, tostring(key), value)
-            table.sort(fields, function(left, right)
-                return left.path < right.path
-            end)
+            add_field(fields, field_index, scope, tostring(key), value, defaults[key])
             sections[#sections + 1] = {
                 fields = fields,
                 id = scope .. ":" .. tostring(key),
@@ -336,7 +550,7 @@ local function build_sections(scope, payload, sections, field_index)
                 scope = scope,
             }
         else
-            add_field(general_fields, field_index, scope, tostring(key), value)
+            add_field(general_fields, field_index, scope, tostring(key), value, defaults[key])
         end
     end
 
@@ -353,8 +567,8 @@ end
 local function build_admin_data()
     local sections = {}
     local field_index = {}
-    build_sections("config", stored_config, sections, field_index)
-    build_sections("media", stored_media, sections, field_index)
+    build_sections("config", stored_config, default_config, sections, field_index)
+    build_sections("media", stored_media, default_media, sections, field_index)
     return {
         enabled = configurator_enabled,
         revision = revision,
@@ -400,6 +614,147 @@ local function get_path(root, path)
     return value
 end
 
+local function validate_structured_value(value, depth, state)
+    local value_type = type(value)
+    if value_type == "string" then
+        return #value <= 65535
+    end
+    if value_type == "number" then
+        return value == value and value ~= math.huge and value ~= -math.huge
+    end
+    if value_type == "boolean" or value_type == "nil" then
+        return true
+    end
+    if value_type ~= "table" or depth > MAX_STRUCTURED_DEPTH then
+        return false
+    end
+
+    state.entries = state.entries + 1
+    if state.entries > MAX_STRUCTURED_ENTRIES then
+        return false
+    end
+
+    local sky_type = value.__skyType
+    if sky_type then
+        if sky_type == "vector2" or sky_type == "vector3" or sky_type == "vector4" then
+            local axes = sky_type == "vector2" and { "x", "y" }
+                or sky_type == "vector3" and { "x", "y", "z" }
+                or { "x", "y", "z", "w" }
+            for _, axis in ipairs(axes) do
+                local coordinate = value[axis]
+                if type(coordinate) ~= "number"
+                    or coordinate ~= coordinate
+                    or coordinate == math.huge
+                    or coordinate == -math.huge
+                then
+                    return false
+                end
+            end
+            return true
+        end
+        if sky_type ~= "map" or type(value.entries) ~= "table" then
+            return false
+        end
+        if next(value.entries) and not is_sequence(value.entries) then
+            return false
+        end
+
+        local seen = {}
+        for _, entry in ipairs(value.entries) do
+            if type(entry) ~= "table" or (entry.keyType ~= "string" and entry.keyType ~= "number") then
+                return false
+            end
+            local key = entry.key
+            if entry.keyType == "string" then
+                if type(key) ~= "string" or key == "" or #key > 255 then
+                    return false
+                end
+            elseif type(key) ~= "number"
+                or key ~= key
+                or key == math.huge
+                or key == -math.huge
+            then
+                return false
+            end
+
+            local identity = entry.keyType .. ":" .. tostring(key)
+            if seen[identity] then
+                return false
+            end
+            seen[identity] = true
+            if not validate_structured_value(entry.value, depth + 1, state) then
+                return false
+            end
+        end
+        return true
+    end
+
+    for key, child in pairs(value) do
+        if type(key) ~= "string" and type(key) ~= "number" then
+            return false
+        end
+        if not validate_structured_value(child, depth + 1, state) then
+            return false
+        end
+    end
+    return true
+end
+
+local function validate_locked_structure(structure, value)
+    if type(structure) ~= "table" or type(structure.kind) ~= "string" then
+        return false
+    end
+    if structure.kind == "value" then
+        return type(value) == structure.valueType
+    end
+    if structure.kind == "optionalString" then
+        return value == false or type(value) == "string"
+    end
+    if structure.kind == "vector" then
+        return type(value) == "table" and value.__skyType == structure.vectorType
+    end
+    if structure.kind == "list" then
+        if type(value) ~= "table" or value.__skyType or (next(value) and not is_sequence(value)) then
+            return false
+        end
+        for index, item_structure in ipairs(structure.items or {}) do
+            if value[index] == nil or not validate_locked_structure(item_structure, value[index]) then
+                return false
+            end
+        end
+        return true
+    end
+    if structure.kind == "table" then
+        if type(value) ~= "table" or value.__skyType or is_sequence(value) then
+            return false
+        end
+        for key, field_structure in pairs(structure.fields or {}) do
+            if value[key] == nil or not validate_locked_structure(field_structure, value[key]) then
+                return false
+            end
+        end
+        return true
+    end
+    if structure.kind ~= "map" or type(value) ~= "table" then
+        return false
+    end
+    if value.__skyType ~= "map" then
+        return next(value) == nil and #(structure.entries or {}) == 0
+    end
+
+    local entries = {}
+    for _, entry in ipairs(value.entries or {}) do
+        entries[entry.keyType .. ":" .. tostring(entry.key)] = entry.value
+    end
+    for _, entry in ipairs(structure.entries or {}) do
+        local child = entries[entry.keyType .. ":" .. tostring(entry.key)]
+        if child == nil or not validate_locked_structure(entry.structure, child) then
+            return false
+        end
+    end
+    return true
+end
+
 local function normalize_change_value(field, value)
     if field.type == "boolean" then
         return type(value) == "boolean" and value or nil
@@ -416,8 +771,24 @@ local function normalize_change_value(field, value)
         end
         return value
     end
+    if field.type == "stringOrFalse" then
+        if value == false then
+            return false
+        end
+        if type(value) ~= "string" or #value > 65535 then
+            return nil
+        end
+        return value
+    end
     if field.type == "json" and type(value) == "table" then
-        return serialize_value(value)
+        if not validate_structured_value(value, 0, { entries = 0 }) then
+            return nil
+        end
+        local serialized = serialize_value(value)
+        if not validate_locked_structure(field.structure, serialized) then
+            return nil
+        end
+        return serialized
     end
     return nil
 end

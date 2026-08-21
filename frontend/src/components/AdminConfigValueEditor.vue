@@ -2,11 +2,14 @@
 import { Plus, Rows3, TableProperties, Trash2 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
+import type { AdminConfiguratorStructure } from '@/types/admin'
+
 export type AdminConfigEditorLabels = {
   addField: string
   addRow: string
   configuredSecret: string
   convertToList: string
+  convertToMap: string
   convertToTable: string
   emptyList: string
   emptyTable: string
@@ -33,38 +36,97 @@ const props = withDefaults(
     disabled?: boolean
     labels: AdminConfigEditorLabels
     modelValue: unknown
+    structure?: AdminConfiguratorStructure
   }>(),
   { ariaLabel: '', depth: 0, disabled: false },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>()
 
 type ValueKind = 'boolean' | 'list' | 'number' | 'string' | 'table'
+type MapKeyKind = 'number' | 'string'
+type SerializedMapEntry = {
+  key: number | string
+  keyType: MapKeyKind
+  value: unknown
+}
 
 const newArrayKind = ref<ValueKind>('string')
 const newObjectKey = ref('')
 const newObjectKind = ref<ValueKind>('string')
+const newMapKey = ref('')
+const newMapKeyKind = ref<MapKeyKind>('string')
+const newMapValueKind = ref<ValueKind>('string')
 
-const isList = computed(() => Array.isArray(props.modelValue))
+const isList = computed(
+  () =>
+    props.structure?.kind === 'list' ||
+    (props.structure?.kind !== 'map' &&
+      props.structure?.kind !== 'table' &&
+      Array.isArray(props.modelValue)),
+)
 const listValue = computed<unknown[]>(() =>
   Array.isArray(props.modelValue) ? props.modelValue : [],
 )
 const isTable = computed(
   () =>
-    props.modelValue !== null &&
-    typeof props.modelValue === 'object' &&
-    !Array.isArray(props.modelValue),
+    props.structure?.kind === 'map' ||
+    props.structure?.kind === 'table' ||
+    props.structure?.kind === 'vector' ||
+    (props.modelValue !== null &&
+      typeof props.modelValue === 'object' &&
+      !Array.isArray(props.modelValue)),
 )
 const tableValue = computed<Record<string, unknown>>(() =>
-  isTable.value ? (props.modelValue as Record<string, unknown>) : {},
+  isTable.value && !Array.isArray(props.modelValue)
+    ? (props.modelValue as Record<string, unknown>)
+    : {},
 )
 const vectorType = computed(() => {
   const value = tableValue.value.__skyType
   return typeof value === 'string' && /^vector[234]$/.test(value) ? value : ''
 })
+const mapType = computed(
+  () => props.structure?.kind === 'map' || tableValue.value.__skyType === 'map',
+)
+const mapEntries = computed<SerializedMapEntry[]>(() => {
+  const entries = tableValue.value.entries
+  if (!mapType.value || !Array.isArray(entries)) return []
+  return entries.filter(
+    (entry): entry is SerializedMapEntry =>
+      entry !== null &&
+      typeof entry === 'object' &&
+      (entry.keyType === 'number' || entry.keyType === 'string'),
+  )
+})
+const listStructure = computed(() =>
+  props.structure?.kind === 'list' ? props.structure : null,
+)
+const tableStructure = computed(() =>
+  props.structure?.kind === 'table' ? props.structure : null,
+)
+const mapStructure = computed(() =>
+  props.structure?.kind === 'map' ? props.structure : null,
+)
 const tableEntries = computed(() =>
-  Object.entries(tableValue.value).filter(([key]) => key !== '__skyType'),
+  Object.entries(tableValue.value).filter(
+    ([key]) => key !== '__skyType' && (!mapType.value || key !== 'entries'),
+  ),
 )
 const isMaskedSecret = computed(() => props.modelValue === '***REDACTED***')
+const parsedNewMapKey = computed(() => {
+  const key = newMapKey.value.trim()
+  if (!key) return null
+  if (newMapKeyKind.value === 'string') return key
+  const numeric = Number(key)
+  return Number.isFinite(numeric) ? numeric : null
+})
+const canAddMapEntry = computed(() => {
+  const key = parsedNewMapKey.value
+  if (key === null) return false
+  return !mapEntries.value.some(
+    (entry) => entry.keyType === newMapKeyKind.value && entry.key === key,
+  )
+})
 
 function blankValue(kind: ValueKind): unknown {
   if (kind === 'boolean') return false
@@ -88,6 +150,19 @@ function blankLike(value: unknown): unknown {
   return ''
 }
 
+function blankCollectionValue(kind: ValueKind, siblings: unknown[]): unknown {
+  const template = siblings.find((value) => {
+    if (kind === 'list') return Array.isArray(value)
+    if (kind === 'table') {
+      return (
+        value !== null && typeof value === 'object' && !Array.isArray(value)
+      )
+    }
+    return typeof value === kind
+  })
+  return template === undefined ? blankValue(kind) : blankLike(template)
+}
+
 function updateScalar(event: Event): void {
   const target = event.target
   if (!(target instanceof HTMLInputElement)) return
@@ -106,6 +181,19 @@ function updateBoolean(event: Event): void {
   }
 }
 
+function updateOptionalString(event: Event): void {
+  const target = event.target
+  if (target instanceof HTMLInputElement) {
+    emit('update:modelValue', target.value)
+  }
+}
+
+function toggleOptionalString(event: Event): void {
+  const target = event.target
+  if (!(target instanceof HTMLInputElement)) return
+  emit('update:modelValue', target.checked ? '' : false)
+}
+
 function addListRow(): void {
   const rows = Array.isArray(props.modelValue) ? [...props.modelValue] : []
   rows.push(rows.length ? blankLike(rows[0]) : blankValue(newArrayKind.value))
@@ -119,6 +207,7 @@ function updateListRow(index: number, value: unknown): void {
 }
 
 function removeListRow(index: number): void {
+  if (listStructure.value?.items[index]) return
   const rows = Array.isArray(props.modelValue) ? [...props.modelValue] : []
   rows.splice(index, 1)
   emit('update:modelValue', rows)
@@ -129,6 +218,11 @@ function updateTableField(key: string, value: unknown): void {
 }
 
 function removeTableField(key: string): void {
+  if (
+    tableStructure.value &&
+    Object.prototype.hasOwnProperty.call(tableStructure.value.fields, key)
+  )
+    return
   const next = { ...tableValue.value }
   delete next[key]
   emit('update:modelValue', next)
@@ -136,13 +230,103 @@ function removeTableField(key: string): void {
 
 function addTableField(): void {
   const key = newObjectKey.value.trim()
-  if (!key || Object.prototype.hasOwnProperty.call(tableValue.value, key))
+  if (
+    !key ||
+    key === '__skyType' ||
+    Object.prototype.hasOwnProperty.call(tableValue.value, key)
+  )
     return
   emit('update:modelValue', {
     ...tableValue.value,
-    [key]: blankValue(newObjectKind.value),
+    [key]: blankCollectionValue(
+      newObjectKind.value,
+      Object.values(tableValue.value).filter((_, index) => index < 50),
+    ),
   })
   newObjectKey.value = ''
+}
+
+function emitMap(entries: SerializedMapEntry[]): void {
+  emit('update:modelValue', { __skyType: 'map', entries })
+}
+
+function convertTableToMap(): void {
+  emitMap(
+    Object.entries(tableValue.value)
+      .filter(([key]) => key !== '__skyType')
+      .map(([key, value]) => ({ key, keyType: 'string', value })),
+  )
+}
+
+function updateMapKey(index: number, event: Event): void {
+  const target = event.target
+  if (!(target instanceof HTMLInputElement)) return
+  const current = mapEntries.value[index]
+  if (!current) return
+  if (mapEntryStructure(current)) {
+    target.value = String(current.key)
+    return
+  }
+  const key =
+    current.keyType === 'number' ? Number(target.value) : target.value.trim()
+  if (
+    key === '' ||
+    (typeof key === 'number' && !Number.isFinite(key)) ||
+    mapEntries.value.some(
+      (entry, candidateIndex) =>
+        candidateIndex !== index &&
+        entry.keyType === current.keyType &&
+        entry.key === key,
+    )
+  ) {
+    target.value = String(current.key)
+    return
+  }
+  const entries = mapEntries.value.map((entry, candidateIndex) =>
+    candidateIndex === index ? { ...entry, key } : entry,
+  )
+  emitMap(entries)
+}
+
+function updateMapValue(index: number, value: unknown): void {
+  emitMap(
+    mapEntries.value.map((entry, candidateIndex) =>
+      candidateIndex === index ? { ...entry, value } : entry,
+    ),
+  )
+}
+
+function removeMapEntry(index: number): void {
+  const entry = mapEntries.value[index]
+  if (!entry || mapEntryStructure(entry)) return
+  emitMap(
+    mapEntries.value.filter((_, candidateIndex) => candidateIndex !== index),
+  )
+}
+
+function addMapEntry(): void {
+  if (!canAddMapEntry.value || parsedNewMapKey.value === null) return
+  emitMap([
+    ...mapEntries.value,
+    {
+      key: parsedNewMapKey.value,
+      keyType: newMapKeyKind.value,
+      value: blankCollectionValue(
+        newMapValueKind.value,
+        mapEntries.value.slice(0, 50).map((entry) => entry.value),
+      ),
+    },
+  ])
+  newMapKey.value = ''
+}
+
+function mapEntryStructure(
+  entry: SerializedMapEntry,
+): AdminConfiguratorStructure | undefined {
+  return mapStructure.value?.entries.find(
+    (candidate) =>
+      candidate.keyType === entry.keyType && candidate.key === entry.key,
+  )?.structure
 }
 </script>
 
@@ -166,7 +350,7 @@ function addTableField(): void {
           <option value="table">{{ labels.types.table }}</option>
         </select>
         <button
-          v-if="!listValue.length"
+          v-if="!listValue.length && !structure"
           type="button"
           :disabled="disabled"
           :title="labels.convertToTable"
@@ -189,6 +373,7 @@ function addTableField(): void {
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
         <AdminConfigValueEditor
           :model-value="row"
+          :structure="listStructure?.items[index]"
           :aria-label="`${ariaLabel} ${index + 1}`"
           :labels="labels"
           :disabled="disabled"
@@ -196,6 +381,7 @@ function addTableField(): void {
           @update:model-value="updateListRow(index, $event)"
         />
         <button
+          v-if="!listStructure?.items[index]"
           type="button"
           class="config-structured-editor__remove"
           :disabled="disabled"
@@ -224,7 +410,16 @@ function addTableField(): void {
         }}
       </span>
       <button
-        v-if="!tableEntries.length && !vectorType"
+        v-if="!structure && !mapType && !vectorType"
+        type="button"
+        :disabled="disabled"
+        :title="labels.convertToMap"
+        @click="convertTableToMap"
+      >
+        <TableProperties :size="13" />{{ labels.convertToMap }}
+      </button>
+      <button
+        v-if="!structure && !mapType && !tableEntries.length && !vectorType"
         type="button"
         :disabled="disabled"
         :title="labels.convertToList"
@@ -234,8 +429,50 @@ function addTableField(): void {
       </button>
     </header>
 
+    <div v-if="mapType" class="config-structured-editor__properties is-map">
+      <div
+        v-for="(entry, index) in mapEntries"
+        :key="`${entry.keyType}:${entry.key}`"
+        class="config-structured-editor__property is-map"
+      >
+        <span class="config-structured-editor__index">{{ index + 1 }}</span>
+        <span class="config-structured-editor__map-key">
+          <small>{{ labels.types[entry.keyType] }}</small>
+          <input
+            :type="entry.keyType === 'number' ? 'number' : 'text'"
+            :value="entry.key"
+            :aria-label="`${ariaLabel} ${labels.types[entry.keyType]} ${index + 1}`"
+            :disabled="disabled || Boolean(mapEntryStructure(entry))"
+            @change="updateMapKey(index, $event)"
+          />
+        </span>
+        <AdminConfigValueEditor
+          :model-value="entry.value"
+          :structure="mapEntryStructure(entry)"
+          :aria-label="`${ariaLabel} ${entry.key}`"
+          :labels="labels"
+          :disabled="disabled"
+          :depth="depth + 1"
+          @update:model-value="updateMapValue(index, $event)"
+        />
+        <button
+          v-if="!mapEntryStructure(entry)"
+          type="button"
+          class="config-structured-editor__remove"
+          :disabled="disabled"
+          :title="labels.remove"
+          @click="removeMapEntry(index)"
+        >
+          <Trash2 :size="13" />
+        </button>
+      </div>
+      <div v-if="!mapEntries.length" class="config-structured-editor__empty">
+        {{ labels.emptyTable }}
+      </div>
+    </div>
+
     <div
-      v-if="tableEntries.length"
+      v-else-if="tableEntries.length"
       class="config-structured-editor__properties"
     >
       <div
@@ -247,6 +484,7 @@ function addTableField(): void {
         <strong>{{ key }}</strong>
         <AdminConfigValueEditor
           :model-value="value"
+          :structure="tableStructure?.fields[key]"
           :aria-label="`${ariaLabel} ${key}`"
           :labels="labels"
           :disabled="disabled"
@@ -254,7 +492,13 @@ function addTableField(): void {
           @update:model-value="updateTableField(key, $event)"
         />
         <button
-          v-if="!vectorType"
+          v-if="
+            !vectorType &&
+            !Object.prototype.hasOwnProperty.call(
+              tableStructure?.fields ?? {},
+              key,
+            )
+          "
           type="button"
           class="config-structured-editor__remove"
           :disabled="disabled"
@@ -270,7 +514,35 @@ function addTableField(): void {
     </div>
 
     <form
-      v-if="!vectorType"
+      v-if="mapType"
+      class="config-structured-editor__add-field is-map"
+      @submit.prevent="addMapEntry"
+    >
+      <select v-model="newMapKeyKind" :disabled="disabled">
+        <option value="string">{{ labels.types.string }}</option>
+        <option value="number">{{ labels.types.number }}</option>
+      </select>
+      <input
+        v-model="newMapKey"
+        :type="newMapKeyKind === 'number' ? 'number' : 'text'"
+        :disabled="disabled"
+        :placeholder="labels.keyPlaceholder"
+        :aria-label="labels.keyPlaceholder"
+      />
+      <select v-model="newMapValueKind" :disabled="disabled">
+        <option value="string">{{ labels.types.string }}</option>
+        <option value="number">{{ labels.types.number }}</option>
+        <option value="boolean">{{ labels.types.boolean }}</option>
+        <option value="list">{{ labels.types.list }}</option>
+        <option value="table">{{ labels.types.table }}</option>
+      </select>
+      <button type="submit" :disabled="disabled || !canAddMapEntry">
+        <Plus :size="13" />{{ labels.addField }}
+      </button>
+    </form>
+
+    <form
+      v-else-if="!vectorType"
       class="config-structured-editor__add-field"
       @submit.prevent="addTableField"
     >
@@ -279,6 +551,7 @@ function addTableField(): void {
         type="text"
         :disabled="disabled"
         :placeholder="labels.keyPlaceholder"
+        :aria-label="labels.keyPlaceholder"
       />
       <select v-model="newObjectKind" :disabled="disabled">
         <option value="string">{{ labels.types.string }}</option>
@@ -292,6 +565,31 @@ function addTableField(): void {
       </button>
     </form>
   </div>
+
+  <span
+    v-else-if="structure?.kind === 'optionalString'"
+    class="config-value-optional"
+  >
+    <input
+      class="config-value-input"
+      type="text"
+      :aria-label="ariaLabel"
+      :value="modelValue === false ? '' : String(modelValue ?? '')"
+      :disabled="disabled || modelValue === false"
+      autocomplete="off"
+      @input="updateOptionalString"
+    />
+    <label class="config-value-toggle">
+      <input
+        type="checkbox"
+        :aria-label="ariaLabel"
+        :checked="modelValue !== false"
+        :disabled="disabled"
+        @change="toggleOptionalString"
+      />
+      <i></i>
+    </label>
+  </span>
 
   <label
     v-else-if="typeof modelValue === 'boolean'"
@@ -426,6 +724,30 @@ function addTableField(): void {
   grid-template-columns: 24px minmax(80px, 0.35fr) minmax(150px, 1fr) 27px;
 }
 
+.config-structured-editor__property.is-map {
+  grid-template-columns: 24px minmax(105px, 0.42fr) minmax(150px, 1fr) 27px;
+}
+
+.config-structured-editor__map-key {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.config-structured-editor__map-key small {
+  color: var(--admin-dim);
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.config-structured-editor__map-key input {
+  width: 100%;
+  min-width: 0;
+  height: 25px;
+  padding: 0 7px;
+}
+
 .config-structured-editor__property > strong {
   overflow: hidden;
   color: #c9cec9;
@@ -448,6 +770,14 @@ function addTableField(): void {
   color: #b66a6a;
 }
 
+.config-value-optional {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+}
+
 .config-structured-editor__empty {
   padding: 13px 10px;
   color: var(--admin-dim);
@@ -461,6 +791,10 @@ function addTableField(): void {
   gap: 6px;
   padding: 6px;
   background: #151715;
+}
+
+.config-structured-editor__add-field.is-map {
+  grid-template-columns: 76px minmax(90px, 1fr) 82px auto;
 }
 
 .config-structured-editor__add-field input {

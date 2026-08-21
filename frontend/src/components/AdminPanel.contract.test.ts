@@ -256,6 +256,13 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorServer).toContain('build_sections("media", stored_media')
     expect(configuratorServer).toContain('sensitive_path')
     expect(configuratorServer).toContain('restore_redacted_values')
+    expect(configuratorServer).toContain(
+      '{ __skyType = "map", entries = entries }',
+    )
+    expect(configuratorServer).toContain('validate_structured_value')
+    expect(configuratorServer).toContain('validate_locked_structure')
+    expect(configuratorServer).toContain('build_structure(default_value')
+    expect(configuratorServer).toContain('field.type == "stringOrFalse"')
     expect(configuratorServer).not.toContain('Config.Media = client_payload')
     expect(configuratorClient).toContain(
       'Bridge.Callbacks.Trigger("sky_phone:configurator:runtime"',
@@ -269,6 +276,12 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorValueEditor).toContain('function addTableField()')
     expect(configuratorValueEditor).toContain('function removeListRow(')
     expect(configuratorValueEditor).toContain('function removeTableField(')
+    expect(configuratorValueEditor).toContain('function addMapEntry()')
+    expect(configuratorValueEditor).toContain('function updateMapKey(')
+    expect(configuratorValueEditor).toContain('mapEntryStructure(current)')
+    expect(configuratorValueEditor).toContain('listStructure?.items[index]')
+    expect(configuratorValueEditor).toContain('tableStructure?.fields[key]')
+    expect(configuratorValueEditor).toContain('function blankCollectionValue(')
     expect(configuratorValueEditor).not.toContain('<textarea')
   })
 })

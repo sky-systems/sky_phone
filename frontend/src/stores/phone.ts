@@ -890,6 +890,7 @@ const adminPanelFallbackLocales = {
       emptyTable: 'No fields yet. Add the first key below.',
       keyPlaceholder: 'New key',
       convertToList: 'Use list',
+      convertToMap: 'Use typed key table',
       convertToTable: 'Use key table',
       types: {
         string: 'Text',

@@ -48,6 +48,7 @@ import type {
   AdminAuditEntry,
   AdminConfiguratorChange,
   AdminConfiguratorField,
+  AdminConfiguratorStructure,
   AdminDevice,
 } from '@/types/admin'
 import type { LaunchablePhoneAppDefinition } from '@/types/apps'
@@ -175,6 +176,81 @@ const revealedCredential = computed(() =>
     ? admin.revealedCredentials[selectedDevice.value.imei]
     : undefined,
 )
+
+function configuratorStructureCount(
+  structure: AdminConfiguratorStructure | undefined,
+): number {
+  if (
+    !structure ||
+    structure.kind === 'value' ||
+    structure.kind === 'optionalString'
+  )
+    return 1
+  if (structure.kind === 'vector') return Number(structure.vectorType.slice(-1))
+  if (structure.kind === 'list') {
+    return Math.max(
+      1,
+      structure.items.reduce(
+        (total, item) => total + configuratorStructureCount(item),
+        0,
+      ),
+    )
+  }
+  if (structure.kind === 'map') {
+    return Math.max(
+      1,
+      structure.entries.reduce(
+        (total, entry) => total + configuratorStructureCount(entry.structure),
+        0,
+      ),
+    )
+  }
+  return Math.max(
+    1,
+    Object.values(structure.fields).reduce(
+      (total, field) => total + configuratorStructureCount(field),
+      0,
+    ),
+  )
+}
+
+function configuratorSectionCount(fields: AdminConfiguratorField[]): number {
+  return fields.reduce(
+    (total, field) => total + configuratorStructureCount(field.structure),
+    0,
+  )
+}
+
+function configuratorStructureContains(
+  structure: AdminConfiguratorStructure | undefined,
+  needle: string,
+): boolean {
+  if (
+    !structure ||
+    structure.kind === 'value' ||
+    structure.kind === 'optionalString'
+  )
+    return false
+  if (structure.kind === 'vector') return structure.vectorType.includes(needle)
+  if (structure.kind === 'list') {
+    return structure.items.some((item) =>
+      configuratorStructureContains(item, needle),
+    )
+  }
+  if (structure.kind === 'map') {
+    return structure.entries.some(
+      (entry) =>
+        String(entry.key).toLocaleLowerCase(phone.lang).includes(needle) ||
+        configuratorStructureContains(entry.structure, needle),
+    )
+  }
+  return Object.entries(structure.fields).some(
+    ([key, field]) =>
+      key.toLocaleLowerCase(phone.lang).includes(needle) ||
+      configuratorStructureContains(field, needle),
+  )
+}
+
 const selectedMessages = computed(() =>
   selectedDevice.value
     ? (admin.deviceActivity[selectedDevice.value.imei]?.messages ?? [])
@@ -196,13 +272,14 @@ const filteredConfiguratorSections = computed(() => {
       section.fields.some(
         (field) =>
           field.label.toLocaleLowerCase(phone.lang).includes(needle) ||
-          field.path.toLocaleLowerCase(phone.lang).includes(needle),
+          field.path.toLocaleLowerCase(phone.lang).includes(needle) ||
+          configuratorStructureContains(field.structure, needle),
       ),
   )
 })
 const filteredConfiguratorFieldCount = computed(() =>
   filteredConfiguratorSections.value.reduce(
-    (total, section) => total + section.fields.length,
+    (total, section) => total + configuratorSectionCount(section.fields),
     0,
   ),
 )
@@ -264,6 +341,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   addRow: t('configurator.table.addRow'),
   configuredSecret: t('configurator.secretConfigured'),
   convertToList: t('configurator.table.convertToList'),
+  convertToMap: t('configurator.table.convertToMap'),
   convertToTable: t('configurator.table.convertToTable'),
   emptyList: t('configurator.table.emptyList'),
   emptyTable: t('configurator.table.emptyTable'),
@@ -474,6 +552,19 @@ function updateConfiguratorToggle(
   }
 }
 
+function updateOptionalStringToggle(
+  field: AdminConfiguratorField,
+  event: Event,
+): void {
+  const target = event.target
+  if (!(target instanceof HTMLInputElement)) return
+  const current = configuratorFieldValue(field)
+  updateConfiguratorField(
+    field,
+    target.checked ? (current === false ? '' : String(current ?? '')) : false,
+  )
+}
+
 function findConfiguratorField(key: string): AdminConfiguratorField | null {
   for (const section of admin.configurator?.sections ?? []) {
     const field = section.fields.find(
@@ -499,6 +590,8 @@ function buildConfiguratorChanges(): AdminConfiguratorChange[] | null {
       if (!value || typeof value !== 'object') return null
     } else if (field.type === 'string') {
       value = String(draft)
+    } else if (field.type === 'stringOrFalse') {
+      if (value !== false && typeof value !== 'string') return null
     } else if (field.type === 'boolean' && typeof value !== 'boolean') {
       return null
     }
@@ -953,7 +1046,7 @@ onBeforeUnmount(() => {
                       : t('configurator.configScope')
                   }}</small>
                 </span>
-                <em>{{ section.fields.length }}</em>
+                <em>{{ configuratorSectionCount(section.fields) }}</em>
               </button>
               <div
                 v-if="!filteredConfiguratorSections.length"
@@ -1211,7 +1304,11 @@ onBeforeUnmount(() => {
                   </div>
                   <strong>{{
                     t('configurator.fieldCount', {
-                      count: String(activeConfiguratorSection.fields.length),
+                      count: String(
+                        configuratorSectionCount(
+                          activeConfiguratorSection.fields,
+                        ),
+                      ),
                     })
                   }}</strong>
                 </header>
@@ -1250,6 +1347,7 @@ onBeforeUnmount(() => {
                     <AdminConfigValueEditor
                       v-else-if="field.type === 'json'"
                       :model-value="configuratorFieldValue(field)"
+                      :structure="field.structure"
                       :aria-label="`${field.label} ${field.path}`"
                       :labels="configuratorEditorLabels"
                       :disabled="!admin.configurator.enabled"
@@ -1257,6 +1355,37 @@ onBeforeUnmount(() => {
                         updateConfiguratorField(field, $event)
                       "
                     />
+
+                    <span
+                      v-else-if="field.type === 'stringOrFalse'"
+                      class="admin-panel-config-optional"
+                    >
+                      <input
+                        type="text"
+                        :aria-label="`${field.label} ${field.path}`"
+                        :value="
+                          configuratorFieldValue(field) === false
+                            ? ''
+                            : String(configuratorFieldValue(field) ?? '')
+                        "
+                        :disabled="
+                          !admin.configurator.enabled ||
+                          configuratorFieldValue(field) === false
+                        "
+                        autocomplete="off"
+                        @input="updateConfiguratorInput(field, $event)"
+                      />
+                      <span class="admin-panel-config-toggle">
+                        <input
+                          type="checkbox"
+                          :aria-label="`${field.label} ${field.path}`"
+                          :checked="configuratorFieldValue(field) !== false"
+                          :disabled="!admin.configurator.enabled"
+                          @change="updateOptionalStringToggle(field, $event)"
+                        />
+                        <i></i>
+                      </span>
+                    </span>
 
                     <input
                       v-else
@@ -3479,7 +3608,8 @@ button:disabled {
   font-size: 8px;
 }
 
-.admin-panel-config-field > input {
+.admin-panel-config-field > input,
+.admin-panel-config-optional > input {
   width: 100%;
   min-width: 0;
   border: 0;
@@ -3491,17 +3621,28 @@ button:disabled {
   font-size: 10px;
 }
 
-.admin-panel-config-field > input {
+.admin-panel-config-field > input,
+.admin-panel-config-optional > input {
   height: 31px;
   padding: 0 9px;
 }
 
-.admin-panel-config-field > input:focus {
+.admin-panel-config-field > input:focus,
+.admin-panel-config-optional > input:focus {
   outline-color: color-mix(in srgb, var(--admin-green) 45%, transparent);
 }
 
-.admin-panel-config-field > input:disabled {
+.admin-panel-config-field > input:disabled,
+.admin-panel-config-optional > input:disabled {
   opacity: 0.45;
+}
+
+.admin-panel-config-optional {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 8px;
 }
 
 .admin-panel-config-toggle {
