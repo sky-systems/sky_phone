@@ -38,6 +38,7 @@ export type PhoneOpenPayload = {
   locales?: LocaleTree
   memos?: DeviceBootstrap['memos']
   notes?: DeviceBootstrap['notes']
+  phoneNumberFormat?: DeviceBootstrap['phoneNumberFormat']
   player?: DeviceBootstrap['player']
   security?: DeviceSecurity
   token?: string
@@ -638,7 +639,8 @@ const cryptoFallbackLocales = {
     invalid_handle: 'Use 3–20 letters, numbers, dots or underscores.',
     handle_taken: 'That VaultX handle is already taken.',
     profile_exists: 'This character already owns a VaultX profile.',
-    invalid_password: 'Password must be 8–72 characters.',
+    invalid_password:
+      'Use 8–72 characters with uppercase, lowercase, a number, and a special character.',
     password_mismatch: 'The passwords do not match.',
     accept_terms: 'Confirm that this is a fictional in-game wallet.',
     invalid_credentials: 'The password is incorrect.',
@@ -2086,7 +2088,7 @@ const defaultLocales: LocaleTree = {
       to: 'To:',
       connectPrivately: 'Connect privately',
       newChatBody:
-        'Enter an exact Dark-ID or invitation code. Unknown identities require confirmation.',
+        "Enter another person's Dark-ID or invitation code. You can share your own ID from your profile.",
       darkIdOrInvite: 'Dark-ID or invitation code',
       continue: 'Continue',
       contacts: 'DarkChat Contacts',
@@ -3036,6 +3038,8 @@ const defaultLocales: LocaleTree = {
       viewRides: 'View Ride Options',
       change: 'Change',
       requestRide: 'Request SkyRide',
+      playerDriverNotice:
+        'SkyRide matches you with real player drivers. A driver must be online and accept your request.',
       serviceMeta: '{eta} min away · {seats} seats',
       distanceMeters: '{distance} m',
       distanceKilometers: '{distance} km',
@@ -3106,7 +3110,8 @@ const defaultLocales: LocaleTree = {
         cancelled: 'Cancelled',
       },
       statusBody: {
-        searching: 'We are matching you with a nearby driver.',
+        searching:
+          'Your request is waiting for an available player driver to accept it.',
         accepted: 'Your driver is preparing to pick you up.',
         driver_arriving: 'Your driver is on the way to your pickup.',
         arrived: 'Your driver is waiting at the pickup point.',

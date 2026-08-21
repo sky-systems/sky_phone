@@ -401,6 +401,10 @@ local function use_sim(source, used_item)
     TriggerClientEvent("sky_phone:sim:picker", source, {
         choices = choices,
         number = sim.phone_number,
+        phoneNumberFormat = {
+            length = Config.Sim.NumberLength,
+            groups = Config.Sim.NumberGroups,
+        },
     })
     return true
 end

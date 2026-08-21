@@ -550,6 +550,10 @@ local function bootstrap(source, security, security_loaded)
 
     return {
         token = session.token,
+        phoneNumberFormat = {
+            length = Config.Sim.NumberLength,
+            groups = Config.Sim.NumberGroups,
+        },
         security = SkyPhoneSecurity.Status(device.imei, security, security_loaded),
         device = {
             imei = device.imei,

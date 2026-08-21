@@ -37,8 +37,15 @@ describe('DarkChatApp Sky UI contract', () => {
     expect(newChat).toContain('class="dc-recipient-field"')
     expect(newChat).toContain('layout="inline"')
     expect(newChat).toContain('class="dc-new-chat-contacts"')
+    expect(newChat).toContain("{{ t('newChatBody') }}")
     expect(newChat).toContain("{{ phone.t('Common.cancel') }}")
     expect(newChat).not.toContain('class="dc-hero"')
+  })
+
+  it('rejects the current profile identifiers before opening confirmation', () => {
+    expect(source).toContain('darkchat.profile?.darkId')
+    expect(source).toContain('darkchat.profile?.inviteCode')
+    expect(source).toContain("showToast(errorText('self_chat'))")
   })
 
   it('keeps the search visually compact without shrinking its wrapper', () => {

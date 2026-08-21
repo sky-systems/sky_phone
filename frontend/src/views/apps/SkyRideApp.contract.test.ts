@@ -18,6 +18,11 @@ describe('SkyRide app layout', () => {
     expect(source).toContain('skyride-history-card__distance')
   })
 
+  it('explains that requests require an online player driver', () => {
+    expect(source).toContain("phone.t('Apps.skyride.playerDriverNotice')")
+    expect(source).toContain('class="skyride-player-driver-notice"')
+  })
+
   it('aligns rider and activity surfaces to one content width', () => {
     expect(source).toMatch(
       /\.skyride-location-list,\s*\.skyride-activity-list\s*\{[^}]*margin-inline:\s*2px !important;/s,

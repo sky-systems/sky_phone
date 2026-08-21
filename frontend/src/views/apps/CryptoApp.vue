@@ -824,6 +824,10 @@ onUnmounted(() => {
                       :size="18"
                     /></button></template
               ></SkyField>
+              <p v-if="authMode === 'register'" class="auth-password-hint">
+                {{ t('auth.ruleLength') }} · {{ t('auth.ruleMixed') }} ·
+                {{ t('auth.ruleNumber') }} · {{ t('auth.ruleSpecial') }}
+              </p>
               <p v-if="formError" class="error">{{ formError }}</p>
               <SkyButton block large class="auth-submit" type="submit">{{
                 t(
@@ -2059,6 +2063,12 @@ onUnmounted(() => {
 }
 .auth-form {
   gap: 12px;
+}
+.auth-password-hint {
+  margin: -3px 4px 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+  line-height: 15px;
 }
 .auth-account {
   display: grid;
