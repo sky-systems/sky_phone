@@ -1,6 +1,15 @@
 Bridge.Database.AfterMigration("sky_phone", function()
 local settings = Config.SkyPic or {}
 local json_null = type(json) == "table" and json.null or nil
+local spotlight_report_reasons = {}
+
+for _, reason in ipairs(settings.SpotlightReportReasons or {
+    "spam", "harassment", "dangerous", "illegal", "other",
+}) do
+    if type(reason) == "string" then
+        spotlight_report_reasons[reason] = true
+    end
+end
 
 local function nullable(value)
     if value == nil then
@@ -561,6 +570,132 @@ local function list_stories(profile_id, offset)
         }
     end
     return stories
+end
+
+local function spotlight_from_row(row, profile_id)
+    if not row then
+        return nil
+    end
+    return {
+        id = row.id,
+        author = summary_from_row(
+            row,
+            row.profile_id == profile_id and "none" or (row.friendship_id and "friends" or "none"),
+            row.friendship_id
+        ),
+        url = row.url,
+        mimeType = nullable(row.mime_type),
+        caption = row.caption or "",
+        textOverlay = row.overlay_text or "",
+        overlayColor = row.overlay_color,
+        isSponsored = row.kind == "sponsored",
+        adHeadline = row.ad_headline or "",
+        commentsEnabled = is_true(row.comments_enabled),
+        expiresAt = row.expires_at,
+        createdAt = row.created_at,
+        isOwner = row.profile_id == profile_id,
+        isLiked = is_true(row.is_liked),
+        isViewed = is_true(row.is_viewed),
+        likeCount = tonumber(row.like_count) or 0,
+        viewCount = tonumber(row.view_count) or 0,
+        commentCount = tonumber(row.comment_count) or 0,
+    }
+end
+
+local function list_spotlights(profile_id, offset, spotlight_id)
+    local exact_id = spotlight_id or ""
+    local rows = Bridge.Database.Query([[
+        SELECT spotlight.`id`, spotlight.`profile_id`, spotlight.`caption`,
+            spotlight.`overlay_text`, spotlight.`overlay_color`, spotlight.`kind`,
+            spotlight.`ad_headline`, spotlight.`comments_enabled`, spotlight.`expires_at`,
+            spotlight.`created_at`, media.`url`, media.`mime_type`,
+            author.`handle`, author.`display_name`, author.`avatar_seed`, author.`snap_score`,
+            avatar.`url` AS `avatar_url`, friendship.`id` AS `friendship_id`,
+            EXISTS(
+                SELECT 1 FROM `sky_phone_skypic_spotlight_likes` spotlight_like
+                WHERE spotlight_like.`spotlight_id` = spotlight.`id`
+                    AND spotlight_like.`profile_id` = ?
+            ) AS `is_liked`,
+            EXISTS(
+                SELECT 1 FROM `sky_phone_skypic_spotlight_views` spotlight_view
+                WHERE spotlight_view.`spotlight_id` = spotlight.`id`
+                    AND spotlight_view.`viewer_profile_id` = ?
+            ) AS `is_viewed`,
+            (SELECT COUNT(*) FROM `sky_phone_skypic_spotlight_likes` spotlight_like
+                WHERE spotlight_like.`spotlight_id` = spotlight.`id`) AS `like_count`,
+            (SELECT COUNT(*) FROM `sky_phone_skypic_spotlight_views` spotlight_view
+                WHERE spotlight_view.`spotlight_id` = spotlight.`id`) AS `view_count`,
+            (SELECT COUNT(*) FROM `sky_phone_skypic_spotlight_comments` comment
+                WHERE comment.`spotlight_id` = spotlight.`id`
+                    AND comment.`status` = 'visible') AS `comment_count`
+        FROM `sky_phone_skypic_spotlights` spotlight
+        JOIN `sky_phone_skypic_profiles` author
+            ON author.`id` = spotlight.`profile_id` AND author.`status` = 'active'
+        JOIN `sky_phone_media` media
+            ON media.`id` = spotlight.`media_id` AND media.`media_type` = 'video'
+        LEFT JOIN `sky_phone_media` avatar ON avatar.`id` = author.`avatar_media_id`
+        LEFT JOIN `sky_phone_skypic_friendships` friendship
+            ON friendship.`profile_a_id` = LEAST(?, spotlight.`profile_id`)
+            AND friendship.`profile_b_id` = GREATEST(?, spotlight.`profile_id`)
+            AND friendship.`status` = 'accepted'
+        WHERE spotlight.`status` = 'active'
+            AND spotlight.`expires_at` > CURRENT_TIMESTAMP(6)
+            AND NOT EXISTS (
+                SELECT 1 FROM `sky_phone_skypic_blocks` block
+                WHERE (block.`blocker_profile_id` = ? AND block.`blocked_profile_id` = spotlight.`profile_id`)
+                    OR (block.`blocker_profile_id` = spotlight.`profile_id` AND block.`blocked_profile_id` = ?)
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM `sky_phone_skypic_spotlight_reports` report
+                WHERE report.`spotlight_id` = spotlight.`id`
+                    AND report.`reporter_profile_id` = ?
+            )
+            AND (? = '' OR spotlight.`id` = ?)
+        ORDER BY spotlight.`created_at` DESC, spotlight.`id` DESC
+        LIMIT ? OFFSET ?
+    ]], {
+        profile_id, profile_id, profile_id, profile_id, profile_id, profile_id, profile_id,
+        exact_id, exact_id, spotlight_id and 1 or limit("SpotlightPageSize", 12), offset or 0,
+    })
+    local spotlights = {}
+    for _, row in ipairs(rows) do
+        spotlights[#spotlights + 1] = spotlight_from_row(row, profile_id)
+    end
+    return spotlights
+end
+
+local function accessible_spotlight(spotlight_id, profile_id)
+    local rows = Bridge.Database.Query([[
+        SELECT spotlight.`id`, spotlight.`profile_id`, spotlight.`comments_enabled`
+        FROM `sky_phone_skypic_spotlights` spotlight
+        JOIN `sky_phone_skypic_profiles` author
+            ON author.`id` = spotlight.`profile_id` AND author.`status` = 'active'
+        WHERE spotlight.`id` = ? AND spotlight.`status` = 'active'
+            AND spotlight.`expires_at` > CURRENT_TIMESTAMP(6)
+            AND NOT EXISTS (
+                SELECT 1 FROM `sky_phone_skypic_blocks` block
+                WHERE (block.`blocker_profile_id` = ? AND block.`blocked_profile_id` = spotlight.`profile_id`)
+                    OR (block.`blocker_profile_id` = spotlight.`profile_id` AND block.`blocked_profile_id` = ?)
+            )
+        LIMIT 1
+    ]], { spotlight_id, profile_id, profile_id })
+    return rows[1]
+end
+
+local function spotlight_comment_from_row(row, profile_id)
+    return {
+        id = row.id,
+        spotlightId = row.spotlight_id,
+        body = row.body,
+        createdAt = row.created_at,
+        isOwner = row.profile_id == profile_id,
+        author = summary_from_row(
+            row,
+            row.profile_id == profile_id and "none"
+                or friendship_status(profile_id, row.requested_by_id, row.friendship_status),
+            row.friendship_id
+        ),
+    }
 end
 
 local function list_conversations(profile_id)
@@ -2243,6 +2378,357 @@ Bridge.Callbacks.Register("sky_phone:skypic:remove-story", function(source, data
         or { success = false, error = "story_unavailable" }
 end)
 
+Bridge.Callbacks.Register("sky_phone:skypic:spotlight-feed", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_read", limit("ReadActionsPerMinute", 120), 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, _, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    local offset = type(data) == "table" and (data.offset or 0) or 0
+    offset = valid_integer(offset, 0, 100000)
+    if not offset then
+        return { success = false, error = "invalid_request" }
+    end
+    return { success = true, data = list_spotlights(profile.profile_id, offset) }
+end)
+
+Bridge.Callbacks.Register("sky_phone:skypic:publish-spotlight", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_spotlight", limit("SpotlightsPerMinute", 4), 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, _, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    local editor, editor_error = editor_payload(source, data, false)
+    if not editor then
+        return { success = false, error = editor_error }
+    end
+    if editor.mediaType ~= "video" then
+        return { success = false, error = "invalid_media_type" }
+    end
+    if type(data.isSponsored) ~= "boolean" or type(data.commentsEnabled) ~= "boolean" then
+        return { success = false, error = "invalid_request" }
+    end
+    local sponsored = data.isSponsored
+    if sponsored and settings.AllowSponsoredSpotlights ~= true then
+        return { success = false, error = "ads_disabled" }
+    end
+    local headline = trim(data.adHeadline)
+    if sponsored then
+        if not valid_text(headline, 3, limit("SpotlightAdHeadlineMaxLength", 80)) then
+            return { success = false, error = "invalid_ad_headline" }
+        end
+    elseif headline ~= "" then
+        return { success = false, error = "invalid_ad_headline" }
+    end
+
+    local maximum_active = limit("MaximumActiveSpotlights", 20)
+    local maximum_sponsored = limit("MaximumActiveSponsoredSpotlights", 3)
+    local spotlight_id = new_id()
+    local ok = Bridge.Database.Transaction({
+        {
+            query = [[
+                UPDATE `sky_phone_skypic_profiles`
+                SET `friend_count` = `friend_count`
+                WHERE `id` = ?
+            ]],
+            params = { profile.profile_id },
+        },
+        {
+            query = [[
+                INSERT INTO `sky_phone_skypic_spotlights`
+                    (`id`, `profile_id`, `media_id`, `caption`, `overlay_text`,
+                        `overlay_color`, `kind`, `ad_headline`, `comments_enabled`, `expires_at`)
+                SELECT ?, profile.`id`, ?, ?, ?, ?, ?, ?, ?,
+                    DATE_ADD(CURRENT_TIMESTAMP(6), INTERVAL ? SECOND)
+                FROM `sky_phone_skypic_profiles` profile
+                WHERE profile.`id` = ? AND profile.`status` = 'active'
+                    AND (
+                        SELECT COUNT(*) FROM `sky_phone_skypic_spotlights`
+                        WHERE `profile_id` = profile.`id` AND `status` = 'active'
+                            AND `expires_at` > CURRENT_TIMESTAMP(6)
+                    ) < ?
+                    AND (? = 'organic' OR (
+                        SELECT COUNT(*) FROM `sky_phone_skypic_spotlights`
+                        WHERE `profile_id` = profile.`id` AND `kind` = 'sponsored'
+                            AND `status` = 'active' AND `expires_at` > CURRENT_TIMESTAMP(6)
+                    ) < ?)
+            ]],
+            params = {
+                spotlight_id, editor.mediaId, editor.caption, editor.textOverlay, editor.overlayColor,
+                sponsored and "sponsored" or "organic", headline, data.commentsEnabled and 1 or 0,
+                sponsored and limit("SponsoredSpotlightLifetimeSeconds", 604800)
+                    or limit("SpotlightLifetimeSeconds", 2592000),
+                profile.profile_id, maximum_active, sponsored and "sponsored" or "organic",
+                maximum_sponsored,
+            },
+        },
+    })
+    if not ok then
+        return { success = false, error = "request_failed" }
+    end
+    local spotlight = list_spotlights(profile.profile_id, 0, spotlight_id)[1]
+    if not spotlight then
+        local counts = Bridge.Database.Query([[
+            SELECT COUNT(*) AS `total`,
+                SUM(CASE WHEN `kind` = 'sponsored' THEN 1 ELSE 0 END) AS `sponsored`
+            FROM `sky_phone_skypic_spotlights`
+            WHERE `profile_id` = ? AND `status` = 'active'
+                AND `expires_at` > CURRENT_TIMESTAMP(6)
+        ]], { profile.profile_id })
+        local total = tonumber(counts[1] and counts[1].total) or 0
+        local sponsored_count = tonumber(counts[1] and counts[1].sponsored) or 0
+        if total >= maximum_active then
+            return { success = false, error = "spotlight_limit_reached" }
+        end
+        if sponsored and sponsored_count >= maximum_sponsored then
+            return { success = false, error = "sponsored_limit_reached" }
+        end
+        return { success = false, error = "request_failed" }
+    end
+    return { success = true, data = spotlight }
+end)
+
+Bridge.Callbacks.Register("sky_phone:skypic:view-spotlight", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_spotlight_view", limit("SpotlightViewsPerMinute", 120), 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, _, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    local spotlight_id = type(data) == "table" and data.spotlightId or nil
+    if not valid_id(spotlight_id) or not accessible_spotlight(spotlight_id, profile.profile_id) then
+        return { success = false, error = "spotlight_unavailable" }
+    end
+    Bridge.Database.Query([[
+        INSERT IGNORE INTO `sky_phone_skypic_spotlight_views`
+            (`spotlight_id`, `viewer_profile_id`)
+        SELECT `id`, ? FROM `sky_phone_skypic_spotlights`
+        WHERE `id` = ? AND `profile_id` <> ? AND `status` = 'active'
+            AND `expires_at` > CURRENT_TIMESTAMP(6)
+    ]], { profile.profile_id, spotlight_id, profile.profile_id })
+    local rows = Bridge.Database.Query([[
+        SELECT COUNT(*) AS `count` FROM `sky_phone_skypic_spotlight_views`
+        WHERE `spotlight_id` = ?
+    ]], { spotlight_id })
+    return { success = true, data = { viewCount = tonumber(rows[1] and rows[1].count) or 0 } }
+end)
+
+Bridge.Callbacks.Register("sky_phone:skypic:like-spotlight", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_spotlight_reaction", limit("SpotlightReactionsPerMinute", 120), 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, _, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    local spotlight_id = type(data) == "table" and data.spotlightId or nil
+    local active = type(data) == "table" and data.active or nil
+    if not valid_id(spotlight_id) or type(active) ~= "boolean"
+        or not accessible_spotlight(spotlight_id, profile.profile_id)
+    then
+        return { success = false, error = "spotlight_unavailable" }
+    end
+    if active then
+        Bridge.Database.Query([[
+            INSERT IGNORE INTO `sky_phone_skypic_spotlight_likes`
+                (`spotlight_id`, `profile_id`) VALUES (?, ?)
+        ]], { spotlight_id, profile.profile_id })
+    else
+        Bridge.Database.Query([[
+            DELETE FROM `sky_phone_skypic_spotlight_likes`
+            WHERE `spotlight_id` = ? AND `profile_id` = ?
+        ]], { spotlight_id, profile.profile_id })
+    end
+    local rows = Bridge.Database.Query([[
+        SELECT COUNT(*) AS `count` FROM `sky_phone_skypic_spotlight_likes`
+        WHERE `spotlight_id` = ?
+    ]], { spotlight_id })
+    return {
+        success = true,
+        data = { active = active, likeCount = tonumber(rows[1] and rows[1].count) or 0 },
+    }
+end)
+
+Bridge.Callbacks.Register("sky_phone:skypic:spotlight-comments", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_read", limit("ReadActionsPerMinute", 120), 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, _, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    local spotlight_id = type(data) == "table" and data.spotlightId or nil
+    local offset = type(data) == "table" and (data.offset or 0) or 0
+    offset = valid_integer(offset, 0, 100000)
+    if not valid_id(spotlight_id) or not offset
+        or not accessible_spotlight(spotlight_id, profile.profile_id)
+    then
+        return { success = false, error = "spotlight_unavailable" }
+    end
+    local rows = Bridge.Database.Query([[
+        SELECT comment.`id`, comment.`spotlight_id`, comment.`profile_id`, comment.`body`,
+            comment.`created_at`, author.`handle`, author.`display_name`, author.`avatar_seed`,
+            author.`snap_score`, avatar.`url` AS `avatar_url`,
+            friendship.`id` AS `friendship_id`, friendship.`status` AS `friendship_status`,
+            friendship.`requested_by_id`
+        FROM `sky_phone_skypic_spotlight_comments` comment
+        JOIN `sky_phone_skypic_profiles` author
+            ON author.`id` = comment.`profile_id` AND author.`status` = 'active'
+        LEFT JOIN `sky_phone_media` avatar ON avatar.`id` = author.`avatar_media_id`
+        LEFT JOIN `sky_phone_skypic_friendships` friendship
+            ON friendship.`profile_a_id` = LEAST(?, comment.`profile_id`)
+            AND friendship.`profile_b_id` = GREATEST(?, comment.`profile_id`)
+        WHERE comment.`spotlight_id` = ? AND comment.`status` = 'visible'
+            AND NOT EXISTS (
+                SELECT 1 FROM `sky_phone_skypic_blocks` block
+                WHERE (block.`blocker_profile_id` = ? AND block.`blocked_profile_id` = comment.`profile_id`)
+                    OR (block.`blocker_profile_id` = comment.`profile_id` AND block.`blocked_profile_id` = ?)
+            )
+        ORDER BY comment.`created_at` DESC, comment.`id` DESC
+        LIMIT ? OFFSET ?
+    ]], {
+        profile.profile_id, profile.profile_id, spotlight_id,
+        profile.profile_id, profile.profile_id,
+        limit("SpotlightCommentPageSize", 50), offset,
+    })
+    local comments = {}
+    for _, row in ipairs(rows) do
+        comments[#comments + 1] = spotlight_comment_from_row(row, profile.profile_id)
+    end
+    return { success = true, data = comments }
+end)
+
+Bridge.Callbacks.Register("sky_phone:skypic:comment-spotlight", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_spotlight_comment", limit("SpotlightCommentsPerMinute", 20), 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, _, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    local spotlight_id = type(data) == "table" and data.spotlightId or nil
+    local body = type(data) == "table" and trim(data.body) or ""
+    if not valid_id(spotlight_id)
+        or not valid_text(body, 1, limit("SpotlightCommentMaxLength", 500))
+    then
+        return { success = false, error = "invalid_comment" }
+    end
+    local spotlight = accessible_spotlight(spotlight_id, profile.profile_id)
+    if not spotlight then
+        return { success = false, error = "spotlight_unavailable" }
+    end
+    if not is_true(spotlight.comments_enabled) then
+        return { success = false, error = "comments_disabled" }
+    end
+    local comment_id = new_id()
+    Bridge.Database.Query([[
+        INSERT INTO `sky_phone_skypic_spotlight_comments`
+            (`id`, `spotlight_id`, `profile_id`, `body`)
+        SELECT ?, spotlight.`id`, ?, ?
+        FROM `sky_phone_skypic_spotlights` spotlight
+        WHERE spotlight.`id` = ? AND spotlight.`status` = 'active'
+            AND spotlight.`comments_enabled` = 1
+            AND spotlight.`expires_at` > CURRENT_TIMESTAMP(6)
+    ]], { comment_id, profile.profile_id, body, spotlight_id })
+    local rows = Bridge.Database.Query([[
+        SELECT comment.`id`, comment.`spotlight_id`, comment.`profile_id`, comment.`body`,
+            comment.`created_at`, author.`handle`, author.`display_name`, author.`avatar_seed`,
+            author.`snap_score`, avatar.`url` AS `avatar_url`
+        FROM `sky_phone_skypic_spotlight_comments` comment
+        JOIN `sky_phone_skypic_profiles` author ON author.`id` = comment.`profile_id`
+        LEFT JOIN `sky_phone_media` avatar ON avatar.`id` = author.`avatar_media_id`
+        WHERE comment.`id` = ? AND comment.`profile_id` = ?
+        LIMIT 1
+    ]], { comment_id, profile.profile_id })
+    if not rows[1] then
+        return { success = false, error = "spotlight_unavailable" }
+    end
+    return { success = true, data = spotlight_comment_from_row(rows[1], profile.profile_id) }
+end)
+
+Bridge.Callbacks.Register("sky_phone:skypic:delete-spotlight-comment", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_spotlight_comment", limit("SpotlightCommentsPerMinute", 20), 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, _, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    local comment_id = type(data) == "table" and data.commentId or nil
+    if not valid_id(comment_id) then
+        return { success = false, error = "invalid_request" }
+    end
+    local result = Bridge.Database.Query([[
+        UPDATE `sky_phone_skypic_spotlight_comments` comment
+        JOIN `sky_phone_skypic_spotlights` spotlight
+            ON spotlight.`id` = comment.`spotlight_id`
+        SET comment.`status` = 'removed'
+        WHERE comment.`id` = ? AND comment.`status` = 'visible'
+            AND (comment.`profile_id` = ? OR spotlight.`profile_id` = ?)
+    ]], { comment_id, profile.profile_id, profile.profile_id })
+    return affected_rows(result) == 1 and { success = true }
+        or { success = false, error = "comment_not_found" }
+end)
+
+Bridge.Callbacks.Register("sky_phone:skypic:remove-spotlight", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_spotlight", limit("SpotlightsPerMinute", 4), 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, _, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    local spotlight_id = type(data) == "table" and data.spotlightId or nil
+    if not valid_id(spotlight_id) then
+        return { success = false, error = "invalid_request" }
+    end
+    local result = Bridge.Database.Query([[
+        UPDATE `sky_phone_skypic_spotlights` SET `status` = 'removed'
+        WHERE `id` = ? AND `profile_id` = ? AND `status` = 'active'
+    ]], { spotlight_id, profile.profile_id })
+    return affected_rows(result) == 1 and { success = true }
+        or { success = false, error = "spotlight_unavailable" }
+end)
+
+Bridge.Callbacks.Register("sky_phone:skypic:report-spotlight", function(source, data)
+    if not SkyPhone.AllowOperation(source, "skypic_spotlight_report", limit("SpotlightReportsPerMinute", 10), 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local profile, _, error_response = require_profile(source)
+    if not profile then
+        return error_response
+    end
+    local spotlight_id = type(data) == "table" and data.spotlightId or nil
+    local reason = type(data) == "table" and trim(data.reason):lower() or ""
+    local details = type(data) == "table" and trim(data.details) or ""
+    if not valid_id(spotlight_id) or not spotlight_report_reasons[reason]
+        or not valid_text(details, 0, 500)
+    then
+        return { success = false, error = "invalid_report" }
+    end
+    local spotlight = accessible_spotlight(spotlight_id, profile.profile_id)
+    if not spotlight then
+        return { success = false, error = "spotlight_unavailable" }
+    end
+    if spotlight.profile_id == profile.profile_id then
+        return { success = false, error = "not_authorized" }
+    end
+    Bridge.Database.Query([[
+        INSERT INTO `sky_phone_skypic_spotlight_reports`
+            (`spotlight_id`, `reporter_profile_id`, `reason`, `details`)
+        VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            `reason` = VALUES(`reason`), `details` = VALUES(`details`),
+            `status` = 'pending', `created_at` = CURRENT_TIMESTAMP(6)
+    ]], { spotlight_id, profile.profile_id, reason, details })
+    return { success = true }
+end)
+
 CreateThread(function()
     while true do
         Wait(limit("CleanupIntervalSeconds", 45) * 1000)
@@ -2257,6 +2743,10 @@ CreateThread(function()
         ]], {})
         Bridge.Database.Query([[
             DELETE FROM `sky_phone_skypic_stories`
+            WHERE `status` = 'removed' OR `expires_at` <= CURRENT_TIMESTAMP(6)
+        ]], {})
+        Bridge.Database.Query([[
+            DELETE FROM `sky_phone_skypic_spotlights`
             WHERE `status` = 'removed' OR `expires_at` <= CURRENT_TIMESTAMP(6)
         ]], {})
         Bridge.Database.Query([[

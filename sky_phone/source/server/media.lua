@@ -840,8 +840,12 @@ local function is_referenced_by_skypic(media_id)
         SELECT 1 AS `in_use`
         FROM `sky_phone_skypic_stories`
         WHERE `media_id` = ?
+        UNION ALL
+        SELECT 1 AS `in_use`
+        FROM `sky_phone_skypic_spotlights`
+        WHERE `media_id` = ?
         LIMIT 1
-    ]], { media_id, media_id })
+    ]], { media_id, media_id, media_id })
     return rows[1] ~= nil
 end
 
@@ -862,7 +866,7 @@ local function delete_owned_media(src, owner, media_id)
     if row.media_type == "photo" and is_required_flare_profile_photo(media_id) then
         return false, "profile_photo_required"
     end
-    -- Both SkyPic foreign keys are RESTRICT. Keep the remote object intact until
+    -- All SkyPic media foreign keys are RESTRICT. Keep the remote object intact until
     -- cleanup has physically removed every referencing row.
     if is_referenced_by_skypic(media_id) then
         return false, "media_in_use"
@@ -882,13 +886,14 @@ local function delete_owned_media(src, owner, media_id)
     end
     -- Delete the database parent first and repeat the SkyPic guard inside the
     -- same statement. The RESTRICT foreign keys then make this atomic against
-    -- a concurrent snap/story insert: either that insert wins and this DELETE
+    -- a concurrent snap/story/spotlight insert: either that insert wins and this DELETE
     -- affects zero rows, or this DELETE wins and the later insert cannot refer
     -- to a missing media row.
     local delete_params = {}
     for _, value in ipairs(query_params) do
         delete_params[#delete_params + 1] = value
     end
+    delete_params[#delete_params + 1] = media_id
     delete_params[#delete_params + 1] = media_id
     delete_params[#delete_params + 1] = media_id
     local result = Bridge.Database.Query(([[
@@ -900,6 +905,10 @@ local function delete_owned_media(src, owner, media_id)
             )
             AND NOT EXISTS (
                 SELECT 1 FROM `sky_phone_skypic_stories`
+                WHERE `media_id` = ?
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM `sky_phone_skypic_spotlights`
                 WHERE `media_id` = ?
             )
     ]]):format(condition), delete_params)

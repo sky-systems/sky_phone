@@ -3,14 +3,19 @@ import {
   Bookmark,
   Camera,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CirclePlay,
   Eye,
+  Flag,
   Flame,
+  Heart,
   Image as ImageIcon,
   Images,
   LogOut,
+  Megaphone,
   MessageCircle,
   Palette,
   Plus,
@@ -60,6 +65,7 @@ import type {
   SkyPicMessage,
   SkyPicProfileSummary,
   SkyPicSnap,
+  SkyPicSpotlightReportReason,
   SkyPicStory,
   SkyPicStoryPrivacy,
   SkyPicThreadMediaDraftContext,
@@ -91,7 +97,7 @@ import {
   SkyToggle,
 } from '@/ui'
 
-type Tab = 'camera' | 'chats' | 'friends' | 'stories'
+type Tab = 'camera' | 'chats' | 'friends' | 'spotlight' | 'stories'
 type MediaSource = 'camera' | 'photos'
 type ViewerKind = 'snap' | 'story'
 type ThreadEntry =
@@ -109,6 +115,15 @@ const MAX_SEARCH_CHARACTERS = 64
 const MAX_SNAP_RECIPIENTS = 20
 const MAX_THREAD_ATTACHMENTS = 10
 const MAX_TEXT_OVERLAY_LENGTH = 160
+const MAX_AD_HEADLINE_LENGTH = 80
+const MAX_SPOTLIGHT_COMMENT_LENGTH = 500
+const SPOTLIGHT_REPORT_REASONS: SkyPicSpotlightReportReason[] = [
+  'spam',
+  'harassment',
+  'dangerous',
+  'illegal',
+  'other',
+]
 
 const phone = usePhoneStore()
 const account = useAccountStore()
@@ -128,6 +143,9 @@ const textOverlay = ref('')
 const overlayColor = ref('#ffffff')
 const durationSeconds = ref(5)
 const allowReplay = ref(true)
+const spotlightSponsored = ref(false)
+const spotlightAdHeadline = ref('')
+const spotlightCommentsEnabled = ref(true)
 const selectedRecipientIds = ref<string[]>([])
 const publishing = ref(false)
 const authMode = ref<'login' | 'register'>('register')
@@ -168,6 +186,11 @@ const storyReply = ref('')
 const feedback = ref('')
 const storyViewerSheetOpen = ref(false)
 const storyViewerSheetStoryId = ref('')
+const activeSpotlightIndex = ref(0)
+const spotlightCommentsOpen = ref(false)
+const spotlightCommentBody = ref('')
+const spotlightReportOpen = ref(false)
+const spotlightReportReason = ref<SkyPicSpotlightReportReason>('spam')
 const snapRemaining = ref(0)
 const snapProgress = ref(100)
 const storyRemaining = ref(0)
@@ -190,6 +213,7 @@ let appMounted = false
 const isDarkPage = computed(
   () =>
     activeTab.value === 'camera' ||
+    activeTab.value === 'spotlight' ||
     Boolean(composerMedia.value) ||
     Boolean(store.openedSnap) ||
     Boolean(store.viewedStory) ||
@@ -236,10 +260,17 @@ const selectedRecipients = computed(() =>
     selectedRecipientIds.value.includes(friend.profile.id),
   ),
 )
+const activeSpotlight = computed(
+  () => store.spotlights[activeSpotlightIndex.value] ?? null,
+)
 const canPublish = computed(
   () =>
     Boolean(composerMedia.value) &&
     (composerPurpose.value === 'story' ||
+      (composerPurpose.value === 'spotlight' &&
+        composerMedia.value?.mediaType === 'video' &&
+        (!spotlightSponsored.value ||
+          spotlightAdHeadline.value.trim().length >= 3)) ||
       selectedRecipientIds.value.length > 0) &&
     !publishing.value,
 )
@@ -578,7 +609,11 @@ function consumeMediaDraft(): boolean {
   composerMedia.value = media
   composerPurpose.value =
     result.context?.purpose ??
-    (queryValue(route.query.compose) === 'story' ? 'story' : 'snap')
+    (queryValue(route.query.compose) === 'story'
+      ? 'story'
+      : queryValue(route.query.compose) === 'spotlight'
+        ? 'spotlight'
+        : 'snap')
   selectedRecipientIds.value = [
     ...new Set(result.context?.recipientIds ?? selectedRecipientIds.value),
   ].slice(0, MAX_SNAP_RECIPIENTS)
@@ -587,6 +622,9 @@ function consumeMediaDraft(): boolean {
   overlayColor.value = '#ffffff'
   durationSeconds.value = 5
   allowReplay.value = true
+  spotlightSponsored.value = false
+  spotlightAdHeadline.value = ''
+  spotlightCommentsEnabled.value = true
   return true
 }
 
@@ -723,11 +761,19 @@ function resetComposer(): void {
   overlayColor.value = '#ffffff'
   durationSeconds.value = 5
   allowReplay.value = true
+  spotlightSponsored.value = false
+  spotlightAdHeadline.value = ''
+  spotlightCommentsEnabled.value = true
   publishing.value = false
 }
 
 function cancelComposer(): void {
-  const next = composerPurpose.value === 'story' ? 'stories' : 'camera'
+  const next =
+    composerPurpose.value === 'story'
+      ? 'stories'
+      : composerPurpose.value === 'spotlight'
+        ? 'spotlight'
+        : 'camera'
   resetComposer()
   void setTab(next)
 }
@@ -793,14 +839,22 @@ async function publishComposer(): Promise<void> {
   const response =
     composerPurpose.value === 'story'
       ? await store.publishStory(common)
-      : await store.sendSnap({
-          ...common,
-          allowReplay: allowReplay.value,
-          recipientIds: selectedRecipientIds.value.slice(
-            0,
-            MAX_SNAP_RECIPIENTS,
-          ),
-        })
+      : composerPurpose.value === 'spotlight'
+        ? await store.publishSpotlight({
+            ...common,
+            adHeadline: spotlightAdHeadline.value,
+            commentsEnabled: spotlightCommentsEnabled.value,
+            isSponsored: spotlightSponsored.value,
+            mediaType: 'video',
+          })
+        : await store.sendSnap({
+            ...common,
+            allowReplay: allowReplay.value,
+            recipientIds: selectedRecipientIds.value.slice(
+              0,
+              MAX_SNAP_RECIPIENTS,
+            ),
+          })
   publishing.value = false
   if (!response.success) {
     notify(errorText(response.error))
@@ -814,10 +868,18 @@ async function publishComposer(): Promise<void> {
     t(
       publishedPurpose === 'story'
         ? 'composer.storyPublished'
-        : 'composer.sent',
+        : publishedPurpose === 'spotlight'
+          ? 'composer.spotlightPublished'
+          : 'composer.sent',
     ),
   )
-  await setTab(publishedPurpose === 'story' ? 'stories' : 'chats')
+  await setTab(
+    publishedPurpose === 'story'
+      ? 'stories'
+      : publishedPurpose === 'spotlight'
+        ? 'spotlight'
+        : 'chats',
+  )
 }
 
 async function setTab(next: Tab): Promise<void> {
@@ -841,6 +903,10 @@ async function setTab(next: Tab): Promise<void> {
   }
   activeTab.value = next
   if (next === 'stories') await store.loadStories()
+  if (next === 'spotlight') {
+    activeSpotlightIndex.value = 0
+    await store.loadSpotlights()
+  }
   if (
     !appMounted ||
     navigationRequest !== threadNavigationRequest ||
@@ -1247,6 +1313,120 @@ async function deleteStory(storyId: string): Promise<void> {
   notify(t('stories.deleted'))
 }
 
+async function moveSpotlight(direction: -1 | 1): Promise<void> {
+  const next = activeSpotlightIndex.value + direction
+  if (next < 0) return
+  if (next >= store.spotlights.length && store.spotlightsHasMore) {
+    if (!(await store.loadMoreSpotlights())) {
+      notify(errorText(store.error ?? undefined))
+      return
+    }
+  }
+  if (next < store.spotlights.length) activeSpotlightIndex.value = next
+}
+
+function handleSpotlightPlaying(): void {
+  const spotlight = activeSpotlight.value
+  if (spotlight) void store.viewSpotlight(spotlight.id)
+}
+
+async function toggleSpotlightLike(): Promise<void> {
+  const spotlight = activeSpotlight.value
+  if (
+    spotlight &&
+    !(await store.likeSpotlight(spotlight.id, !spotlight.isLiked))
+  ) {
+    notify(errorText(store.error ?? undefined))
+  }
+}
+
+async function openSpotlightComments(): Promise<void> {
+  const spotlight = activeSpotlight.value
+  if (!spotlight) return
+  if (!(await store.loadSpotlightComments(spotlight.id))) {
+    notify(errorText(store.error ?? undefined))
+    return
+  }
+  spotlightCommentsOpen.value = true
+}
+
+function closeSpotlightComments(): void {
+  spotlightCommentsOpen.value = false
+  spotlightCommentBody.value = ''
+}
+
+async function submitSpotlightComment(): Promise<void> {
+  const spotlight = activeSpotlight.value
+  const body = spotlightCommentBody.value.trim()
+  if (!spotlight || !body) return
+  if (!(await store.commentSpotlight(spotlight.id, body))) {
+    notify(errorText(store.error ?? undefined))
+    return
+  }
+  spotlightCommentBody.value = ''
+}
+
+async function loadMoreSpotlightComments(): Promise<void> {
+  const spotlight = activeSpotlight.value
+  if (spotlight && !(await store.loadMoreSpotlightComments(spotlight.id))) {
+    notify(errorText(store.error ?? undefined))
+  }
+}
+
+async function deleteSpotlightComment(commentId: string): Promise<void> {
+  if (!(await store.deleteSpotlightComment(commentId))) {
+    notify(errorText(store.error ?? undefined))
+  }
+}
+
+async function deleteSpotlight(): Promise<void> {
+  const spotlight = activeSpotlight.value
+  if (!spotlight || !(await store.removeSpotlight(spotlight.id))) {
+    notify(errorText(store.error ?? undefined))
+    return
+  }
+  activeSpotlightIndex.value = Math.min(
+    activeSpotlightIndex.value,
+    Math.max(0, store.spotlights.length - 1),
+  )
+  notify(t('spotlight.deleted'))
+}
+
+function openSpotlightReport(): void {
+  spotlightReportReason.value = 'spam'
+  spotlightReportOpen.value = true
+}
+
+function closeSpotlightReport(): void {
+  spotlightReportOpen.value = false
+}
+
+async function submitSpotlightReport(): Promise<void> {
+  const spotlight = activeSpotlight.value
+  if (
+    !spotlight ||
+    !(await store.reportSpotlight(spotlight.id, spotlightReportReason.value))
+  ) {
+    notify(errorText(store.error ?? undefined))
+    return
+  }
+  spotlightReportOpen.value = false
+  activeSpotlightIndex.value = Math.min(
+    activeSpotlightIndex.value,
+    Math.max(0, store.spotlights.length - 1),
+  )
+  notify(t('spotlight.reported'))
+}
+
+async function openSpotlightAuthor(): Promise<void> {
+  const author = activeSpotlight.value?.author
+  if (!author) return
+  highlightedProfileId.value = author.id
+  searchQuery.value = author.handle
+  await setTab('friends')
+  await store.search(author.handle)
+}
+
 function scheduleSearch(value: string): void {
   if (searchTimer !== null) window.clearTimeout(searchTimer)
   searchTimer = window.setTimeout(async () => {
@@ -1365,6 +1545,7 @@ async function applyRouteQuery(query: LocationQuery): Promise<void> {
   if (
     requestedTab === 'camera' ||
     requestedTab === 'chats' ||
+    requestedTab === 'spotlight' ||
     requestedTab === 'stories' ||
     requestedTab === 'friends'
   ) {
@@ -1373,6 +1554,9 @@ async function applyRouteQuery(query: LocationQuery): Promise<void> {
       storyViewerSheetOpen.value = false
     }
     activeTab.value = requestedTab
+    if (requestedTab === 'spotlight' && store.spotlights.length === 0) {
+      await store.loadSpotlights()
+    }
   }
 
   consumeAuthMediaDraft()
@@ -1615,7 +1799,9 @@ onBeforeUnmount(() => {
           t(
             composerPurpose === 'story'
               ? 'composer.storyTitle'
-              : 'composer.snapTitle',
+              : composerPurpose === 'spotlight'
+                ? 'composer.spotlightTitle'
+                : 'composer.snapTitle',
           )
         "
         @back="cancelComposer"
@@ -1633,7 +1819,9 @@ onBeforeUnmount(() => {
                 : t(
                     composerPurpose === 'story'
                       ? 'composer.addStory'
-                      : 'composer.send',
+                      : composerPurpose === 'spotlight'
+                        ? 'composer.publishSpotlight'
+                        : 'composer.send',
                   )
             }}
           </SkyButton>
@@ -1738,6 +1926,35 @@ onBeforeUnmount(() => {
               :aria-label="t('composer.replay')"
             />
           </label>
+          <template v-if="composerPurpose === 'spotlight'">
+            <label class="sp-toggle-row">
+              <span>
+                <b>{{ t('composer.sponsored') }}</b>
+                <small>{{ t('composer.sponsoredBody') }}</small>
+              </span>
+              <SkyToggle
+                v-model="spotlightSponsored"
+                :aria-label="t('composer.sponsored')"
+              />
+            </label>
+            <SkyField
+              v-if="spotlightSponsored"
+              v-model="spotlightAdHeadline"
+              :label="t('composer.adHeadline')"
+              :placeholder="t('composer.adHeadlinePlaceholder')"
+              :maxlength="MAX_AD_HEADLINE_LENGTH"
+            />
+            <label class="sp-toggle-row">
+              <span>
+                <b>{{ t('composer.allowComments') }}</b>
+                <small>{{ t('composer.allowCommentsBody') }}</small>
+              </span>
+              <SkyToggle
+                v-model="spotlightCommentsEnabled"
+                :aria-label="t('composer.allowComments')"
+              />
+            </label>
+          </template>
         </div>
 
         <section v-if="composerPurpose === 'snap'" class="sp-section">
@@ -2077,39 +2294,58 @@ onBeforeUnmount(() => {
         <section
           v-if="activeTab === 'camera'"
           class="sp-camera-screen"
-          aria-labelledby="sp-camera-title"
+          :aria-label="t('camera.title')"
         >
           <header class="sp-camera-header">
-            <button
-              type="button"
-              class="sp-camera-profile"
-              :aria-label="t('profile.title')"
-              @click="setTab('friends')"
-            >
-              <span
-                class="sp-avatar sp-avatar--small"
-                :style="avatarStyle(store.profile)"
+            <div class="sp-camera-header__actions">
+              <button
+                type="button"
+                class="sp-camera-profile"
+                :aria-label="t('profile.title')"
+                @click="setTab('friends')"
               >
-                <img
-                  v-if="store.profile.avatarUrl"
-                  :src="store.profile.avatarUrl"
-                  alt=""
-                />
-                <template v-else>{{ initials(store.profile) }}</template>
-              </span>
-            </button>
-            <span class="sp-camera-header__title">
-              <small>{{ t('camera.eyebrow') }}</small>
-              <h1 id="sp-camera-title">{{ t('camera.title') }}</h1>
-            </span>
-            <button
-              type="button"
-              class="sp-icon-button sp-icon-button--glass"
-              :aria-label="t('chats.title')"
-              @click="setTab('chats')"
-            >
-              <MessageCircle :size="20" aria-hidden="true" />
-            </button>
+                <span
+                  class="sp-avatar sp-avatar--small"
+                  :style="avatarStyle(store.profile)"
+                >
+                  <img
+                    v-if="store.profile.avatarUrl"
+                    :src="store.profile.avatarUrl"
+                    alt=""
+                  />
+                  <template v-else>{{ initials(store.profile) }}</template>
+                </span>
+              </button>
+              <SkyGlass
+                component="button"
+                type="button"
+                class="sp-camera-header__glass"
+                :aria-label="t('friends.searchPlaceholder')"
+                @click="setTab('friends')"
+              >
+                <Search :size="20" aria-hidden="true" />
+              </SkyGlass>
+            </div>
+            <div class="sp-camera-header__actions">
+              <SkyGlass
+                component="button"
+                type="button"
+                class="sp-camera-header__glass"
+                :aria-label="t('chats.title')"
+                @click="setTab('chats')"
+              >
+                <MessageCircle :size="20" aria-hidden="true" />
+              </SkyGlass>
+              <SkyGlass
+                component="button"
+                type="button"
+                class="sp-camera-header__glass"
+                :aria-label="t('friends.title')"
+                @click="setTab('friends')"
+              >
+                <UsersRound :size="20" aria-hidden="true" />
+              </SkyGlass>
+            </div>
           </header>
 
           <div class="sp-camera-viewfinder">
@@ -2163,8 +2399,8 @@ onBeforeUnmount(() => {
                 >
                   <Images :size="22" aria-hidden="true" />
                 </button>
-                <button
-                  type="button"
+                <SkyGlass
+                  component="button"
                   class="sp-shutter"
                   :aria-label="
                     t(
@@ -2185,7 +2421,7 @@ onBeforeUnmount(() => {
                     />
                     <CirclePlay v-else :size="29" aria-hidden="true" />
                   </span>
-                </button>
+                </SkyGlass>
                 <button
                   type="button"
                   class="sp-camera-secondary"
@@ -2388,6 +2624,228 @@ onBeforeUnmount(() => {
               />
             </section>
           </SkyScrollArea>
+        </template>
+        <template v-else-if="activeTab === 'spotlight'">
+          <section class="sp-spotlight-screen">
+            <header class="sp-spotlight-header">
+              <div class="sp-spotlight-header__actions">
+                <button
+                  type="button"
+                  class="sp-camera-profile"
+                  :aria-label="t('profile.title')"
+                  @click="setTab('friends')"
+                >
+                  <span
+                    class="sp-avatar sp-avatar--small"
+                    :style="avatarStyle(store.profile)"
+                  >
+                    <img
+                      v-if="store.profile.avatarUrl"
+                      :src="store.profile.avatarUrl"
+                      alt=""
+                    />
+                    <template v-else>{{ initials(store.profile) }}</template>
+                  </span>
+                </button>
+                <SkyGlass
+                  component="button"
+                  type="button"
+                  class="sp-spotlight-header__glass"
+                  :aria-label="t('friends.searchPlaceholder')"
+                  @click="setTab('friends')"
+                >
+                  <Search :size="20" aria-hidden="true" />
+                </SkyGlass>
+              </div>
+              <strong>{{ t('spotlight.title') }}</strong>
+              <div
+                class="sp-spotlight-header__actions sp-spotlight-header__actions--right"
+              >
+                <SkyGlass
+                  component="button"
+                  type="button"
+                  class="sp-spotlight-header__glass"
+                  :aria-label="t('friends.title')"
+                  @click="setTab('friends')"
+                >
+                  <UsersRound :size="20" aria-hidden="true" />
+                </SkyGlass>
+                <SkyGlass
+                  component="button"
+                  type="button"
+                  class="sp-spotlight-header__glass"
+                  :aria-label="t('spotlight.add')"
+                  @click="beginCapture('camera', 'video', 'spotlight', [])"
+                >
+                  <Plus :size="21" aria-hidden="true" />
+                </SkyGlass>
+              </div>
+            </header>
+
+            <div v-if="store.spotlightsLoading" class="sp-spotlight-loading">
+              <SkySpinner />
+            </div>
+            <article
+              v-else-if="activeSpotlight"
+              :key="activeSpotlight.id"
+              class="sp-spotlight-player"
+            >
+              <video
+                :src="activeSpotlight.url"
+                :aria-label="
+                  t('spotlight.videoBy', {
+                    name: activeSpotlight.author.displayName,
+                  })
+                "
+                autoplay
+                loop
+                muted
+                playsinline
+                @playing="handleSpotlightPlaying"
+              />
+              <div class="sp-spotlight-shade" aria-hidden="true" />
+              <strong
+                v-if="activeSpotlight.textOverlay"
+                class="sp-spotlight-overlay"
+                :style="{ color: activeSpotlight.overlayColor }"
+              >
+                {{ activeSpotlight.textOverlay }}
+              </strong>
+
+              <div class="sp-spotlight-copy">
+                <span
+                  v-if="activeSpotlight.isSponsored"
+                  class="sp-sponsored-label"
+                >
+                  <Megaphone :size="14" aria-hidden="true" />
+                  {{ t('spotlight.sponsored') }}
+                </span>
+                <button
+                  type="button"
+                  class="sp-spotlight-author"
+                  @click="openSpotlightAuthor"
+                >
+                  <span
+                    class="sp-avatar sp-avatar--small"
+                    :style="avatarStyle(activeSpotlight.author)"
+                  >
+                    <img
+                      v-if="activeSpotlight.author.avatarUrl"
+                      :src="activeSpotlight.author.avatarUrl"
+                      alt=""
+                    />
+                    <template v-else>
+                      {{ initials(activeSpotlight.author) }}
+                    </template>
+                  </span>
+                  <span>
+                    <b>@{{ activeSpotlight.author.handle }}</b>
+                    <small v-if="activeSpotlight.isSponsored">
+                      {{ t('spotlight.viewProfile') }}
+                    </small>
+                  </span>
+                </button>
+                <h2
+                  v-if="
+                    activeSpotlight.isSponsored && activeSpotlight.adHeadline
+                  "
+                >
+                  {{ activeSpotlight.adHeadline }}
+                </h2>
+                <p v-if="activeSpotlight.caption">
+                  {{ activeSpotlight.caption }}
+                </p>
+              </div>
+
+              <aside class="sp-spotlight-actions">
+                <button
+                  type="button"
+                  :class="{ 'is-active': activeSpotlight.isLiked }"
+                  :aria-label="t('spotlight.like')"
+                  @click="toggleSpotlightLike"
+                >
+                  <Heart
+                    :fill="activeSpotlight.isLiked ? 'currentColor' : 'none'"
+                    aria-hidden="true"
+                  />
+                  <small>{{ activeSpotlight.likeCount }}</small>
+                </button>
+                <button
+                  type="button"
+                  :aria-label="t('spotlight.comments')"
+                  @click="openSpotlightComments"
+                >
+                  <MessageCircle aria-hidden="true" />
+                  <small>{{ activeSpotlight.commentCount }}</small>
+                </button>
+                <span
+                  class="sp-spotlight-stat"
+                  :aria-label="t('spotlight.views')"
+                >
+                  <Eye aria-hidden="true" />
+                  <small>{{ activeSpotlight.viewCount }}</small>
+                </span>
+                <button
+                  v-if="activeSpotlight.isOwner"
+                  type="button"
+                  :aria-label="t('spotlight.delete')"
+                  @click="deleteSpotlight"
+                >
+                  <Trash2 aria-hidden="true" />
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  :aria-label="t('spotlight.report')"
+                  @click="openSpotlightReport"
+                >
+                  <Flag aria-hidden="true" />
+                </button>
+              </aside>
+
+              <nav
+                class="sp-spotlight-pager"
+                :aria-label="t('spotlight.navigation')"
+              >
+                <button
+                  type="button"
+                  :disabled="activeSpotlightIndex === 0"
+                  :aria-label="t('spotlight.previous')"
+                  @click="moveSpotlight(-1)"
+                >
+                  <ChevronUp aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  :disabled="
+                    activeSpotlightIndex >= store.spotlights.length - 1 &&
+                    !store.spotlightsHasMore
+                  "
+                  :aria-label="t('spotlight.next')"
+                  @click="moveSpotlight(1)"
+                >
+                  <ChevronDown aria-hidden="true" />
+                </button>
+              </nav>
+            </article>
+            <SkyEmptyState
+              v-else
+              class="sp-spotlight-empty"
+              :title="t('spotlight.empty')"
+              :description="t('spotlight.emptyBody')"
+            >
+              <template #icon>
+                <CirclePlay :size="30" aria-hidden="true" />
+              </template>
+              <SkyButton
+                rounded
+                @click="beginCapture('camera', 'video', 'spotlight', [])"
+              >
+                <Video :size="17" aria-hidden="true" />
+                {{ t('spotlight.add') }}
+              </SkyButton>
+            </SkyEmptyState>
+          </section>
         </template>
         <template v-else-if="activeTab === 'stories'">
           <SkyNavbar class="sp-content-navbar" :title="t('stories.title')">
@@ -3050,7 +3508,7 @@ onBeforeUnmount(() => {
           :aria-label="t('navigation')"
         >
           <SkyTabButton
-            class="sp-tab sp-tab--camera"
+            class="sp-tab sp-tab--camera sp-tab--monochrome"
             :active="activeTab === 'camera'"
             :aria-label="t('tabs.camera')"
             :label="t('tabs.camera')"
@@ -3111,6 +3569,17 @@ onBeforeUnmount(() => {
                   {{ store.incomingRequests.length }}
                 </SkyBadge>
               </span>
+            </template>
+          </SkyTabButton>
+          <SkyTabButton
+            class="sp-tab sp-tab--monochrome"
+            :active="activeTab === 'spotlight'"
+            :aria-label="t('tabs.spotlight')"
+            :label="t('tabs.spotlight')"
+            @click="setTab('spotlight')"
+          >
+            <template #icon>
+              <CirclePlay aria-hidden="true" />
             </template>
           </SkyTabButton>
         </SkyTabBar>
@@ -3361,6 +3830,150 @@ onBeforeUnmount(() => {
             }}
           </SkyButton>
         </div>
+      </section>
+    </SkySheet>
+
+    <SkySheet
+      :opened="spotlightCommentsOpen"
+      :aria-label="t('spotlight.comments')"
+      swipe-to-close
+      @backdropclick="closeSpotlightComments"
+      @escape="closeSpotlightComments"
+      @swipeclose="closeSpotlightComments"
+    >
+      <section class="sp-spotlight-sheet">
+        <header>
+          <b>{{ t('spotlight.comments') }}</b>
+          <button
+            type="button"
+            class="sp-icon-button"
+            :aria-label="phone.t('Common.close')"
+            @click="closeSpotlightComments"
+          >
+            <X :size="19" aria-hidden="true" />
+          </button>
+        </header>
+        <div class="sp-spotlight-sheet__scroll">
+          <article
+            v-for="comment in store.spotlightComments"
+            :key="comment.id"
+            class="sp-spotlight-comment"
+          >
+            <span
+              class="sp-avatar sp-avatar--small"
+              :style="avatarStyle(comment.author)"
+            >
+              <img
+                v-if="comment.author.avatarUrl"
+                :src="comment.author.avatarUrl"
+                alt=""
+              />
+              <template v-else>{{ initials(comment.author) }}</template>
+            </span>
+            <span>
+              <b>@{{ comment.author.handle }}</b>
+              <p>{{ comment.body }}</p>
+              <small>{{ relativeTime(comment.createdAt) }}</small>
+            </span>
+            <button
+              v-if="comment.isOwner || activeSpotlight?.isOwner"
+              type="button"
+              :aria-label="t('spotlight.deleteComment')"
+              @click="deleteSpotlightComment(comment.id)"
+            >
+              <Trash2 :size="17" aria-hidden="true" />
+            </button>
+          </article>
+          <SkyEmptyState
+            v-if="!store.spotlightComments.length"
+            compact
+            :title="t('spotlight.noComments')"
+          />
+          <SkyButton
+            v-if="
+              store.spotlightComments.length && store.spotlightCommentsHasMore
+            "
+            block
+            clear
+            :disabled="store.spotlightCommentsLoading"
+            @click="loadMoreSpotlightComments"
+          >
+            {{
+              store.spotlightCommentsLoading
+                ? phone.t('Common.loading')
+                : phone.t('Common.loadMore')
+            }}
+          </SkyButton>
+        </div>
+        <form
+          v-if="activeSpotlight?.commentsEnabled"
+          class="sp-spotlight-comment-form"
+          @submit.prevent="submitSpotlightComment"
+        >
+          <SkyField
+            v-model="spotlightCommentBody"
+            :aria-label="t('spotlight.commentPlaceholder')"
+            :placeholder="t('spotlight.commentPlaceholder')"
+            :maxlength="MAX_SPOTLIGHT_COMMENT_LENGTH"
+          />
+          <SkyButton
+            rounded
+            type="submit"
+            :disabled="!spotlightCommentBody.trim()"
+          >
+            <Send :size="17" aria-hidden="true" />
+            {{ t('spotlight.sendComment') }}
+          </SkyButton>
+        </form>
+        <p v-else class="sp-spotlight-comments-disabled">
+          {{ t('spotlight.commentsDisabled') }}
+        </p>
+      </section>
+    </SkySheet>
+
+    <SkySheet
+      :opened="spotlightReportOpen"
+      :aria-label="t('spotlight.report')"
+      swipe-to-close
+      @backdropclick="closeSpotlightReport"
+      @escape="closeSpotlightReport"
+      @swipeclose="closeSpotlightReport"
+    >
+      <section class="sp-spotlight-sheet sp-spotlight-report">
+        <header>
+          <span>
+            <b>{{ t('spotlight.report') }}</b>
+            <small>{{ t('spotlight.reportBody') }}</small>
+          </span>
+          <button
+            type="button"
+            class="sp-icon-button"
+            :aria-label="phone.t('Common.close')"
+            @click="closeSpotlightReport"
+          >
+            <X :size="19" aria-hidden="true" />
+          </button>
+        </header>
+        <div class="sp-report-reasons">
+          <button
+            v-for="reason in SPOTLIGHT_REPORT_REASONS"
+            :key="reason"
+            type="button"
+            :class="{ 'is-active': spotlightReportReason === reason }"
+            @click="spotlightReportReason = reason"
+          >
+            {{ t(`spotlight.reportReasons.${reason}`) }}
+            <Check
+              v-if="spotlightReportReason === reason"
+              :size="17"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+        <SkyButton block large tone="danger" @click="submitSpotlightReport">
+          <Flag :size="17" aria-hidden="true" />
+          {{ t('spotlight.submitReport') }}
+        </SkyButton>
       </section>
     </SkySheet>
 
@@ -3813,22 +4426,11 @@ input:focus-visible {
   display: flex;
   flex: 1;
   min-height: 0;
-  padding: calc(var(--sky-safe-area-top) + 8px) var(--sky-page-gutter)
+  padding: var(--sky-safe-area-top) var(--sky-page-gutter)
     calc(var(--sky-safe-area-bottom) + 82px);
   flex-direction: column;
   gap: var(--sky-space-3);
-  background:
-    radial-gradient(
-      circle at 12% 14%,
-      rgba(37, 149, 255, 0.44),
-      transparent 38%
-    ),
-    radial-gradient(
-      circle at 88% 58%,
-      rgba(10, 132, 255, 0.24),
-      transparent 36%
-    ),
-    linear-gradient(165deg, #07172d 0%, #0b2444 50%, #061326 100%);
+  background: #000;
   color: white;
 }
 
@@ -3836,25 +4438,7 @@ input:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 48px;
-}
-
-.sp-camera-header > span {
-  display: grid;
-}
-
-.sp-camera-header small {
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.sp-camera-header h1 {
-  margin: 2px 0 0;
-  font-size: 24px;
-  line-height: 1;
+  min-height: var(--sky-navbar-height);
 }
 
 .sp-camera-screen :deep(.sky-segmented) {
@@ -3890,7 +4474,7 @@ input:focus-visible {
   width: 72px;
   height: 72px;
   border: 3px solid white;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--sky-glass, rgba(50, 50, 50, 0.5));
 }
 
 .sp-shutter > span {
@@ -3898,12 +4482,10 @@ input:focus-visible {
   width: 58px;
   height: 58px;
   place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 50%;
-  background: linear-gradient(
-    145deg,
-    var(--sp-camera-blue),
-    var(--sp-camera-blue-strong)
-  );
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.16);
 }
 
 .sp-content-navbar :deep(.sky-navbar__inner) {
@@ -3926,21 +4508,16 @@ input:focus-visible {
 .sp-camera-screen {
   position: relative;
   isolation: isolate;
-  padding: calc(var(--sky-safe-area-top) + 8px) var(--sky-page-gutter)
+  padding: var(--sky-safe-area-top) var(--sky-page-gutter)
     calc(var(--sky-safe-area-bottom) + 82px);
   gap: 8px;
   background:
     radial-gradient(
-      circle at 12% 4%,
-      rgba(44, 157, 255, 0.42),
-      transparent 34%
+      circle at 50% 0%,
+      rgba(255, 255, 255, 0.06),
+      transparent 36%
     ),
-    radial-gradient(
-      circle at 88% 64%,
-      rgba(5, 105, 210, 0.36),
-      transparent 40%
-    ),
-    linear-gradient(160deg, #06182d 0%, #0b2748 48%, #04111f 100%);
+    linear-gradient(180deg, #0b0b0b 0%, #000 100%);
 }
 
 .sp-camera-screen::before {
@@ -3958,24 +4535,34 @@ input:focus-visible {
 .sp-camera-header {
   position: relative;
   z-index: 3;
-  display: grid;
-  grid-template-columns: var(--sky-touch-target) 1fr var(--sky-touch-target);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sky-space-3);
+}
+
+.sp-camera-header__actions {
+  display: flex;
+  align-items: center;
   gap: var(--sky-space-2);
 }
 
-.sp-camera-header__title {
-  justify-items: center;
-  text-align: center;
-}
-
-.sp-camera-header h1 {
-  font-size: 21px;
-  letter-spacing: -0.02em;
+.sp-camera-header__glass {
+  display: grid;
+  width: var(--sky-touch-target);
+  height: var(--sky-touch-target);
+  padding: 0;
+  overflow: hidden;
+  place-items: center;
+  border-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: var(--sky-glass, rgba(50, 50, 50, 0.5));
+  color: #fff;
+  backdrop-filter: blur(18px) saturate(1.18);
 }
 
 .sp-camera-profile {
   border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(5, 16, 30, 0.42);
+  background: rgba(20, 20, 20, 0.68);
 }
 
 .sp-camera-viewfinder {
@@ -3989,10 +4576,10 @@ input:focus-visible {
   background:
     radial-gradient(
       circle at 50% 32%,
-      rgba(49, 161, 255, 0.22),
-      transparent 27%
+      rgba(255, 255, 255, 0.05),
+      transparent 28%
     ),
-    linear-gradient(180deg, rgba(12, 33, 57, 0.78), rgba(3, 12, 24, 0.96));
+    linear-gradient(180deg, rgba(18, 18, 18, 0.92), rgba(0, 0, 0, 0.98));
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.1),
     0 26px 60px rgba(0, 7, 19, 0.34);
@@ -4030,7 +4617,7 @@ input:focus-visible {
   padding: 6px 9px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--sky-radius-pill);
-  background: rgba(3, 12, 24, 0.34);
+  background: rgba(0, 0, 0, 0.52);
   color: rgba(255, 255, 255, 0.76);
   font-size: 9px;
   font-weight: 800;
@@ -4112,7 +4699,7 @@ input:focus-visible {
 .sp-camera-dock :deep(.sky-segmented) {
   width: min(228px, 76%);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(4, 14, 28, 0.5);
+  background: rgba(18, 18, 18, 0.76);
 }
 
 .sp-camera-actions {
@@ -4132,7 +4719,8 @@ input:focus-visible {
   width: 78px;
   height: 78px;
   border-width: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.9);
+  background: var(--sky-glass, rgba(50, 50, 50, 0.5));
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
 }
 
@@ -4294,7 +4882,8 @@ input:focus-visible {
 }
 
 .sp-thread :deep(.sky-messages) {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -4321,6 +4910,7 @@ input:focus-visible {
 .sp-thread-snap {
   display: flex;
   align-items: center;
+  align-self: flex-start;
   gap: 8px;
   width: min(78%, 260px);
   min-height: 58px;
@@ -4333,7 +4923,7 @@ input:focus-visible {
 }
 
 .sp-thread-snap--sent {
-  justify-self: end;
+  align-self: flex-end;
   border-color: rgba(90, 108, 255, 0.34);
   border-radius: 18px 18px 6px 18px;
   background: var(--sky-app-accent-soft);
@@ -4891,10 +5481,6 @@ input:focus-visible {
   gap: var(--sky-space-2);
 }
 
-.sp-discovery :deep(.sky-searchbar) {
-  margin: var(--sky-space-3);
-}
-
 .sp-request-actions {
   display: flex;
   gap: 4px;
@@ -4988,6 +5574,9 @@ input:focus-visible {
 }
 
 .sp-discovery :deep(.sky-searchbar) {
+  box-sizing: border-box;
+  width: calc(100% - (var(--sky-space-3) * 2));
+  min-width: 0;
   margin: var(--sky-space-3) var(--sky-space-3) var(--sky-space-2);
 }
 
@@ -5075,9 +5664,342 @@ input:focus-visible {
 
 .sp-bottom-nav--camera :deep(.sky-tabbar__pane) {
   border-color: rgba(255, 255, 255, 0.13);
-  background: rgba(3, 12, 24, 0.7);
-  box-shadow: 0 14px 38px rgba(0, 5, 15, 0.36);
+  background: rgba(18, 18, 18, 0.78);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.38);
   backdrop-filter: blur(22px) saturate(1.18);
+}
+
+.sp-spotlight-screen {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  background: #020308;
+  color: #fff;
+}
+
+.sp-spotlight-header {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  right: 0;
+  left: 0;
+  box-sizing: border-box;
+  height: calc(var(--sky-safe-area-top) + var(--sky-navbar-height));
+  display: grid;
+  align-items: center;
+  gap: var(--sky-space-2);
+  padding: var(--sky-safe-area-top) var(--sky-page-gutter) 0;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.sp-spotlight-header > strong {
+  font-size: 19px;
+  text-align: center;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.48);
+}
+
+.sp-spotlight-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sky-space-2);
+}
+
+.sp-spotlight-header__actions--right {
+  justify-content: flex-end;
+}
+
+.sp-spotlight-header__glass {
+  display: grid;
+  width: var(--sky-touch-target);
+  height: var(--sky-touch-target);
+  padding: 0;
+  overflow: hidden;
+  place-items: center;
+  border-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: var(--sky-glass, rgba(50, 50, 50, 0.5));
+  color: #fff;
+  backdrop-filter: blur(18px) saturate(1.18);
+}
+
+.sp-spotlight-loading,
+.sp-spotlight-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  padding: 90px var(--sky-space-5) 120px;
+  text-align: center;
+}
+
+.sp-spotlight-player,
+.sp-spotlight-player > video,
+.sp-spotlight-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sp-spotlight-player {
+  overflow: hidden;
+}
+
+.sp-spotlight-player > video {
+  background: #020308;
+  object-fit: cover;
+}
+
+.sp-spotlight-shade {
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.4), transparent 24%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.78), transparent 48%);
+}
+
+.sp-spotlight-overlay {
+  position: absolute;
+  z-index: 2;
+  top: 43%;
+  right: 76px;
+  left: 18px;
+  font-size: clamp(22px, 7vw, 34px);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}
+
+.sp-spotlight-copy {
+  position: absolute;
+  z-index: 3;
+  right: 78px;
+  bottom: 118px;
+  left: 17px;
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.76);
+}
+
+.sp-sponsored-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 27px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: var(--sky-radius-pill);
+  background: rgba(9, 12, 22, 0.58);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  backdrop-filter: blur(14px);
+}
+
+.sp-spotlight-author {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: var(--sky-touch-target);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.sp-spotlight-author > span:last-child {
+  display: grid;
+  gap: 1px;
+}
+
+.sp-spotlight-author small {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 10px;
+}
+
+.sp-spotlight-copy h2,
+.sp-spotlight-copy p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sp-spotlight-copy h2 {
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+.sp-spotlight-copy p {
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.sp-spotlight-actions {
+  position: absolute;
+  z-index: 4;
+  right: 11px;
+  bottom: 112px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.sp-spotlight-actions button,
+.sp-spotlight-stat,
+.sp-spotlight-pager button {
+  display: grid;
+  place-items: center;
+  min-width: var(--sky-touch-target);
+  min-height: var(--sky-touch-target);
+  padding: 5px;
+  border: 0;
+  border-radius: var(--sky-radius-pill);
+  background: rgba(4, 7, 14, 0.46);
+  color: #fff;
+  backdrop-filter: blur(15px);
+}
+
+.sp-spotlight-actions button {
+  font: inherit;
+}
+
+.sp-spotlight-actions svg {
+  width: 23px;
+  height: 23px;
+}
+
+.sp-spotlight-actions small,
+.sp-spotlight-stat small {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.sp-spotlight-actions .is-active {
+  color: var(--sp-pink);
+}
+
+.sp-spotlight-pager {
+  position: absolute;
+  z-index: 4;
+  top: 43%;
+  right: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.sp-spotlight-pager button:disabled {
+  opacity: 0.28;
+}
+
+.sp-spotlight-sheet {
+  display: grid;
+  gap: var(--sky-space-3);
+  max-height: min(72vh, 620px);
+  padding: var(--sky-space-4);
+}
+
+.sp-spotlight-sheet > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sky-space-3);
+}
+
+.sp-spotlight-sheet > header > span {
+  display: grid;
+  gap: 3px;
+}
+
+.sp-spotlight-sheet > header small {
+  color: var(--sky-muted);
+}
+
+.sp-spotlight-sheet__scroll {
+  display: grid;
+  gap: var(--sky-space-2);
+  min-height: 80px;
+  max-height: 42vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sp-spotlight-comment {
+  display: grid;
+  align-items: start;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--sky-hairline);
+  border-radius: var(--sky-radius-control);
+  background: var(--sky-surface-muted);
+  grid-template-columns: auto 1fr auto;
+}
+
+.sp-spotlight-comment > span:nth-child(2) {
+  min-width: 0;
+}
+
+.sp-spotlight-comment p {
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.sp-spotlight-comment small {
+  color: var(--sky-muted);
+  font-size: 10px;
+}
+
+.sp-spotlight-comment > button {
+  display: grid;
+  place-items: center;
+  min-width: var(--sky-touch-target);
+  min-height: var(--sky-touch-target);
+  border: 0;
+  background: transparent;
+  color: var(--sky-danger, #ff3b30);
+}
+
+.sp-spotlight-comment-form {
+  display: grid;
+  align-items: end;
+  gap: var(--sky-space-2);
+  grid-template-columns: 1fr auto;
+}
+
+.sp-spotlight-comments-disabled {
+  margin: 0;
+  color: var(--sky-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.sp-report-reasons {
+  display: grid;
+  gap: 6px;
+}
+
+.sp-report-reasons button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--sky-touch-target);
+  padding: 0 13px;
+  border: 1px solid var(--sky-hairline);
+  border-radius: var(--sky-radius-control);
+  background: var(--sky-surface-muted);
+  color: var(--sky-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sp-report-reasons button.is-active {
+  border-color: var(--sky-accent);
+  color: var(--sky-accent);
 }
 
 :deep(.sp-tab) {
@@ -5088,11 +6010,6 @@ input:focus-visible {
 
 :deep(.sp-tab:not(.sky-tab-button--active)) {
   opacity: 0.58;
-}
-
-:deep(.sp-tab--camera),
-:deep(.sp-tab--camera.sky-tab-button--active) {
-  color: var(--sp-camera-blue) !important;
 }
 
 :deep(.sp-tab--monochrome),
@@ -5242,11 +6159,22 @@ input:focus-visible {
 }
 
 .sp-story-reply {
+  box-sizing: border-box;
+  width: auto;
   position: absolute;
   z-index: 3;
   right: var(--sky-page-gutter);
   bottom: calc(var(--sky-safe-area-bottom) + 8px);
   left: var(--sky-page-gutter);
+}
+
+.sp-story-reply :deep(.sky-messagebar__inner) {
+  width: 100%;
+  min-width: 0;
+}
+
+.sp-story-reply .sp-send-button {
+  flex: 0 0 var(--sky-touch-target);
 }
 
 .sp-media-viewer__owner-actions button {

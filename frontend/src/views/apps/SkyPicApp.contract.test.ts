@@ -16,31 +16,34 @@ const typeSource = readFileSync(
 )
 
 describe('SkyPic frontend contract', () => {
-  it('uses Sky UI and exposes the camera-first four-tab shell', () => {
+  it('uses Sky UI and exposes the camera-first five-tab shell', () => {
     expect(viewSource).toContain("from '@/ui'")
     expect(viewSource).not.toContain("from 'konsta/vue'")
     expect(viewSource).toContain("const activeTab = ref<Tab>('camera')")
     expect(viewSource).toContain(
-      "type Tab = 'camera' | 'chats' | 'friends' | 'stories'",
+      "type Tab = 'camera' | 'chats' | 'friends' | 'spotlight' | 'stories'",
     )
     expect(viewSource).toContain("activeTab === 'camera'")
     expect(viewSource).toContain("activeTab === 'chats'")
     expect(viewSource).toContain("activeTab === 'stories'")
     expect(viewSource).toContain("activeTab === 'friends'")
-    expect(viewSource.match(/<SkyTabButton/g)).toHaveLength(4)
+    expect(viewSource).toContain("activeTab === 'spotlight'")
+    expect(viewSource.match(/<SkyTabButton/g)).toHaveLength(5)
   })
 
-  it('keeps Camera blue and all other tabs theme-monochrome', () => {
+  it('keeps every bottom tab and app surface theme-monochrome', () => {
     expect(viewSource).toContain('phone.isDarkMode')
     expect(viewSource).toContain("'skypic-app--player-dark': phone.isDarkMode")
     expect(viewSource).toContain(
       "'skypic-app--player-light': !phone.isDarkMode",
     )
-    expect(viewSource).toContain('class="sp-tab sp-tab--camera"')
-    expect(viewSource.match(/class="sp-tab sp-tab--monochrome"/g)).toHaveLength(
-      3,
+    expect(viewSource).toContain(
+      'class="sp-tab sp-tab--camera sp-tab--monochrome"',
     )
-    expect(viewSource).toContain('color: var(--sp-camera-blue) !important')
+    expect(viewSource.match(/class="sp-tab sp-tab--monochrome"/g)).toHaveLength(
+      4,
+    )
+    expect(viewSource).not.toContain('color: var(--sp-camera-blue) !important')
     expect(viewSource).toContain('--sp-tab-monochrome: #000000')
     expect(viewSource).toContain('--sp-tab-monochrome: #ffffff')
     expect(viewSource).toContain('color: var(--sp-tab-monochrome) !important')
@@ -48,22 +51,49 @@ describe('SkyPic frontend contract', () => {
       .split('.sp-camera-screen {')[1]
       ?.split('.sp-camera-header')[0]
     expect(cameraCss).toBeTruthy()
+    expect(cameraCss).toContain('background: #000')
     expect(cameraCss).not.toContain('255, 91, 189')
+    expect(viewSource).toContain('rgba(18, 18, 18, 0.92)')
     expect(viewSource).not.toContain('var(--sp-cyan)')
   })
 
-  it('uses the reference-led Sky UI hierarchy without inventing camera filters or Spotlight', () => {
+  it('uses the reference-led Sky UI hierarchy with Spotlight and no camera filters', () => {
+    expect(viewSource.match(/class="sp-camera-header__actions"/g)).toHaveLength(
+      2,
+    )
+    expect(viewSource.match(/class="sp-camera-header__glass"/g)).toHaveLength(3)
     expect(viewSource).toContain('class="sp-camera-viewfinder"')
     expect(viewSource).toContain('class="sp-camera-dock"')
+    const cameraMarkup = viewSource
+      .split('v-if="activeTab === \'camera\'"')[1]
+      ?.split('<template v-else-if="activeTab === \'chats\'">')[0]
+    expect(cameraMarkup).toContain('<SkyGlass')
+    expect(cameraMarkup).toContain('class="sp-shutter"')
     expect(viewSource).toContain('class="sp-chat-list"')
     expect(viewSource).toContain('class="sp-chat-row')
     expect(viewSource).toContain('class="sp-story-rail"')
     expect(viewSource).toContain('class="sp-story-grid"')
     expect(viewSource).toContain('class="sp-discovery-grid"')
+    expect(viewSource).toContain('width: calc(100% - (var(--sky-space-3) * 2))')
     expect(viewSource).toContain('class="sp-bottom-nav"')
     expect(viewSource).not.toContain('sp-camera-filter')
-    expect(viewSource).not.toContain('Spotlight')
-    expect(viewSource).not.toContain('advertisement')
+    expect(viewSource).toContain('class="sp-spotlight-player"')
+    expect(
+      viewSource.match(/class="sp-spotlight-header__actions/g),
+    ).toHaveLength(2)
+    expect(
+      viewSource.match(/class="sp-spotlight-header__glass"/g),
+    ).toHaveLength(3)
+    expect(viewSource).toContain(
+      'height: calc(var(--sky-safe-area-top) + var(--sky-navbar-height))',
+    )
+    expect(viewSource).toContain(
+      'padding: var(--sky-safe-area-top) var(--sky-page-gutter)',
+    )
+    expect(viewSource).toContain('min-height: var(--sky-navbar-height)')
+    expect(viewSource).toContain("t('spotlight.sponsored')")
+    expect(viewSource).toContain('store.publishSpotlight')
+    expect(viewSource).not.toContain('href=')
   })
 
   it('builds story discovery only from safe metadata until view-story releases media', () => {
@@ -129,6 +159,27 @@ describe('SkyPic frontend contract', () => {
     expect(viewSource).toContain('openThreadEmojiPicker')
     expect(typeSource).toContain('SkyPicThreadMediaDraftContext')
     expect(typeSource).toContain('mediaIds: number[]')
+  })
+
+  it('aligns chat ownership and keeps the story reply action inside the viewer', () => {
+    expect(viewSource).toContain(
+      `:type="entry.value.direction === 'sent' ? 'sent' : 'received'"`,
+    )
+    const threadLayoutCss = viewSource
+      .split('.sp-thread :deep(.sky-messages) {')[1]
+      ?.split('.sp-thread :deep(.sky-message__footer)')[0]
+    expect(threadLayoutCss).toContain('display: flex')
+    expect(threadLayoutCss).toContain('flex-direction: column')
+    const sentSnapCss = viewSource
+      .split('.sp-thread-snap--sent {')[1]
+      ?.split('.sp-thread-snap > span')[0]
+    expect(sentSnapCss).toContain('align-self: flex-end')
+    const storyReplyCss = viewSource
+      .split('.sp-story-reply {')[1]
+      ?.split('.sp-media-viewer__owner-actions button')[0]
+    expect(storyReplyCss).toContain('width: auto')
+    expect(storyReplyCss).toContain('right: var(--sky-page-gutter)')
+    expect(storyReplyCss).toContain('left: var(--sky-page-gutter)')
   })
 
   it('uses app-local authentication and exposes safe account controls', () => {

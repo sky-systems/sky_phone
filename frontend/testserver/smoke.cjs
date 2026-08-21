@@ -75,6 +75,7 @@ const browserDataRequests = [
   ['picstagram:activities', {}],
   ['skypic:bootstrap', {}],
   ['skypic:stories', { offset: 0 }],
+  ['skypic:spotlight-feed', { offset: 0 }],
   ['radio:get', {}],
   ['skyride:bootstrap', {}],
   ['skyride:history', {}],
@@ -288,6 +289,23 @@ function verifyBrowserTestData(dataByEndpoint) {
   expectSkyPicMetadataSafe(
     dataByEndpoint.get('skypic:stories'),
     'SkyPic stories endpoint',
+  )
+  const spotlightFeed = dataByEndpoint.get('skypic:spotlight-feed')
+  expectItems(spotlightFeed, 'SkyPic Spotlight feed', 3)
+  assert(
+    spotlightFeed.every(
+      (spotlight) =>
+        spotlight.mimeType === 'video/mp4' &&
+        typeof spotlight.url === 'string' &&
+        spotlight.url.startsWith('https://'),
+    ),
+    'SkyPic Spotlight feed must contain playable HTTPS videos',
+  )
+  assert(
+    spotlightFeed.some(
+      (spotlight) => spotlight.isSponsored && spotlight.adHeadline,
+    ),
+    'SkyPic Spotlight feed must expose clearly labeled sponsored metadata',
   )
   expectItems(dataByEndpoint.get('radio:get').history, 'radio history', 2)
   expectItems(dataByEndpoint.get('skyride:history').items, 'SkyRide history', 2)
@@ -916,6 +934,91 @@ async function verifySkyPicActions(baseUrl) {
   await expectSuccess(baseUrl, 'skypic:remove-story', {
     storyId: publishedStory.id,
   })
+
+  const spotlightFeed = await expectSuccess(
+    baseUrl,
+    'skypic:spotlight-feed',
+    { offset: 0 },
+    true,
+  )
+  const communitySpotlight = spotlightFeed.find(
+    (spotlight) => !spotlight.isOwner,
+  )
+  assert(communitySpotlight, 'SkyPic Spotlight community item missing')
+  const viewedSpotlight = await expectSuccess(
+    baseUrl,
+    'skypic:view-spotlight',
+    { spotlightId: communitySpotlight.id },
+    true,
+  )
+  assert(viewedSpotlight.viewCount >= communitySpotlight.viewCount)
+  const likedSpotlight = await expectSuccess(
+    baseUrl,
+    'skypic:like-spotlight',
+    { active: true, spotlightId: communitySpotlight.id },
+    true,
+  )
+  assert.equal(likedSpotlight.active, true)
+  const spotlightComment = await expectSuccess(
+    baseUrl,
+    'skypic:comment-spotlight',
+    {
+      body: 'Stateful Spotlight smoke comment',
+      spotlightId: communitySpotlight.id,
+    },
+    true,
+  )
+  const spotlightComments = await expectSuccess(
+    baseUrl,
+    'skypic:spotlight-comments',
+    { offset: 0, spotlightId: communitySpotlight.id },
+    true,
+  )
+  assert(
+    spotlightComments.some((comment) => comment.id === spotlightComment.id),
+    'SkyPic Spotlight comment did not persist',
+  )
+  await expectSuccess(baseUrl, 'skypic:delete-spotlight-comment', {
+    commentId: spotlightComment.id,
+  })
+
+  const sponsoredSpotlight = await expectSuccess(
+    baseUrl,
+    'skypic:publish-spotlight',
+    {
+      adHeadline: 'Drive the skyline tonight',
+      caption: 'Clearly labeled browser smoke promotion.',
+      commentsEnabled: true,
+      durationSeconds: 8,
+      isSponsored: true,
+      mediaId: 2,
+      mediaType: 'video',
+      overlayColor: '#ffffff',
+      textOverlay: 'Sponsored route',
+    },
+    true,
+  )
+  assert.equal(sponsoredSpotlight.isSponsored, true)
+  assert.equal(sponsoredSpotlight.adHeadline, 'Drive the skyline tonight')
+  await expectSuccess(baseUrl, 'skypic:remove-spotlight', {
+    spotlightId: sponsoredSpotlight.id,
+  })
+  await expectSuccess(baseUrl, 'skypic:report-spotlight', {
+    reason: 'spam',
+    spotlightId: communitySpotlight.id,
+  })
+  const feedAfterReport = await expectSuccess(
+    baseUrl,
+    'skypic:spotlight-feed',
+    { offset: 0 },
+    true,
+  )
+  assert(
+    !feedAfterReport.some(
+      (spotlight) => spotlight.id === communitySpotlight.id,
+    ),
+    'reported SkyPic Spotlight remained visible',
+  )
 
   const profileUpdate = {
     allowStoryReplies: false,

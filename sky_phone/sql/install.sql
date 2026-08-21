@@ -1607,3 +1607,73 @@ CREATE TABLE IF NOT EXISTS `sky_phone_skypic_story_views` (
     FOREIGN KEY (`story_id`) REFERENCES `sky_phone_skypic_stories` (`id`) ON DELETE CASCADE,
     FOREIGN KEY (`viewer_profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_spotlights` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `media_id` BIGINT UNSIGNED NOT NULL,
+    `caption` VARCHAR(160) NOT NULL DEFAULT '',
+    `overlay_text` VARCHAR(160) NOT NULL DEFAULT '',
+    `overlay_color` CHAR(7) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '#FFFFFF',
+    `kind` ENUM('organic','sponsored') NOT NULL DEFAULT 'organic',
+    `ad_headline` VARCHAR(80) NOT NULL DEFAULT '',
+    `comments_enabled` TINYINT(1) NOT NULL DEFAULT 1,
+    `status` ENUM('active','removed') NOT NULL DEFAULT 'active',
+    `expires_at` DATETIME(6) NOT NULL,
+    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_skypic_spotlight_feed` (`status`,`created_at`,`id`),
+    KEY `idx_sky_phone_skypic_spotlight_profile` (`profile_id`,`status`,`created_at`),
+    KEY `idx_sky_phone_skypic_spotlight_expiry` (`status`,`expires_at`),
+    KEY `idx_sky_phone_skypic_spotlight_media` (`media_id`),
+    FOREIGN KEY (`profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`media_id`) REFERENCES `sky_phone_media` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_spotlight_views` (
+    `spotlight_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `viewer_profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `viewed_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`spotlight_id`,`viewer_profile_id`),
+    KEY `idx_sky_phone_skypic_spotlight_viewer` (`viewer_profile_id`,`viewed_at`),
+    FOREIGN KEY (`spotlight_id`) REFERENCES `sky_phone_skypic_spotlights` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`viewer_profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_spotlight_likes` (
+    `spotlight_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`spotlight_id`,`profile_id`),
+    KEY `idx_sky_phone_skypic_spotlight_liker` (`profile_id`,`created_at`),
+    FOREIGN KEY (`spotlight_id`) REFERENCES `sky_phone_skypic_spotlights` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_spotlight_comments` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `spotlight_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `body` VARCHAR(500) NOT NULL,
+    `status` ENUM('visible','removed') NOT NULL DEFAULT 'visible',
+    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_skypic_spotlight_comments` (`spotlight_id`,`status`,`created_at`,`id`),
+    KEY `idx_sky_phone_skypic_spotlight_comment_author` (`profile_id`,`created_at`),
+    FOREIGN KEY (`spotlight_id`) REFERENCES `sky_phone_skypic_spotlights` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_skypic_spotlight_reports` (
+    `spotlight_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `reporter_profile_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `reason` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    `details` VARCHAR(500) NOT NULL DEFAULT '',
+    `status` ENUM('pending','reviewed','dismissed') NOT NULL DEFAULT 'pending',
+    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`spotlight_id`,`reporter_profile_id`),
+    KEY `idx_sky_phone_skypic_spotlight_report_queue` (`status`,`created_at`),
+    FOREIGN KEY (`spotlight_id`) REFERENCES `sky_phone_skypic_spotlights` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`reporter_profile_id`) REFERENCES `sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

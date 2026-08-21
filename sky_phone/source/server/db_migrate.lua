@@ -3077,6 +3077,111 @@ local schema = {
         },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
+    {
+        name = "sky_phone_skypic_spotlights",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "media_id", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "caption", type = "VARCHAR(160) NOT NULL DEFAULT ''" },
+            { name = "overlay_text", type = "VARCHAR(160) NOT NULL DEFAULT ''" },
+            { name = "overlay_color", type = "CHAR(7) NOT NULL DEFAULT '#FFFFFF'", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "kind", type = "ENUM('organic', 'sponsored') NOT NULL DEFAULT 'organic'" },
+            { name = "ad_headline", type = "VARCHAR(80) NOT NULL DEFAULT ''" },
+            { name = "comments_enabled", type = "TINYINT(1) NOT NULL DEFAULT 1" },
+            { name = "status", type = "ENUM('active', 'removed') NOT NULL DEFAULT 'active'" },
+            { name = "expires_at", type = "DATETIME(6) NOT NULL" },
+            { name = "created_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)" },
+            { name = "updated_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_skypic_spotlight_feed", columns = "(`status`, `created_at`, `id`)" },
+            { name = "idx_sky_phone_skypic_spotlight_profile", columns = "(`profile_id`, `status`, `created_at`)" },
+            { name = "idx_sky_phone_skypic_spotlight_expiry", columns = "(`status`, `expires_at`)" },
+            { name = "idx_sky_phone_skypic_spotlight_media", columns = "(`media_id`)" },
+        },
+        foreignKeys = {
+            { column = "profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+            { column = "media_id", references = "`sky_phone_media` (`id`) ON DELETE RESTRICT" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_skypic_spotlight_views",
+        columns = {
+            { name = "spotlight_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "viewer_profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "viewed_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)" },
+        },
+        primaryKey = { "spotlight_id", "viewer_profile_id" },
+        indexes = {
+            { name = "idx_sky_phone_skypic_spotlight_viewer", columns = "(`viewer_profile_id`, `viewed_at`)" },
+        },
+        foreignKeys = {
+            { column = "spotlight_id", references = "`sky_phone_skypic_spotlights` (`id`) ON DELETE CASCADE" },
+            { column = "viewer_profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_skypic_spotlight_likes",
+        columns = {
+            { name = "spotlight_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "created_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)" },
+        },
+        primaryKey = { "spotlight_id", "profile_id" },
+        indexes = {
+            { name = "idx_sky_phone_skypic_spotlight_liker", columns = "(`profile_id`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "spotlight_id", references = "`sky_phone_skypic_spotlights` (`id`) ON DELETE CASCADE" },
+            { column = "profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_skypic_spotlight_comments",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "spotlight_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "body", type = "VARCHAR(500) NOT NULL" },
+            { name = "status", type = "ENUM('visible', 'removed') NOT NULL DEFAULT 'visible'" },
+            { name = "created_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_skypic_spotlight_comments", columns = "(`spotlight_id`, `status`, `created_at`, `id`)" },
+            { name = "idx_sky_phone_skypic_spotlight_comment_author", columns = "(`profile_id`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "spotlight_id", references = "`sky_phone_skypic_spotlights` (`id`) ON DELETE CASCADE" },
+            { column = "profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
+        name = "sky_phone_skypic_spotlight_reports",
+        columns = {
+            { name = "spotlight_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "reporter_profile_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "reason", type = "VARCHAR(32) NOT NULL", characterSet = "ascii", collation = "ascii_general_ci" },
+            { name = "details", type = "VARCHAR(500) NOT NULL DEFAULT ''" },
+            { name = "status", type = "ENUM('pending', 'reviewed', 'dismissed') NOT NULL DEFAULT 'pending'" },
+            { name = "created_at", type = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)" },
+        },
+        primaryKey = { "spotlight_id", "reporter_profile_id" },
+        indexes = {
+            { name = "idx_sky_phone_skypic_spotlight_report_queue", columns = "(`status`, `created_at`)" },
+        },
+        foreignKeys = {
+            { column = "spotlight_id", references = "`sky_phone_skypic_spotlights` (`id`) ON DELETE CASCADE" },
+            { column = "reporter_profile_id", references = "`sky_phone_skypic_profiles` (`id`) ON DELETE CASCADE" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
 }
 
 Bridge.Database.Migrate("sky_phone", schema)

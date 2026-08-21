@@ -54,6 +54,15 @@ const callbacks = [
   'view-story',
   'story-viewers',
   'remove-story',
+  'spotlight-feed',
+  'publish-spotlight',
+  'view-spotlight',
+  'like-spotlight',
+  'spotlight-comments',
+  'comment-spotlight',
+  'delete-spotlight-comment',
+  'remove-spotlight',
+  'report-spotlight',
   'thread',
   'send-message',
   'mark-thread',
@@ -133,6 +142,39 @@ const tables: Record<string, string[]> = {
     'updated_at',
   ],
   story_views: ['story_id', 'viewer_profile_id', 'viewed_at'],
+  spotlights: [
+    'id',
+    'profile_id',
+    'media_id',
+    'caption',
+    'overlay_text',
+    'overlay_color',
+    'kind',
+    'ad_headline',
+    'comments_enabled',
+    'status',
+    'expires_at',
+    'created_at',
+    'updated_at',
+  ],
+  spotlight_views: ['spotlight_id', 'viewer_profile_id', 'viewed_at'],
+  spotlight_likes: ['spotlight_id', 'profile_id', 'created_at'],
+  spotlight_comments: [
+    'id',
+    'spotlight_id',
+    'profile_id',
+    'body',
+    'status',
+    'created_at',
+  ],
+  spotlight_reports: [
+    'spotlight_id',
+    'reporter_profile_id',
+    'reason',
+    'details',
+    'status',
+    'created_at',
+  ],
 }
 
 describe('SkyPic backend contracts', () => {
@@ -150,7 +192,7 @@ describe('SkyPic backend contracts', () => {
       }
     }
 
-    for (const table of ['messages', 'stories']) {
+    for (const table of ['messages', 'stories', 'spotlights']) {
       expect(migrationTable(table)).toContain('ON DELETE RESTRICT')
       expect(installTable(table)).toContain('ON DELETE RESTRICT')
     }
@@ -445,6 +487,7 @@ describe('SkyPic backend contracts', () => {
     )
     expect(guard).toContain('FROM `sky_phone_skypic_messages`')
     expect(guard).toContain('FROM `sky_phone_skypic_stories`')
+    expect(guard).toContain('FROM `sky_phone_skypic_spotlights`')
     expect(guard).not.toContain('`expires_at` >')
     expect(guard).not.toContain("`status` = 'active'")
 

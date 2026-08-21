@@ -12,9 +12,13 @@ import type {
   SkyPicOpenedSnap,
   SkyPicProfile,
   SkyPicProfileSummary,
+  SkyPicPublishSpotlightInput,
   SkyPicPublishStoryInput,
   SkyPicSendSnapInput,
   SkyPicSnap,
+  SkyPicSpotlight,
+  SkyPicSpotlightComment,
+  SkyPicSpotlightReportReason,
   SkyPicStory,
   SkyPicStoryViewer,
   SkyPicThread,
@@ -27,6 +31,8 @@ const MAX_MESSAGE_CHARACTERS = 2_000
 const MAX_SNAP_MEDIA = 10
 const MAX_TEXT_OVERLAY_CHARACTERS = 160
 const STORY_PAGE_SIZE = 30
+const SPOTLIGHT_PAGE_SIZE = 12
+const SPOTLIGHT_COMMENT_PAGE_SIZE = 50
 
 export function normalizeSkyPicHandle(value: string): string {
   return value.trim().toLowerCase()
@@ -75,6 +81,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
   const conversations = ref<SkyPicConversation[]>([])
   const inbox = ref<SkyPicSnap[]>([])
   const stories = ref<SkyPicStory[]>([])
+  const spotlights = ref<SkyPicSpotlight[]>([])
+  const spotlightComments = ref<SkyPicSpotlightComment[]>([])
   const suggestions = ref<SkyPicProfileSummary[]>([])
   const searchResults = ref<SkyPicProfileSummary[]>([])
   const unreadCount = ref(0)
@@ -87,6 +95,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
   const storyViewers = ref<SkyPicStoryViewer[]>([])
   const storiesHasMore = ref(true)
   const storyViewersHasMore = ref(true)
+  const spotlightsHasMore = ref(true)
+  const spotlightCommentsHasMore = ref(true)
 
   const loading = ref(false)
   const bootstrapPending = ref(false)
@@ -98,6 +108,9 @@ export const useSkyPicStore = defineStore('skypic', () => {
   const storyViewing = ref(false)
   const storiesLoadingMore = ref(false)
   const storyViewersLoadingMore = ref(false)
+  const spotlightsLoading = ref(false)
+  const spotlightsLoadingMore = ref(false)
+  const spotlightCommentsLoading = ref(false)
   const error = ref<string | null>(null)
   let bootstrapRequest = 0
   let bootstrapGeneration = 0
@@ -109,6 +122,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
   let sessionVersion = 0
   let hydrationRevision = 0
   let storyViewersStoryId: string | null = null
+  let spotlightCommentsSpotlightId: string | null = null
+  const viewedSpotlightIds = new Set<string>()
   let bootstrapInFlight: {
     promise: Promise<boolean>
     session: number
@@ -207,6 +222,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     storyViewersRequest += 1
     threadRequest += 1
     storyViewersStoryId = null
+    spotlightCommentsSpotlightId = null
+    viewedSpotlightIds.clear()
     profile.value = null
     blockedProfiles.value = []
     friends.value = []
@@ -214,6 +231,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     conversations.value = []
     inbox.value = []
     stories.value = []
+    spotlights.value = []
+    spotlightComments.value = []
     suggestions.value = []
     searchResults.value = []
     unreadCount.value = 0
@@ -225,6 +244,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     storyViewers.value = []
     storiesHasMore.value = true
     storyViewersHasMore.value = true
+    spotlightsHasMore.value = true
+    spotlightCommentsHasMore.value = true
     loading.value = false
     threadLoading.value = false
     searchLoading.value = false
@@ -232,6 +253,9 @@ export const useSkyPicStore = defineStore('skypic', () => {
     storyViewing.value = false
     storiesLoadingMore.value = false
     storyViewersLoadingMore.value = false
+    spotlightsLoading.value = false
+    spotlightsLoadingMore.value = false
+    spotlightCommentsLoading.value = false
     error.value = null
   }
 
@@ -799,6 +823,230 @@ export const useSkyPicStore = defineStore('skypic', () => {
     return response
   }
 
+  async function loadSpotlights(): Promise<boolean> {
+    spotlightsLoading.value = true
+    const response = await sessionCall<SkyPicSpotlight[]>(
+      'skypic:spotlight-feed',
+      { offset: 0 },
+    )
+    spotlightsLoading.value = false
+    setError(response)
+    if (!response.success || !response.data) return false
+    spotlights.value = response.data
+    spotlightsHasMore.value = response.data.length >= SPOTLIGHT_PAGE_SIZE
+    return true
+  }
+
+  async function loadMoreSpotlights(): Promise<boolean> {
+    if (!spotlightsHasMore.value || spotlightsLoadingMore.value) return true
+    spotlightsLoadingMore.value = true
+    const response = await sessionCall<SkyPicSpotlight[]>(
+      'skypic:spotlight-feed',
+      { offset: spotlights.value.length },
+    )
+    spotlightsLoadingMore.value = false
+    setError(response)
+    if (!response.success || !response.data) return false
+    spotlights.value = uniqueById([...spotlights.value, ...response.data])
+    spotlightsHasMore.value = response.data.length >= SPOTLIGHT_PAGE_SIZE
+    return true
+  }
+
+  async function publishSpotlight(
+    input: SkyPicPublishSpotlightInput,
+  ): Promise<NuiResponse<SkyPicSpotlight>> {
+    const payload: SkyPicPublishSpotlightInput = {
+      ...input,
+      adHeadline: Array.from(input.adHeadline.trim()).slice(0, 80).join(''),
+      caption: input.caption.trim(),
+      durationSeconds: clampDuration(input.durationSeconds),
+      mediaType: 'video',
+      overlayColor: normalizeColor(input.overlayColor),
+      textOverlay: Array.from(input.textOverlay.trim())
+        .slice(0, MAX_TEXT_OVERLAY_CHARACTERS)
+        .join(''),
+    }
+    const response = await sessionCall<SkyPicSpotlight>(
+      'skypic:publish-spotlight',
+      payload,
+    )
+    setError(response)
+    if (response.success && response.data) {
+      spotlights.value = uniqueById([response.data, ...spotlights.value])
+    }
+    return response
+  }
+
+  async function viewSpotlight(spotlightId: string): Promise<boolean> {
+    if (viewedSpotlightIds.has(spotlightId)) return true
+    viewedSpotlightIds.add(spotlightId)
+    const response = await sessionCall<{ viewCount: number }>(
+      'skypic:view-spotlight',
+      { spotlightId },
+    )
+    setError(response)
+    if (!response.success || !response.data) {
+      viewedSpotlightIds.delete(spotlightId)
+      return false
+    }
+    spotlights.value = spotlights.value.map((spotlight) =>
+      spotlight.id === spotlightId
+        ? {
+            ...spotlight,
+            isViewed: true,
+            viewCount: Math.max(
+              0,
+              Number(response.data?.viewCount) || spotlight.viewCount,
+            ),
+          }
+        : spotlight,
+    )
+    return true
+  }
+
+  async function likeSpotlight(
+    spotlightId: string,
+    active: boolean,
+  ): Promise<boolean> {
+    const response = await sessionCall<{ active: boolean; likeCount: number }>(
+      'skypic:like-spotlight',
+      { active, spotlightId },
+    )
+    setError(response)
+    if (!response.success || !response.data) return false
+    spotlights.value = spotlights.value.map((spotlight) =>
+      spotlight.id === spotlightId
+        ? {
+            ...spotlight,
+            isLiked: response.data?.active ?? active,
+            likeCount: Math.max(0, Number(response.data?.likeCount) || 0),
+          }
+        : spotlight,
+    )
+    return true
+  }
+
+  async function loadSpotlightComments(spotlightId: string): Promise<boolean> {
+    spotlightCommentsLoading.value = true
+    const response = await sessionCall<SkyPicSpotlightComment[]>(
+      'skypic:spotlight-comments',
+      { offset: 0, spotlightId },
+    )
+    spotlightCommentsLoading.value = false
+    setError(response)
+    if (!response.success || !response.data) return false
+    spotlightCommentsSpotlightId = spotlightId
+    spotlightComments.value = response.data
+    spotlightCommentsHasMore.value =
+      response.data.length >= SPOTLIGHT_COMMENT_PAGE_SIZE
+    return true
+  }
+
+  async function loadMoreSpotlightComments(
+    spotlightId: string,
+  ): Promise<boolean> {
+    if (
+      spotlightCommentsSpotlightId !== spotlightId ||
+      !spotlightCommentsHasMore.value ||
+      spotlightCommentsLoading.value
+    ) {
+      return true
+    }
+    spotlightCommentsLoading.value = true
+    const response = await sessionCall<SkyPicSpotlightComment[]>(
+      'skypic:spotlight-comments',
+      { offset: spotlightComments.value.length, spotlightId },
+    )
+    spotlightCommentsLoading.value = false
+    setError(response)
+    if (!response.success || !response.data) return false
+    spotlightComments.value = uniqueById([
+      ...spotlightComments.value,
+      ...response.data,
+    ])
+    spotlightCommentsHasMore.value =
+      response.data.length >= SPOTLIGHT_COMMENT_PAGE_SIZE
+    return true
+  }
+
+  async function commentSpotlight(
+    spotlightId: string,
+    body: string,
+  ): Promise<boolean> {
+    const response = await sessionCall<SkyPicSpotlightComment>(
+      'skypic:comment-spotlight',
+      { body: Array.from(body.trim()).slice(0, 500).join(''), spotlightId },
+    )
+    setError(response)
+    if (!response.success || !response.data) return false
+    spotlightCommentsSpotlightId = spotlightId
+    spotlightComments.value = uniqueById([
+      response.data,
+      ...spotlightComments.value,
+    ])
+    spotlights.value = spotlights.value.map((spotlight) =>
+      spotlight.id === spotlightId
+        ? { ...spotlight, commentCount: spotlight.commentCount + 1 }
+        : spotlight,
+    )
+    return true
+  }
+
+  async function deleteSpotlightComment(commentId: string): Promise<boolean> {
+    const comment = spotlightComments.value.find(
+      (item) => item.id === commentId,
+    )
+    const response = await sessionCall('skypic:delete-spotlight-comment', {
+      commentId,
+    })
+    setError(response)
+    if (!response.success) return false
+    spotlightComments.value = spotlightComments.value.filter(
+      (item) => item.id !== commentId,
+    )
+    if (comment) {
+      spotlights.value = spotlights.value.map((spotlight) =>
+        spotlight.id === comment.spotlightId
+          ? {
+              ...spotlight,
+              commentCount: Math.max(0, spotlight.commentCount - 1),
+            }
+          : spotlight,
+      )
+    }
+    return true
+  }
+
+  async function removeSpotlight(spotlightId: string): Promise<boolean> {
+    const response = await sessionCall('skypic:remove-spotlight', {
+      spotlightId,
+    })
+    setError(response)
+    if (!response.success) return false
+    spotlights.value = spotlights.value.filter(
+      (spotlight) => spotlight.id !== spotlightId,
+    )
+    return true
+  }
+
+  async function reportSpotlight(
+    spotlightId: string,
+    reason: SkyPicSpotlightReportReason,
+    details = '',
+  ): Promise<boolean> {
+    const response = await sessionCall('skypic:report-spotlight', {
+      details: Array.from(details.trim()).slice(0, 500).join(''),
+      reason,
+      spotlightId,
+    })
+    setError(response)
+    if (!response.success) return false
+    spotlights.value = spotlights.value.filter(
+      (spotlight) => spotlight.id !== spotlightId,
+    )
+    return true
+  }
+
   async function viewStory(
     storyId: string,
   ): Promise<NuiResponse<SkyPicViewedStory>> {
@@ -1104,15 +1352,21 @@ export const useSkyPicStore = defineStore('skypic', () => {
     clearViewedStory,
     closeThread,
     conversations,
+    commentSpotlight,
     createProfile,
     deleteAccount,
     deleteMessage,
+    deleteSpotlightComment,
     error,
     friends,
     hasProfile,
     inbox,
     incomingRequests,
     loadStories,
+    loadSpotlights,
+    loadMoreSpotlights,
+    loadSpotlightComments,
+    loadMoreSpotlightComments,
     loadStoryViewers,
     loadMoreStories,
     loadMoreStoryViewers,
@@ -1124,10 +1378,13 @@ export const useSkyPicStore = defineStore('skypic', () => {
     outgoingRequests,
     profile,
     profileAbsentRevision,
+    publishSpotlight,
     publishStory,
     refreshActiveThread,
     removeFriend,
+    removeSpotlight,
     removeStory,
+    reportSpotlight,
     replaySnap,
     resetSession,
     requests,
@@ -1139,6 +1396,13 @@ export const useSkyPicStore = defineStore('skypic', () => {
     sendMessage,
     sendSnap,
     snapOpening,
+    spotlights,
+    spotlightsHasMore,
+    spotlightsLoading,
+    spotlightsLoadingMore,
+    spotlightComments,
+    spotlightCommentsHasMore,
+    spotlightCommentsLoading,
     stories,
     storiesHasMore,
     storiesLoadingMore,
@@ -1152,6 +1416,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     threadSnaps,
     unreadCount,
     updateProfile,
+    likeSpotlight,
+    viewSpotlight,
     viewedStory,
     viewStory,
   }

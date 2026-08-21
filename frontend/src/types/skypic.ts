@@ -146,6 +146,44 @@ export type SkyPicStoryViewer = SkyPicProfileSummary & {
   viewedAt: string
 }
 
+export type SkyPicSpotlightReportReason =
+  | 'dangerous'
+  | 'harassment'
+  | 'illegal'
+  | 'other'
+  | 'spam'
+
+/** Spotlight is public content, so its media URL is intentionally feed-visible. */
+export type SkyPicSpotlight = {
+  adHeadline: string
+  author: SkyPicProfileSummary
+  caption: string
+  commentCount: number
+  commentsEnabled: boolean
+  createdAt: string
+  expiresAt: string
+  id: string
+  isLiked: boolean
+  isOwner: boolean
+  isSponsored: boolean
+  isViewed: boolean
+  likeCount: number
+  mimeType: string | null
+  overlayColor: string
+  textOverlay: string
+  url: string
+  viewCount: number
+}
+
+export type SkyPicSpotlightComment = {
+  author: SkyPicProfileSummary
+  body: string
+  createdAt: string
+  id: string
+  isOwner: boolean
+  spotlightId: string
+}
+
 export type SkyPicMessageDeliveryStatus = 'delivered' | 'failed' | 'sending'
 
 export type SkyPicMessage = {
@@ -178,7 +216,7 @@ export type SkyPicBootstrap = {
   unreadCount: number
 }
 
-export type SkyPicDraftPurpose = 'snap' | 'story'
+export type SkyPicDraftPurpose = 'snap' | 'spotlight' | 'story'
 
 export type SkyPicMediaDraftContext = {
   purpose: SkyPicDraftPurpose
@@ -217,3 +255,11 @@ export type SkyPicSendSnapInput = SkyPicEditorInput &
   }
 
 export type SkyPicPublishStoryInput = SkyPicEditorInput & SkyPicSingleMediaInput
+
+export type SkyPicPublishSpotlightInput = SkyPicEditorInput & {
+  adHeadline: string
+  commentsEnabled: boolean
+  isSponsored: boolean
+  mediaId: number
+  mediaType: 'video'
+}

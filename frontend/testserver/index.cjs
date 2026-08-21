@@ -3734,6 +3734,92 @@ const skyPicStoryViewers = new Map([
     ],
   ],
 ])
+let skyPicSpotlights = [
+  {
+    adHeadline: '',
+    author: skyPicProfiles[1],
+    caption: 'Sunset laps through the city.',
+    commentCount: 2,
+    commentsEnabled: true,
+    createdAt: isoTime(-12 * 60_000),
+    expiresAt: isoTime(29 * 86_400_000),
+    id: '60000000-0000-4000-8000-000000000001',
+    isLiked: false,
+    isOwner: false,
+    isSponsored: false,
+    isViewed: false,
+    likeCount: 128,
+    mimeType: 'video/mp4',
+    overlayColor: '#FFFFFF',
+    textOverlay: 'Los Santos after dark',
+    url: mockMedia.find((item) => item.id === 2).url,
+    viewCount: 1432,
+  },
+  {
+    adHeadline: 'Discover the city after sunset',
+    author: skyPicProfiles[3],
+    caption: 'Your next night route starts here.',
+    commentCount: 0,
+    commentsEnabled: true,
+    createdAt: isoTime(-35 * 60_000),
+    expiresAt: isoTime(6 * 86_400_000),
+    id: '60000000-0000-4000-8000-000000000002',
+    isLiked: true,
+    isOwner: false,
+    isSponsored: true,
+    isViewed: true,
+    likeCount: 84,
+    mimeType: 'video/mp4',
+    overlayColor: '#F8FAFC',
+    textOverlay: '',
+    url: mockMedia.find((item) => item.id === 6).url,
+    viewCount: 908,
+  },
+  {
+    adHeadline: '',
+    author: skyPicProfiles[0],
+    caption: 'My first SkyPic Spotlight.',
+    commentCount: 0,
+    commentsEnabled: false,
+    createdAt: isoTime(-75 * 60_000),
+    expiresAt: isoTime(29 * 86_400_000),
+    id: '60000000-0000-4000-8000-000000000003',
+    isLiked: false,
+    isOwner: true,
+    isSponsored: false,
+    isViewed: true,
+    likeCount: 7,
+    mimeType: 'video/mp4',
+    overlayColor: '#FFFFFF',
+    textOverlay: 'Night drive',
+    url: mockMedia.find((item) => item.id === 10).url,
+    viewCount: 61,
+  },
+]
+const skyPicSpotlightComments = new Map([
+  [
+    '60000000-0000-4000-8000-000000000001',
+    [
+      {
+        author: skyPicProfiles[2],
+        body: 'That route looks incredible.',
+        createdAt: isoTime(-7 * 60_000),
+        id: '70000000-0000-4000-8000-000000000001',
+        isOwner: false,
+        spotlightId: '60000000-0000-4000-8000-000000000001',
+      },
+      {
+        author: skyPicProfiles[0],
+        body: 'Adding this to my next drive.',
+        createdAt: isoTime(-4 * 60_000),
+        id: '70000000-0000-4000-8000-000000000002',
+        isOwner: true,
+        spotlightId: '60000000-0000-4000-8000-000000000001',
+      },
+    ],
+  ],
+])
+const skyPicReportedSpotlightIds = new Set()
 const skyPicMessages = new Map([
   [
     '20000000-0000-4000-8000-000000000001',
@@ -3811,6 +3897,20 @@ function skyPicStoryView(story) {
   return {
     ...story,
     author: skyPicSummary(story.author),
+  }
+}
+
+function skyPicSpotlightVisible(spotlight) {
+  return (
+    !skyPicReportedSpotlightIds.has(spotlight.id) &&
+    (spotlight.isOwner || !skyPicBlockedProfileIds.has(spotlight.author.id))
+  )
+}
+
+function skyPicSpotlightView(spotlight) {
+  return {
+    ...spotlight,
+    author: skyPicSummary(spotlight.author),
   }
 }
 
@@ -8695,6 +8795,266 @@ app.post('/api/:endpoint', (request, response) => {
     skyPicStories = skyPicStories.filter((item) => item.id !== storyId)
     skyPicStoryContents.delete(storyId)
     skyPicStoryViewers.delete(storyId)
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'skypic:spotlight-feed') {
+    const offset = skyPicOffset(request.body.offset)
+    if (offset === null) {
+      response.json({ success: false, error: 'invalid_request' })
+      return
+    }
+    response.json({
+      success: true,
+      data: skyPicSpotlights
+        .filter(skyPicSpotlightVisible)
+        .slice(offset, offset + 12)
+        .map(skyPicSpotlightView),
+    })
+    return
+  }
+  if (endpoint === 'skypic:publish-spotlight') {
+    if (!skyPicProfile) {
+      response.json({ success: false, error: 'profile_required' })
+      return
+    }
+    const media = mockMedia.find(
+      (item) =>
+        item.id === Number(request.body.mediaId) && item.mediaType === 'video',
+    )
+    if (!media || request.body.mediaType !== 'video') {
+      response.json({ success: false, error: 'invalid_media_type' })
+      return
+    }
+    if (
+      typeof request.body.isSponsored !== 'boolean' ||
+      typeof request.body.commentsEnabled !== 'boolean'
+    ) {
+      response.json({ success: false, error: 'invalid_request' })
+      return
+    }
+    const caption = skyPicCaption(request.body.caption)
+    const textOverlay = skyPicTextOverlay(request.body.textOverlay)
+    if (caption === null || textOverlay === null) {
+      response.json({
+        success: false,
+        error: caption === null ? 'invalid_caption' : 'invalid_overlay',
+      })
+      return
+    }
+    const adHeadline = String(request.body.adHeadline ?? '').trim()
+    if (
+      (request.body.isSponsored &&
+        (adHeadline.length < 3 || [...adHeadline].length > 80)) ||
+      (!request.body.isSponsored && adHeadline)
+    ) {
+      response.json({ success: false, error: 'invalid_ad_headline' })
+      return
+    }
+    const ownActive = skyPicSpotlights.filter((item) => item.isOwner)
+    if (ownActive.length >= 20) {
+      response.json({ success: false, error: 'spotlight_limit_reached' })
+      return
+    }
+    if (
+      request.body.isSponsored &&
+      ownActive.filter((item) => item.isSponsored).length >= 3
+    ) {
+      response.json({ success: false, error: 'sponsored_limit_reached' })
+      return
+    }
+    const spotlight = {
+      adHeadline: request.body.isSponsored ? adHeadline : '',
+      author: skyPicProfiles[0],
+      caption,
+      commentCount: 0,
+      commentsEnabled: request.body.commentsEnabled,
+      createdAt: new Date().toISOString(),
+      expiresAt: isoTime((request.body.isSponsored ? 7 : 30) * 86_400_000),
+      id: randomUUID(),
+      isLiked: false,
+      isOwner: true,
+      isSponsored: request.body.isSponsored,
+      isViewed: true,
+      likeCount: 0,
+      mimeType: 'video/mp4',
+      overlayColor: /^#[0-9a-f]{6}$/i.test(request.body.overlayColor)
+        ? request.body.overlayColor
+        : '#ffffff',
+      textOverlay,
+      url: media.url,
+      viewCount: 0,
+    }
+    skyPicSpotlights.unshift(spotlight)
+    skyPicSpotlightComments.set(spotlight.id, [])
+    response.json({ success: true, data: skyPicSpotlightView(spotlight) })
+    return
+  }
+  if (endpoint === 'skypic:view-spotlight') {
+    const spotlight = skyPicSpotlights.find(
+      (item) =>
+        item.id === String(request.body.spotlightId ?? '') &&
+        skyPicSpotlightVisible(item),
+    )
+    if (!spotlight) {
+      response.json({ success: false, error: 'spotlight_unavailable' })
+      return
+    }
+    if (!spotlight.isOwner && !spotlight.isViewed) {
+      spotlight.isViewed = true
+      spotlight.viewCount += 1
+    }
+    response.json({
+      success: true,
+      data: { viewCount: spotlight.viewCount },
+    })
+    return
+  }
+  if (endpoint === 'skypic:like-spotlight') {
+    const spotlight = skyPicSpotlights.find(
+      (item) =>
+        item.id === String(request.body.spotlightId ?? '') &&
+        skyPicSpotlightVisible(item),
+    )
+    if (!spotlight || typeof request.body.active !== 'boolean') {
+      response.json({ success: false, error: 'spotlight_unavailable' })
+      return
+    }
+    if (spotlight.isLiked !== request.body.active) {
+      spotlight.isLiked = request.body.active
+      spotlight.likeCount = Math.max(
+        0,
+        spotlight.likeCount + (request.body.active ? 1 : -1),
+      )
+    }
+    response.json({
+      success: true,
+      data: {
+        active: spotlight.isLiked,
+        likeCount: spotlight.likeCount,
+      },
+    })
+    return
+  }
+  if (endpoint === 'skypic:spotlight-comments') {
+    const spotlightId = String(request.body.spotlightId ?? '')
+    const offset = skyPicOffset(request.body.offset)
+    const spotlight = skyPicSpotlights.find(
+      (item) => item.id === spotlightId && skyPicSpotlightVisible(item),
+    )
+    if (!spotlight || offset === null) {
+      response.json({ success: false, error: 'spotlight_unavailable' })
+      return
+    }
+    response.json({
+      success: true,
+      data: (skyPicSpotlightComments.get(spotlightId) ?? [])
+        .slice(offset, offset + 50)
+        .map((comment) => ({
+          ...comment,
+          author: skyPicSummary(comment.author),
+          isOwner: comment.author.id === skyPicProfile?.id,
+        })),
+    })
+    return
+  }
+  if (endpoint === 'skypic:comment-spotlight') {
+    const spotlightId = String(request.body.spotlightId ?? '')
+    const spotlight = skyPicSpotlights.find(
+      (item) => item.id === spotlightId && skyPicSpotlightVisible(item),
+    )
+    const body = String(request.body.body ?? '').trim()
+    if (!spotlight) {
+      response.json({ success: false, error: 'spotlight_unavailable' })
+      return
+    }
+    if (!spotlight.commentsEnabled) {
+      response.json({ success: false, error: 'comments_disabled' })
+      return
+    }
+    if (!body || [...body].length > 500) {
+      response.json({ success: false, error: 'invalid_comment' })
+      return
+    }
+    const comment = {
+      author: skyPicProfiles[0],
+      body,
+      createdAt: new Date().toISOString(),
+      id: randomUUID(),
+      isOwner: true,
+      spotlightId,
+    }
+    const comments = skyPicSpotlightComments.get(spotlightId) ?? []
+    comments.unshift(comment)
+    skyPicSpotlightComments.set(spotlightId, comments)
+    spotlight.commentCount += 1
+    response.json({
+      success: true,
+      data: { ...comment, author: skyPicSummary(comment.author) },
+    })
+    return
+  }
+  if (endpoint === 'skypic:delete-spotlight-comment') {
+    const commentId = String(request.body.commentId ?? '')
+    let removed = false
+    for (const spotlight of skyPicSpotlights) {
+      const comments = skyPicSpotlightComments.get(spotlight.id) ?? []
+      const comment = comments.find((item) => item.id === commentId)
+      if (!comment) continue
+      if (!spotlight.isOwner && comment.author.id !== skyPicProfile?.id) {
+        response.json({ success: false, error: 'comment_not_found' })
+        return
+      }
+      skyPicSpotlightComments.set(
+        spotlight.id,
+        comments.filter((item) => item.id !== commentId),
+      )
+      spotlight.commentCount = Math.max(0, spotlight.commentCount - 1)
+      removed = true
+      break
+    }
+    response.json(
+      removed
+        ? { success: true }
+        : { success: false, error: 'comment_not_found' },
+    )
+    return
+  }
+  if (endpoint === 'skypic:remove-spotlight') {
+    const spotlightId = String(request.body.spotlightId ?? '')
+    const spotlight = skyPicSpotlights.find((item) => item.id === spotlightId)
+    if (!spotlight || !spotlight.isOwner) {
+      response.json({ success: false, error: 'spotlight_unavailable' })
+      return
+    }
+    skyPicSpotlights = skyPicSpotlights.filter(
+      (item) => item.id !== spotlightId,
+    )
+    skyPicSpotlightComments.delete(spotlightId)
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'skypic:report-spotlight') {
+    const spotlightId = String(request.body.spotlightId ?? '')
+    const spotlight = skyPicSpotlights.find(
+      (item) => item.id === spotlightId && skyPicSpotlightVisible(item),
+    )
+    const reasons = new Set([
+      'spam',
+      'harassment',
+      'dangerous',
+      'illegal',
+      'other',
+    ])
+    if (!spotlight || spotlight.isOwner) {
+      response.json({ success: false, error: 'spotlight_unavailable' })
+      return
+    }
+    if (!reasons.has(request.body.reason)) {
+      response.json({ success: false, error: 'invalid_report' })
+      return
+    }
+    skyPicReportedSpotlightIds.add(spotlightId)
     response.json({ success: true })
     return
   }
