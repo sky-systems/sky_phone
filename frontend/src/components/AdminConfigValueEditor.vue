@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { Plus, Rows3, TableProperties, Trash2 } from 'lucide-vue-next'
+import {
+  ChevronDown,
+  Plus,
+  Rows3,
+  TableProperties,
+  Trash2,
+} from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 import type { AdminConfiguratorStructure } from '@/types/admin'
@@ -56,6 +62,7 @@ const newObjectKind = ref<ValueKind>('string')
 const newMapKey = ref('')
 const newMapKeyKind = ref<MapKeyKind>('string')
 const newMapValueKind = ref<ValueKind>('string')
+const expandedEntry = ref<string | null>(null)
 
 const isList = computed(
   () =>
@@ -187,6 +194,23 @@ function isStructuredValue(
   return value !== null && typeof value === 'object'
 }
 
+function structuredValueLabel(
+  value: unknown,
+  structure?: AdminConfiguratorStructure,
+): string {
+  if (structure?.kind === 'vector') {
+    return `${props.labels.vector} ${structure.vectorType.slice(-1)}`
+  }
+  if (structure?.kind === 'list' || Array.isArray(value)) {
+    return props.labels.list
+  }
+  return props.labels.table
+}
+
+function toggleStructuredEntry(entry: string): void {
+  expandedEntry.value = expandedEntry.value === entry ? null : entry
+}
+
 function blankFromStructure(structure: AdminConfiguratorStructure): unknown {
   if (structure.kind === 'optionalString') return ''
   if (structure.kind === 'value') return blankValue(structure.valueType)
@@ -254,8 +278,13 @@ function toggleOptionalString(event: Event): void {
 
 function addListRow(): void {
   const rows = Array.isArray(props.modelValue) ? [...props.modelValue] : []
-  rows.push(rows.length ? blankLike(rows[0]) : blankValue(newArrayKind.value))
+  const index = rows.length
+  const value = rows.length
+    ? blankLike(rows[0])
+    : blankValue(newArrayKind.value)
+  rows.push(value)
   emit('update:modelValue', rows)
+  if (isStructuredValue(value)) expandedEntry.value = `list:${index}`
 }
 
 function updateListRow(index: number, value: unknown): void {
@@ -269,6 +298,7 @@ function removeListRow(index: number): void {
   const rows = Array.isArray(props.modelValue) ? [...props.modelValue] : []
   rows.splice(index, 1)
   emit('update:modelValue', rows)
+  expandedEntry.value = null
 }
 
 function updateTableField(key: string, value: unknown): void {
@@ -302,6 +332,7 @@ function removeTableField(key: string): void {
   const next = { ...tableValue.value }
   delete next[key]
   emit('update:modelValue', next)
+  if (expandedEntry.value === `table:${key}`) expandedEntry.value = null
 }
 
 function addTableField(): void {
@@ -310,15 +341,19 @@ function addTableField(): void {
   const template = tableStructure.value?.mutableKeys
     ? tableStructure.value.template
     : undefined
+  const value = template
+    ? blankFromStructure(template)
+    : blankCollectionValue(
+        newObjectKind.value,
+        Object.values(tableValue.value).filter((_, index) => index < 50),
+      )
   emit('update:modelValue', {
     ...tableValue.value,
-    [key]: template
-      ? blankFromStructure(template)
-      : blankCollectionValue(
-          newObjectKind.value,
-          Object.values(tableValue.value).filter((_, index) => index < 50),
-        ),
+    [key]: value,
   })
+  if (isStructuredValue(value, template)) {
+    expandedEntry.value = `table:${key}`
+  }
   newObjectKey.value = ''
 }
 
@@ -378,21 +413,27 @@ function removeMapEntry(index: number): void {
   emitMap(
     mapEntries.value.filter((_, candidateIndex) => candidateIndex !== index),
   )
+  expandedEntry.value = null
 }
 
 function addMapEntry(): void {
   if (!canAddMapEntry.value || parsedNewMapKey.value === null) return
+  const key = parsedNewMapKey.value
+  const value = blankCollectionValue(
+    newMapValueKind.value,
+    mapEntries.value.slice(0, 50).map((entry) => entry.value),
+  )
   emitMap([
     ...mapEntries.value,
     {
-      key: parsedNewMapKey.value,
+      key,
       keyType: newMapKeyKind.value,
-      value: blankCollectionValue(
-        newMapValueKind.value,
-        mapEntries.value.slice(0, 50).map((entry) => entry.value),
-      ),
+      value,
     },
   ])
+  if (isStructuredValue(value)) {
+    expandedEntry.value = `map:${newMapKeyKind.value}:${key}`
+  }
   newMapKey.value = ''
 }
 
@@ -410,7 +451,10 @@ function mapEntryStructure(
   <div
     v-if="isList"
     class="config-structured-editor"
-    :class="{ 'is-nested': depth > 0 }"
+    :class="{
+      'has-structure': Boolean(structure),
+      'is-nested': depth > 0,
+    }"
   >
     <header class="config-structured-editor__bar">
       <span><Rows3 :size="14" />{{ labels.list }}</span>
@@ -437,10 +481,29 @@ function mapEntryStructure(
             row,
             listStructure?.items[index],
           ),
+          'is-expanded': expandedEntry === `list:${index}`,
         }"
       >
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
+        <button
+          v-if="isStructuredValue(row, listStructure?.items[index])"
+          type="button"
+          class="config-structured-editor__section-toggle"
+          :aria-label="`${ariaLabel} ${index + 1}`"
+          :aria-expanded="expandedEntry === `list:${index}`"
+          @click="toggleStructuredEntry(`list:${index}`)"
+        >
+          <strong>{{ labels.list }} {{ index + 1 }}</strong>
+          <small>{{
+            structuredValueLabel(row, listStructure?.items[index])
+          }}</small>
+          <ChevronDown :size="14" />
+        </button>
         <AdminConfigValueEditor
+          v-if="
+            !isStructuredValue(row, listStructure?.items[index]) ||
+            expandedEntry === `list:${index}`
+          "
           :model-value="row"
           :structure="listStructure?.items[index]"
           :aria-label="`${ariaLabel} ${index + 1}`"
@@ -488,7 +551,10 @@ function mapEntryStructure(
   <div
     v-else-if="isTable"
     class="config-structured-editor"
-    :class="{ 'is-nested': depth > 0 }"
+    :class="{
+      'has-structure': Boolean(structure),
+      'is-nested': depth > 0,
+    }"
   >
     <header class="config-structured-editor__bar">
       <span>
@@ -531,6 +597,7 @@ function mapEntryStructure(
             entry.value,
             mapEntryStructure(entry),
           ),
+          'is-expanded': expandedEntry === `map:${entry.keyType}:${entry.key}`,
         }"
       >
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
@@ -544,7 +611,24 @@ function mapEntryStructure(
             @change="updateMapKey(index, $event)"
           />
         </span>
+        <button
+          v-if="isStructuredValue(entry.value, mapEntryStructure(entry))"
+          type="button"
+          class="config-structured-editor__section-toggle is-map"
+          :aria-label="`${ariaLabel} ${entry.key}`"
+          :aria-expanded="expandedEntry === `map:${entry.keyType}:${entry.key}`"
+          @click="toggleStructuredEntry(`map:${entry.keyType}:${entry.key}`)"
+        >
+          <small>{{
+            structuredValueLabel(entry.value, mapEntryStructure(entry))
+          }}</small>
+          <ChevronDown :size="14" />
+        </button>
         <AdminConfigValueEditor
+          v-if="
+            !isStructuredValue(entry.value, mapEntryStructure(entry)) ||
+            expandedEntry === `map:${entry.keyType}:${entry.key}`
+          "
           :model-value="entry.value"
           :structure="mapEntryStructure(entry)"
           :aria-label="`${ariaLabel} ${entry.key}`"
@@ -582,11 +666,30 @@ function mapEntryStructure(
             value,
             tableFieldStructure(key),
           ),
+          'is-expanded': expandedEntry === `table:${key}`,
         }"
       >
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
-        <strong>{{ key }}</strong>
+        <button
+          v-if="isStructuredValue(value, tableFieldStructure(key))"
+          type="button"
+          class="config-structured-editor__section-toggle"
+          :aria-label="`${ariaLabel} ${key}`"
+          :aria-expanded="expandedEntry === `table:${key}`"
+          @click="toggleStructuredEntry(`table:${key}`)"
+        >
+          <strong>{{ key }}</strong>
+          <small>{{
+            structuredValueLabel(value, tableFieldStructure(key))
+          }}</small>
+          <ChevronDown :size="14" />
+        </button>
+        <strong v-else>{{ key }}</strong>
         <AdminConfigValueEditor
+          v-if="
+            !isStructuredValue(value, tableFieldStructure(key)) ||
+            expandedEntry === `table:${key}`
+          "
           :model-value="value"
           :structure="tableFieldStructure(key)"
           :aria-label="`${ariaLabel} ${key}`"
@@ -739,6 +842,11 @@ function mapEntryStructure(
   background: #151715;
 }
 
+.config-structured-editor.is-nested.has-structure
+  > .config-structured-editor__bar {
+  display: none;
+}
+
 .config-structured-editor__bar {
   min-height: 32px;
   display: flex;
@@ -837,6 +945,20 @@ function mapEntryStructure(
 .config-structured-editor__row.has-structured-value,
 .config-structured-editor__property.has-structured-value {
   align-items: start;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.022),
+    rgba(255, 255, 255, 0.008)
+  );
+}
+
+.config-structured-editor__row.has-structured-value.is-expanded,
+.config-structured-editor__property.has-structured-value.is-expanded {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--admin-green) 7%, #1a1d1a),
+    #181b18 58%
+  );
 }
 
 .config-structured-editor__row.has-structured-value > .config-structured-editor,
@@ -858,11 +980,29 @@ function mapEntryStructure(
 }
 
 .config-structured-editor__property.has-structured-value > strong,
-.config-structured-editor__property.is-map.has-structured-value
-  > .config-structured-editor__map-key {
+.config-structured-editor__property.has-structured-value
+  > .config-structured-editor__section-toggle {
   grid-column: 2 / 4;
   grid-row: 1;
   align-self: center;
+}
+
+.config-structured-editor__row.has-structured-value
+  > .config-structured-editor__section-toggle {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.config-structured-editor__property.is-map.has-structured-value
+  > .config-structured-editor__map-key {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+
+.config-structured-editor__property.is-map.has-structured-value
+  > .config-structured-editor__section-toggle {
+  grid-column: 3;
 }
 
 .config-structured-editor__row.has-structured-value
@@ -875,6 +1015,65 @@ function mapEntryStructure(
   > .config-structured-editor__remove {
   grid-column: 4;
   grid-row: 1;
+}
+
+.config-structured-editor .config-structured-editor__section-toggle {
+  width: 100%;
+  min-width: 0;
+  min-height: 27px;
+  justify-content: flex-start;
+  padding: 0 7px;
+  outline: 0;
+  color: #c9cec9;
+  background: transparent;
+}
+
+.config-structured-editor
+  .config-structured-editor__section-toggle:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.config-structured-editor__section-toggle strong {
+  overflow: hidden;
+  min-width: 0;
+  font-size: 9px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-structured-editor__section-toggle small {
+  margin-left: auto;
+  color: var(--admin-muted);
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.config-structured-editor__section-toggle svg {
+  flex: 0 0 auto;
+  color: var(--admin-muted);
+  transition: transform 150ms ease;
+}
+
+.config-structured-editor__row.is-expanded
+  > .config-structured-editor__section-toggle
+  svg,
+.config-structured-editor__property.is-expanded
+  > .config-structured-editor__section-toggle
+  svg {
+  transform: rotate(180deg);
+}
+
+.config-structured-editor__section-toggle:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--admin-green) 55%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .config-structured-editor__section-toggle svg {
+    transition: none;
+  }
 }
 
 .config-structured-editor__map-key {

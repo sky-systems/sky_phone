@@ -295,6 +295,14 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorValueEditor).toContain(
       'class="config-structured-editor__actions"',
     )
+    expect(configuratorValueEditor).toContain('function toggleStructuredEntry(')
+    expect(configuratorValueEditor).toContain(
+      'class="config-structured-editor__section-toggle"',
+    )
+    expect(configuratorValueEditor).toContain(':aria-expanded=')
+    expect(configuratorValueEditor).toContain(
+      '@media (prefers-reduced-motion: reduce)',
+    )
     expect(configuratorValueEditor).toContain(
       '.config-structured-editor__property.has-structured-value',
     )
