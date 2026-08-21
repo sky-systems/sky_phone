@@ -52,7 +52,7 @@ const DESCRIPTION_RULES: Array<[RegExp, string]> = [
   ],
 ]
 
-function pathName(path: string): string {
+export function configuratorPathName(path: string): string {
   const listEntry = path.match(/^(.*)\[(\d+)\]$/)
   const source = listEntry?.[1] ?? path
   const segment = source.split('.').at(-1) ?? source
@@ -98,6 +98,6 @@ export function describeConfiguratorValue(
 ): string {
   return translate(
     `configurator.descriptions.${configuratorDescriptionKey(path, value, structure)}`,
-    { name: label?.trim() || pathName(path) },
+    { name: label?.trim() || configuratorPathName(path) },
   )
 }

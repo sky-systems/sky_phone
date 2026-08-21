@@ -3,6 +3,7 @@ import {
   BadgeDollarSign,
   BriefcaseBusiness,
   Check,
+  ChevronDown,
   ChevronRight,
   CircleUserRound,
   Clipboard,
@@ -42,6 +43,7 @@ import {
   isPhoneAppRemovable,
   PHONE_APPS,
 } from '@/config/apps'
+import { vConfigInputWidth } from '@/directives/configInputWidth'
 import { useAdminStore } from '@/stores/admin'
 import { usePhoneStore } from '@/stores/phone'
 import type {
@@ -53,7 +55,10 @@ import type {
 } from '@/types/admin'
 import type { LaunchablePhoneAppDefinition } from '@/types/apps'
 import { SkyButton } from '@/ui'
-import { describeConfiguratorValue } from '@/utils/adminConfiguratorDescription'
+import {
+  configuratorPathName,
+  describeConfiguratorValue,
+} from '@/utils/adminConfiguratorDescription'
 import { copyText } from '@/utils/clipboard'
 import { parseDatabaseDate } from '@/utils/date'
 import { nuiCall } from '@/utils/nui'
@@ -76,6 +81,16 @@ type AdminTab =
 type ConfiguratorScope = 'config' | 'media'
 type DeviceAction = 'reset-passcode' | 'change-number' | 'factory-reset'
 type PendingAction = { kind: 'close' } | { kind: 'player'; source: number }
+type AccentChannel = 'blue' | 'green' | 'red'
+type AdminFontFamily =
+  | 'classic'
+  | 'georgia'
+  | 'inter'
+  | 'mono'
+  | 'system'
+  | 'tahoma'
+  | 'trebuchet'
+  | 'verdana'
 
 const emit = defineEmits<{ close: [] }>()
 const admin = useAdminStore()
@@ -94,6 +109,7 @@ const revealDialogImei = ref('')
 const deviceAction = ref<DeviceAction | null>(null)
 const deviceActionInput = ref('')
 const discardDialog = ref(false)
+const fontMenuOpen = ref(false)
 const pendingAction = ref<PendingAction | null>(null)
 const toast = ref('')
 const toastTone = ref<'error' | 'success'>('success')
@@ -106,7 +122,48 @@ const accentOptions = [
   { color: '#f0a24b', key: 'orange' },
   { color: '#ef6969', key: 'red' },
 ] as const
-const accentColor = ref<(typeof accentOptions)[number]['color']>('#74d66f')
+const accentChannels = ['red', 'green', 'blue'] as const
+const fontFamilyOptions: Array<{
+  key: AdminFontFamily
+  value: string
+}> = [
+  { key: 'inter', value: 'var(--sky-font-family, Inter, sans-serif)' },
+  {
+    key: 'system',
+    value:
+      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  },
+  { key: 'classic', value: 'Arial, Helvetica, sans-serif' },
+  { key: 'verdana', value: 'Verdana, Geneva, sans-serif' },
+  { key: 'tahoma', value: 'Tahoma, Geneva, sans-serif' },
+  {
+    key: 'trebuchet',
+    value: '"Trebuchet MS", "Lucida Grande", sans-serif',
+  },
+  { key: 'georgia', value: 'Georgia, "Times New Roman", serif' },
+  {
+    key: 'mono',
+    value:
+      'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace',
+  },
+]
+const accentColor = ref('#74d66f')
+const adminFontFamily = ref<AdminFontFamily>('inter')
+const adminFontSize = ref(100)
+const adminFontSizePreview = ref(100)
+const activeAdminFontFamily = computed(
+  () =>
+    fontFamilyOptions.find((option) => option.key === adminFontFamily.value)
+      ?.value ?? fontFamilyOptions[0].value,
+)
+const accentRgb = computed(() => {
+  const color = accentColor.value.replace('#', '')
+  return {
+    red: Number.parseInt(color.slice(0, 2), 16),
+    green: Number.parseInt(color.slice(2, 4), 16),
+    blue: Number.parseInt(color.slice(4, 6), 16),
+  }
+})
 
 const filteredPlayers = computed(() => {
   const needle = playerQuery.value.trim().toLocaleLowerCase(phone.lang)
@@ -351,6 +408,32 @@ function t(key: string, params?: Record<string, string>): string {
   return phone.t('AdminPanel.' + key, params)
 }
 
+function configuratorLocaleText(key: string, fallback: string): string {
+  const translated = t(key)
+  return translated === key || translated === `AdminPanel.${key}`
+    ? fallback
+    : translated
+}
+
+function configuratorSubtabLabel(key: string, value: unknown): string {
+  const record =
+    value !== null && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : null
+  if (
+    /^[a-z0-9_-]+$/.test(key) &&
+    typeof record?.Name === 'string' &&
+    record.Name
+  ) {
+    return record.Name
+  }
+  const fallback = configuratorPathName(key)
+  return configuratorLocaleText(
+    `configurator.table.subtabs.${key}`,
+    fallback.charAt(0).toLocaleUpperCase(phone.lang) + fallback.slice(1),
+  )
+}
+
 function selectConfiguratorScope(scope: ConfiguratorScope): void {
   configuratorScope.value = scope
   configuratorQuery.value = ''
@@ -375,7 +458,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyList: t('configurator.table.emptyList'),
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
-  general: t('configurator.table.general'),
+  general: configuratorLocaleText('configurator.table.general', 'General'),
   keyPlaceholder: t('configurator.table.keyPlaceholder'),
   list: t('configurator.table.list'),
   remove: t('configurator.table.remove'),
@@ -502,6 +585,7 @@ function queueAction(action: PendingAction): void {
 
 function selectTab(nextTab: AdminTab): void {
   tab.value = nextTab
+  fontMenuOpen.value = false
   if (nextTab === 'configurator' && !admin.configurator) {
     void admin.loadConfigurator().then((loaded) => {
       if (!loaded) showToast(errorText(), 'error')
@@ -509,9 +593,61 @@ function selectTab(nextTab: AdminTab): void {
   }
 }
 
-function selectAccent(color: (typeof accentOptions)[number]['color']): void {
-  accentColor.value = color
-  window.localStorage.setItem('sky-phone-admin-accent', color)
+function selectAccent(color: string): void {
+  if (!/^#[0-9a-f]{6}$/i.test(color)) return
+  accentColor.value = color.toLowerCase()
+  window.localStorage.setItem('sky-phone-admin-accent', accentColor.value)
+}
+
+function updateAccent(event: Event): void {
+  const input = event.currentTarget as HTMLInputElement
+  if (/^#[0-9a-f]{6}$/i.test(input.value)) selectAccent(input.value)
+  else input.value = accentColor.value.toUpperCase()
+}
+
+function updateAccentChannel(channel: AccentChannel, event: Event): void {
+  const input = event.currentTarget as HTMLInputElement
+  const value = Math.min(255, Math.max(0, Number(input.value) || 0))
+  const channels = { ...accentRgb.value, [channel]: value }
+  selectAccent(
+    `#${channels.red.toString(16).padStart(2, '0')}${channels.green
+      .toString(16)
+      .padStart(2, '0')}${channels.blue.toString(16).padStart(2, '0')}`,
+  )
+}
+
+function accentChannelGradient(channel: AccentChannel): string {
+  const { red, green, blue } = accentRgb.value
+  if (channel === 'red') {
+    return `linear-gradient(90deg, rgb(0, ${green}, ${blue}), rgb(255, ${green}, ${blue}))`
+  }
+  if (channel === 'green') {
+    return `linear-gradient(90deg, rgb(${red}, 0, ${blue}), rgb(${red}, 255, ${blue}))`
+  }
+  return `linear-gradient(90deg, rgb(${red}, ${green}, 0), rgb(${red}, ${green}, 255))`
+}
+
+function selectAdminFontFamily(family: AdminFontFamily): void {
+  adminFontFamily.value = family
+  fontMenuOpen.value = false
+  window.localStorage.setItem('sky-phone-admin-font-family', family)
+}
+
+function closeFontMenu(event: FocusEvent): void {
+  const menu = event.currentTarget as HTMLElement
+  if (!menu.contains(event.relatedTarget as Node | null)) {
+    fontMenuOpen.value = false
+  }
+}
+
+function updateAdminFontSize(event: Event): void {
+  const size = Number((event.currentTarget as HTMLInputElement).value)
+  adminFontSize.value = Math.min(115, Math.max(90, size))
+  adminFontSizePreview.value = adminFontSize.value
+  window.localStorage.setItem(
+    'sky-phone-admin-font-size',
+    String(adminFontSize.value),
+  )
 }
 
 async function runAction(action: PendingAction): Promise<void> {
@@ -772,6 +908,10 @@ function auditDescription(entry: AdminAuditEntry): string {
 function onKeydown(event: KeyboardEvent): void {
   if (event.key !== 'Escape') return
   event.preventDefault()
+  if (fontMenuOpen.value) {
+    fontMenuOpen.value = false
+    return
+  }
   if (revealDialogImei.value) {
     revealDialogImei.value = ''
     return
@@ -792,10 +932,25 @@ function onKeydown(event: KeyboardEvent): void {
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
   const storedAccent = window.localStorage.getItem('sky-phone-admin-accent')
-  const storedOption = accentOptions.find(
-    (option) => option.color === storedAccent,
+  if (storedAccent && /^#[0-9a-f]{6}$/i.test(storedAccent)) {
+    accentColor.value = storedAccent.toLowerCase()
+  }
+  const storedFontFamily = window.localStorage.getItem(
+    'sky-phone-admin-font-family',
   )
-  if (storedOption) accentColor.value = storedOption.color
+  if (
+    storedFontFamily &&
+    fontFamilyOptions.some((option) => option.key === storedFontFamily)
+  ) {
+    adminFontFamily.value = storedFontFamily as AdminFontFamily
+  }
+  const storedFontSize = Number(
+    window.localStorage.getItem('sky-phone-admin-font-size'),
+  )
+  if (storedFontSize >= 90 && storedFontSize <= 115) {
+    adminFontSize.value = storedFontSize
+    adminFontSizePreview.value = storedFontSize
+  }
   void refreshData()
 })
 
@@ -810,7 +965,11 @@ onBeforeUnmount(() => {
     class="admin-panel-overlay"
     role="dialog"
     :aria-label="t('name')"
-    :style="{ '--admin-accent': accentColor }"
+    :style="{
+      '--admin-accent': accentColor,
+      '--admin-font-family': activeAdminFontFamily,
+      '--admin-font-scale': String(adminFontSize / 100),
+    }"
   >
     <div class="admin-panel-window">
       <header class="admin-panel-header">
@@ -1260,42 +1419,125 @@ onBeforeUnmount(() => {
                   <Check v-if="accentColor === option.color" :size="15" />
                 </button>
               </div>
+              <div class="admin-panel-appearance-controls">
+                <section class="admin-panel-appearance-control is-color">
+                  <div>
+                    <strong>{{ t('appearance.controls.customColor') }}</strong>
+                    <small>{{
+                      t('appearance.controls.customColorBody')
+                    }}</small>
+                  </div>
+                  <div class="admin-panel-rgb-picker">
+                    <label class="admin-panel-color-value">
+                      <span :style="{ backgroundColor: accentColor }"></span>
+                      <input
+                        v-config-input-width
+                        type="text"
+                        maxlength="7"
+                        :value="accentColor.toUpperCase()"
+                        :aria-label="t('appearance.controls.hex')"
+                        @change="updateAccent"
+                      />
+                    </label>
+                    <div class="admin-panel-rgb-fields">
+                      <label v-for="channel in accentChannels" :key="channel">
+                        <span>{{ t(`appearance.controls.${channel}`) }}</span>
+                        <input
+                          class="admin-panel-rgb-range"
+                          type="range"
+                          min="0"
+                          max="255"
+                          :value="accentRgb[channel]"
+                          :style="{
+                            background: accentChannelGradient(channel),
+                          }"
+                          :aria-label="t(`appearance.controls.${channel}`)"
+                          @input="updateAccentChannel(channel, $event)"
+                        />
+                        <input
+                          v-config-input-width
+                          type="number"
+                          min="0"
+                          max="255"
+                          :value="accentRgb[channel]"
+                          :aria-label="`${t(`appearance.controls.${channel}`)} ${t('appearance.controls.value')}`"
+                          @input="updateAccentChannel(channel, $event)"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="admin-panel-appearance-control">
+                  <span>
+                    <strong>{{ t('appearance.controls.fontFamily') }}</strong>
+                    <small>{{ t('appearance.controls.fontFamilyBody') }}</small>
+                  </span>
+                  <div
+                    class="admin-panel-font-select"
+                    @focusout="closeFontMenu"
+                  >
+                    <button
+                      type="button"
+                      :aria-label="t('appearance.controls.fontFamily')"
+                      aria-haspopup="listbox"
+                      :aria-expanded="fontMenuOpen"
+                      @click="fontMenuOpen = !fontMenuOpen"
+                    >
+                      <span :style="{ fontFamily: activeAdminFontFamily }">
+                        {{ t(`appearance.controls.fonts.${adminFontFamily}`) }}
+                      </span>
+                      <ChevronDown :size="14" />
+                    </button>
+                    <div
+                      v-if="fontMenuOpen"
+                      class="admin-panel-font-select__menu"
+                      role="listbox"
+                      :aria-label="t('appearance.controls.fontFamily')"
+                    >
+                      <button
+                        v-for="option in fontFamilyOptions"
+                        :key="option.key"
+                        type="button"
+                        role="option"
+                        :aria-selected="adminFontFamily === option.key"
+                        :class="{ 'is-active': adminFontFamily === option.key }"
+                        :style="{ fontFamily: option.value }"
+                        @click="selectAdminFontFamily(option.key)"
+                      >
+                        <span>{{
+                          t(`appearance.controls.fonts.${option.key}`)
+                        }}</span>
+                        <Check
+                          v-if="adminFontFamily === option.key"
+                          :size="13"
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <label class="admin-panel-appearance-control">
+                  <span>
+                    <strong>{{ t('appearance.controls.fontSize') }}</strong>
+                    <small>{{ t('appearance.controls.fontSizeBody') }}</small>
+                  </span>
+                  <div class="admin-panel-font-size-control">
+                    <input
+                      v-model.number="adminFontSizePreview"
+                      type="range"
+                      min="90"
+                      max="115"
+                      step="5"
+                      :aria-label="t('appearance.controls.fontSize')"
+                      @change="updateAdminFontSize"
+                    />
+                    <strong>{{ adminFontSizePreview }}%</strong>
+                  </div>
+                </label>
+              </div>
             </article>
 
-            <article
-              class="admin-panel-section-card admin-panel-section-card--compact"
-            >
-              <div class="admin-panel-section-card__heading">
-                <div>
-                  <span>{{ t('audit.eyebrow') }}</span>
-                  <h2>{{ t('overview.recent') }}</h2>
-                </div>
-                <ScrollText :size="20" />
-              </div>
-              <div v-if="admin.audit.length" class="admin-panel-audit-grid">
-                <article
-                  v-for="entry in admin.audit.slice(0, 4)"
-                  :key="entry.id"
-                >
-                  <div class="admin-panel-audit-grid__topline">
-                    <span>{{ t('audit.actions.' + entry.action) }}</span>
-                    <time>{{ formatDate(entry.createdAt) }}</time>
-                  </div>
-                  <strong>{{ auditDescription(entry) }}</strong>
-                  <p>
-                    {{
-                      t('audit.by', {
-                        actor: entry.actorName,
-                        target: String(entry.targetSource ?? '—'),
-                      })
-                    }}
-                  </p>
-                </article>
-              </div>
-              <div v-else class="admin-panel-inline-empty">
-                {{ t('audit.emptyBody') }}
-              </div>
-            </article>
           </section>
 
           <section
@@ -1426,6 +1668,7 @@ onBeforeUnmount(() => {
                       :labels="configuratorEditorLabels"
                       :disabled="!admin.configurator.enabled"
                       :path="field.path"
+                      :tab-label="configuratorSubtabLabel"
                       @update:model-value="
                         updateConfiguratorField(field, $event)
                       "
@@ -1436,6 +1679,7 @@ onBeforeUnmount(() => {
                       class="admin-panel-config-optional"
                     >
                       <input
+                        v-config-input-width
                         type="text"
                         :aria-label="`${field.label} ${field.path}`"
                         :value="
@@ -1464,6 +1708,7 @@ onBeforeUnmount(() => {
 
                     <input
                       v-else
+                      v-config-input-width
                       :aria-label="`${field.label} ${field.path}`"
                       :type="
                         field.sensitive
@@ -2253,7 +2498,10 @@ onBeforeUnmount(() => {
   padding: 2.5vh 2.5vw;
   color: var(--admin-text);
   background: transparent;
-  font-family: var(--sky-font-family, Inter, sans-serif);
+  font-family: var(
+    --admin-font-family,
+    var(--sky-font-family, Inter, sans-serif)
+  );
   pointer-events: auto;
 }
 
@@ -2267,6 +2515,7 @@ onBeforeUnmount(() => {
   box-shadow:
     0 20px 56px rgba(0, 0, 0, 0.72),
     inset 0 1px rgba(255, 255, 255, 0.018);
+  zoom: var(--admin-font-scale, 1);
 }
 
 .admin-panel-header {
@@ -2383,21 +2632,22 @@ onBeforeUnmount(() => {
 }
 
 .admin-panel-save {
-  border: 1px solid var(--admin-border);
+  border: 0;
   color: #555b55;
-  background: #151715;
+  background: transparent;
+  box-shadow: none;
 }
 
 .admin-panel-save.is-ready {
-  border-color: var(--admin-border-strong);
   color: #74d66f;
-  background: #121413;
-  box-shadow: none;
+  background: transparent;
+  filter: drop-shadow(0 0 5px rgba(116, 214, 111, 0.42));
 }
 
 .admin-panel-save.is-ready:hover:not(:disabled) {
   color: color-mix(in srgb, #74d66f 82%, white);
-  background: #191b1a;
+  background: transparent;
+  filter: drop-shadow(0 0 7px rgba(116, 214, 111, 0.65));
 }
 
 .admin-panel-close:hover {
@@ -3137,6 +3387,246 @@ button:disabled {
   color: var(--admin-green);
 }
 
+.admin-panel-appearance-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 8px;
+  background: #0a0c0b;
+}
+
+.admin-panel-appearance-control {
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.8fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #121412;
+}
+
+.admin-panel-appearance-control.is-color {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(170px, 0.7fr) minmax(320px, 1.3fr);
+}
+
+.admin-panel-appearance-control > div:first-child,
+.admin-panel-appearance-control > span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.admin-panel-appearance-control strong {
+  color: #d9ddd9;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.admin-panel-appearance-control small {
+  color: var(--admin-muted);
+  font-size: 8px;
+  line-height: 1.3;
+}
+
+.admin-panel-rgb-picker {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(230px, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-panel-color-value {
+  min-width: 96px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border-radius: 3px;
+  outline: 1px solid var(--admin-border-strong);
+  background: #1a1d1b;
+}
+
+.admin-panel-color-value > span {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--admin-green) 48%, transparent);
+}
+
+.admin-panel-color-value input {
+  min-width: 0;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: #cbd0cb;
+  background: transparent;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.admin-panel-rgb-fields {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-panel-rgb-fields label {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 12px minmax(90px, 1fr) 42px;
+  align-items: center;
+  gap: 7px;
+}
+
+.admin-panel-rgb-fields span {
+  color: var(--admin-muted);
+  font-size: 8px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.admin-panel-rgb-fields input[type='number'] {
+  width: 42px !important;
+  max-width: 42px;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 3px;
+  outline: 1px solid var(--admin-border-strong);
+  color: var(--admin-text);
+  background: #1a1d1b;
+  font: inherit;
+  font-size: 8px;
+  appearance: textfield;
+}
+
+.admin-panel-rgb-fields input[type='number']::-webkit-inner-spin-button,
+.admin-panel-rgb-fields input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+}
+
+.admin-panel-rgb-range {
+  width: 100%;
+  height: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  outline: 0;
+  appearance: none;
+  cursor: pointer;
+}
+
+.admin-panel-rgb-range::-webkit-slider-thumb {
+  width: 13px;
+  height: 13px;
+  border: 2px solid #f3f5f3;
+  border-radius: 50%;
+  background: var(--admin-green);
+  box-shadow: 0 0 0 2px #171a18;
+  appearance: none;
+}
+
+.admin-panel-font-select {
+  position: relative;
+  min-width: 0;
+}
+
+.admin-panel-font-select > button {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 3px;
+  outline: 1px solid var(--admin-border-strong);
+  color: var(--admin-text);
+  background: #1a1d1b;
+  font: inherit;
+  font-size: 9px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-panel-font-select > button svg {
+  color: var(--admin-muted);
+  transition: transform 150ms ease;
+}
+
+.admin-panel-font-select > button[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.admin-panel-font-select__menu {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  max-height: 210px;
+  overflow-y: auto;
+  display: grid;
+  gap: 1px;
+  padding: 4px;
+  border-radius: 4px;
+  outline: 1px solid rgba(255, 255, 255, 0.09);
+  background: #101211;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.58);
+}
+
+.admin-panel-font-select__menu button {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 2px;
+  color: var(--admin-muted);
+  background: transparent;
+  font-size: 9px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-panel-font-select__menu button:hover,
+.admin-panel-font-select__menu button.is-active {
+  color: var(--admin-text);
+  background: var(--admin-row-active);
+}
+
+.admin-panel-font-select__menu svg {
+  color: var(--admin-green);
+}
+
+.admin-panel-font-size-control {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) 38px;
+  align-items: center;
+  gap: 9px;
+}
+
+.admin-panel-font-size-control input {
+  width: 100%;
+  height: 3px;
+  accent-color: var(--admin-green);
+  cursor: pointer;
+}
+
+.admin-panel-font-size-control > strong {
+  color: var(--admin-green);
+  text-align: right;
+}
+
 .admin-panel-section-card__heading {
   justify-content: space-between;
   gap: 12px;
@@ -3725,7 +4215,7 @@ button:disabled {
 
 .admin-panel-config-field > input,
 .admin-panel-config-optional > input {
-  width: 100%;
+  max-width: 100%;
   min-width: 0;
   border: 0;
   border-radius: 4px;
@@ -3734,6 +4224,20 @@ button:disabled {
   background: #1b1e1b;
   font: inherit;
   font-size: 10px;
+}
+
+.admin-panel-config-field > input {
+  justify-self: start;
+}
+
+.admin-panel-config-field > input[type='number'] {
+  appearance: textfield;
+}
+
+.admin-panel-config-field > input[type='number']::-webkit-inner-spin-button,
+.admin-panel-config-field > input[type='number']::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
 }
 
 .admin-panel-config-field > input,
@@ -3754,15 +4258,16 @@ button:disabled {
 
 .admin-panel-config-optional {
   min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 32px;
+  max-width: 100%;
+  display: flex;
   align-items: center;
+  justify-self: start;
   gap: 8px;
 }
 
 .admin-panel-config-toggle {
   position: relative;
-  justify-self: end;
+  justify-self: start;
   width: 32px;
   height: 18px;
 }

@@ -6,6 +6,10 @@ const source = readFileSync(
   new URL('./AdminPanel.vue', import.meta.url),
   'utf8',
 )
+const agentInstructions = readFileSync(
+  new URL('../../../AGENTS.md', import.meta.url),
+  'utf8',
+)
 const app = readFileSync(new URL('../App.vue', import.meta.url), 'utf8')
 const apps = readFileSync(new URL('../config/apps.ts', import.meta.url), 'utf8')
 const store = readFileSync(
@@ -76,6 +80,10 @@ const configuratorValueEditor = readFileSync(
   new URL('./AdminConfigValueEditor.vue', import.meta.url),
   'utf8',
 )
+const configInputWidth = readFileSync(
+  new URL('../directives/configInputWidth.ts', import.meta.url),
+  'utf8',
+)
 
 describe('standalone admin panel contracts', () => {
   it('renders as a dedicated full-screen editor outside the phone shell', () => {
@@ -102,6 +110,7 @@ describe('standalone admin panel contracts', () => {
     expect(source).not.toContain('admin-panel-brand__mark')
     expect(source).not.toContain('admin-panel-profile-heading__status')
     expect(source).not.toContain('backdrop-filter: blur(2px)')
+    expect(source).not.toContain("t('overview.recent')")
 
     for (const tab of [
       'overview',
@@ -124,7 +133,20 @@ describe('standalone admin panel contracts', () => {
     expect(source).not.toContain('<RefreshCw')
     expect(source).not.toContain("kind: 'refresh'")
     expect(source).toContain("'sky-phone-admin-accent'")
-    expect(source).toContain(':style="{ \'--admin-accent\': accentColor }"')
+    expect(source).toContain("'sky-phone-admin-font-family'")
+    expect(source).toContain("'sky-phone-admin-font-size'")
+    expect(source).toContain("'--admin-accent': accentColor")
+    expect(source).toContain("'--admin-font-family': activeAdminFontFamily")
+    expect(source).toContain(
+      "'--admin-font-scale': String(adminFontSize / 100)",
+    )
+    expect(source).toContain('class="admin-panel-color-value"')
+    expect(source).toContain('class="admin-panel-rgb-fields"')
+    expect(source).toContain('class="admin-panel-rgb-range"')
+    expect(source).toContain('class="admin-panel-font-select"')
+    expect(source).toContain('class="admin-panel-font-select__menu"')
+    expect(source).toContain('class="admin-panel-font-size-control"')
+    expect(source).not.toContain('type="color"')
     expect(source).toContain('color-mix(in srgb, var(--admin-green)')
   })
 
@@ -230,6 +252,10 @@ describe('standalone admin panel contracts', () => {
   })
 
   it('loads the SQL phone configurator before framework-owned configuration is read', () => {
+    expect(agentInstructions).toContain('Phone Configurator parity (mandatory)')
+    expect(agentInstructions).toContain(
+      'changes without matching Configurator support are incomplete',
+    )
     expect(config).toMatch(
       /Config\.PhoneConfigurator\s*=\s*\{[\s\S]*?Enabled\s*=\s*false[\s\S]*?Config\.Bridge\s*=/,
     )
@@ -313,6 +339,21 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorValueEditor).toContain(
       'class="config-structured-editor__tab-panel"',
     )
+    expect(source).toContain(':tab-label="configuratorSubtabLabel"')
+    expect(source).toContain('configurator.table.subtabs.${key}')
+    expect(configuratorValueEditor).toContain(
+      'props.tabLabel?.(key, tableValue.value[key]) ?? key',
+    )
+    expect(source).toContain('v-config-input-width')
+    expect(configuratorValueEditor).toContain('v-config-input-width')
+    expect(configInputWidth).toContain("input.addEventListener('input'")
+    expect(configInputWidth).toContain('input.scrollWidth')
+    expect(source).toContain('filter: drop-shadow')
+    expect(source).toContain("input[type='number']::-webkit-inner-spin-button")
+    expect(configuratorValueEditor).toContain(
+      "input[type='number']::-webkit-inner-spin-button",
+    )
+    expect(source).toContain('justify-self: start')
     expect(configuratorValueEditor).toContain('function tableFieldStructure(')
     expect(configuratorValueEditor).toContain('function isFixedTableField(')
     expect(configuratorValueEditor).toContain('function blankCollectionValue(')

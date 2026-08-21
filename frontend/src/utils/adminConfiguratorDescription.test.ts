@@ -4,6 +4,7 @@ import type { AdminConfiguratorStructure } from '@/types/admin'
 
 import {
   configuratorDescriptionKey,
+  configuratorPathName,
   describeConfiguratorValue,
 } from './adminConfiguratorDescription'
 
@@ -51,5 +52,11 @@ describe('admin configurator descriptions', () => {
     expect(
       describeConfiguratorValue(translate, 'Radio.AllowedJobs[2]', 'police'),
     ).toBe('configurator.descriptions.access:Allowed Jobs #2')
+  })
+
+  it('humanizes subtab keys', () => {
+    expect(configuratorPathName('ExternalPingResources')).toBe(
+      'External Ping Resources',
+    )
   })
 })

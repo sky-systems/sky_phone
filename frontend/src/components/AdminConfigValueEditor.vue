@@ -8,6 +8,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
+import { vConfigInputWidth } from '@/directives/configInputWidth'
 import type { AdminConfiguratorStructure } from '@/types/admin'
 import type { AdminConfiguratorDescribe } from '@/utils/adminConfiguratorDescription'
 
@@ -48,6 +49,7 @@ const props = withDefaults(
     modelValue: unknown
     path?: string
     structure?: AdminConfiguratorStructure
+    tabLabel?: (key: string, value: unknown) => string
   }>(),
   { ariaLabel: '', depth: 0, disabled: false, path: '' },
 )
@@ -163,7 +165,7 @@ const rootTableTabs = computed<RootTableTab[]>(() => {
       count: configuratorStructureSize(tableFieldStructure(key)),
       id: `field:${key}`,
       key,
-      label: key,
+      label: props.tabLabel?.(key, tableValue.value[key]) ?? key,
     })),
   ]
 })
@@ -666,6 +668,7 @@ function mapEntryStructure(
           :aria-label="`${ariaLabel} ${index + 1}`"
           :describe="describe"
           :labels="labels"
+          :tab-label="tabLabel"
           :disabled="disabled"
           :depth="depth + 1"
           :path="listEntryPath(index)"
@@ -797,6 +800,7 @@ function mapEntryStructure(
         :aria-label="`${ariaLabel} ${activeRootTableField.key}`"
         :describe="describe"
         :labels="labels"
+        :tab-label="tabLabel"
         :disabled="disabled"
         :depth="depth + 1"
         :path="tableEntryPath(activeRootTableField.key)"
@@ -871,6 +875,7 @@ function mapEntryStructure(
           :aria-label="`${ariaLabel} ${entry.key}`"
           :describe="describe"
           :labels="labels"
+          :tab-label="tabLabel"
           :disabled="disabled"
           :depth="depth + 1"
           :path="mapValuePath(entry)"
@@ -953,6 +958,7 @@ function mapEntryStructure(
           :aria-label="`${ariaLabel} ${key}`"
           :describe="describe"
           :labels="labels"
+          :tab-label="tabLabel"
           :disabled="disabled"
           :depth="depth + 1"
           :path="tableEntryPath(key)"
@@ -1059,6 +1065,7 @@ function mapEntryStructure(
     class="config-value-optional"
   >
     <input
+      v-config-input-width
       class="config-value-input"
       type="text"
       :aria-label="ariaLabel"
@@ -1095,6 +1102,7 @@ function mapEntryStructure(
 
   <input
     v-else
+    v-config-input-width
     class="config-value-input"
     :aria-label="ariaLabel"
     :type="
@@ -1496,9 +1504,10 @@ function mapEntryStructure(
 
 .config-value-optional {
   min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  max-width: 100%;
+  display: flex;
   align-items: center;
+  justify-self: start;
   gap: 7px;
 }
 
@@ -1576,10 +1585,21 @@ function mapEntryStructure(
 }
 
 .config-value-input {
-  width: 100%;
+  max-width: 100%;
   min-width: 0;
   height: 29px;
+  justify-self: start;
   padding: 0 8px;
+}
+
+.config-value-input[type='number'] {
+  appearance: textfield;
+}
+
+.config-structured-editor input[type='number']::-webkit-inner-spin-button,
+.config-structured-editor input[type='number']::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
 }
 
 .config-value-input:focus,
@@ -1590,7 +1610,7 @@ function mapEntryStructure(
 
 .config-value-toggle {
   position: relative;
-  justify-self: end;
+  justify-self: start;
   width: 32px;
   height: 18px;
 }

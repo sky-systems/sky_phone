@@ -118,6 +118,29 @@ function collectLuaLocaleValues(source: string): Map<string, string> {
   }
 
   parseTable([])
+  while (position < tokens.length) {
+    const assignment = tokens.findIndex(
+      (token, index) => index >= position && token.kind === '=',
+    )
+    if (assignment < 0) break
+    const nui = tokens.findIndex(
+      (token, index) =>
+        index >= position && index < assignment && token.value === 'Nui',
+    )
+    if (nui < 0) {
+      position = assignment + 1
+      continue
+    }
+    const path = [
+      'Nui',
+      ...tokens
+        .slice(nui + 1, assignment)
+        .filter((token) => token.kind === 'word')
+        .map((token) => token.value),
+    ]
+    position = assignment + 1
+    parseValue(path)
+  }
   return values
 }
 
