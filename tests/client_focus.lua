@@ -6,7 +6,12 @@ local nui_callbacks = {}
 local nui_focus = nil
 local nui_keep_input = nil
 
-Config = { Phone = { AllowMovement = true } }
+Config = {
+    Phone = {
+        AllowMovement = true,
+        HoldToLook = { Enabled = true, Control = 19 },
+    },
+}
 Bridge = { Debug = function() end }
 
 function CreateThread(callback)
@@ -61,6 +66,7 @@ local function resolve(overrides)
         cursor_disabled = false,
         external_game_input = nil,
         is_open = false,
+        look_passthrough = false,
         notification_focus = false,
         payphone_focus = false,
         sim_picker_open = false,
@@ -115,10 +121,10 @@ local typing_phone = resolve({
 assert(
     typing_phone.cursor
         and typing_phone.focused
-        and typing_phone.keep_input
-        and typing_phone.game_input
+        and not typing_phone.keep_input
+        and not typing_phone.game_input
         and typing_phone.block_game,
-    "a focused phone text input must block GTA controls without hiding the NUI cursor"
+    "a focused phone text input must stop game-input passthrough and retain the NUI cursor"
 )
 
 local external_movement_phone = resolve({
@@ -142,8 +148,8 @@ local external_movement_typing_phone = resolve({
 assert(
     external_movement_typing_phone.cursor
         and external_movement_typing_phone.focused
-        and external_movement_typing_phone.keep_input
-        and external_movement_typing_phone.game_input
+        and not external_movement_typing_phone.keep_input
+        and not external_movement_typing_phone.game_input
         and external_movement_typing_phone.block_game,
     "a focused text input must override an external movement claim"
 )
@@ -175,6 +181,21 @@ assert(
         and not movable_cursor_disabled_phone.block_game
         and not movable_cursor_disabled_phone.block_look,
     "LB noFocus must preserve movement and camera look without retaining the NUI cursor"
+)
+
+local movable_look_passthrough_phone = resolve({
+    allow_movement = true,
+    is_open = true,
+    look_passthrough = true,
+})
+assert(
+    not movable_look_passthrough_phone.cursor
+        and movable_look_passthrough_phone.focused
+        and movable_look_passthrough_phone.keep_input
+        and movable_look_passthrough_phone.game_input
+        and not movable_look_passthrough_phone.block_game
+        and not movable_look_passthrough_phone.block_look,
+    "HoldToLook must temporarily release the NUI cursor without disabling configured movement"
 )
 
 local stationary_cursor_disabled_phone = resolve({
@@ -289,6 +310,10 @@ assert(
 SkyPhoneFocus.SetPhone(false)
 SkyPhoneFocus.SetPhone(true)
 assert(nui_focus.cursor, "closing the phone must clear the previous no-focus claim")
+SkyPhoneFocus.SetTextInputFocused(true)
+assert(not nui_keep_input, "runtime text focus must stop game-input passthrough")
+SkyPhoneFocus.SetTextInputFocused(false)
+assert(nui_keep_input, "leaving a text input must restore configured phone movement")
 
 local external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", true)
 assert(external_success and external_error == nil and nui_keep_input, "external movement claim must apply")

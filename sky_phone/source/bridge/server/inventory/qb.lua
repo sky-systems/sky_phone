@@ -15,12 +15,16 @@ local function normalize(item)
         return nil
     end
 
+    local metadata = {}
+    for key, value in pairs(type(item.info) == "table" and item.info or {}) do
+        metadata[key] = value
+    end
     return {
         name = item.name,
         slot = tonumber(item.slot),
         count = tonumber(item.amount) or 0,
         amount = tonumber(item.amount) or 0,
-        metadata = type(item.info) == "table" and item.info or {},
+        metadata = metadata,
     }
 end
 
@@ -77,11 +81,33 @@ function Bridge.Inventory.SetSlotMetadata(source, slot_id, metadata)
         if not player then
             return false
         end
-        player.PlayerData.items[slot.slot].info = metadata or {}
+        local requested_metadata = type(metadata) == "table" and metadata or {}
+        player.PlayerData.items[slot.slot].info = requested_metadata
         player.Functions.SetInventory(player.PlayerData.items, true)
-        return true
+        local updated = player.PlayerData.items[slot.slot]
+        return updated ~= nil and Bridge.Inventory.MetadataMatches(updated.info, requested_metadata)
     end
-    return inventory:SetItemData(source, slot.name, "info", metadata or {}, slot.slot) == true
+
+    local amount = tonumber(slot.amount or slot.count) or 0
+    if amount <= 0 then
+        return false
+    end
+
+    local requested_metadata = type(metadata) == "table" and metadata or {}
+    if inventory:RemoveItem(source, slot.name, amount, slot.slot, "sky_phone:metadata-update") ~= true then
+        return false
+    end
+
+    if inventory:AddItem(source, slot.name, amount, slot.slot, requested_metadata, "sky_phone:metadata-update") ~= true then
+        return false
+    end
+
+    local updated = Bridge.Inventory.GetSlot(source, slot.slot)
+    return updated
+        and updated.name == slot.name
+        and updated.amount == amount
+        and Bridge.Inventory.MetadataMatches(updated.metadata, requested_metadata)
+        or false
 end
 
 function Bridge.Inventory.CanCarryItem(source, item_name, count)

@@ -848,6 +848,9 @@ onBeforeUnmount(() => {
                     </k-button>
                   </div>
                 </k-card>
+                <p class="skyride-player-driver-notice">
+                  {{ phone.t('Apps.skyride.playerDriverNotice') }}
+                </p>
                 <k-button
                   large
                   rounded
@@ -2107,6 +2110,13 @@ onBeforeUnmount(() => {
   gap: 5px;
   font-size: 16px;
   font-weight: 650;
+}
+
+.skyride-player-driver-notice {
+  margin: 2px 7px 8px;
+  color: var(--ride-muted);
+  font-size: 12px;
+  line-height: 17px;
 }
 
 .skyride-primary :deep(svg) {

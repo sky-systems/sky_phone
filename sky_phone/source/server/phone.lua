@@ -19,7 +19,8 @@ Bridge.Callbacks.Register("sky_phone:device:open-request", function(source)
         return { success = true, data = { queued = true } }
     end
 
-    return { success = phone_open_handler(source, nil) }
+    local success, error_code = phone_open_handler(source, nil)
+    return { success = success, error = error_code }
 end)
 
 Bridge.Callbacks.Register("sky_phone:device:development-open", function(source)
@@ -31,7 +32,8 @@ Bridge.Callbacks.Register("sky_phone:device:development-open", function(source)
         return { success = true, data = { queued = true } }
     end
 
-    return { success = phone_open_handler(source, nil) }
+    local success, error_code = phone_open_handler(source, nil)
+    return { success = success, error = error_code }
 end)
 
 AddEventHandler("playerDropped", function()
@@ -392,9 +394,10 @@ local function resolve_used_slot(source, used_item)
 
     Bridge.Debug(
         "warn",
-        "[sky_phone] No phone item slot was available for source %s (%s candidates).",
-        tostring(source),
-        tostring(#slots)
+        "[sky_phone] Inventory '%s' returned no '%s' phone item for source %s. This is an item/configuration problem, not a missing SIM card.",
+        tostring(Bridge.Inventory.GetResourceName()),
+        tostring(Config.Phone.Item),
+        tostring(source)
     )
     return nil, "phone_required"
 end
@@ -545,6 +548,10 @@ local function bootstrap(source, security, security_loaded)
 
     return {
         token = session.token,
+        phoneNumberFormat = {
+            length = Config.Sim.NumberLength,
+            groups = Config.Sim.NumberGroups,
+        },
         security = SkyPhoneSecurity.Status(device.imei, security, security_loaded),
         device = {
             imei = device.imei,
@@ -850,7 +857,7 @@ local function open_phone(source, used_item)
             { always = true }
         )
         TriggerClientEvent("sky_phone:device:error", source, slot_error)
-        return false
+        return false, slot_error
     end
 
     local imei, error_code = ensure_device(source, slot)
@@ -864,7 +871,7 @@ local function open_phone(source, used_item)
             { always = true }
         )
         TriggerClientEvent("sky_phone:device:error", source, error_code)
-        return false
+        return false, error_code
     end
     local prepared, prepare_error = SkyPhoneSim.PrepareDevice(source, slot, imei)
     if not prepared then
@@ -875,8 +882,9 @@ local function open_phone(source, used_item)
             imei,
             tostring(prepare_error)
         )
-        TriggerClientEvent("sky_phone:device:error", source, prepare_error or "request_failed")
-        return false
+        local error_code = prepare_error or "request_failed"
+        TriggerClientEvent("sky_phone:device:error", source, error_code)
+        return false, error_code
     end
 
     local security = SkyPhoneSecurity.Load(imei)
@@ -890,7 +898,20 @@ local function open_phone(source, used_item)
         unlocked = security == nil,
     }
     preferred_device_imeis[source] = imei
-    local payload = bootstrap(source, security, true)
+    local payload, bootstrap_error = bootstrap(source, security, true)
+    if not payload then
+        local error_code = type(bootstrap_error) == "table" and bootstrap_error.error or "request_failed"
+        Bridge.Debug(
+            "error",
+            "[sky_phone] Phone bootstrap failed for source %s slot %s IMEI %s: %s.",
+            tostring(source),
+            tostring(slot.slot),
+            imei,
+            tostring(error_code)
+        )
+        TriggerClientEvent("sky_phone:device:error", source, error_code)
+        return false, error_code
+    end
     Bridge.Debug(
         "debug",
         "[sky_phone] Triggering client open for source %s slot %s IMEI %s account_linked=%s after %sms.",
@@ -930,7 +951,18 @@ function SkyPhone.OpenDeviceForCall(source, imei)
         }
     end
     preferred_device_imeis[source] = imei
-    TriggerClientEvent("sky_phone:device:open", source, bootstrap(source))
+    local payload, bootstrap_error = bootstrap(source)
+    if not payload then
+        Bridge.Debug(
+            "error",
+            "[sky_phone] Call notification bootstrap failed for source %s IMEI %s: %s.",
+            tostring(source),
+            tostring(imei),
+            tostring(type(bootstrap_error) == "table" and bootstrap_error.error or "request_failed")
+        )
+        return false
+    end
+    TriggerClientEvent("sky_phone:device:open", source, payload)
     return true
 end
 

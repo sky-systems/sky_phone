@@ -41,19 +41,17 @@ if not supported_inventories[configured_inventory] then
     error(("[sky_phone] Unsupported or unavailable inventory '%s'. Configure a supported inventory adapter."):format(tostring(configured_inventory)))
 end
 
+Bridge.Inventory.Name = configured_inventory
+
 if configured_inventory == "hex" or configured_inventory == "esx" then
     if Bridge.Framework.GetName() ~= "esx" then
-        error(("[sky_phone] Inventory '%s' is only supported with ESX."):format(configured_inventory))
-    end
-    if Config.Phone.Unique ~= false then
-        error(("[sky_phone] Inventory '%s' cannot store unique phone metadata. Set Config.Phone.Unique = false or configure a metadata-capable inventory."):format(configured_inventory))
-    end
-    if Config.Sim.Enabled ~= false then
-        error(("[sky_phone] Inventory '%s' cannot store physical SIM metadata. Set Config.Sim.Enabled = false or configure a metadata-capable inventory."):format(configured_inventory))
+        Bridge.Inventory.ConfigurationError =
+            ("[sky_phone] Inventory '%s' is only supported with ESX."):format(configured_inventory)
+    elseif Config.Phone.Unique ~= false or Config.Sim.Enabled ~= false then
+        Bridge.Inventory.ConfigurationError = ("[sky_phone] Inventory '%s' cannot store unique phone or physical SIM metadata. Set Config.Phone.Unique = false and Config.Sim.Enabled = false, or configure a metadata-capable inventory.")
+            :format(configured_inventory)
     end
 end
-
-Bridge.Inventory.Name = configured_inventory
 
 function Bridge.Inventory.NormalizeItem(item, metadata_field)
     if not item then

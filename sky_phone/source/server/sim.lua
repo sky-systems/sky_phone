@@ -6,6 +6,16 @@ local pending_insertions = {}
 local operation_locks = {}
 local sim_types = {}
 
+local function validate_number_configuration()
+    local valid, validation_error = SkyPhoneSimNumber.ValidateConfiguration(
+        Config.Sim.NumberLength,
+        Config.Sim.NumberPrefix
+    )
+    if not valid then
+        error(("[sky_phone] Invalid SIM number configuration: %s."):format(validation_error))
+    end
+end
+
 local function refresh_sim_types()
     sim_types = {
         [Config.Sim.RegisteredItem] = "registered",
@@ -13,6 +23,7 @@ local function refresh_sim_types()
     }
 end
 
+validate_number_configuration()
 refresh_sim_types()
 
 local function affected_rows(result)
@@ -453,6 +464,10 @@ local function use_sim(source, used_item)
     TriggerClientEvent("sky_phone:sim:picker", source, {
         choices = choices,
         number = sim.phone_number,
+        phoneNumberFormat = {
+            length = Config.Sim.NumberLength,
+            groups = Config.Sim.NumberGroups,
+        },
     })
     return true
 end
@@ -550,6 +565,7 @@ AddEventHandler("playerDropped", function()
 end)
 
 AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    validate_number_configuration()
     refresh_sim_types()
     register_configured_sim_items()
 end)

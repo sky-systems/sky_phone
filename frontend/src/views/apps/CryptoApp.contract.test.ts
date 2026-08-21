@@ -119,6 +119,8 @@ describe('VaultX crypto app contracts', () => {
     expect(source).not.toContain('class="auth-panel__heading"')
     expect(source).not.toContain('class="auth-action-dock"')
     expect(source).not.toContain('class="password-rules"')
+    expect(source).toContain('class="auth-password-hint"')
+    expect(source).toContain("t('auth.ruleSpecial')")
     expect(source).toMatch(
       /\.auth-shell\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*338px;/s,
     )

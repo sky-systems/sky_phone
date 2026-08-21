@@ -71,7 +71,7 @@ import type {
   CompanyChangedPayload,
   CompanyUnreadCounts,
 } from '@/types/companies'
-import type { PhoneCall } from '@/types/phone'
+import type { PhoneCall, PhoneNumberFormat } from '@/types/phone'
 import type { DynamicIslandActivity } from '@/types/dynamicIsland'
 import type { EasyShareEvent } from '@/types/easyshare'
 import type { CryptoMarketChangedData } from '@/types/crypto'
@@ -85,6 +85,7 @@ import { formatTimer } from '@/utils/clock'
 import { parsePhonePreferences } from '@/utils/preferences'
 import { getHairlinePixelStyle } from '@/utils/rendering'
 import { isTextInputElement } from '@/utils/textInputFocus'
+import { configurePhoneNumberFormat } from '@/utils/phone'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 import SpringboardView from '@/views/SpringboardView.vue'
 
@@ -139,6 +140,7 @@ type NavigationEventData = {
 type SimPickerPayload = {
   choices: SimPhoneChoice[]
   number: string
+  phoneNumberFormat?: PhoneNumberFormat
 }
 
 type NotificationEventData = Omit<PhoneNotificationInput, 'device'> & {
@@ -500,6 +502,7 @@ function getViewportScale(): number {
 }
 
 function hydratePhone(payload: PhoneOpenPayload): void {
+  configurePhoneNumberFormat(payload.phoneNumberFormat)
   if (payload.device?.imei) {
     companies.bindDeviceScope(
       payload.device.imei,
@@ -1246,7 +1249,9 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       loadUnlockedPhoneData()
     }
   } else if (event.data?.type === 'sim:picker' && event.data.data) {
-    simPicker.value = event.data.data as unknown as SimPickerPayload
+    const payload = event.data.data as unknown as SimPickerPayload
+    configurePhoneNumberFormat(payload.phoneNumberFormat)
+    simPicker.value = payload
   } else if (event.data?.type === 'sim:picker-close') {
     simPicker.value = null
   }

@@ -35,6 +35,10 @@ Config.Phone = {
     Unique = true, -- true: data follows each phone item; false: one persistent phone per character; hex/esx require false
     Keybind = "F1", -- false disables the configurable phone key mapping
     AllowMovement = true, -- true: game input stays active while the mobile phone is open
+    HoldToLook = {
+        Enabled = true, -- hold the configured control to hide the cursor and look around; independent of AllowMovement
+        Control = 19, -- INPUT_CHARACTER_WHEEL (Left Alt by default)
+    },
     DevelopmentCommand = true,
     DeviceName = "iFruit Phone",
 }
@@ -83,9 +87,9 @@ Config.Sim = {
     Enabled = true, -- false: devices receive a persistent random number automatically; hex/esx require false
     RegisteredItem = "sky_phone_sim_registered",
     AnonymousItem = "sky_phone_sim_anonymous",
-    NumberLength = 10,
-    NumberPrefix = "",
-    NumberGroups = { 3, 3, 4 },
+    NumberLength = 10, -- total number of digits, including NumberPrefix
+    NumberPrefix = "", -- digits only; use "555", not "555-"
+    NumberGroups = { 3, 3, 4 }, -- display groups separated by spaces
 }
 
 -- =============================================================================
