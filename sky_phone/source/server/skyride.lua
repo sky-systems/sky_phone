@@ -11,30 +11,20 @@ local online_drivers = {}
 local operation_locks = {}
 local services = {}
 
-local function refresh_runtime_configuration()
-    if Config.SkyRide.DistanceUnit ~= "kilometer" and Config.SkyRide.DistanceUnit ~= "mile" then
-        error(("[sky_phone] Invalid SkyRide distance unit '%s'."):format(tostring(Config.SkyRide.DistanceUnit)))
-    end
-
-    local next_services = {}
-    for index = 1, #Config.SkyRide.Services do
-        local service = Config.SkyRide.Services[index]
-        if service.Id ~= "taxi" and service.Id ~= "comfort" and service.Id ~= "xl" and service.Id ~= "premium" then
-            error(("[sky_phone] Invalid SkyRide service class '%s'."):format(tostring(service.Id)))
-        end
-        if next_services[service.Id] then
-            error(("[sky_phone] Duplicate SkyRide service class '%s'."):format(service.Id))
-        end
-        next_services[service.Id] = service
-    end
-    services = next_services
+if Config.SkyRide.DistanceUnit ~= "kilometer" and Config.SkyRide.DistanceUnit ~= "mile" then
+    error(("[sky_phone] Invalid SkyRide distance unit '%s'."):format(tostring(Config.SkyRide.DistanceUnit)))
 end
 
-refresh_runtime_configuration()
-
-AddEventHandler("sky_phone:configurator:serverUpdated", function()
-    refresh_runtime_configuration()
-end)
+for index = 1, #Config.SkyRide.Services do
+    local service = Config.SkyRide.Services[index]
+    if service.Id ~= "taxi" and service.Id ~= "comfort" and service.Id ~= "xl" and service.Id ~= "premium" then
+        error(("[sky_phone] Invalid SkyRide service class '%s'."):format(tostring(service.Id)))
+    end
+    if services[service.Id] then
+        error(("[sky_phone] Duplicate SkyRide service class '%s'."):format(service.Id))
+    end
+    services[service.Id] = service
+end
 
 local ride_select = [[
     SELECT r.*,

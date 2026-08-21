@@ -92,23 +92,6 @@ as project instructions, not as optional documentation.
   proof.
 - Do not hand-edit generated frontend output.
 
-## Phone Configurator parity (mandatory)
-
-- Every new, changed, renamed, moved, or removed configurable value in
-  `sky_phone/config/config.lua` or `sky_phone/config/media.lua` **must** be
-  reflected in the in-game Phone Configurator in the same change. Config-only
-  changes without matching Configurator support are incomplete and must not be
-  committed or merged.
-- Keep the Configurator's runtime schema, defaults, value types, fixed versus
-  extensible collection rules, labels, descriptions, English and German
-  locales, SQL persistence, validation, and save/load roundtrip aligned with
-  the Lua configuration.
-- The Configurator must remain complete when file-based configuration is
-  disabled. Do not introduce a setting that can only be managed by editing Lua
-  after `Config.PhoneConfigurator.Enabled` is enabled.
-- Add or update contract/fixture coverage so configuration parity regressions
-  fail automated checks.
-
 ## Working method and verification
 
 1. Trace the relevant client, server, NUI, configuration, persistence, and event

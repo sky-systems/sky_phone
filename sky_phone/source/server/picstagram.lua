@@ -1,16 +1,6 @@
 Bridge.Database.AfterMigration("sky_phone", function()
 local report_reasons = {}
-local password_pepper = ""
-
-local function refresh_runtime_configuration()
-    password_pepper = tostring(Config.Server.PicstagramPasswordPepper or "")
-    report_reasons = {}
-    for index = 1, #Config.Picstagram.ReportReasons do
-        report_reasons[Config.Picstagram.ReportReasons[index]] = true
-    end
-end
-
-refresh_runtime_configuration()
+local password_pepper = tostring(Config.Server.PicstagramPasswordPepper or "")
 
 if password_pepper == "" then
     Bridge.Debug(
@@ -20,9 +10,9 @@ if password_pepper == "" then
     )
 end
 
-AddEventHandler("sky_phone:configurator:serverUpdated", function()
-    refresh_runtime_configuration()
-end)
+for index = 1, #Config.Picstagram.ReportReasons do
+    report_reasons[Config.Picstagram.ReportReasons[index]] = true
+end
 
 local function trim(value)
     if type(value) ~= "string" then
@@ -1444,10 +1434,7 @@ Bridge.Callbacks.Register("sky_phone:picstagram:admin-resolve-report", function(
     return { success = true }
 end)
 
-local active_verify_command = nil
-local registered_verify_commands = {}
-
-local function run_verify_command(source, args)
+RegisterCommand(Config.Picstagram.VerifyCommand, function(source, args)
     local command_locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale).PicstagramCommand
     local function command_message(template, values)
         return template:gsub("{(%w+)}", function(key)
@@ -1502,26 +1489,5 @@ local function run_verify_command(source, args)
         handle = handle,
         state = state == 1 and command_locale.verified or command_locale.unverified,
     }), "success")
-end
-
-local function refresh_verify_command()
-    local command_name = Config.Picstagram.VerifyCommand
-    if type(command_name) ~= "string" or command_name == "" then
-        error("[sky_phone] Config.Picstagram.VerifyCommand must be a non-empty command name.")
-    end
-    active_verify_command = command_name
-    if registered_verify_commands[command_name] then
-        return
-    end
-    registered_verify_commands[command_name] = true
-    RegisterCommand(command_name, function(source, args)
-        if active_verify_command == command_name then
-            run_verify_command(source, args)
-        end
-    end, false)
-end
-
-refresh_verify_command()
-
-AddEventHandler("sky_phone:configurator:serverUpdated", refresh_verify_command)
+end, false)
 end)

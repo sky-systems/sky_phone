@@ -2,10 +2,6 @@ Bridge.Database.AfterMigration("sky_phone", function()
 SkyPhoneSecurity = {}
 
 local passcode_pepper = tostring(Config.Server.PasscodePepper or "")
-AddEventHandler("sky_phone:configurator:serverUpdated", function()
-    passcode_pepper = tostring(Config.Server.PasscodePepper or "")
-end)
-
 if passcode_pepper == "" then
     Bridge.Debug(
         "warn",

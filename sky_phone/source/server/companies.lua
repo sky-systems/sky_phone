@@ -905,22 +905,9 @@ local function cleanup_retained_data()
     end
 end
 
-local function refresh_runtime_configuration()
-    definitions = {}
-    definition_ids = {}
-    definitions_by_job = {}
-    service_lines_by_number = {}
-    validate_configuration()
-    seed_companies()
-    tombstone_removed_companies()
-end
-
-refresh_runtime_configuration()
-
-AddEventHandler("sky_phone:configurator:serverUpdated", function()
-    refresh_runtime_configuration()
-end)
-
+validate_configuration()
+seed_companies()
+tombstone_removed_companies()
 cleanup_retained_data()
 
 CreateThread(function()

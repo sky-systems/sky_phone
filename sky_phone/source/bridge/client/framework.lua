@@ -21,23 +21,10 @@ local function resolve_framework()
     return nil
 end
 
-local function refresh_framework()
-    local resolved = resolve_framework()
-    if resolved ~= "esx" and resolved ~= "qbox" and resolved ~= "qb" then
-        error("[sky_phone] No supported framework is running. Configure Config.Bridge.Framework.")
-    end
-    if resolved == framework_name then
-        return
-    end
-
-    framework_name = resolved
-    esx = nil
-    qb = nil
+framework_name = resolve_framework()
+if not framework_name then
+    error("[sky_phone] No supported framework is running. Configure Config.Bridge.Framework.")
 end
-
-refresh_framework()
-
-AddEventHandler("sky_phone:configurator:updated", refresh_framework)
 
 function Bridge.Framework.GetName()
     return framework_name

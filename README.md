@@ -231,34 +231,6 @@ The files contain clearly separated sections for:
 
 Restart `sky_phone` after changing Lua configuration.
 
-### In-game phone configurator
-
-Set the switch at the beginning of `config/config.lua` to use SQL-backed configuration:
-
-```lua
-Config.PhoneConfigurator = {
-    Enabled = true,
-}
-```
-
-When enabled, `config.lua` and the server-only `media.lua` are first-run defaults. Sky Phone creates
-the `sky_phone_configurator` table automatically, loads its saved values before framework and phone
-modules initialize, and exposes the editor through `/phonepanel`. Nothing autosaves: stage changes
-in the Phone Configurator tool and press the green check. Saving verifies both SQL payloads and then
-applies the new server, client, media, app, item, command, provider, animation, and UI values through
-Sky Phone's internal runtime refresh. It does not execute a resource restart command.
-
-Every `Config.*` value from `config.lua`, including server-only sections, and every value from
-`Config.Media` is discovered automatically. The bootstrap switch above intentionally remains
-file-owned because it decides whether SQL configuration is loaded. Lists, nested objects, vectors,
-and numeric-keyed Lua tables use structured editors instead of raw JSON. Shipped schema rows stay
-editable but cannot be renamed, converted, or removed. Every list and table still accepts any number
-of additional rows; administrator-added rows remain removable. Company job keys are intentionally
-fully removable because `Config.Companies.Definitions` is a freely managed job collection.
-
-Media API keys and server peppers are never returned in plaintext to the NUI. Existing secrets are
-shown only as configured and are replaced only when an administrator enters a new value.
-
 ### Language
 
 Available locales:
@@ -643,11 +615,7 @@ Select `rtx`, `quasar`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, or `qbx_prop
 
 ### Companies
 
-Company jobs, public profiles, service numbers, services, permissions, locations, and default
-availability are configured under `Config.Companies.Definitions`. Definitions are not limited to the
-shipped jobs: add any number of company IDs in the in-game configurator and fill the freely
-configurable `Job` value in the automatically generated full company template. Existing job keys can
-also be removed; the remaining Companies settings stay available as normal individual fields.
+Company jobs, public profiles, service numbers, services, permissions, locations, and default availability are configured under `Config.Companies.Definitions`.
 
 ### Weazel News
 

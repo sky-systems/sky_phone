@@ -1,6 +1,8 @@
 Bridge.Database.AfterMigration("sky_phone", function()
 local STORAGE_JSON_MAX_DEPTH = 8
 local STORAGE_JSON_MAX_NODES = 512
+local STORAGE_KEY_MAX_LENGTH = math.min(Config.CustomApps.MaximumStorageKeyLength, 64)
+local STORAGE_VALUE_MAX_BYTES = math.min(Config.CustomApps.MaximumStorageValueBytes, 65536)
 local storage_write_locks = {}
 
 local function affected_rows(result)
@@ -25,7 +27,7 @@ local function validate_storage_json(value, depth, state)
         return value == value and value ~= math.huge and value ~= -math.huge
     end
     if value_type == "string" then
-        return #value <= math.min(Config.CustomApps.MaximumStorageValueBytes, 65536)
+        return #value <= STORAGE_VALUE_MAX_BYTES
     end
     if value_type ~= "table" or state.seen[value] then
         return false
@@ -118,7 +120,7 @@ local function validate_request(source, data, operation)
     end
     if type(data.key) ~= "string"
         or #data.key == 0
-        or #data.key > math.min(Config.CustomApps.MaximumStorageKeyLength, 64)
+        or #data.key > STORAGE_KEY_MAX_LENGTH
         or not data.key:match("^[%w._-]+$")
     then
         return nil, nil, { success = false, error = "invalid_storage_key" }
@@ -203,7 +205,7 @@ Bridge.Callbacks.Register("sky_phone:custom-app:storage:set", function(source, d
     local encoded, payload = pcall(json.encode, request.value)
     if not encoded
         or type(payload) ~= "string"
-        or #payload > math.min(Config.CustomApps.MaximumStorageValueBytes, 65536)
+        or #payload > STORAGE_VALUE_MAX_BYTES
     then
         return { success = false, error = "storage_value_too_large" }
     end

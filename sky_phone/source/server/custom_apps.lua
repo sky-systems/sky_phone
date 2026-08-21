@@ -474,43 +474,25 @@ SkyPhoneApps.ServerPublicApi = {
     UpdateCustomAppPolicyFromAdapter = update_custom_app_policy_from_adapter,
 }
 
-local function refresh_bundled_policies()
-    local removals = {}
-    for app_id, policy in pairs(policies_by_id) do
-        if policy.bundled then
-            removals[#removals + 1] = app_id
-        end
-    end
-    for _, app_id in ipairs(removals) do
-        remove_policy(app_id)
-    end
-
-    if Config.CustomApps.Enabled and Config.CustomApps.BundledApps then
-        local bundled = SkyPhoneApps.GetBundledManifests()
-        for index = 1, #bundled do
-            local manifest = bundled[index]
-            local registered, register_error = register_policy({
-                adapterResource = nil,
-                bundled = true,
-                id = manifest.id,
-                ownerResource = current_resource,
-                permissions = build_permission_set(manifest.permissions),
-            })
-            if not registered then
-                error(("[sky_phone] Could not register bundled custom app policy '%s': %s"):format(
-                    manifest.id,
-                    register_error
-                ))
-            end
+if Config.CustomApps.Enabled and Config.CustomApps.BundledApps then
+    local bundled = SkyPhoneApps.GetBundledManifests()
+    for index = 1, #bundled do
+        local manifest = bundled[index]
+        local registered, register_error = register_policy({
+            adapterResource = nil,
+            bundled = true,
+            id = manifest.id,
+            ownerResource = current_resource,
+            permissions = build_permission_set(manifest.permissions),
+        })
+        if not registered then
+            error(("[sky_phone] Could not register bundled custom app policy '%s': %s"):format(
+                manifest.id,
+                register_error
+            ))
         end
     end
 end
-
-refresh_bundled_policies()
-
-AddEventHandler("sky_phone:configurator:serverUpdated", function()
-    refresh_bundled_policies()
-end)
 
 AddEventHandler("onResourceStop", function(resource_name)
     if resource_name == current_resource then

@@ -10,12 +10,6 @@
     Keep option names unchanged. Restart sky_phone after editing this file.
 ]]
 
--- When enabled, config.lua and media.lua only provide first-run defaults.
--- The active configuration is loaded from SQL and managed through /phonepanel.
-Config.PhoneConfigurator = {
-    Enabled = true,
-}
-
 -- =============================================================================
 -- Core, framework and device
 -- =============================================================================
@@ -56,7 +50,7 @@ Config.CustomApps = {
     Enabled = true,
     BundledApps = true,
     ExternalApps = true,
-    Debug = false, -- detailed client traces for exports, registration, catalog sync and lifecycle events
+    Debug = true, -- detailed client traces for exports, registration, catalog sync and lifecycle events
     ReadyTimeoutMs = 8000,
     MaximumMessageBytes = 65536,
     MaximumStorageBytesPerApp = 262144,
@@ -71,18 +65,6 @@ Config.Security = {
     MaximumAttempts = 5,
     LockSeconds = 30,
     AttemptsPerMinute = 12,
-}
-
-Config.AdminPanel = {
-    Enabled = true,
-    Command = "phonepanel",
-    AdminGroups = { "admin", "superadmin" },
-    MaximumPlayers = 128,
-    ReadRequestsPerMinute = 60,
-    ActionRequestsPerMinute = 30,
-    CredentialRevealsPerMinute = 6,
-    AuditLimit = 40,
-    ActivityLimit = 40,
 }
 
 Config.Sim = {

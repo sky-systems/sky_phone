@@ -17,8 +17,7 @@ function escapeRegExp(value: string): string {
 describe('App Store preview catalog', () => {
   it('contains a real captured screenshot for every built-in store app', () => {
     const storeAppIds = PHONE_APPS.filter(
-      (app) =>
-        app.kind !== 'external' && app.id !== 'app-store' && !app.adminOnly,
+      (app) => app.kind !== 'external' && app.id !== 'app-store',
     ).map((app) => app.id)
 
     expect([...APP_STORE_PREVIEW_IMAGE_IDS].sort()).toEqual(storeAppIds.sort())
@@ -26,8 +25,7 @@ describe('App Store preview catalog', () => {
 
   it('provides specialized preview data for every built-in store app', () => {
     const storeAppIds = PHONE_APPS.filter(
-      (app) =>
-        app.kind !== 'external' && app.id !== 'app-store' && !app.adminOnly,
+      (app) => app.kind !== 'external' && app.id !== 'app-store',
     ).map((app) => app.id)
 
     expect([...PREVIEWABLE_BUILTIN_APP_IDS].sort()).toEqual(
