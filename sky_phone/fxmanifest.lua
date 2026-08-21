@@ -76,6 +76,7 @@ server_scripts {
     'config/media.lua',
     'config/locales/en.lua',
     'config/locales/de.lua',
+    'source/server/nui_build_check.lua',
     'source/server/update_check.lua',
     'source/bridge/server/database.lua',
     'source/bridge/server/migrations.lua',
@@ -151,6 +152,7 @@ files {
     'source/html/index.html',
     'source/html/assets/**',
     'source/html/img/**',
+    'source/html/sounds/**',
     'config/music/**',
 }
 
