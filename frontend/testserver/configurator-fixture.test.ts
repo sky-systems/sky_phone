@@ -15,6 +15,7 @@ type ConfiguratorStructure = {
   entries?: Array<{ structure: ConfiguratorStructure }>
   fields?: Record<string, ConfiguratorStructure>
   items?: ConfiguratorStructure[]
+  keyType?: 'number' | 'string'
   kind: string
   mutableKeys?: boolean
   template?: ConfiguratorStructure
@@ -127,5 +128,67 @@ describe('admin configurator fixture', () => {
     expect(
       garage?.structure?.fields?.VehicleImages.fields?.ModelNames.kind,
     ).toBe('map')
+  })
+
+  it('publishes fixed schemas for every empty configurable collection', () => {
+    const fields = loadConfiguratorSections().flatMap(
+      (section) => section.fields,
+    )
+    const root = (path: string) =>
+      fields.find((field) => field.path === path)?.structure
+
+    expect(root('Music')?.fields?.Tracks).toMatchObject({
+      items: [],
+      kind: 'list',
+      template: {
+        fields: {
+          Artist: { kind: 'value', valueType: 'string' },
+          Id: { kind: 'value', valueType: 'string' },
+          Title: { kind: 'value', valueType: 'string' },
+        },
+        kind: 'table',
+      },
+    })
+    expect(root('FlipTok')?.fields?.MusicTracks.template).toMatchObject({
+      fields: { Url: { kind: 'value', valueType: 'string' } },
+      kind: 'table',
+    })
+    expect(root('Payphones')?.fields?.CustomLocations.template).toEqual({
+      kind: 'vector',
+      vectorType: 'vector4',
+    })
+    expect(root('CrewLink')?.fields?.ExternalPingResources).toMatchObject({
+      fields: {},
+      kind: 'table',
+      mutableKeys: true,
+      template: { kind: 'value', valueType: 'boolean' },
+    })
+    expect(root('CustomApps')?.fields?.TrustedAdapters).toMatchObject({
+      fields: {},
+      kind: 'table',
+      mutableKeys: true,
+      template: { kind: 'value', valueType: 'boolean' },
+    })
+    expect(
+      root('Garage')?.fields?.VehicleImages.fields?.ModelNames,
+    ).toMatchObject({
+      entries: [],
+      keyType: 'number',
+      kind: 'map',
+      template: { kind: 'value', valueType: 'string' },
+    })
+    expect(
+      root('Companies.Definitions')?.fields?.police.fields?.Services,
+    ).toMatchObject({
+      items: [],
+      kind: 'list',
+      template: {
+        fields: {
+          Id: { kind: 'value', valueType: 'string' },
+          RequestsEnabled: { kind: 'value', valueType: 'boolean' },
+        },
+        kind: 'table',
+      },
+    })
   })
 })

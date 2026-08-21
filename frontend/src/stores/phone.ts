@@ -918,6 +918,7 @@ const adminPanelFallbackLocales = {
       table: 'Key table',
       vector: 'Vector',
       entry: 'Entry',
+      general: 'General',
       addRow: 'Add row',
       addField: 'Add field',
       remove: 'Remove',

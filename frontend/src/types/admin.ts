@@ -127,6 +127,7 @@ export type AdminConfiguratorStructure =
   | {
       kind: 'list'
       items: AdminConfiguratorStructure[]
+      template?: AdminConfiguratorStructure
     }
   | {
       fields: Record<string, AdminConfiguratorStructure>
@@ -140,7 +141,9 @@ export type AdminConfiguratorStructure =
         keyType: 'number' | 'string'
         structure: AdminConfiguratorStructure
       }>
+      keyType?: 'number' | 'string'
       kind: 'map'
+      template?: AdminConfiguratorStructure
     }
   | {
       kind: 'value'

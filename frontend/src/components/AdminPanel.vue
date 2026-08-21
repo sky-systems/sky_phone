@@ -73,6 +73,7 @@ type AdminTab =
   | 'moderation'
   | 'audit'
   | 'configurator'
+type ConfiguratorScope = 'config' | 'media'
 type DeviceAction = 'reset-passcode' | 'change-number' | 'factory-reset'
 type PendingAction = { kind: 'close' } | { kind: 'player'; source: number }
 
@@ -83,6 +84,7 @@ const tab = ref<AdminTab>('overview')
 const playerQuery = ref('')
 const appQuery = ref('')
 const configuratorQuery = ref('')
+const configuratorScope = ref<ConfiguratorScope>('config')
 const selectedConfiguratorSection = ref('')
 const selectedImei = ref('')
 const drafts = ref<Record<string, Record<string, boolean>>>({})
@@ -263,7 +265,9 @@ const selectedCalls = computed(() =>
     : [],
 )
 const filteredConfiguratorSections = computed(() => {
-  const sections = admin.configurator?.sections ?? []
+  const sections = (admin.configurator?.sections ?? []).filter(
+    (section) => section.scope === configuratorScope.value,
+  )
   const needle = configuratorQuery.value.trim().toLocaleLowerCase(phone.lang)
   if (!needle) return sections
   return sections.filter(
@@ -277,6 +281,13 @@ const filteredConfiguratorSections = computed(() => {
           configuratorStructureContains(field.structure, needle),
       ),
   )
+})
+const configuratorScopeCounts = computed(() => {
+  const sections = admin.configurator?.sections ?? []
+  return {
+    config: sections.filter((section) => section.scope === 'config').length,
+    media: sections.filter((section) => section.scope === 'media').length,
+  }
 })
 const filteredConfiguratorFieldCount = computed(() =>
   filteredConfiguratorSections.value.reduce(
@@ -305,14 +316,17 @@ watch(
 )
 
 watch(
-  () => admin.configurator?.sections,
-  (sections) => {
+  [() => admin.configurator?.sections, configuratorScope],
+  ([sections, scope]) => {
     if (
       !sections?.some(
-        (section) => section.id === selectedConfiguratorSection.value,
+        (section) =>
+          section.id === selectedConfiguratorSection.value &&
+          section.scope === scope,
       )
     ) {
-      selectedConfiguratorSection.value = sections?.[0]?.id ?? ''
+      selectedConfiguratorSection.value =
+        sections?.find((section) => section.scope === scope)?.id ?? ''
     }
   },
 )
@@ -337,6 +351,11 @@ function t(key: string, params?: Record<string, string>): string {
   return phone.t('AdminPanel.' + key, params)
 }
 
+function selectConfiguratorScope(scope: ConfiguratorScope): void {
+  configuratorScope.value = scope
+  configuratorQuery.value = ''
+}
+
 function configuratorDescription(
   path: string,
   value: unknown,
@@ -356,6 +375,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyList: t('configurator.table.emptyList'),
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
+  general: t('configurator.table.general'),
   keyPlaceholder: t('configurator.table.keyPlaceholder'),
   list: t('configurator.table.list'),
   remove: t('configurator.table.remove'),
@@ -1038,6 +1058,32 @@ onBeforeUnmount(() => {
                 :aria-label="t('configurator.search')"
               />
             </label>
+            <div
+              class="admin-panel-config-scopes"
+              role="tablist"
+              :aria-label="t('configurator.sections')"
+            >
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="configuratorScope === 'config'"
+                :class="{ 'is-active': configuratorScope === 'config' }"
+                @click="selectConfiguratorScope('config')"
+              >
+                <span>{{ t('configurator.configScope') }}</span>
+                <em>{{ configuratorScopeCounts.config }}</em>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="configuratorScope === 'media'"
+                :class="{ 'is-active': configuratorScope === 'media' }"
+                @click="selectConfiguratorScope('media')"
+              >
+                <span>{{ t('configurator.mediaScope') }}</span>
+                <em>{{ configuratorScopeCounts.media }}</em>
+              </button>
+            </div>
             <div class="admin-panel-config-sections">
               <button
                 v-for="section in filteredConfiguratorSections"
@@ -1273,10 +1319,6 @@ onBeforeUnmount(() => {
                   <span>{{ t('configurator.eyebrow') }}</span>
                   <h1>{{ t('configurator.title') }}</h1>
                   <p>{{ t('configurator.body') }}</p>
-                </div>
-                <div class="admin-panel-config-meta">
-                  <span>SQL</span>
-                  <strong>R{{ admin.configurator.revision }}</strong>
                 </div>
               </div>
 
@@ -2178,28 +2220,28 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .admin-panel-overlay {
-  --admin-bg: #090b0a;
-  --admin-panel: #111311;
-  --admin-panel-raised: #171917;
-  --admin-panel-hover: #202320;
-  --admin-nav-active: #292c29;
+  --admin-bg: #070908;
+  --admin-panel: #0d0f0e;
+  --admin-panel-raised: #131514;
+  --admin-panel-hover: #191b1a;
+  --admin-nav-active: #202220;
   --admin-border: rgba(255, 255, 255, 0.045);
   --admin-border-strong: rgba(255, 255, 255, 0.085);
   --admin-text: #f0f3f0;
   --admin-muted: #818781;
   --admin-dim: #555b55;
   --admin-green: var(--admin-accent, #74d66f);
-  --admin-green-soft: color-mix(in srgb, var(--admin-green) 14%, transparent);
+  --admin-green-soft: color-mix(in srgb, var(--admin-green) 9%, transparent);
   --admin-row-hover: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--admin-green) 10%, #1b1e1b) 0%,
-    rgba(27, 30, 27, 0.52) 48%,
+    #1a1c1b 0%,
+    rgba(24, 26, 25, 0.52) 48%,
     transparent 100%
   );
   --admin-row-active: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--admin-green) 19%, #1d201d) 0%,
-    color-mix(in srgb, var(--admin-green) 7%, #171917) 45%,
+    #212321 0%,
+    #171918 45%,
     transparent 100%
   );
   --admin-red: #ef6969;
@@ -2219,12 +2261,12 @@ onBeforeUnmount(() => {
   width: min(76vw, 1220px);
   height: min(74vh, 700px);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.065);
   border-radius: 4px;
   background: var(--admin-bg);
   box-shadow:
-    0 18px 52px rgba(0, 0, 0, 0.62),
-    inset 0 1px rgba(255, 255, 255, 0.025);
+    0 20px 56px rgba(0, 0, 0, 0.72),
+    inset 0 1px rgba(255, 255, 255, 0.018);
 }
 
 .admin-panel-header {
@@ -2347,14 +2389,15 @@ onBeforeUnmount(() => {
 }
 
 .admin-panel-save.is-ready {
-  border-color: color-mix(in srgb, var(--admin-green) 50%, transparent);
-  color: #091009;
-  background: var(--admin-green);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--admin-green) 18%, transparent);
+  border-color: var(--admin-border-strong);
+  color: #74d66f;
+  background: #121413;
+  box-shadow: none;
 }
 
 .admin-panel-save.is-ready:hover:not(:disabled) {
-  filter: brightness(1.08);
+  color: color-mix(in srgb, #74d66f 82%, white);
+  background: #191b1a;
 }
 
 .admin-panel-close:hover {
@@ -2559,6 +2602,49 @@ button:disabled {
   color: #5f655f;
 }
 
+.admin-panel-config-scopes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  margin: 0 12px 8px;
+  padding: 3px;
+  border-radius: 4px;
+  background: #171917;
+}
+
+.admin-panel-config-scopes button {
+  min-width: 0;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 3px;
+  color: var(--admin-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.admin-panel-config-scopes button:hover,
+.admin-panel-config-scopes button.is-active {
+  color: var(--admin-text);
+  background: var(--admin-row-active);
+}
+
+.admin-panel-config-scopes button.is-active {
+  box-shadow: inset 0 -1px var(--admin-green);
+}
+
+.admin-panel-config-scopes em {
+  color: var(--admin-dim);
+  font-size: 7px;
+  font-style: normal;
+}
+
 .admin-panel-player-list,
 .admin-panel-audit-mini-list,
 .admin-panel-config-sections {
@@ -2570,7 +2656,7 @@ button:disabled {
 }
 
 .admin-panel-config-sections {
-  height: calc(100% - 111px);
+  height: calc(100% - 149px);
   overflow-y: auto;
   padding: 0 8px 16px;
   scrollbar-color: #343834 transparent;
@@ -3481,23 +3567,6 @@ button:disabled {
   gap: 2px;
 }
 
-.admin-panel-config-meta {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-left: auto;
-  padding: 5px 8px;
-  border-radius: 4px;
-  color: var(--admin-muted);
-  background: #171917;
-  font-size: 9px;
-}
-
-.admin-panel-config-meta strong {
-  color: var(--admin-green);
-  font-size: 9px;
-}
-
 .admin-panel-config-disabled,
 .admin-panel-config-notice {
   display: grid;
@@ -3601,7 +3670,7 @@ button:disabled {
 .admin-panel-config-field {
   min-height: 51px;
   display: grid;
-  grid-template-columns: minmax(170px, 0.72fr) minmax(230px, 1.28fr);
+  grid-template-columns: minmax(220px, 0.9fr) minmax(210px, 1.1fr);
   align-items: center;
   gap: 14px;
   padding: 8px 12px;

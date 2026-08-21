@@ -431,15 +431,77 @@ local function restore_redacted_values(value, current, path)
     return restored
 end
 
-local function empty_structure_kind(scope, path)
+local function empty_structure(scope, path)
     if scope ~= "config" then
         return nil
     end
     if path == "Garage.VehicleImages.ModelNames" then
-        return "map"
+        return {
+            entries = {},
+            keyType = "number",
+            kind = "map",
+            template = { kind = "value", valueType = "string" },
+        }
     end
-    if path == "FlipTok.MusicTracks" or path:match("^Companies%.Definitions%.[^.]+%.Services$") then
-        return "list"
+    if path == "CrewLink.ExternalPingResources" or path == "CustomApps.TrustedAdapters" then
+        return {
+            fields = {},
+            kind = "table",
+            mutableKeys = true,
+            template = { kind = "value", valueType = "boolean" },
+        }
+    end
+    if path == "FlipTok.MusicTracks" then
+        return {
+            items = {},
+            kind = "list",
+            template = {
+                fields = {
+                    Artist = { kind = "value", valueType = "string" },
+                    Id = { kind = "value", valueType = "string" },
+                    Title = { kind = "value", valueType = "string" },
+                    Url = { kind = "value", valueType = "string" },
+                },
+                kind = "table",
+            },
+        }
+    end
+    if path == "Music.Tracks" then
+        return {
+            items = {},
+            kind = "list",
+            template = {
+                fields = {
+                    Artist = { kind = "value", valueType = "string" },
+                    Id = { kind = "value", valueType = "string" },
+                    Title = { kind = "value", valueType = "string" },
+                },
+                kind = "table",
+            },
+        }
+    end
+    if path == "Payphones.CustomLocations" then
+        return {
+            items = {},
+            kind = "list",
+            template = { kind = "vector", vectorType = "vector4" },
+        }
+    end
+    if path:match("^Companies%.Definitions%.[^.]+%.Services$") then
+        return {
+            items = {},
+            kind = "list",
+            template = {
+                fields = {
+                    Description = { kind = "value", valueType = "string" },
+                    Id = { kind = "value", valueType = "string" },
+                    Price = { kind = "value", valueType = "string" },
+                    RequestsEnabled = { kind = "value", valueType = "boolean" },
+                    Title = { kind = "value", valueType = "string" },
+                },
+                kind = "table",
+            },
+        }
     end
     return nil
 end
@@ -483,30 +545,29 @@ local function build_structure(value, scope, path)
     end
     if value.__skyType == "map" then
         local entries = {}
+        local key_type
         for index, entry in ipairs(value.entries or {}) do
             entries[index] = {
                 key = entry.key,
                 keyType = entry.keyType,
                 structure = build_structure(entry.value, scope, path .. "." .. tostring(entry.key)),
             }
+            if index == 1 then
+                key_type = entry.keyType
+            elseif key_type ~= entry.keyType then
+                key_type = nil
+            end
         end
         return {
             entries = entries,
+            keyType = key_type,
             kind = "map",
+            template = entries[1] and entries[1].structure or nil,
         }
     end
-    local empty_kind = next(value) == nil and empty_structure_kind(scope, path) or nil
-    if empty_kind == "map" then
-        return {
-            entries = {},
-            kind = "map",
-        }
-    end
-    if empty_kind == "list" then
-        return {
-            items = {},
-            kind = "list",
-        }
+    local configured_empty_structure = next(value) == nil and empty_structure(scope, path) or nil
+    if configured_empty_structure then
+        return configured_empty_structure
     end
     if is_sequence(value) then
         local items = {}
@@ -516,6 +577,7 @@ local function build_structure(value, scope, path)
         return {
             items = items,
             kind = "list",
+            template = items[1],
         }
     end
 
@@ -794,9 +856,17 @@ local function validate_locked_structure(structure, value)
         if type(value) ~= "table" or value.__skyType or (next(value) and not is_sequence(value)) then
             return false
         end
-        for index, item_structure in ipairs(structure.items or {}) do
+        local fixed_items = structure.items or {}
+        for index, item_structure in ipairs(fixed_items) do
             if value[index] == nil or not validate_locked_structure(item_structure, value[index]) then
                 return false
+            end
+        end
+        if structure.template then
+            for index = #fixed_items + 1, #value do
+                if not validate_locked_structure(structure.template, value[index]) then
+                    return false
+                end
             end
         end
         return true
@@ -806,6 +876,11 @@ local function validate_locked_structure(structure, value)
             return false
         end
         if not structure.mutableKeys then
+            for key in pairs(value) do
+                if not structure.fields[key] then
+                    return false
+                end
+            end
             for key, field_structure in pairs(structure.fields or {}) do
                 if value[key] == nil or not validate_locked_structure(field_structure, value[key]) then
                     return false
@@ -840,6 +915,21 @@ local function validate_locked_structure(structure, value)
         local child = entries[entry.keyType .. ":" .. tostring(entry.key)]
         if child == nil or not validate_locked_structure(entry.structure, child) then
             return false
+        end
+    end
+    if structure.template or structure.keyType then
+        local fixed_entries = {}
+        for _, entry in ipairs(structure.entries or {}) do
+            fixed_entries[entry.keyType .. ":" .. tostring(entry.key)] = true
+        end
+        for _, entry in ipairs(value.entries or {}) do
+            local identity = entry.keyType .. ":" .. tostring(entry.key)
+            local invalid_key_type = structure.keyType and entry.keyType ~= structure.keyType
+            local invalid_value = structure.template
+                and not validate_locked_structure(structure.template, entry.value)
+            if not fixed_entries[identity] and (invalid_key_type or invalid_value) then
+                return false
+            end
         end
     end
     return true

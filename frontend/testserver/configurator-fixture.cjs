@@ -400,6 +400,82 @@ function maskValue(value, path) {
     : value
 }
 
+function emptyStructure(scope, path) {
+  if (scope !== 'config') return undefined
+  if (path === 'Garage.VehicleImages.ModelNames') {
+    return {
+      entries: [],
+      keyType: 'number',
+      kind: 'map',
+      template: { kind: 'value', valueType: 'string' },
+    }
+  }
+  if (
+    path === 'CrewLink.ExternalPingResources' ||
+    path === 'CustomApps.TrustedAdapters'
+  ) {
+    return {
+      fields: {},
+      kind: 'table',
+      mutableKeys: true,
+      template: { kind: 'value', valueType: 'boolean' },
+    }
+  }
+  if (path === 'FlipTok.MusicTracks') {
+    return {
+      items: [],
+      kind: 'list',
+      template: {
+        fields: {
+          Artist: { kind: 'value', valueType: 'string' },
+          Id: { kind: 'value', valueType: 'string' },
+          Title: { kind: 'value', valueType: 'string' },
+          Url: { kind: 'value', valueType: 'string' },
+        },
+        kind: 'table',
+      },
+    }
+  }
+  if (path === 'Music.Tracks') {
+    return {
+      items: [],
+      kind: 'list',
+      template: {
+        fields: {
+          Artist: { kind: 'value', valueType: 'string' },
+          Id: { kind: 'value', valueType: 'string' },
+          Title: { kind: 'value', valueType: 'string' },
+        },
+        kind: 'table',
+      },
+    }
+  }
+  if (path === 'Payphones.CustomLocations') {
+    return {
+      items: [],
+      kind: 'list',
+      template: { kind: 'vector', vectorType: 'vector4' },
+    }
+  }
+  if (/^Companies\.Definitions\.[^.]+\.Services$/.test(path)) {
+    return {
+      items: [],
+      kind: 'list',
+      template: {
+        fields: {
+          Description: { kind: 'value', valueType: 'string' },
+          Id: { kind: 'value', valueType: 'string' },
+          Price: { kind: 'value', valueType: 'string' },
+          RequestsEnabled: { kind: 'value', valueType: 'boolean' },
+          Title: { kind: 'value', valueType: 'string' },
+        },
+        kind: 'table',
+      },
+    }
+  }
+  return undefined
+}
+
 function buildStructure(value, scope, path) {
   if (scope === 'config' && path === 'Phone.Keybind') {
     return { kind: 'optionalString' }
@@ -425,30 +501,35 @@ function buildStructure(value, scope, path) {
       template: keys[0] ? fields[keys[0]] : undefined,
     }
   }
-  if (
-    scope === 'config' &&
-    path === 'Garage.VehicleImages.ModelNames' &&
-    Array.isArray(value) &&
-    value.length === 0
-  ) {
-    return { kind: 'map', entries: [] }
+  const configuredEmptyStructure =
+    Array.isArray(value) && value.length === 0
+      ? emptyStructure(scope, path)
+      : undefined
+  if (configuredEmptyStructure) {
+    return configuredEmptyStructure
   }
   if (Array.isArray(value)) {
+    const items = value.map((child, index) =>
+      buildStructure(child, scope, `${path}.${index + 1}`),
+    )
     return {
       kind: 'list',
-      items: value.map((child, index) =>
-        buildStructure(child, scope, `${path}.${index + 1}`),
-      ),
+      items,
+      template: items[0],
     }
   }
   if (value?.__skyType === 'map' && Array.isArray(value.entries)) {
+    const entries = value.entries.map((entry) => ({
+      key: entry.key,
+      keyType: entry.keyType,
+      structure: buildStructure(entry.value, scope, `${path}.${entry.key}`),
+    }))
+    const keyTypes = new Set(entries.map((entry) => entry.keyType))
     return {
       kind: 'map',
-      entries: value.entries.map((entry) => ({
-        key: entry.key,
-        keyType: entry.keyType,
-        structure: buildStructure(entry.value, scope, `${path}.${entry.key}`),
-      })),
+      entries,
+      keyType: keyTypes.size === 1 ? entries[0]?.keyType : undefined,
+      template: entries[0]?.structure,
     }
   }
   if (/^vector[234]$/.test(value?.__skyType ?? '')) {

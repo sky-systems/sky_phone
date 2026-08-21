@@ -21,6 +21,7 @@ export type AdminConfigEditorLabels = {
   emptyList: string
   emptyTable: string
   entry: string
+  general: string
   keyPlaceholder: string
   list: string
   remove: string
@@ -59,6 +60,7 @@ type SerializedMapEntry = {
   keyType: MapKeyKind
   value: unknown
 }
+type RootTableTab = { count: number; id: string; key?: string; label: string }
 
 const newArrayKind = ref<ValueKind>('string')
 const newObjectKey = ref('')
@@ -67,6 +69,7 @@ const newMapKey = ref('')
 const newMapKeyKind = ref<MapKeyKind>('string')
 const newMapValueKind = ref<ValueKind>('string')
 const expandedEntry = ref<string | null>(null)
+const selectedTableTab = ref('')
 
 const isList = computed(
   () =>
@@ -112,11 +115,18 @@ const mapEntries = computed<SerializedMapEntry[]>(() => {
 const listStructure = computed(() =>
   props.structure?.kind === 'list' ? props.structure : null,
 )
+const listTemplate = computed(
+  () => listStructure.value?.template ?? listStructure.value?.items[0],
+)
 const tableStructure = computed(() =>
   props.structure?.kind === 'table' ? props.structure : null,
 )
 const mapStructure = computed(() =>
   props.structure?.kind === 'map' ? props.structure : null,
+)
+const mapTemplate = computed(() => mapStructure.value?.template)
+const newMapEntryKeyKind = computed<MapKeyKind>(
+  () => mapStructure.value?.keyType ?? newMapKeyKind.value,
 )
 const canAddTableField = computed(() => {
   const key = newObjectKey.value.trim()
@@ -138,11 +148,49 @@ const tableEntries = computed(() =>
     ([key]) => key !== '__skyType' && (!mapType.value || key !== 'entries'),
   ),
 )
+const rootTableTabs = computed<RootTableTab[]>(() => {
+  if (props.depth !== 0 || !tableStructure.value || mapType.value) return []
+  const structuredEntries = tableEntries.value.filter(([key, value]) =>
+    isStructuredValue(value, tableFieldStructure(key)),
+  )
+  if (!structuredEntries.length) return []
+  const scalarCount = tableEntries.value.length - structuredEntries.length
+  return [
+    ...(scalarCount
+      ? [{ count: scalarCount, id: 'general', label: props.labels.general }]
+      : []),
+    ...structuredEntries.map(([key]) => ({
+      count: configuratorStructureSize(tableFieldStructure(key)),
+      id: `field:${key}`,
+      key,
+      label: key,
+    })),
+  ]
+})
+const activeRootTableTab = computed(
+  () =>
+    rootTableTabs.value.find((tab) => tab.id === selectedTableTab.value) ??
+    rootTableTabs.value[0] ??
+    null,
+)
+const activeRootTableField = computed(() => {
+  const key = activeRootTableTab.value?.key
+  if (!key) return null
+  const entry = tableEntries.value.find(([candidate]) => candidate === key)
+  return entry ? { key: entry[0], value: entry[1] } : null
+})
+const visibleTableEntries = computed(() => {
+  if (!rootTableTabs.value.length) return tableEntries.value
+  if (activeRootTableField.value) return []
+  return tableEntries.value.filter(
+    ([key, value]) => !isStructuredValue(value, tableFieldStructure(key)),
+  )
+})
 const isMaskedSecret = computed(() => props.modelValue === '***REDACTED***')
 const parsedNewMapKey = computed(() => {
   const key = newMapKey.value.trim()
   if (!key) return null
-  if (newMapKeyKind.value === 'string') return key
+  if (newMapEntryKeyKind.value === 'string') return key
   const numeric = Number(key)
   return Number.isFinite(numeric) ? numeric : null
 })
@@ -150,7 +198,7 @@ const canAddMapEntry = computed(() => {
   const key = parsedNewMapKey.value
   if (key === null) return false
   return !mapEntries.value.some(
-    (entry) => entry.keyType === newMapKeyKind.value && entry.key === key,
+    (entry) => entry.keyType === newMapEntryKeyKind.value && entry.key === key,
   )
 })
 
@@ -216,6 +264,56 @@ function structuredValueLabel(
   return props.labels.table
 }
 
+function structureTypeLabel(structure: AdminConfiguratorStructure): string {
+  if (structure.kind === 'optionalString') return props.labels.types.string
+  if (structure.kind === 'value') return props.labels.types[structure.valueType]
+  if (structure.kind === 'list') return props.labels.types.list
+  if (structure.kind === 'vector') {
+    return `${props.labels.vector} ${structure.vectorType.slice(-1)}`
+  }
+  return props.labels.types.table
+}
+
+function configuratorStructureSize(
+  structure: AdminConfiguratorStructure | undefined,
+): number {
+  if (
+    !structure ||
+    structure.kind === 'optionalString' ||
+    structure.kind === 'value'
+  ) {
+    return 1
+  }
+  if (structure.kind === 'vector') {
+    return Number(structure.vectorType.slice(-1))
+  }
+  if (structure.kind === 'list') {
+    return Math.max(
+      1,
+      structure.items.reduce(
+        (total, item) => total + configuratorStructureSize(item),
+        0,
+      ),
+    )
+  }
+  if (structure.kind === 'map') {
+    return Math.max(
+      1,
+      structure.entries.reduce(
+        (total, entry) => total + configuratorStructureSize(entry.structure),
+        0,
+      ),
+    )
+  }
+  return Math.max(
+    1,
+    Object.values(structure.fields).reduce(
+      (total, field) => total + configuratorStructureSize(field),
+      0,
+    ),
+  )
+}
+
 function toggleStructuredEntry(entry: string): void {
   expandedEntry.value = expandedEntry.value === entry ? null : entry
 }
@@ -226,6 +324,12 @@ function tableEntryPath(key: string): string {
 
 function listEntryPath(index: number): string {
   return `${props.path || props.ariaLabel}[${index + 1}]`
+}
+
+function listItemStructure(
+  index: number,
+): AdminConfiguratorStructure | undefined {
+  return listStructure.value?.items[index] ?? listTemplate.value
 }
 
 function mapValuePath(entry: SerializedMapEntry): string {
@@ -302,10 +406,14 @@ function addListRow(): void {
   const index = rows.length
   const value = rows.length
     ? blankLike(rows[0])
-    : blankValue(newArrayKind.value)
+    : listTemplate.value
+      ? blankFromStructure(listTemplate.value)
+      : blankValue(newArrayKind.value)
   rows.push(value)
   emit('update:modelValue', rows)
-  if (isStructuredValue(value)) expandedEntry.value = `list:${index}`
+  if (isStructuredValue(value, listTemplate.value)) {
+    expandedEntry.value = `list:${index}`
+  }
 }
 
 function updateListRow(index: number, value: unknown): void {
@@ -374,6 +482,7 @@ function addTableField(): void {
   })
   if (isStructuredValue(value, template)) {
     expandedEntry.value = `table:${key}`
+    if (props.depth === 0) selectedTableTab.value = `field:${key}`
   }
   newObjectKey.value = ''
 }
@@ -395,7 +504,7 @@ function updateMapKey(index: number, event: Event): void {
   if (!(target instanceof HTMLInputElement)) return
   const current = mapEntries.value[index]
   if (!current) return
-  if (mapEntryStructure(current)) {
+  if (fixedMapEntryStructure(current)) {
     target.value = String(current.key)
     return
   }
@@ -430,7 +539,7 @@ function updateMapValue(index: number, value: unknown): void {
 
 function removeMapEntry(index: number): void {
   const entry = mapEntries.value[index]
-  if (!entry || mapEntryStructure(entry)) return
+  if (!entry || fixedMapEntryStructure(entry)) return
   emitMap(
     mapEntries.value.filter((_, candidateIndex) => candidateIndex !== index),
   )
@@ -440,31 +549,39 @@ function removeMapEntry(index: number): void {
 function addMapEntry(): void {
   if (!canAddMapEntry.value || parsedNewMapKey.value === null) return
   const key = parsedNewMapKey.value
-  const value = blankCollectionValue(
-    newMapValueKind.value,
-    mapEntries.value.slice(0, 50).map((entry) => entry.value),
-  )
+  const value = mapTemplate.value
+    ? blankFromStructure(mapTemplate.value)
+    : blankCollectionValue(
+        newMapValueKind.value,
+        mapEntries.value.slice(0, 50).map((entry) => entry.value),
+      )
   emitMap([
     ...mapEntries.value,
     {
       key,
-      keyType: newMapKeyKind.value,
+      keyType: newMapEntryKeyKind.value,
       value,
     },
   ])
-  if (isStructuredValue(value)) {
-    expandedEntry.value = `map:${newMapKeyKind.value}:${key}`
+  if (isStructuredValue(value, mapTemplate.value)) {
+    expandedEntry.value = `map:${newMapEntryKeyKind.value}:${key}`
   }
   newMapKey.value = ''
 }
 
-function mapEntryStructure(
+function fixedMapEntryStructure(
   entry: SerializedMapEntry,
 ): AdminConfiguratorStructure | undefined {
   return mapStructure.value?.entries.find(
     (candidate) =>
       candidate.keyType === entry.keyType && candidate.key === entry.key,
   )?.structure
+}
+
+function mapEntryStructure(
+  entry: SerializedMapEntry,
+): AdminConfiguratorStructure | undefined {
+  return fixedMapEntryStructure(entry) ?? mapTemplate.value
 }
 </script>
 
@@ -500,14 +617,14 @@ function mapEntryStructure(
         :class="{
           'has-structured-value': isStructuredValue(
             row,
-            listStructure?.items[index],
+            listItemStructure(index),
           ),
           'is-expanded': expandedEntry === `list:${index}`,
         }"
       >
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
         <button
-          v-if="isStructuredValue(row, listStructure?.items[index])"
+          v-if="isStructuredValue(row, listItemStructure(index))"
           type="button"
           class="config-structured-editor__section-toggle"
           :aria-label="`${ariaLabel} ${index + 1}`"
@@ -518,36 +635,34 @@ function mapEntryStructure(
             <strong>{{ labels.entry }} {{ index + 1 }}</strong>
             <small
               :title="
-                describe(listEntryPath(index), row, listStructure?.items[index])
+                describe(listEntryPath(index), row, listItemStructure(index))
               "
             >
               {{
-                describe(listEntryPath(index), row, listStructure?.items[index])
+                describe(listEntryPath(index), row, listItemStructure(index))
               }}
             </small>
           </span>
-          <em>{{ structuredValueLabel(row, listStructure?.items[index]) }}</em>
+          <em>{{ structuredValueLabel(row, listItemStructure(index)) }}</em>
           <ChevronDown :size="14" />
         </button>
         <span v-else class="config-structured-editor__field-copy is-list-entry">
           <strong>{{ labels.entry }} {{ index + 1 }}</strong>
           <small
             :title="
-              describe(listEntryPath(index), row, listStructure?.items[index])
+              describe(listEntryPath(index), row, listItemStructure(index))
             "
           >
-            {{
-              describe(listEntryPath(index), row, listStructure?.items[index])
-            }}
+            {{ describe(listEntryPath(index), row, listItemStructure(index)) }}
           </small>
         </span>
         <AdminConfigValueEditor
           v-if="
-            !isStructuredValue(row, listStructure?.items[index]) ||
+            !isStructuredValue(row, listItemStructure(index)) ||
             expandedEntry === `list:${index}`
           "
           :model-value="row"
-          :structure="listStructure?.items[index]"
+          :structure="listItemStructure(index)"
           :aria-label="`${ariaLabel} ${index + 1}`"
           :describe="describe"
           :labels="labels"
@@ -577,7 +692,7 @@ function mapEntryStructure(
       @submit.prevent="addListRow"
     >
       <select
-        v-if="!listValue.length"
+        v-if="!listValue.length && !listTemplate"
         v-model="newArrayKind"
         :disabled="disabled"
       >
@@ -586,6 +701,12 @@ function mapEntryStructure(
         <option value="boolean">{{ labels.types.boolean }}</option>
         <option value="table">{{ labels.types.table }}</option>
       </select>
+      <span
+        v-else-if="listTemplate"
+        class="config-structured-editor__fixed-type"
+      >
+        {{ structureTypeLabel(listTemplate) }}
+      </span>
       <button type="submit" :disabled="disabled">
         <Plus :size="13" />{{ labels.addRow }}
       </button>
@@ -631,7 +752,62 @@ function mapEntryStructure(
       </div>
     </header>
 
-    <div v-if="mapType" class="config-structured-editor__properties is-map">
+    <nav
+      v-if="rootTableTabs.length"
+      class="config-structured-editor__tabs"
+      role="tablist"
+      :aria-label="ariaLabel"
+    >
+      <button
+        v-for="tableTab in rootTableTabs"
+        :key="tableTab.id"
+        type="button"
+        role="tab"
+        :class="{ 'is-active': activeRootTableTab?.id === tableTab.id }"
+        :aria-selected="activeRootTableTab?.id === tableTab.id"
+        @click="selectedTableTab = tableTab.id"
+      >
+        <span>{{ tableTab.label }}</span>
+        <em>{{ tableTab.count }}</em>
+      </button>
+    </nav>
+
+    <div
+      v-if="activeRootTableField"
+      class="config-structured-editor__tab-panel"
+      role="tabpanel"
+    >
+      <div
+        v-if="!isFixedTableField(activeRootTableField.key)"
+        class="config-structured-editor__tab-panel-actions"
+      >
+        <strong>{{ activeRootTableField.key }}</strong>
+        <button
+          type="button"
+          :disabled="disabled"
+          :title="labels.remove"
+          @click="removeTableField(activeRootTableField.key)"
+        >
+          <Trash2 :size="13" />{{ labels.remove }}
+        </button>
+      </div>
+      <AdminConfigValueEditor
+        :model-value="activeRootTableField.value"
+        :structure="tableFieldStructure(activeRootTableField.key)"
+        :aria-label="`${ariaLabel} ${activeRootTableField.key}`"
+        :describe="describe"
+        :labels="labels"
+        :disabled="disabled"
+        :depth="depth + 1"
+        :path="tableEntryPath(activeRootTableField.key)"
+        @update:model-value="updateTableField(activeRootTableField.key, $event)"
+      />
+    </div>
+
+    <div
+      v-else-if="mapType"
+      class="config-structured-editor__properties is-map"
+    >
       <div
         v-for="(entry, index) in mapEntries"
         :key="`${entry.keyType}:${entry.key}`"
@@ -651,7 +827,7 @@ function mapEntryStructure(
             :type="entry.keyType === 'number' ? 'number' : 'text'"
             :value="entry.key"
             :aria-label="`${ariaLabel} ${labels.types[entry.keyType]} ${index + 1}`"
-            :disabled="disabled || Boolean(mapEntryStructure(entry))"
+            :disabled="disabled || Boolean(fixedMapEntryStructure(entry))"
             @change="updateMapKey(index, $event)"
           />
           <em
@@ -701,7 +877,7 @@ function mapEntryStructure(
           @update:model-value="updateMapValue(index, $event)"
         />
         <button
-          v-if="!mapEntryStructure(entry)"
+          v-if="!fixedMapEntryStructure(entry)"
           type="button"
           class="config-structured-editor__remove"
           :disabled="disabled"
@@ -717,11 +893,12 @@ function mapEntryStructure(
     </div>
 
     <div
-      v-else-if="tableEntries.length"
+      v-else-if="visibleTableEntries.length"
       class="config-structured-editor__properties"
+      :role="rootTableTabs.length ? 'tabpanel' : undefined"
     >
       <div
-        v-for="([key, value], index) in tableEntries"
+        v-for="([key, value], index) in visibleTableEntries"
         :key="key"
         class="config-structured-editor__property"
         :class="{
@@ -793,7 +970,10 @@ function mapEntryStructure(
         </button>
       </div>
     </div>
-    <div v-else class="config-structured-editor__empty">
+    <div
+      v-else-if="!rootTableTabs.length"
+      class="config-structured-editor__empty"
+    >
       {{ labels.emptyTable }}
     </div>
 
@@ -802,24 +982,38 @@ function mapEntryStructure(
       class="config-structured-editor__add-field is-map"
       @submit.prevent="addMapEntry"
     >
-      <select v-model="newMapKeyKind" :disabled="disabled">
+      <select
+        v-if="!mapStructure?.keyType"
+        v-model="newMapKeyKind"
+        :disabled="disabled"
+      >
         <option value="string">{{ labels.types.string }}</option>
         <option value="number">{{ labels.types.number }}</option>
       </select>
+      <span v-else class="config-structured-editor__fixed-type is-key-type">
+        {{ labels.types[mapStructure.keyType] }}
+      </span>
       <input
         v-model="newMapKey"
-        :type="newMapKeyKind === 'number' ? 'number' : 'text'"
+        :type="newMapEntryKeyKind === 'number' ? 'number' : 'text'"
         :disabled="disabled"
         :placeholder="labels.keyPlaceholder"
         :aria-label="labels.keyPlaceholder"
       />
-      <select v-model="newMapValueKind" :disabled="disabled">
+      <select
+        v-if="!mapTemplate"
+        v-model="newMapValueKind"
+        :disabled="disabled"
+      >
         <option value="string">{{ labels.types.string }}</option>
         <option value="number">{{ labels.types.number }}</option>
         <option value="boolean">{{ labels.types.boolean }}</option>
         <option value="list">{{ labels.types.list }}</option>
         <option value="table">{{ labels.types.table }}</option>
       </select>
+      <span v-else class="config-structured-editor__fixed-type">
+        {{ structureTypeLabel(mapTemplate) }}
+      </span>
       <button type="submit" :disabled="disabled || !canAddMapEntry">
         <Plus :size="13" />{{ labels.addField }}
       </button>
@@ -838,7 +1032,7 @@ function mapEntryStructure(
         :aria-label="labels.keyPlaceholder"
       />
       <select
-        v-if="!tableStructure?.mutableKeys"
+        v-if="!tableStructure"
         v-model="newObjectKind"
         :disabled="disabled"
       >
@@ -848,6 +1042,12 @@ function mapEntryStructure(
         <option value="list">{{ labels.types.list }}</option>
         <option value="table">{{ labels.types.table }}</option>
       </select>
+      <span
+        v-else-if="tableStructure.template"
+        class="config-structured-editor__fixed-type"
+      >
+        {{ structureTypeLabel(tableStructure.template) }}
+      </span>
       <button type="submit" :disabled="disabled || !canAddTableField">
         <Plus :size="13" />{{ labels.addField }}
       </button>
@@ -917,12 +1117,12 @@ function mapEntryStructure(
   min-width: 0;
   overflow: hidden;
   border-radius: 4px;
-  background: #181b18;
+  background: #121413;
   outline: 1px solid rgba(255, 255, 255, 0.065);
 }
 
 .config-structured-editor.is-nested {
-  background: #151715;
+  background: #0f1110;
 }
 
 .config-structured-editor.is-nested.has-structure
@@ -959,6 +1159,74 @@ function mapEntryStructure(
   text-transform: uppercase;
 }
 
+.config-structured-editor__tabs {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  padding: 6px 7px 0;
+  background: #0c0e0d;
+  scrollbar-width: thin;
+}
+
+.config-structured-editor .config-structured-editor__tabs > button {
+  min-width: max-content;
+  min-height: 29px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-radius: 3px 3px 0 0;
+  outline: 0;
+  color: var(--admin-muted);
+  background: transparent;
+  font-size: 8px;
+}
+
+.config-structured-editor .config-structured-editor__tabs > button:hover,
+.config-structured-editor .config-structured-editor__tabs > button.is-active {
+  color: var(--admin-text);
+  background: #171918;
+}
+
+.config-structured-editor .config-structured-editor__tabs > button.is-active {
+  box-shadow: inset 0 -1px var(--admin-green);
+}
+
+.config-structured-editor__tabs em {
+  color: var(--admin-dim);
+  font-size: 7px;
+  font-style: normal;
+}
+
+.config-structured-editor__tab-panel {
+  min-width: 0;
+  background: #0f1110;
+}
+
+.config-structured-editor__tab-panel > .config-structured-editor {
+  border-radius: 0;
+  outline: 0;
+}
+
+.config-structured-editor__tab-panel-actions {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 7px;
+  background: #141615;
+}
+
+.config-structured-editor__tab-panel-actions strong {
+  color: var(--admin-text);
+  font-size: 9px;
+}
+
+.config-structured-editor .config-structured-editor__tab-panel-actions button {
+  color: #b66a6a;
+}
+
 .config-structured-editor button,
 .config-structured-editor select,
 .config-structured-editor input,
@@ -967,7 +1235,7 @@ function mapEntryStructure(
   border-radius: 3px;
   outline: 1px solid rgba(255, 255, 255, 0.075);
   color: var(--admin-text);
-  background: #212421;
+  background: #1a1c1b;
   font: inherit;
   font-size: 9px;
 }
@@ -984,7 +1252,7 @@ function mapEntryStructure(
 }
 
 .config-structured-editor button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--admin-green) 12%, #212421);
+  background: #222423;
 }
 
 .config-structured-editor button:disabled,
@@ -1010,19 +1278,19 @@ function mapEntryStructure(
 .config-structured-editor__row,
 .config-structured-editor__property {
   display: grid;
-  grid-template-columns: 24px minmax(105px, 0.42fr) minmax(140px, 1fr) 27px;
+  grid-template-columns: 24px minmax(180px, 0.82fr) minmax(140px, 1.18fr) 27px;
   align-items: center;
   gap: 6px;
   padding: 5px 6px;
-  background: #1a1d1a;
+  background: #151716;
 }
 
 .config-structured-editor__property {
-  grid-template-columns: 24px minmax(80px, 0.35fr) minmax(150px, 1fr) 27px;
+  grid-template-columns: 24px minmax(200px, 0.9fr) minmax(150px, 1.1fr) 27px;
 }
 
 .config-structured-editor__property.is-map {
-  grid-template-columns: 24px minmax(105px, 0.42fr) minmax(150px, 1fr) 27px;
+  grid-template-columns: 24px minmax(180px, 0.82fr) minmax(150px, 1.18fr) 27px;
 }
 
 .config-structured-editor__row.has-structured-value,
@@ -1267,6 +1535,25 @@ function mapEntryStructure(
   flex: 0 0 90px;
 }
 
+.config-structured-editor__fixed-type {
+  width: 90px;
+  height: 23px;
+  flex: 0 0 90px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 3px;
+  outline: 1px solid rgba(255, 255, 255, 0.055);
+  color: var(--admin-muted);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 8px;
+}
+
+.config-structured-editor__fixed-type.is-key-type {
+  width: 76px;
+  flex-basis: 76px;
+}
+
 .config-structured-editor__add-field button {
   min-width: 74px;
   flex: 0 0 auto;
@@ -1282,7 +1569,9 @@ function mapEntryStructure(
   flex-basis: 82px;
 }
 
-.config-structured-editor__add-field.is-list select {
+.config-structured-editor__add-field.is-list select,
+.config-structured-editor__add-field.is-list
+  .config-structured-editor__fixed-type {
   margin-left: auto;
 }
 

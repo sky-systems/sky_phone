@@ -265,6 +265,10 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorServer).toContain('path == "Companies.Definitions"')
     expect(configuratorServer).toContain('flatten_company_fields')
     expect(configuratorServer).toContain('structure.mutableKeys')
+    expect(configuratorServer).toContain('local function empty_structure(')
+    expect(configuratorServer).toContain('template = items[1]')
+    expect(configuratorServer).toContain('structure.template')
+    expect(configuratorServer).toContain('if not structure.fields[key] then')
     expect(configuratorServer).toContain('field.type == "stringOrFalse"')
     expect(configuratorServer).not.toContain('Config.Media = client_payload')
     expect(configuratorClient).toContain(
@@ -275,6 +279,10 @@ describe('standalone admin panel contracts', () => {
       '.admin-panel-rail .admin-panel-rail__configurator',
     )
     expect(source).toContain('<AdminConfigValueEditor')
+    expect(source).toContain('class="admin-panel-config-scopes"')
+    expect(source).toContain("selectConfiguratorScope('config')")
+    expect(source).toContain("selectConfiguratorScope('media')")
+    expect(source).not.toContain('class="admin-panel-config-meta"')
     expect(configuratorValueEditor).toContain('function addListRow()')
     expect(configuratorValueEditor).toContain('function addTableField()')
     expect(configuratorValueEditor).toContain(
@@ -288,8 +296,23 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorValueEditor).toContain('function removeTableField(')
     expect(configuratorValueEditor).toContain('function addMapEntry()')
     expect(configuratorValueEditor).toContain('function updateMapKey(')
-    expect(configuratorValueEditor).toContain('mapEntryStructure(current)')
+    expect(configuratorValueEditor).toContain('fixedMapEntryStructure(current)')
     expect(configuratorValueEditor).toContain('listStructure?.items[index]')
+    expect(configuratorValueEditor).toContain('function listItemStructure(')
+    expect(configuratorValueEditor).toContain('const listTemplate = computed(')
+    expect(configuratorValueEditor).toContain('function structureTypeLabel(')
+    expect(configuratorValueEditor).toContain(
+      'class="config-structured-editor__fixed-type"',
+    )
+    expect(configuratorValueEditor).toContain(
+      'const rootTableTabs = computed<RootTableTab[]>(',
+    )
+    expect(configuratorValueEditor).toContain(
+      'class="config-structured-editor__tabs"',
+    )
+    expect(configuratorValueEditor).toContain(
+      'class="config-structured-editor__tab-panel"',
+    )
     expect(configuratorValueEditor).toContain('function tableFieldStructure(')
     expect(configuratorValueEditor).toContain('function isFixedTableField(')
     expect(configuratorValueEditor).toContain('function blankCollectionValue(')
