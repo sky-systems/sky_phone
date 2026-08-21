@@ -22,7 +22,9 @@ Config.PhoneConfigurator = {
 
 Config.Bridge = {
     Framework = "auto", -- auto, esx, qbox, qb
-    Inventory = "auto", -- auto, ox, qb, lj, qs, codem, core, mf, smx, hex, esx
+    -- auto, ak47, codem, core, jaksam, jpr, lj, mf, one, origen, ox, ps, qb, qs, smx, tgiann, hex, esx
+    -- Compatibility aliases: qb-inv -> qb, qbox -> ox
+    Inventory = "auto",
     Locale = "en",
     CallbackTimeout = 15000,
     Debug = false, -- true: show debug/info output; warnings and errors are always shown

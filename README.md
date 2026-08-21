@@ -86,7 +86,7 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | Layer | Supported options |
 | --- | --- |
 | **Frameworks** | ESX Legacy, QBCore, Qbox |
-| **Inventories** | ox_inventory, qb-inventory, lj-inventory, qs-inventory, codem-inventory, core_inventory, mf-inventory, smx-inventory, hex_4_inventory, and native ESX inventory |
+| **Inventories** | ak47_inventory, codem-inventory, core_inventory, jaksam_inventory, jpr-inventory, lj-inventory, mf-inventory, one_inventory, origen_inventory, ox_inventory, ps-inventory, qb-inventory, qs-inventory, smx-inventory, tgiann-inventory, hex_4_inventory, and native ESX inventory |
 | **Calls** | YACA, PMA Voice, SaltyChat |
 | **Radio** | YACA, PMA Voice, SaltyChat |
 | **Housing** | RTX Housing, Quasar Housing, VMS Housing, RX Housing, NoLag Properties, SN Properties, ESX Property, qbx_properties |
@@ -121,20 +121,33 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | **Framework** | ESX Legacy (`es_extended`), QBCore (`qb-core`), or Qbox (`qbx_core`) |
 | **Inventory** | Choose one supported adapter from the table below |
 
-| Inventory | Metadata support | Unique Phones | Notes |
+| Inventory (configuration value) | Metadata support | Unique Phones | Notes |
 | --- | --- | --- | --- |
-| `ox_inventory` | Yes | Yes | Full per-item phone and physical SIM metadata |
-| `qb-inventory` | Yes | Yes | Uses item `info` metadata |
-| `lj-inventory` | Yes | Yes | QBCore inventory with item `info` metadata |
-| `qs-inventory` | Yes | Yes | Full per-slot metadata |
-| `codem-inventory` | Yes | Yes | Full per-slot metadata |
-| `core_inventory` | Yes | Yes | Full per-slot metadata |
-| `mf-inventory` | Yes | Yes | Supported with ESX |
-| `smx-inventory` | Yes | Yes | Supported with ESX through the player metadata bridge |
-| `hex_4_inventory` | **No metadata support** | **No, Unique Phones are not possible** | ESX only; set `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` |
-| Native ESX inventory | **No metadata support** | **No, Unique Phones are not possible** | Count-based items; set `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` |
+| `jaksam_inventory` (`jaksam`) | Yes | Yes | Direct per-slot metadata; usable items are registered through jaksam_inventory |
+| `qs-inventory` (`qs`) | Yes | Yes | Full per-slot metadata |
+| `ps-inventory` (`ps`) | Yes | Yes | QBCore only; uses item `info` metadata |
+| `codem-inventory` (`codem`) | Yes | Yes | Full per-slot metadata |
+| `tgiann-inventory` (`tgiann`) | Yes | Yes | Per-slot metadata; item definitions must enable `hasMetadata` |
+| `core_inventory` (`core`) | Yes | Yes | Full per-slot metadata |
+| `jpr-inventory` (`jpr`) | Yes | Yes | QBCore only; uses item `info` metadata |
+| `origen_inventory` (`origen`) | Yes | Yes | Full per-slot metadata |
+| `ak47_inventory` (`ak47`) | Yes | Yes | Uses per-slot item `info` metadata |
+| `one_inventory` (`one`) | Yes | Yes | Full per-slot metadata |
+| `ox_inventory` (`ox`) | Yes | Yes | Full per-item phone and physical SIM metadata |
+| `mf-inventory` (`mf`) | Yes | Yes | ESX only |
+| `smx-inventory` (`smx`) | Yes | Yes | ESX only; one metadata record per configured item name through the player metadata bridge |
+| `lj-inventory` (`lj`) | Yes | Yes | QBCore inventory with item `info` metadata |
+| `qb-inventory` (`qb`) | Yes | Yes | Uses item `info` metadata |
+| `hex_4_inventory` (`hex`) | **No metadata support** | **No, Unique Phones are not possible** | ESX only; set `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` |
+| Native ESX inventory (`esx`) | **No metadata support** | **No, Unique Phones are not possible** | Count-based items; set `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` |
 
 `hex_4_inventory` and native ESX inventory cannot persist per-item metadata. Unique Phones and physical SIM cards are therefore unavailable with these adapters.
+
+`Config.Bridge.Inventory = "auto"` detects framework-compatible adapters in the table order. This deliberately matches the Sky inventory priority so a dedicated inventory is selected before a compatibility resource it may run beside. You may configure either the short value shown in parentheses or the exact resource name.
+
+The adapters shared with `sky_base` are implemented locally inside Sky Phone. Installing or starting `sky_base` is not required; Sky Phone remains a standalone resource.
+
+For configuration parity with `sky_base`, `qb-inv` is accepted as an alias for `qb`, while `qbox` selects the Qbox-native `ox_inventory` adapter.
 
 ### Voice
 
@@ -350,7 +363,7 @@ Default entries for unique phones with physical SIM cards:
 
 Do not configure an LB Phone client event or client export. Sky Phone registers the usable items through its server-side inventory adapter.
 
-The server registers `Config.Phone.Item` as usable for every supported inventory adapter: `ox`, `qb`, `lj`, `qs`, `codem`, `core`, `mf`, `smx`, `hex`, and `esx`. Resource startup fails visibly if the selected adapter cannot complete that registration.
+The server registers `Config.Phone.Item` as usable for every supported inventory adapter: `ak47`, `codem`, `core`, `jaksam`, `jpr`, `lj`, `mf`, `one`, `origen`, `ox`, `ps`, `qb`, `qs`, `smx`, `tgiann`, `hex`, and `esx`. Resource startup fails visibly if the selected adapter or its resource is unavailable.
 
 The `hex` and `esx` adapters use ESX's count-based item API. They require both `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` because this API cannot persist per-item phone or physical SIM metadata. `auto` selects `hex` when `hex_4_inventory` is started and otherwise falls back to `esx` on an ESX server when no metadata-capable inventory is detected.
 
@@ -360,6 +373,67 @@ The `hex` and `esx` adapters use ESX's count-based item API. They require both `
 - Set `useable = true` and `shouldClose = true`.
 - Physical SIM items must always be unique.
 - SIM items are not required when `Config.Sim.Enabled = false`.
+
+Example for `qb-inventory`, `lj-inventory`, `ps-inventory`, and `jpr-inventory`:
+
+```lua
+phone = {
+    name = "phone",
+    label = "iFruit Phone",
+    weight = 200,
+    type = "item",
+    image = "phone.png",
+    unique = true,
+    useable = true,
+    shouldClose = true,
+    description = "A personal mobile phone",
+},
+
+sky_phone_sim_registered = {
+    name = "sky_phone_sim_registered",
+    label = "Registered SIM",
+    weight = 5,
+    type = "item",
+    image = "sky_phone_sim_registered.png",
+    unique = true,
+    useable = true,
+    shouldClose = true,
+},
+
+sky_phone_sim_anonymous = {
+    name = "sky_phone_sim_anonymous",
+    label = "Anonymous SIM",
+    weight = 5,
+    type = "item",
+    image = "sky_phone_sim_anonymous.png",
+    unique = true,
+    useable = true,
+    shouldClose = true,
+},
+```
+
+For `tgiann-inventory`, set `hasMetadata = true`, `useable = true`, and `shouldClose = true` on all three item definitions. Follow the inventory's own item schema for the remaining adapters; the required behavior is always the same: a unique phone or physical SIM must occupy its own slot and its metadata table must survive moving, dropping, storing, and trading the item.
+
+### Unique Phones and metadata
+
+Sky Phone owns the metadata values and writes them server-side. Do not pre-generate IMEIs or phone numbers in item definitions:
+
+| Item | Metadata written by Sky Phone |
+| --- | --- |
+| Phone | `imei`; when a SIM is inserted, also `sim_id`, `phone_number`, and `formatted_number` |
+| Physical SIM | `sim_metadata_version`, `sim_id`, `phone_number`, `formatted_number`, `sim_type`, and registration details where applicable |
+
+When a metadata-capable phone item is used for the first time, Sky Phone reserves an IMEI and writes it back to that exact slot. Existing metadata is preserved. The adapter then reads the slot again and rejects the operation if the inventory did not persist the requested values.
+
+For reliable Unique Phones:
+
+- Set `Config.Phone.Unique = true`.
+- Make the phone item non-stackable/unique. Every phone slot must contain exactly one item.
+- If `Config.Sim.Enabled = true`, make both physical SIM items non-stackable/unique and metadata-capable too.
+- Do not use inventory conversion, admin, crafting, or shop scripts that strip item metadata. Copying an item with its metadata also copies its IMEI; duplicated IMEIs are reported in the server console.
+- When changing inventory systems, migrate the complete item metadata table. Without the old `imei`, the next use creates a new device identity and does not automatically attach the old handset data.
+
+With `Config.Phone.Unique = false`, the handset identity is stored once per framework character instead of on each phone item. The phone item may stack. Physical SIMs still require per-item metadata, so `Config.Sim.Enabled` must be `false` on `hex` and native `esx`.
 
 ## Phone and SIM modes
 
