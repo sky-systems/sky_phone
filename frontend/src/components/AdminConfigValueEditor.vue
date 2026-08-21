@@ -107,6 +107,16 @@ const tableStructure = computed(() =>
 const mapStructure = computed(() =>
   props.structure?.kind === 'map' ? props.structure : null,
 )
+const canAddTableField = computed(() => {
+  const key = newObjectKey.value.trim()
+  if (
+    !key ||
+    key === '__skyType' ||
+    Object.prototype.hasOwnProperty.call(tableValue.value, key)
+  )
+    return false
+  return !tableStructure.value?.mutableKeys || /^[a-z0-9_-]+$/.test(key)
+})
 const tableEntries = computed(() =>
   Object.entries(tableValue.value).filter(
     ([key]) => key !== '__skyType' && (!mapType.value || key !== 'entries'),
@@ -163,6 +173,40 @@ function blankCollectionValue(kind: ValueKind, siblings: unknown[]): unknown {
   return template === undefined ? blankValue(kind) : blankLike(template)
 }
 
+function blankFromStructure(structure: AdminConfiguratorStructure): unknown {
+  if (structure.kind === 'optionalString') return ''
+  if (structure.kind === 'value') return blankValue(structure.valueType)
+  if (structure.kind === 'vector') {
+    const axes = ['x', 'y', 'z', 'w'].slice(
+      0,
+      Number(structure.vectorType.slice(-1)),
+    )
+    return Object.fromEntries([
+      ['__skyType', structure.vectorType],
+      ...axes.map((axis) => [axis, 0]),
+    ])
+  }
+  if (structure.kind === 'list') {
+    return structure.items.map(blankFromStructure)
+  }
+  if (structure.kind === 'map') {
+    return {
+      __skyType: 'map',
+      entries: structure.entries.map((entry) => ({
+        key: entry.key,
+        keyType: entry.keyType,
+        value: blankFromStructure(entry.structure),
+      })),
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(structure.fields).map(([key, field]) => [
+      key,
+      blankFromStructure(field),
+    ]),
+  )
+}
+
 function updateScalar(event: Event): void {
   const target = event.target
   if (!(target instanceof HTMLInputElement)) return
@@ -217,12 +261,30 @@ function updateTableField(key: string, value: unknown): void {
   emit('update:modelValue', { ...tableValue.value, [key]: value })
 }
 
-function removeTableField(key: string): void {
-  if (
-    tableStructure.value &&
-    Object.prototype.hasOwnProperty.call(tableStructure.value.fields, key)
+function tableFieldStructure(
+  key: string,
+): AdminConfiguratorStructure | undefined {
+  if (!tableStructure.value) return undefined
+  return (
+    tableStructure.value.fields[key] ??
+    (tableStructure.value.mutableKeys
+      ? tableStructure.value.template
+      : undefined)
   )
-    return
+}
+
+function isFixedTableField(key: string): boolean {
+  return (
+    tableStructure.value?.mutableKeys !== true &&
+    Object.prototype.hasOwnProperty.call(
+      tableStructure.value?.fields ?? {},
+      key,
+    )
+  )
+}
+
+function removeTableField(key: string): void {
+  if (isFixedTableField(key)) return
   const next = { ...tableValue.value }
   delete next[key]
   emit('update:modelValue', next)
@@ -230,18 +292,18 @@ function removeTableField(key: string): void {
 
 function addTableField(): void {
   const key = newObjectKey.value.trim()
-  if (
-    !key ||
-    key === '__skyType' ||
-    Object.prototype.hasOwnProperty.call(tableValue.value, key)
-  )
-    return
+  if (!canAddTableField.value) return
+  const template = tableStructure.value?.mutableKeys
+    ? tableStructure.value.template
+    : undefined
   emit('update:modelValue', {
     ...tableValue.value,
-    [key]: blankCollectionValue(
-      newObjectKind.value,
-      Object.values(tableValue.value).filter((_, index) => index < 50),
-    ),
+    [key]: template
+      ? blankFromStructure(template)
+      : blankCollectionValue(
+          newObjectKind.value,
+          Object.values(tableValue.value).filter((_, index) => index < 50),
+        ),
   })
   newObjectKey.value = ''
 }
@@ -484,7 +546,7 @@ function mapEntryStructure(
         <strong>{{ key }}</strong>
         <AdminConfigValueEditor
           :model-value="value"
-          :structure="tableStructure?.fields[key]"
+          :structure="tableFieldStructure(key)"
           :aria-label="`${ariaLabel} ${key}`"
           :labels="labels"
           :disabled="disabled"
@@ -492,13 +554,7 @@ function mapEntryStructure(
           @update:model-value="updateTableField(key, $event)"
         />
         <button
-          v-if="
-            !vectorType &&
-            !Object.prototype.hasOwnProperty.call(
-              tableStructure?.fields ?? {},
-              key,
-            )
-          "
+          v-if="!vectorType && !isFixedTableField(key)"
           type="button"
           class="config-structured-editor__remove"
           :disabled="disabled"
@@ -544,6 +600,7 @@ function mapEntryStructure(
     <form
       v-else-if="!vectorType"
       class="config-structured-editor__add-field"
+      :class="{ 'is-mutable-table': tableStructure?.mutableKeys }"
       @submit.prevent="addTableField"
     >
       <input
@@ -553,14 +610,18 @@ function mapEntryStructure(
         :placeholder="labels.keyPlaceholder"
         :aria-label="labels.keyPlaceholder"
       />
-      <select v-model="newObjectKind" :disabled="disabled">
+      <select
+        v-if="!tableStructure?.mutableKeys"
+        v-model="newObjectKind"
+        :disabled="disabled"
+      >
         <option value="string">{{ labels.types.string }}</option>
         <option value="number">{{ labels.types.number }}</option>
         <option value="boolean">{{ labels.types.boolean }}</option>
         <option value="list">{{ labels.types.list }}</option>
         <option value="table">{{ labels.types.table }}</option>
       </select>
-      <button type="submit" :disabled="disabled || !newObjectKey.trim()">
+      <button type="submit" :disabled="disabled || !canAddTableField">
         <Plus :size="13" />{{ labels.addField }}
       </button>
     </form>
@@ -795,6 +856,10 @@ function mapEntryStructure(
 
 .config-structured-editor__add-field.is-map {
   grid-template-columns: 76px minmax(90px, 1fr) 82px auto;
+}
+
+.config-structured-editor__add-field.is-mutable-table {
+  grid-template-columns: minmax(100px, 1fr) auto;
 }
 
 .config-structured-editor__add-field input {

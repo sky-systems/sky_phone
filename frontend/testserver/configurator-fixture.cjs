@@ -406,6 +406,27 @@ function buildStructure(value, scope, path) {
   }
   if (
     scope === 'config' &&
+    path === 'Companies.Definitions' &&
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value)
+  ) {
+    const keys = Object.keys(value).sort()
+    const fields = Object.fromEntries(
+      keys.map((key) => [
+        key,
+        buildStructure(value[key], scope, `${path}.${key}`),
+      ]),
+    )
+    return {
+      fields,
+      kind: 'table',
+      mutableKeys: true,
+      template: keys[0] ? fields[keys[0]] : undefined,
+    }
+  }
+  if (
+    scope === 'config' &&
     path === 'Garage.VehicleImages.ModelNames' &&
     Array.isArray(value) &&
     value.length === 0
@@ -452,7 +473,10 @@ function addField(fields, scope, path, value) {
   const sensitive = typeof value === 'string' && sensitivePath(path)
   fields.push({
     configured: sensitive ? value !== '' : undefined,
-    label: humanize(path.split('.').at(-1)),
+    label:
+      scope === 'config' && path === 'Companies.Definitions'
+        ? 'Jobs'
+        : humanize(path.split('.').at(-1)),
     path,
     scope,
     sensitive,
@@ -470,12 +494,44 @@ function addField(fields, scope, path, value) {
   })
 }
 
+function flattenCompanyFields(fields, path, value) {
+  if (
+    path === 'Companies.Definitions' ||
+    value === null ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    value.__skyType ||
+    Object.keys(value).length === 0
+  ) {
+    addField(fields, 'config', path, value)
+    return
+  }
+
+  for (const key of Object.keys(value).sort()) {
+    flattenCompanyFields(fields, `${path}.${key}`, value[key])
+  }
+}
+
 function buildSections(scope, payload) {
   const sections = []
   const generalFields = []
   for (const key of Object.keys(payload).sort()) {
     const value = payload[key]
-    if (
+    if (scope === 'config' && key === 'Companies') {
+      const fields = []
+      flattenCompanyFields(fields, 'Companies', value)
+      fields.sort((left, right) => {
+        if (left.path === 'Companies.Definitions') return 1
+        if (right.path === 'Companies.Definitions') return -1
+        return left.path.localeCompare(right.path)
+      })
+      sections.push({
+        fields,
+        id: 'config:Companies',
+        label: humanize(key),
+        scope,
+      })
+    } else if (
       value !== null &&
       typeof value === 'object' &&
       !Array.isArray(value) &&

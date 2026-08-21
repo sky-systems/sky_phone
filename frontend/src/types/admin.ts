@@ -131,6 +131,8 @@ export type AdminConfiguratorStructure =
   | {
       fields: Record<string, AdminConfiguratorStructure>
       kind: 'table'
+      mutableKeys?: boolean
+      template?: AdminConfiguratorStructure
     }
   | {
       entries: Array<{

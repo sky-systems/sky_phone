@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 type ConfiguratorField = {
+  label: string
   path: string
   structure?: ConfiguratorStructure
   type: string
@@ -15,6 +16,8 @@ type ConfiguratorStructure = {
   fields?: Record<string, ConfiguratorStructure>
   items?: ConfiguratorStructure[]
   kind: string
+  mutableKeys?: boolean
+  template?: ConfiguratorStructure
 }
 
 type ConfiguratorSection = {
@@ -94,7 +97,9 @@ describe('admin configurator fixture', () => {
     )
     const darkChat = fields.find((field) => field.path === 'DarkChat')
     const phone = fields.find((field) => field.path === 'Phone')
-    const companies = fields.find((field) => field.path === 'Companies')
+    const companyJobs = fields.find(
+      (field) => field.path === 'Companies.Definitions',
+    )
     const garage = fields.find((field) => field.path === 'Garage')
     const timers = (darkChat?.value as Record<string, unknown> | undefined)
       ?.AllowedDisappearTimers
@@ -109,7 +114,16 @@ describe('admin configurator fixture', () => {
     })
     expect(darkChat?.structure?.fields?.AllowedDisappearTimers.kind).toBe('map')
     expect(phone?.structure?.fields?.Keybind.kind).toBe('optionalString')
-    expect(companies?.structure?.fields?.Definitions.kind).toBe('table')
+    expect(companyJobs?.label).toBe('Jobs')
+    expect(companyJobs?.structure).toMatchObject({
+      fields: {
+        ambulance: { kind: 'table' },
+        police: { kind: 'table' },
+      },
+      kind: 'table',
+      mutableKeys: true,
+      template: { kind: 'table' },
+    })
     expect(
       garage?.structure?.fields?.VehicleImages.fields?.ModelNames.kind,
     ).toBe('map')

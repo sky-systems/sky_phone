@@ -235,8 +235,12 @@ local function upgrade_legacy_map(defaults, saved)
     return { __skyType = "map", entries = entries }
 end
 
-local function merge_values(defaults, saved)
+local function merge_values(defaults, saved, path)
+    path = path or ""
     if type(defaults) ~= "table" or type(saved) ~= "table" then
+        return copy_value(saved)
+    end
+    if path == "Companies.Definitions" then
         return copy_value(saved)
     end
     if defaults.__skyType == "map" and not saved.__skyType then
@@ -256,7 +260,9 @@ local function merge_values(defaults, saved)
             entries[#entries + 1] = {
                 key = entry.key,
                 keyType = entry.keyType,
-                value = saved_entry and merge_values(entry.value, saved_entry.value) or copy_value(entry.value),
+                value = saved_entry
+                    and merge_values(entry.value, saved_entry.value, path .. "." .. tostring(entry.key))
+                    or copy_value(entry.value),
             }
             included[identity] = true
         end
@@ -274,7 +280,9 @@ local function merge_values(defaults, saved)
     if is_sequence(defaults) then
         local merged = copy_value(saved)
         for index, child in ipairs(defaults) do
-            merged[index] = saved[index] ~= nil and merge_values(child, saved[index]) or copy_value(child)
+            merged[index] = saved[index] ~= nil
+                and merge_values(child, saved[index], path .. "." .. tostring(index))
+                or copy_value(child)
         end
         return merged
     end
@@ -285,7 +293,8 @@ local function merge_values(defaults, saved)
     local merged = copy_value(defaults)
     for key, child in pairs(saved) do
         if merged[key] ~= nil then
-            merged[key] = merge_values(merged[key], child)
+            local child_path = path == "" and tostring(key) or (path .. "." .. tostring(key))
+            merged[key] = merge_values(merged[key], child, child_path)
         else
             merged[key] = copy_value(child)
         end
@@ -440,6 +449,25 @@ local function build_structure(value, scope, path)
     if scope == "config" and path == "Phone.Keybind" then
         return { kind = "optionalString" }
     end
+    if scope == "config" and path == "Companies.Definitions" and value_type == "table" then
+        local keys = {}
+        for key in pairs(value) do
+            keys[#keys + 1] = key
+        end
+        table.sort(keys, function(left, right)
+            return tostring(left) < tostring(right)
+        end)
+        local fields = {}
+        for _, key in ipairs(keys) do
+            fields[key] = build_structure(value[key], scope, path .. "." .. tostring(key))
+        end
+        return {
+            fields = fields,
+            kind = "table",
+            mutableKeys = true,
+            template = keys[1] and fields[keys[1]] or nil,
+        }
+    end
     if value_type ~= "table" then
         return {
             kind = "value",
@@ -516,7 +544,9 @@ local function add_field(fields, field_index, scope, path, value, default_value)
     local sensitive = type(value) == "string" and sensitive_path(path)
     local field = {
         configured = sensitive and value ~= "" or nil,
-        label = humanize(path:match("([^.]+)$") or path),
+        label = scope == "config" and path == "Companies.Definitions"
+            and "Jobs"
+            or humanize(path:match("([^.]+)$") or path),
         path = path,
         scope = scope,
         sensitive = sensitive,
@@ -526,6 +556,35 @@ local function add_field(fields, field_index, scope, path, value, default_value)
     }
     fields[#fields + 1] = field
     field_index[scope .. ":" .. path] = field
+end
+
+local function flatten_company_fields(fields, field_index, path, value, default_value)
+    if path == "Companies.Definitions"
+        or type(value) ~= "table"
+        or value.__skyType
+        or is_sequence(value)
+        or next(value) == nil
+    then
+        add_field(fields, field_index, "config", path, value, default_value)
+        return
+    end
+
+    local keys = {}
+    for key in pairs(value) do
+        keys[#keys + 1] = key
+    end
+    table.sort(keys, function(left, right)
+        return tostring(left) < tostring(right)
+    end)
+    for _, key in ipairs(keys) do
+        flatten_company_fields(
+            fields,
+            field_index,
+            path .. "." .. tostring(key),
+            value[key],
+            type(default_value) == "table" and default_value[key] or nil
+        )
+    end
 end
 
 local function build_sections(scope, payload, defaults, sections, field_index)
@@ -540,7 +599,25 @@ local function build_sections(scope, payload, defaults, sections, field_index)
 
     for _, key in ipairs(keys) do
         local value = payload[key]
-        if type(value) == "table" and not value.__skyType and not is_sequence(value) and next(value) ~= nil then
+        if scope == "config" and key == "Companies" then
+            local fields = {}
+            flatten_company_fields(fields, field_index, "Companies", value, defaults[key])
+            table.sort(fields, function(left, right)
+                if left.path == "Companies.Definitions" then
+                    return false
+                end
+                if right.path == "Companies.Definitions" then
+                    return true
+                end
+                return left.path < right.path
+            end)
+            sections[#sections + 1] = {
+                fields = fields,
+                id = "config:Companies",
+                label = humanize(key),
+                scope = scope,
+            }
+        elseif type(value) == "table" and not value.__skyType and not is_sequence(value) and next(value) ~= nil then
             local fields = {}
             add_field(fields, field_index, scope, tostring(key), value, defaults[key])
             sections[#sections + 1] = {
@@ -728,9 +805,22 @@ local function validate_locked_structure(structure, value)
         if type(value) ~= "table" or value.__skyType or is_sequence(value) then
             return false
         end
-        for key, field_structure in pairs(structure.fields or {}) do
-            if value[key] == nil or not validate_locked_structure(field_structure, value[key]) then
-                return false
+        if not structure.mutableKeys then
+            for key, field_structure in pairs(structure.fields or {}) do
+                if value[key] == nil or not validate_locked_structure(field_structure, value[key]) then
+                    return false
+                end
+            end
+        end
+        if structure.mutableKeys and structure.template then
+            for key, child in pairs(value) do
+                if type(key) ~= "string"
+                    or #key > 64
+                    or not key:match("^[a-z0-9_-]+$")
+                    or not validate_locked_structure(structure.template, child)
+                then
+                    return false
+                end
             end
         end
         return true
@@ -832,8 +922,8 @@ if not row then
     error("[sky_phone] Phone configurator could not load its SQL row after initialization.")
 end
 
-stored_config = merge_values(default_config, decode_payload(row.config_payload, "config"))
-stored_media = merge_values(default_media, decode_payload(row.media_payload, "media"))
+stored_config = merge_values(default_config, decode_payload(row.config_payload, "config"), "")
+stored_media = merge_values(default_media, decode_payload(row.media_payload, "media"), "")
 revision = tonumber(row.revision) or 1
 updated_at = row.updated_at
 updated_by_name = row.updated_by_name
