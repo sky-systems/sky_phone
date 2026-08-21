@@ -21,9 +21,15 @@ local remote_visuals = {}
 local custom_payphone_props = {}
 
 local configured_models = {}
-for _, model_name in ipairs(Config.Payphones.Props or {}) do
-    configured_models[joaat(model_name)] = model_name
+
+local function refresh_configured_models()
+    configured_models = {}
+    for _, model_name in ipairs(Config.Payphones.Props or {}) do
+        configured_models[joaat(model_name)] = model_name
+    end
 end
+
+refresh_configured_models()
 
 local function valid_visual_number(value, maximum)
     local number = tonumber(value)
@@ -155,6 +161,23 @@ local function spawn_custom_payphones()
 end
 
 CreateThread(spawn_custom_payphones)
+
+local function clear_custom_payphones()
+    for _, entity in ipairs(custom_payphone_props) do
+        if DoesEntityExist(entity) then
+            SetEntityAsMissionEntity(entity, true, true)
+            DeleteEntity(entity)
+        end
+    end
+    custom_payphone_props = {}
+end
+
+AddEventHandler("sky_phone:configurator:updated", function()
+    locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
+    refresh_configured_models()
+    clear_custom_payphones()
+    CreateThread(spawn_custom_payphones)
+end)
 
 local function load_animation(dictionary)
     if HasAnimDictLoaded(dictionary) then
@@ -726,10 +749,5 @@ AddEventHandler("onResourceStop", function(resource_name)
     for _, id in ipairs(visual_ids) do
         restore_remote_visual(id)
     end
-    for _, entity in ipairs(custom_payphone_props) do
-        if DoesEntityExist(entity) then
-            SetEntityAsMissionEntity(entity, true, true)
-            DeleteEntity(entity)
-        end
-    end
+    clear_custom_payphones()
 end)

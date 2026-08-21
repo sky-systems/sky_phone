@@ -109,11 +109,9 @@ local function require_admin(source, operation, maximum)
     return true
 end
 
-if type(Config.AdminPanel.Command) ~= "string" or Config.AdminPanel.Command == "" then
-    error("[sky_phone] Config.AdminPanel.Command must be a non-empty command name.")
-end
+local active_admin_command
 
-RegisterCommand(Config.AdminPanel.Command, function(command_source)
+local function run_admin_command(command_source)
     local player_source = tonumber(command_source)
     if not player_source or player_source < 1 then
         Bridge.Debug("warn", "[sky_phone] The admin panel command can only be used by a player.")
@@ -134,7 +132,29 @@ RegisterCommand(Config.AdminPanel.Command, function(command_source)
     end
 
     TriggerClientEvent("sky_phone:admin:launch", player_source)
-end, false)
+end
+
+local function register_admin_command()
+    local command_name = Config.AdminPanel.Command
+    if type(command_name) ~= "string" or command_name == "" then
+        error("[sky_phone] Config.AdminPanel.Command must be a non-empty command name.")
+    end
+    if command_name == active_admin_command then
+        return
+    end
+    active_admin_command = command_name
+    RegisterCommand(command_name, function(command_source)
+        if active_admin_command == command_name then
+            run_admin_command(command_source)
+        end
+    end, false)
+end
+
+register_admin_command()
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    register_admin_command()
+end)
 
 local function normalize_source(value)
     local player_source = tonumber(value)

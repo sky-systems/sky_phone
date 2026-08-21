@@ -33,6 +33,23 @@ local function deserialize_value(value)
     return decoded
 end
 
+local function apply_runtime_table(current, replacement)
+    for key in pairs(current) do
+        if replacement[key] == nil then
+            current[key] = nil
+        end
+    end
+
+    for key, value in pairs(replacement) do
+        local current_value = current[key]
+        if type(current_value) == "table" and type(value) == "table" then
+            apply_runtime_table(current_value, value)
+        else
+            current[key] = value
+        end
+    end
+end
+
 local function apply_runtime_config(payload)
     if type(payload) ~= "table" or payload.enabled ~= true then
         return
@@ -43,8 +60,13 @@ local function apply_runtime_config(payload)
 
     local runtime_config = deserialize_value(payload.config)
     for key, value in pairs(runtime_config) do
-        Config[key] = value
+        if type(Config[key]) == "table" and type(value) == "table" then
+            apply_runtime_table(Config[key], value)
+        else
+            Config[key] = value
+        end
     end
+    TriggerEvent("sky_phone:configurator:updated", tonumber(payload.revision) or 0)
 end
 
 RegisterNetEvent("sky_phone:configurator:sync", function(payload)

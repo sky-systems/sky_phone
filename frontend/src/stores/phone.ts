@@ -896,12 +896,12 @@ const adminPanelFallbackLocales = {
     disabledBody:
       'Enable the configurator at the beginning of config.lua and restart sky_phone. Until then, file values remain active and editing is locked.',
     manualSave: 'Manual save',
-    restartNotice:
-      'Nothing is written automatically. Press the green check to persist all staged values. Startup-bound settings take full effect after restarting sky_phone.',
+    refreshNotice:
+      'Nothing is written automatically. The green check verifies config.lua and media.lua in SQL and refreshes the active server, client, media and UI configuration immediately.',
     fieldCount: '{count} fields',
     secretConfigured: 'Secret configured · enter a replacement',
     invalidValue: 'Check the highlighted table or number value.',
-    saved: 'SQL configuration saved.',
+    saved: 'SQL configuration saved and applied.',
     descriptions: {
       featureToggle: 'Turns {name} on or off.',
       boolean: 'Controls whether {name} is allowed.',

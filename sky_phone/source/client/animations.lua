@@ -384,6 +384,12 @@ reevaluate = function(force)
     end)
 end
 
+AddEventHandler("sky_phone:configurator:updated", function()
+    animation_state.revision = animation_state.revision + 1
+    cleanup_phone()
+    reevaluate(true)
+end)
+
 local function reset_animation_state()
     animation_state.phone_open = false
     animation_state.call_state = nil

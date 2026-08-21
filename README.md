@@ -224,8 +224,9 @@ Config.PhoneConfigurator = {
 When enabled, `config.lua` and the server-only `media.lua` are first-run defaults. Sky Phone creates
 the `sky_phone_configurator` table automatically, loads its saved values before framework and phone
 modules initialize, and exposes the editor through `/phonepanel`. Nothing autosaves: stage changes
-in the Phone Configurator tool and press the green check. Restart `sky_phone` after changing
-startup-bound settings such as framework, inventory, command, item, or provider configuration.
+in the Phone Configurator tool and press the green check. Saving verifies both SQL payloads and then
+applies the new server, client, media, app, item, command, provider, animation, and UI values through
+Sky Phone's internal runtime refresh. It does not execute a resource restart command.
 
 Every `Config.*` value from `config.lua`, including server-only sections, and every value from
 `Config.Media` is discovered automatically. The bootstrap switch above intentionally remains

@@ -76,6 +76,10 @@ const configuratorClient = readFileSync(
   ),
   'utf8',
 )
+const mediaImportServer = readFileSync(
+  new URL('../../../sky_phone/source/server/media_import.lua', import.meta.url),
+  'utf8',
+)
 const configuratorValueEditor = readFileSync(
   new URL('./AdminConfigValueEditor.vue', import.meta.url),
   'utf8',
@@ -148,6 +152,11 @@ describe('standalone admin panel contracts', () => {
     expect(source).toContain('class="admin-panel-font-size-control"')
     expect(source).not.toContain('type="color"')
     expect(source).toContain('color-mix(in srgb, var(--admin-green)')
+    expect(source).toContain('--admin-toggle-on: #63d471')
+    expect(source).toContain('background: var(--admin-toggle-on)')
+    expect(configuratorValueEditor).toContain(
+      'background: var(--admin-toggle-on)',
+    )
   })
 
   it('stages app changes locally and saves them only from the toolbar action', () => {
@@ -217,8 +226,9 @@ describe('standalone admin panel contracts', () => {
 
   it('opens directly from the configurable command with dedicated focus', () => {
     expect(config).toContain('Command = "phonepanel"')
+    expect(server).toContain('local command_name = Config.AdminPanel.Command')
     expect(server).toContain(
-      'RegisterCommand(Config.AdminPanel.Command, function(command_source)',
+      'RegisterCommand(command_name, function(command_source)',
     )
     expect(server).toContain(
       'TriggerClientEvent("sky_phone:admin:launch", player_source)',
@@ -257,7 +267,7 @@ describe('standalone admin panel contracts', () => {
       'changes without matching Configurator support are incomplete',
     )
     expect(config).toMatch(
-      /Config\.PhoneConfigurator\s*=\s*\{[\s\S]*?Enabled\s*=\s*false[\s\S]*?Config\.Bridge\s*=/,
+      /Config\.PhoneConfigurator\s*=\s*\{[\s\S]*?Enabled\s*=\s*true[\s\S]*?Config\.Bridge\s*=/,
     )
     expect(schema).toContain(
       'CREATE TABLE IF NOT EXISTS `sky_phone_configurator`',
@@ -297,14 +307,67 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorServer).toContain('if not structure.fields[key] then')
     expect(configuratorServer).toContain('field.type == "stringOrFalse"')
     expect(configuratorServer).not.toContain('Config.Media = client_payload')
+    expect(configuratorServer).toContain(
+      'apply_runtime_table(Config[key], value)',
+    )
+    expect(configuratorServer).toContain(
+      'apply_runtime_table(Config.Media, runtime_media)',
+    )
+    expect(configuratorServer).toContain('local function read_stored_row()')
+    expect(configuratorServer).toContain('local function apply_stored_row(row)')
+    expect(configuratorServer).toContain(
+      'persisted_row.media_payload ~= media_encoded',
+    )
+    expect(configuratorServer).toContain(
+      'Phone configurator SQL verification failed',
+    )
+    expect(server).not.toContain('ExecuteCommand(("restart %s")')
+    expect(configuratorServer).not.toContain('clear_runtime_table')
+    expect(configuratorServer).toContain(
+      'TriggerEvent("sky_phone:configurator:serverUpdated", revision)',
+    )
+    expect(configuratorServer).toContain(
+      'function SkyPhoneConfigurator.Broadcast(target)',
+    )
+    expect(configuratorServer).toContain('SkyPhoneConfigurator.Broadcast(-1)')
+    expect(configuratorServer).toContain('through the internal runtime refresh')
     expect(configuratorClient).toContain(
       'Bridge.Callbacks.Trigger("sky_phone:configurator:runtime"',
+    )
+    expect(configuratorClient).toContain(
+      'apply_runtime_table(Config[key], value)',
+    )
+    expect(configuratorClient).not.toContain('clear_runtime_table')
+    expect(configuratorClient).toContain(
+      'TriggerEvent("sky_phone:configurator:updated"',
+    )
+    expect(phoneClient).toMatch(
+      /AddEventHandler\("sky_phone:configurator:updated"[\s\S]*?SkyPhoneLocales\.Resolve\(Config\.Bridge\.Locale\)[\s\S]*?SkyPhoneApps\.SendCatalog\(\)[\s\S]*?type = "device:updated"/,
+    )
+    expect(server).toContain(
+      'AddEventHandler("sky_phone:configurator:serverUpdated"',
+    )
+    expect(phoneServer).toContain('register_configured_phone_item()')
+    expect(phoneServer).toContain(
+      'AddEventHandler("sky_phone:configurator:serverUpdated"',
+    )
+    expect(simServer).toContain('refresh_sim_types()')
+    expect(simServer).toContain(
+      'AddEventHandler("sky_phone:configurator:serverUpdated"',
+    )
+    expect(mediaImportServer).toContain('local website = {}')
+    expect(mediaImportServer).toContain('website._adapter = adapter')
+    expect(mediaImportServer).not.toContain('definition._adapter = adapter')
+    expect(mediaImportServer).toMatch(
+      /AddEventHandler\("sky_phone:configurator:serverUpdated"[\s\S]*?if initialized then[\s\S]*?build_registry\(\)/,
     )
     expect(source).toContain('class="admin-panel-rail__configurator"')
     expect(source).toContain(
       '.admin-panel-rail .admin-panel-rail__configurator',
     )
     expect(source).toContain('<AdminConfigValueEditor')
+    expect(source).toContain('function configuratorFieldRepeatsSection(')
+    expect(source).toContain('v-if="!configuratorFieldRepeatsSection(field)"')
     expect(source).toContain('class="admin-panel-config-scopes"')
     expect(source).toContain("selectConfiguratorScope('config')")
     expect(source).toContain("selectConfiguratorScope('media')")
@@ -316,6 +379,16 @@ describe('standalone admin panel contracts', () => {
     )
     expect(configuratorValueEditor).toContain(
       'tableStructure.value.mutableKeys === true',
+    )
+    expect(configuratorValueEditor).toContain(
+      'const usesFixedTableLayout = computed(',
+    )
+    expect(configuratorValueEditor).toContain(
+      "'is-fixed-table': usesFixedTableLayout",
+    )
+    expect(configuratorValueEditor).toContain('v-if="!usesFixedTableLayout"')
+    expect(configuratorValueEditor).toContain(
+      '.config-structured-editor.is-fixed-table',
     )
     expect(configuratorValueEditor).toContain('v-else-if="canExtendTable"')
     expect(configuratorValueEditor).toContain('function removeListRow(')

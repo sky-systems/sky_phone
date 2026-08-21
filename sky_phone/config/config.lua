@@ -13,7 +13,7 @@
 -- When enabled, config.lua and media.lua only provide first-run defaults.
 -- The active configuration is loaded from SQL and managed through /phonepanel.
 Config.PhoneConfigurator = {
-    Enabled = false,
+    Enabled = true,
 }
 
 -- =============================================================================
@@ -50,7 +50,7 @@ Config.CustomApps = {
     Enabled = true,
     BundledApps = true,
     ExternalApps = true,
-    Debug = true, -- detailed client traces for exports, registration, catalog sync and lifecycle events
+    Debug = false, -- detailed client traces for exports, registration, catalog sync and lifecycle events
     ReadyTimeoutMs = 8000,
     MaximumMessageBytes = 65536,
     MaximumStorageBytesPerApp = 262144,

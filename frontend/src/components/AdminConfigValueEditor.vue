@@ -145,6 +145,10 @@ const canExtendTable = computed(
     !vectorType.value &&
     (!tableStructure.value || tableStructure.value.mutableKeys === true),
 )
+const usesFixedTableLayout = computed(
+  () =>
+    Boolean(tableStructure.value) && tableStructure.value?.mutableKeys !== true,
+)
 const tableEntries = computed(() =>
   Object.entries(tableValue.value).filter(
     ([key]) => key !== '__skyType' && (!mapType.value || key !== 'entries'),
@@ -721,10 +725,11 @@ function mapEntryStructure(
     class="config-structured-editor"
     :class="{
       'has-structure': Boolean(structure),
+      'is-fixed-table': usesFixedTableLayout,
       'is-nested': depth > 0,
     }"
   >
-    <header class="config-structured-editor__bar">
+    <header v-if="!usesFixedTableLayout" class="config-structured-editor__bar">
       <span>
         <TableProperties :size="14" />
         {{
@@ -1131,6 +1136,18 @@ function mapEntryStructure(
 
 .config-structured-editor.is-nested {
   background: #0f1110;
+}
+
+.config-structured-editor.is-fixed-table {
+  overflow: visible;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.config-structured-editor.is-fixed-table
+  > .config-structured-editor__properties {
+  background: transparent;
 }
 
 .config-structured-editor.is-nested.has-structure
@@ -1644,7 +1661,7 @@ function mapEntryStructure(
 }
 
 .config-value-toggle input:checked + i {
-  background: color-mix(in srgb, var(--admin-green) 72%, #1f321f);
+  background: var(--admin-toggle-on);
 }
 
 .config-value-toggle input:checked + i::after {

@@ -183,6 +183,23 @@ local function deserialize_value(value)
     return decoded
 end
 
+local function apply_runtime_table(current, replacement)
+    for key in pairs(current) do
+        if replacement[key] == nil then
+            current[key] = nil
+        end
+    end
+
+    for key, value in pairs(replacement) do
+        local current_value = current[key]
+        if type(current_value) == "table" and type(value) == "table" then
+            apply_runtime_table(current_value, value)
+        else
+            current[key] = value
+        end
+    end
+end
+
 is_sequence = function(value)
     if type(value) ~= "table" then
         return false
@@ -339,9 +356,18 @@ local function apply_runtime_configuration()
 
     local runtime_config = deserialize_value(stored_config)
     for key, value in pairs(runtime_config) do
-        Config[key] = value
+        if type(Config[key]) == "table" and type(value) == "table" then
+            apply_runtime_table(Config[key], value)
+        else
+            Config[key] = value
+        end
     end
-    Config.Media = deserialize_value(stored_media)
+    local runtime_media = deserialize_value(stored_media)
+    if type(Config.Media) == "table" and type(runtime_media) == "table" then
+        apply_runtime_table(Config.Media, runtime_media)
+    else
+        Config.Media = runtime_media
+    end
 end
 
 local function humanize(value)
@@ -983,6 +1009,36 @@ local function client_payload()
     return payload
 end
 
+function SkyPhoneConfigurator.Broadcast(target)
+    TriggerClientEvent("sky_phone:configurator:sync", target or -1, {
+        config = client_payload(),
+        enabled = configurator_enabled,
+        revision = revision,
+    })
+end
+
+local function read_stored_row()
+    local rows = Bridge.Database.Query(([[
+        SELECT `config_payload`, `media_payload`, `revision`, `updated_at`, `updated_by_name`
+        FROM `%s`
+        WHERE `id` = ?
+        LIMIT 1
+    ]]):format(TABLE_NAME), { CONFIG_ROW_ID })
+    local row = rows[1]
+    if not row then
+        error("[sky_phone] Phone configurator could not load its SQL row.")
+    end
+    return row
+end
+
+local function apply_stored_row(row)
+    stored_config = merge_values(default_config, decode_payload(row.config_payload, "config"), "")
+    stored_media = merge_values(default_media, decode_payload(row.media_payload, "media"), "")
+    revision = tonumber(row.revision) or 1
+    updated_at = row.updated_at
+    updated_by_name = row.updated_by_name
+end
+
 default_config = {}
 for key, value in pairs(Config) do
     if key ~= "Media" and key ~= "PhoneConfigurator" then
@@ -1001,22 +1057,7 @@ Bridge.Database.Query(([[
     encode_payload(default_media, "media"),
 })
 
-local rows = Bridge.Database.Query(([[
-    SELECT `config_payload`, `media_payload`, `revision`, `updated_at`, `updated_by_name`
-    FROM `%s`
-    WHERE `id` = ?
-    LIMIT 1
-]]):format(TABLE_NAME), { CONFIG_ROW_ID })
-local row = rows[1]
-if not row then
-    error("[sky_phone] Phone configurator could not load its SQL row after initialization.")
-end
-
-stored_config = merge_values(default_config, decode_payload(row.config_payload, "config"), "")
-stored_media = merge_values(default_media, decode_payload(row.media_payload, "media"), "")
-revision = tonumber(row.revision) or 1
-updated_at = row.updated_at
-updated_by_name = row.updated_by_name
+apply_stored_row(read_stored_row())
 apply_runtime_configuration()
 
 function SkyPhoneConfigurator.GetAdminData()
@@ -1090,17 +1131,24 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         return { success = false, error = "revision_conflict", data = SkyPhoneConfigurator.GetAdminData() }
     end
 
-    stored_config = next_config
-    stored_media = next_media
-    revision = revision + 1
-    updated_at = os.date("!%Y-%m-%d %H:%M:%S")
-    updated_by_name = tostring(actor_name or ""):sub(1, 120)
+    local expected_revision = revision + 1
+    local persisted_row = read_stored_row()
+    if persisted_row.config_payload ~= config_encoded
+        or persisted_row.media_payload ~= media_encoded
+        or tonumber(persisted_row.revision) ~= expected_revision
+    then
+        error("[sky_phone] Phone configurator SQL verification failed after saving config and media payloads.")
+    end
+    apply_stored_row(persisted_row)
     apply_runtime_configuration()
-    TriggerClientEvent("sky_phone:configurator:sync", -1, {
-        config = client_payload(),
-        enabled = true,
-        revision = revision,
-    })
+    TriggerEvent("sky_phone:configurator:serverUpdated", revision)
+    SkyPhoneConfigurator.Broadcast(-1)
+    Bridge.Debug(
+        "info",
+        "[sky_phone] Applied Phone Configurator revision %s through the internal runtime refresh.",
+        tostring(revision),
+        { always = true }
+    )
 
     return { success = true, data = SkyPhoneConfigurator.GetAdminData() }
 end

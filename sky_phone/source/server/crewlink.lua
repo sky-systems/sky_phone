@@ -1,5 +1,9 @@
 Bridge.Database.AfterMigration("sky_phone", function()
 local password_pepper = tostring(Config.Server.CrewLinkPasswordPepper or "")
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    password_pepper = tostring(Config.Server.CrewLinkPasswordPepper or "")
+end)
+
 local role_levels = {
     guest = 1,
     member = 2,

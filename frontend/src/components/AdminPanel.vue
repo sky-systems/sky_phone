@@ -281,6 +281,16 @@ function configuratorSectionCount(fields: AdminConfiguratorField[]): number {
   )
 }
 
+function configuratorFieldRepeatsSection(
+  field: AdminConfiguratorField,
+): boolean {
+  const section = activeConfiguratorSection.value
+  if (!section || field.type !== 'json') return false
+  const normalize = (value: string) =>
+    value.toLocaleLowerCase().replace(/[^a-z0-9]/g, '')
+  return normalize(field.label) === normalize(section.label)
+}
+
 function configuratorStructureContains(
   structure: AdminConfiguratorStructure | undefined,
   needle: string,
@@ -1580,7 +1590,7 @@ onBeforeUnmount(() => {
                 <Save :size="18" />
                 <div>
                   <strong>{{ t('configurator.manualSave') }}</strong>
-                  <p>{{ t('configurator.restartNotice') }}</p>
+                  <p>{{ t('configurator.refreshNotice') }}</p>
                 </div>
               </article>
 
@@ -1621,7 +1631,10 @@ onBeforeUnmount(() => {
                       ),
                     }"
                   >
-                    <span class="admin-panel-config-field__copy">
+                    <span
+                      v-if="!configuratorFieldRepeatsSection(field)"
+                      class="admin-panel-config-field__copy"
+                    >
                       <strong>{{ field.label }}</strong>
                       <small
                         :title="
@@ -2477,6 +2490,7 @@ onBeforeUnmount(() => {
   --admin-dim: #555b55;
   --admin-green: var(--admin-accent, #74d66f);
   --admin-green-soft: color-mix(in srgb, var(--admin-green) 9%, transparent);
+  --admin-toggle-on: #63d471;
   --admin-row-hover: linear-gradient(
     90deg,
     #1a1c1b 0%,
@@ -4302,7 +4316,7 @@ button:disabled {
 }
 
 .admin-panel-config-toggle input:checked + i {
-  background: color-mix(in srgb, var(--admin-green) 72%, #1f321f);
+  background: var(--admin-toggle-on);
 }
 
 .admin-panel-config-toggle input:checked + i::after {

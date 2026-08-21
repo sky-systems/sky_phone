@@ -25,6 +25,18 @@ local SERVER_CAPABILITIES = {
     side = "server",
 }
 
+local function refresh_configured_capabilities()
+    local enabled = Config.CustomApps.Enabled == true
+    local external = enabled and Config.CustomApps.ExternalApps == true
+    SERVER_CAPABILITIES.features.customApps.enabled = enabled
+    SERVER_CAPABILITIES.features.customApps.external = external
+    SERVER_CAPABILITIES.features.notifications.customApps = external
+end
+
+refresh_configured_capabilities()
+
+AddEventHandler("sky_phone:configurator:serverUpdated", refresh_configured_capabilities)
+
 local custom_app_api = SkyPhoneApps.ServerPublicApi
 if type(custom_app_api) ~= "table" then
     error("[sky_phone] Server public API initialized before the custom app policy API.")

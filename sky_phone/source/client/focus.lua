@@ -23,6 +23,11 @@ local block_game = false
 local block_look = false
 local game_input = false
 
+AddEventHandler("sky_phone:configurator:updated", function()
+    state.allow_movement = Config.Phone.AllowMovement == true
+    SkyPhoneFocus.Reapply()
+end)
+
 function SkyPhoneFocus.ApplyFocusedControls()
     for _, group in ipairs(focused_control_groups) do
         DisableAllControlActions(group)

@@ -1206,11 +1206,17 @@ Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
 end)
 
 local payphone_models = {}
-for _, model_name in ipairs(Config.Payphones.Props or {}) do
-    if type(model_name) == "string" then
-        payphone_models[model_name] = true
+
+local function refresh_payphone_models()
+    payphone_models = {}
+    for _, model_name in ipairs(Config.Payphones.Props or {}) do
+        if type(model_name) == "string" then
+            payphone_models[model_name] = true
+        end
     end
 end
+
+refresh_payphone_models()
 
 if Config.Payphones.Enabled and not next(payphone_models) then
     Bridge.Debug(
@@ -1219,6 +1225,10 @@ if Config.Payphones.Enabled and not next(payphone_models) then
         { always = true }
     )
 end
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    refresh_payphone_models()
+end)
 
 local function valid_payphone_position(source, detected_booth)
     local ped = GetPlayerPed(source)
