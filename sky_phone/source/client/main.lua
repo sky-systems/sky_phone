@@ -275,7 +275,7 @@ RegisterCommand("sky_phone_live_activity_open", function()
     if not result or not result.success then
         open_home_requested = false
     end
-end
+end, false)
 
 RegisterCommand("sky_phone_toggle", run_phone_toggle, false)
 
