@@ -53,6 +53,7 @@ import type {
 } from '@/types/admin'
 import type { LaunchablePhoneAppDefinition } from '@/types/apps'
 import { SkyButton } from '@/ui'
+import { describeConfiguratorValue } from '@/utils/adminConfiguratorDescription'
 import { copyText } from '@/utils/clipboard'
 import { parseDatabaseDate } from '@/utils/date'
 import { nuiCall } from '@/utils/nui'
@@ -336,6 +337,15 @@ function t(key: string, params?: Record<string, string>): string {
   return phone.t('AdminPanel.' + key, params)
 }
 
+function configuratorDescription(
+  path: string,
+  value: unknown,
+  structure?: AdminConfiguratorStructure,
+  label?: string,
+): string {
+  return describeConfiguratorValue(t, path, value, structure, label)
+}
+
 const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   addField: t('configurator.table.addField'),
   addRow: t('configurator.table.addRow'),
@@ -345,6 +355,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   convertToTable: t('configurator.table.convertToTable'),
   emptyList: t('configurator.table.emptyList'),
   emptyTable: t('configurator.table.emptyTable'),
+  entry: t('configurator.table.entry'),
   keyPlaceholder: t('configurator.table.keyPlaceholder'),
   list: t('configurator.table.list'),
   remove: t('configurator.table.remove'),
@@ -1328,7 +1339,26 @@ onBeforeUnmount(() => {
                   >
                     <span class="admin-panel-config-field__copy">
                       <strong>{{ field.label }}</strong>
-                      <small>{{ field.path }}</small>
+                      <small
+                        :title="
+                          configuratorDescription(
+                            field.path,
+                            configuratorFieldValue(field),
+                            field.structure,
+                            field.label,
+                          )
+                        "
+                      >
+                        {{
+                          configuratorDescription(
+                            field.path,
+                            configuratorFieldValue(field),
+                            field.structure,
+                            field.label,
+                          )
+                        }}
+                      </small>
+                      <code>{{ field.path }}</code>
                     </span>
 
                     <span
@@ -1350,8 +1380,10 @@ onBeforeUnmount(() => {
                       :model-value="configuratorFieldValue(field)"
                       :structure="field.structure"
                       :aria-label="`${field.label} ${field.path}`"
+                      :describe="configuratorDescription"
                       :labels="configuratorEditorLabels"
                       :disabled="!admin.configurator.enabled"
+                      :path="field.path"
                       @update:model-value="
                         updateConfiguratorField(field, $event)
                       "
@@ -3598,7 +3630,8 @@ button:disabled {
 }
 
 .admin-panel-config-field__copy strong,
-.admin-panel-config-field__copy small {
+.admin-panel-config-field__copy small,
+.admin-panel-config-field__copy code {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3611,8 +3644,14 @@ button:disabled {
 
 .admin-panel-config-field__copy small {
   color: var(--admin-muted);
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 8px;
+  line-height: 1.25;
+}
+
+.admin-panel-config-field__copy code {
+  color: var(--admin-dim);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 7px;
 }
 
 .admin-panel-config-field > input,

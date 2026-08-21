@@ -9,6 +9,7 @@ import {
 import { computed, ref } from 'vue'
 
 import type { AdminConfiguratorStructure } from '@/types/admin'
+import type { AdminConfiguratorDescribe } from '@/utils/adminConfiguratorDescription'
 
 export type AdminConfigEditorLabels = {
   addField: string
@@ -19,6 +20,7 @@ export type AdminConfigEditorLabels = {
   convertToTable: string
   emptyList: string
   emptyTable: string
+  entry: string
   keyPlaceholder: string
   list: string
   remove: string
@@ -39,12 +41,14 @@ const props = withDefaults(
   defineProps<{
     ariaLabel?: string
     depth?: number
+    describe: AdminConfiguratorDescribe
     disabled?: boolean
     labels: AdminConfigEditorLabels
     modelValue: unknown
+    path?: string
     structure?: AdminConfiguratorStructure
   }>(),
-  { ariaLabel: '', depth: 0, disabled: false },
+  { ariaLabel: '', depth: 0, disabled: false, path: '' },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>()
 
@@ -209,6 +213,18 @@ function structuredValueLabel(
 
 function toggleStructuredEntry(entry: string): void {
   expandedEntry.value = expandedEntry.value === entry ? null : entry
+}
+
+function tableEntryPath(key: string): string {
+  return props.path ? `${props.path}.${key}` : key
+}
+
+function listEntryPath(index: number): string {
+  return `${props.path || props.ariaLabel}[${index + 1}]`
+}
+
+function mapValuePath(entry: SerializedMapEntry): string {
+  return props.path ? `${props.path}.${entry.key}` : String(entry.key)
 }
 
 function blankFromStructure(structure: AdminConfiguratorStructure): unknown {
@@ -493,12 +509,33 @@ function mapEntryStructure(
           :aria-expanded="expandedEntry === `list:${index}`"
           @click="toggleStructuredEntry(`list:${index}`)"
         >
-          <strong>{{ labels.list }} {{ index + 1 }}</strong>
-          <small>{{
-            structuredValueLabel(row, listStructure?.items[index])
-          }}</small>
+          <span class="config-structured-editor__field-copy">
+            <strong>{{ labels.entry }} {{ index + 1 }}</strong>
+            <small
+              :title="
+                describe(listEntryPath(index), row, listStructure?.items[index])
+              "
+            >
+              {{
+                describe(listEntryPath(index), row, listStructure?.items[index])
+              }}
+            </small>
+          </span>
+          <em>{{ structuredValueLabel(row, listStructure?.items[index]) }}</em>
           <ChevronDown :size="14" />
         </button>
+        <span v-else class="config-structured-editor__field-copy is-list-entry">
+          <strong>{{ labels.entry }} {{ index + 1 }}</strong>
+          <small
+            :title="
+              describe(listEntryPath(index), row, listStructure?.items[index])
+            "
+          >
+            {{
+              describe(listEntryPath(index), row, listStructure?.items[index])
+            }}
+          </small>
+        </span>
         <AdminConfigValueEditor
           v-if="
             !isStructuredValue(row, listStructure?.items[index]) ||
@@ -507,9 +544,11 @@ function mapEntryStructure(
           :model-value="row"
           :structure="listStructure?.items[index]"
           :aria-label="`${ariaLabel} ${index + 1}`"
+          :describe="describe"
           :labels="labels"
           :disabled="disabled"
           :depth="depth + 1"
+          :path="listEntryPath(index)"
           @update:model-value="updateListRow(index, $event)"
         />
         <button
@@ -610,6 +649,23 @@ function mapEntryStructure(
             :disabled="disabled || Boolean(mapEntryStructure(entry))"
             @change="updateMapKey(index, $event)"
           />
+          <em
+            :title="
+              describe(
+                mapValuePath(entry),
+                entry.value,
+                mapEntryStructure(entry),
+              )
+            "
+          >
+            {{
+              describe(
+                mapValuePath(entry),
+                entry.value,
+                mapEntryStructure(entry),
+              )
+            }}
+          </em>
         </span>
         <button
           v-if="isStructuredValue(entry.value, mapEntryStructure(entry))"
@@ -632,9 +688,11 @@ function mapEntryStructure(
           :model-value="entry.value"
           :structure="mapEntryStructure(entry)"
           :aria-label="`${ariaLabel} ${entry.key}`"
+          :describe="describe"
           :labels="labels"
           :disabled="disabled"
           :depth="depth + 1"
+          :path="mapValuePath(entry)"
           @update:model-value="updateMapValue(index, $event)"
         />
         <button
@@ -678,13 +736,31 @@ function mapEntryStructure(
           :aria-expanded="expandedEntry === `table:${key}`"
           @click="toggleStructuredEntry(`table:${key}`)"
         >
-          <strong>{{ key }}</strong>
-          <small>{{
-            structuredValueLabel(value, tableFieldStructure(key))
-          }}</small>
+          <span class="config-structured-editor__field-copy">
+            <strong>{{ key }}</strong>
+            <small
+              :title="
+                describe(tableEntryPath(key), value, tableFieldStructure(key))
+              "
+            >
+              {{
+                describe(tableEntryPath(key), value, tableFieldStructure(key))
+              }}
+            </small>
+          </span>
+          <em>{{ structuredValueLabel(value, tableFieldStructure(key)) }}</em>
           <ChevronDown :size="14" />
         </button>
-        <strong v-else>{{ key }}</strong>
+        <span v-else class="config-structured-editor__field-copy">
+          <strong>{{ key }}</strong>
+          <small
+            :title="
+              describe(tableEntryPath(key), value, tableFieldStructure(key))
+            "
+          >
+            {{ describe(tableEntryPath(key), value, tableFieldStructure(key)) }}
+          </small>
+        </span>
         <AdminConfigValueEditor
           v-if="
             !isStructuredValue(value, tableFieldStructure(key)) ||
@@ -693,9 +769,11 @@ function mapEntryStructure(
           :model-value="value"
           :structure="tableFieldStructure(key)"
           :aria-label="`${ariaLabel} ${key}`"
+          :describe="describe"
           :labels="labels"
           :disabled="disabled"
           :depth="depth + 1"
+          :path="tableEntryPath(key)"
           @update:model-value="updateTableField(key, $event)"
         />
         <button
@@ -927,7 +1005,7 @@ function mapEntryStructure(
 .config-structured-editor__row,
 .config-structured-editor__property {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) 27px;
+  grid-template-columns: 24px minmax(105px, 0.42fr) minmax(140px, 1fr) 27px;
   align-items: center;
   gap: 6px;
   padding: 5px 6px;
@@ -989,7 +1067,7 @@ function mapEntryStructure(
 
 .config-structured-editor__row.has-structured-value
   > .config-structured-editor__section-toggle {
-  grid-column: 2;
+  grid-column: 2 / 4;
   grid-row: 1;
 }
 
@@ -1007,7 +1085,7 @@ function mapEntryStructure(
 
 .config-structured-editor__row.has-structured-value
   > .config-structured-editor__remove {
-  grid-column: 3;
+  grid-column: 4;
   grid-row: 1;
 }
 
@@ -1033,20 +1111,44 @@ function mapEntryStructure(
   background: rgba(255, 255, 255, 0.025);
 }
 
-.config-structured-editor__section-toggle strong {
+.config-structured-editor__field-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.config-structured-editor__field-copy strong {
   overflow: hidden;
   min-width: 0;
+  color: #c9cec9;
   font-size: 9px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.config-structured-editor__section-toggle small {
+.config-structured-editor__field-copy small {
+  overflow: hidden;
+  color: var(--admin-muted);
+  font-size: 7.5px;
+  font-weight: 450;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-structured-editor__section-toggle
+  > .config-structured-editor__field-copy {
+  flex: 1 1 auto;
+}
+
+.config-structured-editor__section-toggle > em {
   margin-left: auto;
   color: var(--admin-muted);
   font-size: 7px;
   font-weight: 600;
+  font-style: normal;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -1082,11 +1184,21 @@ function mapEntryStructure(
   gap: 3px;
 }
 
-.config-structured-editor__map-key small {
+.config-structured-editor__map-key > small {
   color: var(--admin-dim);
   font-size: 7px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.config-structured-editor__map-key > em {
+  overflow: hidden;
+  color: var(--admin-muted);
+  font-size: 7px;
+  font-style: normal;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .config-structured-editor__map-key input {
@@ -1094,15 +1206,6 @@ function mapEntryStructure(
   min-width: 0;
   height: 25px;
   padding: 0 7px;
-}
-
-.config-structured-editor__property > strong {
-  overflow: hidden;
-  color: #c9cec9;
-  font-size: 9px;
-  font-weight: 550;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .config-structured-editor__index {
