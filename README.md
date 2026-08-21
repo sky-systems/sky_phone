@@ -29,7 +29,7 @@
 <p align="center">
   <a href="https://www.sky-systems.net/shop/phone#live-demo"><strong>Live demo</strong></a>
   &nbsp;&bull;&nbsp;
-  <a href="https://github.com/sky-systems/sky_phone"><strong>Download for free</strong></a>
+  <a href="https://github.com/sky-systems/sky_phone/releases/latest"><strong>Download for free</strong></a>
   &nbsp;&bull;&nbsp;
   <a href="https://discord.gg/sky-systems"><strong>Discord support</strong></a>
 </p>
@@ -44,7 +44,7 @@ Sky Phone is a **free and open-source FiveM phone script** built to give serious
 
 This is not a cut-down free alternative. Sky Phone includes the core experience server owners and players expect from a leading paid FiveM phone, plus full source access, no purchase price, no feature paywalls, and no forced ecosystem lock-in.
 
-The production frontend is included, so a normal server installation does not require Node.js or pnpm.
+The production frontend is included in the published release package, so a normal server installation does not require Node.js or pnpm. GitHub's automatically generated source archives do not contain that build.
 
 ## Why Sky Phone stands out
 
@@ -160,8 +160,8 @@ Start the selected voice resource before Sky Phone.
 
 ## Quick installation
 
-1. Copy the resource into your FiveM resources directory.
-2. Keep the resource folder name `sky_phone`.
+1. Download and extract the latest published [Sky Phone release](https://github.com/sky-systems/sky_phone/releases/latest). Do not use GitHub's automatically generated "Source code" archives for a server installation because they do not contain the built frontend.
+2. Copy the included resource into your FiveM resources directory and keep its folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
 4. Review `sky_phone/config/config.lua` and `sky_phone/config/media.lua`.
 5. Add the required inventory items.
@@ -181,6 +181,13 @@ ensure sky_phone
 Replace the example framework, inventory, and voice resources with the providers used by your server.
 
 Sky Phone creates and upgrades its database tables automatically. A manual SQL import is normally not required.
+
+### How players open the phone
+
+- Give the player the item configured in `Config.Phone.Item` (default: `phone`).
+- Players can use that inventory item or press the configured keybind (default: `F1`).
+- The keybind still verifies server-side that the player owns a configured phone item; it does not bypass inventory ownership.
+- A SIM card is **not required to open or use the phone itself**. With `Config.Sim.Enabled = true`, only cellular features such as calls and messages require an inserted SIM.
 
 ## Configuration
 
@@ -344,7 +351,7 @@ With unique phones, using an inventory item selects that exact handset whenever 
 
 | SIM mode | Behavior |
 | --- | --- |
-| `Enabled = true` | A registered or anonymous physical SIM item is required for cellular service. |
+| `Enabled = true` | The phone opens with or without a SIM. A registered or anonymous physical SIM item is required only for cellular service such as calls and messages. |
 | `Enabled = false` | Sky Phone creates a persistent automatic number for devices without a SIM. Physical SIM items are not required. |
 
 When changing these modes on an existing production server, restart the resource and test with a copy of the database first. The first phone used after switching to non-unique mode may adopt an existing valid IMEI so its local data is preserved.
@@ -602,11 +609,18 @@ pnpm build
 
 ### The phone item does nothing
 
+- A warning that the inventory returned no configured phone item means an item definition, `Config.Phone.Item`, inventory selection, or player ownership problem. It is not caused by a missing SIM card.
 - Confirm the framework and inventory are supported and started first.
 - Confirm the item name matches `Config.Phone.Item`.
 - Confirm the item is usable.
 - In unique mode, confirm the phone is non-stackable.
 - Check the server console for inventory adapter warnings.
+
+### The resource starts but the phone UI is missing
+
+- Install the latest published release package rather than GitHub's automatically generated source archive.
+- Confirm `sky_phone/source/html/index.html`, `assets`, `img`, and `sounds` exist.
+- Developers working from source must run the frontend production build before starting the resource.
 
 ### Calls connect without audio
 

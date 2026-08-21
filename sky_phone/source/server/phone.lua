@@ -394,9 +394,10 @@ local function resolve_used_slot(source, used_item)
 
     Bridge.Debug(
         "warn",
-        "[sky_phone] No phone item slot was available for source %s (%s candidates).",
-        tostring(source),
-        tostring(#slots)
+        "[sky_phone] Inventory '%s' returned no '%s' phone item for source %s. This is an item/configuration problem, not a missing SIM card.",
+        tostring(Bridge.Inventory.GetResourceName()),
+        tostring(Config.Phone.Item),
+        tostring(source)
     )
     return nil, "phone_required"
 end

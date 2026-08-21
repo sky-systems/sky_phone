@@ -1,5 +1,6 @@
 local registered_callbacks = {}
 local migration_callbacks = {}
+local event_handlers = {}
 
 Bridge = {
     Callbacks = {
@@ -75,8 +76,10 @@ json = {
     end,
 }
 
-function AddEventHandler(_, callback)
+function AddEventHandler(name, callback)
     assert(type(callback) == "function")
+    event_handlers[name] = event_handlers[name] or {}
+    event_handlers[name][#event_handlers[name] + 1] = callback
 end
 
 function TriggerClientEvent()
@@ -176,6 +179,87 @@ for _, callback_name in ipairs({
     local response = registered_callbacks[callback_name](1, {})
     assert(response.success == false and response.error == "device_not_open", "callback not bound to core: " .. callback_name)
 end
+
+local phone_item = {
+    name = "phone",
+    slot = 4,
+    amount = 1,
+    metadata = { imei = "123456789012345" },
+}
+local opened_event
+
+Bridge.Framework.GetIdentifier = function(source)
+    assert(source == 1)
+    return "license:test-player"
+end
+Bridge.Framework.GetFirstname = function()
+    return "Test"
+end
+Bridge.Framework.GetLastname = function()
+    return "Player"
+end
+Bridge.Inventory.GetSlot = function(source, slot)
+    assert(source == 1 and slot == phone_item.slot)
+    return phone_item
+end
+Bridge.Inventory.GetSlotsWithItem = function(source, item_name)
+    assert(source == 1 and item_name == Config.Phone.Item)
+    return { phone_item }
+end
+Bridge.Inventory.SetSlotMetadata = function()
+    error("existing phone metadata must not be rewritten")
+end
+Bridge.Database.Query = function(query)
+    if query:find("FROM `sky_phone_devices` d", 1, true) then
+        return {
+            {
+                imei = phone_item.metadata.imei,
+                device_name = Config.Phone.DeviceName,
+                account_id = nil,
+                sim_id = nil,
+            },
+        }
+    end
+    return {}
+end
+SkyPhoneImei.IsValid = function(imei)
+    return imei == phone_item.metadata.imei
+end
+SkyPhoneSim = {
+    PrepareDevice = function(source, slot, imei)
+        assert(source == 1 and slot == phone_item and imei == phone_item.metadata.imei)
+        return true
+    end,
+}
+SkyPhoneNotes = {
+    List = function()
+        return {}
+    end,
+}
+SkyPhoneMemos = {
+    List = function()
+        return {}
+    end,
+}
+SkyPhoneCompanies = {
+    ClearCallAvailability = function()
+    end,
+}
+TriggerClientEvent = function(event_name, source, payload)
+    if event_name == "sky_phone:device:open" then
+        opened_event = { source = source, payload = payload }
+    end
+end
+
+for _, callback in ipairs(event_handlers.onServerResourceStart or {}) do
+    callback("sky_phone")
+end
+
+local no_sim_open = registered_callbacks["sky_phone:device:open-request"](1, {})
+assert(no_sim_open.success == true, "a phone item without a SIM must still open")
+assert(opened_event and opened_event.source == 1, "no-SIM open must reach the client")
+assert(opened_event.payload.device.imei == phone_item.metadata.imei)
+assert(opened_event.payload.device.sim == nil, "no-SIM bootstrap must keep device.sim nullable")
 
 local manifest_file = assert(io.open("sky_phone/fxmanifest.lua", "rb"))
 local manifest = manifest_file:read("*a")
