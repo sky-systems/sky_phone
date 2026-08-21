@@ -173,6 +173,20 @@ function blankCollectionValue(kind: ValueKind, siblings: unknown[]): unknown {
   return template === undefined ? blankValue(kind) : blankLike(template)
 }
 
+function isStructuredValue(
+  value: unknown,
+  structure?: AdminConfiguratorStructure,
+): boolean {
+  if (
+    structure?.kind === 'list' ||
+    structure?.kind === 'map' ||
+    structure?.kind === 'table' ||
+    structure?.kind === 'vector'
+  )
+    return true
+  return value !== null && typeof value === 'object'
+}
+
 function blankFromStructure(structure: AdminConfiguratorStructure): unknown {
   if (structure.kind === 'optionalString') return ''
   if (structure.kind === 'value') return blankValue(structure.valueType)
@@ -431,6 +445,12 @@ function mapEntryStructure(
         v-for="(row, index) in listValue"
         :key="index"
         class="config-structured-editor__row"
+        :class="{
+          'has-structured-value': isStructuredValue(
+            row,
+            listStructure?.items[index],
+          ),
+        }"
       >
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
         <AdminConfigValueEditor
@@ -496,6 +516,12 @@ function mapEntryStructure(
         v-for="(entry, index) in mapEntries"
         :key="`${entry.keyType}:${entry.key}`"
         class="config-structured-editor__property is-map"
+        :class="{
+          'has-structured-value': isStructuredValue(
+            entry.value,
+            mapEntryStructure(entry),
+          ),
+        }"
       >
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
         <span class="config-structured-editor__map-key">
@@ -541,6 +567,12 @@ function mapEntryStructure(
         v-for="([key, value], index) in tableEntries"
         :key="key"
         class="config-structured-editor__property"
+        :class="{
+          'has-structured-value': isStructuredValue(
+            value,
+            tableFieldStructure(key),
+          ),
+        }"
       >
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
         <strong>{{ key }}</strong>
@@ -787,6 +819,49 @@ function mapEntryStructure(
 
 .config-structured-editor__property.is-map {
   grid-template-columns: 24px minmax(105px, 0.42fr) minmax(150px, 1fr) 27px;
+}
+
+.config-structured-editor__row.has-structured-value,
+.config-structured-editor__property.has-structured-value {
+  align-items: start;
+}
+
+.config-structured-editor__row.has-structured-value > .config-structured-editor,
+.config-structured-editor__property.has-structured-value
+  > .config-structured-editor {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: calc(100% + 12px);
+  margin-inline: -6px;
+}
+
+.config-structured-editor__row.has-structured-value
+  > .config-structured-editor__index,
+.config-structured-editor__property.has-structured-value
+  > .config-structured-editor__index {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
+
+.config-structured-editor__property.has-structured-value > strong,
+.config-structured-editor__property.is-map.has-structured-value
+  > .config-structured-editor__map-key {
+  grid-column: 2 / 4;
+  grid-row: 1;
+  align-self: center;
+}
+
+.config-structured-editor__row.has-structured-value
+  > .config-structured-editor__remove {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.config-structured-editor__property.has-structured-value
+  > .config-structured-editor__remove {
+  grid-column: 4;
+  grid-row: 1;
 }
 
 .config-structured-editor__map-key {

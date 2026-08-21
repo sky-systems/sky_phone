@@ -1319,6 +1319,7 @@ onBeforeUnmount(() => {
                     :key="configuratorFieldKey(field)"
                     class="admin-panel-config-field"
                     :class="{
+                      'is-structured': field.type === 'json',
                       'is-dirty': Object.prototype.hasOwnProperty.call(
                         configuratorDrafts,
                         configuratorFieldKey(field),
@@ -3573,6 +3574,12 @@ button:disabled {
   gap: 14px;
   padding: 8px 12px;
   background: #121412;
+}
+
+.admin-panel-config-field.is-structured {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 7px;
 }
 
 .admin-panel-config-field:hover {

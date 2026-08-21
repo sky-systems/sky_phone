@@ -287,6 +287,11 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorValueEditor).toContain('function isFixedTableField(')
     expect(configuratorValueEditor).toContain('function blankCollectionValue(')
     expect(configuratorValueEditor).toContain('function blankFromStructure(')
+    expect(source).toContain("'is-structured': field.type === 'json'")
+    expect(configuratorValueEditor).toContain('function isStructuredValue(')
+    expect(configuratorValueEditor).toContain(
+      '.config-structured-editor__property.has-structured-value',
+    )
     expect(configuratorValueEditor).not.toContain('<textarea')
   })
 })
