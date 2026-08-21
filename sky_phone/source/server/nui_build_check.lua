@@ -112,7 +112,11 @@ local function print_missing_nui_notice(missing_paths)
     lines[#lines + 1] = ""
     lines[#lines + 1] = "^3 Install the latest published release package, not GitHub's automatic source archive.^0"
     lines[#lines + 1] = "^5 Release: https://github.com/sky-systems/sky_phone/releases/latest^0"
-    lines[#lines + 1] = "^3 Developers working from source must run build_frontend.bat before starting sky_phone.^0"
+    lines[#lines + 1] = "^3 Developers working from source:^0"
+    lines[#lines + 1] = "^5 cd frontend^0"
+    lines[#lines + 1] = "^5 pnpm install --frozen-lockfile^0"
+    lines[#lines + 1] = "^5 pnpm build^0"
+    lines[#lines + 1] = "^5 Build guide: https://github.com/sky-systems/sky_phone#frontend-development^0"
     lines[#lines + 1] = ("^1%s^0"):format(border)
 
     print(table.concat(lines, "\n"))

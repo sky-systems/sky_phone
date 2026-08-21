@@ -39,7 +39,11 @@ assert(missing_build_output:find("source/html/assets/*", 1, true))
 assert(missing_build_output:find("source/html/img/custom-app.svg", 1, true))
 assert(missing_build_output:find("source/html/sounds/button.mp3", 1, true))
 assert(missing_build_output:find("not GitHub's automatic source archive", 1, true))
-assert(missing_build_output:find("build_frontend.bat", 1, true))
+assert(missing_build_output:find("cd frontend", 1, true))
+assert(missing_build_output:find("pnpm install --frozen-lockfile", 1, true))
+assert(missing_build_output:find("pnpm build", 1, true))
+assert(missing_build_output:find("https://github.com/sky-systems/sky_phone#frontend-development", 1, true))
+assert(not missing_build_output:find("build_frontend.bat", 1, true))
 
 local missing_asset_files = {}
 for path, content in pairs(valid_files) do
