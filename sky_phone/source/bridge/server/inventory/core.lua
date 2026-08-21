@@ -38,13 +38,12 @@ function Bridge.Inventory.GetSlotsWithItem(source, item_name, metadata)
 end
 
 function Bridge.Inventory.SetSlotMetadata(source, slot_id, metadata)
-    local slot = Bridge.Inventory.GetSlot(source, slot_id)
-    if not slot then
+    local numeric_slot = tonumber(slot_id)
+    if not numeric_slot then
         return false
     end
-    inventory:updateMetadata(source, slot.slot, metadata or {})
-    local updated = Bridge.Inventory.GetSlot(source, slot.slot)
-    return updated and Bridge.Inventory.MetadataMatches(updated.metadata, metadata or {}) or false
+    inventory:setMetadata(source, numeric_slot, metadata or {})
+    return true
 end
 
 function Bridge.Inventory.CanCarryItem()

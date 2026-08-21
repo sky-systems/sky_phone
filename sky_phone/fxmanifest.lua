@@ -86,6 +86,7 @@ server_scripts {
     'source/bridge/server/housing/*.lua',
     'source/bridge/server/inventory.lua',
     'source/bridge/server/inventory/*.lua',
+    'source/bridge/server/inventory_contract.lua',
     'source/bridge/server/voice.lua',
     'source/server/custom_apps.lua',
     'source/server/media_metadata.lua',
