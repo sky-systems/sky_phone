@@ -3,17 +3,27 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const readResourceFile = (path: string) =>
-  readFileSync(new URL(`../../sky_phone/${path}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  readFileSync(
+    new URL(`../../sky_phone/${path}`, import.meta.url),
+    'utf8',
+  ).replace(/\r\n/g, '\n')
 const readFrontendFile = (path: string) =>
   readFileSync(new URL(path, import.meta.url), 'utf8')
 
 const inventoryAdapters = [
+  ['jaksam', 'source/bridge/server/inventory/jaksam.lua'],
   ['ox', 'source/bridge/server/inventory/ox.lua'],
   ['qb', 'source/bridge/server/inventory/qb.lua'],
   ['lj', 'source/bridge/server/inventory/qb.lua'],
   ['qs', 'source/bridge/server/inventory/qs.lua'],
+  ['ps', 'source/bridge/server/inventory/ps.lua'],
   ['codem', 'source/bridge/server/inventory/codem.lua'],
+  ['tgiann', 'source/bridge/server/inventory/tgiann.lua'],
   ['core', 'source/bridge/server/inventory/core.lua'],
+  ['jpr', 'source/bridge/server/inventory/jpr.lua'],
+  ['origen', 'source/bridge/server/inventory/origen.lua'],
+  ['ak47', 'source/bridge/server/inventory/ak47.lua'],
+  ['one', 'source/bridge/server/inventory/one.lua'],
   ['mf', 'source/bridge/server/inventory/mf.lua'],
   ['smx', 'source/bridge/server/inventory/smx.lua'],
   ['hex', 'source/bridge/server/inventory/esx.lua'],
@@ -42,15 +52,19 @@ describe('phone inventory contracts', () => {
     )
   })
 
-  it('auto-detects HEX and limits count-based ESX inventories to metadata-free modes', () => {
+  it('auto-detects registered inventories and limits metadata-free adapters', () => {
     const inventoryBridge = readResourceFile(
       'source/bridge/server/inventory.lua',
     )
 
     expect(inventoryBridge).toContain(
-      'GetResourceState("hex_4_inventory") == "started"',
+      '{ name = "hex", resource = "hex_4_inventory", framework = "esx", metadata = false },',
     )
-    expect(inventoryBridge).toContain('configured_inventory = "hex"')
+    expect(inventoryBridge).toContain(
+      'GetResourceState(adapter.resource) == "started"',
+    )
+    expect(inventoryBridge).toContain('configured_inventory = adapter.name')
+    expect(inventoryBridge).toContain('selected_adapter.metadata == false')
     expect(inventoryBridge).toContain('Config.Phone.Unique ~= false')
     expect(inventoryBridge).toContain('Config.Sim.Enabled ~= false')
   })
@@ -103,9 +117,15 @@ describe('phone inventory contracts', () => {
     expect(equippedNumberExport).toBeDefined()
     expect(equippedNumberResolver).toBeDefined()
     expect(equippedNumberExport).toContain('type(player) == "number"')
-    expect(equippedNumberExport).toContain('online_source_for_identifier(player)')
-    expect(phoneServer).toContain('Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)')
-    expect(phoneServer).toContain('return resolve_equipped_phone_number(player)')
+    expect(equippedNumberExport).toContain(
+      'online_source_for_identifier(player)',
+    )
+    expect(phoneServer).toContain(
+      'Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)',
+    )
+    expect(phoneServer).toContain(
+      'return resolve_equipped_phone_number(player)',
+    )
     expect(equippedNumberExport).not.toContain('tonumber(player)')
     expect(equippedNumberExport).not.toContain('equipped_phone_numbers[player]')
     expect(equippedNumberResolver).not.toContain('return cached_number')
@@ -160,7 +180,9 @@ describe('phone inventory contracts', () => {
     expect(phoneClient).toContain(
       'TriggerEvent("sky_phone:client:phoneToggled", false)',
     )
-    expect(phoneBridge).toContain('TriggerEvent("lb-phone:numberChanged", phone_number)')
+    expect(phoneBridge).toContain(
+      'TriggerEvent("lb-phone:numberChanged", phone_number)',
+    )
     expect(phoneBridge).toContain('TriggerEvent("lb-phone:phoneToggled", open)')
   })
 
@@ -213,7 +235,9 @@ describe('phone inventory contracts', () => {
     expect(mediaServer).toContain(
       'TriggerEvent("sky_phone:server:galleryMediaDeleted", src, phone_number, deleted_link)',
     )
-    expect(phoneBridge).toContain('TriggerEvent("lb-phone:phoneNumberGenerated"')
+    expect(phoneBridge).toContain(
+      'TriggerEvent("lb-phone:phoneNumberGenerated"',
+    )
     expect(phoneBridge).toContain('TriggerEvent("lb-phone:factoryReset"')
     expect(phoneBridge).toContain('TriggerEvent("lb-phone:deletedFromGallery"')
   })
