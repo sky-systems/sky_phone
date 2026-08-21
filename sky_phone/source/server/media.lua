@@ -4,36 +4,19 @@ SkyPhoneMediaImport.Initialize()
 
 local pending_uploads = {}
 local pending_deletes = {}
-local allowed_remote_mimes = {
-    audio = {
-        ["audio/ogg"] = true,
-        ["audio/webm"] = true,
-    },
-    photo = {
-        ["image/jpeg"] = true,
-        ["image/png"] = true,
-        ["image/webp"] = true,
-    },
-    video = {
-        ["video/mp4"] = true,
-        ["video/webm"] = true,
-    },
+local allowed_fivemanage_hosts = {
+    ["api.fivemanage.com"] = true,
+    ["fmapi.net"] = true,
 }
 
-local function media_config()
-    return Config.Media.FiveManage
+local function diagnostic_text(value, maximum_length)
+    return tostring(value or "unknown"):gsub("[\r\n]", " "):sub(1, maximum_length)
 end
 
-local function media_api_key()
-    local api_key = media_config().ApiKey
-    if type(api_key) ~= "string" then
-        return ""
-    end
-    return api_key:match("^%s*(.-)%s*$")
-end
-
-local function api_configured()
-    return media_api_key() ~= ""
+local function media_debug(message, ...)
+    local arguments = { ... }
+    arguments[#arguments + 1] = { notice = true }
+    Bridge.Debug("debug", "[sky_phone][media-debug] " .. message, table.unpack(arguments))
 end
 
 local function http_request(url, method, body, headers, timeout_ms)
@@ -65,6 +48,9 @@ local function response_error_message(response)
     if type(response) ~= "table" then
         return "invalid response"
     end
+    if type(response.status) == "number" and response.status >= 200 and response.status < 300 then
+        return "none"
+    end
     if type(response.error) == "string" and response.error ~= "" then
         return response.error:sub(1, 240)
     end
@@ -74,6 +60,10 @@ local function response_error_message(response)
         if type(message) == "string" and message ~= "" then
             return message:sub(1, 240)
         end
+    end
+    local response_body = tostring(response.body or ""):gsub("[\r\n]", " ")
+    if response_body ~= "" then
+        return response_body:sub(1, 240)
     end
     return "no provider error message"
 end
@@ -95,8 +85,22 @@ local function decode_response(response)
     return decoded.data or decoded
 end
 
+local function fivemanage_file_base(value)
+    if type(value) ~= "string" then
+        return nil
+    end
+    local host = value:match("^https://([^/%?#]+)")
+    host = host and host:lower() or nil
+    if not host or not allowed_fivemanage_hosts[host] then
+        return nil
+    end
+    return ("https://%s/api/v3/file"):format(host), host
+end
+
 local function request_presigned_url()
-    if not api_configured() then
+    local api_key = SkyPhoneMediaProviderConfig.FiveManageApiKey()
+    media_debug("Starting FiveManage presigned upload request (api-key=%s).", api_key ~= "" and "present" or "missing")
+    if api_key == "" then
         Bridge.Debug(
             "error",
             "[sky_phone] FiveManage presigned upload request failed: Config.Media.FiveManage.ApiKey is empty or invalid.",
@@ -109,9 +113,10 @@ local function request_presigned_url()
         tostring(config.BaseUrl):gsub("/+$", "") .. "/presigned-url",
         "GET",
         "",
-        { ["Authorization"] = media_api_key() },
+        { ["Authorization"] = api_key },
         tonumber(config.RequestTimeoutMs) or 10000
     )
+    media_debug("FiveManage presigned upload request returned HTTP %s.", tostring(response.status))
     if response.status == 401 or response.status == 403 then
         Bridge.Debug(
             "error",
@@ -150,40 +155,41 @@ local function request_presigned_url()
         )
         return nil, "media_provider_failed"
     end
+    local provider_base_url, provider_host = fivemanage_file_base(presigned_url)
+    if not provider_base_url then
+        Bridge.Debug(
+            "error",
+            "[sky_phone] FiveManage returned a presigned URL on an unexpected host.",
+            { always = true }
+        )
+        return nil, "media_provider_failed"
+    end
+    media_debug("FiveManage returned a valid presigned upload URL (host=%s).", provider_host)
     return presigned_url
 end
 
-local function get_remote_file(remote_id)
-    if not api_configured() then
-        return nil, "missing_config"
+local function encode_remote_path(value)
+    local segments = {}
+    for segment in tostring(value):gmatch("[^/]+") do
+        segments[#segments + 1] = SkyPhoneMediaImport.UrlEncode(segment)
     end
-    local config = Config.Media.FiveManage
-    local response = http_request(
-        ("%s/%s"):format(
-            tostring(config.BaseUrl):gsub("/+$", ""),
-            SkyPhoneMediaImport.UrlEncode(remote_id)
-        ),
-        "GET",
-        "",
-        { ["Authorization"] = media_api_key() },
-        tonumber(config.RequestTimeoutMs) or 10000
-    )
-    return decode_response(response)
+    return table.concat(segments, "/")
 end
 
 local function delete_remote_file(remote_id)
-    if not api_configured() then
+    local api_key = SkyPhoneMediaProviderConfig.FiveManageApiKey()
+    if api_key == "" then
         return false, "missing_config"
     end
     local config = Config.Media.FiveManage
     local response = http_request(
         ("%s/%s"):format(
             tostring(config.BaseUrl):gsub("/+$", ""),
-            SkyPhoneMediaImport.UrlEncode(remote_id)
+            encode_remote_path(remote_id)
         ),
         "DELETE",
         "",
-        { ["Authorization"] = media_api_key() },
+        { ["Authorization"] = api_key },
         tonumber(config.RequestTimeoutMs) or 10000
     )
     if response.status < 200 or response.status >= 300 then
@@ -289,6 +295,14 @@ function SkyPhoneMedia.ResolveOwnedMedia(source, media_id, media_type)
 end
 
 local function upload_result(source, correlation_id, success, error_code, media)
+    media_debug(
+        "Sending upload result (source=%s, correlation=%s, success=%s, error=%s, media=%s).",
+        tostring(source),
+        diagnostic_text(correlation_id, 80),
+        tostring(success),
+        diagnostic_text(error_code, 80),
+        type(media) == "table" and "present" or "missing"
+    )
     TriggerClientEvent("sky_phone:media:upload-result", source, {
         correlationId = correlation_id,
         success = success,
@@ -315,79 +329,42 @@ local function delete_many_result(source, correlation_id, success, error_code, d
     })
 end
 
-local function parse_metadata(value)
-    if type(value) == "table" then
-        return value
-    end
-    if type(value) ~= "string" then
-        return nil
-    end
-    local success, decoded = pcall(json.decode, value)
-    return success and type(decoded) == "table" and decoded or nil
-end
-
 local function valid_remote_id(value)
     return type(value) == "string" and #value >= 4 and #value <= 128 and value:match("^[%w_%-]+$") ~= nil
 end
 
 local function verify_remote_upload(state, remote_id, uploaded_url)
-    if not valid_remote_id(remote_id) or type(uploaded_url) ~= "string" or #uploaded_url > 2048
+    if not valid_remote_id(remote_id) or type(uploaded_url) ~= "string"
+        or #uploaded_url > Config.Media.UrlMaxLength
         or not uploaded_url:match("^https://")
     then
+        Bridge.Debug(
+            "error",
+            "[sky_phone][media-debug] Upload completion payload is invalid (remote-id=%s, url=%s).",
+            valid_remote_id(remote_id) and "valid" or "invalid",
+            type(uploaded_url) == "string" and uploaded_url:match("^https://") and "https" or "invalid"
+        )
         return nil, "invalid_upload"
     end
-    local remote, remote_error = get_remote_file(remote_id)
-    if not remote then
-        return nil, remote_error
-    end
-    if remote.id ~= remote_id then
+
+    local uploaded_host = uploaded_url:match("^https://([^/%?#]+)")
+    if not uploaded_host or uploaded_host:lower() ~= "r2.fivemanage.com" then
+        Bridge.Debug(
+            "error",
+            "[sky_phone][media-debug] FiveManage upload returned an unexpected media host."
+        )
         return nil, "invalid_upload"
     end
-    if remote.url ~= uploaded_url and remote.originalUrl ~= uploaded_url then
-        return nil, "invalid_upload"
-    end
-    local verified_url = remote.url or uploaded_url
-    if type(verified_url) ~= "string" or #verified_url > Config.Media.UrlMaxLength
-        or not verified_url:match("^https://")
-    then
-        return nil, "invalid_upload"
-    end
-    local metadata = parse_metadata(remote.metadata)
-    if not metadata or metadata.captureToken ~= state.capture_token or metadata.source ~= "sky_phone" then
-        return nil, "invalid_upload_token"
-    end
-    if state.purpose and metadata.purpose ~= state.purpose then
-        return nil, "invalid_upload", true
-    end
-    local allowed_mimes = allowed_remote_mimes[state.media_type]
-    if not allowed_mimes then
-        return nil, "invalid_media_type", true
-    end
-    local remote_mime = tostring(remote.mimeType or ""):lower():match("^%s*([^;%s]+)") or ""
-    local remote_type = tostring(remote.type or ""):lower():match("^%s*([^;%s]+)") or ""
-    if remote_mime == "" and allowed_mimes[remote_type] then
-        remote_mime = remote_type
-    end
-    if remote_type == "" then
-        remote_type = remote_mime
-    end
-    if state.media_type == "photo" and remote_type ~= "" and not remote_type:find("image", 1, true) then
-        return nil, "invalid_media_type", true
-    end
-    if state.media_type == "video" and remote_type ~= "" and not remote_type:find("video", 1, true) then
-        return nil, "invalid_media_type", true
-    end
-    if state.media_type == "audio" and remote_type ~= "" and not remote_type:find("audio", 1, true) then
-        return nil, "invalid_media_type", true
-    end
-    if remote_mime ~= "" and not allowed_mimes[remote_mime] then
-        return nil, "invalid_media_type", true
-    end
+    media_debug(
+        "Accepting the direct FiveManage upload response (type=%s, size=%s).",
+        tostring(state.media_type),
+        tostring(state.size_bytes)
+    )
     return {
-        mime_type = allowed_mimes[remote_mime] and remote_mime or state.mime_type,
+        mime_type = state.mime_type,
         remote_id = remote_id,
-        size = tonumber(remote.size),
-        url = verified_url,
+        size = state.size_bytes,
+        url = uploaded_url,
     }, nil, true
 end
 
@@ -401,6 +378,12 @@ local function expire_upload(request_id)
         return
     end
     pending_uploads[request_id] = nil
+    Bridge.Debug(
+        "error",
+        "[sky_phone][media-debug] Upload session expired before completion (source=%s, correlation=%s).",
+        tostring(state.source),
+        diagnostic_text(state.correlation_id, 80)
+    )
     upload_result(state.source, state.correlation_id, false, "upload_timeout")
 end
 
@@ -660,35 +643,81 @@ RegisterNetEvent("sky_phone:media:request-upload", function(data)
     data = type(data) == "table" and data or {}
     local correlation_id = data.correlationId
     local media_type = data.mediaType
+    media_debug(
+        "Server received upload request (source=%s, correlation=%s, type=%s).",
+        tostring(src),
+        diagnostic_text(correlation_id, 80),
+        diagnostic_text(media_type, 20)
+    )
     if type(correlation_id) ~= "string" or #correlation_id > 80
         or (media_type ~= "photo" and media_type ~= "video")
     then
+        Bridge.Debug(
+            "error",
+            "[sky_phone][media-debug] Upload request validation failed (source=%s, correlation-type=%s, correlation-length=%s, media-type=%s).",
+            tostring(src),
+            type(correlation_id),
+            type(correlation_id) == "string" and tostring(#correlation_id) or "invalid",
+            diagnostic_text(media_type, 20)
+        )
         upload_result(src, correlation_id, false, "invalid_request")
         return
     end
     if not SkyPhone.AllowOperation(src, "media_write", 20, 60) then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone][media-debug] Upload request was rate limited (source=%s, correlation=%s).",
+            tostring(src),
+            diagnostic_text(correlation_id, 80)
+        )
         upload_result(src, correlation_id, false, "rate_limited")
         return
     end
     local owner, error_response = session_owner(src)
     if not owner then
+        Bridge.Debug(
+            "error",
+            "[sky_phone][media-debug] Upload request has no valid phone session (source=%s, correlation=%s, error=%s).",
+            tostring(src),
+            diagnostic_text(correlation_id, 80),
+            diagnostic_text(error_response and error_response.error, 80)
+        )
         upload_result(src, correlation_id, false, error_response.error)
         return
     end
+    media_debug(
+        "Upload request session resolved (source=%s, correlation=%s, owner=%s).",
+        tostring(src),
+        diagnostic_text(correlation_id, 80),
+        owner.account_id and "account" or "device"
+    )
     local presigned_url, presigned_error = request_presigned_url()
     if not presigned_url then
+        Bridge.Debug(
+            "error",
+            "[sky_phone][media-debug] Presigned upload request failed (source=%s, correlation=%s, error=%s).",
+            tostring(src),
+            diagnostic_text(correlation_id, 80),
+            diagnostic_text(presigned_error, 80)
+        )
         upload_result(src, correlation_id, false, presigned_error)
         return
     end
-    local ids = Bridge.Database.Query("SELECT UUID() AS `request_id`, UUID() AS `capture_token`", {})
+    local ids = Bridge.Database.Query("SELECT UUID() AS `request_id`", {})
     local request_id = ids[1] and ids[1].request_id
-    local capture_token = ids[1] and ids[1].capture_token
-    if type(request_id) ~= "string" or type(capture_token) ~= "string" then
+    if type(request_id) ~= "string" then
+        Bridge.Debug(
+            "error",
+            "[sky_phone][media-debug] Database did not generate an upload request ID (source=%s, correlation=%s, rows=%s, request-id=%s).",
+            tostring(src),
+            diagnostic_text(correlation_id, 80),
+            tostring(type(ids) == "table" and #ids or 0),
+            type(request_id)
+        )
         upload_result(src, correlation_id, false, "request_failed")
         return
     end
     pending_uploads[request_id] = {
-        capture_token = capture_token,
         correlation_id = correlation_id,
         media_type = media_type,
         mime_type = media_type == "video" and "video/webm"
@@ -700,8 +729,13 @@ RegisterNetEvent("sky_phone:media:request-upload", function(data)
     SetTimeout(tonumber(Config.Media.UploadSessionTimeoutMs) or 60000, function()
         expire_upload(request_id)
     end)
+    media_debug(
+        "Sending upload-ready to client (source=%s, correlation=%s, type=%s).",
+        tostring(src),
+        diagnostic_text(correlation_id, 80),
+        tostring(media_type)
+    )
     TriggerClientEvent("sky_phone:media:upload-ready", src, {
-        captureToken = capture_token,
         correlationId = correlation_id,
         mediaType = media_type,
         photo = Config.Media.Photo,
@@ -718,18 +752,55 @@ RegisterNetEvent("sky_phone:media:complete-upload", function(data)
     local request_id = data.requestId
     local state = type(request_id) == "string" and pending_uploads[request_id] or nil
     if not state or state.source ~= src or state.completing then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone][media-debug] Rejected upload completion (source=%s, request-id=%s, session=%s, owner-match=%s, completing=%s).",
+            tostring(src),
+            type(request_id) == "string" and "present" or "invalid",
+            state and "present" or "missing",
+            tostring(state and state.source == src),
+            tostring(state and state.completing)
+        )
         return
     end
+    media_debug(
+        "Server received upload completion (source=%s, correlation=%s, remote-id=%s, url=%s).",
+        tostring(src),
+        diagnostic_text(state.correlation_id, 80),
+        type(data.remoteId) == "string" and "present" or "missing",
+        type(data.url) == "string" and "present" or "missing"
+    )
     state.completing = true
     local owner, error_response = session_owner(src)
     if not owner or not owners_match(owner, state.owner) then
         pending_uploads[request_id] = nil
+        Bridge.Debug(
+            "error",
+            "[sky_phone][media-debug] Upload owner changed before completion (source=%s, correlation=%s, session=%s, owner-match=%s, error=%s).",
+            tostring(src),
+            diagnostic_text(state.correlation_id, 80),
+            owner and "present" or "missing",
+            tostring(owner and owners_match(owner, state.owner)),
+            diagnostic_text(error_response and error_response.error, 80)
+        )
         upload_result(src, state.correlation_id, false, error_response and error_response.error or "owner_changed")
         return
     end
-    local verified, verify_error, trusted_remote = verify_remote_upload(state, data.remoteId, data.url)
+    local verified, verify_error, trusted_remote = verify_remote_upload(
+        state,
+        data.remoteId,
+        data.url
+    )
     if not verified then
         pending_uploads[request_id] = nil
+        Bridge.Debug(
+            "error",
+            "[sky_phone][media-debug] Uploaded file verification failed (source=%s, correlation=%s, error=%s, trusted-remote=%s).",
+            tostring(src),
+            diagnostic_text(state.correlation_id, 80),
+            diagnostic_text(verify_error, 80),
+            tostring(trusted_remote)
+        )
         if trusted_remote then
             local deleted, delete_error = delete_remote_file(data.remoteId)
             if not deleted then
@@ -760,9 +831,22 @@ RegisterNetEvent("sky_phone:media:complete-upload", function(data)
     local media_id = type(result) == "number" and result or (type(result) == "table" and tonumber(result.insertId))
     if not media_id then
         delete_remote_file(verified.remote_id)
+        Bridge.Debug(
+            "error",
+            "[sky_phone][media-debug] Database insert did not return a media ID (source=%s, correlation=%s, result-type=%s).",
+            tostring(src),
+            diagnostic_text(state.correlation_id, 80),
+            type(result)
+        )
         upload_result(src, state.correlation_id, false, "request_failed")
         return
     end
+    media_debug(
+        "Media upload completed successfully (source=%s, correlation=%s, media-id=%s).",
+        tostring(src),
+        diagnostic_text(state.correlation_id, 80),
+        tostring(media_id)
+    )
     upload_result(src, state.correlation_id, true, nil, {
         id = media_id,
         url = verified.url,
@@ -787,6 +871,15 @@ RegisterNetEvent("sky_phone:media:fail-upload", function(data)
     local request_id = type(data) == "table" and data.requestId or nil
     local state = type(request_id) == "string" and pending_uploads[request_id] or nil
     if not state or state.source ~= src or state.completing then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone][media-debug] Rejected client upload failure report (source=%s, request-id=%s, session=%s, owner-match=%s, completing=%s).",
+            tostring(src),
+            type(request_id) == "string" and "present" or "invalid",
+            state and "present" or "missing",
+            tostring(state and state.source == src),
+            tostring(state and state.completing)
+        )
         return
     end
     local allowed_errors = {
@@ -797,6 +890,16 @@ RegisterNetEvent("sky_phone:media:fail-upload", function(data)
     }
     pending_uploads[request_id] = nil
     local error_code = allowed_errors[data.error] and data.error or "upload_failed"
+    Bridge.Debug(
+        "error",
+        "[sky_phone][media-debug] Client-reported upload failure (source=%s, correlation=%s, error=%s, stage=%s, status=%s, detail=%s).",
+        tostring(src),
+        diagnostic_text(state.correlation_id, 80),
+        diagnostic_text(error_code, 80),
+        diagnostic_text(data.debugStage, 40),
+        diagnostic_text(data.debugStatus, 20),
+        diagnostic_text(data.debugMessage, 240)
+    )
     upload_result(src, state.correlation_id, false, error_code)
 end)
 
@@ -981,7 +1084,7 @@ AddEventHandler("playerDropped", function()
     end
 end)
 
-if not api_configured() then
+if SkyPhoneMediaProviderConfig.FiveManageApiKey() == "" then
     Bridge.Debug(
         "warn",
         "[sky_phone] FiveManage media integration is disabled because Config.Media.FiveManage.ApiKey is empty in config/media.lua. Camera photo and video uploads, Voice Memo uploads, remote Gallery deletion, and FiveManage imports are unavailable. Add a FiveManage V3 token with Media access and restart sky_phone.",

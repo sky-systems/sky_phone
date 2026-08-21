@@ -39,7 +39,6 @@ export type MemoRecordingMetadata = {
 export type MemoUploadReady = {
   requestId: string
   correlationId: string
-  captureToken: string
   presignedUrl: string
   uploadTimeoutMs?: number
 }

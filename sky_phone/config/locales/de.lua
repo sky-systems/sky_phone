@@ -1456,7 +1456,9 @@ Locales["de"] = {
                 errors = {
                     cancelled = "Die Aufnahme ist abgesagt.", capture_failed = "Die Spielansicht kann nicht erfasst werden.",
                     invalid_media_type = "Der hochgeladene Medientyp ist ungültig.", invalid_upload = "Der Upload konnte nicht überprüft werden.",
-                    invalid_upload_token = "Die Upload-Sitzung ist nicht mehr gültig.", missing_config = "Kamera-Uploads sind nicht konfiguriert.",
+                    invalid_upload_token = "Die Upload-Sitzung ist nicht mehr gültig.", media_provider_failed = "Der Kamera-Upload-Dienst ist nicht verfügbar.",
+                    media_provider_rate_limited = "Der Kamera-Upload-Dienst ist ausgelastet. Versuch es gleich erneut.", media_provider_unauthorized = "Der konfigurierte FiveManage API-Schlüssel wurde abgelehnt.",
+                    missing_config = "Kamera-Uploads sind nicht konfiguriert.",
                     microphone_unavailable = "Erlaube den Mikrofonzugriff oder schalte das Mikrofon vor der Aufnahme stumm.",
                     not_found = "Das Medienobjekt existiert nicht mehr.", owner_changed = "Das aktive Telefonkonto hat sich beim Upload geändert.",
                     operation_in_progress = "Eine weitere Medienoperation ist bereits im Gange.",

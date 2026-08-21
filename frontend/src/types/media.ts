@@ -70,7 +70,6 @@ export type MediaImportResult = {
 }
 
 export type UploadReady = {
-  captureToken: string
   correlationId: string
   mediaType: MediaType
   photo?: {

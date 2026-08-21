@@ -4553,6 +4553,11 @@ const defaultLocales: LocaleTree = {
         invalid_media_type: 'The uploaded media type is invalid.',
         invalid_upload: 'The upload could not be verified.',
         invalid_upload_token: 'The upload session is no longer valid.',
+        media_provider_failed: 'The camera upload service is unavailable.',
+        media_provider_rate_limited:
+          'The camera upload service is busy. Try again shortly.',
+        media_provider_unauthorized:
+          'The configured FiveManage API key was rejected.',
         missing_config: 'Camera uploads are not configured.',
         microphone_unavailable:
           'Allow microphone access or mute the microphone before recording.',

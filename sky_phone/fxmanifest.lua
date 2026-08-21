@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.1.0'
+version '0.2.1'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -110,6 +110,7 @@ server_scripts {
     'source/server/notifications.lua',
     'source/shared/public_api.lua',
     'source/server/public_api.lua',
+    'source/server/media_provider_config.lua',
     'source/server/media_import.lua',
     'source/server/media_import/fivemanage.lua',
     'source/server/media_import/manifest.lua',
