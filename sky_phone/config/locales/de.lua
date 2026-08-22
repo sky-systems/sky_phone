@@ -205,7 +205,7 @@ Locales["de"] = {
             name = "Phone Admin", subtitle = "Administration", navigation = "Admin-Navigation", refresh = "Admin-Daten aktualisieren", loading = "Geschützte Daten werden geladen...",
             tabs = { overview = "Übersicht", players = "Spieler", devices = "Geräte", apps = "Apps", accounts = "Accounts", messages = "Nachrichten", calls = "Anrufe", moderation = "Moderation", audit = "Audit", configurator = "Phone Configurator" },
             overview = { eyebrow = "Server", title = "Dashboard", body = "Spieler, Geräte, Apps und Handydaten.", stats = "Server-Handystatistik", online = "Online", devices = "Geräte", accounts = "Accounts", audit = "Audit-Einträge", control = "Navigation", features = "Module", featuresBody = "Öffne ein Verwaltungsmodul.", recent = "Letzte Aktivitäten", playerFeature = "Identität, Finanzen, Job und Dienst", deviceFeature = "IMEI, SIM, Nummer und Aktivität", appFeature = "Handy-Apps installieren oder entfernen", accountFeature = "Accountzugriff und geschützte Zugangsdaten", messageFeature = "Letzte SMS-Aktivitäten prüfen", callFeature = "Letzte Anrufaktivitäten prüfen", moderationFeature = "Zugriff, Nummer oder Gerätedaten zurücksetzen", auditFeature = "Sensible Admin-Aktionen prüfen", configuratorFeature = "config.lua und media.lua über SQL verwalten" },
-            appearance = { eyebrow = "Darstellung", title = "Akzentfarbe", body = "Ändere den Akzent im gesamten Admin-Arbeitsbereich.", colors = { emerald = "Smaragd", blue = "Blau", violet = "Violett", orange = "Orange", red = "Rot" } },
+            statistics = { eyebrow = "Live-Daten", title = "Handy-Statistiken", body = "Aktuelle Nutzung und Gerätestatus, automatisch alle 15 Sekunden aktualisiert.", today = "Aktivität heute", todayBody = "Handy- und Admin-Aktivität seit Mitternacht.", messagesToday = "Nachrichten", callsToday = "Anrufe", auditToday = "Admin-Aktionen", coverage = "Geräteabdeckung", coverageBody = "Aktueller Anteil aller gespeicherten Handys.", linkedDevices = "Account verknüpft", simDevices = "SIM zugewiesen", activeDevices = "In 24 Stunden aktualisiert", ofDevices = "{count} von {total} Geräten" },
             configurator = { context = "Runtime-Konfiguration", eyebrow = "Systemwerkzeug", sections = "Konfiguration", search = "Einstellungen oder Pfade suchen", configScope = "config.lua", mediaScope = "media.lua", noResults = "Keine passenden Einstellungen", loading = "SQL-Konfiguration wird geladen...", title = "Phone Configurator", body = "Verwalte Handy- und Media-Einstellungen im geschützten Admin-Bereich.", disabledTitle = "SQL-Konfiguration ist nicht aktiv", disabledBody = "Aktiviere den Configurator am Anfang der config.lua und starte sky_phone neu. Bis dahin bleiben die Dateiwerte aktiv und die Bearbeitung gesperrt.", manualSave = "Manuelles Speichern", refreshNotice = "Nichts wird automatisch gespeichert. Der grüne Haken prüft config.lua und media.lua in SQL und aktualisiert die aktive Server-, Client-, Media- und UI-Konfiguration sofort intern.", fieldCount = "{count} Felder", secretConfigured = "Secret gesetzt · Ersatzwert eingeben", invalidValue = "Prüfe den markierten Tabellen- oder Zahlenwert.", saved = "SQL-Konfiguration gespeichert und übernommen.", descriptions = { featureToggle = "Schaltet {name} ein oder aus.", boolean = "Legt fest, ob {name} erlaubt ist.", number = "Legt den Zahlenwert für {name} fest.", text = "Legt den Textwert für {name} fest.", optionalText = "Legt den optionalen Wert für {name} fest; der Schalter deaktiviert ihn.", list = "Verwaltet alle Einträge für {name}.", table = "Bündelt die zusammengehörigen Einstellungen für {name}.", credential = "Speichert den geschützten Zugangsschlüssel für {name}.", url = "Legt die URL oder den Endpunkt für {name} fest.", hosts = "Legt die erlaubten Domains für {name} fest.", milliseconds = "Legt die Zeit für {name} in Millisekunden fest.", seconds = "Legt die Zeit für {name} in Sekunden fest.", rateLimit = "Begrenzt die Aktionen für {name} pro Minute.", byteLimit = "Legt die maximal erlaubte Datengröße für {name} fest.", textLimit = "Legt die maximal erlaubte Textlänge für {name} fest.", distance = "Legt die Distanz in der Spielwelt für {name} fest.", coordinates = "Legt Weltkoordinaten oder Ausrichtung für {name} fest.", gameAsset = "Legt das GTA-Modell oder Prop für {name} fest.", animation = "Legt die Animationsdatei für {name} fest.", access = "Legt Jobs, Gruppen oder Berechtigungsstufen für {name} fest.", integration = "Wählt Framework oder Anbieter für {name} aus.", path = "Legt den Speicher- oder Ressourcenpfad für {name} fest.", color = "Legt die Oberflächenfarbe für {name} fest.", displayText = "Legt den Spielern angezeigten Text für {name} fest.", phoneNumber = "Legt die Telefon- oder Servicenummer für {name} fest.", routing = "Steuert die Verteilung eingehender Anfragen für {name}.", command = "Legt den Chat-Befehl zum Öffnen oder Ausführen von {name} fest.", locale = "Wählt die Sprache für {name} aus.", debug = "Steuert ausführliche Diagnoseausgaben für {name}.", mediaQuality = "Legt Medienqualität oder Lautstärke für {name} fest.", amount = "Legt die maximale oder angezeigte Menge für {name} fest." }, table = { list = "Liste", table = "Schlüsseltabelle", vector = "Vektor", entry = "Eintrag", general = "Allgemein", addRow = "Zeile hinzufügen", addField = "Feld hinzufügen", remove = "Entfernen", emptyList = "Noch keine Zeilen. Füge die erste Zeile mit Plus hinzu.", emptyTable = "Noch keine Felder. Füge unten den ersten Schlüssel hinzu.", keyPlaceholder = "Neuer Schlüssel", convertToList = "Als Liste nutzen", convertToMap = "Als typisierte Schlüsseltabelle nutzen", convertToTable = "Als Schlüsseltabelle nutzen", types = { string = "Text", number = "Zahl", boolean = "Schalter", list = "Liste", table = "Tabelle" } } },
             players = { eyebrow = "Aktive Sitzungen", title = "Online-Spieler", online = "Jetzt online", empty = "Keine Spieler gefunden", emptyBody = "Passe die Suche an oder aktualisiere die Spielerliste." },
             search = { players = "Name, ID, Job oder Nummer suchen", apps = "Apps suchen", clear = "Suche leeren" },
@@ -2174,30 +2174,4 @@ Locales["de"].Nui.AdminPanel.configurator.table.subtabs = {
     QuickLocations = "Schnellziele",
     AllowedJobs = "Erlaubte Jobs",
     Websites = "Webseiten",
-}
-
-Locales["de"].Nui.AdminPanel.appearance.title = "Oberfläche"
-Locales["de"].Nui.AdminPanel.appearance.body = "Passe Farben und Typografie im gesamten Admin-Bereich an."
-Locales["de"].Nui.AdminPanel.appearance.controls = {
-    customColor = "Eigene Farbe",
-    customColorBody = "Wähle einen beliebigen RGB-Akzent oder trage die Farbwerte ein.",
-    red = "R",
-    green = "G",
-    blue = "B",
-    hex = "HEX-Farbe",
-    value = "Wert",
-    fontFamily = "Schriftart",
-    fontFamilyBody = "Wähle die Schrift für das gesamte Admin-Panel.",
-    fontSize = "Schriftgröße",
-    fontSizeBody = "Skaliere Text und Bedienelemente für eine angenehme Lesbarkeit.",
-    fonts = {
-        inter = "Inter",
-        system = "System",
-        classic = "Klassisch",
-        verdana = "Verdana",
-        tahoma = "Tahoma",
-        trebuchet = "Trebuchet",
-        georgia = "Georgia",
-        mono = "Monospace",
-    },
 }

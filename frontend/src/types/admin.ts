@@ -1,7 +1,14 @@
 export type AdminStats = {
   accounts: number
+  activeDevices: number
+  auditEntries: number
+  auditToday: number
+  callsToday: number
   devices: number
+  linkedDevices: number
+  messagesToday: number
   online: number
+  simDevices: number
 }
 
 export type AdminPlayerSummary = {

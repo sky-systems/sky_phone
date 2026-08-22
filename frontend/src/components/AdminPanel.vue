@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {
+  ChartNoAxesCombined,
   BadgeDollarSign,
   BriefcaseBusiness,
   Check,
-  ChevronDown,
   ChevronRight,
   CircleUserRound,
   Clipboard,
@@ -16,7 +16,6 @@ import {
   LoaderCircle,
   LockKeyhole,
   MessageSquare,
-  Palette,
   PhoneCall,
   PhoneForwarded,
   Save,
@@ -81,17 +80,6 @@ type AdminTab =
 type ConfiguratorScope = 'config' | 'media'
 type DeviceAction = 'reset-passcode' | 'change-number' | 'factory-reset'
 type PendingAction = { kind: 'close' } | { kind: 'player'; source: number }
-type AccentChannel = 'blue' | 'green' | 'red'
-type AdminFontFamily =
-  | 'classic'
-  | 'georgia'
-  | 'inter'
-  | 'mono'
-  | 'system'
-  | 'tahoma'
-  | 'trebuchet'
-  | 'verdana'
-
 const emit = defineEmits<{ close: [] }>()
 const admin = useAdminStore()
 const phone = usePhoneStore()
@@ -109,61 +97,11 @@ const revealDialogImei = ref('')
 const deviceAction = ref<DeviceAction | null>(null)
 const deviceActionInput = ref('')
 const discardDialog = ref(false)
-const fontMenuOpen = ref(false)
 const pendingAction = ref<PendingAction | null>(null)
 const toast = ref('')
 const toastTone = ref<'error' | 'success'>('success')
 let toastTimer: number | undefined
-
-const accentOptions = [
-  { color: '#74d66f', key: 'emerald' },
-  { color: '#4f9cff', key: 'blue' },
-  { color: '#a875ff', key: 'violet' },
-  { color: '#f0a24b', key: 'orange' },
-  { color: '#ef6969', key: 'red' },
-] as const
-const accentChannels = ['red', 'green', 'blue'] as const
-const fontFamilyOptions: Array<{
-  key: AdminFontFamily
-  value: string
-}> = [
-  { key: 'inter', value: 'var(--sky-font-family, Inter, sans-serif)' },
-  {
-    key: 'system',
-    value:
-      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  },
-  { key: 'classic', value: 'Arial, Helvetica, sans-serif' },
-  { key: 'verdana', value: 'Verdana, Geneva, sans-serif' },
-  { key: 'tahoma', value: 'Tahoma, Geneva, sans-serif' },
-  {
-    key: 'trebuchet',
-    value: '"Trebuchet MS", "Lucida Grande", sans-serif',
-  },
-  { key: 'georgia', value: 'Georgia, "Times New Roman", serif' },
-  {
-    key: 'mono',
-    value:
-      'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace',
-  },
-]
-const accentColor = ref('#74d66f')
-const adminFontFamily = ref<AdminFontFamily>('inter')
-const adminFontSize = ref(100)
-const adminFontSizePreview = ref(100)
-const activeAdminFontFamily = computed(
-  () =>
-    fontFamilyOptions.find((option) => option.key === adminFontFamily.value)
-      ?.value ?? fontFamilyOptions[0].value,
-)
-const accentRgb = computed(() => {
-  const color = accentColor.value.replace('#', '')
-  return {
-    red: Number.parseInt(color.slice(0, 2), 16),
-    green: Number.parseInt(color.slice(2, 4), 16),
-    blue: Number.parseInt(color.slice(4, 6), 16),
-  }
-})
+let statisticsTimer: number | undefined
 
 const filteredPlayers = computed(() => {
   const needle = playerQuery.value.trim().toLocaleLowerCase(phone.lang)
@@ -595,7 +533,9 @@ function queueAction(action: PendingAction): void {
 
 function selectTab(nextTab: AdminTab): void {
   tab.value = nextTab
-  fontMenuOpen.value = false
+  if (nextTab === 'overview' && admin.initialized && !admin.loading) {
+    void admin.load()
+  }
   if (nextTab === 'configurator' && !admin.configurator) {
     void admin.loadConfigurator().then((loaded) => {
       if (!loaded) showToast(errorText(), 'error')
@@ -603,61 +543,13 @@ function selectTab(nextTab: AdminTab): void {
   }
 }
 
-function selectAccent(color: string): void {
-  if (!/^#[0-9a-f]{6}$/i.test(color)) return
-  accentColor.value = color.toLowerCase()
-  window.localStorage.setItem('sky-phone-admin-accent', accentColor.value)
+function formatStatistic(value: number): string {
+  return value.toLocaleString(phone.lang)
 }
 
-function updateAccent(event: Event): void {
-  const input = event.currentTarget as HTMLInputElement
-  if (/^#[0-9a-f]{6}$/i.test(input.value)) selectAccent(input.value)
-  else input.value = accentColor.value.toUpperCase()
-}
-
-function updateAccentChannel(channel: AccentChannel, event: Event): void {
-  const input = event.currentTarget as HTMLInputElement
-  const value = Math.min(255, Math.max(0, Number(input.value) || 0))
-  const channels = { ...accentRgb.value, [channel]: value }
-  selectAccent(
-    `#${channels.red.toString(16).padStart(2, '0')}${channels.green
-      .toString(16)
-      .padStart(2, '0')}${channels.blue.toString(16).padStart(2, '0')}`,
-  )
-}
-
-function accentChannelGradient(channel: AccentChannel): string {
-  const { red, green, blue } = accentRgb.value
-  if (channel === 'red') {
-    return `linear-gradient(90deg, rgb(0, ${green}, ${blue}), rgb(255, ${green}, ${blue}))`
-  }
-  if (channel === 'green') {
-    return `linear-gradient(90deg, rgb(${red}, 0, ${blue}), rgb(${red}, 255, ${blue}))`
-  }
-  return `linear-gradient(90deg, rgb(${red}, ${green}, 0), rgb(${red}, ${green}, 255))`
-}
-
-function selectAdminFontFamily(family: AdminFontFamily): void {
-  adminFontFamily.value = family
-  fontMenuOpen.value = false
-  window.localStorage.setItem('sky-phone-admin-font-family', family)
-}
-
-function closeFontMenu(event: FocusEvent): void {
-  const menu = event.currentTarget as HTMLElement
-  if (!menu.contains(event.relatedTarget as Node | null)) {
-    fontMenuOpen.value = false
-  }
-}
-
-function updateAdminFontSize(event: Event): void {
-  const size = Number((event.currentTarget as HTMLInputElement).value)
-  adminFontSize.value = Math.min(115, Math.max(90, size))
-  adminFontSizePreview.value = adminFontSize.value
-  window.localStorage.setItem(
-    'sky-phone-admin-font-size',
-    String(adminFontSize.value),
-  )
+function statisticPercentage(value: number, total: number): number {
+  if (total <= 0) return 0
+  return Math.min(100, Math.round((value / total) * 100))
 }
 
 async function runAction(action: PendingAction): Promise<void> {
@@ -918,10 +810,6 @@ function auditDescription(entry: AdminAuditEntry): string {
 function onKeydown(event: KeyboardEvent): void {
   if (event.key !== 'Escape') return
   event.preventDefault()
-  if (fontMenuOpen.value) {
-    fontMenuOpen.value = false
-    return
-  }
   if (revealDialogImei.value) {
     revealDialogImei.value = ''
     return
@@ -941,46 +829,21 @@ function onKeydown(event: KeyboardEvent): void {
 
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
-  const storedAccent = window.localStorage.getItem('sky-phone-admin-accent')
-  if (storedAccent && /^#[0-9a-f]{6}$/i.test(storedAccent)) {
-    accentColor.value = storedAccent.toLowerCase()
-  }
-  const storedFontFamily = window.localStorage.getItem(
-    'sky-phone-admin-font-family',
-  )
-  if (
-    storedFontFamily &&
-    fontFamilyOptions.some((option) => option.key === storedFontFamily)
-  ) {
-    adminFontFamily.value = storedFontFamily as AdminFontFamily
-  }
-  const storedFontSize = Number(
-    window.localStorage.getItem('sky-phone-admin-font-size'),
-  )
-  if (storedFontSize >= 90 && storedFontSize <= 115) {
-    adminFontSize.value = storedFontSize
-    adminFontSizePreview.value = storedFontSize
-  }
   void refreshData()
+  statisticsTimer = window.setInterval(() => {
+    if (tab.value === 'overview' && !admin.loading) void admin.load()
+  }, 15_000)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown)
   if (toastTimer) window.clearTimeout(toastTimer)
+  if (statisticsTimer) window.clearInterval(statisticsTimer)
 })
 </script>
 
 <template>
-  <div
-    class="admin-panel-overlay"
-    role="dialog"
-    :aria-label="t('name')"
-    :style="{
-      '--admin-accent': accentColor,
-      '--admin-font-family': activeAdminFontFamily,
-      '--admin-font-scale': String(adminFontSize / 100),
-    }"
-  >
+  <div class="admin-panel-overlay" role="dialog" :aria-label="t('name')">
     <div class="admin-panel-window">
       <header class="admin-panel-header">
         <div class="admin-panel-brand">
@@ -1384,22 +1247,22 @@ onBeforeUnmount(() => {
               <article>
                 <UsersRound :size="18" />
                 <span>{{ t('overview.online') }}</span>
-                <strong>{{ admin.stats.online }}</strong>
+                <strong>{{ formatStatistic(admin.stats.online) }}</strong>
               </article>
               <article>
                 <Smartphone :size="18" />
                 <span>{{ t('overview.devices') }}</span>
-                <strong>{{ admin.stats.devices }}</strong>
+                <strong>{{ formatStatistic(admin.stats.devices) }}</strong>
               </article>
               <article>
                 <Database :size="18" />
                 <span>{{ t('overview.accounts') }}</span>
-                <strong>{{ admin.stats.accounts }}</strong>
+                <strong>{{ formatStatistic(admin.stats.accounts) }}</strong>
               </article>
               <article>
                 <ScrollText :size="18" />
                 <span>{{ t('overview.audit') }}</span>
-                <strong>{{ admin.audit.length }}</strong>
+                <strong>{{ formatStatistic(admin.stats.auditEntries) }}</strong>
               </article>
             </div>
 
@@ -1408,146 +1271,100 @@ onBeforeUnmount(() => {
             >
               <div class="admin-panel-section-card__heading">
                 <div>
-                  <span>{{ t('appearance.eyebrow') }}</span>
-                  <h2>{{ t('appearance.title') }}</h2>
-                  <p>{{ t('appearance.body') }}</p>
+                  <span>{{ t('statistics.eyebrow') }}</span>
+                  <h2>{{ t('statistics.title') }}</h2>
+                  <p>{{ t('statistics.body') }}</p>
                 </div>
-                <Palette :size="20" />
+                <ChartNoAxesCombined :size="20" />
               </div>
-              <div class="admin-panel-accent-picker">
-                <button
-                  v-for="option in accentOptions"
-                  :key="option.color"
-                  type="button"
-                  :class="{ 'is-active': accentColor === option.color }"
-                  :aria-label="t('appearance.colors.' + option.key)"
-                  :title="t('appearance.colors.' + option.key)"
-                  @click="selectAccent(option.color)"
-                >
-                  <span :style="{ backgroundColor: option.color }"></span>
-                  <strong>{{ t('appearance.colors.' + option.key) }}</strong>
-                  <Check v-if="accentColor === option.color" :size="15" />
-                </button>
-              </div>
-              <div class="admin-panel-appearance-controls">
-                <section class="admin-panel-appearance-control is-color">
-                  <div>
-                    <strong>{{ t('appearance.controls.customColor') }}</strong>
-                    <small>{{
-                      t('appearance.controls.customColorBody')
-                    }}</small>
-                  </div>
-                  <div class="admin-panel-rgb-picker">
-                    <label class="admin-panel-color-value">
-                      <span :style="{ backgroundColor: accentColor }"></span>
-                      <input
-                        v-config-input-width
-                        type="text"
-                        maxlength="7"
-                        :value="accentColor.toUpperCase()"
-                        :aria-label="t('appearance.controls.hex')"
-                        @change="updateAccent"
-                      />
-                    </label>
-                    <div class="admin-panel-rgb-fields">
-                      <label v-for="channel in accentChannels" :key="channel">
-                        <span>{{ t(`appearance.controls.${channel}`) }}</span>
-                        <input
-                          class="admin-panel-rgb-range"
-                          type="range"
-                          min="0"
-                          max="255"
-                          :value="accentRgb[channel]"
-                          :style="{
-                            background: accentChannelGradient(channel),
-                          }"
-                          :aria-label="t(`appearance.controls.${channel}`)"
-                          @input="updateAccentChannel(channel, $event)"
-                        />
-                        <input
-                          v-config-input-width
-                          type="number"
-                          min="0"
-                          max="255"
-                          :value="accentRgb[channel]"
-                          :aria-label="`${t(`appearance.controls.${channel}`)} ${t('appearance.controls.value')}`"
-                          @input="updateAccentChannel(channel, $event)"
-                        />
-                      </label>
+              <div class="admin-panel-statistics-layout">
+                <section class="admin-panel-activity-statistics">
+                  <div class="admin-panel-statistics-heading">
+                    <div>
+                      <strong>{{ t('statistics.today') }}</strong>
+                      <small>{{ t('statistics.todayBody') }}</small>
                     </div>
+                  </div>
+                  <div class="admin-panel-activity-grid">
+                    <article>
+                      <MessageSquare :size="17" />
+                      <strong>{{
+                        formatStatistic(admin.stats.messagesToday)
+                      }}</strong>
+                      <span>{{ t('statistics.messagesToday') }}</span>
+                    </article>
+                    <article>
+                      <PhoneCall :size="17" />
+                      <strong>{{
+                        formatStatistic(admin.stats.callsToday)
+                      }}</strong>
+                      <span>{{ t('statistics.callsToday') }}</span>
+                    </article>
+                    <article>
+                      <ScrollText :size="17" />
+                      <strong>{{
+                        formatStatistic(admin.stats.auditToday)
+                      }}</strong>
+                      <span>{{ t('statistics.auditToday') }}</span>
+                    </article>
                   </div>
                 </section>
 
-                <section class="admin-panel-appearance-control">
-                  <span>
-                    <strong>{{ t('appearance.controls.fontFamily') }}</strong>
-                    <small>{{ t('appearance.controls.fontFamilyBody') }}</small>
-                  </span>
-                  <div
-                    class="admin-panel-font-select"
-                    @focusout="closeFontMenu"
-                  >
-                    <button
-                      type="button"
-                      :aria-label="t('appearance.controls.fontFamily')"
-                      aria-haspopup="listbox"
-                      :aria-expanded="fontMenuOpen"
-                      @click="fontMenuOpen = !fontMenuOpen"
+                <section class="admin-panel-coverage-statistics">
+                  <div class="admin-panel-statistics-heading">
+                    <div>
+                      <strong>{{ t('statistics.coverage') }}</strong>
+                      <small>{{ t('statistics.coverageBody') }}</small>
+                    </div>
+                  </div>
+                  <div class="admin-panel-coverage-list">
+                    <article
+                      v-for="metric in [
+                        {
+                          key: 'linkedDevices',
+                          value: admin.stats.linkedDevices,
+                        },
+                        {
+                          key: 'simDevices',
+                          value: admin.stats.simDevices,
+                        },
+                        {
+                          key: 'activeDevices',
+                          value: admin.stats.activeDevices,
+                        },
+                      ]"
+                      :key="metric.key"
                     >
-                      <span :style="{ fontFamily: activeAdminFontFamily }">
-                        {{ t(`appearance.controls.fonts.${adminFontFamily}`) }}
-                      </span>
-                      <ChevronDown :size="14" />
-                    </button>
-                    <div
-                      v-if="fontMenuOpen"
-                      class="admin-panel-font-select__menu"
-                      role="listbox"
-                      :aria-label="t('appearance.controls.fontFamily')"
-                    >
-                      <button
-                        v-for="option in fontFamilyOptions"
-                        :key="option.key"
-                        type="button"
-                        role="option"
-                        :aria-selected="adminFontFamily === option.key"
-                        :class="{ 'is-active': adminFontFamily === option.key }"
-                        :style="{ fontFamily: option.value }"
-                        @click="selectAdminFontFamily(option.key)"
-                      >
+                      <div>
+                        <strong>{{ t(`statistics.${metric.key}`) }}</strong>
                         <span>{{
-                          t(`appearance.controls.fonts.${option.key}`)
+                          t('statistics.ofDevices', {
+                            count: formatStatistic(metric.value),
+                            total: formatStatistic(admin.stats.devices),
+                          })
                         }}</span>
-                        <Check
-                          v-if="adminFontFamily === option.key"
-                          :size="13"
-                        />
-                      </button>
-                    </div>
+                      </div>
+                      <div
+                        class="admin-panel-statistics-progress"
+                        role="progressbar"
+                        :aria-label="t(`statistics.${metric.key}`)"
+                        :aria-valuemin="0"
+                        :aria-valuemax="100"
+                        :aria-valuenow="
+                          statisticPercentage(metric.value, admin.stats.devices)
+                        "
+                      >
+                        <span
+                          :style="{
+                            width: `${statisticPercentage(metric.value, admin.stats.devices)}%`,
+                          }"
+                        ></span>
+                      </div>
+                    </article>
                   </div>
                 </section>
-
-                <label class="admin-panel-appearance-control">
-                  <span>
-                    <strong>{{ t('appearance.controls.fontSize') }}</strong>
-                    <small>{{ t('appearance.controls.fontSizeBody') }}</small>
-                  </span>
-                  <div class="admin-panel-font-size-control">
-                    <input
-                      v-model.number="adminFontSizePreview"
-                      type="range"
-                      min="90"
-                      max="115"
-                      step="5"
-                      :aria-label="t('appearance.controls.fontSize')"
-                      @change="updateAdminFontSize"
-                    />
-                    <strong>{{ adminFontSizePreview }}%</strong>
-                  </div>
-                </label>
               </div>
             </article>
-
           </section>
 
           <section
@@ -2488,7 +2305,8 @@ onBeforeUnmount(() => {
   --admin-text: #f0f3f0;
   --admin-muted: #818781;
   --admin-dim: #555b55;
-  --admin-green: var(--admin-accent, #74d66f);
+  --admin-accent: #00b8e4;
+  --admin-green: var(--admin-accent);
   --admin-green-soft: color-mix(in srgb, var(--admin-green) 9%, transparent);
   --admin-toggle-on: #63d471;
   --admin-row-hover: linear-gradient(
@@ -2512,10 +2330,7 @@ onBeforeUnmount(() => {
   padding: 2.5vh 2.5vw;
   color: var(--admin-text);
   background: transparent;
-  font-family: var(
-    --admin-font-family,
-    var(--sky-font-family, Inter, sans-serif)
-  );
+  font-family: var(--sky-font-family, Inter, sans-serif);
   pointer-events: auto;
 }
 
@@ -2529,7 +2344,6 @@ onBeforeUnmount(() => {
   box-shadow:
     0 20px 56px rgba(0, 0, 0, 0.72),
     inset 0 1px rgba(255, 255, 255, 0.018);
-  zoom: var(--admin-font-scale, 1);
 }
 
 .admin-panel-header {
@@ -2653,15 +2467,19 @@ onBeforeUnmount(() => {
 }
 
 .admin-panel-save.is-ready {
-  color: #74d66f;
+  color: var(--admin-green);
   background: transparent;
-  filter: drop-shadow(0 0 5px rgba(116, 214, 111, 0.42));
+  filter: drop-shadow(
+    0 0 5px color-mix(in srgb, var(--admin-green) 42%, transparent)
+  );
 }
 
 .admin-panel-save.is-ready:hover:not(:disabled) {
-  color: color-mix(in srgb, #74d66f 82%, white);
+  color: color-mix(in srgb, var(--admin-green) 82%, white);
   background: transparent;
-  filter: drop-shadow(0 0 7px rgba(116, 214, 111, 0.65));
+  filter: drop-shadow(
+    0 0 7px color-mix(in srgb, var(--admin-green) 65%, transparent)
+  );
 }
 
 .admin-panel-close:hover {
@@ -3352,293 +3170,127 @@ button:disabled {
   gap: 8px;
 }
 
-.admin-panel-accent-picker {
+.admin-panel-statistics-layout {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 3px;
-  padding: 3px;
-  border: 0;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px;
+}
+
+.admin-panel-activity-statistics,
+.admin-panel-coverage-statistics {
+  min-width: 0;
+  padding: 10px;
   border-radius: 3px;
   background: #0b0d0c;
 }
 
-.admin-panel-accent-picker button {
-  min-height: 38px;
+.admin-panel-statistics-heading {
+  margin-bottom: 9px;
+}
+
+.admin-panel-statistics-heading > div {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) 16px;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 9px;
-  border: 1px solid transparent;
-  border-radius: 2px;
-  color: var(--admin-muted);
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
+  gap: 2px;
 }
 
-.admin-panel-accent-picker button:hover,
-.admin-panel-accent-picker button.is-active {
-  color: var(--admin-text);
-  background: var(--admin-row-active);
-}
-
-.admin-panel-accent-picker button > span {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-}
-
-.admin-panel-accent-picker strong {
-  overflow: hidden;
-  font-size: 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-panel-accent-picker svg {
-  color: var(--admin-green);
-}
-
-.admin-panel-appearance-controls {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  margin-top: 8px;
-  background: #0a0c0b;
-}
-
-.admin-panel-appearance-control {
-  min-height: 62px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.8fr);
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: #121412;
-}
-
-.admin-panel-appearance-control.is-color {
-  grid-column: 1 / -1;
-  grid-template-columns: minmax(170px, 0.7fr) minmax(320px, 1.3fr);
-}
-
-.admin-panel-appearance-control > div:first-child,
-.admin-panel-appearance-control > span:first-child {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.admin-panel-appearance-control strong {
+.admin-panel-statistics-heading strong {
   color: #d9ddd9;
   font-size: 9px;
   font-weight: 600;
 }
 
-.admin-panel-appearance-control small {
+.admin-panel-statistics-heading small {
   color: var(--admin-muted);
   font-size: 8px;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
-.admin-panel-rgb-picker {
+.admin-panel-activity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.admin-panel-activity-grid article {
   min-width: 0;
   display: grid;
-  grid-template-columns: auto minmax(230px, 1fr);
+  grid-template-columns: 20px minmax(0, 1fr);
   align-items: center;
-  gap: 14px;
+  gap: 2px 6px;
+  padding: 10px;
+  background: #121412;
 }
 
-.admin-panel-color-value {
-  min-width: 96px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 8px;
-  border-radius: 3px;
-  outline: 1px solid var(--admin-border-strong);
-  background: #1a1d1b;
-}
-
-.admin-panel-color-value > span {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  border-radius: 3px;
-  box-shadow: 0 0 8px color-mix(in srgb, var(--admin-green) 48%, transparent);
-}
-
-.admin-panel-color-value input {
-  min-width: 0;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  color: #cbd0cb;
-  background: transparent;
-  font: inherit;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 8px;
-  text-transform: uppercase;
-}
-
-.admin-panel-rgb-fields {
-  display: grid;
-  gap: 6px;
-}
-
-.admin-panel-rgb-fields label {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 12px minmax(90px, 1fr) 42px;
-  align-items: center;
-  gap: 7px;
-}
-
-.admin-panel-rgb-fields span {
-  color: var(--admin-muted);
-  font-size: 8px;
-  font-weight: 650;
-  text-transform: uppercase;
-}
-
-.admin-panel-rgb-fields input[type='number'] {
-  width: 42px !important;
-  max-width: 42px;
-  height: 24px;
-  padding: 0 6px;
-  border: 0;
-  border-radius: 3px;
-  outline: 1px solid var(--admin-border-strong);
-  color: var(--admin-text);
-  background: #1a1d1b;
-  font: inherit;
-  font-size: 8px;
-  appearance: textfield;
-}
-
-.admin-panel-rgb-fields input[type='number']::-webkit-inner-spin-button,
-.admin-panel-rgb-fields input[type='number']::-webkit-outer-spin-button {
-  appearance: none;
-}
-
-.admin-panel-rgb-range {
-  width: 100%;
-  height: 4px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  outline: 0;
-  appearance: none;
-  cursor: pointer;
-}
-
-.admin-panel-rgb-range::-webkit-slider-thumb {
-  width: 13px;
-  height: 13px;
-  border: 2px solid #f3f5f3;
-  border-radius: 50%;
-  background: var(--admin-green);
-  box-shadow: 0 0 0 2px #171a18;
-  appearance: none;
-}
-
-.admin-panel-font-select {
-  position: relative;
-  min-width: 0;
-}
-
-.admin-panel-font-select > button {
-  width: 100%;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 9px;
-  border: 0;
-  border-radius: 3px;
-  outline: 1px solid var(--admin-border-strong);
-  color: var(--admin-text);
-  background: #1a1d1b;
-  font: inherit;
-  font-size: 9px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.admin-panel-font-select > button svg {
-  color: var(--admin-muted);
-  transition: transform 150ms ease;
-}
-
-.admin-panel-font-select > button[aria-expanded='true'] svg {
-  transform: rotate(180deg);
-}
-
-.admin-panel-font-select__menu {
-  position: absolute;
-  z-index: 12;
-  top: calc(100% + 5px);
-  right: 0;
-  left: 0;
-  max-height: 210px;
-  overflow-y: auto;
-  display: grid;
-  gap: 1px;
-  padding: 4px;
-  border-radius: 4px;
-  outline: 1px solid rgba(255, 255, 255, 0.09);
-  background: #101211;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.58);
-}
-
-.admin-panel-font-select__menu button {
-  min-height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 2px;
-  color: var(--admin-muted);
-  background: transparent;
-  font-size: 9px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.admin-panel-font-select__menu button:hover,
-.admin-panel-font-select__menu button.is-active {
-  color: var(--admin-text);
-  background: var(--admin-row-active);
-}
-
-.admin-panel-font-select__menu svg {
+.admin-panel-activity-grid svg {
   color: var(--admin-green);
 }
 
-.admin-panel-font-size-control {
-  display: grid;
-  grid-template-columns: minmax(80px, 1fr) 38px;
-  align-items: center;
-  gap: 9px;
+.admin-panel-activity-grid strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.admin-panel-font-size-control input {
-  width: 100%;
+.admin-panel-activity-grid span {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--admin-muted);
+  font-size: 7px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-panel-coverage-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-panel-coverage-list article {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-panel-coverage-list article > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-panel-coverage-list strong,
+.admin-panel-coverage-list span {
+  overflow: hidden;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-panel-coverage-list strong {
+  color: #d9ddd9;
+  font-weight: 560;
+}
+
+.admin-panel-coverage-list span {
+  color: var(--admin-muted);
+}
+
+.admin-panel-statistics-progress {
   height: 3px;
-  accent-color: var(--admin-green);
-  cursor: pointer;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #1d201e;
 }
 
-.admin-panel-font-size-control > strong {
-  color: var(--admin-green);
-  text-align: right;
+.admin-panel-statistics-progress > span {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--admin-green);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--admin-green) 52%, transparent);
+  transition: width 180ms ease;
 }
 
 .admin-panel-section-card__heading {

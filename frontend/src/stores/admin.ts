@@ -15,7 +15,18 @@ import type {
 } from '@/types/admin'
 import { nuiCall, type NuiResponse } from '@/utils/nui'
 
-const EMPTY_STATS: AdminStats = { accounts: 0, devices: 0, online: 0 }
+const EMPTY_STATS: AdminStats = {
+  accounts: 0,
+  activeDevices: 0,
+  auditEntries: 0,
+  auditToday: 0,
+  callsToday: 0,
+  devices: 0,
+  linkedDevices: 0,
+  messagesToday: 0,
+  online: 0,
+  simDevices: 0,
+}
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({

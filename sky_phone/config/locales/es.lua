@@ -205,7 +205,7 @@ Locales["es"] = {
             name = "Administrador de teléfono", subtitle = "Administración", navigation = "Navegación del administrador", refresh = "Actualizar los datos del administrador", loading = "Cargar datos protegidos...",
             tabs = { overview = "Sinopsis", players = "Los jugadores", devices = "Los dispositivos", apps = "Aplicaciones", accounts = "Cuentas", messages = "Mensajes", calls = "Las llamadas", moderation = "Moderación", audit = "Auditoría", configurator = "Configuración de teléfono" },
             overview = { eyebrow = "El servidor", title = "Tablero de control", body = "Jugadores, dispositivos, aplicaciones y datos telefónicos.", stats = "Estadísticas telefónicas del servidor", online = "En línea", devices = "Los dispositivos", accounts = "Cuentas", audit = "Entradas de auditoría", control = "Navegación", features = "Los módulos", featuresBody = "Abre un módulo de administración.", recent = "Actividad reciente", playerFeature = "Identidad, finanzas, trabajo y deber", deviceFeature = "IMEI, SIM, número y actividad", appFeature = "Instalar o eliminar aplicaciones telefónicas", accountFeature = "Acceso a la cuenta y credenciales protegidas", messageFeature = "Revisar la actividad reciente de SMS", callFeature = "Revisar la actividad reciente de las llamadas", moderationFeature = "Resetear datos de acceso, número o dispositivo", auditFeature = "Revisar las acciones del administrador sensibles", configuratorFeature = "Administrar config.lua y media.lua a través de SQL" },
-            appearance = { eyebrow = "Apariencia", title = "Color de acento", body = "Cambia el acento en todo el espacio de trabajo del administrador.", colors = { emerald = "Esmeralda", blue = "Azul", violet = "Violeta", orange = "Naranja", red = "Rojo" } },
+            statistics = { eyebrow = "Datos en vivo", title = "Estadísticas del teléfono", body = "Uso actual y estado de los dispositivos, actualizado cada 15 segundos.", today = "Actividad de hoy", todayBody = "Actividad telefónica y administrativa desde medianoche.", messagesToday = "Mensajes", callsToday = "Llamadas", auditToday = "Acciones de administrador", coverage = "Cobertura de dispositivos", coverageBody = "Proporción actual de todos los teléfonos guardados.", linkedDevices = "Cuenta vinculada", simDevices = "SIM asignada", activeDevices = "Actualizado en 24 horas", ofDevices = "{count} de {total} dispositivos" },
             configurator = { context = "Configuración de tiempo de ejecución", eyebrow = "Herramienta del sistema", sections = "Configuración", search = "Configuración de búsqueda o caminos", configScope = "config.lua", mediaScope = "media.lua", noResults = "Ninguna configuración correspondiente", loading = "Cargar la configuración de SQL...", title = "Configuración de teléfono", body = "Gestionar la configuración de teléfono y medios desde el espacio de trabajo de administrador protegido.", disabledTitle = "Configuración SQL no está activa", disabledBody = "Habilitar el configurador al principio de config.lua y reiniciar sky_phone. Hasta entonces, los valores del archivo permanecen activos y la edición está bloqueada.", manualSave = "Salvamiento manual", refreshNotice = "Nada se escribe automáticamente. La verificación verde verifica config.lua y media.lua en SQL y actualiza inmediatamente la configuración del servidor activo, el cliente, los medios y la interfaz de usuario.", fieldCount = "Campos {count}", secretConfigured = "Configuración secreta · introducir un reemplazo", invalidValue = "Comprueba el valor de la tabla o número resaltado.", saved = "Configuración SQL guardada y aplicada.", descriptions = { featureToggle = "Enciende o apaga {name}.", boolean = "Controla si {name} está permitido.", number = "Establece el valor numérico para {name}.", text = "Establece el valor de texto utilizado para {name}.", optionalText = "Establece el valor opcional para {name}; apague para desactivarlo.", list = "Gestiona todas las entradas utilizadas para {name}.", table = "Agrupa las configuraciones relacionadas para {name}.", credential = "Almacena la credencial protegida utilizada por {name}.", url = "Establece la URL o el punto final utilizado por {name}.", hosts = "Define qué dominios están permitidos para {name}.", milliseconds = "Establece el tiempo de {name} en milisegundos.", seconds = "Establece el tiempo de {name} en segundos.", rateLimit = "Limita la cantidad de acciones {name} permitidas por minuto.", byteLimit = "Establece el tamaño máximo de datos permitido para {name}.", textLimit = "Establece la longitud máxima de texto permitida para {name}.", distance = "Establece la distancia mundial utilizada para {name}.", coordinates = "Establece las coordenadas del mundo o la orientación para {name}.", gameAsset = "Establece el modelo GTA o el accesorio utilizado para {name}.", animation = "Establece el activo de animación utilizado para {name}.", access = "Define los puestos de trabajo, los grupos o el nivel de permiso para {name}.", integration = "Selecciona el marco o proveedor conectado para {name}.", path = "Establece la ruta de almacenamiento o recurso utilizada para {name}.", color = "Establece el color de interfaz utilizado para {name}.", displayText = "Establece el texto que se muestra a los jugadores para {name}.", phoneNumber = "Establece el número de teléfono o servicio utilizado para {name}.", routing = "Controla cómo se envía las solicitudes entrantes para {name}.", command = "Establece el comando de chat utilizado para abrir o ejecutar {name}.", locale = "Selecciona el idioma utilizado para {name}.", debug = "Controla el diagnóstico detallado de {name}.", mediaQuality = "Establece la calidad o volumen de los medios utilizados para {name}.", amount = "Establece la cantidad máxima o mostrada para {name}." }, table = { list = "Lista", table = "Mesa de llaves", vector = "Vector", entry = "Entrada", general = "Generales", addRow = "Añadir fila", addField = "Añadir campo", remove = "Eliminar", emptyList = "Aún no hay filas. Agregue la primera fila con más.", emptyTable = "Aún no hay campos. Añade la primera llave de abajo.", keyPlaceholder = "Nueva llave", convertToList = "Lista de uso", convertToMap = "Usa la tabla de teclas digitalizada", convertToTable = "Usa la tabla de teclas", types = { string = "El texto", number = "Número", boolean = "Cambiador", list = "Lista", table = "Cuadro" } } },
             players = { eyebrow = "sesiones activas", title = "Jugadores en línea", online = "En línea ahora", empty = "No se encontraron jugadores", emptyBody = "Ajusta la búsqueda o actualiza la lista de jugadores en vivo." },
             search = { players = "Nombre, identificación, trabajo o número de búsqueda", apps = "Aplicaciones de búsqueda", clear = "Limpiar búsqueda" },
@@ -2175,30 +2175,3 @@ Locales["es"].Nui.AdminPanel.configurator.table.subtabs = {
     AllowedJobs = "Trabajos permitidos",
     Websites = "Las páginas web",
 }
-
-Locales["es"].Nui.AdminPanel.appearance.title = "Interfaz"
-Locales["es"].Nui.AdminPanel.appearance.body = "Personaliza los colores y la tipografía en el espacio de trabajo del administrador."
-Locales["es"].Nui.AdminPanel.appearance.controls = {
-    customColor = "Color personalizado",
-    customColorBody = "Seleccione cualquier acento RGB o ingrese sus valores de canal.",
-    red = "R",
-    green = "G",
-    blue = "EN EL CASO DE B",
-    hex = "El color HEX",
-    value = "el valor",
-    fontFamily = "Familia de fuentes",
-    fontFamilyBody = "Seleccione la tipografía utilizada por el panel de administración completo.",
-    fontSize = "Tamaño de fuente",
-    fontSizeBody = "Escala el texto y los controles para una fácil legibilidad.",
-    fonts = {
-        inter = "Inter",
-        system = "El sistema",
-        classic = "Clásico",
-        verdana = "Verdana",
-        tahoma = "Tahoma",
-        trebuchet = "Arbúsqueda",
-        georgia = "Georgia",
-        mono = "Monospacio",
-    },
-}
-

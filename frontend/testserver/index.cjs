@@ -4740,7 +4740,18 @@ function adminMockBootstrap() {
         source,
       }
     }),
-    stats: { accounts: 24, devices: 31, online: 2 },
+    stats: {
+      accounts: 24,
+      activeDevices: 19,
+      auditEntries: 37,
+      auditToday: 4,
+      callsToday: 18,
+      devices: 31,
+      linkedDevices: 22,
+      messagesToday: 146,
+      online: 2,
+      simDevices: 27,
+    },
   }
 }
 

@@ -463,16 +463,35 @@ Bridge.Callbacks.Register("sky_phone:admin:bootstrap", function(source)
     local totals = Bridge.Database.Query([[
         SELECT
             (SELECT COUNT(*) FROM `sky_phone_devices`) AS `devices`,
-            (SELECT COUNT(*) FROM `sky_phone_accounts`) AS `accounts`
+            (SELECT COUNT(*) FROM `sky_phone_accounts`) AS `accounts`,
+            (SELECT COUNT(*) FROM `sky_phone_devices` WHERE `account_id` IS NOT NULL) AS `linked_devices`,
+            (SELECT COUNT(*) FROM `sky_phone_devices` WHERE `sim_id` IS NOT NULL) AS `sim_devices`,
+            (SELECT COUNT(*) FROM `sky_phone_devices`
+                WHERE `updated_at` >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)) AS `active_devices`,
+            (SELECT COUNT(*) FROM `sky_phone_sms_messages`
+                WHERE `created_at` >= CURRENT_DATE) AS `messages_today`,
+            (SELECT COUNT(*) FROM `sky_phone_calls`
+                WHERE `started_at` >= CURRENT_DATE) AS `calls_today`,
+            (SELECT COUNT(*) FROM `sky_phone_admin_audit`) AS `audit_entries`,
+            (SELECT COUNT(*) FROM `sky_phone_admin_audit`
+                WHERE `created_at` >= CURRENT_DATE) AS `audit_today`
     ]], {})
+    local stats = totals[1] or {}
     return {
         success = true,
         data = {
             players = players,
             stats = {
                 online = #players,
-                devices = tonumber(totals[1] and totals[1].devices) or 0,
-                accounts = tonumber(totals[1] and totals[1].accounts) or 0,
+                devices = tonumber(stats.devices) or 0,
+                accounts = tonumber(stats.accounts) or 0,
+                linkedDevices = tonumber(stats.linked_devices) or 0,
+                simDevices = tonumber(stats.sim_devices) or 0,
+                activeDevices = tonumber(stats.active_devices) or 0,
+                messagesToday = tonumber(stats.messages_today) or 0,
+                callsToday = tonumber(stats.calls_today) or 0,
+                auditEntries = tonumber(stats.audit_entries) or 0,
+                auditToday = tonumber(stats.audit_today) or 0,
             },
             audit = load_audit(),
         },
