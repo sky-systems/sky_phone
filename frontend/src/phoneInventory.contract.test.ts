@@ -52,7 +52,7 @@ describe('phone inventory contracts', () => {
     )
   })
 
-  it('auto-detects registered inventories and limits metadata-free adapters', () => {
+  it('auto-detects registered inventories and forces metadata-free adapters into compatible modes', () => {
     const inventoryBridge = readResourceFile(
       'source/bridge/server/inventory.lua',
     )
@@ -65,8 +65,17 @@ describe('phone inventory contracts', () => {
     )
     expect(inventoryBridge).toContain('configured_inventory = adapter.name')
     expect(inventoryBridge).toContain('selected_adapter.metadata == false')
-    expect(inventoryBridge).toContain('Config.Phone.Unique ~= false')
-    expect(inventoryBridge).toContain('Config.Sim.Enabled ~= false')
+    expect(inventoryBridge).toContain('Config.Phone.Unique = false')
+    expect(inventoryBridge).toContain('Config.Sim.Enabled = false')
+    expect(inventoryBridge).toContain(
+      'does not support item metadata; unique phones and physical SIM cards were disabled automatically',
+    )
+    expect(inventoryBridge).toContain(
+      'AddEventHandler("sky_phone:configurator:serverUpdated"',
+    )
+    expect(inventoryBridge).not.toContain(
+      'cannot store unique phone or physical SIM metadata',
+    )
   })
 
   it('provides the LB IsOpen export alias from the authoritative client state', () => {

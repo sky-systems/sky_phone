@@ -79,6 +79,7 @@ server_scripts {
     'config/locales/en.lua',
     'config/locales/de.lua',
     'config/locales/es.lua',
+    'source/shared/config_default.lua',
     'source/server/nui_build_check.lua',
     'source/server/update_check.lua',
     'source/bridge/server/database.lua',

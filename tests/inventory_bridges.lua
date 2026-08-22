@@ -1,3 +1,9 @@
+local event_handlers = {}
+
+AddEventHandler = function(event_name, callback)
+    event_handlers[event_name] = callback
+end
+
 local function reset_bridge(inventory_name, unique_phones, sim_cards_enabled)
     Config = {
         Bridge = {
@@ -193,11 +199,18 @@ exports = {
 }
 load_inventory_contract("sky_phone/source/bridge/server/inventory/esx.lua")
 
-local ok, configuration_error = pcall(Bridge.Inventory.RegisterUsableItem, "phone", function()
-end)
-assert(not ok)
-assert(configuration_error:find("Config.Phone.Unique = false", 1, true))
-assert(configuration_error:find("Config.Sim.Enabled = false", 1, true))
+assert(Config.Phone.Unique == false)
+assert(Config.Sim.Enabled == false)
+assert(Bridge.Inventory.ConfigurationError == nil)
+
+Config.Phone.Unique = true
+Config.Sim.Enabled = true
+event_handlers["sky_phone:configurator:serverUpdated"]()
+assert(Config.Phone.Unique == false)
+assert(Config.Sim.Enabled == false)
+
+assert(Bridge.Inventory.RegisterUsableItem("phone", function()
+end))
 
 local manifest_file = assert(io.open("sky_phone/fxmanifest.lua", "rb"))
 local manifest = manifest_file:read("*a")

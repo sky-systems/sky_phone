@@ -61,12 +61,29 @@ end
 
 Bridge.Inventory.Name = configured_inventory
 
-if selected_adapter.metadata == false then
-    if Config.Phone.Unique ~= false or Config.Sim.Enabled ~= false then
-        Bridge.Inventory.ConfigurationError = ("[sky_phone] Inventory '%s' cannot store unique phone or physical SIM metadata. Set Config.Phone.Unique = false and Config.Sim.Enabled = false, or configure a metadata-capable inventory.")
-            :format(configured_inventory)
+local metadata_free_inventory = selected_adapter.metadata == false
+
+local function enforce_metadata_compatibility()
+    if not metadata_free_inventory then
+        return
+    end
+
+    local modes_changed = Config.Phone.Unique ~= false or Config.Sim.Enabled ~= false
+    Config.Phone.Unique = false
+    Config.Sim.Enabled = false
+
+    if modes_changed then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone] Inventory '%s' does not support item metadata; unique phones and physical SIM cards were disabled automatically.",
+            configured_inventory
+        )
     end
 end
+
+enforce_metadata_compatibility()
+
+AddEventHandler("sky_phone:configurator:serverUpdated", enforce_metadata_compatibility)
 
 function Bridge.Inventory.NormalizeItem(item, metadata_field, fallback_slot)
     if type(item) ~= "table" then

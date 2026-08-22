@@ -2,19 +2,25 @@
     Sky Phone media configuration
 
     This file is loaded on the server only. Keep API keys private. When the
-    phone configurator is enabled in config.lua, these values are first-run
-    defaults and the active media configuration is loaded from SQL.
+    phone configurator is enabled in config.lua, the active media configuration
+    is loaded from SQL and frontend builds copy the shipped values from this
+    file into source/shared/config_default.lua.
 ]]
 
 Config.Media = {
-    GiphyApiKey = "", -- Paste the GIPHY API key here.
+    -- Create or sign in to an account at https://developers.giphy.com/, open
+    -- the Developer Dashboard, choose "Create an API Key", and paste it here.
+    GiphyApiKey = "",
     GifPageSize = 24,
     GifRating = "pg-13",
     UrlMaxLength = 2048,
     AllowedGifHosts = { "giphy.com" },
 
+    -- Create or sign in at https://fivemanage.com/, create or select your team,
+    -- then open Dashboard > Tokens and create a token with Media access. Keep
+    -- this server-only token private and paste it here.
     FiveManage = {
-        ApiKey = "", -- Paste a newly generated FiveManage V3 Media API token here.
+        ApiKey = "",
         BaseUrl = "https://api.fivemanage.com/api/v3/file",
         RequestTimeoutMs = 10000,
         UploadTimeoutMs = 25000,

@@ -1040,12 +1040,12 @@ local function apply_stored_row(row)
 end
 
 default_config = {}
-for key, value in pairs(Config) do
+for key, value in pairs(ConfigDefaults) do
     if key ~= "Media" and key ~= "PhoneConfigurator" then
         default_config[key] = serialize_value(value)
     end
 end
-default_media = serialize_value(Config.Media)
+default_media = serialize_value(ConfigDefaults.Media)
 
 Bridge.Database.Migrate("sky_phone_configurator", { SkyPhoneConfiguratorSchema })
 Bridge.Database.Query(([[

@@ -134,7 +134,7 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
   - `hex_4_inventory`
   - Native ESX inventory
 
-`mf-inventory` and `smx-inventory` are supported with ESX. The native ESX and HEX adapters use count-based items and therefore require unique phones and physical SIM cards to be disabled.
+`mf-inventory` and `smx-inventory` are supported with ESX. The native ESX and HEX adapters use count-based items, so Sky Phone automatically disables unique phones and physical SIM cards while either adapter is active.
 
 ### Voice
 
@@ -210,6 +210,10 @@ The files contain clearly separated sections for:
 | `Config.WeazelNews` | Editorial jobs, categories, and article limits |
 
 Restart `sky_phone` after changing Lua configuration.
+
+When `Config.PhoneConfigurator.Enabled` is enabled, the generated `source/shared/config_default.lua`
+provides the shipped SQL baseline. The frontend build recreates it from `config.lua` and the
+server-only `media.lua`; do not edit the generated snapshot directly.
 
 ### Language
 
@@ -312,7 +316,7 @@ Do not configure an LB Phone client event or client export. Sky Phone registers 
 
 The server registers `Config.Phone.Item` as usable for every supported inventory adapter: `ox`, `qb`, `lj`, `qs`, `codem`, `core`, `mf`, `smx`, `hex`, and `esx`. Resource startup fails visibly if the selected adapter cannot complete that registration.
 
-The `hex` and `esx` adapters use ESX's count-based item API. They require both `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` because this API cannot persist per-item phone or physical SIM metadata. `auto` selects `hex` when `hex_4_inventory` is started and otherwise falls back to `esx` on an ESX server when no metadata-capable inventory is detected.
+The `hex` and `esx` adapters use ESX's count-based item API, which cannot persist per-item phone or physical SIM metadata. Sky Phone automatically forces `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` while either adapter is active. `auto` selects `hex` when `hex_4_inventory` is started and otherwise falls back to `esx` on an ESX server when no metadata-capable inventory is detected.
 
 ### QBCore-style item tables
 
