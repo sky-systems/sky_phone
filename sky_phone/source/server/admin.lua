@@ -98,7 +98,7 @@ end
 
 local function require_admin(source, operation, maximum)
     if not Config.AdminPanel.Enabled
-        or not Bridge.Framework.HasAdminGroup(source, Config.AdminPanel.AdminGroups)
+        or not Bridge.Framework.HasPermission(source, "phonepanel")
     then
         Bridge.Debug("warn", "[sky_phone] Rejected admin panel access from source %s.", tostring(source))
         return nil, { success = false, error = "not_authorized" }
@@ -121,7 +121,7 @@ local function run_admin_command(command_source)
         TriggerClientEvent("sky_phone:admin:command-error", player_source, "disabled")
         return
     end
-    if not Bridge.Framework.HasAdminGroup(player_source, Config.AdminPanel.AdminGroups) then
+    if not Bridge.Framework.HasPermission(player_source, "phonepanel") then
         Bridge.Debug(
             "warn",
             "[sky_phone] Rejected admin panel command from source %s.",

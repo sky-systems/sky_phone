@@ -25,7 +25,7 @@ Bridge = {
     Debug = function()
     end,
     Framework = {
-        HasAdminGroup = function()
+        HasPermission = function()
             return true
         end,
     },
@@ -42,7 +42,6 @@ Bridge = {
 
 Config = {
     AdminPanel = {
-        AdminGroups = { "admin" },
         Command = "phoneadmin",
         Enabled = true,
     },

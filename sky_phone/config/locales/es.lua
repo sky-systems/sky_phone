@@ -2139,7 +2139,6 @@ Locales["es"] = {
 }
 
 Locales["es"].Nui.AdminPanel.configurator.table.subtabs = {
-    AdminGroups = "Grupos de administradores",
     Dictionaries = "Diccionarios",
     Clips = "Los clips",
     Transforms = "Transformaciones",

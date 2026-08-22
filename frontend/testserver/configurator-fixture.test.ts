@@ -61,14 +61,19 @@ function countStructure(structure: ConfiguratorStructure | undefined): number {
 }
 
 describe('admin configurator fixture', () => {
-  it('exposes every config.lua root through the full live preview', () => {
+  it('exposes every SQL-managed config.lua root through the full live preview', () => {
     const sections = loadConfiguratorSections()
     const fields = sections.flatMap((section) => section.fields)
     const roots = [
       ...configSource.matchAll(/^\s{0,4}Config\.([A-Za-z0-9_]+)\s*=/gm),
     ]
       .map((match) => match[1])
-      .filter((root) => root !== 'Media' && root !== 'PhoneConfigurator')
+      .filter(
+        (root) =>
+          root !== 'Media' &&
+          root !== 'PhoneConfigurator' &&
+          root !== 'CommandPermissions',
+      )
 
     expect(sections).toHaveLength(45)
     expect(

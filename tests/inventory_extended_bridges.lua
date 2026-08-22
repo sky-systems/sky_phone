@@ -1,3 +1,6 @@
+AddEventHandler = function()
+end
+
 local function reset_bridge(inventory_name, resource_name, inventory_export, framework_name, extra_exports)
     Config = {
         Bridge = { Inventory = inventory_name },

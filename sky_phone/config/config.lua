@@ -10,12 +10,26 @@
     Keep option names unchanged. Restart sky_phone after editing this file.
 ]]
 
+-- CONFIG_DEFAULT_EXCLUDE_START
 -- When enabled, the active configuration is loaded from SQL and managed through
 -- /phonepanel. Frontend builds snapshot the shipped defaults from config.lua and
 -- media.lua into source/shared/config_default.lua.
 Config.PhoneConfigurator = {
     Enabled = true,
 }
+
+-- Fixed server permissions. These values remain authoritative even while the
+-- Phone Configurator is enabled and are intentionally not shown in its panel.
+-- Group names use the active framework's permissions. On Qbox they also match
+-- ACE objects such as "admin" from the standard permissions.cfg.
+Config.CommandPermissions = {
+    phonepanel = { "god", "superadmin", "admin" },
+    phonetestdata = { "god", "superadmin", "admin" },
+    fliptokverify = { "god", "superadmin", "admin" },
+    picstagramverify = { "god", "superadmin", "admin" },
+    picstagramadmin = { "god", "superadmin", "admin" },
+}
+-- CONFIG_DEFAULT_EXCLUDE_END
 
 -- =============================================================================
 -- Core, framework and device
@@ -50,7 +64,6 @@ Config.TestData = {
     Enabled = false, -- development/test servers only; keep disabled in production
     Command = "phonetestdata",
     AdminOnly = false, -- enable only on development servers; every run is scoped to the executing player's phone
-    AdminGroups = { "admin", "superadmin" },
 }
 
 Config.CustomApps = {
@@ -77,7 +90,6 @@ Config.Security = {
 Config.AdminPanel = {
     Enabled = true,
     Command = "phonepanel",
-    AdminGroups = { "admin", "superadmin" },
     MaximumPlayers = 128,
     ReadRequestsPerMinute = 60,
     ActionRequestsPerMinute = 30,
@@ -486,7 +498,6 @@ Config.FlipTok = {
     MaxPostMedia = 10,
     MusicTracks = {},
     VerifyCommand = "fliptokverify",
-    AdminGroups = { "admin" },
     ReportWebhookConvar = "sky_phone_fliptok_report_webhook",
 }
 
@@ -508,7 +519,6 @@ Config.Picstagram = {
     ReportDetailsMaxLength = 500,
     ReportReasons = { "spam", "harassment", "dangerous", "illegal", "other" },
     VerifyCommand = "picstagramverify",
-    AdminGroups = { "admin" },
 }
 
 Config.Feather = {

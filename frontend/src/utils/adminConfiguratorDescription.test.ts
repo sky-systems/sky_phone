@@ -16,9 +16,7 @@ describe('admin configurator descriptions', () => {
     expect(configuratorDescriptionKey('Media.RequestTimeoutMs', 10000)).toBe(
       'milliseconds',
     )
-    expect(configuratorDescriptionKey('AdminPanel.AdminGroups', [])).toBe(
-      'access',
-    )
+    expect(configuratorDescriptionKey('Radio.AllowedJobs', [])).toBe('access')
     expect(configuratorDescriptionKey('FiveManage.ApiKey', '')).toBe(
       'credential',
     )

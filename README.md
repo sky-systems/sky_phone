@@ -216,6 +216,7 @@ The files contain clearly separated sections for:
 | Section | Purpose |
 | --- | --- |
 | `Config.Bridge` | Framework, inventory, language, callback timeout, and debug mode |
+| `Config.CommandPermissions` | Fixed groups for the admin panel, test data, verification commands, and social moderation |
 | `Config.Phone` | Phone item, movement, unique-device mode, and development command |
 | `Config.Sim` | Physical or virtual SIM behavior and number formatting |
 | `Config.Calls` / `Config.Radio` | Voice providers, call behavior, radio limits, and permissions |
@@ -250,13 +251,21 @@ in the Phone Configurator tool and press the green check. Saving verifies both S
 applies the new server, client, media, app, item, command, provider, animation, and UI values through
 Sky Phone's internal runtime refresh. It does not execute a resource restart command.
 
-Every `Config.*` value from `config.lua`, including server-only sections, and every value from
-`Config.Media` is discovered automatically. The bootstrap switch above intentionally remains
-file-owned because it decides whether SQL configuration is loaded. Lists, nested objects, vectors,
+Every configurable `Config.*` value from `config.lua`, including server-only sections, and every
+value from `Config.Media` is discovered automatically. The bootstrap switch and
+`Config.CommandPermissions` intentionally remain file-owned: the switch decides whether SQL
+configuration is loaded, while permissions must remain authoritative outside the panel. The fixed
+permission table is never displayed or overwritten by the Phone Configurator, and its stable keys do
+not change when their commands are renamed in the panel. Lists, nested objects, vectors,
 and numeric-keyed Lua tables use structured editors instead of raw JSON. Shipped schema rows stay
 editable but cannot be renamed, converted, or removed. Every list and table still accepts any number
 of additional rows; administrator-added rows remain removable. Company job keys are intentionally
 fully removable because `Config.Companies.Definitions` is a freely managed job collection.
+
+ESX and QBCore use the groups listed in `Config.CommandPermissions`. Qbox checks the configured ACE
+objects first and then its framework groups. The standard Qbox `permissions.cfg` grants the `admin`
+ACE to `group.admin`, so an identifier assigned to `group.admin` can open `/phonepanel` with the
+shipped `phonepanel` permission list. Restart `sky_phone` after changing fixed permissions.
 
 Media API keys and server peppers are never returned in plaintext to the NUI. Existing secrets are
 shown only as configured and are replaced only when an administrator enters a new value.

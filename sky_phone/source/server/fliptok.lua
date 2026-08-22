@@ -943,7 +943,7 @@ local function run_verify_command(source, arguments)
             notificationType = notification_type,
         })
     end
-    if source ~= 0 and not Bridge.Framework.HasAdminGroup(source, Config.FlipTok.AdminGroups) then
+    if source ~= 0 and not Bridge.Framework.HasPermission(source, "fliptokverify") then
         send_command_feedback(command_locale.noPermission, "error")
         Bridge.Debug(
             "warn",

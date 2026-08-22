@@ -319,7 +319,7 @@ local function create_activity(recipient_id, actor_id, kind, post_id)
 end
 
 local function is_admin(source)
-    return Bridge.Framework.HasAdminGroup(source, Config.Picstagram.AdminGroups)
+    return Bridge.Framework.HasPermission(source, "picstagramadmin")
 end
 
 Bridge.Callbacks.Register("sky_phone:picstagram:register", function(source, data)
@@ -1464,7 +1464,7 @@ local function run_verify_command(source, args)
             notificationType = notification_type,
         })
     end
-    if source ~= 0 and not Bridge.Framework.HasAdminGroup(source, Config.Picstagram.AdminGroups) then
+    if source ~= 0 and not Bridge.Framework.HasPermission(source, "picstagramverify") then
         send_command_feedback(command_locale.noPermission, "error")
         Bridge.Debug(
             "warn",

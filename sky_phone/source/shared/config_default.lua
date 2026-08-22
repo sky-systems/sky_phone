@@ -15,12 +15,6 @@ Config = {}
     Keep option names unchanged. Restart sky_phone after editing this file.
 ]]
 
--- When enabled, the active configuration is loaded from SQL and managed through
--- /phonepanel. Frontend builds snapshot the shipped defaults from config.lua and
--- media.lua into source/shared/config_default.lua.
-Config.PhoneConfigurator = {
-    Enabled = true,
-}
 
 -- =============================================================================
 -- Core, framework and device
@@ -28,7 +22,9 @@ Config.PhoneConfigurator = {
 
 Config.Bridge = {
     Framework = "auto", -- auto, esx, qbox, qb
-    Inventory = "auto", -- auto, ox, qb, lj, qs, codem, core, mf, smx, hex, esx
+    -- auto, ak47, codem, core, jaksam, jpr, lj, mf, one, origen, ox, ps, qb, qs, smx, tgiann, hex, esx
+    -- Compatibility aliases: qb-inv -> qb, qbox -> ox
+    Inventory = "auto",
     Locale = "en",
     CallbackTimeout = 15000,
     Debug = false, -- true: show debug/info output; warnings and errors are always shown
@@ -53,7 +49,6 @@ Config.TestData = {
     Enabled = false, -- development/test servers only; keep disabled in production
     Command = "phonetestdata",
     AdminOnly = false, -- enable only on development servers; every run is scoped to the executing player's phone
-    AdminGroups = { "admin", "superadmin" },
 }
 
 Config.CustomApps = {
@@ -80,7 +75,6 @@ Config.Security = {
 Config.AdminPanel = {
     Enabled = true,
     Command = "phonepanel",
-    AdminGroups = { "admin", "superadmin" },
     MaximumPlayers = 128,
     ReadRequestsPerMinute = 60,
     ActionRequestsPerMinute = 30,
@@ -489,7 +483,6 @@ Config.FlipTok = {
     MaxPostMedia = 10,
     MusicTracks = {},
     VerifyCommand = "fliptokverify",
-    AdminGroups = { "admin" },
     ReportWebhookConvar = "sky_phone_fliptok_report_webhook",
 }
 
@@ -511,7 +504,6 @@ Config.Picstagram = {
     ReportDetailsMaxLength = 500,
     ReportReasons = { "spam", "harassment", "dangerous", "illegal", "other" },
     VerifyCommand = "picstagramverify",
-    AdminGroups = { "admin" },
 }
 
 Config.Feather = {

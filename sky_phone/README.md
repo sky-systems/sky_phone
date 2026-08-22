@@ -196,6 +196,7 @@ The files contain clearly separated sections for:
 | Section | Purpose |
 | --- | --- |
 | `Config.Bridge` | Framework, inventory, language, callback timeout, and debug mode |
+| `Config.CommandPermissions` | Fixed groups for the admin panel, test data, verification commands, and social moderation |
 | `Config.Phone` | Phone item, movement, unique-device mode, and development command |
 | `Config.Sim` | Physical or virtual SIM behavior and number formatting |
 | `Config.Calls` / `Config.Radio` | Voice providers, call behavior, radio limits, and permissions |
@@ -214,6 +215,14 @@ Restart `sky_phone` after changing Lua configuration.
 When `Config.PhoneConfigurator.Enabled` is enabled, the generated `source/shared/config_default.lua`
 provides the shipped SQL baseline. The frontend build recreates it from `config.lua` and the
 server-only `media.lua`; do not edit the generated snapshot directly.
+
+`Config.PhoneConfigurator` and `Config.CommandPermissions` remain file-owned and are omitted from
+the generated default snapshot. Permissions are not displayed in the Phone Configurator and stay
+authoritative while SQL configuration is enabled. Their stable keys do not change when a command is
+renamed in the panel. ESX and QBCore use their framework permissions. Qbox checks the configured ACE
+objects first and then its framework groups, so the standard `permissions.cfg` mapping from
+`group.admin` to the `admin` ACE works with the shipped `phonepanel` permission list. Restart
+`sky_phone` after changing fixed permissions.
 
 ### Language
 

@@ -945,7 +945,6 @@ const adminPanelFallbackLocales = {
       entry: 'Entry',
       general: 'General',
       subtabs: {
-        AdminGroups: 'Admin Groups',
         Dictionaries: 'Dictionaries',
         Clips: 'Clips',
         Transforms: 'Transforms',

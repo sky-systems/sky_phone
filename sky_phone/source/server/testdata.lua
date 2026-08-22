@@ -1045,7 +1045,7 @@ local function run_test_data_command(source)
         Bridge.Debug("warn", "[sky_phone] The test data command must be run by an in-game player.")
         return
     end
-    if Config.TestData.AdminOnly and not Bridge.Framework.HasAdminGroup(source, Config.TestData.AdminGroups) then
+    if Config.TestData.AdminOnly and not Bridge.Framework.HasPermission(source, "phonetestdata") then
         Bridge.Debug("warn", "[sky_phone] Source %s attempted to run the restricted test data command.", tostring(source))
         TriggerClientEvent("sky_phone:testdata:feedback", source, false)
         return

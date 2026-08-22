@@ -17,6 +17,21 @@ local updated_at
 local updated_by_name
 local is_sequence
 
+local FIXED_CONFIG_PATHS = {
+    CommandPermissions = true,
+    ["AdminPanel.AdminGroups"] = true,
+    ["TestData.AdminGroups"] = true,
+    ["FlipTok.AdminGroups"] = true,
+    ["Picstagram.AdminGroups"] = true,
+}
+
+if configurator_enabled then
+    print(
+        "[sky_phone] Phone Configurator enabled: file-based settings from config.lua " ..
+        "(except Config.CommandPermissions) and media.lua are disabled; SQL configuration is active."
+    )
+end
+
 local CLIENT_CONFIG_KEYS = {
     AdminPanel = true,
     Animations = true,
@@ -252,7 +267,7 @@ local function upgrade_legacy_map(defaults, saved)
     return { __skyType = "map", entries = entries }
 end
 
-local function merge_values(defaults, saved, path)
+local function merge_values(defaults, saved, path, excluded_paths)
     path = path or ""
     if type(defaults) ~= "table" or type(saved) ~= "table" then
         return copy_value(saved)
@@ -278,7 +293,12 @@ local function merge_values(defaults, saved, path)
                 key = entry.key,
                 keyType = entry.keyType,
                 value = saved_entry
-                    and merge_values(entry.value, saved_entry.value, path .. "." .. tostring(entry.key))
+                    and merge_values(
+                        entry.value,
+                        saved_entry.value,
+                        path .. "." .. tostring(entry.key),
+                        excluded_paths
+                    )
                     or copy_value(entry.value),
             }
             included[identity] = true
@@ -298,7 +318,7 @@ local function merge_values(defaults, saved, path)
         local merged = copy_value(saved)
         for index, child in ipairs(defaults) do
             merged[index] = saved[index] ~= nil
-                and merge_values(child, saved[index], path .. "." .. tostring(index))
+                and merge_values(child, saved[index], path .. "." .. tostring(index), excluded_paths)
                 or copy_value(child)
         end
         return merged
@@ -309,11 +329,13 @@ local function merge_values(defaults, saved, path)
 
     local merged = copy_value(defaults)
     for key, child in pairs(saved) do
-        if merged[key] ~= nil then
-            local child_path = path == "" and tostring(key) or (path .. "." .. tostring(key))
-            merged[key] = merge_values(merged[key], child, child_path)
-        else
-            merged[key] = copy_value(child)
+        local child_path = path == "" and tostring(key) or (path .. "." .. tostring(key))
+        if not excluded_paths or not excluded_paths[child_path] then
+            if merged[key] ~= nil then
+                merged[key] = merge_values(merged[key], child, child_path, excluded_paths)
+            else
+                merged[key] = copy_value(child)
+            end
         end
     end
     return merged
@@ -356,10 +378,12 @@ local function apply_runtime_configuration()
 
     local runtime_config = deserialize_value(stored_config)
     for key, value in pairs(runtime_config) do
-        if type(Config[key]) == "table" and type(value) == "table" then
-            apply_runtime_table(Config[key], value)
-        else
-            Config[key] = value
+        if key ~= "CommandPermissions" then
+            if type(Config[key]) == "table" and type(value) == "table" then
+                apply_runtime_table(Config[key], value)
+            else
+                Config[key] = value
+            end
         end
     end
     local runtime_media = deserialize_value(stored_media)
@@ -1032,7 +1056,12 @@ local function read_stored_row()
 end
 
 local function apply_stored_row(row)
-    stored_config = merge_values(default_config, decode_payload(row.config_payload, "config"), "")
+    stored_config = merge_values(
+        default_config,
+        decode_payload(row.config_payload, "config"),
+        "",
+        FIXED_CONFIG_PATHS
+    )
     stored_media = merge_values(default_media, decode_payload(row.media_payload, "media"), "")
     revision = tonumber(row.revision) or 1
     updated_at = row.updated_at
@@ -1041,7 +1070,7 @@ end
 
 default_config = {}
 for key, value in pairs(ConfigDefaults) do
-    if key ~= "Media" and key ~= "PhoneConfigurator" then
+    if key ~= "Media" and key ~= "PhoneConfigurator" and key ~= "CommandPermissions" then
         default_config[key] = serialize_value(value)
     end
 end

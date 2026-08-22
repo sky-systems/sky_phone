@@ -54,6 +54,10 @@ const config = readFileSync(
   new URL('../../../sky_phone/config/config.lua', import.meta.url),
   'utf8',
 )
+const configDefaultsSource = config.replace(
+  /\r?\n?-- CONFIG_DEFAULT_EXCLUDE_START[\s\S]*?-- CONFIG_DEFAULT_EXCLUDE_END\r?\n?/g,
+  '\n',
+)
 const mediaConfig = readFileSync(
   new URL('../../../sky_phone/config/media.lua', import.meta.url),
   'utf8',
@@ -231,12 +235,14 @@ describe('standalone admin panel contracts', () => {
   it('authorizes every server request without requiring a phone session', () => {
     expect(server).not.toContain('SkyPhone.RequireSession(source)')
     expect(server).toContain(
-      'Bridge.Framework.HasAdminGroup(source, Config.AdminPanel.AdminGroups)',
+      'Bridge.Framework.HasPermission(source, "phonepanel")',
     )
     expect(server).toContain('Config.AdminPanel.ReadRequestsPerMinute')
     expect(server).toContain('Config.AdminPanel.ActionRequestsPerMinute')
     expect(server).toContain('Config.AdminPanel.CredentialRevealsPerMinute')
     expect(config).toContain('Config.AdminPanel = {')
+    expect(config).toContain('Config.CommandPermissions = {')
+    expect(config).not.toContain('AdminGroups =')
   })
 
   it('opens directly from the configurable command with dedicated focus', () => {
@@ -290,9 +296,9 @@ describe('standalone admin panel contracts', () => {
     expect(
       manifest.indexOf("'source/shared/config_default.lua'"),
     ).toBeGreaterThan(manifest.indexOf("'config/media.lua'"))
-    expect(
-      manifest.indexOf("'source/shared/config_default.lua'"),
-    ).toBeLessThan(manifest.indexOf("'source/server/phone_configurator.lua'"))
+    expect(manifest.indexOf("'source/shared/config_default.lua'")).toBeLessThan(
+      manifest.indexOf("'source/server/phone_configurator.lua'"),
+    )
     expect(
       manifest.indexOf("'source/server/phone_configurator.lua'"),
     ).toBeLessThan(manifest.indexOf("'source/bridge/server/framework.lua'"))
@@ -319,7 +325,7 @@ describe('standalone admin panel contracts', () => {
         'local realConfig = Config',
         'Config = {}',
         '',
-        config.replace(/\r\n?/g, '\n').trimEnd(),
+        configDefaultsSource.replace(/\r\n?/g, '\n').trimEnd(),
         '',
         mediaConfig.replace(/\r\n?/g, '\n').trimEnd(),
         '',
@@ -330,6 +336,8 @@ describe('standalone admin panel contracts', () => {
     expect(frontendBuild).toContain("readLuaSource('config', 'config.lua')")
     expect(frontendBuild).toContain("readLuaSource('config', 'media.lua')")
     expect(frontendBuild).toContain("'config_default.lua'")
+    expect(configDefault).not.toContain('Config.PhoneConfigurator')
+    expect(configDefault).not.toContain('Config.CommandPermissions')
     expect(configuratorServer).toContain(
       'build_sections("config", stored_config',
     )
