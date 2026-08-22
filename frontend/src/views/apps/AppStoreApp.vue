@@ -119,7 +119,7 @@ const downloadDateDescription = computed(() =>
 )
 const catalog = computed(() =>
   PHONE_APPS.filter((app): app is LaunchablePhoneAppDefinition => {
-    if (!isLaunchablePhoneApp(app) || app.id === 'app-store') {
+    if (!isLaunchablePhoneApp(app) || app.id === 'app-store' || app.adminOnly) {
       return false
     }
 
@@ -140,6 +140,7 @@ const dailyCandidates = computed(() =>
     PHONE_APPS.filter(
       (app): app is LaunchablePhoneAppDefinition =>
         isLaunchablePhoneApp(app) &&
+        !app.adminOnly &&
         !isExternalPhoneApp(app) &&
         app.id !== 'app-store' &&
         !DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id) &&

@@ -10,14 +10,22 @@ type LuaToken = {
 }
 
 const frontendSourceDirectory = fileURLToPath(new URL('../', import.meta.url))
-const englishLocaleSource = readFileSync(
-  new URL('../../../sky_phone/config/locales/en.lua', import.meta.url),
-  'utf8',
+const localeDirectory = fileURLToPath(
+  new URL('../../../sky_phone/config/locales/', import.meta.url),
 )
-const germanLocaleSource = readFileSync(
-  new URL('../../../sky_phone/config/locales/de.lua', import.meta.url),
-  'utf8',
+const localeSources = new Map(
+  readdirSync(localeDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.lua'))
+    .map((entry) => [
+      entry.name.replace(/\.lua$/, ''),
+      readFileSync(join(localeDirectory, entry.name), 'utf8'),
+    ]),
 )
+const englishLocaleSource = localeSources.get('en')
+const germanLocaleSource = localeSources.get('de')
+if (!englishLocaleSource || !germanLocaleSource) {
+  throw new Error('The bundled English and German phone locales are required.')
+}
 const phoneStoreSource = readFileSync(
   new URL('./phone.ts', import.meta.url),
   'utf8',
@@ -118,11 +126,38 @@ function collectLuaLocaleValues(source: string): Map<string, string> {
   }
 
   parseTable([])
+  while (position < tokens.length) {
+    const assignment = tokens.findIndex(
+      (token, index) => index >= position && token.kind === '=',
+    )
+    if (assignment < 0) break
+    const nui = tokens.findIndex(
+      (token, index) =>
+        index >= position && index < assignment && token.value === 'Nui',
+    )
+    if (nui < 0) {
+      position = assignment + 1
+      continue
+    }
+    const path = [
+      'Nui',
+      ...tokens
+        .slice(nui + 1, assignment)
+        .filter((token) => token.kind === 'word')
+        .map((token) => token.value),
+    ]
+    position = assignment + 1
+    parseValue(path)
+  }
   return values
 }
 
 function collectPlaceholders(value: string): string[] {
   return [...new Set(value.match(/\{[A-Za-z0-9_]+\}/g) ?? [])].sort()
+}
+
+function collectNumberTokens(value: string): string[] {
+  return value.match(/\d+/g) ?? []
 }
 
 function collectDefaultLocalePaths(source: string): Set<string> {
@@ -200,9 +235,25 @@ function collectFrontendFiles(directory: string): string[] {
 }
 
 describe('phone locale contract', () => {
-  const englishValues = collectLuaLocaleValues(englishLocaleSource)
-  const germanValues = collectLuaLocaleValues(germanLocaleSource)
+  const localeValues = new Map(
+    [...localeSources].map(([locale, source]) => [
+      locale,
+      collectLuaLocaleValues(source),
+    ]),
+  )
+  const englishValues = localeValues.get('en')!
+  const germanValues = localeValues.get('de')!
+  const translatedLocaleValues = [...localeValues].filter(
+    ([locale]) => locale !== 'en',
+  )
   const englishPaths = new Set(englishValues.keys())
+
+  it.each([...localeSources])(
+    'registers the %s locale under its file name',
+    (locale, source) => {
+      expect(source.match(/^Locales\["([^"]+)"\]/)?.[1]).toBe(locale)
+    },
+  )
 
   it('keeps every bundled frontend fallback in en.lua', () => {
     const missing = [...collectDefaultLocalePaths(phoneStoreSource)].filter(
@@ -248,26 +299,52 @@ describe('phone locale contract', () => {
     }
   })
 
-  it('keeps German structurally aligned with English', () => {
-    const germanPaths = new Set(germanValues.keys())
+  it.each(translatedLocaleValues)(
+    'keeps %s structurally aligned with English',
+    (_locale, values) => {
+      expect([...values.keys()].sort()).toEqual([...englishPaths].sort())
+    },
+  )
 
-    expect([...germanPaths].sort()).toEqual([...englishPaths].sort())
-  })
+  it.each(translatedLocaleValues)(
+    'keeps %s interpolation placeholders aligned with English',
+    (_locale, values) => {
+      const mismatches = [...englishValues].flatMap(
+        ([path, englishValue]) => {
+          const translatedValue = values.get(path)
+          return translatedValue !== undefined &&
+            JSON.stringify(collectPlaceholders(translatedValue)) !==
+              JSON.stringify(collectPlaceholders(englishValue))
+            ? [
+                `${path}: ${collectPlaceholders(englishValue).join(', ')} != ${collectPlaceholders(translatedValue).join(', ')}`,
+              ]
+            : []
+        },
+      )
 
-  it('keeps German interpolation placeholders aligned with English', () => {
-    const mismatches = [...englishValues].flatMap(([path, englishValue]) => {
-      const germanValue = germanValues.get(path)
-      return germanValue !== undefined &&
-        JSON.stringify(collectPlaceholders(germanValue)) !==
-          JSON.stringify(collectPlaceholders(englishValue))
-        ? [
-            `${path}: ${collectPlaceholders(englishValue).join(', ')} != ${collectPlaceholders(germanValue).join(', ')}`,
-          ]
-        : []
-    })
+      expect(mismatches).toEqual([])
+    },
+  )
 
-    expect(mismatches).toEqual([])
-  })
+  it.each(translatedLocaleValues)(
+    'keeps %s numeric source values intact',
+    (_locale, values) => {
+      const mismatches = [...englishValues].flatMap(([path, englishValue]) => {
+        const expected = collectNumberTokens(englishValue)
+        if (!expected.length) return []
+
+        const remaining = collectNumberTokens(values.get(path) ?? '')
+        for (const token of expected) {
+          const index = remaining.indexOf(token)
+          if (index >= 0) remaining.splice(index, 1)
+          else return [`${path}: missing numeric token ${token}`]
+        }
+        return []
+      })
+
+      expect(mismatches).toEqual([])
+    },
+  )
 
   it('keeps standard app names German and custom game names unchanged', () => {
     const standardAppNames = {

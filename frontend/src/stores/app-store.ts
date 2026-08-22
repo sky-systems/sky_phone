@@ -58,11 +58,12 @@ function getDefaultDockIds(): LaunchablePhoneAppId[] {
 }
 
 function getDefaultInstalledIds(): LaunchablePhoneAppId[] {
-  return PHONE_APPS.filter((app) =>
-    isExternalPhoneApp(app)
+  return PHONE_APPS.filter((app) => {
+    if (app.adminOnly) return false
+    return isExternalPhoneApp(app)
       ? app.defaultInstalled
-      : DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id),
-  ).map((app) => app.id)
+      : DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id)
+  }).map((app) => app.id)
 }
 
 function isProtectedHomeApp(appId: LaunchablePhoneAppId): boolean {
@@ -237,13 +238,15 @@ export const useAppStoreStore = defineStore('app-store', {
         layoutVersion === 5 ||
         layoutVersion === 6
       this.claimedApps = Array.isArray(data?.claimedApps)
-        ? data.claimedApps.filter(
-            (id): id is LaunchablePhoneAppId =>
-              typeof id === 'string' &&
-              (isPhoneAppId(id) ||
-                (supportsPersistedExternalApps &&
-                  isValidExternalPhoneAppId(id))),
-          )
+        ? data.claimedApps.filter((id): id is LaunchablePhoneAppId => {
+            if (typeof id !== 'string') return false
+            const app = getPhoneApp(id)
+            if (app?.adminOnly) return false
+            return (
+              isPhoneAppId(id) ||
+              (supportsPersistedExternalApps && isValidExternalPhoneAppId(id))
+            )
+          })
         : []
       this.uninstalledApps = Array.isArray(data?.uninstalledApps)
         ? data.uninstalledApps.filter((id): id is LaunchablePhoneAppId => {
@@ -308,9 +311,10 @@ export const useAppStoreStore = defineStore('app-store', {
       }
     },
     isInstalled(appId: LaunchablePhoneAppId): boolean {
+      const app = getPhoneApp(appId)
+      if (app?.adminOnly) return false
       if (this.uninstalledApps.includes(appId)) return false
       if (this.claimedApps.includes(appId)) return true
-      const app = getPhoneApp(appId)
       if (!app) return false
       return isExternalPhoneApp(app)
         ? app.defaultInstalled

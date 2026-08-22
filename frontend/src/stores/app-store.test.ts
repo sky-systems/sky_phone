@@ -75,6 +75,13 @@ describe('app store', () => {
     }
   })
 
+  it('drops the retired admin app from persisted phone layouts', () => {
+    const apps = useAppStoreStore()
+
+    apps.hydrate({ claimedApps: ['admin'] })
+    expect(apps.homeLayout.grid).not.toContain('admin')
+  })
+
   it('migrates current layouts so dock apps are not repeated in the grid', () => {
     const apps = useAppStoreStore()
 

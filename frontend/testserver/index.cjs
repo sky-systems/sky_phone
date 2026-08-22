@@ -3,6 +3,8 @@ const { randomUUID } = require('node:crypto')
 const cors = require('cors')
 const express = require('express')
 
+const { loadConfiguratorSections } = require('./configurator-fixture.cjs')
+
 const app = express()
 const port = Number(process.argv[2]) || 3001
 
@@ -3098,9 +3100,7 @@ const deviceData = {
         ringtoneVolume: 80,
         streamerMode: false,
         wallpaper: 'custom',
-        wallpaperHistory: [
-          { imageUrl: demoWallpaperUrl, wallpaper: 'custom' },
-        ],
+        wallpaperHistory: [{ imageUrl: demoWallpaperUrl, wallpaper: 'custom' }],
         wallpaperImageUrl: demoWallpaperUrl,
       },
       version: 1,
@@ -4650,17 +4650,456 @@ function companyWorkContext(testScenario = '') {
   }
 }
 
+const adminMockApps = {
+  claimed: ['citymarkt', 'darkchat', 'feather', 'local-pages'],
+  revision: 3,
+  uninstalled: ['crypto', 'skyride'],
+}
+
+const adminMockDevices = {
+  1: { account: true, number: '555-0101', security: true },
+  2: { account: true, number: '555-0102', security: true },
+}
+
+function adminMockPlayerDetail(source = 1) {
+  const primary = source === 1
+  const deviceState = adminMockDevices[source] ?? adminMockDevices[1]
+  return {
+    birthdate: primary ? '1994-04-16' : '1998-11-03',
+    devices: [
+      {
+        account: deviceState.account
+          ? {
+              email: primary ? 'demo@ifruit.com' : 'jordan@ifruit.com',
+              id: primary ? 1 : 2,
+              passwordAvailable: true,
+            }
+          : null,
+        apps: { ...adminMockApps },
+        createdAt: '2026-08-15 18:42:00',
+        imei: primary ? '356938035643809' : '356938035643810',
+        name: primary ? 'Personal iFruit Phone' : 'Service iFruit Phone',
+        number: deviceState.number,
+        security: {
+          enabled: deviceState.security,
+          failedAttempts: 0,
+          length: deviceState.security ? 6 : null,
+          lockedUntil: 0,
+        },
+        simRegistered: true,
+        simType: 'standard',
+        updatedAt: '2026-08-20 19:04:00',
+      },
+    ],
+    firstName: primary ? 'Alex' : 'Jordan',
+    identifier: primary ? 'char1:demo' : 'char1:jordan',
+    job: {
+      grade: primary ? 4 : 1,
+      gradeLabel: primary ? 'Chief' : 'Officer',
+      label: 'Los Santos Police Department',
+      name: 'police',
+      onDuty: true,
+    },
+    lastName: primary ? 'Morgan' : 'Blake',
+    money: {
+      bank: primary ? 182450 : 28450,
+      cash: primary ? 2740 : 950,
+      currency: '$',
+    },
+    name: primary ? 'Alex Morgan' : 'Jordan Blake',
+    serverName: primary ? 'Skyline' : 'JordanB',
+    source,
+  }
+}
+
+function adminMockBootstrap() {
+  return {
+    audit: [
+      {
+        action: 'grant_app',
+        actorName: 'Skyline',
+        createdAt: '2026-08-20 19:04:00',
+        details: { appId: 'darkchat' },
+        deviceImei: '356938035643810',
+        id: 1,
+        targetIdentifier: 'char1:jordan',
+        targetSource: 2,
+      },
+    ],
+    players: [1, 2].map((source) => {
+      const player = adminMockPlayerDetail(source)
+      return {
+        deviceCount: player.devices.length,
+        grade: player.job.grade,
+        identifier: player.identifier,
+        job: player.job.name,
+        name: player.name,
+        onDuty: player.job.onDuty,
+        phoneNumber: player.devices[0]?.number ?? null,
+        serverName: player.serverName,
+        source,
+      }
+    }),
+    stats: { accounts: 24, devices: 31, online: 2 },
+  }
+}
+
+const adminMockConfiguratorBase = {
+  enabled: true,
+  revision: 4,
+  sections: [
+    {
+      id: 'config:Bridge',
+      label: 'Bridge',
+      scope: 'config',
+      fields: [
+        {
+          label: 'Framework',
+          path: 'Bridge.Framework',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'auto',
+        },
+        {
+          label: 'Inventory',
+          path: 'Bridge.Inventory',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'auto',
+        },
+        {
+          label: 'Locale',
+          path: 'Bridge.Locale',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'de',
+        },
+        {
+          label: 'Callback Timeout',
+          path: 'Bridge.CallbackTimeout',
+          scope: 'config',
+          sensitive: false,
+          type: 'number',
+          value: 15000,
+        },
+        {
+          label: 'Debug',
+          path: 'Bridge.Debug',
+          scope: 'config',
+          sensitive: false,
+          type: 'boolean',
+          value: false,
+        },
+      ],
+    },
+    {
+      id: 'config:Phone',
+      label: 'Phone',
+      scope: 'config',
+      fields: [
+        {
+          label: 'Item',
+          path: 'Phone.Item',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'phone',
+        },
+        {
+          label: 'Unique',
+          path: 'Phone.Unique',
+          scope: 'config',
+          sensitive: false,
+          type: 'boolean',
+          value: true,
+        },
+        {
+          label: 'Keybind',
+          path: 'Phone.Keybind',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'F1',
+        },
+        {
+          label: 'Device Name',
+          path: 'Phone.DeviceName',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'iFruit Phone',
+        },
+      ],
+    },
+    {
+      id: 'config:Companies',
+      label: 'Companies',
+      scope: 'config',
+      fields: [
+        {
+          label: 'Enabled',
+          path: 'Companies.Enabled',
+          scope: 'config',
+          sensitive: false,
+          type: 'boolean',
+          value: true,
+        },
+        {
+          label: 'Categories',
+          path: 'Companies.Categories',
+          scope: 'config',
+          sensitive: false,
+          type: 'json',
+          value: ['public_services', 'vehicles', 'transport'],
+        },
+      ],
+    },
+    {
+      id: 'media:FiveManage',
+      label: 'Five Manage',
+      scope: 'media',
+      fields: [
+        {
+          configured: true,
+          label: 'Api Key',
+          path: 'FiveManage.ApiKey',
+          scope: 'media',
+          sensitive: true,
+          type: 'string',
+          value: '',
+        },
+        {
+          label: 'Base Url',
+          path: 'FiveManage.BaseUrl',
+          scope: 'media',
+          sensitive: false,
+          type: 'string',
+          value: 'https://api.fivemanage.com/api/v3/file',
+        },
+        {
+          label: 'Upload Timeout Ms',
+          path: 'FiveManage.UploadTimeoutMs',
+          scope: 'media',
+          sensitive: false,
+          type: 'number',
+          value: 25000,
+        },
+      ],
+    },
+    {
+      id: 'media:Import',
+      label: 'Import',
+      scope: 'media',
+      fields: [
+        {
+          label: 'Enabled',
+          path: 'Import.Enabled',
+          scope: 'media',
+          sensitive: false,
+          type: 'boolean',
+          value: true,
+        },
+        {
+          label: 'Websites',
+          path: 'Import.Websites',
+          scope: 'media',
+          sensitive: false,
+          type: 'json',
+          value: [
+            {
+              Adapter: 'fivemanage',
+              Enabled: true,
+              Id: 'fivemanage',
+              Label: 'FiveManage',
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  updatedAt: '2026-08-20 20:15:00',
+  updatedBy: 'Alex Morgan',
+}
+
+const adminMockConfigurator = {
+  ...adminMockConfiguratorBase,
+  sections: loadConfiguratorSections(),
+}
+
 app.post('/api/:endpoint', async (request, response, next) => {
   const endpoint = request.params.endpoint
   const loggedBody = { ...request.body }
   if (typeof loggedBody.password === 'string')
     loggedBody.password = '<redacted>'
+  if (
+    endpoint === 'admin:save-configurator' &&
+    Array.isArray(loggedBody.changes)
+  ) {
+    loggedBody.changes = loggedBody.changes.map((change) => ({
+      ...change,
+      value: /api.?key|pepper|secret|token|password/i.test(
+        String(change.path ?? ''),
+      )
+        ? '<redacted>'
+        : change.value,
+    }))
+  }
   if (endpoint === 'memos:devCapture') {
     loggedBody.audioDataUrl = `<${String(request.body.audioDataUrl ?? '').length} characters>`
   }
   console.log('[NUI]', endpoint, loggedBody)
   if (endpoint === 'music:bootstrap') {
     response.json({ success: true, data: musicBootstrap() })
+    return
+  }
+  if (endpoint === 'admin:bootstrap') {
+    response.json({ success: true, data: adminMockBootstrap() })
+    return
+  }
+  if (endpoint === 'admin:configurator') {
+    response.json({ success: true, data: adminMockConfigurator })
+    return
+  }
+  if (endpoint === 'admin:save-configurator') {
+    const changes = Array.isArray(request.body.changes)
+      ? request.body.changes
+      : []
+    for (const change of changes) {
+      for (const section of adminMockConfigurator.sections) {
+        const field = section.fields.find(
+          (candidate) =>
+            candidate.scope === change.scope && candidate.path === change.path,
+        )
+        if (!field) continue
+        if (field.sensitive)
+          field.configured = String(change.value ?? '') !== ''
+        else field.value = change.value
+      }
+    }
+    adminMockConfigurator.revision += 1
+    adminMockConfigurator.updatedAt = new Date().toISOString()
+    response.json({ success: true, data: adminMockConfigurator })
+    return
+  }
+  if (endpoint === 'admin:player') {
+    response.json({
+      success: true,
+      data: adminMockPlayerDetail(Number(request.body.source) || 1),
+    })
+    return
+  }
+  if (endpoint === 'admin:save-apps') {
+    const changes = Array.isArray(request.body.changes)
+      ? request.body.changes
+      : []
+    for (const change of changes) {
+      const appId = String(change.appId ?? '')
+      const installed = change.installed === true
+      adminMockApps.claimed = adminMockApps.claimed.filter((id) => id !== appId)
+      adminMockApps.uninstalled = adminMockApps.uninstalled.filter(
+        (id) => id !== appId,
+      )
+      if (installed) adminMockApps.claimed.push(appId)
+      else adminMockApps.uninstalled.push(appId)
+    }
+    adminMockApps.revision += 1
+    response.json({
+      success: true,
+      data: adminMockPlayerDetail(Number(request.body.source) || 1),
+    })
+    return
+  }
+  if (endpoint === 'admin:close') {
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'admin:reveal-password') {
+    response.json({
+      success: true,
+      data: { email: 'demo@ifruit.com', password: 'mock-only-password' },
+    })
+    return
+  }
+  if (endpoint === 'admin:activity') {
+    if (request.body.kind === 'messages') {
+      response.json({
+        success: true,
+        data: {
+          kind: 'messages',
+          entries: [
+            {
+              body: 'Meet at Mission Row in ten minutes.',
+              createdAt: '2026-08-20 19:03:00',
+              direction: 'outgoing',
+              id: 'admin-message-1',
+              messageType: 'text',
+              otherNumber: '555-0144',
+              readAt: '2026-08-20 19:03:30',
+            },
+            {
+              body: 'Copy, I am on my way.',
+              createdAt: '2026-08-20 18:58:00',
+              direction: 'incoming',
+              id: 'admin-message-2',
+              messageType: 'text',
+              otherNumber: '555-0199',
+              readAt: null,
+            },
+          ],
+        },
+      })
+      return
+    }
+    response.json({
+      success: true,
+      data: {
+        kind: 'calls',
+        entries: [
+          {
+            answeredAt: '2026-08-20 18:49:05',
+            direction: 'incoming',
+            durationSeconds: 184,
+            endedAt: '2026-08-20 18:52:09',
+            id: 'admin-call-1',
+            otherNumber: '555-0177',
+            startedAt: '2026-08-20 18:49:00',
+            status: 'completed',
+          },
+          {
+            answeredAt: null,
+            direction: 'outgoing',
+            durationSeconds: 0,
+            endedAt: '2026-08-20 17:13:18',
+            id: 'admin-call-2',
+            otherNumber: '555-0112',
+            startedAt: '2026-08-20 17:13:00',
+            status: 'missed',
+          },
+        ],
+      },
+    })
+    return
+  }
+  if (endpoint === 'admin:reset-passcode') {
+    const source = Number(request.body.source) || 1
+    adminMockDevices[source].security = false
+    response.json({ success: true, data: adminMockPlayerDetail(source) })
+    return
+  }
+  if (endpoint === 'admin:change-number') {
+    const source = Number(request.body.source) || 1
+    adminMockDevices[source].number = String(request.body.phoneNumber ?? '')
+    response.json({ success: true, data: adminMockPlayerDetail(source) })
+    return
+  }
+  if (endpoint === 'admin:factory-reset') {
+    const source = Number(request.body.source) || 1
+    adminMockDevices[source].account = false
+    adminMockDevices[source].security = false
+    response.json({ success: true, data: adminMockPlayerDetail(source) })
     return
   }
   if (endpoint === 'music:add-youtube') {

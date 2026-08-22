@@ -2,22 +2,29 @@ Bridge.Database.AfterMigration("sky_phone", function()
 
 SkyPhoneSim = {}
 
-local valid_number_configuration, number_configuration_error = SkyPhoneSimNumber.ValidateConfiguration(
-    Config.Sim.NumberLength,
-    Config.Sim.NumberPrefix
-)
-if not valid_number_configuration then
-    error(("[sky_phone] Invalid SIM number configuration: %s."):format(number_configuration_error))
-end
-
-local unique_phones = Config.Phone.Unique ~= false
-local sim_cards_enabled = Config.Sim.Enabled ~= false
 local pending_insertions = {}
 local operation_locks = {}
-local sim_types = {
-    [Config.Sim.RegisteredItem] = "registered",
-    [Config.Sim.AnonymousItem] = "anonymous",
-}
+local sim_types = {}
+
+local function validate_number_configuration()
+    local valid, validation_error = SkyPhoneSimNumber.ValidateConfiguration(
+        Config.Sim.NumberLength,
+        Config.Sim.NumberPrefix
+    )
+    if not valid then
+        error(("[sky_phone] Invalid SIM number configuration: %s."):format(validation_error))
+    end
+end
+
+local function refresh_sim_types()
+    sim_types = {
+        [Config.Sim.RegisteredItem] = "registered",
+        [Config.Sim.AnonymousItem] = "anonymous",
+    }
+end
+
+validate_number_configuration()
+refresh_sim_types()
 
 local function affected_rows(result)
     if type(result) == "number" then
@@ -76,7 +83,7 @@ local function sim_metadata(sim)
 end
 
 local function set_phone_sim_metadata(source, phone_slot, sim)
-    if not unique_phones then
+    if Config.Phone.Unique == false then
         return true
     end
     if not phone_slot then
@@ -102,7 +109,7 @@ local function prepare_device(source, phone_slot, imei)
     end
 
     local sim = device.sim_id and load_sim(device.sim_id) or nil
-    if sim_cards_enabled then
+    if Config.Sim.Enabled ~= false then
         if sim and tonumber(sim.is_virtual) == 1 then
             local result = Bridge.Database.Query([[
                 UPDATE `sky_phone_devices`
@@ -160,6 +167,62 @@ local function prepare_device(source, phone_slot, imei)
 end
 
 SkyPhoneSim.PrepareDevice = prepare_device
+
+function SkyPhoneSim.ChangeNumber(source, imei, sim_id, value)
+    local number = SkyPhoneSimNumber.Normalize(value, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+    if not number or SkyPhoneCompanies.IsServiceNumber(number) then
+        return false, "invalid_phone_number"
+    end
+
+    local sim = load_sim(sim_id)
+    if not sim then
+        return false, "no_sim"
+    end
+    if sim.phone_number == number then
+        return false, "phone_number_unchanged"
+    end
+
+    local existing = Bridge.Database.Query(
+        "SELECT `id` FROM `sky_phone_sims` WHERE `phone_number` = ? AND `id` <> ? LIMIT 1",
+        { number, sim_id }
+    )
+    if existing[1] then
+        return false, "phone_number_taken"
+    end
+
+    local phone_slot
+    if Config.Phone.Unique ~= false then
+        for _, slot in ipairs(Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)) do
+            if slot.metadata and slot.metadata.imei == imei then
+                phone_slot = slot
+                break
+            end
+        end
+    end
+
+    local previous_number = sim.phone_number
+    sim.phone_number = number
+    if phone_slot and not set_phone_sim_metadata(source, phone_slot, sim) then
+        return false, "metadata_unsupported"
+    end
+
+    local result = Bridge.Database.Query([[
+        UPDATE IGNORE `sky_phone_sims`
+        SET `phone_number` = ?
+        WHERE `id` = ? AND `phone_number` = ?
+    ]], { number, sim_id, previous_number })
+    if affected_rows(result) ~= 1 then
+        if phone_slot then
+            sim.phone_number = previous_number
+            if not set_phone_sim_metadata(source, phone_slot, sim) then
+                error("[sky_phone] Could not restore SIM metadata after a failed admin number change.")
+            end
+        end
+        return false, "phone_number_taken"
+    end
+
+    return true, number
+end
 
 local function resolve_used_sim(source, used_item, item_name)
     local slot_id = used_item and (used_item.slot or used_item.id)
@@ -252,7 +315,7 @@ local function rollback_phone_metadata(source, phone_slot, old_sim)
 end
 
 local function insert_sim(source, phone_imei, confirmed)
-    if not sim_cards_enabled then
+    if Config.Sim.Enabled == false then
         return { success = false, error = "disabled" }
     end
     if operation_locks[source] then
@@ -356,7 +419,7 @@ local function insert_sim(source, phone_imei, confirmed)
 end
 
 local function use_sim(source, used_item)
-    if not sim_cards_enabled then
+    if Config.Sim.Enabled == false then
         return false
     end
     local item_name = used_item and used_item.name
@@ -411,11 +474,26 @@ end
 
 -- Register the guarded callbacks in both modes so a resource-only restart can
 -- replace registrations left behind in framework-owned usable-item tables.
-Bridge.Inventory.RegisterUsableItem(Config.Sim.RegisteredItem, use_sim)
-Bridge.Inventory.RegisterUsableItem(Config.Sim.AnonymousItem, use_sim)
+local registered_sim_items = {}
+
+local function register_configured_sim_items()
+    for item_name in pairs(sim_types) do
+        if not registered_sim_items[item_name] then
+            local registered_item_name = item_name
+            Bridge.Inventory.RegisterUsableItem(registered_item_name, function(...)
+                if Config.Sim.Enabled ~= false and sim_types[registered_item_name] then
+                    use_sim(...)
+                end
+            end)
+            registered_sim_items[registered_item_name] = true
+        end
+    end
+end
+
+register_configured_sim_items()
 
 Bridge.Callbacks.Register("sky_phone:sim:insert", function(source, data)
-    if not sim_cards_enabled then
+    if Config.Sim.Enabled == false then
         return { success = false, error = "disabled" }
     end
     if type(data) ~= "table" or not SkyPhoneImei.IsValid(data.imei) then
@@ -433,7 +511,7 @@ Bridge.Callbacks.Register("sky_phone:sim:picker-close", function(source)
 end)
 
 Bridge.Callbacks.Register("sky_phone:sim:eject", function(source)
-    if not sim_cards_enabled then
+    if Config.Sim.Enabled == false then
         return { success = false, error = "disabled" }
     end
     if operation_locks[source] then
@@ -486,7 +564,13 @@ AddEventHandler("playerDropped", function()
     operation_locks[source] = nil
 end)
 
-if sim_cards_enabled then
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    validate_number_configuration()
+    refresh_sim_types()
+    register_configured_sim_items()
+end)
+
+if Config.Sim.Enabled ~= false then
     Bridge.Database.Query([[
         UPDATE `sky_phone_devices` d
         INNER JOIN `sky_phone_sims` s ON s.`id` = d.`sim_id`

@@ -68,6 +68,7 @@ export type AppLaunchOrigin = {
 }
 
 type PhoneAppDefinitionBase = {
+  adminOnly?: boolean
   category: PhoneAppCategory
   dockOrder: number | null
   gridOrder: number

@@ -14,7 +14,27 @@ local custom_music_extensions = {
     wav = true,
     webm = true,
 }
-local password_pepper = tostring(Config.Server.FlipTokPasswordPepper or "")
+local password_pepper = ""
+
+local function refresh_runtime_configuration()
+    password_pepper = tostring(Config.Server.FlipTokPasswordPepper or "")
+    music_tracks = {}
+    music_track_list = {}
+    for _, track in ipairs(Config.FlipTok.MusicTracks) do
+        local id = tostring(track.Id or track.id or "")
+        local title = tostring(track.Title or track.title or "")
+        local artist = tostring(track.Artist or track.artist or "")
+        local url = tostring(track.Url or track.url or "")
+        if id == "" or title == "" or artist == "" or url == "" then
+            error("[sky_phone] Every configured FlipTok music track requires Id, Title, Artist, and Url.")
+        end
+        local item = { id = id, title = title, artist = artist, url = url }
+        music_tracks[id] = item
+        music_track_list[#music_track_list + 1] = item
+    end
+end
+
+refresh_runtime_configuration()
 
 if password_pepper == "" then
     Bridge.Debug(
@@ -24,18 +44,9 @@ if password_pepper == "" then
     )
 end
 
-for _, track in ipairs(Config.FlipTok.MusicTracks) do
-    local id = tostring(track.Id or track.id or "")
-    local title = tostring(track.Title or track.title or "")
-    local artist = tostring(track.Artist or track.artist or "")
-    local url = tostring(track.Url or track.url or "")
-    if id == "" or title == "" or artist == "" or url == "" then
-        error("[sky_phone] Every configured FlipTok music track requires Id, Title, Artist, and Url.")
-    end
-    local item = { id = id, title = title, artist = artist, url = url }
-    music_tracks[id] = item
-    music_track_list[#music_track_list + 1] = item
-end
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    refresh_runtime_configuration()
+end)
 
 local function trim(value)
     if type(value) ~= "string" then return nil end
@@ -913,7 +924,10 @@ Bridge.Callbacks.Register("sky_phone:fliptok:delete", function(source, data)
     return affected > 0 and { success = true } or { success = false, error = "video_not_found" }
 end)
 
-RegisterCommand(Config.FlipTok.VerifyCommand, function(source, arguments)
+local active_verify_command = nil
+local registered_verify_commands = {}
+
+local function run_verify_command(source, arguments)
     local command_locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale).FlipTokCommand
     local function command_message(template, values)
         return template:gsub("{(%w+)}", function(key) return values[key] or "" end)
@@ -973,5 +987,26 @@ RegisterCommand(Config.FlipTok.VerifyCommand, function(source, arguments)
         state = verified and command_locale.verified or command_locale.unverified,
     })
     send_command_feedback(message, "success")
-end, false)
+end
+
+local function refresh_verify_command()
+    local command_name = Config.FlipTok.VerifyCommand
+    if type(command_name) ~= "string" or command_name == "" then
+        error("[sky_phone] Config.FlipTok.VerifyCommand must be a non-empty command name.")
+    end
+    active_verify_command = command_name
+    if registered_verify_commands[command_name] then
+        return
+    end
+    registered_verify_commands[command_name] = true
+    RegisterCommand(command_name, function(source, arguments)
+        if active_verify_command == command_name then
+            run_verify_command(source, arguments)
+        end
+    end, false)
+end
+
+refresh_verify_command()
+
+AddEventHandler("sky_phone:configurator:serverUpdated", refresh_verify_command)
 end)

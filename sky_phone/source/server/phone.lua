@@ -54,8 +54,6 @@ Bridge.Debug("debug", "[sky_phone] Server initialization started after database 
 
 SkyPhone = {}
 
-local unique_phones = Config.Phone.Unique ~= false
-local sim_cards_enabled = Config.Sim.Enabled ~= false
 local sessions = {}
 local preferred_device_imeis = {}
 local equipped_phone_numbers = {}
@@ -277,7 +275,7 @@ end
 local function find_device_slots(source, imei)
     local matches = {}
     local slots = Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)
-    if not unique_phones then
+    if Config.Phone.Unique == false then
         if not slots[1] then
             return matches
         end
@@ -368,7 +366,7 @@ local function resolve_used_slot(source, used_item)
         )
     end
 
-    if not unique_phones and #slots > 0 then
+    if Config.Phone.Unique == false and #slots > 0 then
         return slots[1]
     end
 
@@ -416,7 +414,7 @@ local function ensure_device(source, slot)
         tostring(Bridge.Inventory.GetResourceName()),
         { always = true }
     )
-    if not unique_phones then
+    if Config.Phone.Unique == false then
         if amount < 1 then
             return nil, "phone_slot_missing"
         end
@@ -561,7 +559,7 @@ local function bootstrap(source, security, security_loaded)
             sim = device.sim_id and {
                 id = device.sim_id,
                 number = device.phone_number,
-                removable = sim_cards_enabled and tonumber(device.sim_is_virtual) ~= 1,
+                removable = Config.Sim.Enabled ~= false and tonumber(device.sim_is_virtual) ~= 1,
                 type = device.sim_type,
                 registered = device.registered_at ~= nil,
             } or nil,
@@ -616,7 +614,7 @@ local function resolve_equipped_phone_number(source)
     end
 
     local imei
-    if unique_phones then
+    if Config.Phone.Unique ~= false then
         table.sort(slots, function(left, right)
             local left_slot = tonumber(left.slot)
             local right_slot = tonumber(right.slot)
@@ -802,7 +800,7 @@ function SkyPhone.NotifyAccountDevices(account_id, event_name, data)
 
     for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
         local source = tonumber(player_source) or player_source
-        if not unique_phones then
+        if Config.Phone.Unique == false then
             if Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)[1] then
                 local imei = load_character_device(source)
                 local device = imei and devices[imei] or nil
@@ -968,26 +966,38 @@ function SkyPhone.OpenDeviceForCall(source, imei)
     return true
 end
 
-Bridge.Debug(
-    "debug",
-    "[sky_phone] Registering usable item '%s' through inventory '%s'.",
-    Config.Phone.Item,
-    tostring(Bridge.Inventory.GetResourceName()),
-    { always = true }
-)
-local usable_registered = Bridge.Inventory.RegisterUsableItem(Config.Phone.Item, open_phone)
-if not usable_registered then
-    error(("[sky_phone] Inventory '%s' did not register phone item '%s' as usable."):format(
+local registered_usable_items = {}
+
+local function register_configured_phone_item()
+    local item_name = Config.Phone.Item
+    if registered_usable_items[item_name] then
+        return
+    end
+    Bridge.Debug(
+        "debug",
+        "[sky_phone] Registering usable item '%s' through inventory '%s'.",
+        item_name,
         tostring(Bridge.Inventory.GetResourceName()),
-        tostring(Config.Phone.Item)
-    ))
+        { always = true }
+    )
+    if not Bridge.Inventory.RegisterUsableItem(item_name, function(...)
+        if Config.Phone.Item == item_name then
+            open_phone(...)
+        end
+    end) then
+        error(("[sky_phone] Inventory '%s' did not register phone item '%s' as usable."):format(
+            tostring(Bridge.Inventory.GetResourceName()),
+            tostring(item_name)
+        ))
+    end
+    registered_usable_items[item_name] = true
 end
-Bridge.Debug(
-    "debug",
-    "[sky_phone] Usable item registration returned: %s.",
-    tostring(usable_registered),
-    { always = true }
-)
+
+register_configured_phone_item()
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    register_configured_phone_item()
+end)
 
 Bridge.Callbacks.Register("sky_phone:device:close", function(source)
     sessions[source] = nil

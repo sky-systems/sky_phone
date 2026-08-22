@@ -1567,18 +1567,48 @@ SkyPhoneApps.SendCatalog = send_catalog
 SkyPhoneApps.SetPhoneOpen = set_phone_open
 SkyPhoneApps.RegisterClientHooks = register_bundled_client_hooks
 
-if Config.CustomApps.Enabled and Config.CustomApps.BundledApps then
-    local bundled = SkyPhoneApps.GetBundledManifests()
-    for index = 1, #bundled do
-        local registered, register_error = register_app(normalize_bundled_manifest(bundled[index]))
-        if not registered then
-            error(("[sky_phone] Could not register bundled custom app '%s': %s"):format(
-                bundled[index].id,
-                register_error
-            ))
+local function refresh_bundled_apps()
+    local manifests = Config.CustomApps.Enabled and Config.CustomApps.BundledApps
+        and SkyPhoneApps.GetBundledManifests()
+        or {}
+    local desired_ids = {}
+    for index = 1, #manifests do
+        desired_ids[manifests[index].id] = true
+    end
+
+    local removals = {}
+    for app_id, app in pairs(apps_by_id) do
+        if app.catalog.bundled and not desired_ids[app_id] then
+            removals[#removals + 1] = app_id
         end
     end
+    for index = 1, #removals do
+        remove_registered_app(removals[index], true, false)
+    end
+
+    for index = 1, #manifests do
+        local manifest = manifests[index]
+        local existing = apps_by_id[manifest.id]
+        local normalized = normalize_bundled_manifest(manifest)
+        if existing and existing.catalog.bundled then
+            normalized.hooks = existing.hooks
+            apps_by_id[manifest.id] = normalized
+        elseif not existing then
+            local registered, register_error = register_app(normalized)
+            if not registered then
+                error(("[sky_phone] Could not register bundled custom app '%s': %s"):format(
+                    manifest.id,
+                    register_error
+                ))
+            end
+        end
+    end
+    sync_catalog()
 end
+
+refresh_bundled_apps()
+
+AddEventHandler("sky_phone:configurator:updated", refresh_bundled_apps)
 
 SkyPhoneApps.CompatibilityCore = {
     Add = add_compatibility_app,

@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.2.5'
+version '0.2.6'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -32,8 +32,10 @@ client_scripts {
     'config/config.lua',
     'config/locales/en.lua',
     'config/locales/de.lua',
-    'source/bridge/client/framework.lua',
+    'config/locales/es.lua',
     'source/bridge/client/callbacks.lua',
+    'source/client/phone_configurator.lua',
+    'source/bridge/client/framework.lua',
     'source/bridge/client/housing.lua',
     'source/bridge/client/housing/*.lua',
     'source/bridge/client/calls.lua',
@@ -76,11 +78,14 @@ server_scripts {
     'config/media.lua',
     'config/locales/en.lua',
     'config/locales/de.lua',
+    'config/locales/es.lua',
     'source/server/nui_build_check.lua',
     'source/server/update_check.lua',
     'source/bridge/server/database.lua',
     'source/bridge/server/migrations.lua',
+    'source/server/phone_configurator_schema.lua',
     'source/bridge/server/callbacks.lua',
+    'source/server/phone_configurator.lua',
     'source/bridge/server/framework.lua',
     'source/bridge/server/frameworks/*.lua',
     'source/bridge/server/housing.lua',
@@ -101,6 +106,7 @@ server_scripts {
     'source/server/phone.lua',
     'source/server/device_directory.lua',
     'source/server/db_migrate.lua',
+    'source/server/admin.lua',
     'source/server/lb_phone_migration.lua',
     'source/server/custom_app_storage.lua',
     'source/server/payphones.lua',

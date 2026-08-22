@@ -11,6 +11,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 
 import { SkyProvider } from '@/ui'
+import AdminPanel from '@/components/AdminPanel.vue'
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
 import PhoneControlCenter from '@/components/PhoneControlCenter.vue'
 import PhoneDynamicIsland from '@/components/PhoneDynamicIsland.vue'
@@ -115,7 +116,12 @@ type AppMessage = {
     | CustomAppCatalogEventData
     | CustomAppEventData
     | NavigationEventData
+    | AdminPanelOpenPayload
 }
+
+type AdminPanelOpenPayload = Required<
+  Pick<PhoneOpenPayload, 'fallbackLocales' | 'lang' | 'locales'>
+>
 
 type CustomAppCatalogEventData = {
   apps?: unknown
@@ -357,6 +363,9 @@ const appTransitionName = computed(() =>
   route.query.transition === 'app-switch' ? 'app-switch' : 'app-window',
 )
 const isLocked = ref(false)
+const adminPanelOpen = ref(
+  isDevelopment && developmentParameters.has('adminPanel'),
+)
 const springboardEditing = ref(false)
 const isUnlocking = ref(false)
 const passcodeBusy = ref(false)
@@ -630,6 +639,8 @@ function loadUnlockedPhoneData(): void {
 }
 
 function completePhoneSetup(): void {
+  const requestedRoute = pendingUnlockRoute.value
+  pendingUnlockRoute.value = null
   setupPreviewDismissed.value = true
   setupAppearanceSelected.value = false
   isLocked.value = false
@@ -637,7 +648,7 @@ function completePhoneSetup(): void {
   passcodeVisible.value = false
   passcodeRequired.value = false
   controlCenterOpened.value = false
-  void router.replace('/')
+  void router.replace(requestedRoute ?? '/')
   loadUnlockedPhoneData()
 }
 
@@ -721,7 +732,15 @@ function openDevelopmentPayphonePreview(): void {
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (!isTrustedRootMessageSource(event.source, window)) return
 
-  if (event.data?.type === 'custom-apps:catalog') {
+  if (event.data?.type === 'admin:open') {
+    const data = event.data.data as AdminPanelOpenPayload | undefined
+    if (data?.lang && data.locales && data.fallbackLocales) {
+      phone.setLocale(data.lang, data.locales, data.fallbackLocales)
+    }
+    adminPanelOpen.value = true
+  } else if (event.data?.type === 'admin:close') {
+    adminPanelOpen.value = false
+  } else if (event.data?.type === 'custom-apps:catalog') {
     appCatalog.replaceCatalog(event.data.data)
     const catalogPayload = event.data.data as
       | { apps?: unknown; debug?: unknown }
@@ -766,7 +785,12 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       isPhoneAppId(data.appId) &&
       appStore.isInstalled(data.appId)
     ) {
-      void router.push(`/apps/${data.appId}`)
+      const requestedRoute = `/apps/${data.appId}`
+      if (setupRequired.value || isLocked.value) {
+        pendingUnlockRoute.value = requestedRoute
+      } else {
+        void router.push(requestedRoute)
+      }
     } else {
       console.error('[Navigation] Ignored an unavailable app target.')
     }
@@ -1731,6 +1755,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <SkyProvider
+    v-if="adminPanelOpen"
+    dark
+    :safe-areas="false"
+    accent="#74d66f"
+    accent-soft="rgba(116, 214, 111, 0.14)"
+  >
+    <AdminPanel @close="adminPanelOpen = false" />
+  </SkyProvider>
   <PhoneMediaCapture />
   <PhoneMemoRecorder />
   <RadioHud />

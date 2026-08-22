@@ -328,7 +328,10 @@ onBeforeUnmount(() => {
           class="app-icon"
           :class="[
             app.iconClass,
-            { 'app-icon--image': !iconFailed && app.id !== 'calendar' },
+            {
+              'app-icon--image':
+                !iconFailed && Boolean(app.iconImage) && app.id !== 'calendar',
+            },
           ]"
           :style="iconStyle"
         >
@@ -337,7 +340,7 @@ onBeforeUnmount(() => {
             <b>{{ calendarDay }}</b>
           </span>
           <img
-            v-else-if="!iconFailed"
+            v-else-if="!iconFailed && app.iconImage"
             :src="app.iconImage"
             alt=""
             draggable="false"

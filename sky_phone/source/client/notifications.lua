@@ -159,6 +159,11 @@ end)
 local phone_locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
 local app_locales = phone_locale.Nui.Apps
 
+AddEventHandler("sky_phone:configurator:updated", function()
+    phone_locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
+    app_locales = phone_locale.Nui.Apps
+end)
+
 RegisterNetEvent("sky_phone:mail:new", function(data)
     local locale = app_locales.mail
     data.title = locale.name

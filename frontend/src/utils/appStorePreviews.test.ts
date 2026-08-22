@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
@@ -17,7 +17,8 @@ function escapeRegExp(value: string): string {
 describe('App Store preview catalog', () => {
   it('contains a real captured screenshot for every built-in store app', () => {
     const storeAppIds = PHONE_APPS.filter(
-      (app) => app.kind !== 'external' && app.id !== 'app-store',
+      (app) =>
+        app.kind !== 'external' && app.id !== 'app-store' && !app.adminOnly,
     ).map((app) => app.id)
 
     expect([...APP_STORE_PREVIEW_IMAGE_IDS].sort()).toEqual(storeAppIds.sort())
@@ -25,7 +26,8 @@ describe('App Store preview catalog', () => {
 
   it('provides specialized preview data for every built-in store app', () => {
     const storeAppIds = PHONE_APPS.filter(
-      (app) => app.kind !== 'external' && app.id !== 'app-store',
+      (app) =>
+        app.kind !== 'external' && app.id !== 'app-store' && !app.adminOnly,
     ).map((app) => app.id)
 
     expect([...PREVIEWABLE_BUILTIN_APP_IDS].sort()).toEqual(
@@ -39,24 +41,21 @@ describe('App Store preview catalog', () => {
     expect(visualSignatures.size).toBe(storeAppIds.length)
   })
 
-  it('localizes every specialized preview in the fallback, English and German locales', () => {
+  it('localizes every specialized preview in the fallback and every configured locale', () => {
+    const localeDirectory = fileURLToPath(
+      new URL('../../../sky_phone/config/locales/', import.meta.url),
+    )
     const localeSources = [
       readFileSync(
         fileURLToPath(new URL('../stores/phone.ts', import.meta.url)),
         'utf8',
       ),
-      readFileSync(
-        fileURLToPath(
-          new URL('../../../sky_phone/config/locales/en.lua', import.meta.url),
+      ...readdirSync(localeDirectory)
+        .filter((fileName) => fileName.endsWith('.lua'))
+        .sort()
+        .map((fileName) =>
+          readFileSync(`${localeDirectory}/${fileName}`, 'utf8'),
         ),
-        'utf8',
-      ),
-      readFileSync(
-        fileURLToPath(
-          new URL('../../../sky_phone/config/locales/de.lua', import.meta.url),
-        ),
-        'utf8',
-      ),
     ]
 
     for (const appId of PREVIEWABLE_BUILTIN_APP_IDS) {

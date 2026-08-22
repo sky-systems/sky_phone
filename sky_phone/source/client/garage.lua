@@ -48,6 +48,11 @@ local vehicle_mods = {
 local phone_locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
 local garage_locale = phone_locale.Nui.Apps.garage
 
+AddEventHandler("sky_phone:configurator:updated", function()
+    phone_locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
+    garage_locale = phone_locale.Nui.Apps.garage
+end)
+
 local function vehicle_kind(model_hash, fallback)
     if IsThisModelABoat(model_hash) then
         return "boat"
