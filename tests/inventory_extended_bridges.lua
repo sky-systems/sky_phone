@@ -159,13 +159,16 @@ function one:GetSlot(_, slot)
     return one_items[slot]
 end
 
-function one:SearchInventory()
-    return one_items
+function one:GetSlotIdsWithItem(_, item_name, metadata)
+    assert(item_name == "phone")
+    if metadata and metadata.imei ~= one_items[7].metadata.imei then
+        return {}
+    end
+    return { 7 }
 end
 
 function one:SetItemMetadata(_, slot, metadata)
     one_items[slot].metadata = metadata
-    return true
 end
 
 function one:CanCarryItem()

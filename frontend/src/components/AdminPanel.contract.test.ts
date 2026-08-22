@@ -188,6 +188,24 @@ describe('standalone admin panel contracts', () => {
     )
   })
 
+  it('applies global bundled-app availability to phones and admin management', () => {
+    expect(config).toContain('Config.Apps = {')
+    expect(config).toContain('memory = true,')
+    expect(config).toContain('weather = true,')
+    expect(configDefault).toContain('Config.Apps = {')
+    expect(configuratorServer).toContain('Apps = true,')
+    expect(phoneServer).toContain('function SkyPhone.IsAppEnabled(app_id)')
+    expect(phoneServer).toContain('function SkyPhone.GetDisabledApps()')
+    expect(phoneServer).toContain(
+      'disabledApps = SkyPhone.GetDisabledApps()',
+    )
+    expect(server).toContain('if not SkyPhone.IsAppEnabled(app_id) then')
+    expect(server).toContain('disabledApps = SkyPhone.GetDisabledApps()')
+    expect(store).toContain('disabledApps: [] as string[]')
+    expect(store).toContain('disabledAppsFromConfigurator(response.data)')
+    expect(source).toContain('!admin.disabledApps.includes(app.id)')
+  })
+
   it('connects every operation through the standard NUI callback bridge', () => {
     expect(bridge).toContain('admin = [[')
     for (const endpoint of [

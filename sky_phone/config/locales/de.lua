@@ -43,6 +43,7 @@ Locales["de"] = {
         invalid_sim = "Diese SIM-Karte besitzt ungültige Metadaten.",
         phone_required = "Du benötigst ein Handy in deinem Inventar.",
         operation_in_progress = "Eine andere Handy-Aktion wird bereits ausgeführt.",
+        rate_limited = "Das Handy wurde zu oft geöffnet. Versuch es gleich erneut.",
         voice_unavailable = "Der konfigurierte Sprachdienst ist nicht verfügbar.",
         default = "Das Handy konnte nicht geöffnet werden.",
     },

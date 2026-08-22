@@ -43,6 +43,7 @@ Locales["es"] = {
         invalid_sim = "Esta tarjeta SIM tiene metadatos inválidos.",
         phone_required = "Necesitas un teléfono en tu inventario.",
         operation_in_progress = "Otra operación de teléfono ya está en progreso.",
+        rate_limited = "El teléfono se abrió demasiadas veces. Inténtalo de nuevo en un momento.",
         voice_unavailable = "El servicio de voz configurado para el teléfono no está disponible.",
         default = "No se pudo abrir el teléfono.",
     },

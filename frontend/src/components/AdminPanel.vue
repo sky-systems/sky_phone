@@ -134,7 +134,9 @@ const manageableApps = computed(() => {
   const needle = appQuery.value.trim().toLocaleLowerCase(phone.lang)
   return PHONE_APPS.filter(
     (app): app is LaunchablePhoneAppDefinition =>
-      isLaunchablePhoneApp(app) && !app.adminOnly,
+      isLaunchablePhoneApp(app) &&
+      !app.adminOnly &&
+      !admin.disabledApps.includes(app.id),
   )
     .filter(
       (app) =>

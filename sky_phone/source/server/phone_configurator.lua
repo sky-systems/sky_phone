@@ -35,6 +35,7 @@ end
 local CLIENT_CONFIG_KEYS = {
     AdminPanel = true,
     Animations = true,
+    Apps = true,
     Banking = true,
     Billing = true,
     Bridge = true,

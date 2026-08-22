@@ -373,6 +373,9 @@ end
 
 local function app_metadata(app_id)
     if BUILTIN_APPS[app_id] then
+        if not SkyPhone.IsAppEnabled(app_id) then
+            return nil
+        end
         return {
             defaultInstalled = DEFAULT_INSTALLED_APPS[app_id] == true,
             removable = PROTECTED_APPS[app_id] ~= true,
@@ -481,6 +484,7 @@ Bridge.Callbacks.Register("sky_phone:admin:bootstrap", function(source)
         success = true,
         data = {
             players = players,
+            disabledApps = SkyPhone.GetDisabledApps(),
             stats = {
                 online = #players,
                 devices = tonumber(stats.devices) or 0,

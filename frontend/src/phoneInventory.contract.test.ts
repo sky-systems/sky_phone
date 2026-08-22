@@ -52,6 +52,41 @@ describe('phone inventory contracts', () => {
     )
   })
 
+  it('uses One Inventory slot ids and authoritative slot reads', () => {
+    const adapter = readResourceFile(
+      'source/bridge/server/inventory/one.lua',
+    )
+
+    expect(adapter).toContain('inventory:GetSlotIdsWithItem(')
+    expect(adapter).toContain(
+      'local normalized = Bridge.Inventory.GetSlot(source, slot_id)',
+    )
+    expect(adapter).not.toContain('inventory:SearchInventory(')
+    expect(adapter).toContain(
+      'inventory:SetItemMetadata(source, slot.slot, requested_metadata) == false',
+    )
+  })
+
+  it('serializes and rate-limits phone bootstrap requests on both sides', () => {
+    const phoneClient = readResourceFile('source/client/main.lua')
+    const phoneServer = readResourceFile('source/server/phone.lua')
+
+    expect(phoneClient).toContain('local function request_phone_open(')
+    expect(phoneClient).toMatch(
+      /request_phone_open\(callback_name\)[\s\S]*?open_requested = true[\s\S]*?Bridge\.Callbacks\.Trigger\(callback_name, \{\}\)/,
+    )
+    expect(phoneClient).toMatch(
+      /RegisterNetEvent\("sky_phone:device:error"[\s\S]*?if not is_open then[\s\S]*?open_requested = false/,
+    )
+    expect(phoneServer).toContain('local phone_open_in_progress = {}')
+    expect(phoneServer).toContain(
+      'SkyPhone.AllowOperation(source, "phone_open", request_limit, 60)',
+    )
+    expect(phoneServer).toContain(
+      'pcall(perform_phone_open, source, used_item)',
+    )
+  })
+
   it('auto-detects registered inventories and forces metadata-free adapters into compatible modes', () => {
     const inventoryBridge = readResourceFile(
       'source/bridge/server/inventory.lua',
@@ -166,10 +201,10 @@ describe('phone inventory contracts', () => {
       'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleOpen"',
     )
     expect(phoneClient).toContain(
-      'local result = Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})',
+      'local result = Bridge.Callbacks.Trigger(callback_name, {})',
     )
     expect(phoneClient).toMatch(
-      /result\.success ~= true[\s\S]*open_without_focus = false[\s\S]*return false/,
+      /result\.success == true[\s\S]*open_requested = false[\s\S]*open_without_focus = false[\s\S]*return false/,
     )
     expect(phoneBridge).toContain(
       'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsPhoneOnScreen"',
@@ -265,7 +300,7 @@ describe('phone inventory contracts', () => {
       'if active_key_mapping_command == command_name then',
     )
     expect(phoneClient).toContain(
-      'Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})',
+      'request_phone_open("sky_phone:device:open-request")',
     )
     expect(phoneServer).toContain(
       'Bridge.Callbacks.Register("sky_phone:device:open-request", function(source)',

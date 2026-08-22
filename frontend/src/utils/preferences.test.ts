@@ -2,11 +2,16 @@ import { describe, expect, it } from 'vitest'
 import type { LaunchablePhoneAppId } from '@/types/apps'
 import {
   DEFAULT_PHONE_PREFERENCES,
+  PHONE_SCALE_STEP,
   PHONE_SETUP_LAST_STEP,
   parsePhonePreferences,
   WALLPAPER_IDS,
 } from './preferences'
 describe('preferences', () => {
+  it('allows one-percent phone scale adjustments', () => {
+    expect(PHONE_SCALE_STEP).toBe(1)
+  })
+
   it('starts Setup Assistant for a phone without saved settings', () => {
     const value = parsePhonePreferences(null)
 

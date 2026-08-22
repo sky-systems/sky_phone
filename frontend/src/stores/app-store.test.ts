@@ -75,6 +75,21 @@ describe('app store', () => {
     }
   })
 
+  it('removes server-disabled apps without forgetting device claims', () => {
+    const apps = useAppStoreStore()
+
+    apps.hydrate({ claimedApps: ['weather', 'snake'] }, ['weather'])
+
+    expect(apps.isAvailable('weather')).toBe(false)
+    expect(apps.isInstalled('weather')).toBe(false)
+    expect(apps.homeLayout.grid).not.toContain('weather')
+    expect(apps.claimedApps).toContain('weather')
+    expect(apps.isInstalled('snake')).toBe(true)
+
+    apps.hydrate({ claimedApps: apps.claimedApps }, [])
+    expect(apps.isInstalled('weather')).toBe(true)
+  })
+
   it('drops the retired admin app from persisted phone layouts', () => {
     const apps = useAppStoreStore()
 

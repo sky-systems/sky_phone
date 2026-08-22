@@ -85,6 +85,7 @@ export type AdminAuditEntry = {
 
 export type AdminBootstrap = {
   audit: AdminAuditEntry[]
+  disabledApps: string[]
   players: AdminPlayerSummary[]
   stats: AdminStats
 }

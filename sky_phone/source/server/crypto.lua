@@ -1368,8 +1368,6 @@ ensure_schema()
 migrate_crypto_keys()
 initialize_markets()
 
-AddEventHandler("sky_phone:configurator:serverUpdated", initialize_markets)
-
 local function reconcile_settlements(include_recent)
     local age_clause = include_recent and "" or " AND settlement.`updated_at` < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE)"
     local rows = Bridge.Database.Query([[
@@ -1415,8 +1413,6 @@ local function reconcile_settlements(include_recent)
         end
     end
 end
-
-reconcile_settlements(true)
 
 local function crypto_random_int(minimum, maximum, failure_message)
     local value = exports[GetCurrentResourceName()]:CryptoRandomInt(minimum, maximum)
@@ -1500,134 +1496,160 @@ local function advance_market_cycle(config, dynamics)
     return dynamics.cycle_bias
 end
 
-CreateThread(function()
-    while true do
-        Wait(5 * 60 * 1000)
-        reconcile_settlements(false)
+local scheduler_generation = 0
+
+local function start_crypto_schedulers()
+    scheduler_generation = scheduler_generation + 1
+    if Config.Crypto.Enabled ~= true then
+        return
     end
-end)
 
-CreateThread(function()
-    while true do
-        local tick_seconds = crypto_random_int(
-            Config.Crypto.PriceTickMinimumSeconds,
-            Config.Crypto.PriceTickMaximumSeconds + 1,
-            "[sky_phone] Crypto entropy provider did not return a market tick interval."
-        )
-        Wait(tick_seconds * 1000)
-        with_exchange_lock(function()
-            local market_count = crypto_random_int(
-                Config.Crypto.MarketsPerTickMinimum,
-                Config.Crypto.MarketsPerTickMaximum + 1,
-                "[sky_phone] Crypto entropy provider did not return a market count."
+    local generation = scheduler_generation
+    reconcile_settlements(true)
+
+    CreateThread(function()
+        while scheduler_generation == generation and Config.Crypto.Enabled == true do
+            Wait(5 * 60 * 1000)
+            if scheduler_generation ~= generation or Config.Crypto.Enabled ~= true then
+                break
+            end
+            reconcile_settlements(false)
+        end
+    end)
+
+    CreateThread(function()
+        while scheduler_generation == generation and Config.Crypto.Enabled == true do
+            local tick_seconds = crypto_random_int(
+                Config.Crypto.PriceTickMinimumSeconds,
+                Config.Crypto.PriceTickMaximumSeconds + 1,
+                "[sky_phone] Crypto entropy provider did not return a market tick interval."
             )
-            advance_global_market_cycle()
-            local changed_markets = {}
-            market_count = math.min(market_count, #market_order)
+            Wait(tick_seconds * 1000)
+            if scheduler_generation ~= generation or Config.Crypto.Enabled ~= true then
+                break
+            end
+            with_exchange_lock(function()
+                local market_count = crypto_random_int(
+                    Config.Crypto.MarketsPerTickMinimum,
+                    Config.Crypto.MarketsPerTickMaximum + 1,
+                    "[sky_phone] Crypto entropy provider did not return a market count."
+                )
+                advance_global_market_cycle()
+                local changed_markets = {}
+                market_count = math.min(market_count, #market_order)
 
-            for offset = 0, market_count - 1 do
-                local order_index = ((market_cursor + offset - 1) % #market_order) + 1
-                local market_id = market_order[order_index]
-                local config = markets[market_id]
-                local row = Bridge.Database.Query(
-                    "SELECT `price`,`version`,`status` FROM `sky_phone_crypto_markets` WHERE `id` = ? LIMIT 1",
-                    { market_id }
-                )[1]
-                if row and row.status == "active" then
-                    local price = tonumber(row.price) or config.InitialPrice
-                    local impulse = crypto_random_int(
-                        -config.VolatilityBasisPoints,
-                        config.VolatilityBasisPoints + 1,
-                        "[sky_phone] Crypto entropy provider did not return a market movement."
-                    )
-                    if impulse > 0 then
-                        impulse = math.floor(impulse / Config.Crypto.RandomImpulseDivisor)
-                    elseif impulse < 0 then
-                        impulse = math.ceil(impulse / Config.Crypto.RandomImpulseDivisor)
-                    end
-                    local shock_roll = crypto_random_int(
-                        0,
-                        10000,
-                        "[sky_phone] Crypto entropy provider did not return a market shock roll."
-                    )
-                    local dynamics = market_dynamics[market_id] or {
-                        momentum = 0,
-                        cycle_bias = 0,
-                        cycle_direction = 0,
-                        cycle_remaining_ticks = 0,
-                        cycle_target = 0,
-                    }
-                    dynamics.momentum = truncate_integer((
-                        dynamics.momentum * Config.Crypto.MomentumDecayBasisPoints
-                        + impulse * Config.Crypto.MomentumImpulseBasisPoints
-                    ) / 10000)
-                    local cycle_bias = advance_market_cycle(config, dynamics)
-                    market_dynamics[market_id] = dynamics
-
-                    local deviation = math.floor(
-                        (config.InitialPrice - price) * 10000 / config.InitialPrice
-                    )
-                    local reversion = truncate_integer(
-                        deviation * Config.Crypto.MeanReversionBasisPoints / 10000
-                    )
-                    local shock = 0
-                    if shock_roll < Config.Crypto.MarketShockChanceBasisPoints then
-                        local multiplier = crypto_random_int(
-                            Config.Crypto.MarketShockMinimumMultiplier,
-                            Config.Crypto.MarketShockMaximumMultiplier + 1,
-                            "[sky_phone] Crypto entropy provider did not return a market shock multiplier."
+                for offset = 0, market_count - 1 do
+                    local order_index = ((market_cursor + offset - 1) % #market_order) + 1
+                    local market_id = market_order[order_index]
+                    local config = markets[market_id]
+                    local row = Bridge.Database.Query(
+                        "SELECT `price`,`version`,`status` FROM `sky_phone_crypto_markets` WHERE `id` = ? LIMIT 1",
+                        { market_id }
+                    )[1]
+                    if row and row.status == "active" then
+                        local price = tonumber(row.price) or config.InitialPrice
+                        local impulse = crypto_random_int(
+                            -config.VolatilityBasisPoints,
+                            config.VolatilityBasisPoints + 1,
+                            "[sky_phone] Crypto entropy provider did not return a market movement."
                         )
-                        local direction_roll = crypto_random_int(
+                        if impulse > 0 then
+                            impulse = math.floor(impulse / Config.Crypto.RandomImpulseDivisor)
+                        elseif impulse < 0 then
+                            impulse = math.ceil(impulse / Config.Crypto.RandomImpulseDivisor)
+                        end
+                        local shock_roll = crypto_random_int(
                             0,
-                            2,
-                            "[sky_phone] Crypto entropy provider did not return a market shock direction."
+                            10000,
+                            "[sky_phone] Crypto entropy provider did not return a market shock roll."
                         )
-                        local direction = direction_roll == 0 and -1 or 1
-                        shock = direction * config.VolatilityBasisPoints * multiplier
-                    end
+                        local dynamics = market_dynamics[market_id] or {
+                            momentum = 0,
+                            cycle_bias = 0,
+                            cycle_direction = 0,
+                            cycle_remaining_ticks = 0,
+                            cycle_target = 0,
+                        }
+                        dynamics.momentum = truncate_integer((
+                            dynamics.momentum * Config.Crypto.MomentumDecayBasisPoints
+                            + impulse * Config.Crypto.MomentumImpulseBasisPoints
+                        ) / 10000)
+                        local cycle_bias = advance_market_cycle(config, dynamics)
+                        market_dynamics[market_id] = dynamics
 
-                    local maximum_movement = config.VolatilityBasisPoints
-                        * Config.Crypto.MaximumMovementMultiplier
-                    local movement = impulse + dynamics.momentum + cycle_bias
-                        + global_market_trend + reversion + shock
-                    movement = math.max(-maximum_movement, math.min(maximum_movement, movement))
-                    if movement > 0 then
-                        movement = math.floor(movement / Config.Crypto.TickMovementDivisor)
-                    elseif movement < 0 then
-                        movement = math.ceil(movement / Config.Crypto.TickMovementDivisor)
-                    end
-                    local next_price = math.floor(price * (10000 + movement) / 10000)
-                    if next_price == price and movement ~= 0 then
-                        next_price = price + (movement > 0 and 1 or -1)
-                    end
-                    next_price = math.max(config.MinimumPrice, math.min(config.MaximumPrice, next_price))
-                    local next_version = (tonumber(row.version) or 0) + 1
-                    if Bridge.Database.Transaction({
-                        { query = [[UPDATE `sky_phone_crypto_markets` SET `price` = ?, `version` = ? WHERE `id` = ? AND `version` = ?]], params = { next_price, next_version, market_id, row.version } },
-                        { query = [[INSERT INTO `sky_phone_crypto_market_ticks` (`market_id`,`version`,`price`) VALUES (?, ?, ?)]], params = { market_id, next_version, next_price } },
-                    }) then
-                        changed_markets[#changed_markets + 1] = market_id
-                        Bridge.Database.Query([[
-                            DELETE FROM `sky_phone_crypto_market_ticks`
-                            WHERE `market_id` = ? AND `id` NOT IN (
-                                SELECT `id` FROM (
-                                    SELECT `id` FROM `sky_phone_crypto_market_ticks`
-                                    WHERE `market_id` = ? ORDER BY `id` DESC LIMIT ?
-                                ) retained
+                        local deviation = math.floor(
+                            (config.InitialPrice - price) * 10000 / config.InitialPrice
+                        )
+                        local reversion = truncate_integer(
+                            deviation * Config.Crypto.MeanReversionBasisPoints / 10000
+                        )
+                        local shock = 0
+                        if shock_roll < Config.Crypto.MarketShockChanceBasisPoints then
+                            local multiplier = crypto_random_int(
+                                Config.Crypto.MarketShockMinimumMultiplier,
+                                Config.Crypto.MarketShockMaximumMultiplier + 1,
+                                "[sky_phone] Crypto entropy provider did not return a market shock multiplier."
                             )
-                        ]], { market_id, market_id, Config.Crypto.HistoryRetentionTicks })
+                            local direction_roll = crypto_random_int(
+                                0,
+                                2,
+                                "[sky_phone] Crypto entropy provider did not return a market shock direction."
+                            )
+                            local direction = direction_roll == 0 and -1 or 1
+                            shock = direction * config.VolatilityBasisPoints * multiplier
+                        end
+
+                        local maximum_movement = config.VolatilityBasisPoints
+                            * Config.Crypto.MaximumMovementMultiplier
+                        local movement = impulse + dynamics.momentum + cycle_bias
+                            + global_market_trend + reversion + shock
+                        movement = math.max(-maximum_movement, math.min(maximum_movement, movement))
+                        if movement > 0 then
+                            movement = math.floor(movement / Config.Crypto.TickMovementDivisor)
+                        elseif movement < 0 then
+                            movement = math.ceil(movement / Config.Crypto.TickMovementDivisor)
+                        end
+                        local next_price = math.floor(price * (10000 + movement) / 10000)
+                        if next_price == price and movement ~= 0 then
+                            next_price = price + (movement > 0 and 1 or -1)
+                        end
+                        next_price = math.max(config.MinimumPrice, math.min(config.MaximumPrice, next_price))
+                        local next_version = (tonumber(row.version) or 0) + 1
+                        if Bridge.Database.Transaction({
+                            { query = [[UPDATE `sky_phone_crypto_markets` SET `price` = ?, `version` = ? WHERE `id` = ? AND `version` = ?]], params = { next_price, next_version, market_id, row.version } },
+                            { query = [[INSERT INTO `sky_phone_crypto_market_ticks` (`market_id`,`version`,`price`) VALUES (?, ?, ?)]], params = { market_id, next_version, next_price } },
+                        }) then
+                            changed_markets[#changed_markets + 1] = market_id
+                            Bridge.Database.Query([[
+                                DELETE FROM `sky_phone_crypto_market_ticks`
+                                WHERE `market_id` = ? AND `id` NOT IN (
+                                    SELECT `id` FROM (
+                                        SELECT `id` FROM `sky_phone_crypto_market_ticks`
+                                        WHERE `market_id` = ? ORDER BY `id` DESC LIMIT ?
+                                    ) retained
+                                )
+                            ]], { market_id, market_id, Config.Crypto.HistoryRetentionTicks })
+                        end
                     end
                 end
-            end
-            market_cursor = ((market_cursor + market_count - 1) % #market_order) + 1
-            if #changed_markets > 0 then
-                TriggerClientEvent("sky_phone:crypto:changed", -1, {
-                    markets = market_dtos(changed_markets),
-                    updatedAt = os.time() * 1000,
-                })
-            end
-        end)
-    end
-end)
+                market_cursor = ((market_cursor + market_count - 1) % #market_order) + 1
+                if #changed_markets > 0 then
+                    TriggerClientEvent("sky_phone:crypto:changed", -1, {
+                        markets = market_dtos(changed_markets),
+                        updatedAt = os.time() * 1000,
+                    })
+                end
+            end)
+        end
+    end)
+end
+
+local function refresh_crypto_runtime()
+    initialize_markets()
+    start_crypto_schedulers()
+end
+
+AddEventHandler("sky_phone:configurator:serverUpdated", refresh_crypto_runtime)
+start_crypto_schedulers()
 
 end)

@@ -122,6 +122,7 @@ const catalog = computed(() =>
     if (!isLaunchablePhoneApp(app) || app.id === 'app-store' || app.adminOnly) {
       return false
     }
+    if (!appStore.isAvailable(app.id)) return false
 
     return !appStore.isInstalled(app.id)
   }).sort((a, b) => a.gridOrder - b.gridOrder),
@@ -129,7 +130,9 @@ const catalog = computed(() =>
 const installedApps = computed(() =>
   PHONE_APPS.filter(
     (app): app is LaunchablePhoneAppDefinition =>
-      isLaunchablePhoneApp(app) && appStore.isInstalled(app.id),
+      isLaunchablePhoneApp(app) &&
+      appStore.isAvailable(app.id) &&
+      appStore.isInstalled(app.id),
   ).sort((a, b) => a.gridOrder - b.gridOrder),
 )
 const installedGameCount = computed(
@@ -143,6 +146,7 @@ const dailyCandidates = computed(() =>
         !app.adminOnly &&
         !isExternalPhoneApp(app) &&
         app.id !== 'app-store' &&
+        appStore.isAvailable(app.id) &&
         !DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id) &&
         !appStore.isInstalled(app.id),
     ),

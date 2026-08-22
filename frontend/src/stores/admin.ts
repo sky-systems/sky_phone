@@ -28,6 +28,20 @@ const EMPTY_STATS: AdminStats = {
   simDevices: 0,
 }
 
+function disabledAppsFromConfigurator(
+  configurator: AdminConfigurator,
+): string[] {
+  const apps = configurator.sections
+    .flatMap((section) => section.fields)
+    .find((field) => field.scope === 'config' && field.path === 'Apps')?.value
+  if (!apps || typeof apps !== 'object' || Array.isArray(apps)) return []
+
+  return Object.entries(apps)
+    .filter(([, enabled]) => enabled === false)
+    .map(([appId]) => appId)
+    .sort()
+}
+
 export const useAdminStore = defineStore('admin', {
   state: () => ({
     actionKey: '',
@@ -36,6 +50,7 @@ export const useAdminStore = defineStore('admin', {
     configurator: null as AdminConfigurator | null,
     configuratorLoading: false,
     detailLoading: false,
+    disabledApps: [] as string[],
     error: '',
     initialized: false,
     loading: false,
@@ -58,6 +73,9 @@ export const useAdminStore = defineStore('admin', {
         return false
       }
       this.players = response.data.players
+      this.disabledApps = Array.isArray(response.data.disabledApps)
+        ? response.data.disabledApps
+        : []
       this.stats = response.data.stats
       this.audit = response.data.audit
       this.error = ''
@@ -158,6 +176,7 @@ export const useAdminStore = defineStore('admin', {
         return false
       }
       this.configurator = response.data
+      this.disabledApps = disabledAppsFromConfigurator(response.data)
       this.error = ''
       return true
     },
@@ -178,6 +197,7 @@ export const useAdminStore = defineStore('admin', {
       this.actionKey = ''
       if (response.success && response.data) {
         this.configurator = response.data
+        this.disabledApps = disabledAppsFromConfigurator(response.data)
         this.error = ''
       } else {
         if (response.data) this.configurator = response.data
