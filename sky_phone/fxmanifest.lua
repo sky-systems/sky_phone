@@ -30,9 +30,7 @@ shared_scripts {
 
 client_scripts {
     'config/config.lua',
-    'config/locales/en.lua',
-    'config/locales/de.lua',
-    'config/locales/es.lua',
+    'config/locales/*.lua',
     'source/bridge/client/callbacks.lua',
     'source/client/phone_configurator.lua',
     'source/bridge/client/framework.lua',
