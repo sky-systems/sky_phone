@@ -3858,6 +3858,63 @@ onBeforeUnmount(() => {
   background: var(--sky-glass);
 }
 
+.phone-app--light.phone-calls-app--profile {
+  color: var(--sky-text);
+  background: var(--sky-bg) !important;
+}
+
+.phone-app--light .phone-call-content--profile,
+.phone-app--light .phone-contact-hero h2,
+.phone-app--light .phone-detail-header-button,
+.phone-app--light .phone-detail-edit {
+  color: var(--sky-text);
+}
+
+.phone-app--light .phone-contact-hero .phone-contact-organization,
+.phone-app--light .phone-profile-notes > p,
+.phone-app--light .phone-history-copy small,
+.phone-app--light .phone-history-row time,
+.phone-app--light .phone-history-empty {
+  color: var(--sky-muted);
+}
+
+.phone-app--light .phone-profile-action {
+  color: var(--sky-text) !important;
+}
+
+.phone-app--light .phone-profile-action:disabled {
+  color: var(--sky-subtle) !important;
+}
+
+.phone-app--light .phone-profile-card,
+.phone-app--light .phone-own-profile-card,
+.phone-app--light .phone-history-card {
+  border-color: var(--sky-hairline);
+  color: var(--sky-text);
+  background: var(--sky-glass);
+  box-shadow: var(--sky-shadow-glass);
+}
+
+.phone-app--light .phone-own-profile-card > div:not(:last-child),
+.phone-app--light .phone-profile-info-card > button,
+.phone-app--light .phone-profile-options-card > button,
+.phone-app--light .phone-profile-single-option > button,
+.phone-app--light .phone-profile-notes,
+.phone-app--light .phone-history-row {
+  border-color: var(--sky-hairline);
+}
+
+.phone-app--light .phone-own-profile-card > div > span {
+  color: var(--sky-text);
+  background: var(--sky-pressed);
+}
+
+.phone-app--light .phone-profile-info-card > button > svg,
+.phone-app--light .phone-profile-notes > span,
+.phone-app--light .phone-history-card h3 {
+  color: var(--sky-text);
+}
+
 .phone-app--light .phone-bottom-tabbar {
   --sky-app-accent: #3a3a3c;
 }
