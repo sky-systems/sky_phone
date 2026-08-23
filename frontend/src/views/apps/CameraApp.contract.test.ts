@@ -77,7 +77,8 @@ describe('Camera app controls', () => {
   it('locks look controls without changing the global gameplay camera', () => {
     expect(cameraView).toContain("nuiCall('camera:setLocked'")
     expect(cameraView).toContain('cameraLocked.value')
-    expect(cameraView).toContain('Apps.camera.spaceKey')
+    expect(cameraView).toContain('Apps.camera.lookKey')
+    expect(cameraView).not.toContain('Apps.camera.spaceKey')
     expect(cameraClient).toContain('RegisterNUICallback("camera:setLocked"')
     expect(cameraClient).toContain('INPUT_LOOK_LR')
     expect(cameraClient).toContain('INPUT_LOOK_UD')
@@ -95,10 +96,23 @@ describe('Camera app controls', () => {
     expect(cameraClient).not.toContain('ensure_ultrawide_camera')
   })
 
-  it('keeps the selfie camera stable while Space still allows movement', () => {
-    expect(cameraView).toMatch(
-      /event\.code !== 'Space'[\s\S]*cameraLocked\.value/,
+  it('uses the configured HoldToLook control in camera modes', () => {
+    expect(cameraView).not.toContain("event.code !== 'Space'")
+    expect(cameraView).not.toContain("window.addEventListener('keydown'")
+    expect(focusClient).toContain(
+      'function SkyPhoneFocus.IsHoldToLookPressed()',
     )
+    expect(focusClient).toContain(
+      'IsDisabledControlPressed(0, hold_to_look_control)',
+    )
+    expect(cameraClient).toContain('SkyPhoneFocus.IsHoldToLookPressed()')
+    expect(cameraClient).toMatch(
+      /if data\.active then\s+watch_camera_controls\(\)/,
+    )
+    expect(cameraClient).not.toContain('IsDisabledControlJustReleased(0, 22)')
+  })
+
+  it('orbits the stable selfie camera while HoldToLook allows movement', () => {
     expect(cameraClient).toContain(
       'if camera_state.locked or camera_state.front_camera then',
     )
@@ -106,10 +120,14 @@ describe('Camera app controls', () => {
     expect(cameraClient).toContain('local front_camera_view_mode = 0')
     expect(cameraClient).toContain('local front_camera_fov = 32.0')
     expect(cameraClient).toContain('local front_camera_distance = 1.05')
+    expect(cameraClient).toContain('local front_camera_horizontal_limit = 75.0')
+    expect(cameraClient).toContain('local front_camera_vertical_limit = 35.0')
     expect(cameraClient).toContain('local head_position = GetPedBoneCoords')
-    expect(cameraClient).toContain(
-      'local dot = (to_camera.x * forward_vector.x)',
-    )
+    expect(cameraClient).toContain('GetDisabledControlNormal(0, 1)')
+    expect(cameraClient).toContain('GetDisabledControlNormal(0, 2)')
+    expect(cameraClient).toContain('update_front_camera_orbit()')
+    expect(cameraClient).toContain('camera_state.front_camera_yaw')
+    expect(cameraClient).toContain('camera_state.front_camera_pitch')
     expect(cameraClient).toContain('front_camera_target_height')
     expect(focusClient).toContain(
       'return { block_game = false, block_look = false, cursor = false, focused = true, game_input = true, keep_input = true }',
@@ -121,10 +139,6 @@ describe('Camera app controls', () => {
     expect(cameraClient).not.toContain('front_camera_position')
     expect(cameraClient).not.toContain('AttachCamToEntity(')
     expect(cameraClient).not.toContain('PointCamAtEntity(')
-    expect(cameraView).toContain("window.addEventListener('keyup', onKeyup)")
-    expect(cameraView).toContain(
-      "nuiCall('camera:setFocus', { focused: true })",
-    )
   })
 
   it('uses a looping camera-hold pose instead of the old selfie dance', () => {

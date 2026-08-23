@@ -5,6 +5,8 @@ local event_handlers = {}
 local nui_callbacks = {}
 local nui_focus = nil
 local nui_keep_input = nil
+local pressed_controls = {}
+local disabled_pressed_controls = {}
 
 Config = {
     Phone = {
@@ -36,6 +38,16 @@ end
 
 function TriggerEvent() end
 
+function IsControlPressed(group, control)
+    assert(group == 0, "HoldToLook must read the primary input group")
+    return pressed_controls[control] == true
+end
+
+function IsDisabledControlPressed(group, control)
+    assert(group == 0, "HoldToLook must read disabled controls from the primary input group")
+    return disabled_pressed_controls[control] == true
+end
+
 function DisableControlAction(group, control, disabled)
     assert(group == 0 and disabled, "phone controls must be disabled in the primary input group")
     disabled_controls[control] = true
@@ -55,6 +67,25 @@ function DisablePlayerFiring(player, disabled)
 end
 
 dofile("sky_phone/source/client/focus.lua")
+
+assert(not SkyPhoneFocus.IsHoldToLookPressed(), "HoldToLook must be idle until its configured control is held")
+pressed_controls[19] = true
+assert(SkyPhoneFocus.IsHoldToLookPressed(), "HoldToLook must read its configured active control")
+pressed_controls[19] = false
+Config.Phone.HoldToLook.Control = 38
+event_handlers["sky_phone:configurator:updated"]()
+disabled_pressed_controls[38] = true
+assert(
+    SkyPhoneFocus.IsHoldToLookPressed(),
+    "HoldToLook must read its configured control while NUI focus has disabled GTA input"
+)
+disabled_pressed_controls[38] = false
+Config.Phone.HoldToLook.Enabled = false
+event_handlers["sky_phone:configurator:updated"]()
+assert(not SkyPhoneFocus.IsHoldToLookPressed(), "disabled HoldToLook must reject every control state")
+Config.Phone.HoldToLook.Enabled = true
+Config.Phone.HoldToLook.Control = 19
+event_handlers["sky_phone:configurator:updated"]()
 
 local function resolve(overrides)
     local state = {

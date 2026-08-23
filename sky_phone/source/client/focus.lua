@@ -58,6 +58,16 @@ AddEventHandler("sky_phone:configurator:updated", function()
     SkyPhoneFocus.Reapply()
 end)
 
+function SkyPhoneFocus.IsHoldToLookPressed()
+    if not hold_to_look_enabled then
+        return false
+    end
+    if IsControlPressed(0, hold_to_look_control) then
+        return true
+    end
+    return IsDisabledControlPressed(0, hold_to_look_control)
+end
+
 function SkyPhoneFocus.ApplyFocusedControls()
     for _, group in ipairs(focused_control_groups) do
         DisableAllControlActions(group)
@@ -234,10 +244,9 @@ end
 CreateThread(function()
     while true do
         if game_input or block_game then
-            local look_passthrough = hold_to_look_enabled
-                and game_input
+            local look_passthrough = game_input
                 and not state.cursor_disabled
-                and IsControlPressed(0, hold_to_look_control)
+                and SkyPhoneFocus.IsHoldToLookPressed()
             if look_passthrough ~= state.look_passthrough then
                 state.look_passthrough = look_passthrough
                 SkyPhoneFocus.Reapply()

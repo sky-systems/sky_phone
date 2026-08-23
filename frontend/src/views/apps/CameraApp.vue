@@ -56,7 +56,6 @@ const microphoneEnabled = ref(true)
 const frontCamera = ref(false)
 const shutterActive = ref(false)
 const cameraLocked = ref(false)
-const movementEnabled = ref(false)
 const recording = ref(false)
 const savingVideo = ref(false)
 const recordingStartedAt = ref(0)
@@ -238,10 +237,6 @@ async function toggleFacing(): Promise<void> {
 
 async function toggleCameraLock(): Promise<void> {
   cameraLocked.value = !cameraLocked.value
-  if (cameraLocked.value && movementEnabled.value) {
-    movementEnabled.value = false
-    await nuiCall('camera:setFocus', { focused: true })
-  }
   await nuiCall('camera:setLocked', { locked: cameraLocked.value })
 }
 
@@ -340,26 +335,6 @@ function updateRecordingTimer(): void {
   elapsed.value = formatRecordingDuration(Date.now() - recordingStartedAt.value)
 }
 
-function onKeydown(event: KeyboardEvent): void {
-  if (
-    event.code !== 'Space' ||
-    event.repeat ||
-    cameraLocked.value ||
-    movementEnabled.value
-  )
-    return
-  event.preventDefault()
-  movementEnabled.value = true
-  void nuiCall('camera:setFocus', { focused: false })
-}
-
-function onKeyup(event: KeyboardEvent): void {
-  if (event.code !== 'Space' || !movementEnabled.value) return
-  event.preventDefault()
-  movementEnabled.value = false
-  void nuiCall('camera:setFocus', { focused: true })
-}
-
 function onMessage(event: MessageEvent): void {
   if (!isTrustedRootMessageSource(event.source, window)) return
   const message = event.data as {
@@ -442,8 +417,6 @@ onMounted(() => {
     { data: { zoom: selectedZoom.value }, type: 'camera:zoom' },
     '*',
   )
-  window.addEventListener('keydown', onKeydown)
-  window.addEventListener('keyup', onKeyup)
   window.addEventListener('message', onMessage)
   void nuiCall('camera:setActive', { active: true })
   void nuiCall<MediaConfig>('media:config').then((response) => {
@@ -459,13 +432,7 @@ onBeforeUnmount(() => {
   if (shutterTimer !== undefined) window.clearTimeout(shutterTimer)
   if (noticeTimer !== undefined) window.clearTimeout(noticeTimer)
   if (recordingTimer !== undefined) window.clearInterval(recordingTimer)
-  window.removeEventListener('keydown', onKeydown)
-  window.removeEventListener('keyup', onKeyup)
   window.removeEventListener('message', onMessage)
-  if (movementEnabled.value) {
-    movementEnabled.value = false
-    void nuiCall('camera:setFocus', { focused: true })
-  }
   if (renderFrameId !== undefined) window.cancelAnimationFrame(renderFrameId)
   resizeObserver?.disconnect()
   gameView?.dispose()
@@ -587,7 +554,7 @@ onBeforeUnmount(() => {
       >
         <LockKeyhole v-if="cameraLocked" :size="12" />
         <LockOpen v-else :size="12" />
-        <kbd>{{ phone.t('Apps.camera.spaceKey') }}</kbd>
+        <kbd>{{ phone.t('Apps.camera.lookKey') }}</kbd>
       </SkyButton>
       <sky-fab
         component="button"

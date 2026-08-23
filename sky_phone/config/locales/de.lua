@@ -1449,8 +1449,8 @@ Locales["de"] = {
             camera = {
                 name = "Kamera", flash = "Blitz", flip = "Kamera wechseln", landscape = "Zum Querformat wechseln",
                 portrait = "Zum Hochformat wechseln", photo = "Foto", video = "Video", microphoneOn = "Mikrofon eingeschaltet", microphoneOff = "Mikrofon stumm",
-                focusHelp = "Halte die Leertaste gedrückt, um dich umzusehen", returnHelp = "Leertaste für Steuerung", lockCamera = "Kamerabewegung sperren",
-                unlockCamera = "Kamerabewegung entsperren", spaceKey = "Leertaste", uploading = "Upload: {count}",
+                focusHelp = "Halte die Umschautaste gedrückt, um dich umzusehen", returnHelp = "Umschautaste loslassen für Steuerung", lockCamera = "Kamerabewegung sperren",
+                unlockCamera = "Kamerabewegung entsperren", lookKey = "Umschauen", uploading = "Upload: {count}",
                 saving = "Video speichern...", openGallery = "Fotos öffnen", takePhoto = "Foto machen",
                 startRecording = "Aufnahme starten", stopRecording = "Aufnahme beenden", saved = "Auf Fotos gespeichert.",
                 zoom = "Kamerazoom auf {zoom} einstellen",

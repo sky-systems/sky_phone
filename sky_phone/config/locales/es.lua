@@ -1449,8 +1449,8 @@ Locales["es"] = {
             camera = {
                 name = "Cámara", flash = "Linterna", flip = "Cambiar de cámara", landscape = "Cambiar a paisaje",
                 portrait = "Cambiar a vertical", photo = "Foto", video = "Vídeo", microphoneOn = "Micrófono encendido", microphoneOff = "Micrófono silenciado",
-                focusHelp = "Presionar Espacio para mirar alrededor", returnHelp = "Soltar espacio para controles", lockCamera = "Bloquear movimiento de la cámara",
-                unlockCamera = "Desbloquear movimiento de la cámara", spaceKey = "Espacio", uploading = "Subiendo {count}",
+                focusHelp = "Mantén pulsada la tecla de vista para mirar alrededor", returnHelp = "Suelta la tecla de vista para usar los controles", lockCamera = "Bloquear movimiento de la cámara",
+                unlockCamera = "Desbloquear movimiento de la cámara", lookKey = "Mirar", uploading = "Subiendo {count}",
                 saving = "Guardando video...", openGallery = "Abrir fotos", takePhoto = "Tomar foto",
                 startRecording = "Iniciar grabación", stopRecording = "Detener grabación", saved = "Guardado en fotos.",
                 zoom = "Establecer zoom de la cámara en {zoom}",
