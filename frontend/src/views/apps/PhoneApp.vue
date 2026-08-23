@@ -2250,7 +2250,6 @@ onBeforeUnmount(() => {
   position: relative;
   padding-top: 6px;
   padding-right: 24px;
-  padding-bottom: 20px;
 }
 
 .phone-contacts-header {

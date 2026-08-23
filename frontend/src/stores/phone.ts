@@ -33,6 +33,7 @@ export type PasscodeResponseData = {
 export type PhoneOpenPayload = {
   account?: DeviceBootstrap['account']
   device?: PhoneDevice
+  disabledApps?: string[]
   fallbackLocales?: LocaleTree
   lang?: string
   locales?: LocaleTree

@@ -54,12 +54,28 @@ Bridge.Debug("debug", "[sky_phone] Server initialization started after database 
 
 SkyPhone = {}
 
+function SkyPhone.IsAppEnabled(app_id)
+    return type(Config.Apps) ~= "table" or Config.Apps[app_id] ~= false
+end
+
+function SkyPhone.GetDisabledApps()
+    local disabled = {}
+    for app_id, enabled in pairs(Config.Apps or {}) do
+        if type(app_id) == "string" and enabled == false then
+            disabled[#disabled + 1] = app_id
+        end
+    end
+    table.sort(disabled)
+    return disabled
+end
+
 local sessions = {}
 local preferred_device_imeis = {}
 local equipped_phone_numbers = {}
 local equipped_phone_identifiers = {}
 local equipped_phone_sources = {}
 local operation_attempts = {}
+local phone_open_in_progress = {}
 local character_device_cache = {}
 
 local function trim(value)
@@ -548,6 +564,7 @@ local function bootstrap(source, security, security_loaded)
 
     return {
         token = session.token,
+        disabledApps = SkyPhone.GetDisabledApps(),
         phoneNumberFormat = {
             length = Config.Sim.NumberLength,
             groups = Config.Sim.NumberGroups,
@@ -839,7 +856,7 @@ function SkyPhone.RefreshDevice(imei)
     end
 end
 
-local function open_phone(source, used_item)
+local function perform_phone_open(source, used_item)
     local opened_at = GetGameTimer()
     Bridge.Debug(
         "debug",
@@ -924,6 +941,38 @@ local function open_phone(source, used_item)
     )
     TriggerClientEvent("sky_phone:device:open", source, payload)
     return true
+end
+
+local function open_phone(source, used_item)
+    if phone_open_in_progress[source] then
+        TriggerClientEvent("sky_phone:device:error", source, "operation_in_progress")
+        return false, "operation_in_progress"
+    end
+
+    local request_limit = math.max(
+        1,
+        math.floor(tonumber(Config.Phone.OpenRequestsPerMinute) or 20)
+    )
+    if not SkyPhone.AllowOperation(source, "phone_open", request_limit, 60) then
+        TriggerClientEvent("sky_phone:device:error", source, "rate_limited")
+        return false, "rate_limited"
+    end
+
+    phone_open_in_progress[source] = true
+    local completed, success, error_code = pcall(perform_phone_open, source, used_item)
+    phone_open_in_progress[source] = nil
+    if not completed then
+        Bridge.Debug(
+            "error",
+            "[sky_phone] Phone open failed unexpectedly for source %s: %s",
+            tostring(source),
+            tostring(success),
+            { always = true }
+        )
+        TriggerClientEvent("sky_phone:device:error", source, "request_failed")
+        return false, "request_failed"
+    end
+    return success, error_code
 end
 
 phone_open_handler = open_phone
@@ -1028,6 +1077,7 @@ AddEventHandler("playerDropped", function()
     sessions[source] = nil
     discard_equipped_phone_number(source)
     operation_attempts[source] = nil
+    phone_open_in_progress[source] = nil
     character_device_cache[source] = nil
     preferred_device_imeis[source] = nil
 end)
@@ -1036,6 +1086,7 @@ AddEventHandler("onResourceStop", function(resource_name)
     if resource_name == GetCurrentResourceName() then
         sessions = {}
         operation_attempts = {}
+        phone_open_in_progress = {}
         character_device_cache = {}
         preferred_device_imeis = {}
         equipped_phone_numbers = {}

@@ -16,6 +16,12 @@ describe('PhoneApp EasyShare contract', () => {
   it('uses the shared full-width Sky tab bar for phone sections', () => {
     expect(source).toContain('<sky-tab-bar')
     expect(source).toContain('<sky-tab-button')
+    expect(source).toContain(
+      'calc(var(--sky-tabbar-height) + var(--sky-safe-area-bottom) + 16px);',
+    )
+    expect(source).not.toMatch(
+      /\.phone-contacts\s*\{[^}]*padding-bottom:\s*20px;/s,
+    )
   })
 
   it('uses shared interactive liquid glass surfaces for phone controls', () => {

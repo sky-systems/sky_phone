@@ -530,8 +530,17 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   clock.hydrate(payload.device?.data.alarms?.payload)
   games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
-  appStore.hydrate(payload.device?.data.apps?.payload)
+  appStore.hydrate(payload.device?.data.apps?.payload, payload.disabledApps)
   widgets.hydrate(payload.device?.data.widgets?.payload)
+
+  const currentAppId = route.params.appId
+  if (
+    typeof currentAppId === 'string' &&
+    isPhoneAppId(currentAppId) &&
+    !appStore.isInstalled(currentAppId)
+  ) {
+    void router.push('/')
+  }
 }
 
 function getInstalledNavigationAppIds(): string[] {

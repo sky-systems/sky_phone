@@ -369,6 +369,22 @@ describe('VaultX crypto app contracts', () => {
     expect(testServer).toContain('function advanceCryptoCycle(')
   })
 
+  it('does not keep market and settlement workers active while disabled', () => {
+    expect(server).toContain('local function start_crypto_schedulers()')
+    expect(server).toMatch(
+      /start_crypto_schedulers\(\)[\s\S]*?if Config\.Crypto\.Enabled ~= true then\s+return/,
+    )
+    expect(server).toContain(
+      'while scheduler_generation == generation and Config.Crypto.Enabled == true do',
+    )
+    expect(server).toContain(
+      'AddEventHandler("sky_phone:configurator:serverUpdated", refresh_crypto_runtime)',
+    )
+    expect(server).not.toMatch(
+      /CreateThread\(function\(\)\s+while true do\s+Wait\(5 \* 60 \* 1000\)/,
+    )
+  })
+
   it('stores cash in price-scale minor units throughout the ledger', () => {
     expect(server).toContain(
       'local ledger_amount = amount * Config.Crypto.PriceScale',

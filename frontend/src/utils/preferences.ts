@@ -38,7 +38,7 @@ export const WALLPAPER_IDS = [
 ] as const
 export const PHONE_SCALE_MIN = 75
 export const PHONE_SCALE_MAX = 150
-export const PHONE_SCALE_STEP = 5
+export const PHONE_SCALE_STEP = 1
 export const PHONE_SETUP_LAST_STEP = 9
 
 export type AppearanceMode = (typeof APPEARANCE_MODE_IDS)[number]

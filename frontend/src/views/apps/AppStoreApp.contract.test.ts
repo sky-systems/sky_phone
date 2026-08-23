@@ -81,6 +81,7 @@ describe('AppStoreApp Sky navigation contract', () => {
     expect(source).toContain('@click="profileOpened = true"')
     expect(source).toContain('const installedApps = computed')
     expect(source).toContain('return !appStore.isInstalled(app.id)')
+    expect(source).toContain('if (!appStore.isAvailable(app.id)) return false')
     expect(source).toContain(
       'class="store-account__apps phone-effect--expensive-shadow"',
     )

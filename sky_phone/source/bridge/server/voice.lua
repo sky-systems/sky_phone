@@ -41,6 +41,15 @@ end
 
 local function resolve_call_provider()
     local configured = tostring(Config.Calls.VoiceProvider or "")
+    if configured == "auto" then
+        for _, candidate in ipairs({ "yaca", "pma", "saltychat" }) do
+            if GetResourceState(call_provider_resources[candidate]) == "started" then
+                return candidate
+            end
+        end
+        return nil
+    end
+
     local selected = call_provider_aliases[configured] or configured
     local resource_name = call_provider_resources[selected]
     if resource_name and GetResourceState(resource_name) == "started" then

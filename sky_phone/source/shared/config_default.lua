@@ -36,6 +36,7 @@ Config.Phone = {
     Item = "phone",
     Unique = true, -- true: data follows each phone item; false: one persistent phone per character; forced false for metadata-free inventories
     Keybind = "F1", -- false disables the configurable phone key mapping
+    OpenRequestsPerMinute = 20,
     AllowMovement = true, -- true: game input stays active while the mobile phone is open
     HoldToLook = {
         Enabled = true, -- hold the configured control to hide the cursor and look around; independent of AllowMovement
@@ -43,6 +44,52 @@ Config.Phone = {
     },
     DevelopmentCommand = true,
     DeviceName = "iFruit Phone",
+}
+
+-- Server-wide availability for bundled apps. Set an entry to false to hide it
+-- from every phone, the App Store and per-device app management.
+Config.Apps = {
+    ["app-store"] = true,
+    banking = true,
+    billing = true,
+    calculator = true,
+    calendar = true,
+    camera = true,
+    citymarkt = true,
+    citywarn = true,
+    clock = true,
+    companies = true,
+    crewlink = true,
+    crypto = true,
+    darkchat = true,
+    feather = true,
+    flare = true,
+    fliptok = true,
+    garage = true,
+    health = true,
+    house = true,
+    ["local-pages"] = true,
+    mail = true,
+    map = true,
+    memory = true,
+    memos = true,
+    messages = true,
+    minesweeper = true,
+    music = true,
+    ["neon-drop"] = true,
+    notes = true,
+    ["number-merge"] = true,
+    phone = true,
+    photos = true,
+    picstagram = true,
+    radio = true,
+    settings = true,
+    ["sky-flappy"] = true,
+    skyride = true,
+    snake = true,
+    ["tower-stack"] = true,
+    weather = true,
+    ["weazel-news"] = true,
 }
 
 Config.TestData = {
@@ -101,7 +148,7 @@ Config.Speaker = {
 }
 
 Config.Calls = {
-    VoiceProvider = "pma", -- yaca (alias: yaca-voice), pma (alias: pma-voice), saltychat (alias: salty)
+    VoiceProvider = "pma", -- auto, yaca (alias: yaca-voice), pma (alias: pma-voice), saltychat (alias: salty)
     RingSeconds = 30,
     ContactNameMaxLength = 80,
     ContactNotesMaxLength = 500,
@@ -286,6 +333,7 @@ Config.DarkChat = {
     VoiceMaxBase64Length = 360000,
     VoiceWaveformSamples = 48,
     CleanupIntervalSeconds = 30,
+    CleanupBatchSize = 250,
     AllowedDisappearTimers = {
         [0] = true,
         [-1] = true, -- after reading

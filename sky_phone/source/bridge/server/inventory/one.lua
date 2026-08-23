@@ -23,8 +23,8 @@ end
 
 function Bridge.Inventory.GetSlotsWithItem(source, item_name, metadata)
     local matches = {}
-    for index, item in pairs(inventory:SearchInventory(source, item_name, metadata) or {}) do
-        local normalized = normalize(item, tonumber(index) or index)
+    for _, slot_id in ipairs(inventory:GetSlotIdsWithItem(source, item_name, metadata) or {}) do
+        local normalized = Bridge.Inventory.GetSlot(source, slot_id)
         if normalized and normalized.name == item_name
             and Bridge.Inventory.MetadataMatches(normalized.metadata, metadata) then
             matches[#matches + 1] = normalized
@@ -40,7 +40,7 @@ function Bridge.Inventory.SetSlotMetadata(source, slot_id, metadata)
     end
 
     local requested_metadata = type(metadata) == "table" and metadata or {}
-    if inventory:SetItemMetadata(source, slot.slot, requested_metadata) ~= true then
+    if inventory:SetItemMetadata(source, slot.slot, requested_metadata) == false then
         return false
     end
     local updated = Bridge.Inventory.GetSlot(source, slot.slot)

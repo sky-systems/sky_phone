@@ -75,6 +75,21 @@ Bridge.Debug("debug", "[sky_phone] Client script initialized.", { always = true 
 
 local locale, locale_name = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
 
+local function apply_disabled_apps(payload)
+    if type(payload) ~= "table" then
+        return
+    end
+
+    local disabled = {}
+    for app_id, enabled in pairs(Config.Apps or {}) do
+        if type(app_id) == "string" and enabled == false then
+            disabled[#disabled + 1] = app_id
+        end
+    end
+    table.sort(disabled)
+    payload.disabledApps = disabled
+end
+
 local function send_admin_panel_open()
     SendNUIMessage({
         type = "admin:open",
@@ -136,6 +151,7 @@ AddEventHandler("sky_phone:configurator:updated", function()
     refresh_admin_command_suggestion()
     SkyPhoneApps.SendCatalog()
     if is_open and device_payload then
+        apply_disabled_apps(device_payload)
         device_payload.lang = locale_name
         device_payload.locales = locale.Nui
         device_payload.fallbackLocales = Locales.en.Nui
@@ -175,6 +191,22 @@ local function close_phone(close_device_session)
     end
 end
 
+local function request_phone_open(callback_name)
+    if is_open or open_requested then
+        return true
+    end
+
+    open_requested = true
+    local result = Bridge.Callbacks.Trigger(callback_name, {})
+    if type(result) == "table" and result.success == true then
+        return true
+    end
+
+    open_requested = false
+    open_without_focus = false
+    return false
+end
+
 local function toggle_phone(open, no_focus)
     if open ~= nil and type(open) ~= "boolean" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid phone toggle state.")
@@ -190,6 +222,9 @@ local function toggle_phone(open, no_focus)
         should_open = not (is_open or open_requested)
     end
     if not should_open then
+        if open == nil and open_requested and not is_open then
+            return true
+        end
         close_phone()
         return true
     end
@@ -202,12 +237,7 @@ local function toggle_phone(open, no_focus)
         return true
     end
 
-    local result = Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})
-    if type(result) ~= "table" or result.success ~= true then
-        open_without_focus = false
-        return false
-    end
-    return true
+    return request_phone_open("sky_phone:device:open-request")
 end
 
 SkyPhoneClient.Toggle = toggle_phone
@@ -217,13 +247,16 @@ AddEventHandler("sky_phone:client:forceClose", function()
 end)
 
 local function run_development_command()
-    if is_open or open_requested then
+    if is_open then
         close_phone()
+        return
+    end
+    if open_requested then
         return
     end
 
     open_without_focus = false
-    Bridge.Callbacks.Trigger("sky_phone:device:development-open", {})
+    request_phone_open("sky_phone:device:development-open")
 end
 
 refresh_development_command = function()
@@ -256,13 +289,16 @@ end
 refresh_development_command()
 
 local function run_phone_toggle()
-    if is_open or open_requested then
+    if is_open then
         close_phone()
+        return
+    end
+    if open_requested then
         return
     end
 
     open_without_focus = false
-    Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})
+    request_phone_open("sky_phone:device:open-request")
 end
 
 RegisterCommand("sky_phone_live_activity_open", function()
@@ -271,8 +307,7 @@ RegisterCommand("sky_phone_live_activity_open", function()
     end
 
     open_home_requested = true
-    local result = Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})
-    if not result or not result.success then
+    if not request_phone_open("sky_phone:device:open-request") then
         open_home_requested = false
     end
 end, false)
@@ -459,6 +494,10 @@ end)
 RegisterNetEvent("sky_phone:device:open", function(data)
     if type(data) ~= "table" or type(data.device) ~= "table" or type(data.device.imei) ~= "string" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid device open data.")
+        if not is_open then
+            open_requested = false
+            open_without_focus = false
+        end
         return
     end
     Bridge.Debug(
@@ -468,6 +507,7 @@ RegisterNetEvent("sky_phone:device:open", function(data)
         tostring(data.account ~= nil),
         { always = true }
     )
+    apply_disabled_apps(data)
     device_payload = data
     update_equipped_phone_number(data)
     open_requested = true
@@ -484,6 +524,7 @@ RegisterNetEvent("sky_phone:device:updated", function(data)
         Bridge.Debug("error", "[sky_phone] Rejected invalid device update data.")
         return
     end
+    apply_disabled_apps(data)
     device_payload = data
     update_equipped_phone_number(data)
     SendNUIMessage({ type = "device:updated", data = data })
@@ -499,8 +540,10 @@ RegisterNetEvent("sky_phone:device:invalidated", function()
 end)
 
 RegisterNetEvent("sky_phone:device:error", function(error_code)
-    if not is_open and not open_requested then
+    if not is_open then
+        open_requested = false
         open_without_focus = false
+        open_home_requested = false
     end
     Bridge.Debug(
         "debug",

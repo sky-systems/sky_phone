@@ -4726,6 +4726,7 @@ function adminMockBootstrap() {
         targetSource: 2,
       },
     ],
+    disabledApps: [],
     players: [1, 2].map((source) => {
       const player = adminMockPlayerDetail(source)
       return {

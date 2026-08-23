@@ -931,10 +931,16 @@ end)
 CreateThread(function()
     while true do
         Wait(Config.DarkChat.CleanupIntervalSeconds * 1000)
+        local batch_size = math.max(
+            1,
+            math.floor(tonumber(Config.DarkChat.CleanupBatchSize) or 250)
+        )
         Bridge.Database.Query([[
             DELETE FROM `sky_phone_darkchat_messages`
             WHERE `expires_at` IS NOT NULL AND `expires_at` <= CURRENT_TIMESTAMP
-        ]], {})
+            ORDER BY `expires_at`, `id`
+            LIMIT ?
+        ]], { batch_size })
     end
 end)
 

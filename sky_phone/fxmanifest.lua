@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.2.7'
+version '0.2.8'
 
 provide 'lb-phone'
 provide '17mov_Phone'
