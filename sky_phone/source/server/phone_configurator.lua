@@ -563,6 +563,75 @@ local function empty_structure(scope, path)
     return nil
 end
 
+local function next_available_company_service_number(configuration)
+    configuration = configuration or stored_config
+    local maximum_length = configuration.Sim.NumberLength
+    local service_length = math.max(1, math.min(3, maximum_length - 1))
+    local first_candidate = service_length == 1 and 5 or 5 * (10 ^ (service_length - 1))
+    local last_candidate = (10 ^ service_length) - 1
+    local used = {}
+    for _, definition in pairs(configuration.Companies.Definitions) do
+        used[tostring(definition.ServiceLine.Number):gsub("%D", "")] = true
+    end
+    for offset = 0, last_candidate - 1 do
+        local candidate = ((first_candidate - 1 + offset) % last_candidate) + 1
+        local number = ("%0" .. tostring(service_length) .. "d"):format(candidate)
+        if not used[number] then
+            return number
+        end
+    end
+    return ""
+end
+
+local function company_definition_entry_default(company_id, configuration)
+    configuration = configuration or stored_config
+    local name = company_id and humanize(company_id) or ""
+    local logo_seed = company_id or "new"
+    return {
+        AcceptsRequests = true,
+        Address = "",
+        Category = configuration.Companies.Categories[1] or default_config.Companies.Categories[1],
+        DefaultAvailability = "closed",
+        Description = "",
+        District = "",
+        Emergency = false,
+        Icon = "building",
+        Job = company_id or "",
+        Location = { __skyType = "vector3", x = 0.0, y = 0.0, z = 0.0 },
+        LocationLabel = "",
+        LogoUrl = ("https://picsum.photos/seed/companies-%s-logo/180/180"):format(logo_seed),
+        Name = name,
+        Permissions = {
+            Announcement = 0,
+            Assign = 0,
+            Availability = 0,
+            Hours = 0,
+            Profile = 0,
+            Services = 0,
+            WorkQueue = 0,
+        },
+        Public = true,
+        ServiceLine = {
+            AutoContact = true,
+            CanCall = true,
+            CanMessage = false,
+            MinimumGrade = 0,
+            Number = next_available_company_service_number(configuration),
+            Routing = "round_robin",
+        },
+        Services = {
+            {
+                Description = "",
+                Id = company_id or "",
+                Price = "",
+                RequestsEnabled = true,
+                Title = name,
+            },
+        },
+        Verified = false,
+    }
+end
+
 local function build_structure(value, scope, path)
     local value_type = type(value)
     if scope == "config" and path == "Phone.Keybind" then
@@ -581,6 +650,7 @@ local function build_structure(value, scope, path)
             fields[key] = build_structure(value[key], scope, path .. "." .. tostring(key))
         end
         return {
+            entryDefault = company_definition_entry_default(),
             fields = fields,
             kind = "table",
             mutableKeys = true,
@@ -1075,6 +1145,87 @@ local function apply_stored_row(row)
     updated_by_name = row.updated_by_name
 end
 
+local function migrate_blank_company_definitions()
+    local migration_name = "sky-phone:configurator:company-definition-defaults:v1"
+    local completed = Bridge.Database.Query(
+        "SELECT 1 FROM `sky_phone_migrations` WHERE `name` = ? LIMIT 1",
+        { migration_name }
+    )
+    if completed[1] then
+        return
+    end
+
+    local row = read_stored_row()
+    local config_payload = decode_payload(row.config_payload, "config")
+    local next_config = merge_values(default_config, config_payload, "", FIXED_CONFIG_PATHS)
+    local migrated_companies = {}
+    for company_id, definition in pairs(next_config.Companies.Definitions) do
+        local line = type(definition) == "table" and definition.ServiceLine or nil
+        if type(company_id) == "string"
+            and company_id:match("^[a-z0-9_-]+$")
+            and type(definition) == "table"
+            and (definition.Job == "" or definition.Job == company_id)
+            and definition.Name == ""
+            and definition.Category == ""
+            and definition.Icon == ""
+            and definition.LogoUrl == ""
+            and definition.DefaultAvailability == ""
+            and type(line) == "table"
+            and line.Number == ""
+            and line.Routing == ""
+            and type(definition.Services) == "table"
+            and next(definition.Services) == nil
+        then
+            next_config.Companies.Definitions[company_id] = company_definition_entry_default(
+                company_id,
+                next_config
+            )
+            migrated_companies[#migrated_companies + 1] = company_id
+        end
+    end
+    table.sort(migrated_companies)
+
+    local statements = {}
+    if #migrated_companies > 0 then
+        statements[#statements + 1] = {
+            query = ([[
+                UPDATE `%s`
+                SET `config_payload` = ?, `revision` = `revision` + 1
+                WHERE `id` = ?
+            ]]):format(TABLE_NAME),
+            params = { encode_payload(next_config, "config"), CONFIG_ROW_ID },
+        }
+    end
+    statements[#statements + 1] = {
+        query = [[
+            INSERT IGNORE INTO `sky_phone_migrations` (`name`, `source`, `stats`)
+            VALUES (?, ?, ?)
+        ]],
+        params = {
+            migration_name,
+            "sky-phone",
+            json.encode({ companies = migrated_companies }),
+        },
+    }
+    if not Bridge.Database.Transaction(statements) then
+        error("[sky_phone] Could not migrate blank Phone Configurator company definitions.")
+    end
+    if #migrated_companies == 0 then
+        return
+    end
+
+    apply_stored_row(read_stored_row())
+    apply_runtime_configuration()
+    TriggerEvent("sky_phone:configurator:serverUpdated", revision)
+    SkyPhoneConfigurator.Broadcast(-1)
+    Bridge.Debug(
+        "info",
+        "[sky_phone] Migrated blank Phone Configurator company definitions: %s",
+        table.concat(migrated_companies, ", "),
+        { always = true }
+    )
+end
+
 local function migrate_police_request_defaults()
     local migration_name = "sky-phone:configurator:police-requests:v1"
     local completed = Bridge.Database.Query(
@@ -1158,6 +1309,7 @@ Bridge.Database.Query(([[
 
 apply_stored_row(read_stored_row())
 apply_runtime_configuration()
+Bridge.Database.AfterMigration("sky_phone", migrate_blank_company_definitions)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_request_defaults)
 
 function SkyPhoneConfigurator.GetAdminData()
@@ -1206,6 +1358,18 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         if not set_path(target, change.path, normalized) then
             return { success = false, error = "invalid_field" }
         end
+    end
+
+    local candidate_config = deserialize_value(next_config)
+    local companies_valid, validation_error = SkyPhoneCompanies.ValidateConfiguration(candidate_config)
+    if not companies_valid then
+        Bridge.Debug(
+            "warn",
+            "[sky_phone] Rejected invalid Phone Configurator Companies configuration: %s",
+            validation_error,
+            { always = true }
+        )
+        return { success = false, error = "invalid_company_configuration" }
     end
 
     local config_encoded = encode_payload(next_config, "config")

@@ -196,9 +196,7 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorServer).toContain('Apps = true,')
     expect(phoneServer).toContain('function SkyPhone.IsAppEnabled(app_id)')
     expect(phoneServer).toContain('function SkyPhone.GetDisabledApps()')
-    expect(phoneServer).toContain(
-      'disabledApps = SkyPhone.GetDisabledApps()',
-    )
+    expect(phoneServer).toContain('disabledApps = SkyPhone.GetDisabledApps()')
     expect(server).toContain('if not SkyPhone.IsAppEnabled(app_id) then')
     expect(server).toContain('disabledApps = SkyPhone.GetDisabledApps()')
     expect(store).toContain('disabledApps: [] as string[]')
@@ -499,7 +497,8 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorValueEditor).toContain('function tableFieldStructure(')
     expect(configuratorValueEditor).toContain('function isFixedTableField(')
     expect(configuratorValueEditor).toContain('function blankCollectionValue(')
-    expect(configuratorValueEditor).toContain('function blankFromStructure(')
+    expect(configuratorValueEditor).toContain('blankFromConfiguratorStructure')
+    expect(configuratorValueEditor).toContain('createMutableTableEntry(')
     expect(source).toContain("'is-structured': field.type === 'json'")
     expect(configuratorValueEditor).toContain('function isStructuredValue(')
     expect(configuratorValueEditor).toContain(

@@ -12,6 +12,7 @@ type ConfiguratorField = {
 }
 
 type ConfiguratorStructure = {
+  entryDefault?: unknown
   entries?: Array<{ structure: ConfiguratorStructure }>
   fields?: Record<string, ConfiguratorStructure>
   items?: ConfiguratorStructure[]
@@ -122,6 +123,22 @@ describe('admin configurator fixture', () => {
     expect(phone?.structure?.fields?.Keybind.kind).toBe('optionalString')
     expect(companyJobs?.label).toBe('Jobs')
     expect(companyJobs?.structure).toMatchObject({
+      entryDefault: {
+        AcceptsRequests: true,
+        Category: 'public_services',
+        Job: '',
+        ServiceLine: {
+          Number: '500',
+          Routing: 'round_robin',
+        },
+        Services: [
+          {
+            Id: '',
+            RequestsEnabled: true,
+            Title: '',
+          },
+        ],
+      },
       fields: {
         ambulance: { kind: 'table' },
         police: { kind: 'table' },
@@ -140,9 +157,7 @@ describe('admin configurator fixture', () => {
       .flatMap((section) => section.fields)
       .find((field) => field.path === 'Companies.Definitions')
     const police = (
-      companyJobs?.value as
-        | Record<string, Record<string, unknown>>
-        | undefined
+      companyJobs?.value as Record<string, Record<string, unknown>> | undefined
     )?.police
 
     expect(police).toMatchObject({

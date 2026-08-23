@@ -41,7 +41,7 @@ describe('Companies emergency request contract', () => {
     const mockPolice = sourceBlock(
       testServer,
       'const companyProfiles = [',
-      "  {\n    acceptsRequests: false,\n    announcement: null,",
+      '  {\n    acceptsRequests: false,\n    announcement: null,',
     )
 
     expect(police).toContain('Emergency = true')
@@ -56,7 +56,7 @@ describe('Companies emergency request contract', () => {
   it('authorizes configured emergency companies through the normal request gates', () => {
     const validation = sourceBlock(
       companiesServer,
-      'local function validate_configuration()',
+      'local function validate_configuration(configuration)',
       'local function seed_companies()',
     )
     const payload = sourceBlock(
@@ -103,9 +103,7 @@ describe('Companies emergency request contract', () => {
       '\n\nrefresh_runtime_configuration()',
     )
 
-    expect(migration).toContain(
-      'sky-phone:companies:requestable-emergency:v1',
-    )
+    expect(migration).toContain('sky-phone:companies:requestable-emergency:v1')
     expect(migration).toContain(
       'if definition.Emergency and definition.AcceptsRequests then',
     )
@@ -133,7 +131,9 @@ describe('Companies emergency request contract', () => {
     expect(migration).toContain(
       'police.AcceptsRequests = defaults.AcceptsRequests',
     )
-    expect(migration).toContain('police.Services = copy_value(defaults.Services)')
+    expect(migration).toContain(
+      'police.Services = copy_value(defaults.Services)',
+    )
     expect(migration).toContain('SET `config_payload` = ?')
     expect(migration).toContain('`revision` = `revision` + 1')
     expect(migration).toContain('INSERT IGNORE INTO `sky_phone_migrations`')

@@ -138,6 +138,7 @@ export type AdminConfiguratorStructure =
       template?: AdminConfiguratorStructure
     }
   | {
+      entryDefault?: unknown
       fields: Record<string, AdminConfiguratorStructure>
       kind: 'table'
       mutableKeys?: boolean

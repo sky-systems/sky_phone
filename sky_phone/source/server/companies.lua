@@ -156,12 +156,18 @@ local function permission_grade(definition, permission)
     return grade and math.max(0, math.floor(grade)) or nil
 end
 
-local function validate_configuration()
-    if type(Config.Companies) ~= "table" or type(Config.Companies.Definitions) ~= "table" then
-        error("[sky_phone] Config.Companies.Definitions must be configured.")
+local function validate_configuration(configuration)
+    local company_config = configuration.Companies
+    local validated_definitions = {}
+    local validated_definition_ids = {}
+    local validated_definitions_by_job = {}
+    local validated_service_lines_by_number = {}
+
+    if type(company_config) ~= "table" or type(company_config.Definitions) ~= "table" then
+        return nil, "[sky_phone] Config.Companies.Definitions must be configured."
     end
-    if type(Config.Companies.Enabled) ~= "boolean" then
-        error("[sky_phone] Config.Companies.Enabled must be a boolean.")
+    if type(company_config.Enabled) ~= "boolean" then
+        return nil, "[sky_phone] Config.Companies.Enabled must be a boolean."
     end
     for _, field in ipairs({
         { "PageSize", 1000 },
@@ -184,26 +190,26 @@ local function validate_configuration()
         { "AnnouncementMaximumSeconds", 31536000 },
         { "RetentionDays", 36500 },
     }) do
-        if not valid_integer(Config.Companies[field[1]], 1, field[2]) then
-            error(("[sky_phone] Config.Companies.%s is outside its supported range."):format(field[1]))
+        if not valid_integer(company_config[field[1]], 1, field[2]) then
+            return nil, ("[sky_phone] Config.Companies.%s is outside its supported range."):format(field[1])
         end
     end
-    if Config.Companies.PageSize > Config.Companies.MaximumPageSize then
-        error("[sky_phone] Companies PageSize cannot exceed MaximumPageSize.")
+    if company_config.PageSize > company_config.MaximumPageSize then
+        return nil, "[sky_phone] Companies PageSize cannot exceed MaximumPageSize."
     end
-    if type(Config.Companies.RateLimits) ~= "table" then
-        error("[sky_phone] Config.Companies.RateLimits must be configured.")
+    if type(company_config.RateLimits) ~= "table" then
+        return nil, "[sky_phone] Config.Companies.RateLimits must be configured."
     end
     for _, name in ipairs({ "Read", "Search", "CreateRequest", "Message", "RequestAction", "Profile", "CallAvailability" }) do
-        if not valid_integer(Config.Companies.RateLimits[name], 1, 100000) then
-            error(("[sky_phone] Companies rate limit '%s' is invalid."):format(name))
+        if not valid_integer(company_config.RateLimits[name], 1, 100000) then
+            return nil, ("[sky_phone] Companies rate limit '%s' is invalid."):format(name)
         end
     end
-    if type(Config.Companies.CallRouting) ~= "table"
-        or not valid_integer(Config.Companies.CallRouting.MaxAttempts, 1, 20)
-        or not valid_integer(Config.Companies.CallRouting.RingSeconds, 1, 120)
+    if type(company_config.CallRouting) ~= "table"
+        or not valid_integer(company_config.CallRouting.MaxAttempts, 1, 20)
+        or not valid_integer(company_config.CallRouting.RingSeconds, 1, 120)
     then
-        error("[sky_phone] Config.Companies.CallRouting is invalid.")
+        return nil, "[sky_phone] Config.Companies.CallRouting is invalid."
     end
     local configured_statuses = {
         new = true,
@@ -213,48 +219,48 @@ local function validate_configuration()
         completed = true,
         cancelled = true,
     }
-    if type(Config.Companies.Statuses) ~= "table" then
-        error("[sky_phone] Config.Companies.Statuses must be configured.")
+    if type(company_config.Statuses) ~= "table" then
+        return nil, "[sky_phone] Config.Companies.Statuses must be configured."
     end
     for status in pairs(configured_statuses) do
-        if Config.Companies.Statuses[status] ~= true then
-            error(("[sky_phone] Companies status '%s' must be enabled."):format(status))
+        if company_config.Statuses[status] ~= true then
+            return nil, ("[sky_phone] Companies status '%s' must be enabled."):format(status)
         end
     end
-    for status, enabled in pairs(Config.Companies.Statuses) do
+    for status, enabled in pairs(company_config.Statuses) do
         if not configured_statuses[status] or enabled ~= true then
-            error(("[sky_phone] Companies status '%s' is unsupported."):format(tostring(status)))
+            return nil, ("[sky_phone] Companies status '%s' is unsupported."):format(tostring(status))
         end
     end
-    if type(Config.Companies.AvailabilityStatuses) ~= "table" then
-        error("[sky_phone] Config.Companies.AvailabilityStatuses must be configured.")
+    if type(company_config.AvailabilityStatuses) ~= "table" then
+        return nil, "[sky_phone] Config.Companies.AvailabilityStatuses must be configured."
     end
     local configured_availability = { available = true, busy = true, closed = true }
     for _, status in ipairs({ "available", "busy", "closed" }) do
-        if Config.Companies.AvailabilityStatuses[status] ~= true then
-            error(("[sky_phone] Companies availability status '%s' must be enabled."):format(status))
+        if company_config.AvailabilityStatuses[status] ~= true then
+            return nil, ("[sky_phone] Companies availability status '%s' must be enabled."):format(status)
         end
     end
-    for status, enabled in pairs(Config.Companies.AvailabilityStatuses) do
+    for status, enabled in pairs(company_config.AvailabilityStatuses) do
         if not configured_availability[status] or enabled ~= true then
-            error(("[sky_phone] Companies availability status '%s' is unsupported."):format(tostring(status)))
+            return nil, ("[sky_phone] Companies availability status '%s' is unsupported."):format(tostring(status))
         end
     end
-    if not valid_array(Config.Companies.Categories, 100) then
-        error("[sky_phone] Config.Companies.Categories must be a bounded array.")
+    if not valid_array(company_config.Categories, 100) then
+        return nil, "[sky_phone] Config.Companies.Categories must be a bounded array."
     end
     local category_ids = {}
     local configured_service_ids = {}
-    for _, category_id in ipairs(Config.Companies.Categories) do
+    for _, category_id in ipairs(company_config.Categories) do
         if type(category_id) ~= "string" or #category_id > 64
             or not category_id:match("^[a-z0-9_-]+$") or category_ids[category_id]
         then
-            error("[sky_phone] Companies contains an invalid category ID.")
+            return nil, "[sky_phone] Companies contains an invalid category ID."
         end
         category_ids[category_id] = true
     end
 
-    for company_id, definition in pairs(Config.Companies.Definitions) do
+    for company_id, definition in pairs(company_config.Definitions) do
         if type(company_id) ~= "string" or #company_id > 64 or not company_id:match("^[a-z0-9_-]+$")
             or type(definition) ~= "table"
             or type(definition.Job) ~= "string" or #definition.Job > 64
@@ -262,25 +268,25 @@ local function validate_configuration()
             or not valid_text(definition.Name, 120, false)
             or not category_ids[definition.Category]
         then
-            error(("[sky_phone] Company definition '%s' is invalid."):format(tostring(company_id)))
+            return nil, ("[sky_phone] Company definition '%s' is invalid."):format(tostring(company_id))
         end
-        local description = valid_text(definition.Description or "", Config.Companies.ProfileDescriptionMaxLength, true)
-        local district = valid_text(definition.District or "", Config.Companies.DistrictMaxLength, true)
+        local description = valid_text(definition.Description or "", company_config.ProfileDescriptionMaxLength, true)
+        local district = valid_text(definition.District or "", company_config.DistrictMaxLength, true)
         local location_label = valid_text(
             definition.LocationLabel or definition.Address or "",
-            Config.Companies.DistrictMaxLength,
+            company_config.DistrictMaxLength,
             true
         )
-        local address = valid_text(definition.Address or "", Config.Companies.AddressMaxLength, true)
+        local address = valid_text(definition.Address or "", company_config.AddressMaxLength, true)
         local logo_url = valid_text(definition.LogoUrl, 2048, false)
         if not description or not district or not location_label or not address
             or type(definition.Public) ~= "boolean" or type(definition.Emergency) ~= "boolean"
             or type(definition.Verified) ~= "boolean" or type(definition.AcceptsRequests) ~= "boolean"
-            or not Config.Companies.AvailabilityStatuses[definition.DefaultAvailability]
+            or not company_config.AvailabilityStatuses[definition.DefaultAvailability]
             or not valid_text(definition.Icon, 64, false)
             or not logo_url or not logo_url:match("^https://[^%s]+$")
         then
-            error(("[sky_phone] Company definition '%s' has invalid public profile defaults."):format(company_id))
+            return nil, ("[sky_phone] Company definition '%s' has invalid public profile defaults."):format(company_id)
         end
         definition.Name = trim(definition.Name)
         definition.Description = description
@@ -291,7 +297,7 @@ local function validate_configuration()
         if definition.Location ~= nil then
             local location_type = type(definition.Location)
             if location_type ~= "table" and location_type ~= "vector3" then
-                error(("[sky_phone] Company definition '%s' has invalid location coordinates."):format(company_id))
+                return nil, ("[sky_phone] Company definition '%s' has invalid location coordinates."):format(company_id)
             end
             local x = tonumber(definition.Location.x)
             local y = tonumber(definition.Location.y)
@@ -299,46 +305,51 @@ local function validate_configuration()
             if not x or not y or not z or x ~= x or y ~= y or z ~= z
                 or math.abs(x) > 10000 or math.abs(y) > 10000 or math.abs(z) > 2000
             then
-                error(("[sky_phone] Company definition '%s' has invalid location coordinates."):format(company_id))
+                return nil, ("[sky_phone] Company definition '%s' has invalid location coordinates."):format(company_id)
             end
         end
-        if definitions_by_job[definition.Job] then
-            error(("[sky_phone] Framework job '%s' is assigned to more than one company."):format(definition.Job))
+        if validated_definitions_by_job[definition.Job] then
+            return nil, ("[sky_phone] Framework job '%s' is assigned to more than one company."):format(definition.Job)
         end
         local line = definition.ServiceLine
         if type(line) ~= "table" then
-            error(("[sky_phone] Company '%s' has no service line configuration."):format(company_id))
+            return nil, ("[sky_phone] Company '%s' has no service line configuration."):format(company_id)
         end
-        local number = SkyPhoneSimNumber.NormalizeService(line.Number, Config.Sim.NumberLength)
+        local number = SkyPhoneSimNumber.NormalizeService(line.Number, configuration.Sim.NumberLength)
         if not number then
-            error(("[sky_phone] Company '%s' has an invalid service number."):format(company_id))
+            return nil, ("[sky_phone] Company '%s' has an invalid service number."):format(company_id)
         end
-        if service_lines_by_number[number] then
-            error(("[sky_phone] Service number '%s' is assigned more than once."):format(number))
+        if validated_service_lines_by_number[number] then
+            return nil, ("[sky_phone] Service number '%s' is assigned more than once."):format(number)
         end
         if type(line.AutoContact) ~= "boolean" or type(line.CanCall) ~= "boolean"
             or type(line.CanMessage) ~= "boolean"
             or not valid_integer(line.MinimumGrade, 0, 10000)
         then
-            error(("[sky_phone] Company '%s' has invalid service line flags or grade."):format(company_id))
+            return nil, ("[sky_phone] Company '%s' has invalid service line flags or grade."):format(company_id)
         end
         if line.AutoContact and not definition.Public then
-            error(("[sky_phone] Private company '%s' cannot create a public system contact."):format(company_id))
+            return nil, ("[sky_phone] Private company '%s' cannot create a public system contact."):format(company_id)
         end
         if line.Routing ~= "round_robin" then
-            error(("[sky_phone] Company '%s' uses unsupported call routing '%s'."):format(company_id, tostring(line.Routing)))
+            return nil, ("[sky_phone] Company '%s' uses unsupported call routing '%s'."):format(
+                company_id,
+                tostring(line.Routing)
+            )
         end
         if line.CanMessage then
-            error(("[sky_phone] Company '%s' enables messaging without a virtual service-line message router."):format(company_id))
+            return nil, ("[sky_phone] Company '%s' enables messaging without a virtual service-line message router."):format(
+                company_id
+            )
         end
         line.Number = number
-        definitions[company_id] = definition
-        definition_ids[#definition_ids + 1] = company_id
-        definitions_by_job[definition.Job] = company_id
-        service_lines_by_number[number] = company_id
+        validated_definitions[company_id] = definition
+        validated_definition_ids[#validated_definition_ids + 1] = company_id
+        validated_definitions_by_job[definition.Job] = company_id
+        validated_service_lines_by_number[number] = company_id
         for _, permission in ipairs({ "WorkQueue", "Availability", "Assign", "Profile", "Hours", "Services", "Announcement" }) do
             if not definition.Permissions or not valid_integer(definition.Permissions[permission], 0, 10000) then
-                error(("[sky_phone] Company '%s' has no valid '%s' grade."):format(company_id, permission))
+                return nil, ("[sky_phone] Company '%s' has no valid '%s' grade."):format(company_id, permission)
             end
         end
         local default_services = definition.Services
@@ -346,40 +357,54 @@ local function validate_configuration()
             default_services = {}
             definition.Services = default_services
         end
-        if not valid_array(default_services, Config.Companies.MaximumServices) then
-            error(("[sky_phone] Company '%s' has an invalid default service list."):format(company_id))
+        if not valid_array(default_services, company_config.MaximumServices) then
+            return nil, ("[sky_phone] Company '%s' has an invalid default service list."):format(company_id)
         end
         for _, service in ipairs(default_services) do
             if type(service) ~= "table" then
-                error(("[sky_phone] Company '%s' has an invalid default service."):format(company_id))
+                return nil, ("[sky_phone] Company '%s' has an invalid default service."):format(company_id)
             end
-            local title = valid_text(service.Title, Config.Companies.ServiceTitleMaxLength, false)
+            local title = valid_text(service.Title, company_config.ServiceTitleMaxLength, false)
             local service_description = valid_text(
                 service.Description or "",
-                Config.Companies.ServiceDescriptionMaxLength,
+                company_config.ServiceDescriptionMaxLength,
                 true
             )
-            local price = valid_text(service.Price or "", Config.Companies.ServicePriceMaxLength, true)
+            local price = valid_text(service.Price or "", company_config.ServicePriceMaxLength, true)
             if not valid_service_id(service.Id) or not title or not service_description or not price
                 or type(service.RequestsEnabled) ~= "boolean"
             then
-                error(("[sky_phone] Company '%s' has an invalid default service."):format(company_id))
+                return nil, ("[sky_phone] Company '%s' has an invalid default service."):format(company_id)
             end
             service.Title = title
             service.Description = service_description
             service.Price = price
             if configured_service_ids[service.Id] then
-                error(("[sky_phone] Default company service ID '%s' is configured more than once."):format(service.Id))
+                return nil, ("[sky_phone] Default company service ID '%s' is configured more than once."):format(service.Id)
             end
             configured_service_ids[service.Id] = true
         end
     end
 
-    table.sort(definition_ids, function(left, right)
-        local left_name = definitions[left].Name:lower()
-        local right_name = definitions[right].Name:lower()
+    table.sort(validated_definition_ids, function(left, right)
+        local left_name = validated_definitions[left].Name:lower()
+        local right_name = validated_definitions[right].Name:lower()
         return left_name == right_name and left < right or left_name < right_name
     end)
+    return {
+        definition_ids = validated_definition_ids,
+        definitions = validated_definitions,
+        definitions_by_job = validated_definitions_by_job,
+        service_lines_by_number = validated_service_lines_by_number,
+    }
+end
+
+function SkyPhoneCompanies.ValidateConfiguration(configuration)
+    local validated, validation_error = validate_configuration(configuration)
+    if not validated then
+        return false, validation_error
+    end
+    return true
 end
 
 local function seed_companies()
@@ -947,11 +972,14 @@ local function cleanup_retained_data()
 end
 
 local function refresh_runtime_configuration()
-    definitions = {}
-    definition_ids = {}
-    definitions_by_job = {}
-    service_lines_by_number = {}
-    validate_configuration()
+    local validated, validation_error = validate_configuration(Config)
+    if not validated then
+        error(validation_error)
+    end
+    definitions = validated.definitions
+    definition_ids = validated.definition_ids
+    definitions_by_job = validated.definitions_by_job
+    service_lines_by_number = validated.service_lines_by_number
     seed_companies()
     migrate_requestable_emergency_companies()
     tombstone_removed_companies()

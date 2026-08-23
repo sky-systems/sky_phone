@@ -10,6 +10,10 @@ import { computed, ref } from 'vue'
 
 import { vConfigInputWidth } from '@/directives/configInputWidth'
 import type { AdminConfiguratorStructure } from '@/types/admin'
+import {
+  blankFromConfiguratorStructure,
+  createMutableTableEntry,
+} from '@/utils/adminConfiguratorDefaults'
 import type { AdminConfiguratorDescribe } from '@/utils/adminConfiguratorDescription'
 
 export type AdminConfigEditorLabels = {
@@ -342,40 +346,6 @@ function mapValuePath(entry: SerializedMapEntry): string {
   return props.path ? `${props.path}.${entry.key}` : String(entry.key)
 }
 
-function blankFromStructure(structure: AdminConfiguratorStructure): unknown {
-  if (structure.kind === 'optionalString') return ''
-  if (structure.kind === 'value') return blankValue(structure.valueType)
-  if (structure.kind === 'vector') {
-    const axes = ['x', 'y', 'z', 'w'].slice(
-      0,
-      Number(structure.vectorType.slice(-1)),
-    )
-    return Object.fromEntries([
-      ['__skyType', structure.vectorType],
-      ...axes.map((axis) => [axis, 0]),
-    ])
-  }
-  if (structure.kind === 'list') {
-    return structure.items.map(blankFromStructure)
-  }
-  if (structure.kind === 'map') {
-    return {
-      __skyType: 'map',
-      entries: structure.entries.map((entry) => ({
-        key: entry.key,
-        keyType: entry.keyType,
-        value: blankFromStructure(entry.structure),
-      })),
-    }
-  }
-  return Object.fromEntries(
-    Object.entries(structure.fields).map(([key, field]) => [
-      key,
-      blankFromStructure(field),
-    ]),
-  )
-}
-
 function updateScalar(event: Event): void {
   const target = event.target
   if (!(target instanceof HTMLInputElement)) return
@@ -413,7 +383,7 @@ function addListRow(): void {
   const value = rows.length
     ? blankLike(rows[0])
     : listTemplate.value
-      ? blankFromStructure(listTemplate.value)
+      ? blankFromConfiguratorStructure(listTemplate.value)
       : blankValue(newArrayKind.value)
   rows.push(value)
   emit('update:modelValue', rows)
@@ -476,12 +446,21 @@ function addTableField(): void {
   const template = tableStructure.value?.mutableKeys
     ? tableStructure.value.template
     : undefined
-  const value = template
-    ? blankFromStructure(template)
-    : blankCollectionValue(
-        newObjectKind.value,
-        Object.values(tableValue.value).filter((_, index) => index < 50),
+  const structuredValue = tableStructure.value?.mutableKeys
+    ? createMutableTableEntry(
+        tableStructure.value,
+        props.path,
+        key,
+        tableValue.value,
       )
+    : undefined
+  const value =
+    structuredValue !== undefined
+      ? structuredValue
+      : blankCollectionValue(
+          newObjectKind.value,
+          Object.values(tableValue.value).filter((_, index) => index < 50),
+        )
   emit('update:modelValue', {
     ...tableValue.value,
     [key]: value,
@@ -556,7 +535,7 @@ function addMapEntry(): void {
   if (!canAddMapEntry.value || parsedNewMapKey.value === null) return
   const key = parsedNewMapKey.value
   const value = mapTemplate.value
-    ? blankFromStructure(mapTemplate.value)
+    ? blankFromConfiguratorStructure(mapTemplate.value)
     : blankCollectionValue(
         newMapValueKind.value,
         mapEntries.value.slice(0, 50).map((entry) => entry.value),

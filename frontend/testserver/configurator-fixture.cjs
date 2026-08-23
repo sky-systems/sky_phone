@@ -476,6 +476,66 @@ function emptyStructure(scope, path) {
   return undefined
 }
 
+function companyDefinitionEntryDefault(definitions) {
+  const firstDefinition = definitions[Object.keys(definitions).sort()[0]]
+  const usedNumbers = new Set(
+    Object.values(definitions).map((definition) =>
+      String(definition.ServiceLine.Number).replace(/\D/g, ''),
+    ),
+  )
+  let serviceNumber = ''
+  for (let offset = 0; offset < 999; offset += 1) {
+    const candidate = String(((499 + offset) % 999) + 1).padStart(3, '0')
+    if (!usedNumbers.has(candidate)) {
+      serviceNumber = candidate
+      break
+    }
+  }
+  return {
+    AcceptsRequests: true,
+    Address: '',
+    Category: firstDefinition.Category,
+    DefaultAvailability: 'closed',
+    Description: '',
+    District: '',
+    Emergency: false,
+    Icon: 'building',
+    Job: '',
+    Location: { __skyType: 'vector3', x: 0, y: 0, z: 0 },
+    LocationLabel: '',
+    LogoUrl: 'https://picsum.photos/seed/companies-new-logo/180/180',
+    Name: '',
+    Permissions: {
+      Announcement: 0,
+      Assign: 0,
+      Availability: 0,
+      Hours: 0,
+      Profile: 0,
+      Services: 0,
+      WorkQueue: 0,
+    },
+    Public: true,
+    ServiceLine: {
+      AutoContact: true,
+      CanCall: true,
+      CanMessage: false,
+      MinimumGrade: 0,
+      Number: serviceNumber,
+      Routing: 'round_robin',
+    },
+    Services: [
+      {
+        Description: '',
+        Id: '',
+        Price: '',
+        RequestsEnabled: true,
+        Title: '',
+      },
+    ],
+    Verified: false,
+  }
+}
+
 function buildStructure(value, scope, path) {
   if (scope === 'config' && path === 'Phone.Keybind') {
     return { kind: 'optionalString' }
@@ -495,6 +555,7 @@ function buildStructure(value, scope, path) {
       ]),
     )
     return {
+      entryDefault: companyDefinitionEntryDefault(value),
       fields,
       kind: 'table',
       mutableKeys: true,
