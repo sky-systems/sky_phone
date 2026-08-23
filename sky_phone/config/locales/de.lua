@@ -1228,7 +1228,7 @@ Locales["de"] = {
             },
             skyride = {
                 name = "SkyRide", loading = "Laden SkyRide", unavailable = "SkyRide nicht verfügbar", tryAgain = "Erneut versuchen",
-                mode = { rider = "Reiten", driver = "Antrieb" },
+                mode = { rider = "Passagier", driver = "Fahrer" },
                 riderEyebrow = "Fahr irgendwohin.", whereTo = "Wohin?", pickup = "Abholung", destination = "Ziel",
                 currentLocation = "Aktueller Standort", notSelected = "Nicht ausgewählt", location = "Wähle einen Ort",
                 chooseLocation = { pickup = "Abholvorgang einstellen", destination = "Ziel auswählen" },
