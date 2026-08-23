@@ -12,9 +12,10 @@ local front_camera_target_height = 0.03
 local front_camera_horizontal_limit = 75.0
 local front_camera_vertical_limit = 35.0
 local front_camera_rotate_speed = 5.0
+local camera_passthrough_control = 22 -- INPUT_JUMP (Space by default)
 local blocked_camera_controls = {
     0, -- INPUT_NEXT_CAMERA
-    22, -- INPUT_JUMP
+    camera_passthrough_control,
     24, -- INPUT_ATTACK
     25, -- INPUT_AIM
     37, -- INPUT_SELECT_WEAPON
@@ -223,7 +224,9 @@ local function watch_camera_controls()
         while camera_state.active do
             apply_camera_controls()
             if not camera_state.walkable then
-                local should_focus = camera_state.locked or not SkyPhoneFocus.IsHoldToLookPressed()
+                local passthrough_pressed = SkyPhoneFocus.IsHoldToLookPressed()
+                    or IsDisabledControlPressed(0, camera_passthrough_control)
+                local should_focus = camera_state.locked or not passthrough_pressed
                 if camera_state.nui_focused ~= should_focus then
                     set_camera_focus(should_focus)
                 end

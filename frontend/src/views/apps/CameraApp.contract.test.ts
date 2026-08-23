@@ -96,7 +96,7 @@ describe('Camera app controls', () => {
     expect(cameraClient).not.toContain('ensure_ultrawide_camera')
   })
 
-  it('uses the configured HoldToLook control in camera modes', () => {
+  it('uses the configured HoldToLook control and Space in camera modes', () => {
     expect(cameraView).not.toContain("event.code !== 'Space'")
     expect(cameraView).not.toContain("window.addEventListener('keydown'")
     expect(focusClient).toContain(
@@ -106,6 +106,9 @@ describe('Camera app controls', () => {
       'IsDisabledControlPressed(0, hold_to_look_control)',
     )
     expect(cameraClient).toContain('SkyPhoneFocus.IsHoldToLookPressed()')
+    expect(cameraClient).toContain(
+      'IsDisabledControlPressed(0, camera_passthrough_control)',
+    )
     expect(cameraClient).toMatch(
       /if data\.active then\s+watch_camera_controls\(\)/,
     )

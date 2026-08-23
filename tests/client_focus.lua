@@ -264,6 +264,9 @@ disabled_controls = {}
 firing_disabled = false
 SkyPhoneFocus.ApplyGameInputControls(false)
 assert(not disabled_controls[1] and not disabled_controls[2], "camera passthrough must preserve camera look")
+for _, control in ipairs({ 30, 31, 32, 33, 34, 35 }) do
+    assert(not disabled_controls[control], ("camera passthrough must preserve movement control %d"):format(control))
+end
 assert(firing_disabled, "player attacks must remain disabled during camera passthrough")
 
 local movable_notification = resolve({ allow_movement = true, notification_focus = true })
@@ -297,8 +300,15 @@ assert(
         and focused_camera.focused
         and not focused_camera.keep_input
         and not focused_camera.game_input,
-    "focused camera must override movement configuration until Space enables passthrough"
+    "focused camera must override movement configuration until a camera passthrough control is held"
 )
+
+event_handlers["sky_phone:client:setCameraFocus"]({ active = true, nuiFocused = false })
+assert(
+    nui_focus.focused and not nui_focus.cursor and nui_keep_input,
+    "camera passthrough must apply keyboard focus without a cursor and keep GTA input enabled"
+)
+event_handlers["sky_phone:client:setCameraFocus"]({ active = false, nuiFocused = true })
 
 local camera_interrupted_by_call = resolve({
     call_focus = true,

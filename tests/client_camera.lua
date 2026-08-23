@@ -7,7 +7,10 @@ local scripted_camera_rendering = false
 local event_handlers = {}
 local threads = {}
 local hold_to_look_pressed = false
+local disabled_controls = {}
+local disabled_pressed_controls = {}
 local disabled_control_normals = {}
+local triggered_events = {}
 local thread_stop = {}
 
 SkyPhoneFocus = {
@@ -46,7 +49,9 @@ function RegisterNetEvent() end
 function AddEventHandler(name, callback)
     event_handlers[name] = callback
 end
-function TriggerEvent() end
+function TriggerEvent(name, data)
+    triggered_events[#triggered_events + 1] = { name = name, data = data }
+end
 function TriggerServerEvent() end
 function SendNUIMessage() end
 function CreateThread(callback)
@@ -64,11 +69,18 @@ function DisplayRadar() end
 function SetFollowPedCamViewMode() end
 function SetFollowVehicleCamViewMode() end
 function IsPedInAnyVehicle() return false end
-function DisableControlAction() end
+function DisableControlAction(group, control, disabled)
+    assert(group == 0 and disabled, "camera controls must be disabled in the primary input group")
+    disabled_controls[control] = true
+end
 function DisablePlayerFiring() end
 function HideHudAndRadarThisFrame() end
 function GetCurrentResourceName() return "sky_phone" end
 function IsDisabledControlJustPressed() return false end
+function IsDisabledControlPressed(group, control)
+    assert(group == 0, "camera passthrough must read the primary input group")
+    return disabled_pressed_controls[control] == true
+end
 function GetDisabledControlNormal(_, control) return disabled_control_normals[control] or 0.0 end
 
 function GetEntityCoords()
@@ -145,15 +157,25 @@ event_handlers["sky_phone:client:cameraFocusApplied"]({
     focused = true,
     gameInput = true,
 })
-hold_to_look_pressed = true
+disabled_pressed_controls[22] = true
 disabled_control_normals[1] = 0.2
 local watcher_ok, watcher_error = pcall(threads[2])
 assert(not watcher_ok and watcher_error == thread_stop, "camera watcher must run one controlled frame")
+local camera_focus_event = triggered_events[#triggered_events]
+assert(
+    camera_focus_event.name == "sky_phone:client:setCameraFocus"
+        and camera_focus_event.data.active
+        and not camera_focus_event.data.nuiFocused,
+    "holding Space must release the camera cursor for simultaneous look and movement"
+)
+for _, control in ipairs({ 30, 31, 32, 33, 34, 35 }) do
+    assert(not disabled_controls[control], ("camera passthrough must preserve movement control %d"):format(control))
+end
 local camera_ok, camera_error = pcall(threads[1])
 assert(not camera_ok and camera_error == thread_stop, "selfie camera must render one controlled frame")
 assert(not close_enough(camera_coord.x, 10.0), "horizontal look input must orbit the selfie camera around the player")
 assert(camera_coord.y < 21.05, "selfie orbit must retain its configured distance from the player")
-hold_to_look_pressed = false
+disabled_pressed_controls[22] = false
 disabled_control_normals[1] = 0.0
 
 assert(response_from("camera:setFacing", { front = false }).success)
