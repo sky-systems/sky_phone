@@ -279,7 +279,6 @@ local function validate_configuration()
             or not Config.Companies.AvailabilityStatuses[definition.DefaultAvailability]
             or not valid_text(definition.Icon, 64, false)
             or not logo_url or not logo_url:match("^https://[^%s]+$")
-            or (definition.Emergency and definition.AcceptsRequests)
         then
             error(("[sky_phone] Company definition '%s' has invalid public profile defaults."):format(company_id))
         end
@@ -464,6 +463,48 @@ local function seed_companies()
         end
     end
 
+end
+
+local function migrate_requestable_emergency_companies()
+    local migration_name = "sky-phone:companies:requestable-emergency:v1"
+    local completed = Bridge.Database.Query(
+        "SELECT 1 FROM `sky_phone_migrations` WHERE `name` = ? LIMIT 1",
+        { migration_name }
+    )
+    if completed[1] then
+        return
+    end
+
+    local statements = {}
+    local migrated_companies = {}
+    for _, company_id in ipairs(definition_ids) do
+        local definition = definitions[company_id]
+        if definition.Emergency and definition.AcceptsRequests then
+            statements[#statements + 1] = {
+                query = [[
+                    UPDATE `sky_phone_company_profiles`
+                    SET `accepts_requests` = 1, `revision` = `revision` + 1
+                    WHERE `company_id` = ? AND `accepts_requests` = 0
+                ]],
+                params = { company_id },
+            }
+            migrated_companies[#migrated_companies + 1] = company_id
+        end
+    end
+    statements[#statements + 1] = {
+        query = [[
+            INSERT IGNORE INTO `sky_phone_migrations` (`name`, `source`, `stats`)
+            VALUES (?, ?, ?)
+        ]],
+        params = {
+            migration_name,
+            "sky-phone",
+            json.encode({ companies = migrated_companies }),
+        },
+    }
+    if not Bridge.Database.Transaction(statements) then
+        error("[sky_phone] Could not migrate requestable emergency company profiles.")
+    end
 end
 
 local function tombstone_removed_companies()
@@ -826,7 +867,7 @@ local function company_payload(company_id, include_inactive_services)
         availability = availability,
         availabilityUpdatedAt = iso_time(row.availability_updated_at_unix)
             or iso_time(row.updated_at_unix),
-        acceptsRequests = tonumber(row.accepts_requests) == 1 and not definition.Emergency,
+        acceptsRequests = tonumber(row.accepts_requests) == 1,
         phoneNumber = line and line.Number or nil,
         canCall = line and line.CanCall == true or false,
         canMessage = line and line.CanMessage == true or false,
@@ -912,6 +953,7 @@ local function refresh_runtime_configuration()
     service_lines_by_number = {}
     validate_configuration()
     seed_companies()
+    migrate_requestable_emergency_companies()
     tombstone_removed_companies()
 end
 
@@ -1839,7 +1881,7 @@ Bridge.Callbacks.Register("sky_phone:companies:create-request", function(source,
     end
     local company_id = data.companyId
     local definition = type(company_id) == "string" and definitions[company_id] or nil
-    if not definition or not definition.Public or definition.Emergency then
+    if not definition or not definition.Public then
         return { success = false, error = "company_not_found" }
     end
     local subject = valid_text(data.subject, Config.Companies.SubjectMaxLength, false)
@@ -2636,7 +2678,6 @@ Bridge.Callbacks.Register("sky_phone:companies:update-profile", function(source,
     local address = valid_text(data.address, Config.Companies.AddressMaxLength, true)
     if not revision or not description or not district or not location_label or not address
         or type(data.acceptsRequests) ~= "boolean"
-        or (member.definition.Emergency and data.acceptsRequests)
     then
         return { success = false, error = "invalid_profile" }
     end

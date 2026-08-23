@@ -135,6 +135,49 @@ describe('admin configurator fixture', () => {
     ).toBe('map')
   })
 
+  it('exposes the requestable police assistance defaults', () => {
+    const companyJobs = loadConfiguratorSections()
+      .flatMap((section) => section.fields)
+      .find((field) => field.path === 'Companies.Definitions')
+    const police = (
+      companyJobs?.value as
+        | Record<string, Record<string, unknown>>
+        | undefined
+    )?.police
+
+    expect(police).toMatchObject({
+      AcceptsRequests: true,
+      Emergency: true,
+      Services: [
+        {
+          Id: 'police-assistance',
+          RequestsEnabled: true,
+        },
+      ],
+    })
+    expect(
+      companyJobs?.structure?.fields?.police.fields?.Services,
+    ).toMatchObject({
+      items: [
+        {
+          fields: {
+            Id: { kind: 'value', valueType: 'string' },
+            RequestsEnabled: { kind: 'value', valueType: 'boolean' },
+          },
+          kind: 'table',
+        },
+      ],
+      kind: 'list',
+      template: {
+        fields: {
+          Id: { kind: 'value', valueType: 'string' },
+          RequestsEnabled: { kind: 'value', valueType: 'boolean' },
+        },
+        kind: 'table',
+      },
+    })
+  })
+
   it('publishes fixed schemas for every empty configurable collection', () => {
     const fields = loadConfiguratorSections().flatMap(
       (section) => section.fields,
@@ -183,7 +226,7 @@ describe('admin configurator fixture', () => {
       template: { kind: 'value', valueType: 'string' },
     })
     expect(
-      root('Companies.Definitions')?.fields?.police.fields?.Services,
+      root('Companies.Definitions')?.fields?.ambulance.fields?.Services,
     ).toMatchObject({
       items: [],
       kind: 'list',

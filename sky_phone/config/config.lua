@@ -1181,7 +1181,7 @@ if IsDuplicityVersion() then
                 LogoUrl = "https://picsum.photos/seed/companies-police-logo/180/180",
                 Description = "Public safety, emergency response, and police services.",
                 DefaultAvailability = "closed",
-                AcceptsRequests = false,
+                AcceptsRequests = true,
                 District = "Mission Row",
                 LocationLabel = "Mission Row Police Station",
                 Address = "Mission Row Police Station",
@@ -1203,7 +1203,15 @@ if IsDuplicityVersion() then
                     Services = 3,
                     Announcement = 3,
                 },
-                Services = {},
+                Services = {
+                    {
+                        Id = "police-assistance",
+                        Title = "Police assistance",
+                        Description = "Request non-emergency police assistance.",
+                        Price = "",
+                        RequestsEnabled = true,
+                    },
+                },
             },
             ambulance = {
                 Job = "ambulance",

@@ -4178,7 +4178,7 @@ const companyCategories = [
 let companyCallAvailable = false
 const companyProfiles = [
   {
-    acceptsRequests: false,
+    acceptsRequests: true,
     announcement: {
       body: 'Community traffic unit active around Legion Square.',
       expiresAt: isoTime(6 * 60 * 60 * 1000),
@@ -4202,28 +4202,20 @@ const companyProfiles = [
       label: 'Mission Row Police Station',
     },
     logoUrl: 'https://picsum.photos/seed/companies-police-logo/180/180',
-    name: 'Los Santos Police',
+    name: 'Los Santos Police Department',
     phoneNumber: '911',
     revision: 3,
     services: [
       {
-        acceptsRequests: false,
+        acceptsRequests: true,
         active: true,
-        description: 'Immediate police response through the service line.',
-        id: 'emergency-response',
+        description: 'Request non-emergency police assistance.',
+        id: 'police-assistance',
         priceText: null,
-        title: 'Emergency Response',
-      },
-      {
-        acceptsRequests: false,
-        active: true,
-        description: 'General information and non-emergency assistance.',
-        id: 'public-assistance',
-        priceText: null,
-        title: 'Public Assistance',
+        title: 'Police Assistance',
       },
     ],
-    serviceSummary: 'Emergency response and public assistance',
+    serviceSummary: 'Non-emergency police assistance',
     verified: true,
   },
   {

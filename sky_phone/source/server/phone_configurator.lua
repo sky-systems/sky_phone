@@ -1075,6 +1075,69 @@ local function apply_stored_row(row)
     updated_by_name = row.updated_by_name
 end
 
+local function migrate_police_request_defaults()
+    local migration_name = "sky-phone:configurator:police-requests:v1"
+    local completed = Bridge.Database.Query(
+        "SELECT 1 FROM `sky_phone_migrations` WHERE `name` = ? LIMIT 1",
+        { migration_name }
+    )
+    if completed[1] then
+        return
+    end
+
+    local row = read_stored_row()
+    local config_payload = decode_payload(row.config_payload, "config")
+    local police = config_payload.Companies
+        and config_payload.Companies.Definitions
+        and config_payload.Companies.Definitions.police
+    local migrated = type(police) == "table"
+        and police.Emergency == true
+        and police.AcceptsRequests == false
+        and type(police.Services) == "table"
+        and next(police.Services) == nil
+    local statements = {}
+    if migrated then
+        local defaults = default_config.Companies.Definitions.police
+        police.AcceptsRequests = defaults.AcceptsRequests
+        police.Services = copy_value(defaults.Services)
+        statements[#statements + 1] = {
+            query = ([[
+                UPDATE `%s`
+                SET `config_payload` = ?, `revision` = `revision` + 1
+                WHERE `id` = ?
+            ]]):format(TABLE_NAME),
+            params = { encode_payload(config_payload, "config"), CONFIG_ROW_ID },
+        }
+    end
+    statements[#statements + 1] = {
+        query = [[
+            INSERT IGNORE INTO `sky_phone_migrations` (`name`, `source`, `stats`)
+            VALUES (?, ?, ?)
+        ]],
+        params = {
+            migration_name,
+            "sky-phone",
+            json.encode({ migrated = migrated }),
+        },
+    }
+    if not Bridge.Database.Transaction(statements) then
+        error("[sky_phone] Could not migrate Phone Configurator police request defaults.")
+    end
+    if not migrated then
+        return
+    end
+
+    apply_stored_row(read_stored_row())
+    apply_runtime_configuration()
+    TriggerEvent("sky_phone:configurator:serverUpdated", revision)
+    SkyPhoneConfigurator.Broadcast(-1)
+    Bridge.Debug(
+        "info",
+        "[sky_phone] Migrated Phone Configurator police request defaults.",
+        { always = true }
+    )
+end
+
 default_config = {}
 for key, value in pairs(ConfigDefaults) do
     if key ~= "Media" and key ~= "PhoneConfigurator" and key ~= "CommandPermissions" then
@@ -1095,6 +1158,7 @@ Bridge.Database.Query(([[
 
 apply_stored_row(read_stored_row())
 apply_runtime_configuration()
+Bridge.Database.AfterMigration("sky_phone", migrate_police_request_defaults)
 
 function SkyPhoneConfigurator.GetAdminData()
     local data = build_admin_data()
