@@ -46,10 +46,16 @@ describe('fixed server permissions', () => {
       expect(configurator).toContain(`["${path}"] = true`)
     }
     expect(configurator).toContain(
-      'Phone Configurator enabled: file-based settings from config.lua',
+      'SKY PHONE CONFIGURATION FILES ARE DISABLED',
     )
     expect(configurator).toContain(
-      '(except Config.CommandPermissions) and media.lua are disabled',
+      '^1 Runtime settings from config.lua and media.lua are DISABLED.^0',
+    )
+    expect(configurator).toContain(
+      '^1 Configure all phone and media settings IN GAME through /phonepanel.^0',
+    )
+    expect(configurator).toContain(
+      '^1 Only Config.PhoneConfigurator.Enabled and Config.CommandPermissions remain file-based.^0',
     )
   })
 
