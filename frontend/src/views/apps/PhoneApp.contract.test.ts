@@ -63,6 +63,21 @@ describe('PhoneApp EasyShare contract', () => {
     expect(source).not.toContain('rgba(10, 132, 255')
   })
 
+  it('keeps contact profiles readable in light mode', () => {
+    expect(source).toMatch(
+      /\.phone-app--light\.phone-calls-app--profile\s*\{[^}]*color:\s*var\(--sky-text\);[^}]*background:\s*var\(--sky-bg\) !important;/s,
+    )
+    expect(source).toMatch(
+      /\.phone-app--light \.phone-profile-action\s*\{[^}]*color:\s*var\(--sky-text\) !important;/s,
+    )
+    expect(source).toMatch(
+      /\.phone-app--light \.phone-profile-action:disabled\s*\{[^}]*color:\s*var\(--sky-subtle\) !important;/s,
+    )
+    expect(source).toMatch(
+      /\.phone-app--light \.phone-profile-card,[\s\S]*?\.phone-app--light \.phone-history-card\s*\{[^}]*color:\s*var\(--sky-text\);[^}]*background:\s*var\(--sky-glass\);/,
+    )
+  })
+
   it('opens contact deep links only after contacts bootstrap and consumes the query', () => {
     const mounted = source.slice(
       source.indexOf('onMounted(async () => {'),
