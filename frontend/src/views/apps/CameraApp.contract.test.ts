@@ -6,6 +6,15 @@ const cameraView = readFileSync(
   new URL('./CameraApp.vue', import.meta.url),
   'utf8',
 )
+const appShell = readFileSync(new URL('../../App.vue', import.meta.url), 'utf8')
+const appWindow = readFileSync(
+  new URL('../PhoneAppWindow.vue', import.meta.url),
+  'utf8',
+)
+const shellStyles = readFileSync(
+  new URL('../../assets/main.css', import.meta.url),
+  'utf8',
+)
 const mediaCapture = readFileSync(
   new URL('../../components/PhoneMediaCapture.vue', import.meta.url),
   'utf8',
@@ -45,6 +54,99 @@ describe('Camera app controls', () => {
     expect(cameraView).not.toContain('SkyPillNavigation')
     expect(cameraView).not.toContain('k-segmented')
     expect(cameraView).not.toContain('k-navbar')
+  })
+
+  it('stays dark when the global phone appearance is light', () => {
+    const cameraPageTag = cameraView.match(/<sky-app-page\b[^>]*>/s)?.[0]
+
+    expect(cameraPageTag).toBeDefined()
+    expect(cameraPageTag).toMatch(/\bdark\b/)
+    expect(cameraView).toMatch(
+      /\.camera-page\s*\{[^}]*--sky-bg:\s*#000;[^}]*--sky-text:\s*#fff;[^}]*background:\s*var\(--sky-bg\);[^}]*color:\s*var\(--sky-text\);/s,
+    )
+  })
+
+  it('fills the translucent landscape shell without letterbox gaps', () => {
+    const landscapeViewport = cameraView.match(
+      /\.camera-page--landscape \.camera-viewport\s*\{([^}]*)\}/s,
+    )?.[1]
+
+    expect(cameraView).toMatch(
+      /\.camera-page--landscape\s*\{[^}]*--sky-bg:\s*rgba\(0, 0, 0, 0\.42\);/s,
+    )
+    expect(landscapeViewport).toBeDefined()
+    expect(landscapeViewport).toContain('top: 50%')
+    expect(landscapeViewport).toContain(
+      'width: calc(100% * var(--phone-screen-portrait-ratio))',
+    )
+    expect(landscapeViewport).toContain(
+      'aspect-ratio: var(--phone-screen-portrait-ratio)',
+    )
+    expect(landscapeViewport).not.toContain('16 / 9')
+    expect(cameraView).toMatch(
+      /\.camera-page--landscape \.camera-shade\s*\{[^}]*linear-gradient\([^)]*90deg,[^)]*rgba\(0, 0, 0, 0\.42\) 0 18%,[^)]*transparent 18% 75%,[^)]*rgba\(0, 0, 0, 0\.42\) 75% 100%/s,
+    )
+    expect(appShell).toMatch(
+      /'phone-screen--camera-landscape':\s*activeAppId === 'camera' && phone\.cameraLandscape/,
+    )
+    expect(appWindow).toMatch(
+      /'app-window--camera-landscape':\s*app\.id === 'camera' && phone\.cameraLandscape/,
+    )
+    expect(shellStyles).toMatch(
+      /\.phone-screen\s*\{[^}]*--phone-screen-portrait-ratio:\s*2\.30951;/s,
+    )
+    expect(shellStyles).toMatch(
+      /\.phone-screen--camera-landscape\s*\{[^}]*background:\s*transparent;/s,
+    )
+    expect(shellStyles).toMatch(
+      /\.phone-screen--camera-landscape \.springboard\s*\{[^}]*visibility:\s*hidden;/s,
+    )
+    expect(shellStyles).toMatch(
+      /\.app-window--camera-landscape\s*\{[^}]*background:\s*transparent;/s,
+    )
+  })
+
+  it('renders camera notices as plain text without a glass pill', () => {
+    const noticeMarkup = cameraView.slice(
+      cameraView.indexOf('<span v-if="noticeText"'),
+      cameraView.indexOf('<span v-else-if="pendingCount"'),
+    )
+    const noticeStyles = cameraView.match(
+      /\.camera-notice-text\s*,[\s\S]*?\{([^}]*)\}/,
+    )?.[1]
+
+    expect(noticeMarkup).toContain('class="camera-notice-text"')
+    expect(noticeMarkup).not.toContain('camera-focus-pill')
+    expect(noticeStyles).toBeDefined()
+    expect(noticeStyles).toContain('color: #ffd60a')
+    expect(noticeStyles).not.toMatch(
+      /(?:background|backdrop-filter|border-radius|padding)\s*:/,
+    )
+  })
+
+  it('uses the current compact lens selector treatment', () => {
+    const zoomControl = cameraView.slice(
+      cameraView.indexOf('<div class="camera-zoom-control">'),
+      cameraView.indexOf('<footer class="camera-controls">'),
+    )
+
+    expect(zoomControl).toContain('variant="plain"')
+    expect(zoomControl).not.toContain('glass')
+    expect(zoomControl).toContain('{{ zoomPresetLabel(zoom) }}')
+    expect(cameraView).toContain("return zoom === 0.5 ? '.5' : `${zoom}`")
+    expect(cameraView).toMatch(
+      /\.camera-zoom-control\s*\{[^}]*bottom:\s*216px;/s,
+    )
+    expect(cameraView).toMatch(/\.camera-zoom-row\s*\{[^}]*gap:\s*10px;/s)
+    expect(cameraView).toMatch(
+      /\.camera-zoom-pill\s*\{[^}]*width:\s*36px;[^}]*min-width:\s*36px;[^}]*height:\s*36px;[^}]*min-height:\s*36px;[^}]*padding:\s*0;/s,
+    )
+    expect(cameraView).toMatch(
+      /\.camera-zoom-pill::before\s*\{[^}]*width:\s*var\(--sky-touch-target, 44px\);[^}]*inset-block:\s*-4px;/s,
+    )
+    expect(cameraView).toMatch(
+      /\.camera-zoom-pill\.active\s*\{[^}]*color:\s*#ffd60a;[^}]*background:\s*rgba\(28, 28, 30, 0\.78\);/s,
+    )
   })
 
   it('keeps continuous wheel zoom without an extra slider bar', () => {

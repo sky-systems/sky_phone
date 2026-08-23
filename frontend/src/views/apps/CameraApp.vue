@@ -77,6 +77,16 @@ const pendingCount = computed(
   () =>
     captures.value.filter((capture) => capture.status === 'uploading').length,
 )
+
+function zoomPresetIsActive(zoom: (typeof zoomLevels)[number]): boolean {
+  return Math.abs(selectedZoom.value - zoom) < 0.03
+}
+
+function zoomPresetLabel(zoom: (typeof zoomLevels)[number]): string {
+  if (zoomPresetIsActive(zoom)) return `${zoom}x`
+  return zoom === 0.5 ? '.5' : `${zoom}`
+}
+
 function correlationId(): string {
   return `${Date.now()}-${crypto.randomUUID()}`
 }
@@ -453,6 +463,7 @@ onBeforeUnmount(() => {
     class="camera-page"
     :class="{ 'camera-page--landscape': phone.cameraLandscape }"
     :aria-label="phone.t('Apps.camera.name')"
+    dark
   >
     <div class="camera-viewport" @wheel.prevent.stop="zoomWithWheel">
       <canvas
@@ -526,10 +537,7 @@ onBeforeUnmount(() => {
           </template>
         </sky-fab>
       </div>
-      <span
-        v-if="noticeText"
-        class="camera-focus-pill camera-focus-pill--notice"
-      >
+      <span v-if="noticeText" class="camera-notice-text">
         {{ noticeText }}
       </span>
       <span v-else-if="pendingCount" class="camera-upload-pill">
@@ -585,16 +593,16 @@ onBeforeUnmount(() => {
         <SkyButton
           v-for="zoom in zoomLevels"
           :key="zoom"
-          glass
           rounded
+          variant="plain"
           class="camera-zoom-pill"
-          :class="{ active: Math.abs(selectedZoom - zoom) < 0.03 }"
+          :class="{ active: zoomPresetIsActive(zoom) }"
           type="button"
           :aria-label="phone.t('Apps.camera.zoom', { zoom: `${zoom}x` })"
-          :aria-pressed="Math.abs(selectedZoom - zoom) < 0.03"
+          :aria-pressed="zoomPresetIsActive(zoom)"
           @click="setZoom(zoom)"
         >
-          {{ zoom }}x
+          {{ zoomPresetLabel(zoom) }}
         </SkyButton>
       </div>
     </div>
@@ -685,10 +693,15 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .camera-page {
+  --sky-bg: #000;
+  --sky-text: #fff;
   position: relative;
   overflow: clip;
-  background: #000;
-  color: #fff;
+  background: var(--sky-bg);
+  color: var(--sky-text);
+}
+.camera-page--landscape {
+  --sky-bg: rgba(0, 0, 0, 0.42);
 }
 .camera-viewport {
   position: absolute;
@@ -700,11 +713,11 @@ onBeforeUnmount(() => {
   transform: translateY(-50%);
 }
 .camera-page--landscape .camera-viewport {
-  top: 46%;
+  top: 50%;
   left: 50%;
-  width: calc(100% * 16 / 9);
+  width: calc(100% * var(--phone-screen-portrait-ratio));
   height: auto;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--phone-screen-portrait-ratio);
   transform: translate(-50%, -50%) rotate(90deg);
 }
 .camera-game-view,
@@ -761,6 +774,16 @@ onBeforeUnmount(() => {
 .camera-shade {
   pointer-events: none;
   background: linear-gradient(#0008, transparent 22%);
+}
+.camera-page--landscape .camera-shade {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.42) 0 18%,
+      transparent 18% 75%,
+      rgba(0, 0, 0, 0.42) 75% 100%
+    ),
+    linear-gradient(#0008, transparent 22%);
 }
 .camera-flash {
   z-index: 8;
@@ -822,25 +845,22 @@ onBeforeUnmount(() => {
 .camera-page--landscape .camera-latest svg {
   transform: rotate(90deg);
 }
-.camera-focus-pill:not(.sky-button--glass),
 .camera-upload-pill {
-  min-width: 0;
   padding: 7px 10px;
-  overflow: hidden;
   border-radius: 999px;
   background: #0006;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.camera-notice-text,
+.camera-upload-pill {
+  min-width: 0;
+  color: #ffd60a;
+  overflow: hidden;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-.camera-upload-pill {
-  color: #ffd60a;
-}
-.camera-focus-pill--notice {
-  color: #ffd60a;
 }
 .camera-lock-control {
   min-height: 44px;
@@ -891,7 +911,7 @@ onBeforeUnmount(() => {
 .camera-zoom-control {
   position: absolute;
   z-index: 4;
-  bottom: 196px;
+  bottom: 216px;
   left: 50%;
   width: auto;
   transform: translateX(-50%);
@@ -899,16 +919,19 @@ onBeforeUnmount(() => {
 .camera-zoom-row {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 .camera-zoom-pill {
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  min-height: 44px;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
   padding: 0;
+  border: 0;
   color: #fff;
-  font-size: 10px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
   text-align: center;
   transition:
     background-color 0.2s ease,
@@ -916,8 +939,20 @@ onBeforeUnmount(() => {
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
+.camera-zoom-pill::before {
+  width: var(--sky-touch-target, 44px);
+  inset-block: -4px;
+}
 .camera-zoom-pill.active {
   color: #ffd60a;
+  background: rgba(28, 28, 30, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.camera-zoom-pill:active:not(:disabled) {
+  background: rgba(28, 28, 30, 0.42);
+}
+.camera-zoom-pill.active:active:not(:disabled) {
+  background: rgba(28, 28, 30, 0.86);
 }
 .camera-controls {
   position: absolute;
