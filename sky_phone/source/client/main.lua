@@ -13,9 +13,7 @@ local suggested_admin_command = nil
 local suggested_test_data_command = nil
 local active_development_command = nil
 local registered_development_commands = {}
-local active_key_mapping_command = nil
-local active_key_mapping_key = nil
-local key_mapping_revision = 0
+local phone_key_mapping_registered = false
 local refresh_development_command
 local refresh_phone_key_mapping
 local refresh_test_data_command_suggestion
@@ -312,32 +310,30 @@ RegisterCommand("sky_phone_live_activity_open", function()
     end
 end, false)
 
-RegisterCommand("sky_phone_toggle", run_phone_toggle, false)
+RegisterCommand("sky_phone_toggle", function()
+    if not Config.Phone.Keybind then
+        return
+    end
+    run_phone_toggle()
+end, false)
 
 refresh_phone_key_mapping = function()
     local key_name = Config.Phone.Keybind
     if key_name ~= false and key_name ~= nil and (type(key_name) ~= "string" or key_name == "") then
         error("[sky_phone] Config.Phone.Keybind must be a non-empty keyboard key name or false.")
     end
-    if key_name == active_key_mapping_key then
+    if phone_key_mapping_registered or not key_name then
         return
     end
 
-    active_key_mapping_key = key_name
-    active_key_mapping_command = nil
-    if not key_name then
-        return
-    end
-
-    key_mapping_revision = key_mapping_revision + 1
-    local command_name = "sky_phone_toggle_config_" .. key_mapping_revision
-    active_key_mapping_command = command_name
-    RegisterCommand(command_name, function()
-        if active_key_mapping_command == command_name then
-            run_phone_toggle()
-        end
-    end, false)
-    RegisterKeyMapping(command_name, locale.Controls.OpenPhone, "keyboard", key_name)
+    -- FiveM persists player rebindings by command name, so this identifier must remain stable.
+    phone_key_mapping_registered = true
+    RegisterKeyMapping(
+        "sky_phone_toggle",
+        locale.Controls.OpenPhone,
+        "keyboard",
+        key_name
+    )
 end
 
 refresh_phone_key_mapping()

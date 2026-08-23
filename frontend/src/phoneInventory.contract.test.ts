@@ -286,19 +286,19 @@ describe('phone inventory contracts', () => {
     expect(phoneBridge).toContain('TriggerEvent("lb-phone:deletedFromGallery"')
   })
 
-  it('opens from a configurable F1 mapping without client-provided device identity', () => {
+  it('keeps the phone key mapping command stable so FiveM user rebindings persist', () => {
     const config = readResourceFile('config/config.lua')
     const phoneClient = readResourceFile('source/client/main.lua')
     const phoneServer = readResourceFile('source/server/phone.lua')
 
     expect(config).toContain('Keybind = "F1"')
+    expect(phoneClient).toContain('local phone_key_mapping_registered = false')
     expect(phoneClient).toContain('refresh_phone_key_mapping = function()')
-    expect(phoneClient).toContain(
-      'RegisterKeyMapping(command_name, locale.Controls.OpenPhone, "keyboard", key_name)',
+    expect(phoneClient).toMatch(
+      /RegisterKeyMapping\(\s*"sky_phone_toggle",\s*locale\.Controls\.OpenPhone,\s*"keyboard",\s*key_name\s*\)/,
     )
-    expect(phoneClient).toContain(
-      'if active_key_mapping_command == command_name then',
-    )
+    expect(phoneClient).not.toContain('sky_phone_toggle_config_')
+    expect(phoneClient).not.toContain('key_mapping_revision')
     expect(phoneClient).toContain(
       'request_phone_open("sky_phone:device:open-request")',
     )
