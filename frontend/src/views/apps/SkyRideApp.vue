@@ -622,26 +622,26 @@ onBeforeUnmount(() => {
     </k-card>
 
     <template v-else>
-      <div class="skyride-mode">
-        <k-segmented v-if="skyride.driverEligible">
-          <k-segmented-button
-            :active="mode === 'rider'"
-            :disabled="Boolean(skyride.activeRide)"
-            @click="mode = 'rider'"
-          >
-            {{ phone.t('Apps.skyride.mode.rider') }}
-          </k-segmented-button>
-          <k-segmented-button
-            :active="mode === 'driver'"
-            :disabled="Boolean(skyride.activeRide)"
-            @click="mode = 'driver'"
-          >
-            {{ phone.t('Apps.skyride.mode.driver') }}
-          </k-segmented-button>
-        </k-segmented>
-      </div>
-
       <div class="skyride-scroll">
+        <div class="skyride-mode">
+          <k-segmented v-if="skyride.driverEligible">
+            <k-segmented-button
+              :active="mode === 'rider'"
+              :disabled="Boolean(skyride.activeRide)"
+              @click="mode = 'rider'"
+            >
+              {{ phone.t('Apps.skyride.mode.rider') }}
+            </k-segmented-button>
+            <k-segmented-button
+              :active="mode === 'driver'"
+              :disabled="Boolean(skyride.activeRide)"
+              @click="mode = 'driver'"
+            >
+              {{ phone.t('Apps.skyride.mode.driver') }}
+            </k-segmented-button>
+          </k-segmented>
+        </div>
+
         <template v-if="activeTab === 'home'">
           <section v-if="mode === 'rider'" class="skyride-home-panel">
             <template v-if="!skyride.activeRide">
@@ -1816,6 +1816,11 @@ onBeforeUnmount(() => {
   color: var(--ride-text);
 }
 
+.skyride-navbar :deep(.sky-navbar__blur),
+.skyride-navbar :deep(.sky-navbar__background) {
+  display: none;
+}
+
 .skyride-navbar :deep(.sky-navbar__title) {
   color: var(--ride-text);
   font-size: 18px;
@@ -1853,7 +1858,9 @@ onBeforeUnmount(() => {
 .skyride-scroll {
   position: absolute;
   z-index: 2;
-  inset: 148px 0 116px;
+  box-sizing: border-box;
+  inset: 114px 0 0;
+  padding: 0 0 116px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -2253,6 +2260,10 @@ onBeforeUnmount(() => {
   padding: 16px;
 }
 
+.skyride-person-card {
+  margin-bottom: 12px;
+}
+
 .skyride-avatar,
 .skyride-profile-avatar {
   display: grid;
@@ -2329,13 +2340,19 @@ onBeforeUnmount(() => {
 }
 
 .skyride-route-stop {
-  display: flex;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
   align-items: center;
-  gap: 11px;
+  column-gap: 11px;
+}
+
+.skyride-route-stop > .skyride-dot {
+  justify-self: center;
 }
 
 .skyride-route-stop > svg {
-  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
   color: var(--ride-accent-strong);
 }
 
@@ -2366,7 +2383,7 @@ onBeforeUnmount(() => {
   display: block;
   width: 1px;
   height: 17px;
-  margin: 1px 0 1px 5px;
+  margin: 1px 0 1px 8px;
   border-left: 1px dashed var(--ride-muted);
 }
 
@@ -2691,6 +2708,11 @@ button.skyride-profile-avatar--editable {
   gap: 0 !important;
 }
 
+.skyride-tabbar :deep(.sky-tabbar__blur),
+.skyride-tabbar :deep(.sky-tabbar__background) {
+  display: none;
+}
+
 .skyride-tab-pane {
   width: 100% !important;
   max-width: none !important;
@@ -2969,7 +2991,7 @@ button.skyride-profile-avatar--editable {
   background-color: var(--ride-accent);
 }
 
-.skyride-app :deep(.sky-button--primary) {
+.skyride-app :deep(.sky-button--primary:not(.sky-button--outline)) {
   color: #171719;
 }
 
