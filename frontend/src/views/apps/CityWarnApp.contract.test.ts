@@ -41,6 +41,10 @@ describe('CityWarn product contract', () => {
 
   it('reserves the pill navigation, keeps sheets safe and avoids blur flicker', () => {
     expect(source).toMatch(
+      /\.citywarn-scroll\s*\{[^}]*min-height:\s*0;[^}]*height:\s*auto;[^}]*flex:\s*1 1 0;[^}]*overflow-y:\s*auto;/s,
+    )
+    expect(source).not.toMatch(/\.citywarn-scroll\s*\{[^}]*height:\s*100%;/s)
+    expect(source).toMatch(
       /\.citywarn-scroll\.sky-scroll-area--tabbar\s*\{[^}]*padding-bottom:\s*calc\(var\(--sky-safe-area-bottom\) \+ 84px\)/s,
     )
     expect(source).toMatch(/\.citywarn-map\s*\{[^}]*height:\s*430px;/s)
@@ -54,6 +58,51 @@ describe('CityWarn product contract', () => {
     expect(source).not.toContain("t('manage.success')")
     expect(source).not.toContain('<X :size="20" />')
     expect(source).not.toContain('<span>{{ alert.title }}</span>')
+  })
+
+  it('uses one spacing and radius system throughout the current feed', () => {
+    expect(source).toMatch(
+      /\.citywarn-overview\s*\{[^}]*padding:\s*var\(--sky-space-3\);[^}]*gap:\s*var\(--sky-space-3\);[^}]*border-radius:\s*var\(--sky-radius-card\);/s,
+    )
+    expect(source).toMatch(
+      /\.citywarn-overview \+ \.citywarn-feed\s*\{[^}]*margin-top:\s*var\(--sky-space-3\);[^}]*gap:\s*var\(--sky-space-3\);/s,
+    )
+    expect(source).toMatch(
+      /\.citywarn-alert-card\s*\{[^}]*border-radius:\s*var\(--sky-radius-card\);/s,
+    )
+    expect(source).toMatch(
+      /\.citywarn-publisher-card\s*\{[^}]*margin:\s*var\(--sky-space-3\) 0 0;[^}]*border-radius:\s*var\(--sky-radius-card\);/s,
+    )
+    expect(source).toMatch(
+      /\.citywarn-publisher-card :deep\(\.sky-card__content\)\s*\{[^}]*padding:\s*var\(--sky-space-3\);[^}]*gap:\s*var\(--sky-space-3\);/s,
+    )
+    for (const selector of [
+      'citywarn-overview-symbol',
+      'citywarn-card-icon',
+      'citywarn-publisher-icon',
+    ]) {
+      expect(source).toMatch(
+        new RegExp(
+          `\\.${selector}\\s*\\{[^}]*border-radius:\\s*var\\(--sky-radius-control\\);`,
+          's',
+        ),
+      )
+    }
+  })
+
+  it('keeps settings groups on one compact spacing rhythm', () => {
+    expect(source).toMatch(
+      /\.citywarn-settings\s*\{[^}]*gap:\s*var\(--sky-space-5\);/s,
+    )
+    expect(source).toMatch(
+      /\.citywarn-settings :deep\(\.sky-settings-group\)\s*\{[^}]*margin:\s*0;/s,
+    )
+    expect(source).toMatch(
+      /\.citywarn-settings :deep\(\.sky-settings-group__title\)\s*\{[^}]*margin:\s*0 var\(--sky-space-1\) var\(--sky-space-2\);/s,
+    )
+    expect(source).toMatch(
+      /\.citywarn-settings :deep\(\.sky-settings-group__footer\)\s*\{[^}]*margin:\s*var\(--sky-space-2\) var\(--sky-space-1\) 0;/s,
+    )
   })
 
   it('keeps publishing authorization and validation on the server', () => {

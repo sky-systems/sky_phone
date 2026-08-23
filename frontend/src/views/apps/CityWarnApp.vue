@@ -1026,7 +1026,9 @@ onMounted(async () => {
   height: 18px;
 }
 .citywarn-scroll {
-  height: 100%;
+  min-height: 0;
+  height: auto;
+  flex: 1 1 0;
   padding: 12px 13px calc(28px + env(safe-area-inset-bottom));
   overflow-y: auto;
 }
@@ -1045,11 +1047,11 @@ onMounted(async () => {
 }
 .citywarn-overview {
   display: flex;
-  padding: 15px;
+  padding: var(--sky-space-3);
   align-items: center;
-  gap: 12px;
+  gap: var(--sky-space-3);
   border: 1px solid #bbf7d0;
-  border-radius: 18px;
+  border-radius: var(--sky-radius-card);
   background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
 }
 .citywarn-overview--active {
@@ -1062,7 +1064,7 @@ onMounted(async () => {
   height: 46px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 15px;
+  border-radius: var(--sky-radius-control);
   color: #15803d;
   background: #dcfce7;
 }
@@ -1086,12 +1088,17 @@ onMounted(async () => {
   flex-direction: column;
   gap: 10px;
 }
+.citywarn-overview + .citywarn-feed {
+  margin-top: var(--sky-space-3);
+  gap: var(--sky-space-3);
+}
 .citywarn-alert-card {
   position: relative;
-  padding: 13px 13px 12px 17px;
+  padding: var(--sky-space-3) var(--sky-space-3) var(--sky-space-3)
+    var(--sky-space-4);
   overflow: hidden;
   border: 1px solid #e5e7eb;
-  border-radius: 17px;
+  border-radius: var(--sky-radius-card);
   background: #fff;
   box-shadow: 0 4px 15px rgb(15 23 42 / 5%);
   cursor: pointer;
@@ -1115,7 +1122,7 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   place-items: center;
-  border-radius: 10px;
+  border-radius: var(--sky-radius-control);
   color: var(--severity);
   background: color-mix(in srgb, var(--severity) 12%, white);
 }
@@ -1139,7 +1146,7 @@ onMounted(async () => {
   color: #9ca3af;
 }
 .citywarn-alert-card h3 {
-  margin: 10px 0 5px;
+  margin: var(--sky-space-2) 0 var(--sky-space-1);
   font-size: 16px;
   line-height: 1.18;
 }
@@ -1155,10 +1162,10 @@ onMounted(async () => {
 }
 .citywarn-alert-card footer {
   display: flex;
-  margin-top: 11px;
+  margin-top: var(--sky-space-2);
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--sky-space-2);
   color: #6b7280;
   font-size: 10.5px;
 }
@@ -1172,12 +1179,13 @@ onMounted(async () => {
   white-space: nowrap;
 }
 .citywarn-publisher-card {
-  margin-top: 12px;
+  margin: var(--sky-space-3) 0 0;
+  border-radius: var(--sky-radius-card);
 }
 .citywarn-publisher-card :deep(.sky-card__content) {
   display: flex;
-  padding: 12px;
-  gap: 10px;
+  padding: var(--sky-space-3);
+  gap: var(--sky-space-3);
 }
 .citywarn-publisher-icon {
   display: grid;
@@ -1185,7 +1193,7 @@ onMounted(async () => {
   height: 36px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 11px;
+  border-radius: var(--sky-radius-control);
   color: #1d4ed8;
   background: #dbeafe;
 }
@@ -1523,11 +1531,20 @@ onMounted(async () => {
 .citywarn-settings {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--sky-space-5);
+}
+.citywarn-settings :deep(.sky-settings-group) {
+  margin: 0;
+}
+.citywarn-settings :deep(.sky-settings-group__title) {
+  margin: 0 var(--sky-space-1) var(--sky-space-2);
+}
+.citywarn-settings :deep(.sky-settings-group__footer) {
+  margin: var(--sky-space-2) var(--sky-space-1) 0;
 }
 .citywarn-settings-hint {
   display: flex;
-  margin: 0 8px;
+  margin: 0 var(--sky-space-1);
   align-items: flex-start;
   gap: 7px;
   color: #6b7280;
