@@ -1,5 +1,10 @@
 export type SimType = 'registered' | 'anonymous'
 
+export type PhoneNumberFormat = {
+  groups: number[]
+  length: number
+}
+
 export type PhoneSim = {
   id: string
   number: string

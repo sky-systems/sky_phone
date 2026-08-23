@@ -6,6 +6,14 @@ const source = readFileSync(
   new URL('./DarkChatApp.vue', import.meta.url),
   'utf8',
 )
+const server = readFileSync(
+  new URL('../../../../sky_phone/source/server/darkchat.lua', import.meta.url),
+  'utf8',
+)
+const config = readFileSync(
+  new URL('../../../../sky_phone/config/config.lua', import.meta.url),
+  'utf8',
+)
 
 describe('DarkChatApp Sky UI contract', () => {
   it('uses first-party Sky UI without direct Konsta markup', () => {
@@ -37,8 +45,15 @@ describe('DarkChatApp Sky UI contract', () => {
     expect(newChat).toContain('class="dc-recipient-field"')
     expect(newChat).toContain('layout="inline"')
     expect(newChat).toContain('class="dc-new-chat-contacts"')
+    expect(newChat).toContain("{{ t('newChatBody') }}")
     expect(newChat).toContain("{{ phone.t('Common.cancel') }}")
     expect(newChat).not.toContain('class="dc-hero"')
+  })
+
+  it('rejects the current profile identifiers before opening confirmation', () => {
+    expect(source).toContain('darkchat.profile?.darkId')
+    expect(source).toContain('darkchat.profile?.inviteCode')
+    expect(source).toContain("showToast(errorText('self_chat'))")
   })
 
   it('keeps the search visually compact without shrinking its wrapper', () => {
@@ -122,5 +137,14 @@ describe('DarkChatApp Sky UI contract', () => {
     expect(source).toMatch(
       /\.dc-inbox-navbar :deep\(\.sky-navbar__title-container > div\)\s*\{[^}]*translateY\(-14px\)/s,
     )
+  })
+
+  it('cleans expired messages in bounded indexed batches', () => {
+    expect(config).toContain('CleanupBatchSize = 250')
+    expect(server).toContain('Config.DarkChat.CleanupBatchSize')
+    expect(server).toMatch(
+      /DELETE FROM `sky_phone_darkchat_messages`[\s\S]*?ORDER BY `expires_at`, `id`[\s\S]*?LIMIT \?/,
+    )
+    expect(server).toContain(']], { batch_size })')
   })
 })

@@ -119,6 +119,8 @@ describe('VaultX crypto app contracts', () => {
     expect(source).not.toContain('class="auth-panel__heading"')
     expect(source).not.toContain('class="auth-action-dock"')
     expect(source).not.toContain('class="password-rules"')
+    expect(source).toContain('class="auth-password-hint"')
+    expect(source).toContain("t('auth.ruleSpecial')")
     expect(source).toMatch(
       /\.auth-shell\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*338px;/s,
     )
@@ -365,6 +367,22 @@ describe('VaultX crypto app contracts', () => {
     expect(source).toContain('4500 + Math.random() * 2500')
     expect(testServer).toContain('const cryptoMarketDynamics = new Map()')
     expect(testServer).toContain('function advanceCryptoCycle(')
+  })
+
+  it('does not keep market and settlement workers active while disabled', () => {
+    expect(server).toContain('local function start_crypto_schedulers()')
+    expect(server).toMatch(
+      /start_crypto_schedulers\(\)[\s\S]*?if Config\.Crypto\.Enabled ~= true then\s+return/,
+    )
+    expect(server).toContain(
+      'while scheduler_generation == generation and Config.Crypto.Enabled == true do',
+    )
+    expect(server).toContain(
+      'AddEventHandler("sky_phone:configurator:serverUpdated", refresh_crypto_runtime)',
+    )
+    expect(server).not.toMatch(
+      /CreateThread\(function\(\)\s+while true do\s+Wait\(5 \* 60 \* 1000\)/,
+    )
   })
 
   it('stores cash in price-scale minor units throughout the ledger', () => {

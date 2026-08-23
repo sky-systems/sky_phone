@@ -8,6 +8,15 @@ local equipped_phone_number = nil
 local nui_generation = 0
 local live_activity_active = false
 local open_home_requested = false
+local admin_panel_open = false
+local suggested_admin_command = nil
+local suggested_test_data_command = nil
+local active_development_command = nil
+local registered_development_commands = {}
+local phone_key_mapping_registered = false
+local refresh_development_command
+local refresh_phone_key_mapping
+local refresh_test_data_command_suggestion
 
 local function get_equipped_phone_number()
     if not device_payload or not device_payload.device.sim then
@@ -64,6 +73,41 @@ Bridge.Debug("debug", "[sky_phone] Client script initialized.", { always = true 
 
 local locale, locale_name = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
 
+local function apply_disabled_apps(payload)
+    if type(payload) ~= "table" then
+        return
+    end
+
+    local disabled = {}
+    for app_id, enabled in pairs(Config.Apps or {}) do
+        if type(app_id) == "string" and enabled == false then
+            disabled[#disabled + 1] = app_id
+        end
+    end
+    table.sort(disabled)
+    payload.disabledApps = disabled
+end
+
+local function send_admin_panel_open()
+    SendNUIMessage({
+        type = "admin:open",
+        data = {
+            lang = locale_name,
+            locales = locale.Nui,
+            fallbackLocales = Locales.en.Nui,
+        },
+    })
+end
+
+local function close_admin_panel()
+    if not admin_panel_open then
+        return
+    end
+    admin_panel_open = false
+    SkyPhoneFocus.SetAdminPanel(false)
+    SendNUIMessage({ type = "admin:close" })
+end
+
 local function send_open_message()
     if not device_payload then
         return
@@ -81,6 +125,40 @@ local function send_open_message()
     })
     open_home_requested = false
 end
+
+local function refresh_admin_command_suggestion()
+    if suggested_admin_command then
+        TriggerEvent("chat:removeSuggestion", "/" .. suggested_admin_command)
+        suggested_admin_command = nil
+    end
+    if Config.AdminPanel.Enabled then
+        suggested_admin_command = Config.AdminPanel.Command
+        TriggerEvent(
+            "chat:addSuggestion",
+            "/" .. suggested_admin_command,
+            locale.AdminCommand.CommandDescription
+        )
+    end
+end
+
+AddEventHandler("sky_phone:configurator:updated", function()
+    locale, locale_name = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
+    refresh_development_command()
+    refresh_phone_key_mapping()
+    refresh_test_data_command_suggestion()
+    refresh_admin_command_suggestion()
+    SkyPhoneApps.SendCatalog()
+    if is_open and device_payload then
+        apply_disabled_apps(device_payload)
+        device_payload.lang = locale_name
+        device_payload.locales = locale.Nui
+        device_payload.fallbackLocales = Locales.en.Nui
+        SendNUIMessage({ type = "device:updated", data = device_payload })
+    end
+    if admin_panel_open then
+        send_admin_panel_open()
+    end
+end)
 
 local function open_phone()
     if is_open or not device_payload then
@@ -111,6 +189,22 @@ local function close_phone(close_device_session)
     end
 end
 
+local function request_phone_open(callback_name)
+    if is_open or open_requested then
+        return true
+    end
+
+    open_requested = true
+    local result = Bridge.Callbacks.Trigger(callback_name, {})
+    if type(result) == "table" and result.success == true then
+        return true
+    end
+
+    open_requested = false
+    open_without_focus = false
+    return false
+end
+
 local function toggle_phone(open, no_focus)
     if open ~= nil and type(open) ~= "boolean" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid phone toggle state.")
@@ -126,6 +220,9 @@ local function toggle_phone(open, no_focus)
         should_open = not (is_open or open_requested)
     end
     if not should_open then
+        if open == nil and open_requested and not is_open then
+            return true
+        end
         close_phone()
         return true
     end
@@ -138,12 +235,7 @@ local function toggle_phone(open, no_focus)
         return true
     end
 
-    local result = Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})
-    if type(result) ~= "table" or result.success ~= true then
-        open_without_focus = false
-        return false
-    end
-    return true
+    return request_phone_open("sky_phone:device:open-request")
 end
 
 SkyPhoneClient.Toggle = toggle_phone
@@ -152,26 +244,60 @@ AddEventHandler("sky_phone:client:forceClose", function()
     close_phone()
 end)
 
-if Config.Phone.DevelopmentCommand then
-    RegisterCommand(Config.Command, function()
-        if is_open or open_requested then
-            close_phone()
-            return
-        end
-        open_without_focus = false
-        Bridge.Callbacks.Trigger("sky_phone:device:development-open", {})
-    end, false)
-end
-
-RegisterCommand("sky_phone_toggle", function()
-    if is_open or open_requested then
+local function run_development_command()
+    if is_open then
         close_phone()
+        return
+    end
+    if open_requested then
         return
     end
 
     open_without_focus = false
-    Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})
-end, false)
+    request_phone_open("sky_phone:device:development-open")
+end
+
+refresh_development_command = function()
+    local command_name = Config.Phone.DevelopmentCommand and Config.Command or nil
+    if command_name ~= nil and (type(command_name) ~= "string" or command_name == "") then
+        error("[sky_phone] Config.Command must be a non-empty command name.")
+    end
+
+    if active_development_command then
+        TriggerEvent("chat:removeSuggestion", "/" .. active_development_command)
+    end
+
+    active_development_command = command_name
+    if not command_name then
+        return
+    end
+
+    if not registered_development_commands[command_name] then
+        registered_development_commands[command_name] = true
+        RegisterCommand(command_name, function()
+            if active_development_command == command_name and Config.Phone.DevelopmentCommand then
+                run_development_command()
+            end
+        end, false)
+    end
+
+    TriggerEvent("chat:addSuggestion", "/" .. command_name, locale.CommandDescription)
+end
+
+refresh_development_command()
+
+local function run_phone_toggle()
+    if is_open then
+        close_phone()
+        return
+    end
+    if open_requested then
+        return
+    end
+
+    open_without_focus = false
+    request_phone_open("sky_phone:device:open-request")
+end
 
 RegisterCommand("sky_phone_live_activity_open", function()
     if not live_activity_active or is_open or open_requested then
@@ -179,11 +305,38 @@ RegisterCommand("sky_phone_live_activity_open", function()
     end
 
     open_home_requested = true
-    local result = Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})
-    if not result or not result.success then
+    if not request_phone_open("sky_phone:device:open-request") then
         open_home_requested = false
     end
 end, false)
+
+RegisterCommand("sky_phone_toggle", function()
+    if not Config.Phone.Keybind then
+        return
+    end
+    run_phone_toggle()
+end, false)
+
+refresh_phone_key_mapping = function()
+    local key_name = Config.Phone.Keybind
+    if key_name ~= false and key_name ~= nil and (type(key_name) ~= "string" or key_name == "") then
+        error("[sky_phone] Config.Phone.Keybind must be a non-empty keyboard key name or false.")
+    end
+    if phone_key_mapping_registered or not key_name then
+        return
+    end
+
+    -- FiveM persists player rebindings by command name, so this identifier must remain stable.
+    phone_key_mapping_registered = true
+    RegisterKeyMapping(
+        "sky_phone_toggle",
+        locale.Controls.OpenPhone,
+        "keyboard",
+        key_name
+    )
+end
+
+refresh_phone_key_mapping()
 
 RegisterKeyMapping(
     "sky_phone_live_activity_open",
@@ -192,13 +345,18 @@ RegisterKeyMapping(
     "SPACE"
 )
 
-if Config.Phone.Keybind then
-    if type(Config.Phone.Keybind) ~= "string" or Config.Phone.Keybind == "" then
-        error("[sky_phone] Config.Phone.Keybind must be a non-empty keyboard key name or false.")
+refresh_test_data_command_suggestion = function()
+    if suggested_test_data_command then
+        TriggerEvent("chat:removeSuggestion", "/" .. suggested_test_data_command)
+        suggested_test_data_command = nil
     end
-
-    RegisterKeyMapping("sky_phone_toggle", locale.Controls.OpenPhone, "keyboard", Config.Phone.Keybind)
+    if Config.TestData.Enabled then
+        suggested_test_data_command = Config.TestData.Command
+        TriggerEvent("chat:addSuggestion", "/" .. suggested_test_data_command, locale.TestData.CommandDescription)
+    end
 end
+
+refresh_test_data_command_suggestion()
 
 RegisterNetEvent("sky_phone:testdata:feedback", function(success, detail)
     local test_data_locale = locale.TestData
@@ -223,6 +381,9 @@ RegisterNUICallback("ui:ready", function(data, cb)
     SkyPhoneApps.SendCatalog()
     if open_requested and device_payload then
         send_open_message()
+    end
+    if admin_panel_open then
+        send_admin_panel_open()
     end
     SkyPhoneCalls.ReplayNui()
     SkyPhoneSimPicker.ReplayNui()
@@ -269,12 +430,42 @@ RegisterNUICallback("ui:opened", function(data, cb)
     cb({ success = true })
 end)
 
+RegisterNetEvent("sky_phone:admin:launch", function()
+    if is_open or open_requested then
+        close_phone()
+    end
+    admin_panel_open = true
+    SkyPhoneFocus.SetAdminPanel(true)
+    send_admin_panel_open()
+end)
+
+RegisterNetEvent("sky_phone:admin:command-error", function(error_code)
+    local messages = locale.AdminCommand.Errors
+    Bridge.Framework.Notify(
+        "iFruit",
+        messages[error_code] or messages.default,
+        "error",
+        5000
+    )
+end)
+
+RegisterNUICallback("admin:close", function(data, cb)
+    if type(data) ~= "table" then
+        cb({ success = false, error = "invalid_request" })
+        return
+    end
+    close_admin_panel()
+    cb({ success = true })
+end)
+
 RegisterNUICallback("ui:input-focus", function(data, cb)
     if type(data) ~= "table" or type(data.active) ~= "boolean" then
         cb({ success = false, error = "invalid_request" })
         return
     end
-    SkyPhoneFocus.SetTextInputFocused(data.active and (is_open or open_requested))
+    SkyPhoneFocus.SetTextInputFocused(
+        data.active and (is_open or open_requested or admin_panel_open)
+    )
     cb({ success = true })
 end)
 
@@ -299,6 +490,10 @@ end)
 RegisterNetEvent("sky_phone:device:open", function(data)
     if type(data) ~= "table" or type(data.device) ~= "table" or type(data.device.imei) ~= "string" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid device open data.")
+        if not is_open then
+            open_requested = false
+            open_without_focus = false
+        end
         return
     end
     Bridge.Debug(
@@ -308,6 +503,7 @@ RegisterNetEvent("sky_phone:device:open", function(data)
         tostring(data.account ~= nil),
         { always = true }
     )
+    apply_disabled_apps(data)
     device_payload = data
     update_equipped_phone_number(data)
     open_requested = true
@@ -324,6 +520,7 @@ RegisterNetEvent("sky_phone:device:updated", function(data)
         Bridge.Debug("error", "[sky_phone] Rejected invalid device update data.")
         return
     end
+    apply_disabled_apps(data)
     device_payload = data
     update_equipped_phone_number(data)
     SendNUIMessage({ type = "device:updated", data = data })
@@ -339,8 +536,10 @@ RegisterNetEvent("sky_phone:device:invalidated", function()
 end)
 
 RegisterNetEvent("sky_phone:device:error", function(error_code)
-    if not is_open and not open_requested then
+    if not is_open then
+        open_requested = false
         open_without_focus = false
+        open_home_requested = false
     end
     Bridge.Debug(
         "debug",
@@ -353,12 +552,7 @@ RegisterNetEvent("sky_phone:device:error", function(error_code)
 end)
 
 CreateThread(function()
-    if Config.Phone.DevelopmentCommand then
-        TriggerEvent("chat:addSuggestion", "/" .. Config.Command, locale.CommandDescription)
-    end
-    if Config.TestData.Enabled then
-        TriggerEvent("chat:addSuggestion", "/" .. Config.TestData.Command, locale.TestData.CommandDescription)
-    end
+    refresh_admin_command_suggestion()
 end)
 
 AddEventHandler("onResourceStop", function(resource_name)
@@ -369,16 +563,20 @@ AddEventHandler("onResourceStop", function(resource_name)
     is_open = false
     open_requested = false
     open_without_focus = false
+    admin_panel_open = false
 
     TriggerEvent("sky_phone:animation:reset")
     SkyPhoneCalls.Reset()
     SkyPhoneSimPicker.Reset()
     SkyPhoneFocus.Reset()
 
-    if Config.Phone.DevelopmentCommand then
-        TriggerEvent("chat:removeSuggestion", "/" .. Config.Command)
+    if active_development_command then
+        TriggerEvent("chat:removeSuggestion", "/" .. active_development_command)
     end
-    if Config.TestData.Enabled then
-        TriggerEvent("chat:removeSuggestion", "/" .. Config.TestData.Command)
+    if suggested_test_data_command then
+        TriggerEvent("chat:removeSuggestion", "/" .. suggested_test_data_command)
+    end
+    if suggested_admin_command then
+        TriggerEvent("chat:removeSuggestion", "/" .. suggested_admin_command)
     end
 end)

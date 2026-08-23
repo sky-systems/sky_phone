@@ -158,6 +158,13 @@ describe('media utilities', () => {
     expect(mediaErrorKey('profile_photo_required')).toBe(
       'profile_photo_required',
     )
+    expect(mediaErrorKey('media_provider_failed')).toBe('media_provider_failed')
+    expect(mediaErrorKey('media_provider_rate_limited')).toBe(
+      'media_provider_rate_limited',
+    )
+    expect(mediaErrorKey('media_provider_unauthorized')).toBe(
+      'media_provider_unauthorized',
+    )
     expect(mediaErrorKey('private_provider_error')).toBe('request_failed')
   })
 })

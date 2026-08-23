@@ -1,6 +1,6 @@
 import type { Note } from '@/utils/notes'
 import type { MemoDto } from '@/types/memos'
-import type { PhoneSim } from '@/types/phone'
+import type { PhoneNumberFormat, PhoneSim } from '@/types/phone'
 
 export type DeviceDataEntry<T = unknown> = {
   payload: T
@@ -50,6 +50,7 @@ export type DeviceBootstrap = {
   device: PhoneDevice
   memos: MemoDto[]
   notes: Note[]
+  phoneNumberFormat: PhoneNumberFormat
   player: PhonePlayerIdentity
   security: DeviceSecurity
   token: string

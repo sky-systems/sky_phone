@@ -16,6 +16,12 @@ describe('PhoneApp EasyShare contract', () => {
   it('uses the shared full-width Sky tab bar for phone sections', () => {
     expect(source).toContain('<sky-tab-bar')
     expect(source).toContain('<sky-tab-button')
+    expect(source).toContain(
+      'calc(var(--sky-tabbar-height) + var(--sky-safe-area-bottom) + 16px);',
+    )
+    expect(source).not.toMatch(
+      /\.phone-contacts\s*\{[^}]*padding-bottom:\s*20px;/s,
+    )
   })
 
   it('uses shared interactive liquid glass surfaces for phone controls', () => {
@@ -55,6 +61,21 @@ describe('PhoneApp EasyShare contract', () => {
       /#(?:007aff|0a84ff|195287|22527d|25458e|2a468f|2f4a98|4b92d1|55aaff|5b91c2|64a8ff|68adff)/i,
     )
     expect(source).not.toContain('rgba(10, 132, 255')
+  })
+
+  it('keeps contact profiles readable in light mode', () => {
+    expect(source).toMatch(
+      /\.phone-app--light\.phone-calls-app--profile\s*\{[^}]*color:\s*var\(--sky-text\);[^}]*background:\s*var\(--sky-bg\) !important;/s,
+    )
+    expect(source).toMatch(
+      /\.phone-app--light \.phone-profile-action\s*\{[^}]*color:\s*var\(--sky-text\) !important;/s,
+    )
+    expect(source).toMatch(
+      /\.phone-app--light \.phone-profile-action:disabled\s*\{[^}]*color:\s*var\(--sky-subtle\) !important;/s,
+    )
+    expect(source).toMatch(
+      /\.phone-app--light \.phone-profile-card,[\s\S]*?\.phone-app--light \.phone-history-card\s*\{[^}]*color:\s*var\(--sky-text\);[^}]*background:\s*var\(--sky-glass\);/,
+    )
   })
 
   it('opens contact deep links only after contacts bootstrap and consumes the query', () => {

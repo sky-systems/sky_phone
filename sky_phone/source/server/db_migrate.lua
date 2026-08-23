@@ -417,6 +417,46 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_admin_audit",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            {
+                name = "actor_identifier",
+                type = "VARCHAR(80) NOT NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            { name = "actor_name", type = "VARCHAR(120) NOT NULL" },
+            {
+                name = "target_identifier",
+                type = "VARCHAR(80) NOT NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            { name = "target_source", type = "INT UNSIGNED NULL" },
+            {
+                name = "device_imei",
+                type = "CHAR(15) NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            {
+                name = "action",
+                type = "VARCHAR(48) NOT NULL",
+                characterSet = "ascii",
+                collation = "ascii_bin",
+            },
+            { name = "details", type = "LONGTEXT NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_admin_audit_created", columns = "(`created_at`, `id`)" },
+            { name = "idx_sky_phone_admin_audit_target", columns = "(`target_identifier`, `created_at`)" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
         name = "sky_phone_notes",
         columns = {
             { name = "id", type = "VARCHAR(64) NOT NULL" },
@@ -699,7 +739,7 @@ local schema = {
             { name = "title", type = "VARCHAR(160) NOT NULL" },
             { name = "description", type = "VARCHAR(1000) NOT NULL DEFAULT ''" },
             { name = "amount", type = "BIGINT UNSIGNED NOT NULL" },
-            { name = "currency", type = "VARCHAR(8) NOT NULL", characterSet = "ascii", collation = "ascii_general_ci" },
+            { name = "currency", type = "VARCHAR(8) NOT NULL", characterSet = "utf8mb4", collation = "utf8mb4_unicode_ci" },
             { name = "status", type = "ENUM('open', 'processing', 'paid', 'disputed', 'cancelled', 'refunded') NOT NULL DEFAULT 'open'" },
             { name = "read_at", type = "DATETIME NULL" },
             { name = "issued_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
@@ -1001,8 +1041,8 @@ local schema = {
             {
                 name = "handle",
                 type = "VARCHAR(24) NOT NULL",
-                characterSet = "ascii",
-                collation = "ascii_general_ci",
+                characterSet = "utf8mb4",
+                collation = "utf8mb4_unicode_ci",
             },
             { name = "bio", type = "VARCHAR(160) NOT NULL DEFAULT ''" },
             { name = "avatar_media_id", type = "BIGINT UNSIGNED NULL" },
@@ -2156,8 +2196,8 @@ local schema = {
             {
                 name = "currency",
                 type = "VARCHAR(8) NOT NULL",
-                characterSet = "ascii",
-                collation = "ascii_general_ci",
+                characterSet = "utf8mb4",
+                collation = "utf8mb4_unicode_ci",
             },
             { name = "driver_vehicle_model", type = "VARCHAR(64) NULL" },
             { name = "driver_vehicle_color", type = "VARCHAR(64) NULL" },
@@ -2670,6 +2710,7 @@ local schema = {
             { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "company_id", type = "VARCHAR(64) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "service_id", type = "VARCHAR(64) NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "channel", type = "ENUM('app','service_line') NOT NULL DEFAULT 'app'" },
             { name = "customer_sim_id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "subject", type = "VARCHAR(120) NOT NULL" },
             { name = "description", type = "VARCHAR(2000) NOT NULL" },
@@ -2689,6 +2730,7 @@ local schema = {
             { name = "idx_sky_phone_company_requests_customer", columns = "(`customer_sim_id`, `updated_at`, `id`)" },
             { name = "idx_sky_phone_company_requests_queue", columns = "(`company_id`, `status`, `updated_at`, `id`)" },
             { name = "idx_sky_phone_company_requests_assignee", columns = "(`company_id`, `assigned_identifier`, `status`)" },
+            { name = "idx_sky_phone_company_requests_service_line", columns = "(`company_id`, `customer_sim_id`, `channel`, `status`, `updated_at`, `id`)" },
         },
         foreignKeys = {
             { column = "company_id", references = "`sky_phone_company_profiles` (`company_id`) ON DELETE CASCADE" },
@@ -2908,6 +2950,8 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
 }
+
+schema[#schema + 1] = SkyPhoneConfiguratorSchema
 
 Bridge.Database.Migrate("sky_phone", schema)
 Bridge.Database.Query([[

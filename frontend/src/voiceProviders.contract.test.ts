@@ -116,6 +116,20 @@ describe('voice provider contracts', () => {
     expect(phoneApp).not.toContain('callMuted = !callMuted')
   })
 
+  it('supports explicit automatic call-provider discovery on client and server', () => {
+    expect(config).toContain(
+      'VoiceProvider = "pma", -- auto, yaca (alias: yaca-voice)',
+    )
+    expect(clientCalls).toContain('if configured == "auto" then')
+    expect(serverVoice).toContain('if configured == "auto" then')
+    expect(clientCalls).toContain(
+      'for _, candidate in ipairs({ "yaca", "pma", "saltychat" }) do',
+    )
+    expect(serverVoice).toContain(
+      'for _, candidate in ipairs({ "yaca", "pma", "saltychat" }) do',
+    )
+  })
+
   it('passes Yaca radio volume arguments in the documented order', () => {
     expect(clientRadio).toContain(
       'changeRadioChannelVolumeRaw(volume / 100, 1)',

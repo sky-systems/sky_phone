@@ -1,9 +1,5 @@
 local function api_key(website)
-    local configured_key = website.ApiKey or Config.Media.FiveManage.ApiKey
-    if type(configured_key) ~= "string" then
-        return ""
-    end
-    return configured_key:match("^%s*(.-)%s*$")
+    return SkyPhoneMediaProviderConfig.FiveManageApiKey(website.ApiKey)
 end
 
 local function provider_error(response, not_found_error)

@@ -3,17 +3,27 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const readResourceFile = (path: string) =>
-  readFileSync(new URL(`../../sky_phone/${path}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  readFileSync(
+    new URL(`../../sky_phone/${path}`, import.meta.url),
+    'utf8',
+  ).replace(/\r\n/g, '\n')
 const readFrontendFile = (path: string) =>
   readFileSync(new URL(path, import.meta.url), 'utf8')
 
 const inventoryAdapters = [
+  ['jaksam', 'source/bridge/server/inventory/jaksam.lua'],
   ['ox', 'source/bridge/server/inventory/ox.lua'],
   ['qb', 'source/bridge/server/inventory/qb.lua'],
   ['lj', 'source/bridge/server/inventory/qb.lua'],
   ['qs', 'source/bridge/server/inventory/qs.lua'],
+  ['ps', 'source/bridge/server/inventory/ps.lua'],
   ['codem', 'source/bridge/server/inventory/codem.lua'],
+  ['tgiann', 'source/bridge/server/inventory/tgiann.lua'],
   ['core', 'source/bridge/server/inventory/core.lua'],
+  ['jpr', 'source/bridge/server/inventory/jpr.lua'],
+  ['origen', 'source/bridge/server/inventory/origen.lua'],
+  ['ak47', 'source/bridge/server/inventory/ak47.lua'],
+  ['one', 'source/bridge/server/inventory/one.lua'],
   ['mf', 'source/bridge/server/inventory/mf.lua'],
   ['smx', 'source/bridge/server/inventory/smx.lua'],
   ['hex', 'source/bridge/server/inventory/esx.lua'],
@@ -34,22 +44,73 @@ describe('phone inventory contracts', () => {
     const phoneServer = readResourceFile('source/server/phone.lua')
 
     expect(phoneServer).toContain(
-      'Bridge.Inventory.RegisterUsableItem(Config.Phone.Item, open_phone)',
+      'Bridge.Inventory.RegisterUsableItem(item_name, function(...)',
     )
-    expect(phoneServer).toContain('if not usable_registered then')
+    expect(phoneServer).toContain('if Config.Phone.Item == item_name then')
+    expect(phoneServer).toContain(
+      'if not Bridge.Inventory.RegisterUsableItem(item_name, function(...)',
+    )
   })
 
-  it('auto-detects HEX and limits count-based ESX inventories to metadata-free modes', () => {
+  it('uses One Inventory slot ids and authoritative slot reads', () => {
+    const adapter = readResourceFile(
+      'source/bridge/server/inventory/one.lua',
+    )
+
+    expect(adapter).toContain('inventory:GetSlotIdsWithItem(')
+    expect(adapter).toContain(
+      'local normalized = Bridge.Inventory.GetSlot(source, slot_id)',
+    )
+    expect(adapter).not.toContain('inventory:SearchInventory(')
+    expect(adapter).toContain(
+      'inventory:SetItemMetadata(source, slot.slot, requested_metadata) == false',
+    )
+  })
+
+  it('serializes and rate-limits phone bootstrap requests on both sides', () => {
+    const phoneClient = readResourceFile('source/client/main.lua')
+    const phoneServer = readResourceFile('source/server/phone.lua')
+
+    expect(phoneClient).toContain('local function request_phone_open(')
+    expect(phoneClient).toMatch(
+      /request_phone_open\(callback_name\)[\s\S]*?open_requested = true[\s\S]*?Bridge\.Callbacks\.Trigger\(callback_name, \{\}\)/,
+    )
+    expect(phoneClient).toMatch(
+      /RegisterNetEvent\("sky_phone:device:error"[\s\S]*?if not is_open then[\s\S]*?open_requested = false/,
+    )
+    expect(phoneServer).toContain('local phone_open_in_progress = {}')
+    expect(phoneServer).toContain(
+      'SkyPhone.AllowOperation(source, "phone_open", request_limit, 60)',
+    )
+    expect(phoneServer).toContain(
+      'pcall(perform_phone_open, source, used_item)',
+    )
+  })
+
+  it('auto-detects registered inventories and forces metadata-free adapters into compatible modes', () => {
     const inventoryBridge = readResourceFile(
       'source/bridge/server/inventory.lua',
     )
 
     expect(inventoryBridge).toContain(
-      'GetResourceState("hex_4_inventory") == "started"',
+      '{ name = "hex", resource = "hex_4_inventory", framework = "esx", metadata = false },',
     )
-    expect(inventoryBridge).toContain('configured_inventory = "hex"')
-    expect(inventoryBridge).toContain('Config.Phone.Unique ~= false')
-    expect(inventoryBridge).toContain('Config.Sim.Enabled ~= false')
+    expect(inventoryBridge).toContain(
+      'GetResourceState(adapter.resource) == "started"',
+    )
+    expect(inventoryBridge).toContain('configured_inventory = adapter.name')
+    expect(inventoryBridge).toContain('selected_adapter.metadata == false')
+    expect(inventoryBridge).toContain('Config.Phone.Unique = false')
+    expect(inventoryBridge).toContain('Config.Sim.Enabled = false')
+    expect(inventoryBridge).toContain(
+      'does not support item metadata; unique phones and physical SIM cards were disabled automatically',
+    )
+    expect(inventoryBridge).toContain(
+      'AddEventHandler("sky_phone:configurator:serverUpdated"',
+    )
+    expect(inventoryBridge).not.toContain(
+      'cannot store unique phone or physical SIM metadata',
+    )
   })
 
   it('provides the LB IsOpen export alias from the authoritative client state', () => {
@@ -100,9 +161,15 @@ describe('phone inventory contracts', () => {
     expect(equippedNumberExport).toBeDefined()
     expect(equippedNumberResolver).toBeDefined()
     expect(equippedNumberExport).toContain('type(player) == "number"')
-    expect(equippedNumberExport).toContain('online_source_for_identifier(player)')
-    expect(phoneServer).toContain('Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)')
-    expect(phoneServer).toContain('return resolve_equipped_phone_number(player)')
+    expect(equippedNumberExport).toContain(
+      'online_source_for_identifier(player)',
+    )
+    expect(phoneServer).toContain(
+      'Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)',
+    )
+    expect(phoneServer).toContain(
+      'return resolve_equipped_phone_number(player)',
+    )
     expect(equippedNumberExport).not.toContain('tonumber(player)')
     expect(equippedNumberExport).not.toContain('equipped_phone_numbers[player]')
     expect(equippedNumberResolver).not.toContain('return cached_number')
@@ -134,10 +201,10 @@ describe('phone inventory contracts', () => {
       'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "ToggleOpen"',
     )
     expect(phoneClient).toContain(
-      'local result = Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})',
+      'local result = Bridge.Callbacks.Trigger(callback_name, {})',
     )
     expect(phoneClient).toMatch(
-      /result\.success ~= true[\s\S]*open_without_focus = false[\s\S]*return false/,
+      /result\.success == true[\s\S]*open_requested = false[\s\S]*open_without_focus = false[\s\S]*return false/,
     )
     expect(phoneBridge).toContain(
       'SkyPhoneCompatibility.RegisterExportAlias("lb-phone", "IsPhoneOnScreen"',
@@ -157,7 +224,9 @@ describe('phone inventory contracts', () => {
     expect(phoneClient).toContain(
       'TriggerEvent("sky_phone:client:phoneToggled", false)',
     )
-    expect(phoneBridge).toContain('TriggerEvent("lb-phone:numberChanged", phone_number)')
+    expect(phoneBridge).toContain(
+      'TriggerEvent("lb-phone:numberChanged", phone_number)',
+    )
     expect(phoneBridge).toContain('TriggerEvent("lb-phone:phoneToggled", open)')
   })
 
@@ -210,25 +279,51 @@ describe('phone inventory contracts', () => {
     expect(mediaServer).toContain(
       'TriggerEvent("sky_phone:server:galleryMediaDeleted", src, phone_number, deleted_link)',
     )
-    expect(phoneBridge).toContain('TriggerEvent("lb-phone:phoneNumberGenerated"')
+    expect(phoneBridge).toContain(
+      'TriggerEvent("lb-phone:phoneNumberGenerated"',
+    )
     expect(phoneBridge).toContain('TriggerEvent("lb-phone:factoryReset"')
     expect(phoneBridge).toContain('TriggerEvent("lb-phone:deletedFromGallery"')
   })
 
-  it('opens from a configurable F1 mapping without client-provided device identity', () => {
+  it('keeps the phone key mapping command stable so FiveM user rebindings persist', () => {
     const config = readResourceFile('config/config.lua')
     const phoneClient = readResourceFile('source/client/main.lua')
     const phoneServer = readResourceFile('source/server/phone.lua')
 
     expect(config).toContain('Keybind = "F1"')
-    expect(phoneClient).toContain(
-      'RegisterKeyMapping("sky_phone_toggle", locale.Controls.OpenPhone, "keyboard", Config.Phone.Keybind)',
+    expect(phoneClient).toContain('local phone_key_mapping_registered = false')
+    expect(phoneClient).toContain('refresh_phone_key_mapping = function()')
+    expect(phoneClient).toMatch(
+      /RegisterKeyMapping\(\s*"sky_phone_toggle",\s*locale\.Controls\.OpenPhone,\s*"keyboard",\s*key_name\s*\)/,
     )
+    expect(phoneClient).not.toContain('sky_phone_toggle_config_')
+    expect(phoneClient).not.toContain('key_mapping_revision')
     expect(phoneClient).toContain(
-      'Bridge.Callbacks.Trigger("sky_phone:device:open-request", {})',
+      'request_phone_open("sky_phone:device:open-request")',
     )
     expect(phoneServer).toContain(
       'Bridge.Callbacks.Register("sky_phone:device:open-request", function(source)',
+    )
+  })
+
+  it('applies development command changes immediately without a resource restart', () => {
+    const phoneClient = readResourceFile('source/client/main.lua')
+
+    expect(phoneClient).toContain('local active_development_command = nil')
+    expect(phoneClient).toContain('refresh_development_command = function()')
+    expect(phoneClient).toContain(
+      'local command_name = Config.Phone.DevelopmentCommand and Config.Command or nil',
+    )
+    expect(phoneClient).toContain('RegisterCommand(command_name, function()')
+    expect(phoneClient).toContain(
+      'if active_development_command == command_name and Config.Phone.DevelopmentCommand then',
+    )
+    expect(phoneClient).toContain(
+      'TriggerEvent("chat:removeSuggestion", "/" .. active_development_command)',
+    )
+    expect(phoneClient).toMatch(
+      /AddEventHandler\("sky_phone:configurator:updated", function\(\)[\s\S]*?refresh_development_command\(\)/,
     )
   })
 
@@ -262,7 +357,7 @@ describe('phone inventory contracts', () => {
     const phoneServer = readResourceFile('source/server/phone.lua')
     const migration = readResourceFile('source/server/db_migrate.lua')
 
-    expect(phoneServer).toContain('if not unique_phones then')
+    expect(phoneServer).toContain('if Config.Phone.Unique == false then')
     expect(phoneServer).toContain('return map_character_device(source, slot)')
     expect(phoneServer).toContain('FROM `sky_phone_character_devices`')
     expect(phoneServer).toContain('WHERE `owner_identifier` = ?')

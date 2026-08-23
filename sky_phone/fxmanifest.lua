@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.1.0'
+version '0.3.0'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -30,10 +30,10 @@ shared_scripts {
 
 client_scripts {
     'config/config.lua',
-    'config/locales/en.lua',
-    'config/locales/de.lua',
-    'source/bridge/client/framework.lua',
+    'config/locales/*.lua',
     'source/bridge/client/callbacks.lua',
+    'source/client/phone_configurator.lua',
+    'source/bridge/client/framework.lua',
     'source/bridge/client/housing.lua',
     'source/bridge/client/housing/*.lua',
     'source/bridge/client/calls.lua',
@@ -76,16 +76,22 @@ server_scripts {
     'config/media.lua',
     'config/locales/en.lua',
     'config/locales/de.lua',
+    'config/locales/es.lua',
+    'source/shared/config_default.lua',
+    'source/server/nui_build_check.lua',
     'source/server/update_check.lua',
     'source/bridge/server/database.lua',
     'source/bridge/server/migrations.lua',
+    'source/server/phone_configurator_schema.lua',
     'source/bridge/server/callbacks.lua',
+    'source/server/phone_configurator.lua',
     'source/bridge/server/framework.lua',
     'source/bridge/server/frameworks/*.lua',
     'source/bridge/server/housing.lua',
     'source/bridge/server/housing/*.lua',
     'source/bridge/server/inventory.lua',
     'source/bridge/server/inventory/*.lua',
+    'source/bridge/server/inventory_contract.lua',
     'source/bridge/server/voice.lua',
     'source/server/custom_apps.lua',
     'source/server/media_metadata.lua',
@@ -99,6 +105,7 @@ server_scripts {
     'source/server/phone.lua',
     'source/server/device_directory.lua',
     'source/server/db_migrate.lua',
+    'source/server/admin.lua',
     'source/server/lb_phone_migration.lua',
     'source/server/custom_app_storage.lua',
     'source/server/payphones.lua',
@@ -106,6 +113,7 @@ server_scripts {
     'source/server/notifications.lua',
     'source/shared/public_api.lua',
     'source/server/public_api.lua',
+    'source/server/media_provider_config.lua',
     'source/server/media_import.lua',
     'source/server/media_import/fivemanage.lua',
     'source/server/media_import/manifest.lua',
@@ -149,6 +157,7 @@ files {
     'source/html/index.html',
     'source/html/assets/**',
     'source/html/img/**',
+    'source/html/sounds/**',
     'config/music/**',
 }
 

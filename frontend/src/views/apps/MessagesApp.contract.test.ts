@@ -203,7 +203,7 @@ describe('MessagesApp Sky UI contract', () => {
     expect(sheetStart).toBeGreaterThan(-1)
     expect(sheetEnd).toBeGreaterThan(sheetStart)
     expect(sheet).toContain(
-      ':opened="activeCanMessage && attachmentPicker !== null"',
+      'activeCanMessage && !activeServiceLine && attachmentPicker !== null',
     )
     expect(sheet).toContain('swipe-to-close')
     expect(sheet).toContain('grabber-clickable')

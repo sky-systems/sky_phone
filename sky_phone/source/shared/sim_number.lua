@@ -1,7 +1,23 @@
 SkyPhoneSimNumber = {}
 
+function SkyPhoneSimNumber.ValidateConfiguration(length, prefix)
+    if type(length) ~= "number" or length ~= math.floor(length) or length < 1 or length > 24 then
+        return false, "NumberLength must be a whole number between 1 and 24"
+    end
+    if type(prefix) ~= "string" or prefix:find("%D") then
+        return false, "NumberPrefix must contain digits only"
+    end
+    if #prefix > length then
+        return false, "NumberPrefix cannot be longer than NumberLength"
+    end
+    return true
+end
+
 function SkyPhoneSimNumber.Normalize(value, length, prefix)
     if type(value) ~= "string" and type(value) ~= "number" then
+        return nil
+    end
+    if not SkyPhoneSimNumber.ValidateConfiguration(length, prefix) then
         return nil
     end
     local number = tostring(value):gsub("%D", "")
@@ -24,6 +40,9 @@ end
 
 function SkyPhoneSimNumber.FromEntropy(entropy, length, prefix)
     if type(entropy) ~= "string" or entropy == "" then
+        return nil
+    end
+    if not SkyPhoneSimNumber.ValidateConfiguration(length, prefix) then
         return nil
     end
     local source = entropy:gsub("%D", "")

@@ -9,7 +9,8 @@ local function normalize(item)
 end
 
 local function get_inventory(source)
-    return inventory:GetInventory(false, source) or {}
+    local identifier = Bridge.Framework.GetIdentifier(source)
+    return identifier and inventory:GetInventory(identifier, source) or {}
 end
 
 function Bridge.Inventory.GetResourceName()
@@ -27,9 +28,14 @@ end
 
 function Bridge.Inventory.GetSlotsWithItem(source, item_name, metadata)
     local matches = {}
-    for _, item in pairs(get_inventory(source)) do
+    local items = inventory:GetItemsByName(source, item_name) or {}
+    if items.name then
+        items = { items }
+    end
+    for _, item in pairs(items) do
         local normalized = normalize(item)
-        if normalized.name == item_name and Bridge.Inventory.MetadataMatches(normalized.metadata, metadata) then
+        if normalized and normalized.name == item_name
+            and Bridge.Inventory.MetadataMatches(normalized.metadata, metadata) then
             matches[#matches + 1] = normalized
         end
     end
@@ -66,7 +72,7 @@ function Bridge.Inventory.RemoveItem(source, item_name, count, slot, metadata)
 end
 
 function Bridge.Inventory.RegisterUsableItem(item_name, callback)
-    return Bridge.Framework.RegisterUsableItem(item_name, function(source, item)
-        callback(source, normalize(item))
+    return Bridge.Framework.RegisterUsableItem(item_name, function(source, ...)
+        callback(source, normalize(Bridge.Inventory.ResolveUsableItem(...)))
     end)
 end

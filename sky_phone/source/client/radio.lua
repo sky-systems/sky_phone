@@ -29,6 +29,10 @@ local function send_hud_config()
     SendNUIMessage({ type = "radio:hud-config", data = get_hud_config() })
 end
 
+AddEventHandler("sky_phone:configurator:updated", function()
+    send_hud_config()
+end)
+
 local function send_hud_members()
     local combined = {}
     for channel_id = 1, 2 do
@@ -155,6 +159,21 @@ local function leave_radio()
     clear_hud_members()
     return request("disconnect")
 end
+
+AddEventHandler("sky_phone:client:radioProviderUpdated", function()
+    if current_primary <= 0 then
+        return
+    end
+    if not Bridge.Radio.Join(current_primary, current_secondary) then
+        request("disconnect")
+        current_primary = 0
+        current_secondary = 0
+        clear_hud_members()
+        return
+    end
+
+    Bridge.Radio.SetVolume(current_volume)
+end)
 
 RegisterNUICallback("radio:get", function(data, cb)
     if type(data) ~= "table" then

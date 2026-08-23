@@ -11,6 +11,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 
 import { SkyProvider } from '@/ui'
+import AdminPanel from '@/components/AdminPanel.vue'
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
 import PhoneControlCenter from '@/components/PhoneControlCenter.vue'
 import PhoneDynamicIsland from '@/components/PhoneDynamicIsland.vue'
@@ -70,7 +71,7 @@ import type {
   CompanyChangedPayload,
   CompanyUnreadCounts,
 } from '@/types/companies'
-import type { PhoneCall } from '@/types/phone'
+import type { PhoneCall, PhoneNumberFormat } from '@/types/phone'
 import type { DynamicIslandActivity } from '@/types/dynamicIsland'
 import type { EasyShareEvent } from '@/types/easyshare'
 import type { CryptoMarketChangedData } from '@/types/crypto'
@@ -84,6 +85,7 @@ import { formatTimer } from '@/utils/clock'
 import { parsePhonePreferences } from '@/utils/preferences'
 import { getHairlinePixelStyle } from '@/utils/rendering'
 import { isTextInputElement } from '@/utils/textInputFocus'
+import { configurePhoneNumberFormat } from '@/utils/phone'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 import SpringboardView from '@/views/SpringboardView.vue'
 
@@ -114,7 +116,12 @@ type AppMessage = {
     | CustomAppCatalogEventData
     | CustomAppEventData
     | NavigationEventData
+    | AdminPanelOpenPayload
 }
+
+type AdminPanelOpenPayload = Required<
+  Pick<PhoneOpenPayload, 'fallbackLocales' | 'lang' | 'locales'>
+>
 
 type CustomAppCatalogEventData = {
   apps?: unknown
@@ -133,6 +140,7 @@ type NavigationEventData = {
 type SimPickerPayload = {
   choices: SimPhoneChoice[]
   number: string
+  phoneNumberFormat?: PhoneNumberFormat
 }
 
 type NotificationEventData = Omit<PhoneNotificationInput, 'device'> & {
@@ -355,6 +363,9 @@ const appTransitionName = computed(() =>
   route.query.transition === 'app-switch' ? 'app-switch' : 'app-window',
 )
 const isLocked = ref(false)
+const adminPanelOpen = ref(
+  isDevelopment && developmentParameters.has('adminPanel'),
+)
 const springboardEditing = ref(false)
 const isUnlocking = ref(false)
 const passcodeBusy = ref(false)
@@ -491,6 +502,7 @@ function getViewportScale(): number {
 }
 
 function hydratePhone(payload: PhoneOpenPayload): void {
+  configurePhoneNumberFormat(payload.phoneNumberFormat)
   if (payload.device?.imei) {
     companies.bindDeviceScope(
       payload.device.imei,
@@ -518,8 +530,17 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   clock.hydrate(payload.device?.data.alarms?.payload)
   games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
-  appStore.hydrate(payload.device?.data.apps?.payload)
+  appStore.hydrate(payload.device?.data.apps?.payload, payload.disabledApps)
   widgets.hydrate(payload.device?.data.widgets?.payload)
+
+  const currentAppId = route.params.appId
+  if (
+    typeof currentAppId === 'string' &&
+    isPhoneAppId(currentAppId) &&
+    !appStore.isInstalled(currentAppId)
+  ) {
+    void router.push('/')
+  }
 }
 
 function getInstalledNavigationAppIds(): string[] {
@@ -627,6 +648,8 @@ function loadUnlockedPhoneData(): void {
 }
 
 function completePhoneSetup(): void {
+  const requestedRoute = pendingUnlockRoute.value
+  pendingUnlockRoute.value = null
   setupPreviewDismissed.value = true
   setupAppearanceSelected.value = false
   isLocked.value = false
@@ -634,7 +657,7 @@ function completePhoneSetup(): void {
   passcodeVisible.value = false
   passcodeRequired.value = false
   controlCenterOpened.value = false
-  void router.replace('/')
+  void router.replace(requestedRoute ?? '/')
   loadUnlockedPhoneData()
 }
 
@@ -718,7 +741,15 @@ function openDevelopmentPayphonePreview(): void {
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (!isTrustedRootMessageSource(event.source, window)) return
 
-  if (event.data?.type === 'custom-apps:catalog') {
+  if (event.data?.type === 'admin:open') {
+    const data = event.data.data as AdminPanelOpenPayload | undefined
+    if (data?.lang && data.locales && data.fallbackLocales) {
+      phone.setLocale(data.lang, data.locales, data.fallbackLocales)
+    }
+    adminPanelOpen.value = true
+  } else if (event.data?.type === 'admin:close') {
+    adminPanelOpen.value = false
+  } else if (event.data?.type === 'custom-apps:catalog') {
     appCatalog.replaceCatalog(event.data.data)
     const catalogPayload = event.data.data as
       | { apps?: unknown; debug?: unknown }
@@ -763,7 +794,12 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       isPhoneAppId(data.appId) &&
       appStore.isInstalled(data.appId)
     ) {
-      void router.push(`/apps/${data.appId}`)
+      const requestedRoute = `/apps/${data.appId}`
+      if (setupRequired.value || isLocked.value) {
+        pendingUnlockRoute.value = requestedRoute
+      } else {
+        void router.push(requestedRoute)
+      }
     } else {
       console.error('[Navigation] Ignored an unavailable app target.')
     }
@@ -1222,7 +1258,9 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       loadUnlockedPhoneData()
     }
   } else if (event.data?.type === 'sim:picker' && event.data.data) {
-    simPicker.value = event.data.data as unknown as SimPickerPayload
+    const payload = event.data.data as unknown as SimPickerPayload
+    configurePhoneNumberFormat(payload.phoneNumberFormat)
+    simPicker.value = payload
   } else if (event.data?.type === 'sim:picker-close') {
     simPicker.value = null
   }
@@ -1726,6 +1764,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <SkyProvider
+    v-if="adminPanelOpen"
+    dark
+    :safe-areas="false"
+    accent="#74d66f"
+    accent-soft="rgba(116, 214, 111, 0.14)"
+  >
+    <AdminPanel @close="adminPanelOpen = false" />
+  </SkyProvider>
   <PhoneMediaCapture />
   <PhoneMemoRecorder />
   <RadioHud />
@@ -1838,6 +1885,8 @@ onBeforeUnmount(() => {
                 class="phone-screen"
                 :class="{
                   'phone-screen--app': isAppRoute || isDevelopmentRoute,
+                  'phone-screen--camera-landscape':
+                    activeAppId === 'camera' && phone.cameraLandscape,
                   'phone-app--light': !displayedDarkMode,
                   [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
                 }"

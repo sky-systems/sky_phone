@@ -215,6 +215,9 @@ const activeContact = computed(() =>
 const activeCanMessage = computed(
   () => activeContact.value?.canMessage !== false,
 )
+const activeServiceLine = computed(
+  () => activeContact.value?.source === 'company',
+)
 const activeContactEmail = computed(() =>
   normalizeMailAddress(activeContact.value?.email ?? ''),
 )
@@ -255,12 +258,15 @@ const inboxMenuItems = computed(() => [
   },
 ])
 const attachmentPanelOpen = computed(
-  () => emojiOpen.value || attachmentPicker.value !== null,
+  () =>
+    emojiOpen.value ||
+    (!activeServiceLine.value && attachmentPicker.value !== null),
 )
 const composerHasContent = computed(
   () =>
-    Boolean(draft.value.trim() || shareDraft.value) ||
-    pendingAttachments.value.length > 0,
+    Boolean(draft.value.trim()) ||
+    (!activeServiceLine.value &&
+      (Boolean(shareDraft.value) || pendingAttachments.value.length > 0)),
 )
 function contactName(number: string): string {
   return (
@@ -417,6 +423,8 @@ function errorText(error?: string): string {
     'gif_provider_failed',
     'self_message',
     'recipient_not_found',
+    'messaging_unavailable',
+    'service_line_text_only',
     'no_sim',
     'rate_limited',
     'blocked',
@@ -614,6 +622,7 @@ async function callActiveContact(): Promise<void> {
 }
 
 function toggleAttachmentMenu(): void {
+  if (activeServiceLine.value) return
   attachmentMenuOpen.value = !attachmentMenuOpen.value
   emojiOpen.value = false
   attachmentPicker.value = null
@@ -646,7 +655,7 @@ function openMediaApp(
   app: 'camera' | 'photos',
   mediaType: 'photo' | 'video',
 ): void {
-  if (!messages.activeNumber) return
+  if (!messages.activeNumber || activeServiceLine.value) return
   const remainingSlots =
     MAX_PENDING_ATTACHMENTS - pendingAttachments.value.length
   if (remainingSlots < 1) {
@@ -707,7 +716,14 @@ async function sendAttachment(
   mediaAssetId: string,
   mediaDurationMs?: number,
 ): Promise<void> {
-  if (!messages.activeNumber || !activeCanMessage.value || sending.value) return
+  if (
+    !messages.activeNumber ||
+    !activeCanMessage.value ||
+    activeServiceLine.value ||
+    sending.value
+  ) {
+    return
+  }
   attachmentMenuOpen.value = false
   attachmentPicker.value = null
   sending.value = true
@@ -722,7 +738,7 @@ async function sendAttachment(
 }
 
 async function sendContact(contact: PhoneContact): Promise<void> {
-  if (!messages.activeNumber || sending.value) return
+  if (!messages.activeNumber || activeServiceLine.value || sending.value) return
   attachmentMenuOpen.value = false
   attachmentPicker.value = null
   sending.value = true
@@ -885,7 +901,12 @@ function sampleMicrophone(): void {
 }
 
 async function startVoiceRecording(): Promise<void> {
-  if (!activeCanMessage.value || recording.value || recordingStarting.value) {
+  if (
+    !activeCanMessage.value ||
+    activeServiceLine.value ||
+    recording.value ||
+    recordingStarting.value
+  ) {
     return
   }
   emojiOpen.value = false
@@ -1040,6 +1061,27 @@ watch(
     if (shared?.appId === 'messages') void openEasyShareDraft()
   },
 )
+
+watch(activeServiceLine, (serviceLine) => {
+  if (!serviceLine) return
+  const discarded = Boolean(
+    shareDraft.value ||
+      pendingAttachments.value.length ||
+      recording.value ||
+      recordingStarting.value,
+  )
+  attachmentMenuOpen.value = false
+  attachmentPicker.value = null
+  shareDraft.value = null
+  pendingAttachments.value = []
+  if (recording.value) {
+    discardRecording = true
+    cancelVoiceRecording()
+  } else if (recordingStarting.value) {
+    cleanupRecorder()
+  }
+  if (discarded) showToast(errorText('service_line_text_only'))
+})
 
 onBeforeUnmount(() => {
   discardRecording = true
@@ -1614,7 +1656,7 @@ onBeforeUnmount(() => {
     </SkyScrollArea>
 
     <section
-      v-if="activeCanMessage && attachmentMenuOpen"
+      v-if="activeCanMessage && !activeServiceLine && attachmentMenuOpen"
       class="messages-attachment-menu"
       :aria-hidden="contactDetailsOpen"
       :inert="contactDetailsOpen || undefined"
@@ -1659,7 +1701,9 @@ onBeforeUnmount(() => {
 
     <SkySheet
       class="messages-media-picker-sheet"
-      :opened="activeCanMessage && attachmentPicker !== null"
+      :opened="
+        activeCanMessage && !activeServiceLine && attachmentPicker !== null
+      "
       :aria-label="
         phone.t(
           attachmentPicker === 'contacts'
@@ -1794,7 +1838,7 @@ onBeforeUnmount(() => {
     />
 
     <div
-      v-if="activeCanMessage && shareDraft && !recording"
+      v-if="activeCanMessage && !activeServiceLine && shareDraft && !recording"
       class="shared-composer-preview"
       :aria-hidden="contactDetailsOpen"
       :inert="contactDetailsOpen || undefined"
@@ -1810,7 +1854,7 @@ onBeforeUnmount(() => {
     </div>
 
     <section
-      v-if="activeCanMessage && recording"
+      v-if="activeCanMessage && !activeServiceLine && recording"
       class="messages-recorder"
       :aria-hidden="contactDetailsOpen"
       :inert="contactDetailsOpen || undefined"
@@ -1898,6 +1942,7 @@ onBeforeUnmount(() => {
 
       <div class="messages-sky-composer-row">
         <SkyGlass
+          v-if="!activeServiceLine"
           component="button"
           type="button"
           class="messages-sky-messagebar__action messages-sky-messagebar__plus"
@@ -1934,7 +1979,7 @@ onBeforeUnmount(() => {
                 <ArrowUpCircle :size="29" :stroke-width="2.4" />
               </SkyLink>
               <SkyLink
-                v-else
+                v-else-if="!activeServiceLine"
                 icon-only
                 class="messages-sky-messagebar__send"
                 :disabled="sending || recordingStarting"

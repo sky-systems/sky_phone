@@ -185,6 +185,33 @@ CREATE TABLE IF NOT EXISTS `sky_phone_device_security` (
     FOREIGN KEY (`device_imei`) REFERENCES `sky_phone_devices` (`imei`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_admin_audit` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `actor_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `actor_name` VARCHAR(120) NOT NULL,
+    `target_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `target_source` INT UNSIGNED NULL,
+    `device_imei` CHAR(15) CHARACTER SET ascii COLLATE ascii_bin NULL,
+    `action` VARCHAR(48) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `details` LONGTEXT NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_admin_audit_created` (`created_at`, `id`),
+    KEY `idx_sky_phone_admin_audit_target` (`target_identifier`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sky_phone_configurator` (
+    `id` TINYINT UNSIGNED NOT NULL,
+    `config_payload` LONGTEXT NOT NULL,
+    `media_payload` LONGTEXT NOT NULL,
+    `revision` INT UNSIGNED NOT NULL DEFAULT 1,
+    `updated_by_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NULL,
+    `updated_by_name` VARCHAR(120) NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_notes` (
     `id` VARCHAR(64) NOT NULL,
     `account_id` BIGINT UNSIGNED NULL,
@@ -360,7 +387,7 @@ CREATE TABLE IF NOT EXISTS `sky_phone_billing_invoices` (
     `title` VARCHAR(160) NOT NULL,
     `description` VARCHAR(1000) NOT NULL DEFAULT '',
     `amount` BIGINT UNSIGNED NOT NULL,
-    `currency` VARCHAR(8) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    `currency` VARCHAR(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
     `status` ENUM('open', 'processing', 'paid', 'disputed', 'cancelled', 'refunded') NOT NULL DEFAULT 'open',
     `read_at` DATETIME NULL,
     `issued_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -944,7 +971,7 @@ CREATE TABLE IF NOT EXISTS `sky_phone_skyride_rides` (
     `duration_seconds` INT UNSIGNED NOT NULL,
     `price` INT UNSIGNED NOT NULL,
     `payout_amount` INT UNSIGNED NOT NULL,
-    `currency` VARCHAR(8) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    `currency` VARCHAR(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
     `driver_vehicle_model` VARCHAR(64) NULL,
     `driver_vehicle_color` VARCHAR(64) NULL,
     `driver_vehicle_plate` VARCHAR(16) NULL,

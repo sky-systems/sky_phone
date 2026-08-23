@@ -365,6 +365,7 @@ async function stopRecording(data: Record<string, unknown>): Promise<void> {
       mimeType,
       note: finalMetadata.note,
       pinned: finalMetadata.pinned,
+      sizeBytes: blob.size,
       title: finalMetadata.title,
       waveform,
     }
@@ -458,14 +459,6 @@ async function uploadReady(ready: MemoUploadReady): Promise<void> {
   pending.requestId = ready.requestId
   const form = new FormData()
   form.append('file', pending.blob, pending.fileName)
-  form.append(
-    'metadata',
-    JSON.stringify({
-      captureToken: ready.captureToken,
-      purpose: 'memo',
-      source: 'sky_phone',
-    }),
-  )
   const controller = new AbortController()
   pending.abortController = controller
   const timeout = window.setTimeout(

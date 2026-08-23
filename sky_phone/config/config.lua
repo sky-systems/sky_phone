@@ -10,13 +10,36 @@
     Keep option names unchanged. Restart sky_phone after editing this file.
 ]]
 
+-- CONFIG_DEFAULT_EXCLUDE_START
+-- When enabled, the active configuration is loaded from SQL and managed through
+-- /phonepanel. Frontend builds snapshot the shipped defaults from config.lua and
+-- media.lua into source/shared/config_default.lua.
+Config.PhoneConfigurator = {
+    Enabled = true,
+}
+
+-- Fixed server permissions. These values remain authoritative even while the
+-- Phone Configurator is enabled and are intentionally not shown in its panel.
+-- Group names use the active framework's permissions. On Qbox they also match
+-- ACE objects such as "admin" from the standard permissions.cfg.
+Config.CommandPermissions = {
+    phonepanel = { "god", "superadmin", "admin" },
+    phonetestdata = { "god", "superadmin", "admin" },
+    fliptokverify = { "god", "superadmin", "admin" },
+    picstagramverify = { "god", "superadmin", "admin" },
+    picstagramadmin = { "god", "superadmin", "admin" },
+}
+-- CONFIG_DEFAULT_EXCLUDE_END
+
 -- =============================================================================
 -- Core, framework and device
 -- =============================================================================
 
 Config.Bridge = {
     Framework = "auto", -- auto, esx, qbox, qb
-    Inventory = "auto", -- auto, ox, qb, lj, qs, codem, core, mf, smx, hex, esx
+    -- auto, ak47, codem, core, jaksam, jpr, lj, mf, one, origen, ox, ps, qb, qs, smx, tgiann, hex, esx
+    -- Compatibility aliases: qb-inv -> qb, qbox -> ox
+    Inventory = "auto",
     Locale = "en",
     CallbackTimeout = 15000,
     Debug = false, -- true: show debug/info output; warnings and errors are always shown
@@ -26,25 +49,75 @@ Config.Command = "phone"
 
 Config.Phone = {
     Item = "phone",
-    Unique = true, -- true: data follows each phone item; false: one persistent phone per character; hex/esx require false
+    Unique = true, -- true: data follows each phone item; false: one persistent phone per character; forced false for metadata-free inventories
     Keybind = "F1", -- false disables the configurable phone key mapping
+    OpenRequestsPerMinute = 20,
     AllowMovement = true, -- true: game input stays active while the mobile phone is open
+    HoldToLook = {
+        Enabled = true, -- hold the configured control to hide the cursor and look around; independent of AllowMovement
+        Control = 19, -- INPUT_CHARACTER_WHEEL (Left Alt by default)
+    },
     DevelopmentCommand = true,
     DeviceName = "iFruit Phone",
+}
+
+-- Server-wide availability for bundled apps. Set an entry to false to hide it
+-- from every phone, the App Store and per-device app management.
+Config.Apps = {
+    ["app-store"] = true,
+    banking = true,
+    billing = true,
+    calculator = true,
+    calendar = true,
+    camera = true,
+    citymarkt = true,
+    citywarn = true,
+    clock = true,
+    companies = true,
+    crewlink = true,
+    crypto = true,
+    darkchat = true,
+    feather = true,
+    flare = true,
+    fliptok = true,
+    garage = true,
+    health = true,
+    house = true,
+    ["local-pages"] = true,
+    mail = true,
+    map = true,
+    memory = true,
+    memos = true,
+    messages = true,
+    minesweeper = true,
+    music = true,
+    ["neon-drop"] = true,
+    notes = true,
+    ["number-merge"] = true,
+    phone = true,
+    photos = true,
+    picstagram = true,
+    radio = true,
+    settings = true,
+    ["sky-flappy"] = true,
+    skyride = true,
+    snake = true,
+    ["tower-stack"] = true,
+    weather = true,
+    ["weazel-news"] = true,
 }
 
 Config.TestData = {
     Enabled = false, -- development/test servers only; keep disabled in production
     Command = "phonetestdata",
     AdminOnly = false, -- enable only on development servers; every run is scoped to the executing player's phone
-    AdminGroups = { "admin", "superadmin" },
 }
 
 Config.CustomApps = {
     Enabled = true,
     BundledApps = true,
     ExternalApps = true,
-    Debug = true, -- detailed client traces for exports, registration, catalog sync and lifecycle events
+    Debug = false, -- detailed client traces for exports, registration, catalog sync and lifecycle events
     ReadyTimeoutMs = 8000,
     MaximumMessageBytes = 65536,
     MaximumStorageBytesPerApp = 262144,
@@ -61,13 +134,24 @@ Config.Security = {
     AttemptsPerMinute = 12,
 }
 
+Config.AdminPanel = {
+    Enabled = true,
+    Command = "phonepanel",
+    MaximumPlayers = 128,
+    ReadRequestsPerMinute = 60,
+    ActionRequestsPerMinute = 30,
+    CredentialRevealsPerMinute = 6,
+    AuditLimit = 40,
+    ActivityLimit = 40,
+}
+
 Config.Sim = {
-    Enabled = true, -- false: devices receive a persistent random number automatically; hex/esx require false
+    Enabled = true, -- false: devices receive a persistent random number automatically; forced false for metadata-free inventories
     RegisteredItem = "sky_phone_sim_registered",
     AnonymousItem = "sky_phone_sim_anonymous",
-    NumberLength = 10,
-    NumberPrefix = "",
-    NumberGroups = { 3, 3, 4 },
+    NumberLength = 10, -- total number of digits, including NumberPrefix
+    NumberPrefix = "", -- digits only; use "555", not "555-"
+    NumberGroups = { 3, 3, 4 }, -- display groups separated by spaces
 }
 
 -- =============================================================================
@@ -79,7 +163,7 @@ Config.Speaker = {
 }
 
 Config.Calls = {
-    VoiceProvider = "pma", -- yaca (alias: yaca-voice), pma (alias: pma-voice), saltychat (alias: salty)
+    VoiceProvider = "pma", -- auto, yaca (alias: yaca-voice), pma (alias: pma-voice), saltychat (alias: salty)
     RingSeconds = 30,
     ContactNameMaxLength = 80,
     ContactNotesMaxLength = 500,
@@ -264,6 +348,7 @@ Config.DarkChat = {
     VoiceMaxBase64Length = 360000,
     VoiceWaveformSamples = 48,
     CleanupIntervalSeconds = 30,
+    CleanupBatchSize = 250,
     AllowedDisappearTimers = {
         [0] = true,
         [-1] = true, -- after reading
@@ -461,7 +546,6 @@ Config.FlipTok = {
     MaxPostMedia = 10,
     MusicTracks = {},
     VerifyCommand = "fliptokverify",
-    AdminGroups = { "admin" },
     ReportWebhookConvar = "sky_phone_fliptok_report_webhook",
 }
 
@@ -483,7 +567,6 @@ Config.Picstagram = {
     ReportDetailsMaxLength = 500,
     ReportReasons = { "spam", "harassment", "dangerous", "illegal", "other" },
     VerifyCommand = "picstagramverify",
-    AdminGroups = { "admin" },
 }
 
 Config.Feather = {
@@ -1098,7 +1181,7 @@ if IsDuplicityVersion() then
                 LogoUrl = "https://picsum.photos/seed/companies-police-logo/180/180",
                 Description = "Public safety, emergency response, and police services.",
                 DefaultAvailability = "closed",
-                AcceptsRequests = false,
+                AcceptsRequests = true,
                 District = "Mission Row",
                 LocationLabel = "Mission Row Police Station",
                 Address = "Mission Row Police Station",
@@ -1107,7 +1190,7 @@ if IsDuplicityVersion() then
                     Number = "911",
                     AutoContact = true,
                     CanCall = true,
-                    CanMessage = false,
+                    CanMessage = true,
                     Routing = "round_robin",
                     MinimumGrade = 0,
                 },
@@ -1120,7 +1203,15 @@ if IsDuplicityVersion() then
                     Services = 3,
                     Announcement = 3,
                 },
-                Services = {},
+                Services = {
+                    {
+                        Id = "police-assistance",
+                        Title = "Police assistance",
+                        Description = "Request non-emergency police assistance.",
+                        Price = "",
+                        RequestsEnabled = true,
+                    },
+                },
             },
             ambulance = {
                 Job = "ambulance",

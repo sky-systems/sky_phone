@@ -97,6 +97,14 @@ local function current_device(source)
     return device
 end
 
+local function resolve_message_recipient(value)
+    local service_line = SkyPhoneCompanies.GetServiceLine(value)
+    if service_line then
+        return service_line.number, service_line
+    end
+    return SkyPhoneSimNumber.Normalize(value, Config.Sim.NumberLength, Config.Sim.NumberPrefix), nil
+end
+
 local function shared_contact(device, contact_id)
     if type(contact_id) ~= "string" or contact_id == "" or #contact_id > 36 then
         return nil, "invalid_contact"
@@ -366,7 +374,7 @@ Bridge.Callbacks.Register("sky_phone:messages:thread", function(source, data)
     if not device then
         return error_response
     end
-    local number = SkyPhoneSimNumber.Normalize(data.phoneNumber, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+    local number = resolve_message_recipient(data.phoneNumber)
     if not number then
         return { success = false, error = "invalid_number" }
     end
@@ -407,11 +415,7 @@ Bridge.Callbacks.Register("sky_phone:messages:delete", function(source, data)
     local numbers = {}
     local seen = {}
     for index = 1, #data.phoneNumbers do
-        local number = SkyPhoneSimNumber.Normalize(
-            data.phoneNumbers[index],
-            Config.Sim.NumberLength,
-            Config.Sim.NumberPrefix
-        )
+        local number = resolve_message_recipient(data.phoneNumbers[index])
         if not number then
             return { success = false, error = "invalid_number" }
         end
@@ -483,7 +487,7 @@ Bridge.Callbacks.Register("sky_phone:messages:send", function(source, data)
     if not device then
         return error_response
     end
-    local number = SkyPhoneSimNumber.Normalize(data.phoneNumber, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+    local number, service_line = resolve_message_recipient(data.phoneNumber)
     if not number then
         return { success = false, error = "invalid_number" }
     end
@@ -535,6 +539,42 @@ Bridge.Callbacks.Register("sky_phone:messages:send", function(source, data)
         end
     else
         return { success = false, error = "invalid_request" }
+    end
+    if service_line then
+        if not service_line.canMessage then
+            return { success = false, error = "messaging_unavailable" }
+        end
+        if message_type ~= "text" then
+            return { success = false, error = "service_line_text_only" }
+        end
+        local id = uuid()
+        local routed = SkyPhoneCompanies.RouteServiceLineMessage(source, {
+            id = id,
+            body = body,
+            messageType = message_type,
+            phoneNumber = number,
+        })
+        if not routed or not routed.success then
+            return routed or { success = false, error = "request_failed" }
+        end
+        local rows = Bridge.Database.Query([[
+            SELECT `id`, `sender_number`, `recipient_number`, `message_type`, `body`,
+                `media_payload`, `media_mime`, `media_duration_ms`, `media_waveform`,
+                `read_at`, `created_at`, 'sent' AS `direction`
+            FROM `sky_phone_sms_messages` WHERE `id` = ? LIMIT 1
+        ]], { id })
+        if not rows[1] then
+            Bridge.Debug(
+                "error",
+                "[sky_phone] Routed service-line SMS %s could not be read back.",
+                tostring(id),
+                { always = true }
+            )
+            return { success = false, error = "request_failed" }
+        end
+        local message = format_message(rows[1])
+        TriggerClientEvent("sky_phone:messages:changed", source, { phoneNumber = number })
+        return { success = true, data = message }
     end
     local recipients = Bridge.Database.Query([[
         SELECT s.`id`, s.`phone_number`

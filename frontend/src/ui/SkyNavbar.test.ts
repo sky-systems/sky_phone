@@ -43,6 +43,17 @@ describe('SkyNavbar', () => {
     expect(html).toContain('Account')
   })
 
+  it('constrains long compact titles to the center column', () => {
+    const titleRule = foundationStyles.match(
+      /\.sky-navbar__title\s*\{([^}]*)\}/s,
+    )?.[1]
+
+    expect(titleRule).toContain('max-width: 100%')
+    expect(titleRule).toContain('overflow: hidden')
+    expect(titleRule).toContain('text-overflow: ellipsis')
+    expect(titleRule).toContain('white-space: nowrap')
+  })
+
   it('exposes the large-title header without changing heading semantics', async () => {
     const html = await renderToString(
       createSSRApp(SkyNavbar, {

@@ -44,8 +44,10 @@ function Bridge.Inventory.SetSlotMetadata(source, slot_id, metadata)
         return false
     end
 
-    inventory:SetMetadata(source, tonumber(slot_id), metadata or {})
-    return true
+    local requested_metadata = type(metadata) == "table" and metadata or {}
+    inventory:SetMetadata(source, tonumber(slot_id), requested_metadata)
+    local updated = Bridge.Inventory.GetSlot(source, slot_id)
+    return updated and Bridge.Inventory.MetadataMatches(updated.metadata, requested_metadata) or false
 end
 
 function Bridge.Inventory.CanCarryItem(source, item_name, count, metadata)

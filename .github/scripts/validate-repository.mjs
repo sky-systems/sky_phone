@@ -17,6 +17,8 @@ for (const requiredFragment of [
   "fx_version 'cerulean'",
   "node_version '22'",
   "use_experimental_fxv2_oal 'yes'",
+  "'source/server/nui_build_check.lua'",
+  "'source/html/sounds/**'",
   "ui_page 'source/html/index.html'",
 ]) {
   if (!manifest.includes(requiredFragment)) {

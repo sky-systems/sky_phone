@@ -61,16 +61,22 @@ const passcodeError = ref('')
 const passcodeLength = ref<4 | 6>(phone.security.length === 4 ? 4 : 6)
 const notificationsEnabled = ref(true)
 const notificationSounds = ref(true)
-const selectedApps = ref<BuiltinPhoneAppId[]>(['banking', 'garage', 'skyride'])
+const selectedApps = ref<BuiltinPhoneAppId[]>(
+  (['banking', 'garage', 'skyride'] as const).filter((id) =>
+    appStore.isAvailable(id),
+  ),
+)
 const setupCompleteBusy = ref(false)
 const setupCompleteError = ref('')
 
-const setupApps = (
-  ['banking', 'garage', 'skyride', 'citymarkt', 'picstagram', 'snake'] as const
-).flatMap((id) => {
-  const app = getPhoneApp(id)
-  return app ? [app] : []
-})
+const setupApps = computed(() =>
+  (
+    ['banking', 'garage', 'skyride', 'citymarkt', 'picstagram', 'snake'] as const
+  ).flatMap((id) => {
+    const app = getPhoneApp(id)
+    return app && appStore.isAvailable(id) ? [app] : []
+  }),
+)
 const wallpaperChoices = WALLPAPER_IDS
 const progress = computed(() => `${((step.value + 1) / 10) * 100}%`)
 const displayName = computed(() => {
