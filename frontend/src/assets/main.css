@@ -460,6 +460,7 @@ button {
   }
 }
 .phone-screen {
+  --phone-screen-portrait-ratio: 2.30951;
   position: relative;
   container-type: size;
   margin: auto;
@@ -469,6 +470,12 @@ button {
   overflow: hidden;
   background: #08080a;
   border-radius: 40px;
+}
+.phone-screen--camera-landscape {
+  background: transparent;
+}
+.phone-screen--camera-landscape .springboard {
+  visibility: hidden;
 }
 .phone-app {
   position: absolute !important;
@@ -3238,6 +3245,9 @@ button {
   transform-origin: 0 0;
   backface-visibility: hidden;
   will-change: transform, border-radius, opacity;
+}
+.app-window--camera-landscape {
+  background: transparent;
 }
 .app-window--citywarn {
   backface-visibility: visible;

@@ -1885,6 +1885,8 @@ onBeforeUnmount(() => {
                 class="phone-screen"
                 :class="{
                   'phone-screen--app': isAppRoute || isDevelopmentRoute,
+                  'phone-screen--camera-landscape':
+                    activeAppId === 'camera' && phone.cameraLandscape,
                   'phone-app--light': !displayedDarkMode,
                   [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
                 }"
