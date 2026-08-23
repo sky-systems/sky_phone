@@ -106,4 +106,31 @@ describe('company configurator creation contract', () => {
     expect(blankRegistration).toBeGreaterThanOrEqual(0)
     expect(blankRegistration).toBeLessThan(policeRegistration)
   })
+
+  it('repairs persisted service-line messaging before Companies starts', () => {
+    const migration = configuratorServer.slice(
+      configuratorServer.indexOf(
+        'local function migrate_unsupported_company_message_defaults()',
+      ),
+      configuratorServer.indexOf('\n\ndefault_config = {}'),
+    )
+    const policeRegistration = configuratorServer.indexOf(
+      'Bridge.Database.AfterMigration("sky_phone", migrate_police_request_defaults)',
+    )
+    const messageRegistration = configuratorServer.indexOf(
+      'Bridge.Database.AfterMigration("sky_phone", migrate_unsupported_company_message_defaults)',
+    )
+
+    expect(migration).toContain(
+      'sky-phone:configurator:unsupported-company-message-defaults:v1',
+    )
+    expect(migration).toContain('line.CanMessage == true')
+    expect(migration).toContain('line.CanMessage = false')
+    expect(migration).toContain('Bridge.Database.Transaction(statements)')
+    expect(migration).toContain('SET `config_payload` = ?')
+    expect(migration).toContain('`revision` = `revision` + 1')
+    expect(migration).toContain('apply_stored_row(read_stored_row())')
+    expect(migration).toContain('apply_runtime_configuration()')
+    expect(messageRegistration).toBeGreaterThan(policeRegistration)
+  })
 })

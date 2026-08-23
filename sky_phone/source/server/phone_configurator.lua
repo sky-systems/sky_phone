@@ -1289,6 +1289,73 @@ local function migrate_police_request_defaults()
     )
 end
 
+local function migrate_unsupported_company_message_defaults()
+    local migration_name = "sky-phone:configurator:unsupported-company-message-defaults:v1"
+    local completed = Bridge.Database.Query(
+        "SELECT 1 FROM `sky_phone_migrations` WHERE `name` = ? LIMIT 1",
+        { migration_name }
+    )
+    if completed[1] then
+        return
+    end
+
+    local row = read_stored_row()
+    local config_payload = decode_payload(row.config_payload, "config")
+    local definitions = config_payload.Companies
+        and config_payload.Companies.Definitions
+    local migrated_companies = {}
+    if type(definitions) == "table" then
+        for company_id, definition in pairs(definitions) do
+            local line = type(definition) == "table" and definition.ServiceLine or nil
+            if type(line) == "table" and line.CanMessage == true then
+                line.CanMessage = false
+                migrated_companies[#migrated_companies + 1] = tostring(company_id)
+            end
+        end
+    end
+    table.sort(migrated_companies)
+
+    local statements = {}
+    if #migrated_companies > 0 then
+        statements[#statements + 1] = {
+            query = ([[
+                UPDATE `%s`
+                SET `config_payload` = ?, `revision` = `revision` + 1
+                WHERE `id` = ?
+            ]]):format(TABLE_NAME),
+            params = { encode_payload(config_payload, "config"), CONFIG_ROW_ID },
+        }
+    end
+    statements[#statements + 1] = {
+        query = [[
+            INSERT IGNORE INTO `sky_phone_migrations` (`name`, `source`, `stats`)
+            VALUES (?, ?, ?)
+        ]],
+        params = {
+            migration_name,
+            "sky-phone",
+            json.encode({ companies = migrated_companies }),
+        },
+    }
+    if not Bridge.Database.Transaction(statements) then
+        error("[sky_phone] Could not migrate unsupported Phone Configurator service-line messaging defaults.")
+    end
+    if #migrated_companies == 0 then
+        return
+    end
+
+    apply_stored_row(read_stored_row())
+    apply_runtime_configuration()
+    TriggerEvent("sky_phone:configurator:serverUpdated", revision)
+    SkyPhoneConfigurator.Broadcast(-1)
+    Bridge.Debug(
+        "info",
+        "[sky_phone] Disabled unsupported Phone Configurator service-line messaging for: %s",
+        table.concat(migrated_companies, ", "),
+        { always = true }
+    )
+end
+
 default_config = {}
 for key, value in pairs(ConfigDefaults) do
     if key ~= "Media" and key ~= "PhoneConfigurator" and key ~= "CommandPermissions" then
@@ -1311,6 +1378,7 @@ apply_stored_row(read_stored_row())
 apply_runtime_configuration()
 Bridge.Database.AfterMigration("sky_phone", migrate_blank_company_definitions)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_request_defaults)
+Bridge.Database.AfterMigration("sky_phone", migrate_unsupported_company_message_defaults)
 
 function SkyPhoneConfigurator.GetAdminData()
     local data = build_admin_data()
