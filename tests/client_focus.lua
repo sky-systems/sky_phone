@@ -7,6 +7,7 @@ local nui_focus = nil
 local nui_keep_input = nil
 local pressed_controls = {}
 local disabled_pressed_controls = {}
+local triggered_events = {}
 
 Config = {
     Phone = {
@@ -36,7 +37,9 @@ function SetNuiFocusKeepInput(keep_input)
     nui_keep_input = keep_input
 end
 
-function TriggerEvent() end
+function TriggerEvent(name, data)
+    triggered_events[#triggered_events + 1] = { name = name, data = data }
+end
 
 function IsControlPressed(group, control)
     assert(group == 0, "HoldToLook must read the primary input group")
@@ -298,14 +301,24 @@ local focused_camera = resolve({
 assert(
     focused_camera.cursor
         and focused_camera.focused
-        and not focused_camera.keep_input
+        and focused_camera.keep_input
         and not focused_camera.game_input,
-    "focused camera must override movement configuration until a camera passthrough control is held"
+    "focused camera must forward readable input while blocking game actions until passthrough is held"
 )
 
-event_handlers["sky_phone:client:setCameraFocus"]({ active = true, nuiFocused = false })
+event_handlers["sky_phone:client:setCameraFocus"]({ active = true, nuiFocused = true })
+local focused_camera_event = triggered_events[#triggered_events]
 assert(
-    nui_focus.focused and not nui_focus.cursor and nui_keep_input,
+    nui_focus.focused and nui_focus.cursor and nui_keep_input
+        and focused_camera_event.name == "sky_phone:client:cameraFocusApplied"
+        and not focused_camera_event.data.gameInput,
+    "focused camera must keep controls readable without reporting movement passthrough"
+)
+event_handlers["sky_phone:client:setCameraFocus"]({ active = true, nuiFocused = false })
+local passthrough_camera_event = triggered_events[#triggered_events]
+assert(
+    nui_focus.focused and not nui_focus.cursor and nui_keep_input
+        and passthrough_camera_event.data.gameInput,
     "camera passthrough must apply keyboard focus without a cursor and keep GTA input enabled"
 )
 event_handlers["sky_phone:client:setCameraFocus"]({ active = false, nuiFocused = true })

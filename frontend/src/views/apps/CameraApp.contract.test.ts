@@ -135,6 +135,10 @@ describe('Camera app controls', () => {
     expect(focusClient).toContain(
       'return { block_game = false, block_look = false, cursor = false, focused = true, game_input = true, keep_input = true }',
     )
+    expect(focusClient).toContain(
+      'return { block_game = true, block_look = true, cursor = true, focused = true, game_input = false, keep_input = true }',
+    )
+    expect(focusClient).toContain('gameInput = focus.game_input')
     expect(cameraClient).toContain('SetCamCoord(')
     expect(cameraClient).toContain('PointCamAtCoord(')
     expect(cameraClient).not.toContain('SetCamRot(')

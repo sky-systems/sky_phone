@@ -106,6 +106,10 @@ function SkyPhoneFocus.Resolve(state)
     if state.camera_active and not state.camera_nui_focused then
         return { block_game = false, block_look = false, cursor = false, focused = true, game_input = true, keep_input = true }
     end
+    if state.camera_active then
+        -- Forward controls so disabled inputs remain readable while the NUI cursor owns focus.
+        return { block_game = true, block_look = true, cursor = true, focused = true, game_input = false, keep_input = true }
+    end
     local game_input = state.is_open
         and allows_game_input(state)
         and not state.camera_active
@@ -147,7 +151,7 @@ function SkyPhoneFocus.Reapply()
         active = state.camera_active,
         cursor = focus.cursor,
         focused = focus.focused,
-        gameInput = focus.keep_input,
+        gameInput = focus.game_input,
     })
 end
 
