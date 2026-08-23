@@ -5,6 +5,7 @@ import {
 } from 'vue-router'
 
 import { isPhoneAppId } from '@/config/apps'
+import { useAppStoreStore } from '@/stores/app-store'
 import PhoneAppWindow from '@/views/PhoneAppWindow.vue'
 import SpringboardView from '@/views/SpringboardView.vue'
 
@@ -34,7 +35,9 @@ export default createRouter({
     },
     {
       beforeEnter: (to) =>
-        typeof to.params.appId === 'string' && isPhoneAppId(to.params.appId)
+        typeof to.params.appId === 'string' &&
+        isPhoneAppId(to.params.appId) &&
+        useAppStoreStore().isInstalled(to.params.appId)
           ? true
           : '/',
       component: PhoneAppWindow,

@@ -4,11 +4,13 @@ import { useRoute } from 'vue-router'
 
 import CustomAppFrame from '@/components/CustomAppFrame.vue'
 import { getPhoneApp, isExternalPhoneApp } from '@/config/apps'
+import { useAppStoreStore } from '@/stores/app-store'
 import { usePhoneStore } from '@/stores/phone'
 import { getCustomAppFrameKey } from '@/utils/customAppLifecycle'
 import AppStoreApp from '@/views/apps/AppStoreApp.vue'
 
 const route = useRoute()
+const appStore = useAppStoreStore()
 const phone = usePhoneStore()
 const app = computed(() => getPhoneApp(route.params.appId))
 const builtinAppComponent = computed(() =>
@@ -28,7 +30,7 @@ const launchStyle = computed(() => {
 
 <template>
   <div
-    v-if="app && !app.adminOnly"
+    v-if="app && !app.adminOnly && appStore.isInstalled(app.id)"
     class="app-window"
     :class="{ 'app-window--citywarn': app.id === 'citywarn' }"
     :style="launchStyle"

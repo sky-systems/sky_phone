@@ -371,6 +371,9 @@ local function initialize_markets()
 end
 
 local function require_phone(source)
+    if not Config.Crypto.Enabled or not SkyPhone.IsAppEnabled("crypto") then
+        return nil, nil, { success = false, error = "service_unavailable" }
+    end
     local phone_session, error_response = SkyPhone.RequireSession(source)
     if not phone_session then
         return nil, nil, error_response
@@ -661,7 +664,7 @@ local function with_exchange_lock(callback)
 end
 
 Bridge.Callbacks.Register("sky_phone:crypto:bootstrap", function(source)
-    if not Config.Crypto.Enabled then
+    if not Config.Crypto.Enabled or not SkyPhone.IsAppEnabled("crypto") then
         return { success = false, error = "service_unavailable" }
     end
     local profile, error_response = authenticated_profile(source)
@@ -1647,6 +1650,9 @@ end
 local function refresh_crypto_runtime()
     initialize_markets()
     start_crypto_schedulers()
+    if not Config.Crypto.Enabled or not SkyPhone.IsAppEnabled("crypto") then
+        sessions = {}
+    end
 end
 
 AddEventHandler("sky_phone:configurator:serverUpdated", refresh_crypto_runtime)

@@ -276,6 +276,31 @@ describe('app store', () => {
     expect(apps.isInstalled('phone')).toBe(true)
   })
 
+  it('temporarily blocks server-disabled apps without changing their installation', () => {
+    const apps = useAppStoreStore()
+    apps.hydrate({ claimedApps: ['crypto'] }, [
+      'crypto',
+      'citywarn',
+      'not-an-app',
+    ])
+    mocks.phone.saveDeviceNamespace.mockClear()
+
+    expect(apps.disabledApps).toEqual(['crypto', 'citywarn'])
+    expect(apps.isAvailable('crypto')).toBe(false)
+    expect(apps.isInstalled('crypto')).toBe(false)
+    expect(apps.isInstalled('citywarn')).toBe(false)
+    expect(apps.claimedApps).toEqual(['crypto'])
+
+    apps.installApp('crypto')
+    expect(apps.installingApps).toEqual({})
+    expect(mocks.phone.saveDeviceNamespace).not.toHaveBeenCalled()
+
+    apps.hydrate({ claimedApps: ['crypto'] })
+    expect(apps.isAvailable('crypto')).toBe(true)
+    expect(apps.isInstalled('crypto')).toBe(true)
+    expect(apps.isInstalled('citywarn')).toBe(true)
+  })
+
   it('protects every default app from full uninstallation', () => {
     const apps = useAppStoreStore()
     apps.hydrate(null)
