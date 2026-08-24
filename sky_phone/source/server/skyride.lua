@@ -1836,16 +1836,21 @@ CreateThread(function()
     while true do
         local recovery_success, recovery_rows = pcall(
             Bridge.Database.Query,
-            ride_select .. (([[
-                WHERE r.`refund_status` IN ('pending','completed')
-                    AND (
-                        r.`status` = 'cancelled'
-                        OR (
-                            r.`status` = 'payment_pending'
-                            AND r.`updated_at` <= DATE_SUB(
-                                CURRENT_TIMESTAMP,
-                                INTERVAL %d SECOND
-                            )
+            (([[
+                SELECT r.`id`, r.`status`, r.`refund_status`, r.`price`,
+                    passenger.`owner_identifier` AS `passenger_identifier`
+                FROM `sky_phone_skyride_rides` r
+                INNER JOIN `sky_phone_skyride_profiles` passenger
+                    ON passenger.`id` = r.`passenger_profile_id`
+                WHERE (
+                        r.`refund_status` = 'pending'
+                        AND r.`status` = 'cancelled'
+                    ) OR (
+                        r.`refund_status` IN ('pending','completed')
+                        AND r.`status` = 'payment_pending'
+                        AND r.`updated_at` <= DATE_SUB(
+                            CURRENT_TIMESTAMP,
+                            INTERVAL %d SECOND
                         )
                     )
                 ORDER BY r.`updated_at` ASC
