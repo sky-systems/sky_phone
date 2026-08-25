@@ -70,6 +70,31 @@ describe('browser development preview contract', () => {
     expect(source).toContain(':device-pixel-ratio="browserDevicePixelRatio"')
   })
 
+  it('clips composited app and overlay layers to the curved display', () => {
+    expect(mainCss).toMatch(
+      /\.phone-screen\s*\{[^}]*--phone-screen-radius:\s*40px;[^}]*overflow:\s*hidden;[^}]*border-radius:\s*var\(--phone-screen-radius\);[^}]*clip-path:\s*inset\(0 round var\(--phone-screen-radius\)\);/s,
+    )
+  })
+
+  it('replaces the CEF button focus rectangle around the home indicator', () => {
+    expect(mainCss).toMatch(
+      /\.phone-home-indicator:focus\s*\{[^}]*outline:\s*none;/s,
+    )
+    expect(mainCss).toMatch(
+      /\.phone-home-indicator:focus-visible span\s*\{[^}]*0 0 0 2px #0a84ff,/s,
+    )
+  })
+
+  it('consumes Escape synchronously before FiveM can open the pause menu', () => {
+    expect(source).toContain("import { consumeEscape } from '@/utils/keyboard'")
+    expect(source).toContain(
+      'if (!phone.isOpen || activitySuspended.value || !consumeEscape(event)) return',
+    )
+    expect(source).not.toMatch(
+      /function onKeydown\(event: KeyboardEvent\): void \{[\s\S]*?queueMicrotask/,
+    )
+  })
+
   it('maps the visible device side controls to phone actions', () => {
     expect(source).toContain('@click="toggleHardwareAlertMute"')
     expect(source).toContain('@click="changeHardwareAlertVolume(10)"')

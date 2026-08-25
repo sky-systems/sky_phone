@@ -1,6 +1,6 @@
 SkyPhoneFocus = {}
 
-local blocked_phone_controls = { 24, 140, 141, 142, 257, 263, 264 }
+local blocked_phone_controls = { 24, 140, 141, 142, 199, 200, 257, 263, 264 }
 local blocked_phone_look_controls = { 1, 2, 3, 4, 5, 6 }
 local focused_control_groups = { 0, 1, 2 }
 local hold_to_look_enabled = false

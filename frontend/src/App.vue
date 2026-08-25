@@ -86,6 +86,7 @@ import { parsePhonePreferences } from '@/utils/preferences'
 import { getHairlinePixelStyle } from '@/utils/rendering'
 import { isTextInputElement } from '@/utils/textInputFocus'
 import { configurePhoneNumberFormat } from '@/utils/phone'
+import { consumeEscape } from '@/utils/keyboard'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 import SpringboardView from '@/views/SpringboardView.vue'
 
@@ -1315,20 +1316,17 @@ async function closePhone(): Promise<void> {
 function onKeydown(event: KeyboardEvent): void {
   if (event.key !== 'Escape') return
   if (simPicker.value) {
-    event.preventDefault()
+    if (!consumeEscape(event)) return
     void closeSimPicker()
     return
   }
 
-  queueMicrotask(() => {
-    if (event.defaultPrevented || !phone.isOpen || activitySuspended.value)
-      return
-    if (controlCenterOpened.value) {
-      controlCenterOpened.value = false
-      return
-    }
-    void closePhone()
-  })
+  if (!phone.isOpen || activitySuspended.value || !consumeEscape(event)) return
+  if (controlCenterOpened.value) {
+    controlCenterOpened.value = false
+    return
+  }
+  void closePhone()
 }
 
 function onSystemColorSchemeChange(event: MediaQueryListEvent): void {

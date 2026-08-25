@@ -252,7 +252,7 @@ assert(firing_disabled, "focused phone cursor must block attacks while typing")
 all_controls_disabled = {}
 firing_disabled = false
 SkyPhoneFocus.ApplyGameInputControls(true)
-for _, control in ipairs({ 24, 140, 141, 142, 257, 263, 264 }) do
+for _, control in ipairs({ 24, 140, 141, 142, 199, 200, 257, 263, 264 }) do
     assert(disabled_controls[control], ("phone control %d must remain disabled"):format(control))
 end
 assert(not disabled_controls[19], "Alt must remain available while no phone text input is focused")

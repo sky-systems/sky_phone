@@ -264,6 +264,23 @@ describe('app store', () => {
     expect(apps.homeLayout.hidden).not.toContain('snake')
   })
 
+  it('uninstalls claimed Banking and Picstagram apps from every app state', () => {
+    const apps = useAppStoreStore()
+    apps.hydrate({ claimedApps: ['banking', 'picstagram'] })
+    mocks.phone.saveDeviceNamespace.mockClear()
+
+    for (const appId of ['banking', 'picstagram'] as const) {
+      expect(apps.isInstalled(appId)).toBe(true)
+      expect(apps.uninstallApp(appId)).toBe(true)
+      expect(apps.isInstalled(appId)).toBe(false)
+      expect(apps.claimedApps).not.toContain(appId)
+      expect(apps.uninstalledApps).toContain(appId)
+      expect(apps.homeLayout.hidden).toContain(appId)
+    }
+
+    expect(mocks.phone.saveDeviceNamespace).toHaveBeenCalledTimes(2)
+  })
+
   it('hydrates persisted removals while rejecting protected and invalid ids', () => {
     const apps = useAppStoreStore()
 

@@ -3027,6 +3027,7 @@ const defaultLocales: LocaleTree = {
         uninstallTitle: 'Uninstall this app?',
         uninstallBody:
           '{app} will be removed from this phone. You can download it again from the App Store.',
+        uninstallFailed: 'The app could not be uninstalled. Please try again.',
       },
       details: {
         skyStudios: 'Sky Studios',

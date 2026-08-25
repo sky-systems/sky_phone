@@ -2022,10 +2022,11 @@ Locales["de"] = {
                 },
                 account = {
                     account = "Account", title = "App-Verwaltung", skyAccount = "Sky Phone Konto",
-                    apps = "Installation von Apps", games = "Spiele", library = "Deine Bibliothek.", myApps = "Meine Apps",
+                    apps = "Installierte Apps", games = "Spiele", library = "Deine Bibliothek.", myApps = "Meine Apps",
                     downloadedOn = "Gespeichert {date}", uninstall = "Deinstallieren", uninstallApp = "Deinstallieren {app}",
                     uninstallTitle = "Diese App deinstallieren?",
                     uninstallBody = "{app} wird von diesem Handy entfernt. Du kannst die App erneut aus dem App Store laden.",
+                    uninstallFailed = "Die App konnte nicht deinstalliert werden. Bitte versuche es erneut.",
                 },
                 details = {
                     skyStudios = "Sky Studios", share = "App teilen", openDetails = "Ansicht {app}",

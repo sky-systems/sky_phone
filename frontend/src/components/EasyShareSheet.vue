@@ -67,7 +67,7 @@ const sharePeople = computed(() => {
   }> = []
   const phoneNumbers = new Set<string>()
 
-  if (!appStore.homeLayout.hidden.includes('flare')) {
+  if (appStore.isInstalled('flare')) {
     for (const match of flare.matches) {
       people.push({
         avatar: match.profile.photoUrls[0],
@@ -102,7 +102,7 @@ const sharePeople = computed(() => {
     phoneNumbers.add(contact.phone_number)
   }
 
-  if (!appStore.homeLayout.hidden.includes('darkchat')) {
+  if (appStore.isInstalled('darkchat')) {
     for (const conversation of darkChat.conversations.slice(0, 8)) {
       people.push({
         kind: 'darkchat',
@@ -116,7 +116,7 @@ const sharePeople = computed(() => {
 })
 const shareApps = computed(() =>
   (easyShare.payload ? easyShareDestinationAppIds(easyShare.payload) : [])
-    .filter((id) => !appStore.homeLayout.hidden.includes(id))
+    .filter((id) => appStore.isInstalled(id))
     .flatMap((id) => {
       const app = getPhoneApp(id)
       return app ? [{ app, id }] : []
@@ -195,18 +195,21 @@ function endDrag(event: PointerEvent): void {
 }
 
 function shareToChat(kind: EasyShareChatApp, targetId: string): void {
+  if (!appStore.isInstalled(kind)) return
   if (!easyShare.prepareChatDraft(kind, targetId)) return
   close()
   void router.push(`/apps/${kind}`)
 }
 
 function openChatApp(kind: EasyShareChatApp): void {
+  if (!appStore.isInstalled(kind)) return
   if (!easyShare.prepareChatDraft(kind)) return
   close()
   void router.push(`/apps/${kind}`)
 }
 
 function openShareApp(appId: EasyShareDestinationApp): void {
+  if (!appStore.isInstalled(appId)) return
   if (appId === 'messages' || appId === 'darkchat' || appId === 'flare') {
     openChatApp(appId)
     return

@@ -101,6 +101,10 @@ describe('AppStoreApp Sky navigation contract', () => {
     expect(source).toContain(
       'appStore.uninstallApp(uninstallCandidate.value.id)',
     )
+    expect(source).toContain('@click.stop="requestUninstall(app)"')
+    expect(source).toContain('if (!appStore.uninstallApp(')
+    expect(source).toContain('Apps.appStore.account.uninstallFailed')
+    expect(source).toContain('role="alert"')
     expect(source).toContain('v-if="isPhoneAppRemovable(app)"')
     expect(source).toContain(':opened="Boolean(uninstallCandidate)"')
     expect(source).toContain('class="store-account__grabber"')

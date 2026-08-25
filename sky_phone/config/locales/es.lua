@@ -2026,6 +2026,7 @@ Locales["es"] = {
                     downloadedOn = "Descargado {date}", uninstall = "Desinstalar", uninstallApp = "Desinstalar {app}",
                     uninstallTitle = "¿Desinstalar esta aplicación?",
                     uninstallBody = "{app} será eliminado de este teléfono. Puedes descargarlo de nuevo de la App Store.",
+                    uninstallFailed = "No se ha podido desinstalar la aplicación. Inténtalo de nuevo.",
                 },
                 details = {
                     skyStudios = "Sky Studios", share = "Compartir aplicación", openDetails = "Ver {app}",

@@ -460,6 +460,7 @@ button {
   }
 }
 .phone-screen {
+  --phone-screen-radius: 40px;
   --phone-screen-portrait-ratio: 2.30951;
   position: relative;
   container-type: size;
@@ -469,7 +470,8 @@ button {
   height: 98%;
   overflow: hidden;
   background: #08080a;
-  border-radius: 40px;
+  border-radius: var(--phone-screen-radius);
+  clip-path: inset(0 round var(--phone-screen-radius));
 }
 .phone-screen--camera-landscape {
   background: transparent;
@@ -855,6 +857,14 @@ button {
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 1px 4px #0008;
+}
+.phone-home-indicator:focus {
+  outline: none;
+}
+.phone-home-indicator:focus-visible span {
+  box-shadow:
+    0 0 0 2px #0a84ff,
+    0 1px 4px #0008;
 }
 .phone-home-indicator--interactive {
   cursor: pointer;
