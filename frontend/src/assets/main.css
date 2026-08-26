@@ -380,9 +380,27 @@ button {
 .phone-hardware-button:disabled {
   cursor: default;
 }
-.phone-hardware-button:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: -6px;
+.phone-hardware-button:focus {
+  outline: none;
+}
+.phone-hardware-button:focus-visible::after {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 24px;
+  border-radius: 999px;
+  background: #0a84ff;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 90%);
+  content: '';
+  transform: translateY(-50%);
+}
+.phone-hardware-button--action:focus-visible::after,
+.phone-hardware-button--volume-up:focus-visible::after,
+.phone-hardware-button--volume-down:focus-visible::after {
+  right: 7px;
+}
+.phone-hardware-button--power:focus-visible::after {
+  left: 7px;
 }
 .phone-hardware-button--action {
   top: 176px;

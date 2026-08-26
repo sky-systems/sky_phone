@@ -85,6 +85,18 @@ describe('browser development preview contract', () => {
     )
   })
 
+  it('replaces rectangular CEF focus outlines on the side hardware controls', () => {
+    expect(mainCss).toMatch(
+      /\.phone-hardware-button:focus\s*\{[^}]*outline:\s*none;/s,
+    )
+    expect(mainCss).toMatch(
+      /\.phone-hardware-button:focus-visible::after\s*\{[^}]*width:\s*3px;[^}]*height:\s*24px;[^}]*border-radius:\s*999px;[^}]*background:\s*#0a84ff;/s,
+    )
+    expect(mainCss).not.toMatch(
+      /\.phone-hardware-button:focus-visible\s*\{[^}]*outline:/s,
+    )
+  })
+
   it('consumes Escape synchronously before FiveM can open the pause menu', () => {
     expect(source).toContain("import { consumeEscape } from '@/utils/keyboard'")
     expect(source).toContain(
