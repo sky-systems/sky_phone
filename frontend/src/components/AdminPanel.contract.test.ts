@@ -440,6 +440,9 @@ describe('standalone admin panel contracts', () => {
     expect(source).toContain("selectConfiguratorScope('media')")
     expect(source).not.toContain('class="admin-panel-config-meta"')
     expect(configuratorValueEditor).toContain('function addListRow()')
+    expect(configuratorValueEditor).toMatch(
+      /const value = listTemplate\.value\s+\? blankFromConfiguratorStructure\(listTemplate\.value\)\s+: rows\.length\s+\? blankLike\(rows\[0\]\)/,
+    )
     expect(configuratorValueEditor).toContain('function addTableField()')
     expect(configuratorValueEditor).toContain(
       'const canExtendTable = computed(',

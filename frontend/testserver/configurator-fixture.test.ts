@@ -193,6 +193,29 @@ describe('admin configurator fixture', () => {
     })
   })
 
+  it('allows custom jobs in locked radio channel entries', () => {
+    const radio = loadConfiguratorSections()
+      .flatMap((section) => section.fields)
+      .find((field) => field.path === 'Radio')
+    const lockedChannels = radio?.structure?.fields?.LockedChannels
+    const jobs = lockedChannels?.items?.[0]?.fields?.jobs
+
+    expect(jobs).toMatchObject({
+      fields: {
+        ambulance: { kind: 'value', valueType: 'boolean' },
+        police: { kind: 'value', valueType: 'boolean' },
+      },
+      kind: 'table',
+      mutableKeys: true,
+      template: { kind: 'value', valueType: 'boolean' },
+    })
+    expect(lockedChannels?.template?.fields?.jobs).toMatchObject({
+      kind: 'table',
+      mutableKeys: true,
+      template: { kind: 'value', valueType: 'boolean' },
+    })
+  })
+
   it('publishes fixed schemas for every empty configurable collection', () => {
     const fields = loadConfiguratorSections().flatMap(
       (section) => section.fields,

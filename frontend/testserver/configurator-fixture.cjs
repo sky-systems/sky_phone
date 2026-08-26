@@ -542,6 +542,25 @@ function buildStructure(value, scope, path) {
   }
   if (
     scope === 'config' &&
+    /^Radio\.LockedChannels\.\d+\.jobs$/.test(path) &&
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value)
+  ) {
+    return {
+      fields: Object.fromEntries(
+        Object.entries(value).map(([key, child]) => [
+          key,
+          buildStructure(child, scope, `${path}.${key}`),
+        ]),
+      ),
+      kind: 'table',
+      mutableKeys: true,
+      template: { kind: 'value', valueType: 'boolean' },
+    }
+  }
+  if (
+    scope === 'config' &&
     path === 'Companies.Definitions' &&
     value !== null &&
     typeof value === 'object' &&

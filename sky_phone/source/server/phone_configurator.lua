@@ -637,6 +637,21 @@ local function build_structure(value, scope, path)
     if scope == "config" and path == "Phone.Keybind" then
         return { kind = "optionalString" }
     end
+    if scope == "config"
+        and path:match("^Radio%.LockedChannels%.%d+%.jobs$")
+        and value_type == "table"
+    then
+        local fields = {}
+        for key, child in pairs(value) do
+            fields[key] = build_structure(child, scope, path .. "." .. tostring(key))
+        end
+        return {
+            fields = fields,
+            kind = "table",
+            mutableKeys = true,
+            template = { kind = "value", valueType = "boolean" },
+        }
+    end
     if scope == "config" and path == "Companies.Definitions" and value_type == "table" then
         local keys = {}
         for key in pairs(value) do

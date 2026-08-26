@@ -380,10 +380,10 @@ function toggleOptionalString(event: Event): void {
 function addListRow(): void {
   const rows = Array.isArray(props.modelValue) ? [...props.modelValue] : []
   const index = rows.length
-  const value = rows.length
-    ? blankLike(rows[0])
-    : listTemplate.value
-      ? blankFromConfiguratorStructure(listTemplate.value)
+  const value = listTemplate.value
+    ? blankFromConfiguratorStructure(listTemplate.value)
+    : rows.length
+      ? blankLike(rows[0])
       : blankValue(newArrayKind.value)
   rows.push(value)
   emit('update:modelValue', rows)

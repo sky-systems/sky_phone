@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import type { AdminConfiguratorStructure } from '@/types/admin'
-import { createMutableTableEntry } from '@/utils/adminConfiguratorDefaults'
+import {
+  blankFromConfiguratorStructure,
+  createMutableTableEntry,
+} from '@/utils/adminConfiguratorDefaults'
 
 describe('admin configurator defaults', () => {
   it('creates a usable company draft from its key and the server defaults', () => {
@@ -110,5 +113,34 @@ describe('admin configurator defaults', () => {
     expect(createMutableTableEntry(structure, 'FeatureFlags', 'example')).toBe(
       false,
     )
+  })
+
+  it('preserves required nested list fields in schema-derived rows', () => {
+    const structure: AdminConfiguratorStructure = {
+      fields: {
+        jobs: {
+          fields: {
+            police: { kind: 'value', valueType: 'boolean' },
+          },
+          kind: 'table',
+          mutableKeys: true,
+          template: { kind: 'value', valueType: 'boolean' },
+        },
+        range: {
+          items: [
+            { kind: 'value', valueType: 'number' },
+            { kind: 'value', valueType: 'number' },
+          ],
+          kind: 'list',
+          template: { kind: 'value', valueType: 'number' },
+        },
+      },
+      kind: 'table',
+    }
+
+    expect(blankFromConfiguratorStructure(structure)).toEqual({
+      jobs: { police: false },
+      range: [0, 0],
+    })
   })
 })
