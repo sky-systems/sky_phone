@@ -164,6 +164,23 @@ describe('SkyField', () => {
     )
   })
 
+  it('keeps native select options readable on the CEF popup surface', () => {
+    const controls = readFileSync(
+      new URL('../controls.css', import.meta.url),
+      'utf8',
+    )
+    const tokens = readFileSync(
+      new URL('../tokens.css', import.meta.url),
+      'utf8',
+    )
+
+    expect(controls).toMatch(
+      /\.sky-field__select option\s*\{[^}]*background:\s*var\(--sky-native-select-option-background, #ffffff\);[^}]*color:\s*var\(--sky-native-select-option-text, #000000\);/s,
+    )
+    expect(tokens).toContain('--sky-native-select-option-background: #ffffff;')
+    expect(tokens).toContain('--sky-native-select-option-text: #000000;')
+  })
+
   it('raises floating labels only after the field has a value', async () => {
     const emptyApp = createSSRApp(SkyField, {
       floatingLabel: true,

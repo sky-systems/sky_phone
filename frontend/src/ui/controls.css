@@ -1265,8 +1265,9 @@ label.sky-list-item__row {
   opacity: 0;
 }
 
-.sky-field--floating-label .sky-field__select option {
-  color: var(--sky-text, #000000);
+.sky-field__select option {
+  background: var(--sky-native-select-option-background, #ffffff);
+  color: var(--sky-native-select-option-text, #000000);
 }
 
 .sky-field--floating-label.sky-field--outline:not(

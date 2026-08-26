@@ -188,6 +188,8 @@
   --sky-hairline: rgba(0, 0, 0, 0.2);
   --sky-field-outline: rgba(0, 0, 0, 0.3);
   --sky-field-placeholder: rgba(0, 0, 0, 0.3);
+  --sky-native-select-option-background: #ffffff;
+  --sky-native-select-option-text: #000000;
   --sky-pressed: rgba(0, 0, 0, 0.1);
   --sky-tabbar-highlight-background: rgba(0, 0, 0, 0.1);
   --sky-tabbar-thumb-background: rgba(0, 0, 0, 0.05);
