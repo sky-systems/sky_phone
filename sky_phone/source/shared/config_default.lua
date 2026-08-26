@@ -201,8 +201,9 @@ Config.Radio = {
     AutoRejoin = false,
     DisplayName = {
         Enabled = true,
+        AllowEveryone = false, -- true allows every job; false uses AllowedJobs and its minimum grades
         MaxLength = 32,
-        AllowedJobs = { -- Job name = minimum grade. Unlisted jobs cannot set a radio display name.
+        AllowedJobs = { -- Job name = minimum grade. Used when AllowEveryone is false.
             police = 0,
             sheriff = 0,
             fib = 0,

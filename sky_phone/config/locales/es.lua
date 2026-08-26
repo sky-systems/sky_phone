@@ -2141,6 +2141,8 @@ Locales["es"] = {
     },
 }
 
+Locales["es"].Nui.AdminPanel.configurator.table.addJob = "Añadir trabajo"
+Locales["es"].Nui.AdminPanel.configurator.table.jobPlaceholder = "Nombre del trabajo"
 Locales["es"].Nui.AdminPanel.configurator.table.subtabs = {
     Dictionaries = "Diccionarios",
     Clips = "Los clips",

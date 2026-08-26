@@ -274,12 +274,22 @@ local function upgrade_legacy_map(defaults, saved)
     return { __skyType = "map", entries = entries }
 end
 
+local function radio_job_entry_default(path)
+    if path == "Radio.DisplayName.AllowedJobs" then
+        return 0
+    end
+    if type(path) == "string" and path:match("^Radio%.LockedChannels%.%d+%.jobs$") then
+        return true
+    end
+    return nil
+end
+
 local function merge_values(defaults, saved, path, excluded_paths)
     path = path or ""
     if type(defaults) ~= "table" or type(saved) ~= "table" then
         return copy_value(saved)
     end
-    if path == "Companies.Definitions" then
+    if path == "Companies.Definitions" or radio_job_entry_default(path) ~= nil then
         return copy_value(saved)
     end
     if defaults.__skyType == "map" and not saved.__skyType then
@@ -491,6 +501,16 @@ end
 local function empty_structure(scope, path)
     if scope ~= "config" then
         return nil
+    end
+    local radio_job_default = radio_job_entry_default(path)
+    if radio_job_default ~= nil then
+        return {
+            entryDefault = radio_job_default,
+            fields = {},
+            kind = "table",
+            mutableKeys = true,
+            template = { kind = "value", valueType = type(radio_job_default) },
+        }
     end
     if path == "Garage.VehicleImages.ModelNames" then
         return {
@@ -711,6 +731,16 @@ local function build_structure(value, scope, path)
     local fields = {}
     for key, child in pairs(value) do
         fields[key] = build_structure(child, scope, path .. "." .. tostring(key))
+    end
+    local radio_job_default = scope == "config" and radio_job_entry_default(path) or nil
+    if radio_job_default ~= nil then
+        return {
+            entryDefault = radio_job_default,
+            fields = fields,
+            kind = "table",
+            mutableKeys = true,
+            template = { kind = "value", valueType = type(radio_job_default) },
+        }
     end
     return {
         fields = fields,
