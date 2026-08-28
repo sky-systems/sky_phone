@@ -46,6 +46,7 @@ Config.Phone = {
     DeviceName = "iFruit Phone",
 }
 
+
 -- Server-wide availability for bundled apps. Set an entry to false to hide it
 -- from every phone, the App Store and per-device app management.
 Config.Apps = {
