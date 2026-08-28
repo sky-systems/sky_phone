@@ -18,6 +18,13 @@ local radio_provider_aliases = {
     ["pma-voice"] = "pma",
     salty = "saltychat",
 }
+local warned_about_legacy_yaca_status = false
+
+local function is_missing_yaca_status_export(error_message)
+    local normalized = tostring(error_message):lower()
+    return normalized:find("isenabled", 1, true) ~= nil
+        and normalized:find("no such export", 1, true) ~= nil
+end
 
 local function yaca_is_enabled()
     if GetResourceState("yaca-voice") ~= "started" then
@@ -27,16 +34,28 @@ local function yaca_is_enabled()
     local success, enabled = pcall(function()
         return exports["yaca-voice"]:isEnabled()
     end)
-    if not success then
-        Bridge.Debug(
-            "error",
-            "[sky_phone] Yaca could not report its availability: %s",
-            tostring(enabled),
-            { always = true }
-        )
-        return false
+    if success then
+        return enabled == true
     end
-    return enabled == true
+    if is_missing_yaca_status_export(enabled) then
+        if not warned_about_legacy_yaca_status then
+            warned_about_legacy_yaca_status = true
+            Bridge.Debug(
+                "warn",
+                "[sky_phone] Yaca does not expose the server isEnabled status; using legacy compatibility because yaca-voice is started.",
+                { always = true }
+            )
+        end
+        return true
+    end
+
+    Bridge.Debug(
+        "error",
+        "[sky_phone] Yaca could not report its availability: %s",
+        tostring(enabled),
+        { always = true }
+    )
+    return false
 end
 
 local function resolve_call_provider()
