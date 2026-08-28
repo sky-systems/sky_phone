@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ALARM_SOUND_IDS } from './alarms'
-import { phoneToneDuration, playPhoneVibration } from './tones'
+import {
+  phoneToneDuration,
+  playPhoneMediaTone,
+  playPhoneVibration,
+} from './tones'
 
 describe('phone tones', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -27,6 +31,8 @@ describe('phone tones', () => {
         pause: () => void
         play: () => Promise<void>
         preload: string
+        load: () => void
+        removeAttribute: (name: string) => void
         src: string
         volume: number
       }> = []
@@ -40,6 +46,12 @@ describe('phone tones', () => {
           preload = ''
           src: string
           volume = 0
+
+          load(): void {}
+
+          removeAttribute(name: string): void {
+            if (name === 'src') this.src = ''
+          }
 
           constructor(src: string) {
             super()
@@ -63,4 +75,46 @@ describe('phone tones', () => {
       expect(players[0].currentTime).toBe(0)
     },
   )
+
+  it('reports media playback only after play has actually started', async () => {
+    let resolvePlay: (() => void) | undefined
+    const onError = vi.fn()
+    const onStarted = vi.fn()
+    vi.stubGlobal(
+      'Audio',
+      class extends EventTarget {
+        loop = false
+        preload = ''
+        volume = 0
+
+        load(): void {}
+
+        pause(): void {}
+
+        play(): Promise<void> {
+          return new Promise((resolve) => {
+            resolvePlay = resolve
+          })
+        }
+
+        removeAttribute(): void {}
+      },
+    )
+
+    const stop = playPhoneMediaTone(
+      'data:audio/ogg;base64,T2dnUw==',
+      75,
+      false,
+      {
+        onError,
+        onStarted,
+      },
+    )
+
+    expect(onStarted).not.toHaveBeenCalled()
+    resolvePlay?.()
+    await vi.waitFor(() => expect(onStarted).toHaveBeenCalledOnce())
+    expect(onError).not.toHaveBeenCalled()
+    stop()
+  })
 })

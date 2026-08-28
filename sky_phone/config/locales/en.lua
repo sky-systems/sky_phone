@@ -204,8 +204,8 @@ Locales["en"] = {
         },
         AdminPanel = {
             name = "Phone Admin", subtitle = "Administration", navigation = "Admin navigation", refresh = "Refresh admin data", loading = "Loading protected data...",
-            tabs = { overview = "Overview", players = "Players", devices = "Devices", apps = "Apps", accounts = "Accounts", messages = "Messages", calls = "Calls", moderation = "Moderation", audit = "Audit", configurator = "Phone configurator" },
-            overview = { eyebrow = "Server", title = "Dashboard", body = "Players, devices, apps, and phone data.", stats = "Server phone statistics", online = "Online", devices = "Devices", accounts = "Accounts", audit = "Audit entries", control = "Navigation", features = "Modules", featuresBody = "Open an administration module.", recent = "Recent activity", playerFeature = "Identity, finances, job, and duty", deviceFeature = "IMEI, SIM, number, and activity", appFeature = "Install or remove phone apps", accountFeature = "Account access and protected credentials", messageFeature = "Review recent SMS activity", callFeature = "Review recent call activity", moderationFeature = "Reset access, number, or device data", auditFeature = "Review sensitive admin actions", configuratorFeature = "Manage config.lua and media.lua through SQL" },
+            tabs = { overview = "Overview", players = "Players", devices = "Devices", apps = "Apps", accounts = "Accounts", messages = "Messages", calls = "Calls", moderation = "Moderation", tones = "Sounds", audit = "Audit", configurator = "Phone configurator" },
+            overview = { eyebrow = "Server", title = "Dashboard", body = "Players, devices, apps, and phone data.", stats = "Server phone statistics", online = "Online", devices = "Devices", accounts = "Accounts", audit = "Audit entries", control = "Navigation", features = "Modules", featuresBody = "Open an administration module.", recent = "Recent activity", playerFeature = "Identity, finances, job, and duty", deviceFeature = "IMEI, SIM, number, and activity", appFeature = "Install or remove phone apps", accountFeature = "Account access and protected credentials", messageFeature = "Review recent SMS activity", callFeature = "Review recent call activity", moderationFeature = "Reset access, number, or device data", tonesFeature = "Manage ringtones and notification sounds", auditFeature = "Review sensitive admin actions", configuratorFeature = "Manage config.lua and media.lua through SQL" },
             statistics = { eyebrow = "Live data", title = "Phone statistics", body = "Current usage and device status, refreshed every 15 seconds.", today = "Activity today", todayBody = "Phone and admin activity since midnight.", messagesToday = "Messages", callsToday = "Calls", auditToday = "Admin actions", coverage = "Device coverage", coverageBody = "Current share of all stored phones.", linkedDevices = "Account linked", simDevices = "SIM assigned", activeDevices = "Updated in 24 hours", ofDevices = "{count} of {total} devices" },
             configurator = { context = "Runtime configuration", eyebrow = "System tool", sections = "Configuration", search = "Search settings or paths", configScope = "config.lua", mediaScope = "media.lua", noResults = "No matching settings", loading = "Loading SQL configuration...", title = "Phone configurator", body = "Manage phone and media settings from the protected admin workspace.", disabledTitle = "SQL configuration is not active", disabledBody = "Enable the configurator at the beginning of config.lua and restart sky_phone. Until then, file values remain active and editing is locked.", manualSave = "Manual save", refreshNotice = "Nothing is written automatically. The green check verifies config.lua and media.lua in SQL and refreshes the active server, client, media and UI configuration immediately.", fieldCount = "{count} fields", secretConfigured = "Secret configured · enter a replacement", invalidValue = "Check the highlighted table or number value.", saved = "SQL configuration saved and applied.", descriptions = { featureToggle = "Turns {name} on or off.", boolean = "Controls whether {name} is allowed.", number = "Sets the numeric value for {name}.", text = "Sets the text value used for {name}.", optionalText = "Sets the optional value for {name}; switch it off to disable it.", list = "Manages all entries used for {name}.", table = "Groups the related settings for {name}.", credential = "Stores the protected credential used by {name}.", url = "Sets the URL or endpoint used by {name}.", hosts = "Defines which domains are allowed for {name}.", milliseconds = "Sets the timing for {name} in milliseconds.", seconds = "Sets the timing for {name} in seconds.", rateLimit = "Limits how many {name} actions are allowed per minute.", byteLimit = "Sets the maximum data size allowed for {name}.", textLimit = "Sets the maximum text length allowed for {name}.", distance = "Sets the world distance used for {name}.", coordinates = "Sets the world coordinates or orientation for {name}.", gameAsset = "Sets the GTA model or prop used for {name}.", animation = "Sets the animation asset used for {name}.", access = "Defines the jobs, groups or permission level for {name}.", integration = "Selects the connected framework or provider for {name}.", path = "Sets the storage or resource path used for {name}.", color = "Sets the interface color used for {name}.", displayText = "Sets the text shown to players for {name}.", phoneNumber = "Sets the phone or service number used for {name}.", routing = "Controls how incoming requests are routed for {name}.", command = "Sets the chat command used to open or run {name}.", locale = "Selects the language used for {name}.", debug = "Controls detailed diagnostic output for {name}.", mediaQuality = "Sets the media quality or volume used for {name}.", amount = "Sets the maximum or displayed amount for {name}." }, table = { list = "List", table = "Key table", vector = "Vector", entry = "Entry", general = "General", addRow = "Add row", addField = "Add field", remove = "Remove", emptyList = "No rows yet. Add the first row with plus.", emptyTable = "No fields yet. Add the first key below.", keyPlaceholder = "New key", convertToList = "Use list", convertToMap = "Use typed key table", convertToTable = "Use key table", types = { string = "Text", number = "Number", boolean = "Switch", list = "List", table = "Table" } } },
             players = { eyebrow = "Active sessions", title = "Online players", online = "Online now", empty = "No players found", emptyBody = "Adjust the search or refresh the live player list." },
@@ -2178,3 +2178,46 @@ Locales["en"].Nui.AdminPanel.configurator.table.subtabs = {
     AllowedJobs = "Allowed Jobs",
     Websites = "Websites",
 }
+Locales["en"].Nui.AdminPanel.configurator.customTones = {
+    context = "Sound library",
+    eyebrow = "Audio management",
+    library = "Library",
+    title = "Custom ringtones and notification sounds",
+    body = "Manage local audio files from the database or config.lua without external URLs.",
+    configTitle = "File-based alternative",
+    configBody = "If the FiveM client does not open a file dialog, place the file in the resource folder and register it in config.lua.",
+    configSource = "config.lua",
+    configManaged = "This tone is managed through config.lua and can only be previewed here.",
+    name = "Display name",
+    namePlaceholder = "For example Dispatch",
+    category = "Use as",
+    ringtone = "Ringtone",
+    notification = "Notification sound",
+    chooseFile = "Choose audio file",
+    fileHint = "MP3, OGG, WAV, or WebM · up to 2 MB and 30 seconds",
+    preview = "Preview",
+    add = "Add tone",
+    loading = "Loading tone library...",
+    ringtones = "Ringtones",
+    notifications = "Notification sounds",
+    empty = "No custom tones in this category yet.",
+    delete = "Delete tone",
+    confirmDelete = "Click again to confirm",
+    saved = "The tone was saved and is immediately available on every phone.",
+    deleted = "The tone was deleted.",
+    errors = {
+        type = "Choose an MP3, OGG, WAV, or WebM audio file.",
+        size = "The audio file may not exceed 2 MB.",
+        duration = "The tone must be between 0.25 and 30 seconds long.",
+        invalid = "The audio file could not be read.",
+        playback = "The tone could not be played.",
+    },
+}
+Locales["en"].Nui.AdminPanel.errors.invalid_tone = "Check the tone name, file type, file size, and duration."
+Locales["en"].Nui.AdminPanel.errors.tone_name_taken = "A tone with this name already exists in this category."
+Locales["en"].Nui.AdminPanel.errors.tone_limit = "This category already contains 32 custom tones."
+Locales["en"].Nui.AdminPanel.errors.tone_not_found = "That tone no longer exists."
+Locales["en"].Nui.AdminPanel.errors.invalid_upload = "The tone upload is incomplete or invalid."
+Locales["en"].Nui.AdminPanel.errors.operation_in_progress = "Another tone upload is already in progress."
+Locales["en"].Nui.AdminPanel.audit.actions.create_custom_tone = "Custom tone added"
+Locales["en"].Nui.AdminPanel.audit.actions.delete_custom_tone = "Custom tone deleted"

@@ -61,6 +61,33 @@ Config.Phone = {
     DeviceName = "iFruit Phone",
 }
 
+-- CONFIG_DEFAULT_EXCLUDE_START
+-- Local custom sounds remain file-based even when the Phone Configurator is
+-- enabled. Copy each audio file into config/custom_tones, add one entry below,
+-- and restart sky_phone. Files are read and served by sky_phone itself; no URL
+-- or external website is required. Supported: mp3, ogg, wav, webm.
+-- Limits per file: 2 MB and 250-30000 ms. Id values must be unique and use
+-- only lowercase letters, numbers, underscores, or hyphens.
+Config.CustomTones = {
+    Ringtones = {
+        -- {
+        --     Id = "dispatch_call",
+        --     Label = "Dispatch Call",
+        --     File = "config/custom_tones/dispatch_call.ogg",
+        --     DurationMs = 8500,
+        -- },
+    },
+    NotificationSounds = {
+        -- {
+        --     Id = "dispatch_ping",
+        --     Label = "Dispatch Ping",
+        --     File = "config/custom_tones/dispatch_ping.ogg",
+        --     DurationMs = 900,
+        -- },
+    },
+}
+-- CONFIG_DEFAULT_EXCLUDE_END
+
 -- Server-wide availability for bundled apps. Set an entry to false to hide it
 -- from every phone, the App Store and per-device app management.
 Config.Apps = {

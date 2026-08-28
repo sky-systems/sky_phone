@@ -20,6 +20,7 @@ local is_sequence
 local FIXED_CONFIG_PATHS = {
     CommandPermissions = true,
     ["AdminPanel.AdminGroups"] = true,
+    CustomTones = true,
     ["TestData.AdminGroups"] = true,
     ["FlipTok.AdminGroups"] = true,
     ["Picstagram.AdminGroups"] = true,
@@ -34,7 +35,7 @@ if configurator_enabled then
 ^1 The Phone Configurator is ENABLED.^0
 ^1 Runtime settings from config.lua and media.lua are DISABLED.^0
 ^1 Configure all phone and media settings IN GAME through /phonepanel.^0
-^1 Only Config.PhoneConfigurator.Enabled and Config.CommandPermissions remain file-based.^0
+^1 Config.PhoneConfigurator, Config.CommandPermissions and Config.CustomTones remain file-based.^0
 ^1%s^0]]):format(border, border, border))
 end
 
@@ -385,7 +386,7 @@ local function apply_runtime_configuration()
 
     local runtime_config = deserialize_value(stored_config)
     for key, value in pairs(runtime_config) do
-        if key ~= "CommandPermissions" then
+        if key ~= "CommandPermissions" and key ~= "CustomTones" then
             if type(Config[key]) == "table" and type(value) == "table" then
                 apply_runtime_table(Config[key], value)
             else
@@ -1367,7 +1368,11 @@ end
 
 default_config = {}
 for key, value in pairs(ConfigDefaults) do
-    if key ~= "Media" and key ~= "PhoneConfigurator" and key ~= "CommandPermissions" then
+    if key ~= "Media"
+        and key ~= "PhoneConfigurator"
+        and key ~= "CommandPermissions"
+        and key ~= "CustomTones"
+    then
         default_config[key] = serialize_value(value)
     end
 end

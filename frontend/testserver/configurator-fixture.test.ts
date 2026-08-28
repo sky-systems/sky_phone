@@ -73,7 +73,8 @@ describe('admin configurator fixture', () => {
         (root) =>
           root !== 'Media' &&
           root !== 'PhoneConfigurator' &&
-          root !== 'CommandPermissions',
+          root !== 'CommandPermissions' &&
+          root !== 'CustomTones',
       )
 
     expect(sections).toHaveLength(46)

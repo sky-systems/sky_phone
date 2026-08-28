@@ -4933,6 +4933,13 @@ const adminMockConfigurator = {
   sections: loadConfiguratorSections(),
 }
 
+const adminMockCustomTones = []
+const adminMockToneUploads = new Map()
+
+function adminCustomToneList() {
+  return adminMockCustomTones.map(({ payload: _payload, ...tone }) => tone)
+}
+
 app.post('/api/:endpoint', async (request, response, next) => {
   const endpoint = request.params.endpoint
   const loggedBody = { ...request.body }
@@ -4954,6 +4961,9 @@ app.post('/api/:endpoint', async (request, response, next) => {
   if (endpoint === 'memos:devCapture') {
     loggedBody.audioDataUrl = `<${String(request.body.audioDataUrl ?? '').length} characters>`
   }
+  if (endpoint === 'admin:tone-upload-chunk') {
+    loggedBody.chunk = `<${String(request.body.chunk ?? '').length} characters>`
+  }
   console.log('[NUI]', endpoint, loggedBody)
   if (endpoint === 'music:bootstrap') {
     response.json({ success: true, data: musicBootstrap() })
@@ -4965,6 +4975,87 @@ app.post('/api/:endpoint', async (request, response, next) => {
   }
   if (endpoint === 'admin:configurator') {
     response.json({ success: true, data: adminMockConfigurator })
+    return
+  }
+  if (endpoint === 'admin:tones') {
+    response.json({ success: true, data: adminCustomToneList() })
+    return
+  }
+  if (endpoint === 'admin:tone-upload-start') {
+    const uploadId = randomUUID()
+    adminMockToneUploads.set(uploadId, {
+      chunks: [],
+      durationMs: Number(request.body.durationMs) || 1000,
+      label: String(request.body.label ?? 'Custom tone'),
+      mimeType: String(request.body.mimeType ?? 'audio/mpeg'),
+      toneType:
+        request.body.toneType === 'notification' ? 'notification' : 'ringtone',
+    })
+    response.json({ success: true, data: { uploadId } })
+    return
+  }
+  if (endpoint === 'admin:tone-upload-chunk') {
+    const upload = adminMockToneUploads.get(request.body.uploadId)
+    if (!upload) {
+      response.json({ success: false, error: 'invalid_upload' })
+      return
+    }
+    upload.chunks.push(String(request.body.chunk ?? ''))
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'admin:tone-upload-finish') {
+    const upload = adminMockToneUploads.get(request.body.uploadId)
+    if (!upload) {
+      response.json({ success: false, error: 'invalid_upload' })
+      return
+    }
+    adminMockToneUploads.delete(request.body.uploadId)
+    const payload = upload.chunks.join('')
+    adminMockCustomTones.push({
+      byteSize: Buffer.from(payload, 'base64').byteLength,
+      createdAt: new Date().toISOString(),
+      createdBy: 'Development Admin',
+      durationMs: upload.durationMs,
+      id: randomUUID(),
+      label: upload.label,
+      mimeType: upload.mimeType,
+      payload,
+      source: 'database',
+      toneType: upload.toneType,
+    })
+    response.json({ success: true, data: adminCustomToneList() })
+    return
+  }
+  if (endpoint === 'admin:tone-upload-cancel') {
+    adminMockToneUploads.delete(request.body.uploadId)
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'admin:delete-tone') {
+    const index = adminMockCustomTones.findIndex(
+      (tone) => tone.id === request.body.id,
+    )
+    if (index >= 0) adminMockCustomTones.splice(index, 1)
+    response.json({ success: true, data: adminCustomToneList() })
+    return
+  }
+  if (endpoint === 'tones:audio') {
+    const tone = adminMockCustomTones.find(
+      (candidate) => candidate.id === request.body.id,
+    )
+    if (!tone) {
+      response.json({ success: false, error: 'tone_not_found' })
+      return
+    }
+    response.json({
+      success: true,
+      data: {
+        id: tone.id,
+        mimeType: tone.mimeType,
+        payload: tone.payload,
+      },
+    })
     return
   }
   if (endpoint === 'admin:save-configurator') {

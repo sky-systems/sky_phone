@@ -1,5 +1,9 @@
 import type { LaunchablePhoneAppId } from '@/types/apps'
 import { cloneJsonData } from '@/utils/clone'
+import {
+  isCustomTonePreferenceId,
+  type CustomTonePreferenceId,
+} from '@/utils/customTones'
 
 export const APPEARANCE_MODE_IDS = ['automatic', 'light', 'dark'] as const
 export const GRAPHICS_MODE_IDS = ['performance', 'ultimate'] as const
@@ -44,8 +48,12 @@ export const PHONE_SETUP_LAST_STEP = 9
 export type AppearanceMode = (typeof APPEARANCE_MODE_IDS)[number]
 export type GraphicsMode = (typeof GRAPHICS_MODE_IDS)[number]
 export type PhoneFrameId = (typeof PHONE_FRAME_IDS)[number]
-export type RingtoneId = (typeof RINGTONE_IDS)[number]
-export type NotificationSoundId = (typeof NOTIFICATION_SOUND_IDS)[number]
+export type BuiltInRingtoneId = (typeof RINGTONE_IDS)[number]
+export type BuiltInNotificationSoundId = (typeof NOTIFICATION_SOUND_IDS)[number]
+export type RingtoneId = BuiltInRingtoneId | CustomTonePreferenceId
+export type NotificationSoundId =
+  | BuiltInNotificationSoundId
+  | CustomTonePreferenceId
 export type BuiltInWallpaperId = (typeof WALLPAPER_IDS)[number]
 export type WallpaperId = BuiltInWallpaperId | 'custom'
 export type WallpaperTarget = 'home' | 'lock'
@@ -196,6 +204,33 @@ function readChoice<T extends string>(
     : fallback
 }
 
+export function isBuiltInRingtoneId(
+  value: unknown,
+): value is BuiltInRingtoneId {
+  return (
+    typeof value === 'string' &&
+    RINGTONE_IDS.includes(value as BuiltInRingtoneId)
+  )
+}
+
+export function isBuiltInNotificationSoundId(
+  value: unknown,
+): value is BuiltInNotificationSoundId {
+  return (
+    typeof value === 'string' &&
+    NOTIFICATION_SOUND_IDS.includes(value as BuiltInNotificationSoundId)
+  )
+}
+
+function readToneChoice<T extends string>(
+  value: unknown,
+  choices: readonly T[],
+  fallback: T,
+): T | CustomTonePreferenceId {
+  if (isCustomTonePreferenceId(value)) return value
+  return readChoice(value, choices, fallback)
+}
+
 function readWallpaperImageUrl(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const imageUrl = value.trim()
@@ -328,7 +363,7 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
         ),
         lockWallpaper,
         lockWallpaperImageUrl,
-        notificationSound: readChoice(
+        notificationSound: readToneChoice(
           settings.notificationSound,
           NOTIFICATION_SOUND_IDS,
           defaults.notificationSound,
@@ -354,7 +389,7 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
             Number.MAX_SAFE_INTEGER,
           ),
         ),
-        ringtone: readChoice(
+        ringtone: readToneChoice(
           settings.ringtone,
           RINGTONE_IDS,
           defaults.ringtone,

@@ -950,4 +950,114 @@ Bridge.Callbacks.Register("sky_phone:admin:save-configurator", function(source, 
     end
     return response
 end)
+
+Bridge.Callbacks.Register("sky_phone:admin:tones", function(source)
+    local authorized, error_response = require_admin(
+        source,
+        "tones_read",
+        Config.AdminPanel.ReadRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+    return { success = true, data = SkyPhoneTones.GetAdminList() }
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:tone-upload-start", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "tone_upload_start",
+        Config.AdminPanel.ActionRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+
+    local actor_identifier = Bridge.Framework.GetIdentifier(source)
+    if not actor_identifier then
+        return { success = false, error = "player_unavailable" }
+    end
+    local actor_name = player_name(source)
+    return SkyPhoneTones.BeginUpload(source, data, actor_identifier, actor_name)
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:tone-upload-chunk", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "tone_upload_chunk",
+        math.max(400, tonumber(Config.AdminPanel.ActionRequestsPerMinute) or 0)
+    )
+    if not authorized then
+        return error_response
+    end
+    return SkyPhoneTones.AppendUploadChunk(source, data)
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:tone-upload-finish", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "tone_upload_finish",
+        Config.AdminPanel.ActionRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+
+    local actor_identifier = Bridge.Framework.GetIdentifier(source)
+    if not actor_identifier then
+        return { success = false, error = "player_unavailable" }
+    end
+    local response = SkyPhoneTones.CompleteUpload(source, data)
+    if response.success then
+        local upload = response.upload or {}
+        write_audit(source, source, actor_identifier, nil, "create_custom_tone", {
+            durationMs = tonumber(upload.durationMs),
+            label = trim(upload.label),
+            toneId = response.toneId,
+            toneType = upload.toneType,
+        })
+    end
+    response.upload = nil
+    return response
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:tone-upload-cancel", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "tone_upload_cancel",
+        Config.AdminPanel.ActionRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+    return SkyPhoneTones.CancelUpload(source, data)
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:delete-tone", function(source, data)
+    local authorized, error_response = require_admin(
+        source,
+        "tone_delete",
+        Config.AdminPanel.ActionRequestsPerMinute
+    )
+    if not authorized then
+        return error_response
+    end
+    if type(data) ~= "table" then
+        return { success = false, error = "invalid_request" }
+    end
+
+    local actor_identifier = Bridge.Framework.GetIdentifier(source)
+    if not actor_identifier then
+        return { success = false, error = "player_unavailable" }
+    end
+    local response = SkyPhoneTones.Delete(data.id)
+    if response.success then
+        write_audit(source, source, actor_identifier, nil, "delete_custom_tone", {
+            label = response.tone.label,
+            toneId = response.tone.id,
+            toneType = response.tone.tone_type,
+        })
+    end
+    return response
+end)
 end)

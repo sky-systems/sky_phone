@@ -742,6 +742,7 @@ function loadConfiguratorSections() {
   const media = mediaRoot.Media
   delete config.PhoneConfigurator
   delete config.CommandPermissions
+  delete config.CustomTones
   delete config.Media
   return [...buildSections('config', config), ...buildSections('media', media)]
 }
