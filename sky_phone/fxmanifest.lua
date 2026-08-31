@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.3.1'
+version '0.3.3'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -52,6 +52,7 @@ client_scripts {
     'source/bridge/client/radio.lua',
     'source/client/payphones.lua',
     'source/client/custom_apps.lua',
+    'source/client/custom_tones.lua',
     'source/client/nui_server_bridge.lua',
     'source/client/nui_events.lua',
     'source/client/notifications.lua',
@@ -105,6 +106,7 @@ server_scripts {
     'source/server/phone.lua',
     'source/server/device_directory.lua',
     'source/server/db_migrate.lua',
+    'source/server/custom_tones.lua',
     'source/server/admin.lua',
     'source/server/lb_phone_migration.lua',
     'source/server/custom_app_storage.lua',

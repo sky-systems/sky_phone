@@ -5,10 +5,10 @@ import type {
   SkyPhoneAppCapability,
 } from '@/types/apps'
 import type { NuiResponse } from '@/utils/nui'
-import type { NotificationSoundId } from '@/utils/preferences'
+import type { BuiltInNotificationSoundId } from '@/utils/preferences'
 
 const STORAGE_KEY_PATTERN = /^[A-Za-z0-9._-]{1,64}$/
-const NOTIFICATION_SOUNDS: ReadonlySet<NotificationSoundId> = new Set([
+const NOTIFICATION_SOUNDS: ReadonlySet<BuiltInNotificationSoundId> = new Set([
   'chime',
   'signal',
   'soft',
@@ -24,7 +24,7 @@ type JsonResult = { success: true; value: unknown } | { success: false }
 export type CustomAppBridgeNotification = {
   appId: string
   route: string
-  sound?: NotificationSoundId
+  sound?: BuiltInNotificationSoundId
   subtitle?: string
   text: string
   title: string
@@ -210,8 +210,8 @@ function normalizeNotificationPayload(
   const sound =
     payload.sound === undefined ||
     (typeof payload.sound === 'string' &&
-      NOTIFICATION_SOUNDS.has(payload.sound as NotificationSoundId))
-      ? (payload.sound as NotificationSoundId | undefined)
+      NOTIFICATION_SOUNDS.has(payload.sound as BuiltInNotificationSoundId))
+      ? (payload.sound as BuiltInNotificationSoundId | undefined)
       : null
   if (sound === null) return null
 

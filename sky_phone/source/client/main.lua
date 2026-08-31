@@ -99,6 +99,22 @@ local function send_admin_panel_open()
     })
 end
 
+local function send_phone_tone_catalog()
+    local response = Bridge.Callbacks.Trigger("sky_phone:tones:list", {})
+    if not response or not response.success then
+        Bridge.Debug("warn", "[sky_phone] Could not load the custom tone catalog.")
+        return
+    end
+    SendNUIMessage({
+        type = "phone:tones",
+        data = response.data,
+    })
+end
+
+RegisterNetEvent("sky_phone:tones:changed", function()
+    send_phone_tone_catalog()
+end)
+
 local function close_admin_panel()
     if not admin_panel_open then
         return
@@ -147,6 +163,7 @@ AddEventHandler("sky_phone:configurator:updated", function()
     refresh_phone_key_mapping()
     refresh_test_data_command_suggestion()
     refresh_admin_command_suggestion()
+    send_phone_tone_catalog()
     SkyPhoneApps.SendCatalog()
     if is_open and device_payload then
         apply_disabled_apps(device_payload)
@@ -378,6 +395,7 @@ RegisterNUICallback("ui:ready", function(data, cb)
     -- cannot survive unless their UI is replayed as part of this handshake.
     SkyPhoneFocus.BeginNuiHydration()
     Bridge.Debug("debug", "[sky_phone] NUI reported ready.", { always = true })
+    send_phone_tone_catalog()
     SkyPhoneApps.SendCatalog()
     if open_requested and device_payload then
         send_open_message()

@@ -8,8 +8,10 @@ local market_order = {}
 local market_dynamics = {}
 local market_state = {}
 local market_history = {}
+local market_daily_buckets = {}
 local market_cursor = 1
-local market_persistence_interval = 5 * 60 * 1000
+local market_daily_bucket_seconds = 5 * 60
+local market_persistence_interval = market_daily_bucket_seconds * 1000
 local global_market_trend = 0
 local global_market_cycle = {
     direction = 0,
@@ -373,6 +375,37 @@ local function initialize_markets()
     market_cursor = math.min(market_cursor, math.max(#market_order, 1))
 end
 
+local function add_market_daily_price(buckets, price, timestamp)
+    local bucket_id = math.floor(timestamp / market_daily_bucket_seconds)
+    local bucket = buckets[#buckets]
+    if bucket and bucket.bucket_id == bucket_id then
+        bucket.low = math.min(bucket.low, price)
+        bucket.high = math.max(bucket.high, price)
+        return
+    end
+    buckets[#buckets + 1] = {
+        bucket_id = bucket_id,
+        low = price,
+        high = price,
+    }
+end
+
+local function market_daily_range(market_id, price, timestamp)
+    local buckets = market_daily_buckets[market_id]
+    local cutoff_bucket = math.floor((timestamp - 24 * 60 * 60) / market_daily_bucket_seconds)
+    while buckets[1] and buckets[1].bucket_id < cutoff_bucket do
+        table.remove(buckets, 1)
+    end
+    local low = price
+    local high = price
+    for index = 1, #buckets do
+        local bucket = buckets[index]
+        low = math.min(low, bucket.low)
+        high = math.max(high, bucket.high)
+    end
+    return low, high
+end
+
 local function load_market_cache()
     local rows = Bridge.Database.Query([[
         SELECT `id`,`price`,`version`,`status`, UNIX_TIMESTAMP(`updated_at`) AS `updated_at`
@@ -380,13 +413,16 @@ local function load_market_cache()
     ]], {})
     local next_market_state = {}
     local next_market_history = {}
+    local next_market_daily_buckets = {}
+    local history_limit = math.min(Config.Crypto.HistoryRetentionTicks, Config.Crypto.SparklinePoints)
+    local timestamp = os.time()
     for _, row in ipairs(rows) do
         if markets[row.id] then
             next_market_state[row.id] = {
                 price = tonumber(row.price) or markets[row.id].InitialPrice,
                 version = tonumber(row.version) or 1,
                 status = row.status,
-                updated_at = tonumber(row.updated_at) or os.time(),
+                updated_at = tonumber(row.updated_at) or timestamp,
                 dirty = false,
             }
         end
@@ -397,30 +433,40 @@ local function load_market_cache()
             error(("[sky_phone] Crypto market state is missing after initialization: %s"):format(market_id))
         end
         local rows_for_market = Bridge.Database.Query([[
-            SELECT `price`,`version`, UNIX_TIMESTAMP(`created_at`) AS `created_at`
+            SELECT `price`
             FROM `sky_phone_crypto_market_ticks`
-            WHERE `market_id` = ? ORDER BY `id` DESC LIMIT ?
-        ]], { market_id, Config.Crypto.HistoryRetentionTicks })
+            WHERE `market_id` = ? ORDER BY `created_at` DESC, `id` DESC LIMIT ?
+        ]], { market_id, history_limit })
         local history = {}
         for index = #rows_for_market, 1, -1 do
-            local tick = rows_for_market[index]
-            history[#history + 1] = {
-                price = tonumber(tick.price) or state.price,
-                version = tonumber(tick.version) or state.version,
-                created_at = tonumber(tick.created_at) or state.updated_at,
-            }
+            history[#history + 1] = tonumber(rows_for_market[index].price) or state.price
         end
         if #history == 0 then
-            history[1] = {
-                price = state.price,
-                version = state.version,
-                created_at = state.updated_at,
-            }
+            history[1] = state.price
         end
         next_market_history[market_id] = history
+        local daily_rows = Bridge.Database.Query([[
+            SELECT FLOOR(UNIX_TIMESTAMP(`created_at`) / ?) AS `bucket_id`,
+                MIN(`price`) AS `low_price`, MAX(`price`) AS `high_price`
+            FROM `sky_phone_crypto_market_ticks`
+            WHERE `market_id` = ?
+                AND `created_at` >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)
+            GROUP BY `bucket_id` ORDER BY `bucket_id`
+        ]], { market_daily_bucket_seconds, market_id })
+        local daily_buckets = {}
+        for _, daily_row in ipairs(daily_rows) do
+            daily_buckets[#daily_buckets + 1] = {
+                bucket_id = tonumber(daily_row.bucket_id),
+                low = tonumber(daily_row.low_price) or state.price,
+                high = tonumber(daily_row.high_price) or state.price,
+            }
+        end
+        add_market_daily_price(daily_buckets, state.price, timestamp)
+        next_market_daily_buckets[market_id] = daily_buckets
     end
     market_state = next_market_state
     market_history = next_market_history
+    market_daily_buckets = next_market_daily_buckets
 end
 
 local function persist_market_cache()
@@ -557,6 +603,7 @@ local function market_dtos(selected_market_ids)
         end
     end
     local result = {}
+    local timestamp = os.time()
     for _, market_id in ipairs(market_order) do
         if not selected or selected[market_id] then
             local config = markets[market_id]
@@ -565,7 +612,7 @@ local function market_dtos(selected_market_ids)
             local prices = {}
             local first_history_index = math.max(1, #history - Config.Crypto.SparklinePoints + 1)
             for index = first_history_index, #history do
-                prices[#prices + 1] = history[index].price
+                prices[#prices + 1] = history[index]
             end
             if #prices == 0 then
                 prices[1] = tonumber(row.price)
@@ -581,17 +628,7 @@ local function market_dtos(selected_market_ids)
             end
             local first = prices[1]
             local price = tonumber(row.price) or config.InitialPrice
-            local daily_low = price
-            local daily_high = price
-            local daily_cutoff = os.time() - 24 * 60 * 60
-            for index = #history, 1, -1 do
-                local tick = history[index]
-                if tick.created_at < daily_cutoff then
-                    break
-                end
-                daily_low = math.min(daily_low, tick.price)
-                daily_high = math.max(daily_high, tick.price)
-            end
+            local daily_low, daily_high = market_daily_range(market_id, price, timestamp)
             result[#result + 1] = {
                 id = market_id,
                 symbol = config.Symbol,
@@ -607,7 +644,7 @@ local function market_dtos(selected_market_ids)
                 treasuryAvailable = decimal_string(balance("treasury", market_id), Config.Crypto.AssetScale),
                 priceHistory = price_history,
                 sparkline = sparkline,
-                updatedAt = (tonumber(row.updated_at) or os.time()) * 1000,
+                updatedAt = (tonumber(row.updated_at) or timestamp) * 1000,
             }
         end
     end
@@ -1627,6 +1664,10 @@ local function start_crypto_schedulers()
                 )
                 advance_global_market_cycle()
                 local changed_markets = {}
+                local history_limit = math.min(
+                    Config.Crypto.HistoryRetentionTicks,
+                    Config.Crypto.SparklinePoints
+                )
                 market_count = math.min(market_count, #market_order)
 
                 for offset = 0, market_count - 1 do
@@ -1709,14 +1750,11 @@ local function start_crypto_schedulers()
                         row.updated_at = updated_at
                         row.dirty = true
                         local history = market_history[market_id]
-                        history[#history + 1] = {
-                            price = next_price,
-                            version = next_version,
-                            created_at = updated_at,
-                        }
-                        if #history > Config.Crypto.HistoryRetentionTicks then
+                        history[#history + 1] = next_price
+                        if #history > history_limit then
                             table.remove(history, 1)
                         end
+                        add_market_daily_price(market_daily_buckets[market_id], next_price, updated_at)
                         changed_markets[#changed_markets + 1] = market_id
                     end
                 end

@@ -457,6 +457,29 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_custom_tones",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "tone_type", type = "ENUM('ringtone','notification') NOT NULL" },
+            { name = "label", type = "VARCHAR(64) NOT NULL" },
+            { name = "mime_type", type = "VARCHAR(40) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "audio_payload", type = "MEDIUMTEXT NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "byte_size", type = "INT UNSIGNED NOT NULL" },
+            { name = "duration_ms", type = "INT UNSIGNED NOT NULL" },
+            { name = "created_by_identifier", type = "VARCHAR(80) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "created_by_name", type = "VARCHAR(120) NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uniq_sky_phone_custom_tone_label", columns = "(`tone_type`, `label`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_custom_tones_type", columns = "(`tone_type`, `created_at`, `id`)" },
+        },
+        tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    },
+    {
         name = "sky_phone_notes",
         columns = {
             { name = "id", type = "VARCHAR(64) NOT NULL" },

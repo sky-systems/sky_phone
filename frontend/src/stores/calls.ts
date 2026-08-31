@@ -4,14 +4,18 @@ import { ref } from 'vue'
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneCall, PhoneContact, RecentCall } from '@/types/phone'
 import { nuiCall, type NuiResponse } from '@/utils/nui'
-import type { RingtoneId } from '@/utils/preferences'
+import { findCustomPhoneTone, playCustomPhoneTone } from '@/utils/customTones'
+import {
+  isBuiltInRingtoneId,
+  type BuiltInRingtoneId,
+} from '@/utils/preferences'
 import {
   playPhoneTone,
   playPhoneVibration,
   type PhoneToneId,
 } from '@/utils/tones'
 
-const RINGTONE_TONES: Record<RingtoneId, PhoneToneId> = {
+const RINGTONE_TONES: Record<BuiltInRingtoneId, PhoneToneId> = {
   horizon: 'aurora',
   pulse: 'signal',
   skyline: 'apex',
@@ -23,6 +27,21 @@ export const useCallsStore = defineStore('calls', () => {
   const contacts = ref<PhoneContact[]>([])
   const recents = ref<RecentCall[]>([])
   let stopRingtone: (() => void) | null = null
+
+  function playSelectedRingtone(volume: number): () => void {
+    const selected = phone.preferences.settings.ringtone
+    const customTone = findCustomPhoneTone(
+      phone.customTones.ringtones,
+      selected,
+    )
+    if (customTone) return playCustomPhoneTone(customTone, volume, true)
+
+    return playPhoneTone(
+      isBuiltInRingtoneId(selected) ? RINGTONE_TONES[selected] : 'apex',
+      volume,
+      true,
+    )
+  }
 
   async function bootstrap(): Promise<void> {
     await Promise.all([loadContacts(), loadRecents()])
@@ -173,11 +192,7 @@ export const useCallsStore = defineStore('calls', () => {
         phone.preferences.settings.ringtoneVolume === 0
       stopRingtone = alertsMuted
         ? playPhoneVibration('call', true)
-        : playPhoneTone(
-            RINGTONE_TONES[phone.preferences.settings.ringtone],
-            phone.preferences.settings.ringtoneVolume,
-            true,
-          )
+        : playSelectedRingtone(phone.preferences.settings.ringtoneVolume)
     }
     if (!['ringing', 'connected'].includes(call.state)) {
       window.setTimeout(() => {

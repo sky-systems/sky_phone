@@ -20,6 +20,7 @@ local is_sequence
 local FIXED_CONFIG_PATHS = {
     CommandPermissions = true,
     ["AdminPanel.AdminGroups"] = true,
+    CustomTones = true,
     ["TestData.AdminGroups"] = true,
     ["FlipTok.AdminGroups"] = true,
     ["Picstagram.AdminGroups"] = true,
@@ -34,7 +35,7 @@ if configurator_enabled then
 ^1 The Phone Configurator is ENABLED.^0
 ^1 Runtime settings from config.lua and media.lua are DISABLED.^0
 ^1 Configure all phone and media settings IN GAME through /phonepanel.^0
-^1 Only Config.PhoneConfigurator.Enabled and Config.CommandPermissions remain file-based.^0
+^1 Config.PhoneConfigurator, Config.CommandPermissions and Config.CustomTones remain file-based.^0
 ^1%s^0]]):format(border, border, border))
 end
 
@@ -395,7 +396,7 @@ local function apply_runtime_configuration()
 
     local runtime_config = deserialize_value(stored_config)
     for key, value in pairs(runtime_config) do
-        if key ~= "CommandPermissions" then
+        if key ~= "CommandPermissions" and key ~= "CustomTones" then
             if type(Config[key]) == "table" and type(value) == "table" then
                 apply_runtime_table(Config[key], value)
             else
@@ -656,6 +657,21 @@ local function build_structure(value, scope, path)
     local value_type = type(value)
     if scope == "config" and path == "Phone.Keybind" then
         return { kind = "optionalString" }
+    end
+    if scope == "config"
+        and path:match("^Radio%.LockedChannels%.%d+%.jobs$")
+        and value_type == "table"
+    then
+        local fields = {}
+        for key, child in pairs(value) do
+            fields[key] = build_structure(child, scope, path .. "." .. tostring(key))
+        end
+        return {
+            fields = fields,
+            kind = "table",
+            mutableKeys = true,
+            template = { kind = "value", valueType = "boolean" },
+        }
     end
     if scope == "config" and path == "Companies.Definitions" and value_type == "table" then
         local keys = {}
@@ -1382,7 +1398,11 @@ end
 
 default_config = {}
 for key, value in pairs(ConfigDefaults) do
-    if key ~= "Media" and key ~= "PhoneConfigurator" and key ~= "CommandPermissions" then
+    if key ~= "Media"
+        and key ~= "PhoneConfigurator"
+        and key ~= "CommandPermissions"
+        and key ~= "CustomTones"
+    then
         default_config[key] = serialize_value(value)
     end
 end

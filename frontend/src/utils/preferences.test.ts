@@ -123,6 +123,38 @@ describe('preferences', () => {
     expect(value.settings.screenBrightness).toBe(10)
   })
 
+  it('preserves valid custom tone ids without persisting their URLs', () => {
+    const notificationId = 'custom:1fbd07b4-d231-4a76-b661-c9e5d0ab19a8'
+    const ringtoneId = 'custom:a1e8db72-bc56-41c8-84e2-521180e14db1'
+    const value = parsePhonePreferences(
+      JSON.stringify({
+        version: 1,
+        settings: {
+          notificationSound: notificationId,
+          ringtone: ringtoneId,
+        },
+      }),
+    )
+
+    expect(value.settings.notificationSound).toBe(notificationId)
+    expect(value.settings.ringtone).toBe(ringtoneId)
+  })
+
+  it('rejects malformed custom tone ids', () => {
+    const value = parsePhonePreferences(
+      JSON.stringify({
+        version: 1,
+        settings: {
+          notificationSound: 'custom:../unsafe',
+          ringtone: 'custom:',
+        },
+      }),
+    )
+
+    expect(value.settings.notificationSound).toBe('chime')
+    expect(value.settings.ringtone).toBe('skyline')
+  })
+
   it('keeps the phone above the minimum usable scale', () => {
     const value = parsePhonePreferences(
       JSON.stringify({

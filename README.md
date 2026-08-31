@@ -89,7 +89,7 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | **Inventories** | ak47_inventory, codem-inventory, core_inventory, jaksam_inventory, jpr-inventory, lj-inventory, mf-inventory, one_inventory, origen_inventory, ox_inventory, ps-inventory, qb-inventory, qs-inventory, smx-inventory, tgiann-inventory, hex_4_inventory, and native ESX inventory |
 | **Calls** | YACA, PMA Voice, SaltyChat |
 | **Radio** | YACA, PMA Voice, SaltyChat |
-| **Housing** | RTX Housing, Quasar Housing, VMS Housing, RX Housing, NoLag Properties, SN Properties, ESX Property, qbx_properties |
+| **Housing** | RTX Housing, Quasar Housing, TGIANN House, VMS Housing, RX Housing, NoLag Properties, SN Properties, ESX Property, qbx_properties |
 | **Garages** | Built-in/custom data and a broad set of popular garage providers configured through the bridge |
 | **Custom app contracts** | Sky Phone, LB Phone, 17Movement, High Phone, Quasar Smartphone, YSeries |
 | **Languages** | English, German |
@@ -650,7 +650,7 @@ Select the provider under `Config.Garage.System`. Vehicle images use the configu
 
 ### Housing
 
-Select `rtx`, `quasar`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, or `qbx_properties` under `Config.Housing.System`. Automatic mode uses `Config.Housing.AutoPriority` and keeps the existing `esx_property` and `qbx_properties` defaults ahead of newly supported providers. Select a provider explicitly when multiple housing resources are running. Each bridge exposes only the capabilities supported by the documented provider API.
+Select `rtx`, `quasar`, `tgiann`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, or `qbx_properties` under `Config.Housing.System`. Automatic mode uses `Config.Housing.AutoPriority` and keeps the existing `esx_property` and `qbx_properties` defaults ahead of newly supported providers. Select a provider explicitly when multiple housing resources are running. Each bridge exposes only the capabilities supported by the documented provider API. The TGIANN bridge expects `tgiann-core` to start before `tgiann-house`, lists server-authorized owner properties, and supports entrance waypoints; TGIANN does not publish stable external contracts for keyholders, lock controls, CCTV, or live garage status.
 
 ### Companies
 

@@ -46,6 +46,7 @@ Config.Phone = {
     DeviceName = "iFruit Phone",
 }
 
+
 -- Server-wide availability for bundled apps. Set an entry to false to hide it
 -- from every phone, the App Store and per-device app management.
 Config.Apps = {
@@ -436,8 +437,8 @@ Config.Garage = {
 }
 
 Config.Housing = {
-    System = "auto", -- auto, rtx, quasar, vms, rx, nolag, sn, esx_property, qbx_properties
-    AutoPriority = { "esx_property", "qbx_properties", "rtx", "quasar", "vms", "rx", "nolag", "sn" },
+    System = "auto", -- auto, rtx, quasar, tgiann, vms, rx, nolag, sn, esx_property, qbx_properties
+    AutoPriority = { "esx_property", "qbx_properties", "rtx", "quasar", "tgiann", "vms", "rx", "nolag", "sn" },
     MaximumProperties = 50,
     OverviewRequestsPerMinute = 30,
     ActionsPerMinute = 12,

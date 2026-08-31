@@ -116,6 +116,21 @@ describe('voice provider contracts', () => {
     expect(phoneApp).not.toContain('callMuted = !callMuted')
   })
 
+  it('keeps calls compatible with Yaca releases before the server status export', () => {
+    expect(serverVoice).toContain('is_missing_yaca_status_export')
+    expect(serverVoice).toContain('normalized:find("no such export", 1, true)')
+    expect(serverVoice).toContain('warned_about_legacy_yaca_status')
+    expect(serverVoice).toContain(
+      'using legacy compatibility because yaca-voice is started',
+    )
+    expect(serverVoice).toMatch(
+      /if is_missing_yaca_status_export\(enabled\) then[\s\S]*?return true/,
+    )
+    expect(serverVoice).toMatch(
+      /if success then\s+return enabled == true\s+end/,
+    )
+  })
+
   it('supports explicit automatic call-provider discovery on client and server', () => {
     expect(config).toContain(
       'VoiceProvider = "pma", -- auto, yaca (alias: yaca-voice)',

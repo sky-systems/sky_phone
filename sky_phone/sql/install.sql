@@ -200,6 +200,22 @@ CREATE TABLE IF NOT EXISTS `sky_phone_admin_audit` (
     KEY `idx_sky_phone_admin_audit_target` (`target_identifier`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_custom_tones` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `tone_type` ENUM('ringtone','notification') NOT NULL,
+    `label` VARCHAR(64) NOT NULL,
+    `mime_type` VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `audio_payload` MEDIUMTEXT CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `byte_size` INT UNSIGNED NOT NULL,
+    `duration_ms` INT UNSIGNED NOT NULL,
+    `created_by_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `created_by_name` VARCHAR(120) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_sky_phone_custom_tone_label` (`tone_type`, `label`),
+    KEY `idx_sky_phone_custom_tones_type` (`tone_type`, `created_at`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_configurator` (
     `id` TINYINT UNSIGNED NOT NULL,
     `config_payload` LONGTEXT NOT NULL,

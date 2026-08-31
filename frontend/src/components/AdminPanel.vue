@@ -2,6 +2,7 @@
 import {
   ChartNoAxesCombined,
   BadgeDollarSign,
+  BellRing,
   BriefcaseBusiness,
   Check,
   ChevronRight,
@@ -65,6 +66,7 @@ import { nuiCall } from '@/utils/nui'
 import AdminConfigValueEditor, {
   type AdminConfigEditorLabels,
 } from './AdminConfigValueEditor.vue'
+import AdminCustomToneManager from './AdminCustomToneManager.vue'
 
 type AdminTab =
   | 'overview'
@@ -75,6 +77,7 @@ type AdminTab =
   | 'messages'
   | 'calls'
   | 'moderation'
+  | 'tones'
   | 'audit'
   | 'configurator'
 type ConfiguratorScope = 'config' | 'media'
@@ -540,8 +543,15 @@ function selectTab(nextTab: AdminTab): void {
   if (nextTab === 'overview' && admin.initialized && !admin.loading) {
     void admin.load()
   }
-  if (nextTab === 'configurator' && !admin.configurator) {
-    void admin.loadConfigurator().then((loaded) => {
+  if (nextTab === 'configurator') {
+    void (
+      admin.configurator ? Promise.resolve(true) : admin.loadConfigurator()
+    ).then((loaded) => {
+      if (!loaded) showToast(errorText(), 'error')
+    })
+  }
+  if (nextTab === 'tones') {
+    void admin.loadCustomTones().then((loaded) => {
       if (!loaded) showToast(errorText(), 'error')
     })
   }
@@ -865,7 +875,9 @@ onBeforeUnmount(() => {
           <strong>{{
             tab === 'configurator'
               ? t('configurator.context')
-              : admin.selectedPlayer?.name || t('editor.noSelection')
+              : tab === 'tones'
+                ? t('configurator.customTones.context')
+                : admin.selectedPlayer?.name || t('editor.noSelection')
           }}</strong>
         </div>
 
@@ -973,6 +985,15 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
+            :class="{ 'is-active': tab === 'tones' }"
+            :aria-label="t('tabs.tones')"
+            :title="t('tabs.tones')"
+            @click="selectTab('tones')"
+          >
+            <BellRing :size="19" />
+          </button>
+          <button
+            type="button"
             :class="{ 'is-active': tab === 'audit' }"
             :aria-label="t('tabs.audit')"
             :title="t('tabs.audit')"
@@ -1066,6 +1087,14 @@ onBeforeUnmount(() => {
                 </span>
                 <ChevronRight :size="14" />
               </button>
+              <button type="button" @click="selectTab('tones')">
+                <BellRing :size="17" />
+                <span>
+                  <strong>{{ t('tabs.tones') }}</strong>
+                  <small>{{ t('overview.tonesFeature') }}</small>
+                </span>
+                <ChevronRight :size="14" />
+              </button>
               <button type="button" @click="selectTab('configurator')">
                 <Settings2 :size="17" />
                 <span>
@@ -1074,6 +1103,46 @@ onBeforeUnmount(() => {
                 </span>
                 <ChevronRight :size="14" />
               </button>
+            </div>
+          </template>
+
+          <template v-else-if="tab === 'tones'">
+            <div class="admin-panel-directory__header">
+              <div>
+                <span>{{ t('configurator.customTones.eyebrow') }}</span>
+                <h2>{{ t('configurator.customTones.library') }}</h2>
+              </div>
+              <strong>{{ admin.customTones.length }}</strong>
+            </div>
+            <div class="admin-panel-tone-directory">
+              <article>
+                <span><PhoneCall :size="16" /></span>
+                <div>
+                  <strong>{{ t('configurator.customTones.ringtones') }}</strong>
+                  <small
+                    >{{
+                      admin.customTones.filter(
+                        (tone) => tone.toneType === 'ringtone',
+                      ).length
+                    }}/32</small
+                  >
+                </div>
+              </article>
+              <article>
+                <span><MessageSquare :size="16" /></span>
+                <div>
+                  <strong>{{
+                    t('configurator.customTones.notifications')
+                  }}</strong>
+                  <small
+                    >{{
+                      admin.customTones.filter(
+                        (tone) => tone.toneType === 'notification',
+                      ).length
+                    }}/32</small
+                  >
+                </div>
+              </article>
             </div>
           </template>
 
@@ -1369,6 +1438,23 @@ onBeforeUnmount(() => {
                 </section>
               </div>
             </article>
+          </section>
+
+          <section
+            v-else-if="tab === 'tones'"
+            class="admin-panel-editor__scroll"
+          >
+            <div class="admin-panel-page-heading">
+              <div class="admin-panel-heading-icon">
+                <BellRing :size="23" />
+              </div>
+              <div>
+                <span>{{ t('configurator.customTones.eyebrow') }}</span>
+                <h1>{{ t('configurator.customTones.title') }}</h1>
+                <p>{{ t('configurator.customTones.body') }}</p>
+              </div>
+            </div>
+            <AdminCustomToneManager @toast="showToast" />
           </section>
 
           <section
@@ -2926,6 +3012,47 @@ button:disabled {
 
 .admin-panel-audit-mini-list article:hover {
   background: var(--admin-row-hover);
+}
+
+.admin-panel-tone-directory {
+  display: grid;
+  gap: 1px;
+  margin-top: 8px;
+  background: var(--admin-border);
+}
+
+.admin-panel-tone-directory article {
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  background: #111311;
+}
+
+.admin-panel-tone-directory article > span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  color: var(--admin-accent);
+  background: var(--admin-green-soft);
+}
+
+.admin-panel-tone-directory article > div {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-panel-tone-directory strong {
+  font-size: 10px;
+}
+
+.admin-panel-tone-directory small {
+  color: var(--admin-muted);
+  font-size: 9px;
 }
 
 .admin-panel-audit-icon {

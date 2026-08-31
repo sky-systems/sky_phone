@@ -87,6 +87,7 @@ import { getHairlinePixelStyle } from '@/utils/rendering'
 import { isTextInputElement } from '@/utils/textInputFocus'
 import { configurePhoneNumberFormat } from '@/utils/phone'
 import { consumeEscape } from '@/utils/keyboard'
+import type { CustomPhoneToneCatalog } from '@/utils/customTones'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 import SpringboardView from '@/views/SpringboardView.vue'
 
@@ -118,6 +119,7 @@ type AppMessage = {
     | CustomAppEventData
     | NavigationEventData
     | AdminPanelOpenPayload
+    | CustomPhoneToneCatalog
 }
 
 type AdminPanelOpenPayload = Required<
@@ -750,6 +752,8 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     adminPanelOpen.value = true
   } else if (event.data?.type === 'admin:close') {
     adminPanelOpen.value = false
+  } else if (event.data?.type === 'phone:tones') {
+    phone.setCustomTones(event.data.data)
   } else if (event.data?.type === 'custom-apps:catalog') {
     appCatalog.replaceCatalog(event.data.data)
     const catalogPayload = event.data.data as
