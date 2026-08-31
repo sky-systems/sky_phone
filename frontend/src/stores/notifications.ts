@@ -5,8 +5,10 @@ import { isPhoneAppId } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
 import type { LaunchablePhoneAppId } from '@/types/apps'
 import { nuiCall } from '@/utils/nui'
+import { findCustomPhoneTone, playCustomPhoneTone } from '@/utils/customTones'
 import {
   DEFAULT_APP_NOTIFICATION_PREFERENCES,
+  isBuiltInNotificationSoundId,
   type PhonePreferencesV1,
 } from '@/utils/preferences'
 import {
@@ -190,18 +192,34 @@ export const useNotificationsStore = defineStore('notifications', () => {
       const alertsMuted =
         preferences.settings.notificationVolume === 0 &&
         preferences.settings.ringtoneVolume === 0
-      const sound = notification.sound ?? preferences.settings.notificationSound
+      const selectedSound = preferences.settings.notificationSound
+      const customSound = notification.sound
+        ? undefined
+        : findCustomPhoneTone(
+            phone.customTones.notificationSounds,
+            selectedSound,
+          )
       const volume = notification.critical
         ? preferences.settings.ringtoneVolume
         : preferences.settings.notificationVolume
       stopToneHandles.set(
         notification.id,
         alertsMuted
-          ? playPhoneVibration(
-              'notification',
-              !!notification.persistent,
-            )
-          : playPhoneTone(sound, volume, !!notification.persistent),
+          ? playPhoneVibration('notification', !!notification.persistent)
+          : customSound
+            ? playCustomPhoneTone(
+                customSound,
+                volume,
+                !!notification.persistent,
+              )
+            : playPhoneTone(
+                notification.sound ??
+                  (isBuiltInNotificationSoundId(selectedSound)
+                    ? selectedSound
+                    : 'chime'),
+                volume,
+                !!notification.persistent,
+              ),
       )
     }
 

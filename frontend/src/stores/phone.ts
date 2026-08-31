@@ -8,6 +8,11 @@ import type {
 } from '@/types/device'
 import { clampPage } from '@/utils/pages'
 import { cloneJsonData } from '@/utils/clone'
+import {
+  EMPTY_CUSTOM_PHONE_TONES,
+  isCustomTonePreferenceId,
+  parseCustomPhoneToneCatalog,
+} from '@/utils/customTones'
 import { nuiCall } from '@/utils/nui'
 import type { NuiResponse } from '@/utils/nui'
 import {
@@ -823,6 +828,7 @@ const adminPanelFallbackLocales = {
     messages: 'Messages',
     calls: 'Calls',
     moderation: 'Moderation',
+    tones: 'Sounds',
     audit: 'Audit',
     configurator: 'Phone configurator',
   },
@@ -846,6 +852,7 @@ const adminPanelFallbackLocales = {
     messageFeature: 'Review recent SMS activity',
     callFeature: 'Review recent call activity',
     moderationFeature: 'Reset access, number, or device data',
+    tonesFeature: 'Manage ringtones and notification sounds',
     auditFeature: 'Review sensitive admin actions',
     configuratorFeature: 'Manage config.lua and media.lua through SQL',
   },
@@ -886,6 +893,43 @@ const adminPanelFallbackLocales = {
     secretConfigured: 'Secret configured · enter a replacement',
     invalidValue: 'Check the highlighted table or number value.',
     saved: 'SQL configuration saved and applied.',
+    customTones: {
+      context: 'Sound library',
+      eyebrow: 'Audio management',
+      library: 'Library',
+      title: 'Custom ringtones and notification sounds',
+      body: 'Manage local audio files from the database or config.lua without external URLs.',
+      configTitle: 'File-based alternative',
+      configBody:
+        'If the FiveM client does not open a file dialog, place the file in the resource folder and register it in config.lua.',
+      configSource: 'config.lua',
+      configManaged:
+        'This tone is managed through config.lua and can only be previewed here.',
+      name: 'Display name',
+      namePlaceholder: 'For example Dispatch',
+      category: 'Use as',
+      ringtone: 'Ringtone',
+      notification: 'Notification sound',
+      chooseFile: 'Choose audio file',
+      fileHint: 'MP3, OGG, WAV, or WebM · up to 2 MB and 30 seconds',
+      preview: 'Preview',
+      add: 'Add tone',
+      loading: 'Loading tone library...',
+      ringtones: 'Ringtones',
+      notifications: 'Notification sounds',
+      empty: 'No custom tones in this category yet.',
+      delete: 'Delete tone',
+      confirmDelete: 'Click again to confirm',
+      saved: 'The tone was saved and is immediately available on every phone.',
+      deleted: 'The tone was deleted.',
+      errors: {
+        type: 'Choose an MP3, OGG, WAV, or WebM audio file.',
+        size: 'The audio file may not exceed 2 MB.',
+        duration: 'The tone must be between 0.25 and 30 seconds long.',
+        invalid: 'The audio file could not be read.',
+        playback: 'The tone could not be played.',
+      },
+    },
     descriptions: {
       featureToggle: 'Turns {name} on or off.',
       boolean: 'Controls whether {name} is allowed.',
@@ -1155,6 +1199,8 @@ const adminPanelFallbackLocales = {
       change_number: 'Phone number changed',
       factory_reset: 'Phone factory reset',
       save_configuration: 'Configuration saved',
+      create_custom_tone: 'Custom tone added',
+      delete_custom_tone: 'Custom tone deleted',
     },
   },
   errors: {
@@ -1169,6 +1215,12 @@ const adminPanelFallbackLocales = {
     configurator_disabled: 'Enable the phone configurator in config.lua first.',
     invalid_field: 'That configuration field is no longer available.',
     invalid_value: 'A configuration value is invalid.',
+    invalid_tone: 'Check the tone name, file type, file size, and duration.',
+    tone_name_taken: 'A tone with this name already exists in this category.',
+    tone_limit: 'This category already contains 32 custom tones.',
+    tone_not_found: 'That tone no longer exists.',
+    invalid_upload: 'The tone upload is incomplete or invalid.',
+    operation_in_progress: 'Another tone upload is already in progress.',
     account_not_found: 'No iFruit account is linked to this phone.',
     invalid_phone_number:
       'Enter a phone number in the configured server format.',
@@ -5684,6 +5736,8 @@ export const usePhoneStore = defineStore('phone', {
   state: () => ({
     cameraLandscape: false,
     currentPage: 1,
+    customTones: cloneJsonData(EMPTY_CUSTOM_PHONE_TONES),
+    customTonesLoaded: false,
     device: null as PhoneDevice | null,
     deviceRevisions: {} as Record<string, number>,
     deviceSessionToken: null as string | null,
@@ -5727,6 +5781,36 @@ export const usePhoneStore = defineStore('phone', {
       this.locales = locales
       this.fallbackLocales = fallbackLocales
     },
+    setCustomTones(payload: unknown): void {
+      this.customTones = parseCustomPhoneToneCatalog(payload)
+      this.customTonesLoaded = true
+      this.reconcileCustomTonePreferences()
+    },
+    reconcileCustomTonePreferences(): void {
+      if (!this.customTonesLoaded) return
+      let changed = false
+      const ringtone = this.preferences.settings.ringtone
+      if (
+        isCustomTonePreferenceId(ringtone) &&
+        !this.customTones.ringtones.some((tone) => tone.id === ringtone)
+      ) {
+        this.preferences.settings.ringtone = 'skyline'
+        changed = true
+      }
+      const notificationSound = this.preferences.settings.notificationSound
+      if (
+        isCustomTonePreferenceId(notificationSound) &&
+        !this.customTones.notificationSounds.some(
+          (tone) => tone.id === notificationSound,
+        )
+      ) {
+        this.preferences.settings.notificationSound = 'chime'
+        changed = true
+      }
+      if (changed && this.device) {
+        this.saveDeviceNamespace('settings', this.preferences)
+      }
+    },
     open(payload: PhoneOpenPayload = {}): void {
       const nextImei = payload.device?.imei ?? this.device?.imei ?? null
       const nextToken = payload.token ?? this.deviceSessionToken
@@ -5741,6 +5825,7 @@ export const usePhoneStore = defineStore('phone', {
       this.fallbackLocales = payload.fallbackLocales ?? defaultLocales
       this.locales = payload.locales ?? this.fallbackLocales
       if (payload.device) this.hydrateDevice(payload.device)
+      this.reconcileCustomTonePreferences()
       if (payload.player) this.player = payload.player
       this.security = payload.security ?? {
         enabled: false,

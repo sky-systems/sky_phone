@@ -30,13 +30,17 @@ describe('fixed server permissions', () => {
     expect(config).not.toContain('AdminGroups =')
     expect(configDefault).not.toContain('Config.PhoneConfigurator')
     expect(configDefault).not.toContain('Config.CommandPermissions')
+    expect(configDefault).not.toContain('Config.CustomTones')
     expect(configDefault).not.toContain('AdminGroups =')
   })
 
   it('keeps fixed permissions outside SQL and removes legacy group fields', () => {
     expect(configurator).toContain('key ~= "CommandPermissions"')
-    expect(configurator).toContain('if key ~= "CommandPermissions" then')
+    expect(configurator).toContain(
+      'if key ~= "CommandPermissions" and key ~= "CustomTones" then',
+    )
     expect(configuratorFixture).toContain('delete config.CommandPermissions')
+    expect(configuratorFixture).toContain('delete config.CustomTones')
     for (const path of [
       'AdminPanel.AdminGroups',
       'TestData.AdminGroups',
@@ -55,7 +59,7 @@ describe('fixed server permissions', () => {
       '^1 Configure all phone and media settings IN GAME through /phonepanel.^0',
     )
     expect(configurator).toContain(
-      '^1 Only Config.PhoneConfigurator.Enabled and Config.CommandPermissions remain file-based.^0',
+      '^1 Config.PhoneConfigurator, Config.CommandPermissions and Config.CustomTones remain file-based.^0',
     )
   })
 

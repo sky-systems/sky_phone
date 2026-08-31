@@ -75,6 +75,12 @@ export function registerPhoneMediaElement<T extends HTMLMediaElement>(
   return trackPhoneMediaElement(element, true)
 }
 
+export function unregisterPhoneMediaElement(element: HTMLMediaElement): void {
+  element.removeEventListener('volumechange', onMediaVolumeChange)
+  mediaElements.delete(element)
+  mediaLocalVolumes.delete(element)
+}
+
 export function setPhoneOutputVolume(volume: number): void {
   outputVolume = clampVolume(volume)
   for (const [element, persistent] of mediaElements) {

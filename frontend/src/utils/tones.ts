@@ -1,8 +1,11 @@
-import { registerPhoneMediaElement } from '@/utils/phoneAudio'
+import {
+  registerPhoneMediaElement,
+  unregisterPhoneMediaElement,
+} from '@/utils/phoneAudio'
 import type { AlarmSoundId } from '@/utils/alarms'
-import type { NotificationSoundId } from '@/utils/preferences'
+import type { BuiltInNotificationSoundId } from '@/utils/preferences'
 
-export type PhoneToneId = AlarmSoundId | NotificationSoundId
+export type PhoneToneId = AlarmSoundId | BuiltInNotificationSoundId
 export type PhoneVibrationKind = 'call' | 'notification'
 
 type ToneVoice = {
@@ -492,6 +495,44 @@ export function playPhoneTone(
   }
 }
 
+export function playPhoneMediaTone(
+  url: string,
+  volumePercent: number,
+  loop: boolean,
+  callbacks: {
+    onError?: (error: unknown) => void
+    onStarted?: () => void
+  } = {},
+): () => void {
+  const player = new Audio(url)
+  player.loop = loop
+  player.preload = 'auto'
+  player.volume = Math.max(0, Math.min(1, volumePercent / 100))
+  registerPhoneMediaElement(player)
+
+  let stopped = false
+  void player
+    .play()
+    .then(() => {
+      if (!stopped) callbacks.onStarted?.()
+    })
+    .catch((error: unknown) => {
+      if (!stopped) {
+        console.error('[Phone audio] Failed to start custom tone', error)
+        callbacks.onError?.(error)
+      }
+    })
+
+  return () => {
+    if (stopped) return
+    stopped = true
+    player.pause()
+    player.removeAttribute('src')
+    player.load()
+    unregisterPhoneMediaElement(player)
+  }
+}
+
 export function playPhoneVibration(
   kind: PhoneVibrationKind,
   loop: boolean,
@@ -510,8 +551,12 @@ export function playPhoneVibration(
   })
 
   return () => {
+    if (stopped) return
     stopped = true
     player.pause()
     player.currentTime = 0
+    player.removeAttribute('src')
+    player.load()
+    unregisterPhoneMediaElement(player)
   }
 }

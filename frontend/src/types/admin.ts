@@ -186,3 +186,23 @@ export type AdminConfiguratorChange = {
   scope: 'config' | 'media'
   value: unknown
 }
+
+export type AdminCustomTone = {
+  byteSize: number
+  createdAt: string
+  createdBy: string
+  durationMs: number
+  id: string
+  label: string
+  mimeType: string
+  source: 'config' | 'database'
+  toneType: 'notification' | 'ringtone'
+}
+
+export type AdminCustomToneCreate = {
+  durationMs: number
+  label: string
+  mimeType: string
+  payload: string
+  toneType: 'notification' | 'ringtone'
+}

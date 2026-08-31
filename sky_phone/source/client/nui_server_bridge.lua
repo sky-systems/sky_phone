@@ -3,6 +3,7 @@ local callback_groups = {
     admin = [[
         bootstrap player save-apps reveal-password activity
         reset-passcode change-number factory-reset configurator save-configurator
+        tones tone-upload-start tone-upload-chunk tone-upload-finish tone-upload-cancel delete-tone
     ]],
     banking = [[overview transfer]],
     billing = [[overview list detail markRead pay dispute]],
@@ -71,6 +72,7 @@ local callback_groups = {
     ]],
     security = [[unlock set-passcode change-passcode disable-passcode]],
     sim = [[insert eject]],
+    tones = [[list]],
     ["weazel-news"] = [[context list get manage-list create update delete]],
 }
 

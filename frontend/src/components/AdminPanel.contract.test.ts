@@ -144,6 +144,7 @@ describe('standalone admin panel contracts', () => {
       'messages',
       'calls',
       'moderation',
+      'tones',
       'audit',
       'configurator',
     ]) {

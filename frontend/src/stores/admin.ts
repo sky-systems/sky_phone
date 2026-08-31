@@ -8,11 +8,17 @@ import type {
   AdminConfigurator,
   AdminConfiguratorChange,
   AdminCredential,
+  AdminCustomTone,
+  AdminCustomToneCreate,
   AdminMessageActivity,
   AdminPlayerDetail,
   AdminPlayerSummary,
   AdminStats,
 } from '@/types/admin'
+import {
+  cacheCustomPhoneTonePayload,
+  CUSTOM_TONE_CHUNK_CHARS,
+} from '@/utils/customTones'
 import { nuiCall, type NuiResponse } from '@/utils/nui'
 
 const EMPTY_STATS: AdminStats = {
@@ -49,6 +55,8 @@ export const useAdminStore = defineStore('admin', {
     audit: [] as AdminAuditEntry[],
     configurator: null as AdminConfigurator | null,
     configuratorLoading: false,
+    customTones: [] as AdminCustomTone[],
+    customTonesLoading: false,
     detailLoading: false,
     disabledApps: [] as string[],
     error: '',
@@ -201,6 +209,99 @@ export const useAdminStore = defineStore('admin', {
         this.error = ''
       } else {
         if (response.data) this.configurator = response.data
+        this.error = response.error ?? 'request_failed'
+      }
+      return response
+    },
+    async loadCustomTones(): Promise<boolean> {
+      this.customTonesLoading = true
+      const response = await nuiCall<AdminCustomTone[]>('admin:tones')
+      this.customTonesLoading = false
+      if (!response.success || !response.data) {
+        this.error = response.error ?? 'request_failed'
+        return false
+      }
+      this.customTones = response.data
+      this.error = ''
+      return true
+    },
+    async createCustomTone(
+      tone: AdminCustomToneCreate,
+    ): Promise<NuiResponse<AdminCustomTone[]>> {
+      this.actionKey = 'custom-tone:create'
+      const { payload, ...metadata } = tone
+      let uploadId = ''
+      try {
+        const started = await nuiCall<{ uploadId: string }>(
+          'admin:tone-upload-start',
+          {
+            ...metadata,
+            payloadLength: payload.length,
+          },
+        )
+        uploadId = started.data?.uploadId ?? ''
+        if (!started.success || !uploadId) {
+          this.error = started.error ?? 'request_failed'
+          return { error: this.error, success: false }
+        }
+
+        for (let offset = 0, index = 1; offset < payload.length; index += 1) {
+          const response = await nuiCall('admin:tone-upload-chunk', {
+            chunk: payload.slice(offset, offset + CUSTOM_TONE_CHUNK_CHARS),
+            index,
+            uploadId,
+          })
+          if (!response.success) {
+            await nuiCall('admin:tone-upload-cancel', { uploadId })
+            this.error = response.error ?? 'request_failed'
+            return { error: this.error, success: false }
+          }
+          offset += CUSTOM_TONE_CHUNK_CHARS
+        }
+
+        const response: NuiResponse<AdminCustomTone[]> & {
+          toneId?: unknown
+        } = await nuiCall<AdminCustomTone[]>('admin:tone-upload-finish', {
+          uploadId,
+        })
+        if (response.success && response.data) {
+          this.customTones = response.data
+          if (typeof response.toneId === 'string') {
+            cacheCustomPhoneTonePayload(
+              `custom:${response.toneId}`,
+              tone.mimeType,
+              payload,
+            )
+          }
+          this.error = ''
+        } else {
+          await nuiCall('admin:tone-upload-cancel', { uploadId })
+          this.error = response.error ?? 'request_failed'
+        }
+        return response
+      } catch (error) {
+        if (uploadId) {
+          await nuiCall('admin:tone-upload-cancel', { uploadId })
+        }
+        console.error('[Phone admin] Custom tone upload failed.', error)
+        this.error = 'request_failed'
+        return { error: this.error, success: false }
+      } finally {
+        this.actionKey = ''
+      }
+    },
+    async deleteCustomTone(
+      id: string,
+    ): Promise<NuiResponse<AdminCustomTone[]>> {
+      this.actionKey = `custom-tone:delete:${id}`
+      const response = await nuiCall<AdminCustomTone[]>('admin:delete-tone', {
+        id,
+      })
+      this.actionKey = ''
+      if (response.success && response.data) {
+        this.customTones = response.data
+        this.error = ''
+      } else {
         this.error = response.error ?? 'request_failed'
       }
       return response

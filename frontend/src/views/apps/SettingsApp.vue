@@ -96,6 +96,11 @@ import {
   type WallpaperTarget,
 } from '@/utils/preferences'
 
+type ToneChoice<T extends string> = {
+  id: T
+  label: string
+}
+
 type SettingsView =
   | 'root'
   | 'account'
@@ -617,6 +622,26 @@ function selectRingtone(ringtone: RingtoneId): void {
 function selectNotificationSound(sound: NotificationSoundId): void {
   phone.setPreference('notificationSound', sound)
 }
+
+const ringtoneChoices = computed<ToneChoice<RingtoneId>[]>(() => [
+  ...RINGTONE_IDS.map((id) => ({
+    id,
+    label: phone.t('Apps.settings.ringtones.' + id),
+  })),
+  ...phone.customTones.ringtones.map(({ id, label }) => ({ id, label })),
+])
+const notificationSoundChoices = computed<ToneChoice<NotificationSoundId>[]>(
+  () => [
+    ...NOTIFICATION_SOUND_IDS.map((id) => ({
+      id,
+      label: phone.t('Apps.settings.notificationSoundsList.' + id),
+    })),
+    ...phone.customTones.notificationSounds.map(({ id, label }) => ({
+      id,
+      label,
+    })),
+  ],
+)
 
 function updateAccountEmail(event: Event): void {
   const input = event.target as HTMLInputElement
@@ -1276,23 +1301,25 @@ onBeforeUnmount(() => {
 
         <SkySettingsGroup :title="phone.t('Apps.settings.ringtone')">
           <SkySettingsRow
-            v-for="ringtone in RINGTONE_IDS"
-            :key="ringtone"
+            v-for="ringtone in ringtoneChoices"
+            :key="ringtone.id"
             kind="choice"
-            :selected="phone.preferences.settings.ringtone === ringtone"
-            :title="phone.t('Apps.settings.ringtones.' + ringtone)"
-            @activate="selectRingtone(ringtone)"
+            :selected="phone.preferences.settings.ringtone === ringtone.id"
+            :title="ringtone.label"
+            @activate="selectRingtone(ringtone.id)"
           />
         </SkySettingsGroup>
 
         <SkySettingsGroup :title="phone.t('Apps.settings.notificationSound')">
           <SkySettingsRow
-            v-for="sound in NOTIFICATION_SOUND_IDS"
-            :key="sound"
+            v-for="sound in notificationSoundChoices"
+            :key="sound.id"
             kind="choice"
-            :selected="phone.preferences.settings.notificationSound === sound"
-            :title="phone.t('Apps.settings.notificationSoundsList.' + sound)"
-            @activate="selectNotificationSound(sound)"
+            :selected="
+              phone.preferences.settings.notificationSound === sound.id
+            "
+            :title="sound.label"
+            @activate="selectNotificationSound(sound.id)"
           />
         </SkySettingsGroup>
       </template>
