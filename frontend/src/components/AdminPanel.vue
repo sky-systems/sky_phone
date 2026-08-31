@@ -403,6 +403,7 @@ function configuratorDescription(
 
 const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   addField: t('configurator.table.addField'),
+  addJob: t('configurator.table.addJob'),
   addRow: t('configurator.table.addRow'),
   configuredSecret: t('configurator.secretConfigured'),
   convertToList: t('configurator.table.convertToList'),
@@ -412,6 +413,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   general: configuratorLocaleText('configurator.table.general', 'General'),
+  jobPlaceholder: t('configurator.table.jobPlaceholder'),
   keyPlaceholder: t('configurator.table.keyPlaceholder'),
   list: t('configurator.table.list'),
   remove: t('configurator.table.remove'),

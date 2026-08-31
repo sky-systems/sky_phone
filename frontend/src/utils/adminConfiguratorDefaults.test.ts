@@ -114,6 +114,38 @@ describe('admin configurator defaults', () => {
       false,
     )
   })
+  
+  it('uses the configured access value when adding radio jobs', () => {
+    const channelJobs: AdminConfiguratorStructure = {
+      entryDefault: true,
+      fields: {},
+      kind: 'table',
+      mutableKeys: true,
+      template: { kind: 'value', valueType: 'boolean' },
+    }
+    const displayNameJobs: AdminConfiguratorStructure = {
+      entryDefault: 0,
+      fields: {},
+      kind: 'table',
+      mutableKeys: true,
+      template: { kind: 'value', valueType: 'number' },
+    }
+
+    expect(
+      createMutableTableEntry(
+        channelJobs,
+        'Radio.LockedChannels[1].jobs',
+        'mechanic',
+      ),
+    ).toBe(true)
+    expect(
+      createMutableTableEntry(
+        displayNameJobs,
+        'Radio.DisplayName.AllowedJobs',
+        'mechanic',
+      ),
+    ).toBe(0)
+  })
 
   it('preserves required nested list fields in schema-derived rows', () => {
     const structure: AdminConfiguratorStructure = {

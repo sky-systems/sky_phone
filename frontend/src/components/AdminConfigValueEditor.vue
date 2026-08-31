@@ -18,6 +18,7 @@ import type { AdminConfiguratorDescribe } from '@/utils/adminConfiguratorDescrip
 
 export type AdminConfigEditorLabels = {
   addField: string
+  addJob: string
   addRow: string
   configuredSecret: string
   convertToList: string
@@ -27,6 +28,7 @@ export type AdminConfigEditorLabels = {
   emptyTable: string
   entry: string
   general: string
+  jobPlaceholder: string
   keyPlaceholder: string
   list: string
   remove: string
@@ -148,6 +150,11 @@ const canExtendTable = computed(
   () =>
     !vectorType.value &&
     (!tableStructure.value || tableStructure.value.mutableKeys === true),
+)
+const isJobTable = computed(
+  () =>
+    props.path === 'Radio.DisplayName.AllowedJobs' ||
+    /^Radio\.LockedChannels\[\d+\]\.jobs$/.test(props.path),
 )
 const usesFixedTableLayout = computed(
   () =>
@@ -369,6 +376,19 @@ function updateOptionalString(event: Event): void {
   if (target instanceof HTMLInputElement) {
     emit('update:modelValue', target.value)
   }
+}
+
+function updateNewObjectKey(event: Event): void {
+  const target = event.target
+  if (!(target instanceof HTMLInputElement)) return
+  const value = isJobTable.value
+    ? target.value
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '')
+        .slice(0, 64)
+    : target.value
+  newObjectKey.value = value
+  target.value = value
 }
 
 function toggleOptionalString(event: Event): void {
@@ -1015,11 +1035,15 @@ function mapEntryStructure(
       @submit.prevent="addTableField"
     >
       <input
-        v-model="newObjectKey"
+        :value="newObjectKey"
         type="text"
         :disabled="disabled"
-        :placeholder="labels.keyPlaceholder"
-        :aria-label="labels.keyPlaceholder"
+        :placeholder="
+          isJobTable ? labels.jobPlaceholder : labels.keyPlaceholder
+        "
+        :aria-label="isJobTable ? labels.jobPlaceholder : labels.keyPlaceholder"
+        autocomplete="off"
+        @input="updateNewObjectKey"
       />
       <select
         v-if="!tableStructure"
@@ -1039,7 +1063,7 @@ function mapEntryStructure(
         {{ structureTypeLabel(tableStructure.template) }}
       </span>
       <button type="submit" :disabled="disabled || !canAddTableField">
-        <Plus :size="13" />{{ labels.addField }}
+        <Plus :size="13" />{{ isJobTable ? labels.addJob : labels.addField }}
       </button>
     </form>
   </div>
