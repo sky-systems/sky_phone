@@ -65,6 +65,117 @@ local function query_or_error(query, parameters, context)
     return result
 end
 
+local function column_key(table_name, column_name)
+    return ("%s\0%s"):format(table_name:lower(), column_name:lower())
+end
+
+local function quote_identifier(identifier)
+    return ("`%s`"):format(tostring(identifier):gsub("`", "``"))
+end
+
+local function read_foreign_keys()
+    local rows = query_or_error([[
+        SELECT
+            kcu.CONSTRAINT_NAME AS `constraint_name`,
+            kcu.TABLE_NAME AS `table_name`,
+            kcu.COLUMN_NAME AS `column_name`,
+            kcu.REFERENCED_TABLE_NAME AS `referenced_table_name`,
+            kcu.REFERENCED_COLUMN_NAME AS `referenced_column_name`,
+            rc.UPDATE_RULE AS `update_rule`,
+            rc.DELETE_RULE AS `delete_rule`
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+        INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
+            ON rc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
+            AND rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+            AND rc.TABLE_NAME = kcu.TABLE_NAME
+        WHERE kcu.CONSTRAINT_SCHEMA = DATABASE()
+            AND kcu.REFERENCED_TABLE_SCHEMA = DATABASE()
+            AND kcu.REFERENCED_TABLE_NAME IS NOT NULL
+        ORDER BY kcu.TABLE_NAME, kcu.CONSTRAINT_NAME, kcu.ORDINAL_POSITION
+    ]], {}, "reading foreign key metadata")
+    local foreign_keys = {}
+    local foreign_keys_by_name = {}
+
+    for _, row in ipairs(rows) do
+        local table_name = row.table_name or row.TABLE_NAME
+        local constraint_name = row.constraint_name or row.CONSTRAINT_NAME
+        local key = ("%s\0%s"):format(table_name:lower(), constraint_name:lower())
+        local foreign_key = foreign_keys_by_name[key]
+        if not foreign_key then
+            foreign_key = {
+                name = constraint_name,
+                table_name = table_name,
+                referenced_table_name = row.referenced_table_name or row.REFERENCED_TABLE_NAME,
+                update_rule = row.update_rule or row.UPDATE_RULE,
+                delete_rule = row.delete_rule or row.DELETE_RULE,
+                columns = {},
+                referenced_columns = {},
+            }
+            foreign_keys_by_name[key] = foreign_key
+            foreign_keys[#foreign_keys + 1] = foreign_key
+        end
+
+        foreign_key.columns[#foreign_key.columns + 1] = row.column_name or row.COLUMN_NAME
+        foreign_key.referenced_columns[#foreign_key.referenced_columns + 1] =
+            row.referenced_column_name or row.REFERENCED_COLUMN_NAME
+    end
+
+    return foreign_keys
+end
+
+local valid_foreign_key_rules = {
+    CASCADE = true,
+    ["NO ACTION"] = true,
+    RESTRICT = true,
+    ["SET DEFAULT"] = true,
+    ["SET NULL"] = true,
+}
+
+local function build_foreign_key_definition(foreign_key)
+    local columns = {}
+    local referenced_columns = {}
+    for index = 1, #foreign_key.columns do
+        columns[index] = quote_identifier(foreign_key.columns[index])
+        referenced_columns[index] = quote_identifier(foreign_key.referenced_columns[index])
+    end
+
+    local update_rule = tostring(foreign_key.update_rule):upper()
+    local delete_rule = tostring(foreign_key.delete_rule):upper()
+    if not valid_foreign_key_rules[update_rule] or not valid_foreign_key_rules[delete_rule] then
+        error(("[sky_phone] Cannot preserve foreign key '%s': unsupported referential action."):format(
+            tostring(foreign_key.name)
+        ))
+    end
+
+    return ("CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON DELETE %s ON UPDATE %s"):format(
+        quote_identifier(foreign_key.name),
+        table.concat(columns, ", "),
+        quote_identifier(foreign_key.referenced_table_name),
+        table.concat(referenced_columns, ", "),
+        delete_rule,
+        update_rule
+    )
+end
+
+local function foreign_key_touches_columns(foreign_key, changed_columns)
+    for index = 1, #foreign_key.columns do
+        if changed_columns[column_key(foreign_key.table_name, foreign_key.columns[index])]
+            or changed_columns[column_key(foreign_key.referenced_table_name, foreign_key.referenced_columns[index])] then
+            return true
+        end
+    end
+    return false
+end
+
+local function desired_foreign_key_target(references)
+    local table_name, column_list = references:match("^%s*`([^`]+)`%s*%(([^%)]+)%)")
+    local column_name = column_list and column_list:match("^%s*`([^`]+)`%s*$")
+    if not table_name or not column_name then
+        error(("[sky_phone] Unsupported foreign key reference definition: %s"):format(tostring(references)))
+    end
+    return table_name, column_name
+end
+
 function Bridge.Database.EnsureIndex(table_name, index_name, columns, options)
     local table_count = Bridge.Database.Query([[
         SELECT COUNT(*) AS `count`
@@ -95,9 +206,11 @@ end
 function Bridge.Database.Migrate(migration_name, schema)
     local table_names = {}
     local placeholders = {}
+    local schema_tables = {}
     for index = 1, #schema do
         table_names[index] = schema[index].name
         placeholders[index] = "?"
+        schema_tables[schema[index].name:lower()] = true
     end
 
     local existing_tables = {}
@@ -129,6 +242,47 @@ function Bridge.Database.Migrate(migration_name, schema)
         end
     end
 
+    local changed_columns = {}
+    for _, table_definition in ipairs(schema) do
+        local table_name = table_definition.name:lower()
+        if existing_tables[table_name] then
+            local columns = existing_columns[table_name] or {}
+            for _, column in ipairs(table_definition.columns) do
+                local current = columns[column.name:lower()]
+                if current and ((column.characterSet and current.character_set ~= column.characterSet)
+                    or (column.collation and current.collation ~= column.collation)) then
+                    changed_columns[column_key(table_definition.name, column.name)] = true
+                end
+            end
+        end
+    end
+
+    local preserved_foreign_keys = {}
+    if next(changed_columns) then
+        for _, foreign_key in ipairs(read_foreign_keys()) do
+            if foreign_key_touches_columns(foreign_key, changed_columns) then
+                if not schema_tables[foreign_key.table_name:lower()]
+                    or not schema_tables[foreign_key.referenced_table_name:lower()] then
+                    error((
+                        "[sky_phone] Cannot safely update constrained columns because foreign key '%s.%s' is not fully owned by this migration."
+                    ):format(foreign_key.table_name, foreign_key.name))
+                end
+                preserved_foreign_keys[#preserved_foreign_keys + 1] = foreign_key
+            end
+        end
+
+        for _, foreign_key in ipairs(preserved_foreign_keys) do
+            query_or_error(
+                ("ALTER TABLE %s DROP FOREIGN KEY %s"):format(
+                    quote_identifier(foreign_key.table_name),
+                    quote_identifier(foreign_key.name)
+                ),
+                {},
+                ("temporarily removing foreign key '%s.%s'"):format(foreign_key.table_name, foreign_key.name)
+            )
+        end
+    end
+
     for _, table_definition in ipairs(schema) do
         local table_name = table_definition.name:lower()
         if not existing_tables[table_name] then
@@ -157,6 +311,62 @@ function Bridge.Database.Migrate(migration_name, schema)
 
             for _, index in ipairs(table_definition.indexes or {}) do
                 Bridge.Database.EnsureIndex(table_definition.name, index.name, index.columns)
+            end
+        end
+    end
+
+    for _, foreign_key in ipairs(preserved_foreign_keys) do
+        query_or_error(
+            ("ALTER TABLE %s ADD %s"):format(
+                quote_identifier(foreign_key.table_name),
+                build_foreign_key_definition(foreign_key)
+            ),
+            {},
+            ("restoring foreign key '%s.%s'"):format(foreign_key.table_name, foreign_key.name)
+        )
+    end
+
+    local existing_foreign_key_columns = {}
+    local existing_foreign_key_targets = {}
+    for _, foreign_key in ipairs(read_foreign_keys()) do
+        for index = 1, #foreign_key.columns do
+            local key = column_key(foreign_key.table_name, foreign_key.columns[index])
+            existing_foreign_key_columns[key] = true
+            existing_foreign_key_targets[("%s\0%s\0%s"):format(
+                key,
+                foreign_key.referenced_table_name:lower(),
+                foreign_key.referenced_columns[index]:lower()
+            )] = true
+        end
+    end
+
+    for _, table_definition in ipairs(schema) do
+        for _, foreign_key in ipairs(table_definition.foreignKeys or {}) do
+            local referenced_table_name, referenced_column_name = desired_foreign_key_target(foreign_key.references)
+            local key = column_key(table_definition.name, foreign_key.column)
+            local target_key = ("%s\0%s\0%s"):format(
+                key,
+                referenced_table_name:lower(),
+                referenced_column_name:lower()
+            )
+            if not existing_foreign_key_targets[target_key] then
+                if existing_foreign_key_columns[key] then
+                    error((
+                        "[sky_phone] Column '%s.%s' has a foreign key that does not match the migration schema."
+                    ):format(table_definition.name, foreign_key.column))
+                end
+
+                query_or_error(
+                    ("ALTER TABLE %s ADD FOREIGN KEY (%s) REFERENCES %s"):format(
+                        quote_identifier(table_definition.name),
+                        quote_identifier(foreign_key.column),
+                        foreign_key.references
+                    ),
+                    {},
+                    ("restoring missing foreign key for '%s.%s'"):format(table_definition.name, foreign_key.column)
+                )
+                existing_foreign_key_columns[key] = true
+                existing_foreign_key_targets[target_key] = true
             end
         end
     end
