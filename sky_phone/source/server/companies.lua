@@ -734,12 +734,8 @@ function SkyPhoneCompanies.GetCallTargets(company_id)
     if not Config.Companies.Enabled or not definition or not definition.ServiceLine.CanCall then
         return targets
     end
-    local online = {}
-    for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
-        online[tonumber(player_source) or player_source] = true
-    end
     for source, readiness in pairs(call_availability) do
-        local member = online[source] and call_member(source) or nil
+        local member = call_member(source)
         local device = member and SkyPhone.LoadDevice(readiness.imei) or nil
         local device_slots = device and SkyPhone.FindDeviceSlots(source, readiness.imei) or {}
         local readiness_valid = member and device and device_slots[1]
@@ -998,12 +994,8 @@ end)
 CreateThread(function()
     while true do
         Wait(1000)
-        local online = {}
-        for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
-            online[tonumber(player_source) or player_source] = true
-        end
         for source, readiness in pairs(call_availability) do
-            local member = online[source] and call_member(source) or nil
+            local member = call_member(source)
             if not member or member.company_id ~= readiness.company_id
                 or member.definition.ServiceLine.CanCall ~= true
             then
