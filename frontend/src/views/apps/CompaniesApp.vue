@@ -3145,6 +3145,7 @@ onBeforeUnmount(() => {
 .manager-media-grid {
   display: grid;
   grid-template-columns: minmax(0, 86px);
+  justify-content: center;
   gap: 9px;
   margin: 0 0 14px;
 }
