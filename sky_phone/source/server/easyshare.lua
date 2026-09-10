@@ -226,16 +226,15 @@ local function canonical_profile(device, app_id, id)
         local definition = Config.Companies.Enabled and Config.Companies.Definitions[id] or nil
         if definition and definition.Public then
             local profile = first_row([[
-                SELECT profile.`description`, media.`url` AS `image_url`
+                SELECT profile.`description`
                 FROM `sky_phone_company_profiles` profile
-                LEFT JOIN `sky_phone_media` media ON media.`id` = profile.`logo_media_id`
                 WHERE profile.`company_id` = ? LIMIT 1
             ]], { id })
             return {
                 title = definition.Name,
                 subtitle = definition.ServiceLine.Number,
                 copyText = definition.Name .. "\n" .. (profile and profile.description or definition.Description),
-                imageUrl = profile and profile.image_url or nil,
+                imageUrl = definition.LogoUrl,
                 link = "skyphone://companies/profile/" .. id,
             }
         end

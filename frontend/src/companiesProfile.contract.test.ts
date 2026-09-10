@@ -18,12 +18,13 @@ const {
 } = require('../testserver/configurator-fixture.cjs')
 
 describe('Companies profile configuration', () => {
-  it('publishes the admin cover for existing and newly created companies', () => {
+  it('publishes admin images for company profiles, requests and shared cards', () => {
     const sections = loadConfiguratorSections()
     const definitions = sections
       .flatMap((section: { fields: Array<{ path: string }> }) => section.fields)
       .find((field: { path: string }) => field.path === 'Companies.Definitions')
     expect(definitions.structure.entryDefault.CoverUrl).toBe('')
+    expect(definitions.structure.entryDefault.LogoUrl).toBeTypeOf('string')
     for (const definition of Object.values(definitions.value) as Array<{
       CoverUrl: string
     }>) {
@@ -37,7 +38,16 @@ describe('Companies profile configuration', () => {
     expect(server).not.toContain('coverUrl = row.cover_url')
     expect(app).not.toContain('coverMediaId')
     expect(app).not.toContain('chooseCover')
-    expect(app).toContain('chooseLogo')
+    expect(app).not.toContain('chooseLogo')
+    expect(app).not.toContain('logoMediaId')
+    expect(server).toContain('logoUrl = definition.LogoUrl')
+    expect(server).toContain(
+      'companyLogoUrl = definition and definition.LogoUrl or nil',
+    )
+    expect(server).not.toContain('logo_media_id')
+    const easyshare = source('../../sky_phone/source/server/easyshare.lua')
+    expect(easyshare).toContain('imageUrl = definition.LogoUrl')
+    expect(easyshare).not.toContain('logo_media_id')
   })
 
   it('keeps admin field guidance specific and localized', () => {
@@ -47,10 +57,14 @@ describe('Companies profile configuration', () => {
     expect(
       configuratorDescriptionKey('Companies.Definitions.police.CoverUrl', ''),
     ).toBe('companyCover')
+    expect(
+      configuratorDescriptionKey('Companies.Definitions.police.LogoUrl', ''),
+    ).toBe('companyLogo')
     for (const locale of ['en', 'de', 'es']) {
       const text = source(`../../sky_phone/config/locales/${locale}.lua`)
       expect(text).toContain('companyName =')
       expect(text).toContain('companyCover =')
+      expect(text).toContain('companyLogo =')
     }
     expect(server).toContain('valid_text(definition.Name, 32, false)')
   })

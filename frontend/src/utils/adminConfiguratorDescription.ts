@@ -70,6 +70,8 @@ export function configuratorDescriptionKey(
   structure?: AdminConfiguratorStructure,
 ): string {
   if (/^Companies\.Definitions\.[^.]+\.Name$/.test(path)) return 'companyName'
+  if (/^Companies\.Definitions\.[^.]+\.LogoUrl$/.test(path))
+    return 'companyLogo'
   if (/^Companies\.Definitions\.[^.]+\.CoverUrl$/.test(path))
     return 'companyCover'
   const segment =

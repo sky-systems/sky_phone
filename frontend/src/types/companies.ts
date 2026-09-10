@@ -237,7 +237,6 @@ export type UpdateCompanyProfile = {
   coords?: CompanyCoordinates
   description: string
   district: string
-  logoMediaId?: number
   locationLabel: string
   revision: number
 }

@@ -99,7 +99,7 @@ for _, value in ipairs({ true, 1, "1", false, 0, "0" }) do
     assert(result.error == "invalid_service")
     assert(service_queried == api.boolean(value), "request gate must respect every database flag representation")
 end
--- The manager callback must reject forged cover changes before any write.
+-- The manager callback must reject forged logo/cover changes before any write.
 local profile_callback
 Bridge.Callbacks.Register = function(_, callback) profile_callback = callback end
 local profile_source = helpers .. [[
@@ -107,9 +107,9 @@ local function allow_mutation() return true end
 local function require_permission() return { definition = Config.Companies.Definitions.police } end
 ]] .. block('Bridge.Callbacks.Register("sky_phone:companies:update-profile"', 'local function valid_clock(')
 assert(load(profile_source))()
-for _, field in ipairs({ "coverMediaId", "coverUrl" }) do
+for _, field in ipairs({ "coverMediaId", "coverUrl", "logoMediaId", "logoUrl" }) do
     local draft = { revision = 1, description = "", district = "", address = "", acceptsRequests = true }
-    draft[field] = field == "coverMediaId" and 42 or "https://example.com/unauthorized.jpg"
+    draft[field] = field:find("MediaId", 1, true) and 42 or "https://example.com/unauthorized.jpg"
     assert(profile_callback(1, draft).error == "invalid_profile")
 end
 print("Companies profile regression tests passed")

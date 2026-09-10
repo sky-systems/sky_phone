@@ -6792,7 +6792,12 @@ app.post('/api/:endpoint', (request, response) => {
       company.availabilityUpdatedAt = new Date().toISOString()
     }
     if (endpoint === 'companies:update-profile') {
-      if (request.body.coverMediaId != null || request.body.coverUrl != null) {
+      if (
+        request.body.coverMediaId != null ||
+        request.body.coverUrl != null ||
+        request.body.logoMediaId != null ||
+        request.body.logoUrl != null
+      ) {
         response.json({ success: false, error: 'invalid_profile' })
         return
       }
@@ -6808,10 +6813,6 @@ app.post('/api/:endpoint', (request, response) => {
         district: String(request.body.district ?? ''),
         label: String(request.body.locationLabel ?? ''),
       }
-      const logo = mockMedia.find(
-        (item) => item.id === Number(request.body.logoMediaId),
-      )
-      if (logo) company.logoUrl = logo.url
     }
     if (endpoint === 'companies:update-hours') {
       company.hours = Array.isArray(request.body.hours)

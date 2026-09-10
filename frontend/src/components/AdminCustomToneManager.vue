@@ -319,7 +319,7 @@ onBeforeUnmount(() => {
 <template>
   <section class="admin-custom-tones">
     <article class="admin-custom-tones__config-note">
-      <FileCode2 :size="18" />
+      <FileCode2 :size="18" style="--admin-icon-size: 18" />
       <div>
         <strong>{{ t('configTitle') }}</strong>
         <p>{{ t('configBody') }}</p>
@@ -374,8 +374,13 @@ onBeforeUnmount(() => {
           :disabled="disabled || saving || processingFile"
           @change="chooseFile"
         />
-        <LoaderCircle v-if="processingFile" :size="20" class="is-spinning" />
-        <Upload v-else :size="20" />
+        <LoaderCircle
+          v-if="processingFile"
+          :size="20"
+          style="--admin-icon-size: 20"
+          class="is-spinning"
+        />
+        <Upload v-else :size="20" style="--admin-icon-size: 20" />
         <span>
           <strong>{{ selectedFile?.name ?? t('chooseFile') }}</strong>
           <small>
@@ -395,20 +400,33 @@ onBeforeUnmount(() => {
           :disabled="!previewUrl || saving"
           @click="previewSelected"
         >
-          <Pause v-if="playingToneId === 'selected'" :size="17" />
-          <Play v-else :size="17" />
+          <Pause
+            v-if="playingToneId === 'selected'"
+            :size="17"
+            style="--admin-icon-size: 17"
+          />
+          <Play v-else :size="17" style="--admin-icon-size: 17" />
           {{ t('preview') }}
         </SkyButton>
         <SkyButton small :disabled="!canSave" @click="saveTone">
-          <LoaderCircle v-if="saving" :size="17" class="is-spinning" />
-          <Plus v-else :size="17" />
+          <LoaderCircle
+            v-if="saving"
+            :size="17"
+            style="--admin-icon-size: 17"
+            class="is-spinning"
+          />
+          <Plus v-else :size="17" style="--admin-icon-size: 17" />
           {{ t('add') }}
         </SkyButton>
       </div>
     </div>
 
     <div v-if="admin.customTonesLoading" class="admin-custom-tones__loading">
-      <LoaderCircle :size="22" class="is-spinning" />
+      <LoaderCircle
+        :size="22"
+        style="--admin-icon-size: 22"
+        class="is-spinning"
+      />
       {{ t('loading') }}
     </div>
     <div v-else class="admin-custom-tones__catalog">
@@ -432,7 +450,7 @@ onBeforeUnmount(() => {
         </p>
         <article v-for="tone in group.tones" :key="tone.id">
           <span class="admin-custom-tones__tone-icon"
-            ><FileAudio :size="18"
+            ><FileAudio :size="18" style="--admin-icon-size: 18"
           /></span>
           <span class="admin-custom-tones__tone-copy">
             <strong>{{ tone.label }}</strong>
@@ -449,8 +467,12 @@ onBeforeUnmount(() => {
             :aria-label="t('preview')"
             @click="previewStored(tone)"
           >
-            <Pause v-if="playingToneId === tone.id" :size="17" />
-            <Play v-else :size="17" />
+            <Pause
+              v-if="playingToneId === tone.id"
+              :size="17"
+              style="--admin-icon-size: 17"
+            />
+            <Play v-else :size="17" style="--admin-icon-size: 17" />
           </button>
           <button
             v-if="tone.source === 'database'"
@@ -466,9 +488,10 @@ onBeforeUnmount(() => {
             <LoaderCircle
               v-if="admin.actionKey === `custom-tone:delete:${tone.id}`"
               :size="17"
+              style="--admin-icon-size: 17"
               class="is-spinning"
             />
-            <Trash2 v-else :size="17" />
+            <Trash2 v-else :size="17" style="--admin-icon-size: 17" />
           </button>
           <span
             v-else
@@ -476,7 +499,7 @@ onBeforeUnmount(() => {
             :title="t('configManaged')"
             :aria-label="t('configManaged')"
           >
-            <LockKeyhole :size="15" />
+            <LockKeyhole :size="15" style="--admin-icon-size: 15" />
           </span>
         </article>
       </section>
@@ -492,17 +515,17 @@ onBeforeUnmount(() => {
   --sky-text: #fff;
 
   display: grid;
-  gap: 8px;
+  gap: calc(8 * var(--admin-unit));
   color: var(--admin-text, #f0f3f0);
 }
 
 .admin-custom-tones__config-note {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-columns: calc(26 * var(--admin-unit)) minmax(0, 1fr);
   align-items: start;
-  gap: 9px;
-  padding: 10px 11px;
-  border-radius: 3px;
+  gap: calc(9 * var(--admin-unit));
+  padding: calc(10 * var(--admin-unit)) calc(11 * var(--admin-unit));
+  border-radius: calc(3 * var(--admin-unit));
   background: linear-gradient(90deg, rgb(0 184 228 / 11%), transparent 82%);
 }
 
@@ -512,62 +535,66 @@ onBeforeUnmount(() => {
 
 .admin-custom-tones__config-note div {
   display: grid;
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
 }
 
 .admin-custom-tones__config-note strong {
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-custom-tones__config-note p {
   margin: 0;
   color: var(--admin-muted, #818781);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   line-height: 1.45;
 }
 
 .admin-custom-tones__config-note code {
   width: fit-content;
-  margin-top: 2px;
-  padding: 3px 5px;
-  border-radius: 3px;
+  margin-top: calc(2 * var(--admin-unit));
+  padding: calc(3 * var(--admin-unit)) calc(5 * var(--admin-unit));
+  border-radius: calc(3 * var(--admin-unit));
   color: #8edcf0;
   background: rgb(0 0 0 / 25%);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .admin-custom-tones__tone-icon {
   display: grid;
   place-items: center;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  flex: 0 0 calc(40 * var(--admin-unit));
+  width: calc(40 * var(--admin-unit));
+  height: calc(40 * var(--admin-unit));
+  border-radius: calc(10 * var(--admin-unit));
   background: rgb(0 194 255 / 10%);
   color: #14c9ff;
 }
 
 .admin-custom-tones__empty {
-  margin: 4px 0 0;
+  margin: calc(4 * var(--admin-unit)) 0 0;
   color: #8f9994;
-  font-size: 12px;
+  font-size: calc(12 * var(--admin-unit));
   line-height: 1.5;
 }
 
 .admin-custom-tones__form {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(230px, 0.8fr);
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid var(--admin-border, rgb(255 255 255 / 5%));
-  border-radius: 3px;
+  grid-template-columns: minmax(calc(220 * var(--admin-unit)), 1fr) minmax(
+      calc(230 * var(--admin-unit)),
+      0.8fr
+    );
+  gap: calc(8 * var(--admin-unit));
+  padding: calc(10 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid
+    var(--admin-border, rgb(255 255 255 / 5%));
+  border-radius: calc(3 * var(--admin-unit));
   background: var(--admin-panel-raised, #131514);
 }
 
 .admin-custom-tones__form label,
 .admin-custom-tones__form fieldset {
   display: grid;
-  gap: 7px;
+  gap: calc(7 * var(--admin-unit));
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -577,26 +604,27 @@ onBeforeUnmount(() => {
 .admin-custom-tones__form label > span,
 .admin-custom-tones__form legend {
   color: #aab3af;
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .admin-custom-tones__form input[type='text'] {
-  min-height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--admin-border-strong, rgb(255 255 255 / 9%));
-  border-radius: 4px;
+  min-height: calc(36 * var(--admin-unit));
+  padding: 0 calc(10 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid
+    var(--admin-border-strong, rgb(255 255 255 / 9%));
+  border-radius: calc(4 * var(--admin-unit));
   outline: none;
   background: #1b1e1b;
   color: #fff;
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-custom-tones__form input[type='text']:focus {
   border-color: #14c9ff;
-  box-shadow: 0 0 0 2px rgb(20 201 255 / 14%);
+  box-shadow: 0 0 0 calc(2 * var(--admin-unit)) rgb(20 201 255 / 14%);
 }
 
 .admin-custom-tones__form fieldset {
@@ -608,12 +636,13 @@ onBeforeUnmount(() => {
 }
 
 .admin-custom-tones__form fieldset button {
-  min-height: 36px;
-  border: 1px solid var(--admin-border-strong, rgb(255 255 255 / 9%));
-  border-radius: 4px;
+  min-height: calc(36 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid
+    var(--admin-border-strong, rgb(255 255 255 / 9%));
+  border-radius: calc(4 * var(--admin-unit));
   background: #1b1e1b;
   color: #b7c0bc;
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   font-weight: 700;
 }
 
@@ -638,12 +667,13 @@ onBeforeUnmount(() => {
   position: relative;
   display: flex;
   grid-column: 1 / -1;
-  gap: 12px;
+  gap: calc(12 * var(--admin-unit));
   align-items: center;
-  min-height: 52px;
-  padding: 8px 11px;
-  border: 1px dashed var(--admin-border-strong, rgb(255 255 255 / 9%));
-  border-radius: 4px;
+  min-height: calc(52 * var(--admin-unit));
+  padding: calc(8 * var(--admin-unit)) calc(11 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) dashed
+    var(--admin-border-strong, rgb(255 255 255 / 9%));
+  border-radius: calc(4 * var(--admin-unit));
   background: #111311;
   color: #dfe7e3;
   text-align: left;
@@ -662,7 +692,7 @@ onBeforeUnmount(() => {
 .admin-custom-tones__picker > span,
 .admin-custom-tones__tone-copy {
   display: grid;
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
   min-width: 0;
 }
 
@@ -671,38 +701,38 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-custom-tones__picker small,
 .admin-custom-tones__tone-copy small {
   color: #89938e;
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .admin-custom-tones__actions {
   display: flex;
   grid-column: 1 / -1;
-  gap: 10px;
+  gap: calc(10 * var(--admin-unit));
   justify-content: flex-end;
 }
 
 .admin-custom-tones__actions :deep(.sky-button) {
   flex: 1 1 0;
   border-color: var(--admin-border-strong, rgb(255 255 255 / 9%));
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-custom-tones__catalog {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: calc(12 * var(--admin-unit));
 }
 
 .admin-custom-tones__catalog > section {
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 7%);
-  border-radius: 3px;
+  border: calc(1 * var(--admin-unit)) solid rgb(255 255 255 / 7%);
+  border-radius: calc(3 * var(--admin-unit));
   background: #111311;
 }
 
@@ -710,27 +740,27 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 44px;
-  padding: 0 10px;
-  border-bottom: 1px solid rgb(255 255 255 / 7%);
+  min-height: calc(44 * var(--admin-unit));
+  padding: 0 calc(10 * var(--admin-unit));
+  border-bottom: calc(1 * var(--admin-unit)) solid rgb(255 255 255 / 7%);
 }
 
 .admin-custom-tones__catalog > section > header span {
   color: #82908a;
-  font-size: 11px;
+  font-size: calc(11 * var(--admin-unit));
 }
 
 .admin-custom-tones__catalog > section > header strong {
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-custom-tones__catalog article {
   display: flex;
-  gap: 10px;
+  gap: calc(10 * var(--admin-unit));
   align-items: center;
-  min-height: 54px;
-  padding: 8px 10px;
-  border-bottom: 1px solid rgb(255 255 255 / 5%);
+  min-height: calc(54 * var(--admin-unit));
+  padding: calc(8 * var(--admin-unit)) calc(10 * var(--admin-unit));
+  border-bottom: calc(1 * var(--admin-unit)) solid rgb(255 255 255 / 5%);
 }
 
 .admin-custom-tones__catalog article:last-child {
@@ -738,10 +768,10 @@ onBeforeUnmount(() => {
 }
 
 .admin-custom-tones__tone-icon {
-  flex-basis: 30px;
-  width: 30px;
-  height: 30px;
-  border-radius: 5px;
+  flex-basis: calc(30 * var(--admin-unit));
+  width: calc(30 * var(--admin-unit));
+  height: calc(30 * var(--admin-unit));
+  border-radius: calc(5 * var(--admin-unit));
 }
 
 .admin-custom-tones__tone-copy {
@@ -751,11 +781,12 @@ onBeforeUnmount(() => {
 .admin-custom-tones__catalog article > button {
   display: grid;
   place-items: center;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--admin-border-strong, rgb(255 255 255 / 9%));
-  border-radius: 4px;
+  flex: 0 0 calc(32 * var(--admin-unit));
+  width: calc(32 * var(--admin-unit));
+  height: calc(32 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid
+    var(--admin-border-strong, rgb(255 255 255 / 9%));
+  border-radius: calc(4 * var(--admin-unit));
   background: #151a18;
   color: #dfe7e3;
 }
@@ -763,9 +794,9 @@ onBeforeUnmount(() => {
 .admin-custom-tones__locked {
   display: grid;
   place-items: center;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
+  flex: 0 0 calc(32 * var(--admin-unit));
+  width: calc(32 * var(--admin-unit));
+  height: calc(32 * var(--admin-unit));
   color: var(--admin-dim, #555b55);
 }
 
@@ -780,12 +811,12 @@ onBeforeUnmount(() => {
 
 .admin-custom-tones__empty,
 .admin-custom-tones__loading {
-  padding: 18px 13px;
+  padding: calc(18 * var(--admin-unit)) calc(13 * var(--admin-unit));
 }
 
 .admin-custom-tones__loading {
   display: flex;
-  gap: 10px;
+  gap: calc(10 * var(--admin-unit));
   align-items: center;
   color: #98a39e;
 }

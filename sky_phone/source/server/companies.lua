@@ -784,11 +784,9 @@ local function profile_row(company_id)
             p.`location_x`, p.`location_y`, p.`location_z`, p.`availability`,
             UNIX_TIMESTAMP(p.`availability_updated_at`) AS `availability_updated_at_unix`,
             UNIX_TIMESTAMP(p.`availability_expires_at`) AS `availability_expires_at_unix`,
-            p.`logo_media_id`, p.`accepts_requests`, p.`revision`,
-            UNIX_TIMESTAMP(p.`updated_at`) AS `updated_at_unix`,
-            logo.`url` AS `logo_url`
+            p.`accepts_requests`, p.`revision`,
+            UNIX_TIMESTAMP(p.`updated_at`) AS `updated_at_unix`
         FROM `sky_phone_company_profiles` p
-        LEFT JOIN `sky_phone_media` logo ON logo.`id` = p.`logo_media_id`
         WHERE p.`company_id` = ?
         LIMIT 1
     ]], { company_id })
@@ -895,7 +893,7 @@ local function company_payload(company_id, include_inactive_services)
         canCall = line and line.CanCall == true or false,
         canMessage = line and line.CanMessage == true or false,
         location = location,
-        logoUrl = row.logo_url or definition.LogoUrl,
+        logoUrl = definition.LogoUrl,
         coverUrl = definition.CoverUrl ~= "" and definition.CoverUrl or nil,
         serviceSummary = services[1] and services[1].title or "",
         announcement = current_announcement(company_id),
@@ -1191,12 +1189,9 @@ local function request_row(request_id)
             r.`status`, r.`assigned_identifier`, r.`customer_unread`,
             r.`company_activity_revision`, r.`revision`,
             UNIX_TIMESTAMP(r.`created_at`) AS `created_at_unix`,
-            UNIX_TIMESTAMP(r.`updated_at`) AS `updated_at_unix`, service.`title` AS `service_title`,
-            logo.`url` AS `company_logo_url`
+            UNIX_TIMESTAMP(r.`updated_at`) AS `updated_at_unix`, service.`title` AS `service_title`
         FROM `sky_phone_company_requests` r
         LEFT JOIN `sky_phone_company_services` service ON service.`id` = r.`service_id`
-        LEFT JOIN `sky_phone_company_profiles` profile ON profile.`company_id` = r.`company_id`
-        LEFT JOIN `sky_phone_media` logo ON logo.`id` = profile.`logo_media_id`
         WHERE r.`id` = ?
         LIMIT 1
     ]], { request_id })
@@ -1225,7 +1220,7 @@ local function request_summary(row, audience, identifier)
         id = row.id,
         companyId = row.company_id,
         companyName = definition and definition.Name or row.company_id,
-        companyLogoUrl = row.company_logo_url,
+        companyLogoUrl = definition and definition.LogoUrl or nil,
         serviceId = row.service_id,
         serviceName = row.service_title,
         subject = row.subject,
@@ -1417,11 +1412,9 @@ local request_list_select = [[
         r.`assigned_identifier`, r.`customer_unread`, r.`company_activity_revision`, r.`revision`,
         UNIX_TIMESTAMP(r.`created_at`) AS `created_at_unix`,
         UNIX_TIMESTAMP(r.`updated_at`) AS `updated_at_unix`, service.`title` AS `service_title`,
-        logo.`url` AS `company_logo_url`, NULL AS `company_read_revision`
+        NULL AS `company_read_revision`
     FROM `sky_phone_company_requests` r
     LEFT JOIN `sky_phone_company_services` service ON service.`id` = r.`service_id`
-    LEFT JOIN `sky_phone_company_profiles` profile ON profile.`company_id` = r.`company_id`
-    LEFT JOIN `sky_phone_media` logo ON logo.`id` = profile.`logo_media_id`
 ]]
 
 local company_request_list_select = [[
@@ -1429,11 +1422,9 @@ local company_request_list_select = [[
         r.`assigned_identifier`, r.`customer_unread`, r.`company_activity_revision`, r.`revision`,
         UNIX_TIMESTAMP(r.`created_at`) AS `created_at_unix`,
         UNIX_TIMESTAMP(r.`updated_at`) AS `updated_at_unix`, service.`title` AS `service_title`,
-        logo.`url` AS `company_logo_url`, company_read.`read_revision` AS `company_read_revision`
+        company_read.`read_revision` AS `company_read_revision`
     FROM `sky_phone_company_requests` r
     LEFT JOIN `sky_phone_company_services` service ON service.`id` = r.`service_id`
-    LEFT JOIN `sky_phone_company_profiles` profile ON profile.`company_id` = r.`company_id`
-    LEFT JOIN `sky_phone_media` logo ON logo.`id` = profile.`logo_media_id`
     LEFT JOIN `sky_phone_company_request_reads` company_read
         ON company_read.`request_id` = r.`id` AND company_read.`reader_identifier` = ?
 ]]
@@ -2900,14 +2891,6 @@ Bridge.Callbacks.Register("sky_phone:companies:update-availability", function(so
     return { success = true, data = company_mutation_payload(source, member.company_id) }
 end)
 
-local function media_id_for_profile(source, value)
-    local media_id = valid_integer(value, 1, 9007199254740991)
-    if not media_id or not SkyPhoneMedia.ResolveOwnedMedia(source, media_id, "photo") then
-        return nil
-    end
-    return media_id
-end
-
 Bridge.Callbacks.Register("sky_phone:companies:update-profile", function(source, data)
     local allowed, rate_error = allow_mutation(source, "update_profile", "Profile")
     if not allowed then
@@ -2928,6 +2911,7 @@ Bridge.Callbacks.Register("sky_phone:companies:update-profile", function(source,
     if not revision or not description or not district or not location_label or not address
         or type(data.acceptsRequests) ~= "boolean"
         or data.coverMediaId ~= nil or data.coverUrl ~= nil
+        or data.logoMediaId ~= nil or data.logoUrl ~= nil
     then
         return { success = false, error = "invalid_profile" }
     end
@@ -2963,18 +2947,6 @@ Bridge.Callbacks.Register("sky_phone:companies:update-profile", function(source,
         parameters[#parameters + 1] = x
         parameters[#parameters + 1] = y
         parameters[#parameters + 1] = z
-    end
-    for _, media_field in ipairs({
-        { input = "logoMediaId", column = "logo_media_id" },
-    }) do
-        if data[media_field.input] ~= nil then
-            local media_id = media_id_for_profile(source, data[media_field.input])
-            if not media_id then
-                return { success = false, error = "invalid_media" }
-            end
-            set_parts[#set_parts + 1] = ("`%s` = ?"):format(media_field.column)
-            parameters[#parameters + 1] = media_id
-        end
     end
     local mutation_token = uuid()
     local audit_id = uuid()

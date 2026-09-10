@@ -600,7 +600,11 @@ function mapEntryStructure(
     }"
   >
     <header class="config-structured-editor__bar">
-      <span><Rows3 :size="14" />{{ labels.list }}</span>
+      <span
+        ><Rows3 :size="14" style="--admin-icon-size: 14" />{{
+          labels.list
+        }}</span
+      >
       <div class="config-structured-editor__actions">
         <button
           v-if="!listValue.length && !structure"
@@ -609,7 +613,7 @@ function mapEntryStructure(
           :title="labels.convertToTable"
           @click="emit('update:modelValue', {})"
         >
-          <TableProperties :size="13" />
+          <TableProperties :size="13" style="--admin-icon-size: 13" />
         </button>
       </div>
     </header>
@@ -649,7 +653,7 @@ function mapEntryStructure(
             </small>
           </span>
           <em>{{ structuredValueLabel(row, listItemStructure(index)) }}</em>
-          <ChevronDown :size="14" />
+          <ChevronDown :size="14" style="--admin-icon-size: 14" />
         </button>
         <span v-else class="config-structured-editor__field-copy is-list-entry">
           <strong>{{ labels.entry }} {{ index + 1 }}</strong>
@@ -685,7 +689,7 @@ function mapEntryStructure(
           :title="labels.remove"
           @click="removeListRow(index)"
         >
-          <Trash2 :size="13" />
+          <Trash2 :size="13" style="--admin-icon-size: 13" />
         </button>
       </div>
     </div>
@@ -714,7 +718,7 @@ function mapEntryStructure(
         {{ structureTypeLabel(listTemplate) }}
       </span>
       <button type="submit" :disabled="disabled">
-        <Plus :size="13" />{{ labels.addRow }}
+        <Plus :size="13" style="--admin-icon-size: 13" />{{ labels.addRow }}
       </button>
     </form>
   </div>
@@ -730,7 +734,7 @@ function mapEntryStructure(
   >
     <header v-if="!usesFixedTableLayout" class="config-structured-editor__bar">
       <span>
-        <TableProperties :size="14" />
+        <TableProperties :size="14" style="--admin-icon-size: 14" />
         {{
           vectorType ? `${labels.vector} ${vectorType.slice(-1)}` : labels.table
         }}
@@ -745,7 +749,9 @@ function mapEntryStructure(
           :title="labels.convertToMap"
           @click="convertTableToMap"
         >
-          <TableProperties :size="13" />{{ labels.convertToMap }}
+          <TableProperties :size="13" style="--admin-icon-size: 13" />{{
+            labels.convertToMap
+          }}
         </button>
         <button
           v-if="!tableEntries.length"
@@ -754,7 +760,9 @@ function mapEntryStructure(
           :title="labels.convertToList"
           @click="emit('update:modelValue', [])"
         >
-          <Rows3 :size="13" />{{ labels.convertToList }}
+          <Rows3 :size="13" style="--admin-icon-size: 13" />{{
+            labels.convertToList
+          }}
         </button>
       </div>
     </header>
@@ -795,7 +803,7 @@ function mapEntryStructure(
           :title="labels.remove"
           @click="removeTableField(activeRootTableField.key)"
         >
-          <Trash2 :size="13" />{{ labels.remove }}
+          <Trash2 :size="13" style="--admin-icon-size: 13" />{{ labels.remove }}
         </button>
       </div>
       <AdminConfigValueEditor
@@ -867,7 +875,7 @@ function mapEntryStructure(
           <small>{{
             structuredValueLabel(entry.value, mapEntryStructure(entry))
           }}</small>
-          <ChevronDown :size="14" />
+          <ChevronDown :size="14" style="--admin-icon-size: 14" />
         </button>
         <AdminConfigValueEditor
           v-if="
@@ -893,7 +901,7 @@ function mapEntryStructure(
           :title="labels.remove"
           @click="removeMapEntry(index)"
         >
-          <Trash2 :size="13" />
+          <Trash2 :size="13" style="--admin-icon-size: 13" />
         </button>
       </div>
       <div v-if="!mapEntries.length" class="config-structured-editor__empty">
@@ -940,7 +948,7 @@ function mapEntryStructure(
             </small>
           </span>
           <em>{{ structuredValueLabel(value, tableFieldStructure(key)) }}</em>
-          <ChevronDown :size="14" />
+          <ChevronDown :size="14" style="--admin-icon-size: 14" />
         </button>
         <span v-else class="config-structured-editor__field-copy">
           <strong>{{ key }}</strong>
@@ -976,7 +984,7 @@ function mapEntryStructure(
           :title="labels.remove"
           @click="removeTableField(key)"
         >
-          <Trash2 :size="13" />
+          <Trash2 :size="13" style="--admin-icon-size: 13" />
         </button>
       </div>
     </div>
@@ -1025,7 +1033,7 @@ function mapEntryStructure(
         {{ structureTypeLabel(mapTemplate) }}
       </span>
       <button type="submit" :disabled="disabled || !canAddMapEntry">
-        <Plus :size="13" />{{ labels.addField }}
+        <Plus :size="13" style="--admin-icon-size: 13" />{{ labels.addField }}
       </button>
     </form>
 
@@ -1063,7 +1071,9 @@ function mapEntryStructure(
         {{ structureTypeLabel(tableStructure.template) }}
       </span>
       <button type="submit" :disabled="disabled || !canAddTableField">
-        <Plus :size="13" />{{ isJobTable ? labels.addJob : labels.addField }}
+        <Plus :size="13" style="--admin-icon-size: 13" />{{
+          isJobTable ? labels.addJob : labels.addField
+        }}
       </button>
     </form>
   </div>
@@ -1135,9 +1145,9 @@ function mapEntryStructure(
 .config-structured-editor {
   min-width: 0;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: calc(4 * var(--admin-unit));
   background: #121413;
-  outline: 1px solid rgba(255, 255, 255, 0.065);
+  outline: calc(1 * var(--admin-unit)) solid rgba(255, 255, 255, 0.065);
 }
 
 .config-structured-editor.is-nested {
@@ -1162,12 +1172,12 @@ function mapEntryStructure(
 }
 
 .config-structured-editor__bar {
-  min-height: 32px;
+  min-height: calc(32 * var(--admin-unit));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 5px 7px;
+  gap: calc(8 * var(--admin-unit));
+  padding: calc(5 * var(--admin-unit)) calc(7 * var(--admin-unit));
   background: rgba(255, 255, 255, 0.025);
 }
 
@@ -1175,7 +1185,7 @@ function mapEntryStructure(
 .config-structured-editor__bar > div {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6 * var(--admin-unit));
 }
 
 .config-structured-editor__actions:empty {
@@ -1184,7 +1194,7 @@ function mapEntryStructure(
 
 .config-structured-editor__bar > span {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   font-weight: 650;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1192,25 +1202,25 @@ function mapEntryStructure(
 
 .config-structured-editor__tabs {
   display: flex;
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
   overflow-x: auto;
-  padding: 6px 7px 0;
+  padding: calc(6 * var(--admin-unit)) calc(7 * var(--admin-unit)) 0;
   background: #0c0e0d;
   scrollbar-width: thin;
 }
 
 .config-structured-editor .config-structured-editor__tabs > button {
   min-width: max-content;
-  min-height: 29px;
+  min-height: calc(29 * var(--admin-unit));
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 10px;
-  border-radius: 3px 3px 0 0;
+  gap: calc(7 * var(--admin-unit));
+  padding: 0 calc(10 * var(--admin-unit));
+  border-radius: calc(3 * var(--admin-unit)) calc(3 * var(--admin-unit)) 0 0;
   outline: 0;
   color: var(--admin-muted);
   background: transparent;
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .config-structured-editor .config-structured-editor__tabs > button:hover,
@@ -1225,7 +1235,7 @@ function mapEntryStructure(
 
 .config-structured-editor__tabs em {
   color: var(--admin-dim);
-  font-size: 7px;
+  font-size: calc(7 * var(--admin-unit));
   font-style: normal;
 }
 
@@ -1240,18 +1250,18 @@ function mapEntryStructure(
 }
 
 .config-structured-editor__tab-panel-actions {
-  min-height: 34px;
+  min-height: calc(34 * var(--admin-unit));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 5px 7px;
+  gap: calc(8 * var(--admin-unit));
+  padding: calc(5 * var(--admin-unit)) calc(7 * var(--admin-unit));
   background: #141615;
 }
 
 .config-structured-editor__tab-panel-actions strong {
   color: var(--admin-text);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .config-structured-editor .config-structured-editor__tab-panel-actions button {
@@ -1263,21 +1273,21 @@ function mapEntryStructure(
 .config-structured-editor input,
 .config-value-input {
   border: 0;
-  border-radius: 3px;
-  outline: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: calc(3 * var(--admin-unit));
+  outline: calc(1 * var(--admin-unit)) solid rgba(255, 255, 255, 0.075);
   color: var(--admin-text);
   background: #1a1c1b;
   font: inherit;
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .config-structured-editor button {
-  min-height: 23px;
+  min-height: calc(23 * var(--admin-unit));
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 0 7px;
+  gap: calc(4 * var(--admin-unit));
+  padding: 0 calc(7 * var(--admin-unit));
   color: var(--admin-green);
   cursor: pointer;
 }
@@ -1295,33 +1305,39 @@ function mapEntryStructure(
 }
 
 .config-structured-editor select {
-  height: 23px;
-  padding: 0 5px;
+  height: calc(23 * var(--admin-unit));
+  padding: 0 calc(5 * var(--admin-unit));
 }
 
 .config-structured-editor__rows,
 .config-structured-editor__properties {
   display: grid;
-  gap: 1px;
+  gap: calc(1 * var(--admin-unit));
   background: #0d0f0d;
 }
 
 .config-structured-editor__row,
 .config-structured-editor__property {
   display: grid;
-  grid-template-columns: 24px minmax(180px, 0.82fr) minmax(140px, 1.18fr) 27px;
+  grid-template-columns:
+    calc(24 * var(--admin-unit)) minmax(calc(180 * var(--admin-unit)), 0.82fr)
+    minmax(calc(140 * var(--admin-unit)), 1.18fr) calc(27 * var(--admin-unit));
   align-items: center;
-  gap: 6px;
-  padding: 5px 6px;
+  gap: calc(6 * var(--admin-unit));
+  padding: calc(5 * var(--admin-unit)) calc(6 * var(--admin-unit));
   background: #151716;
 }
 
 .config-structured-editor__property {
-  grid-template-columns: 24px minmax(200px, 0.9fr) minmax(150px, 1.1fr) 27px;
+  grid-template-columns:
+    calc(24 * var(--admin-unit)) minmax(calc(200 * var(--admin-unit)), 0.9fr)
+    minmax(calc(150 * var(--admin-unit)), 1.1fr) calc(27 * var(--admin-unit));
 }
 
 .config-structured-editor__property.is-map {
-  grid-template-columns: 24px minmax(180px, 0.82fr) minmax(150px, 1.18fr) 27px;
+  grid-template-columns:
+    calc(24 * var(--admin-unit)) minmax(calc(180 * var(--admin-unit)), 0.82fr)
+    minmax(calc(150 * var(--admin-unit)), 1.18fr) calc(27 * var(--admin-unit));
 }
 
 .config-structured-editor__row.has-structured-value,
@@ -1348,7 +1364,7 @@ function mapEntryStructure(
   > .config-structured-editor {
   grid-column: 1 / -1;
   grid-row: 2;
-  width: calc(100% + 12px);
+  width: calc(100% + calc(12 * var(--admin-unit)));
   margin-inline: -6px;
 }
 
@@ -1402,9 +1418,9 @@ function mapEntryStructure(
 .config-structured-editor .config-structured-editor__section-toggle {
   width: 100%;
   min-width: 0;
-  min-height: 27px;
+  min-height: calc(27 * var(--admin-unit));
   justify-content: flex-start;
-  padding: 0 7px;
+  padding: 0 calc(7 * var(--admin-unit));
   outline: 0;
   color: #c9cec9;
   background: transparent;
@@ -1418,7 +1434,7 @@ function mapEntryStructure(
 .config-structured-editor__field-copy {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
   text-align: left;
 }
 
@@ -1426,7 +1442,7 @@ function mapEntryStructure(
   overflow: hidden;
   min-width: 0;
   color: #c9cec9;
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1435,7 +1451,7 @@ function mapEntryStructure(
 .config-structured-editor__field-copy small {
   overflow: hidden;
   color: var(--admin-muted);
-  font-size: 7.5px;
+  font-size: calc(7.5 * var(--admin-unit));
   font-weight: 450;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -1450,7 +1466,7 @@ function mapEntryStructure(
 .config-structured-editor__section-toggle > em {
   margin-left: auto;
   color: var(--admin-muted);
-  font-size: 7px;
+  font-size: calc(7 * var(--admin-unit));
   font-weight: 600;
   font-style: normal;
   letter-spacing: 0.05em;
@@ -1473,7 +1489,8 @@ function mapEntryStructure(
 }
 
 .config-structured-editor__section-toggle:focus-visible {
-  outline: 1px solid color-mix(in srgb, var(--admin-green) 55%, transparent);
+  outline: calc(1 * var(--admin-unit)) solid
+    color-mix(in srgb, var(--admin-green) 55%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1485,12 +1502,12 @@ function mapEntryStructure(
 .config-structured-editor__map-key {
   min-width: 0;
   display: grid;
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
 }
 
 .config-structured-editor__map-key > small {
   color: var(--admin-dim);
-  font-size: 7px;
+  font-size: calc(7 * var(--admin-unit));
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1498,7 +1515,7 @@ function mapEntryStructure(
 .config-structured-editor__map-key > em {
   overflow: hidden;
   color: var(--admin-muted);
-  font-size: 7px;
+  font-size: calc(7 * var(--admin-unit));
   font-style: normal;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -1508,19 +1525,19 @@ function mapEntryStructure(
 .config-structured-editor__map-key input {
   width: 100%;
   min-width: 0;
-  height: 25px;
-  padding: 0 7px;
+  height: calc(25 * var(--admin-unit));
+  padding: 0 calc(7 * var(--admin-unit));
 }
 
 .config-structured-editor__index {
   color: var(--admin-dim);
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   text-align: center;
 }
 
 .config-structured-editor .config-structured-editor__remove {
-  width: 25px;
+  width: calc(25 * var(--admin-unit));
   padding: 0;
   color: #b66a6a;
 }
@@ -1531,23 +1548,23 @@ function mapEntryStructure(
   display: flex;
   align-items: center;
   justify-self: start;
-  gap: 7px;
+  gap: calc(7 * var(--admin-unit));
 }
 
 .config-structured-editor__empty {
-  padding: 13px 10px;
+  padding: calc(13 * var(--admin-unit)) calc(10 * var(--admin-unit));
   color: var(--admin-dim);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   text-align: center;
 }
 
 .config-structured-editor__add-field {
-  min-height: 37px;
+  min-height: calc(37 * var(--admin-unit));
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
-  padding: 6px;
+  gap: calc(6 * var(--admin-unit));
+  padding: calc(6 * var(--admin-unit));
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.012),
@@ -1557,48 +1574,48 @@ function mapEntryStructure(
 
 .config-structured-editor__add-field input {
   min-width: 0;
-  flex: 1 1 120px;
-  height: 25px;
-  padding: 0 7px;
+  flex: 1 1 calc(120 * var(--admin-unit));
+  height: calc(25 * var(--admin-unit));
+  padding: 0 calc(7 * var(--admin-unit));
 }
 
 .config-structured-editor__add-field select {
-  width: 90px;
-  flex: 0 0 90px;
+  width: calc(90 * var(--admin-unit));
+  flex: 0 0 calc(90 * var(--admin-unit));
 }
 
 .config-structured-editor__fixed-type {
-  width: 90px;
-  height: 23px;
-  flex: 0 0 90px;
+  width: calc(90 * var(--admin-unit));
+  height: calc(23 * var(--admin-unit));
+  flex: 0 0 calc(90 * var(--admin-unit));
   display: inline-flex;
   align-items: center;
-  padding: 0 7px;
-  border-radius: 3px;
-  outline: 1px solid rgba(255, 255, 255, 0.055);
+  padding: 0 calc(7 * var(--admin-unit));
+  border-radius: calc(3 * var(--admin-unit));
+  outline: calc(1 * var(--admin-unit)) solid rgba(255, 255, 255, 0.055);
   color: var(--admin-muted);
   background: rgba(255, 255, 255, 0.025);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .config-structured-editor__fixed-type.is-key-type {
-  width: 76px;
-  flex-basis: 76px;
+  width: calc(76 * var(--admin-unit));
+  flex-basis: calc(76 * var(--admin-unit));
 }
 
 .config-structured-editor__add-field button {
-  min-width: 74px;
+  min-width: calc(74 * var(--admin-unit));
   flex: 0 0 auto;
 }
 
 .config-structured-editor__add-field.is-map select:first-child {
-  width: 76px;
-  flex-basis: 76px;
+  width: calc(76 * var(--admin-unit));
+  flex-basis: calc(76 * var(--admin-unit));
 }
 
 .config-structured-editor__add-field.is-map select:nth-of-type(2) {
-  width: 82px;
-  flex-basis: 82px;
+  width: calc(82 * var(--admin-unit));
+  flex-basis: calc(82 * var(--admin-unit));
 }
 
 .config-structured-editor__add-field.is-list select,
@@ -1610,9 +1627,9 @@ function mapEntryStructure(
 .config-value-input {
   max-width: 100%;
   min-width: 0;
-  height: 29px;
+  height: calc(29 * var(--admin-unit));
   justify-self: start;
-  padding: 0 8px;
+  padding: 0 calc(8 * var(--admin-unit));
 }
 
 .config-value-input[type='number'] {
@@ -1634,8 +1651,8 @@ function mapEntryStructure(
 .config-value-toggle {
   position: relative;
   justify-self: start;
-  width: 32px;
-  height: 18px;
+  width: calc(32 * var(--admin-unit));
+  height: calc(18 * var(--admin-unit));
 }
 
 .config-value-toggle input {
@@ -1650,17 +1667,17 @@ function mapEntryStructure(
 .config-value-toggle i {
   position: absolute;
   inset: 0;
-  border-radius: 999px;
+  border-radius: calc(999 * var(--admin-unit));
   background: #393d39;
 }
 
 .config-value-toggle i::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 12px;
-  height: 12px;
+  top: calc(3 * var(--admin-unit));
+  left: calc(3 * var(--admin-unit));
+  width: calc(12 * var(--admin-unit));
+  height: calc(12 * var(--admin-unit));
   border-radius: 50%;
   background: #c7ccc7;
   transition: transform 150ms ease;
@@ -1671,7 +1688,7 @@ function mapEntryStructure(
 }
 
 .config-value-toggle input:checked + i::after {
-  transform: translateX(14px);
+  transform: translateX(calc(14 * var(--admin-unit)));
   background: #f4f7f4;
 }
 </style>
