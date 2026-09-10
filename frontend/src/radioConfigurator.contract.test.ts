@@ -46,7 +46,7 @@ describe('radio configurator access contract', () => {
       'path:match("^Radio%.LockedChannels%.%d+%.jobs$")',
     )
     expect(configuratorSource).toContain(
-      'path == "Companies.Definitions" or radio_job_entry_default(path) ~= nil',
+      'if radio_job_entry_default(path) ~= nil then\n        return copy_value(saved)',
     )
     expect(configuratorSource).toMatch(
       /entryDefault = radio_job_default,[\s\S]*?mutableKeys = true,[\s\S]*?valueType = type\(radio_job_default\)/,

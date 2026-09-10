@@ -69,6 +69,9 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  if (/^Companies\.Definitions\.[^.]+\.Name$/.test(path)) return 'companyName'
+  if (/^Companies\.Definitions\.[^.]+\.CoverUrl$/.test(path))
+    return 'companyCover'
   const segment =
     path
       .replace(/\[\d+\]$/, '')

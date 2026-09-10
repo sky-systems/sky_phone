@@ -34,6 +34,11 @@ local function trim(value)
     return value:match("^%s*(.-)%s*$")
 end
 
+-- oxmysql can return TINYINT(1) columns as booleans or numeric values.
+local function database_boolean(value)
+    return value == true or tonumber(value) == 1
+end
+
 local function valid_text(value, maximum, allow_empty)
     local text = trim(value)
     if not text or text:find("%z") then
@@ -265,7 +270,7 @@ local function validate_configuration(configuration)
             or type(definition) ~= "table"
             or type(definition.Job) ~= "string" or #definition.Job > 64
             or not definition.Job:match("^[%w_-]+$")
-            or not valid_text(definition.Name, 120, false)
+            or not valid_text(definition.Name, 32, false)
             or not category_ids[definition.Category]
         then
             return nil, ("[sky_phone] Company definition '%s' is invalid."):format(tostring(company_id))
@@ -279,12 +284,14 @@ local function validate_configuration(configuration)
         )
         local address = valid_text(definition.Address or "", company_config.AddressMaxLength, true)
         local logo_url = valid_text(definition.LogoUrl, 2048, false)
+        local cover_url = valid_text(definition.CoverUrl == nil and "" or definition.CoverUrl, 2048, true)
         if not description or not district or not location_label or not address
             or type(definition.Public) ~= "boolean" or type(definition.Emergency) ~= "boolean"
             or type(definition.Verified) ~= "boolean" or type(definition.AcceptsRequests) ~= "boolean"
             or not company_config.AvailabilityStatuses[definition.DefaultAvailability]
             or not valid_text(definition.Icon, 64, false)
             or not logo_url or not logo_url:match("^https://[^%s]+$")
+            or not cover_url or (cover_url ~= "" and not cover_url:match("^https://[^%s]+$"))
         then
             return nil, ("[sky_phone] Company definition '%s' has invalid public profile defaults."):format(company_id)
         end
@@ -294,6 +301,7 @@ local function validate_configuration(configuration)
         definition.LocationLabel = location_label
         definition.Address = address
         definition.LogoUrl = logo_url
+        definition.CoverUrl = cover_url
         if definition.Location ~= nil then
             local location_type = type(definition.Location)
             if location_type ~= "table" and location_type ~= "vector3" then
@@ -780,12 +788,11 @@ local function profile_row(company_id)
             p.`location_x`, p.`location_y`, p.`location_z`, p.`availability`,
             UNIX_TIMESTAMP(p.`availability_updated_at`) AS `availability_updated_at_unix`,
             UNIX_TIMESTAMP(p.`availability_expires_at`) AS `availability_expires_at_unix`,
-            p.`logo_media_id`, p.`cover_media_id`, p.`accepts_requests`, p.`revision`,
+            p.`logo_media_id`, p.`accepts_requests`, p.`revision`,
             UNIX_TIMESTAMP(p.`updated_at`) AS `updated_at_unix`,
-            logo.`url` AS `logo_url`, cover.`url` AS `cover_url`
+            logo.`url` AS `logo_url`
         FROM `sky_phone_company_profiles` p
         LEFT JOIN `sky_phone_media` logo ON logo.`id` = p.`logo_media_id`
-        LEFT JOIN `sky_phone_media` cover ON cover.`id` = p.`cover_media_id`
         WHERE p.`company_id` = ?
         LIMIT 1
     ]], { company_id })
@@ -808,8 +815,8 @@ local function company_services(company_id, include_inactive)
             title = row.title,
             description = row.description,
             priceText = row.price_text ~= "" and row.price_text or nil,
-            acceptsRequests = tonumber(row.requests_enabled) == 1,
-            active = tonumber(row.active) == 1,
+            acceptsRequests = database_boolean(row.requests_enabled),
+            active = database_boolean(row.active),
         }
     end
     return services
@@ -826,7 +833,7 @@ local function company_hours(company_id)
     for _, row in ipairs(rows) do
         hours[#hours + 1] = {
             day = tonumber(row.weekday),
-            isClosed = tonumber(row.is_closed) == 1,
+            isClosed = database_boolean(row.is_closed),
             opensAt = row.opens_at,
             closesAt = row.closes_at,
         }
@@ -887,13 +894,13 @@ local function company_payload(company_id, include_inactive_services)
         availability = availability,
         availabilityUpdatedAt = iso_time(row.availability_updated_at_unix)
             or iso_time(row.updated_at_unix),
-        acceptsRequests = tonumber(row.accepts_requests) == 1,
+        acceptsRequests = database_boolean(row.accepts_requests),
         phoneNumber = line and line.Number or nil,
         canCall = line and line.CanCall == true or false,
         canMessage = line and line.CanMessage == true or false,
         location = location,
         logoUrl = row.logo_url or definition.LogoUrl,
-        coverUrl = row.cover_url,
+        coverUrl = definition.CoverUrl ~= "" and definition.CoverUrl or nil,
         serviceSummary = services[1] and services[1].title or "",
         announcement = current_announcement(company_id),
         services = services,
@@ -2085,7 +2092,7 @@ Bridge.Callbacks.Register("sky_phone:companies:create-request", function(source,
         "SELECT `accepts_requests` FROM `sky_phone_company_profiles` WHERE `company_id` = ? LIMIT 1",
         { company_id }
     )
-    if not profiles[1] or tonumber(profiles[1].accepts_requests) ~= 1 then
+    if not profiles[1] or not database_boolean(profiles[1].accepts_requests) then
         return { success = false, error = "invalid_service" }
     end
     local services = Bridge.Database.Query([[
@@ -2928,6 +2935,7 @@ Bridge.Callbacks.Register("sky_phone:companies:update-profile", function(source,
     local address = valid_text(data.address, Config.Companies.AddressMaxLength, true)
     if not revision or not description or not district or not location_label or not address
         or type(data.acceptsRequests) ~= "boolean"
+        or data.coverMediaId ~= nil or data.coverUrl ~= nil
     then
         return { success = false, error = "invalid_profile" }
     end
@@ -2966,7 +2974,6 @@ Bridge.Callbacks.Register("sky_phone:companies:update-profile", function(source,
     end
     for _, media_field in ipairs({
         { input = "logoMediaId", column = "logo_media_id" },
-        { input = "coverMediaId", column = "cover_media_id" },
     }) do
         if data[media_field.input] ~= nil then
             local media_id = media_id_for_profile(source, data[media_field.input])

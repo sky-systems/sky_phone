@@ -1120,6 +1120,9 @@ function mapEntryStructure(
           ? 'number'
           : 'text'
     "
+    :maxlength="
+      /^Companies\.Definitions\.[^.]+\.Name$/.test(path) ? 32 : undefined
+    "
     :value="isMaskedSecret ? '' : String(modelValue ?? '')"
     :placeholder="isMaskedSecret ? labels.configuredSecret : ''"
     :disabled="disabled"

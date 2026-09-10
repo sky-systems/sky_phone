@@ -544,6 +544,18 @@ Select `rtx`, `quasar`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, or `qbx_prop
 
 Company jobs, public profiles, service numbers, services, permissions, locations, and default availability are configured under `Config.Companies.Definitions`.
 
+Company names are limited to 32 Unicode characters in Lua and the Phone Configurator; Discover
+wraps names instead of truncating them. Shorten any existing longer names before restarting.
+Set each definition's `CoverUrl` to an HTTPS image URL in the configuration or Phone Configurator
+(an empty value hides the cover). Cover photos are admin-managed; job members can still change
+the logo. Previously uploaded job covers are no longer used automatically.
+
+Opening hours use 24-hour `HH:MM` input. `ServiceLine.CanMessage` enables company SMS and defaults
+to `true` for new companies and the shipped service lines. On the first restart after this update,
+the Phone Configurator enables SMS once for the stored `ambulance`, `fire`, `mechanic`, and `taxi`
+definitions; later admin changes are preserved. App requests still require the company and the
+selected public service to accept requests, plus a registered SIM.
+
 ### Weazel News
 
 Configure editorial jobs and minimum grades:
