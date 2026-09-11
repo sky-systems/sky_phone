@@ -44,6 +44,9 @@ jobs:
             luac5.4 -p "$file"
           done < <(find sky_phone tests -type f -name '*.lua' -print0)
 
+      - name: Test Phone Configurator persistence and runtime sync
+        run: lua5.4 tests/phone_configurator.lua
+
       - name: Test CityWarn blip lifecycle
         run: |
           lua5.4 tests/client_citywarn.lua
