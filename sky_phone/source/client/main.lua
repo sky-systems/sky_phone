@@ -2,6 +2,7 @@ SkyPhoneClient = {}
 
 local is_open = false
 local open_requested = false
+local device_open_authorized = false
 local open_without_focus = false
 local device_payload = nil
 local equipped_phone_number = nil
@@ -189,6 +190,7 @@ local function close_phone(close_device_session)
     local was_requested = open_requested
     local was_open = is_open
     open_requested = false
+    device_open_authorized = false
     open_without_focus = false
     TriggerEvent("sky_phone:animation:phone", false)
     is_open = false
@@ -397,7 +399,7 @@ RegisterNUICallback("ui:ready", function(data, cb)
     Bridge.Debug("debug", "[sky_phone] NUI reported ready.", { always = true })
     send_phone_tone_catalog()
     SkyPhoneApps.SendCatalog()
-    if open_requested and device_payload then
+    if device_open_authorized and device_payload then
         send_open_message()
     end
     if admin_panel_open then
@@ -425,10 +427,10 @@ RegisterNUICallback("ui:opened", function(data, cb)
         cb({ success = false, error = "invalid_request" })
         return
     end
-    if not open_requested or not device_payload then
+    if not device_open_authorized or not device_payload then
         Bridge.Debug(
             "warn",
-            "[sky_phone] Ignored a NUI open confirmation without a pending device open.",
+            "[sky_phone] Ignored a NUI open confirmation without an authorized device open.",
             { always = true }
         )
         SendNUIMessage({ type = "app:close" })
@@ -510,6 +512,7 @@ RegisterNetEvent("sky_phone:device:open", function(data)
         Bridge.Debug("error", "[sky_phone] Rejected invalid device open data.")
         if not is_open then
             open_requested = false
+            device_open_authorized = false
             open_without_focus = false
         end
         return
@@ -525,6 +528,7 @@ RegisterNetEvent("sky_phone:device:open", function(data)
     device_payload = data
     update_equipped_phone_number(data)
     open_requested = true
+    device_open_authorized = true
     if is_open then
         SkyPhoneApps.SendCatalog()
         SendNUIMessage({ type = "device:updated", data = data })
@@ -536,6 +540,13 @@ end)
 RegisterNetEvent("sky_phone:device:updated", function(data)
     if type(data) ~= "table" or type(data.device) ~= "table" or type(data.device.imei) ~= "string" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid device update data.")
+        return
+    end
+    if not device_open_authorized or not device_payload
+        or data.device.imei ~= device_payload.device.imei
+        or data.token ~= device_payload.token
+    then
+        Bridge.Debug("debug", "[sky_phone] Ignored a device update outside its authorized session.")
         return
     end
     apply_disabled_apps(data)
@@ -556,6 +567,7 @@ end)
 RegisterNetEvent("sky_phone:device:error", function(error_code)
     if not is_open then
         open_requested = false
+        device_open_authorized = false
         open_without_focus = false
         open_home_requested = false
     end
@@ -580,6 +592,7 @@ AddEventHandler("onResourceStop", function(resource_name)
 
     is_open = false
     open_requested = false
+    device_open_authorized = false
     open_without_focus = false
     admin_panel_open = false
 
