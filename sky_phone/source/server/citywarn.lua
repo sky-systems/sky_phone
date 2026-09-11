@@ -348,7 +348,68 @@ local function validate_area(data, access)
     }
 end
 
+local blip_cache
+local blip_version = 0
+
+local function invalidate_blips()
+    blip_cache = nil
+    blip_version = blip_version + 1
+end
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    config = Config.CityWarn
+    invalidate_blips()
+end)
+
+-- Population warnings are public, including while a phone is closed. This
+-- read-only endpoint deliberately does not require an open device session.
+Bridge.Callbacks.Register("sky_phone:citywarn:blips", function(source)
+    if not SkyPhone.AllowOperation(source, "citywarn_blips", 60, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    if not config.Enabled then
+        return { success = true, data = { alerts = {} } }
+    end
+
+    if not blip_cache or ((GetGameTimer() - blip_cache.created_at) & 0xffffffff) >= 5000 then
+        local version = blip_version
+        local started_at = GetGameTimer()
+        local rows = Bridge.Database.Query([[
+            SELECT `id`, `title`, `severity`, `area_type`, `center_x`, `center_y`, `radius`,
+                TIMESTAMPDIFF(SECOND, NOW(), `expires_at`) AS `remaining_seconds`
+            FROM `sky_phone_citywarn_alerts`
+            WHERE `status` = 'active' AND `expires_at` > NOW()
+                AND `area_type` IN ('radius', 'district')
+                AND `center_x` IS NOT NULL AND `center_y` IS NOT NULL
+        ]], {})
+        -- A publication/resolution can complete while the database query yields.
+        if version ~= blip_version then
+            return { success = false, error = "revision_conflict" }
+        end
+        blip_cache = { created_at = started_at, rows = rows }
+    end
+
+    local age = (GetGameTimer() - blip_cache.created_at) & 0xffffffff
+    local alerts = {}
+    for _, row in ipairs(blip_cache.rows) do
+        local remaining_ms = (tonumber(row.remaining_seconds) or 0) * 1000 - age
+        if remaining_ms > 0 then
+            alerts[#alerts + 1] = {
+                id = row.id,
+                title = row.title,
+                severity = row.severity,
+                x = tonumber(row.center_x),
+                y = tonumber(row.center_y),
+                radius = row.area_type == "radius" and tonumber(row.radius) or nil,
+                remainingMs = remaining_ms,
+            }
+        end
+    end
+    return { success = true, data = { alerts = alerts } }
+end)
+
 local function broadcast(kind, alert)
+    invalidate_blips()
     TriggerClientEvent("sky_phone:citywarn:changed", -1, {
         alert = alert,
         alertId = alert.id,

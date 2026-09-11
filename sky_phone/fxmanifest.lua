@@ -43,6 +43,7 @@ client_scripts {
     'source/client/sim.lua',
     'source/client/camera.lua',
     'source/client/location.lua',
+    'source/client/citywarn.lua',
     'source/client/weather.lua',
     'source/client/garage.lua',
     'source/client/skyride.lua',
