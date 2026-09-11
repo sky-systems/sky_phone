@@ -316,17 +316,21 @@ local function merge_values(defaults, saved, path, excluded_paths)
         for _, entry in ipairs(defaults.entries or {}) do
             local identity = entry.keyType .. ":" .. tostring(entry.key)
             local saved_entry = saved_entries[identity]
+            local value
+            if saved_entry then
+                value = merge_values(
+                    entry.value,
+                    saved_entry.value,
+                    path .. "." .. tostring(entry.key),
+                    excluded_paths
+                )
+            else
+                value = copy_value(entry.value)
+            end
             entries[#entries + 1] = {
                 key = entry.key,
                 keyType = entry.keyType,
-                value = saved_entry
-                    and merge_values(
-                        entry.value,
-                        saved_entry.value,
-                        path .. "." .. tostring(entry.key),
-                        excluded_paths
-                    )
-                    or copy_value(entry.value),
+                value = value,
             }
             included[identity] = true
         end
@@ -344,9 +348,11 @@ local function merge_values(defaults, saved, path, excluded_paths)
     if is_sequence(defaults) then
         local merged = copy_value(saved)
         for index, child in ipairs(defaults) do
-            merged[index] = saved[index] ~= nil
-                and merge_values(child, saved[index], path .. "." .. tostring(index), excluded_paths)
-                or copy_value(child)
+            if saved[index] ~= nil then
+                merged[index] = merge_values(child, saved[index], path .. "." .. tostring(index), excluded_paths)
+            else
+                merged[index] = copy_value(child)
+            end
         end
         return merged
     end
@@ -1120,7 +1126,10 @@ end
 
 local function normalize_change_value(field, value)
     if field.type == "boolean" then
-        return type(value) == "boolean" and value or nil
+        if type(value) ~= "boolean" then
+            return nil
+        end
+        return value
     end
     if field.type == "number" then
         if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
