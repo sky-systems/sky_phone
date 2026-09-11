@@ -554,7 +554,7 @@ Locales["de"] = {
                     noAccount = "Neu bei SkyPic? Erstelle einen iFruit-Account, um loszulegen.",
                 },
                 camera = {
-                    eyebrow = "Sky-Kamera", title = "Aufnehmen",
+                    title = "Aufnehmen",
                     body = "Nimm ein Foto oder Video auf und teile es für nur wenige Sekunden.",
                     snap = "Snap", story = "Story", photo = "Foto", video = "Video",
                     gallery = "Galerie öffnen", capturePhoto = "Foto aufnehmen", captureVideo = "Video aufnehmen",

@@ -235,7 +235,6 @@ describe('phone locale fallback', () => {
         (key) => 'auth.' + key,
       ),
       ...[
-        'eyebrow',
         'title',
         'body',
         'snap',

@@ -1676,7 +1676,6 @@ const defaultLocales: LocaleTree = {
         noAccount: 'New to SkyPic? Create an iFruit account to get started.',
       },
       camera: {
-        eyebrow: 'Sky camera',
         title: 'Capture',
         body: 'Take a photo or video and share it for just a few seconds.',
         snap: 'Snap',

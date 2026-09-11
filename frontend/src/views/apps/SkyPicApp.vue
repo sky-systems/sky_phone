@@ -2349,10 +2349,6 @@ onBeforeUnmount(() => {
           </header>
 
           <div class="sp-camera-viewfinder">
-            <span class="sp-camera-viewfinder__status">
-              <span aria-hidden="true" />
-              {{ t('camera.eyebrow') }}
-            </span>
             <span class="sp-camera-reticle" aria-hidden="true">
               <span />
             </span>
@@ -4604,33 +4600,6 @@ input:focus-visible {
   left: 0;
   height: 42%;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), transparent);
-}
-
-.sp-camera-viewfinder__status {
-  position: absolute;
-  z-index: 2;
-  top: var(--sky-space-4);
-  left: var(--sky-space-4);
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--sky-radius-pill);
-  background: rgba(0, 0, 0, 0.52);
-  color: rgba(255, 255, 255, 0.76);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.sp-camera-viewfinder__status > span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #45dc78;
-  box-shadow: 0 0 0 4px rgba(69, 220, 120, 0.12);
 }
 
 .sp-camera-reticle {
