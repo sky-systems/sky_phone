@@ -2966,7 +2966,7 @@ const deviceData = {
   alarms: {
     payload: [
       {
-        enabled: true,
+        enabled: false,
         id: 'demo-weekday-alarm',
         lastTriggeredMinute: null,
         note: 'Morning patrol',
@@ -2975,7 +2975,7 @@ const deviceData = {
         weekdays: [1, 2, 3, 4, 5],
       },
       {
-        enabled: true,
+        enabled: false,
         id: 'demo-garage-alarm',
         lastTriggeredMinute: null,
         note: 'Garage appointment',
