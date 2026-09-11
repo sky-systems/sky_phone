@@ -503,6 +503,7 @@ function companyDefinitionEntryDefault(definitions) {
     Job: '',
     Location: { __skyType: 'vector3', x: 0, y: 0, z: 0 },
     LocationLabel: '',
+    CoverUrl: '',
     LogoUrl: 'https://picsum.photos/seed/companies-new-logo/180/180',
     Name: '',
     Permissions: {
@@ -518,7 +519,7 @@ function companyDefinitionEntryDefault(definitions) {
     ServiceLine: {
       AutoContact: true,
       CanCall: true,
-      CanMessage: false,
+      CanMessage: true,
       MinimumGrade: 0,
       Number: serviceNumber,
       Routing: 'round_robin',

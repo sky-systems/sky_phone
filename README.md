@@ -660,6 +660,19 @@ shipped jobs: add any number of company IDs in the in-game configurator and fill
 configurable `Job` value in the automatically generated full company template. Existing job keys can
 also be removed; the remaining Companies settings stay available as normal individual fields.
 
+Company names are limited to 32 Unicode characters in Lua and the Phone Configurator; Discover
+wraps names instead of truncating them. Shorten any existing longer names before restarting.
+Set each definition's `CoverUrl` to an HTTPS image URL in the configuration or Phone Configurator
+(an empty value hides the cover). Set `LogoUrl` to the company logo HTTPS URL in the same definition. Both images are
+admin-managed; job members cannot change them through Companies. Previously uploaded job
+logos and covers are no longer used automatically.
+
+Opening hours use 24-hour `HH:MM` input. `ServiceLine.CanMessage` enables company SMS and defaults
+to `true` for new companies and the shipped service lines. On the first restart after this update,
+the Phone Configurator enables SMS once for the stored `ambulance`, `fire`, `mechanic`, and `taxi`
+definitions; later admin changes are preserved. App requests still require the company and the
+selected public service to accept requests, plus a registered SIM.
+
 ### Weazel News
 
 Configure editorial jobs and minimum grades:

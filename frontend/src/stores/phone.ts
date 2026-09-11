@@ -931,6 +931,9 @@ const adminPanelFallbackLocales = {
       },
     },
     descriptions: {
+      companyName: 'Company name shown in Discover (maximum 32 characters).',
+      companyLogo: 'Admin-managed company logo (HTTPS image URL).',
+      companyCover: 'Admin-managed company cover photo (HTTPS image URL).',
       featureToggle: 'Turns {name} on or off.',
       boolean: 'Controls whether {name} is allowed.',
       number: 'Sets the numeric value for {name}.',

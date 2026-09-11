@@ -235,10 +235,8 @@ export type UpdateCompanyProfile = {
   acceptsRequests: boolean
   address: string
   coords?: CompanyCoordinates
-  coverMediaId?: number
   description: string
   district: string
-  logoMediaId?: number
   locationLabel: string
   revision: number
 }
