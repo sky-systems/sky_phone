@@ -619,6 +619,22 @@ pnpm build
 
 ## Troubleshooting
 
+### CityWarn map blips
+
+Active CityWarn warnings with coordinates appear on the GTA map and minimap for
+all players, including with the phone closed. Radius warnings include a translucent
+area; district warnings with coordinates use a point marker. City-wide warnings
+and districts without coordinates remain available in the phone app without an
+invented map location. The existing in-app map and its personal filters still work;
+those filters do not hide the public GTA warning blips.
+
+Publishing or updating a warning triggers a server sync. Resolving it removes its
+blips immediately, and expiration removes them locally even if a server request
+times out. Joining or restarting the resource restores active warnings, with a
+30-second reconciliation for missed events and a 5-second retry after failures.
+Disabling `Config.CityWarn.Enabled` through the Phone Configurator or stopping the
+resource removes the blips. No additional configuration or SQL migration is needed.
+
 ### The phone item does nothing
 
 - Confirm the framework and inventory are supported and started first.
