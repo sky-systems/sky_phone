@@ -410,6 +410,71 @@ function SkyPhoneCompanies.ValidateConfiguration(configuration)
     return true
 end
 
+local function profile_configuration(definition)
+    return {
+        description = definition.Description or "",
+        district = definition.District or "",
+        location_label = definition.LocationLabel or definition.Address or "",
+        address = definition.Address or "",
+    }
+end
+
+local function sync_profile_configuration(company_id, definition)
+    local configured = profile_configuration(definition)
+    local defaults = ConfigDefaults.Companies.Definitions[company_id]
+    local legacy = defaults and profile_configuration(defaults) or {}
+    for _ = 1, 3 do
+        local rows = Bridge.Database.Query([[
+            SELECT `description`, `district`, `location_label`, `address`, `config_profile`, `revision`
+            FROM `sky_phone_company_profiles` WHERE `company_id` = ? LIMIT 1
+        ]], { company_id })
+        local row = rows[1]
+        if not row then
+            error(("[sky_phone] Missing company profile '%s' during configuration sync."):format(company_id))
+        end
+        local previous
+        if row.config_profile ~= nil then
+            local decoded, value = pcall(json.decode, row.config_profile)
+            if not decoded or type(value) ~= "table" then
+                error(("[sky_phone] Invalid configuration snapshot for company '%s'."):format(company_id))
+            end
+            previous = value
+        end
+        local set_parts, parameters = {}, {}
+        local configuration_changed = previous == nil
+        for _, field in ipairs({ "description", "district", "location_label", "address" }) do
+            if not previous or previous[field] ~= configured[field] then
+                configuration_changed = true
+                -- On upgrade, only replace recognizable stock values. Once a
+                -- snapshot exists, an explicit admin change wins for that field.
+                if (previous or row[field] == legacy[field]) and row[field] ~= configured[field] then
+                    set_parts[#set_parts + 1] = ("`%s` = ?"):format(field)
+                    parameters[#parameters + 1] = configured[field]
+                end
+            end
+        end
+        if not configuration_changed then
+            return
+        end
+        local profile_changed = #set_parts > 0
+        set_parts[#set_parts + 1] = "`config_profile` = ?"
+        parameters[#parameters + 1] = json.encode(configured)
+        set_parts[#set_parts + 1] = "`revision` = `revision` + 1"
+        set_parts[#set_parts + 1] = profile_changed and "`updated_at` = CURRENT_TIMESTAMP"
+            or "`updated_at` = `updated_at`"
+        parameters[#parameters + 1] = company_id
+        parameters[#parameters + 1] = tonumber(row.revision)
+        local result = Bridge.Database.Query(([[
+            UPDATE `sky_phone_company_profiles` SET %s WHERE `company_id` = ? AND `revision` = ?
+        ]]):format(table.concat(set_parts, ", ")), parameters)
+        local affected = type(result) == "table" and tonumber(result.affectedRows) or tonumber(result)
+        if affected == 1 then
+            return
+        end
+    end
+    error(("[sky_phone] Could not synchronize configuration for company '%s'."):format(company_id))
+end
+
 local function seed_companies()
     if #definition_ids > 0 then
         local placeholders = {}
@@ -467,6 +532,7 @@ local function seed_companies()
                 definition.AcceptsRequests and 1 or 0,
             })
         end
+        sync_profile_configuration(company_id, definition)
         for index, service in ipairs(definition.Services or {}) do
             Bridge.Database.Query([[
                 INSERT IGNORE INTO `sky_phone_company_services`
@@ -982,10 +1048,6 @@ local function refresh_runtime_configuration()
 end
 
 refresh_runtime_configuration()
-
-AddEventHandler("sky_phone:configurator:serverUpdated", function()
-    refresh_runtime_configuration()
-end)
 
 cleanup_retained_data()
 
@@ -1636,6 +1698,13 @@ local function emit_public_change(company_id)
         })
     end
 end
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    refresh_runtime_configuration()
+    for _, company_id in ipairs(definition_ids) do
+        emit_public_change(company_id)
+    end
+end)
 
 local function emit_request_change(row, customer, company, excluded_source)
     local payload = {
