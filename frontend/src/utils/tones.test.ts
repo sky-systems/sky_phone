@@ -117,4 +117,41 @@ describe('phone tones', () => {
     expect(onError).not.toHaveBeenCalled()
     stop()
   })
+
+  it.each([false, true])(
+    'releases completed one-shot media while preserving looping playback (loop=%s)',
+    (loop) => {
+      const pause = vi.fn()
+      const load = vi.fn()
+      const removeAttribute = vi.fn()
+      const players: EventTarget[] = []
+      vi.stubGlobal(
+        'Audio',
+        class extends EventTarget {
+          loop = false
+          preload = ''
+          volume = 1
+          pause = pause
+          load = load
+          removeAttribute = removeAttribute
+
+          constructor() {
+            super()
+            players.push(this)
+          }
+
+          async play(): Promise<void> {}
+        },
+      )
+
+      const stop = playPhoneMediaTone('sounds/endcall.mp3', 100, loop)
+      players[0]?.dispatchEvent(new Event('ended'))
+      expect(pause).toHaveBeenCalledTimes(loop ? 0 : 1)
+      stop()
+      stop()
+      expect(pause).toHaveBeenCalledOnce()
+      expect(load).toHaveBeenCalledOnce()
+      expect(removeAttribute).toHaveBeenCalledWith('src')
+    },
+  )
 })

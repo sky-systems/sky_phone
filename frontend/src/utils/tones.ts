@@ -523,14 +523,17 @@ export function playPhoneMediaTone(
       }
     })
 
-  return () => {
+  const stop = (): void => {
     if (stopped) return
     stopped = true
+    player.removeEventListener('ended', stop)
     player.pause()
     player.removeAttribute('src')
     player.load()
     unregisterPhoneMediaElement(player)
   }
+  if (!loop) player.addEventListener('ended', stop, { once: true })
+  return stop
 }
 
 export function playPhoneVibration(
