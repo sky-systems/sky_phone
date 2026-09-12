@@ -8,6 +8,7 @@ import {
   SkyList,
   SkyField,
   SkyAppPage,
+  SkyProvider,
   SkySegmented,
   SkySegmentedButton,
   SkySheet,
@@ -744,9 +745,11 @@ onBeforeUnmount(() => {
     }"
   >
     <template v-if="calls.activeCall">
-      <section
+      <SkyProvider
         class="phone-active-call"
         :class="{ 'phone-active-call--more': callMoreOpened }"
+        component="section"
+        dark
       >
         <header class="phone-active-call__identity">
           <div class="phone-active-call__status">
@@ -966,7 +969,7 @@ onBeforeUnmount(() => {
             </sky-button>
           </div>
         </Transition>
-      </section>
+      </SkyProvider>
     </template>
 
     <template v-else>
@@ -1924,10 +1927,10 @@ onBeforeUnmount(() => {
   left: 50%;
   width: 80px;
   height: 80px;
-  border: 1px solid var(--sky-hairline);
+  border: 1px solid var(--sky-action-border);
   border-radius: 50%;
-  background: var(--sky-glass);
-  box-shadow: var(--sky-shadow-glass);
+  background: var(--sky-action-surface);
+  box-shadow: none;
   content: '';
   transform: translateX(-50%);
   transition:
@@ -1980,7 +1983,9 @@ onBeforeUnmount(() => {
 }
 
 .phone-call-action.is-active::before {
-  background: rgba(255, 255, 255, 0.24);
+  border-color: var(--sky-app-accent-tint);
+  background: var(--sky-app-accent-shade);
+  box-shadow: inset 0 0 0 2px var(--sky-app-accent-tint);
 }
 
 .phone-call-action.is-disabled {
@@ -3740,10 +3745,7 @@ onBeforeUnmount(() => {
   .phone-call-action:not(:disabled):not(.phone-call-action--end):not(
       .phone-call-action--answer
     ):hover::before {
-    background: rgba(255, 255, 255, 0.22);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      0 4px 12px rgba(0, 0, 0, 0.22);
+    filter: brightness(1.15);
     transform: translateX(-50%) translateY(-1px) scale(1.012);
   }
 

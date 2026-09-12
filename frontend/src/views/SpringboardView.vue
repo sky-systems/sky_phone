@@ -2135,19 +2135,25 @@ onBeforeUnmount(() => {
 
 .widget-action-sheet :deep(.sky-action-group) {
   border-radius: var(--sky-radius-card);
-  background: var(--sky-surface);
+  background: var(--sky-action-surface);
+  box-shadow: none;
 }
 
 .widget-action-sheet :deep(.sky-actions-label) {
-  color: var(--sky-muted);
+  color: var(--sky-action-muted);
   background: transparent;
   font-size: 14px;
   font-weight: 600;
 }
 
 .widget-action-sheet :deep(.sky-action-button) {
+  border-color: var(--sky-action-border);
   color: #fff;
   font-size: 17px;
+}
+
+.widget-action-sheet :deep(.sky-action-button:active) {
+  background: var(--sky-action-pressed);
 }
 
 .widget-action-sheet :deep(.widget-action-button) {
