@@ -46,10 +46,9 @@ local function valid_alert(alert)
 end
 
 local function set_name(handle, title)
-    local locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale).Nui.Apps.citywarn
     -- GTA interprets tildes as formatting. Keep each text component within 99 bytes,
     -- without cutting a UTF-8 character or losing long, localized warning titles.
-    local label = (locale.name .. ": " .. title):gsub("~", "")
+    local label = title:gsub("~", "")
     BeginTextCommandSetBlipName("STRING")
     local first = 1
     while first <= #label do
@@ -74,21 +73,25 @@ local function blip_settings()
         name = "CityWarn"
     end
     return {
-        Sprite = integer(settings.Sprite, 0, 65535, 10),
+        Sprite = integer(settings.Sprite, 0, 65535, 161),
         Display = integer(settings.Display, 0, 10, 2),
-        ShortRange = settings.ShortRange == true,
+        ShortRange = settings.ShortRange ~= false,
         CategoryId = integer(settings.CategoryId, 12, 133, 12),
         CategoryName = name,
+        GroupByCategory = settings.GroupByCategory == true,
         RadiusEnabled = settings.RadiusEnabled ~= false,
         Radius = finite_number(settings.Radius, 1, 50000) and settings.Radius or 100.0,
     }
 end
 
 local function apply_blip_settings(entry, settings)
-    AddTextEntry("BLIP_CAT_" .. settings.CategoryId, settings.CategoryName)
+    if settings.GroupByCategory then
+        AddTextEntry("BLIP_CAT_" .. settings.CategoryId, settings.CategoryName)
+    end
     if entry.point and DoesBlipExist(entry.point) then
         SetBlipSprite(entry.point, settings.Sprite)
-        SetBlipCategory(entry.point, settings.CategoryId)
+        -- Custom categories replace individual names in the map legend.
+        SetBlipCategory(entry.point, settings.GroupByCategory and settings.CategoryId or 2)
         SetBlipDisplay(entry.point, settings.Display)
         SetBlipAsShortRange(entry.point, settings.ShortRange)
     end
@@ -111,11 +114,8 @@ local function update_alert(alert, started_at)
             remove_alert(alert.id)
             return false
         end
-        SetBlipScale(entry.point, 0.9)
     end
     SetBlipCoords(entry.point, alert.x + 0.0, alert.y + 0.0, 0.0)
-    SetBlipColour(entry.point, severity_colours[alert.severity])
-    set_name(entry.point, alert.title)
 
     if entry.radius_size ~= radius then
         remove_handle(entry.radius)
@@ -134,6 +134,9 @@ local function update_alert(alert, started_at)
         SetBlipColour(entry.radius, severity_colours[alert.severity])
     end
     apply_blip_settings(entry, settings)
+    SetBlipScale(entry.point, 0.9)
+    SetBlipColour(entry.point, severity_colours[alert.severity])
+    set_name(entry.point, alert.title)
     entry.alert = alert
     entry.radius_size = radius
     entry.started_at = started_at

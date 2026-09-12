@@ -240,30 +240,35 @@ end)
 test("CityWarn presentation roundtrips through SQL and reaches connected and new clients", function()
     local server = new_server()
     local defaults = server.field("CityWarn").value
-    assert(defaults.Blip.Sprite == 10 and defaults.Blip.CategoryName == "CityWarn")
-    assert(defaults.Blip.Display == 2 and defaults.Blip.ShortRange == false)
+    assert(defaults.Blip.Sprite == 161 and defaults.Blip.CategoryName == "CityWarn")
+    assert(defaults.Blip.Display == 2 and defaults.Blip.ShortRange == true)
+    assert(defaults.Blip.GroupByCategory == false)
     assert(defaults.Blip.RadiusEnabled == true and defaults.Blip.Radius == 100)
     local client = new_client(server)
     local settings = client.config.CityWarn.Blip
-    assert(client.config.CityWarn.Enabled and settings.Sprite == 10)
+    assert(client.config.CityWarn.Enabled and settings.Sprite == 161)
     defaults.Blip = { Sprite = 375, Display = 0, ShortRange = true, CategoryId = 20,
-        CategoryName = "Public warnings", RadiusEnabled = false, Radius = 250.5 }
+        CategoryName = "Public warnings", GroupByCategory = true, RadiusEnabled = false, Radius = 250.5 }
     local result = server.save({ change("CityWarn", defaults) })
     assert(result.success, tostring(result.error))
     client.sync(server.broadcasts[1])
     assert(client.config.CityWarn.Blip == settings, "live refresh must preserve the settings table")
     assert(settings.Sprite == 375 and settings.Display == 0 and settings.ShortRange == true)
     assert(settings.CategoryId == 20 and settings.CategoryName == "Public warnings")
+    assert(settings.GroupByCategory == true)
     assert(settings.RadiusEnabled == false and settings.Radius == 250.5)
     assert(server.runtime().config.CityWarn.Publishers == nil, "publisher policy remains server-owned")
     local restarted = new_server(server.database)
     local reconnect = new_client(restarted)
     assert(reconnect.config.CityWarn.Blip.RadiusEnabled == false and reconnect.config.CityWarn.Blip.Display == 0)
+    assert(reconnect.config.CityWarn.Blip.GroupByCategory == true)
     defaults.Enabled = false
     defaults.Blip.ShortRange = false
+    defaults.Blip.GroupByCategory = false
     assert(restarted.save({ change("CityWarn", defaults) }).success)
     reconnect.sync(restarted.broadcasts[1])
     assert(reconnect.config.CityWarn.Enabled == false and reconnect.config.CityWarn.Blip.ShortRange == false)
+    assert(reconnect.config.CityWarn.Blip.GroupByCategory == false)
 end)
 
 test("existing CityWarn SQL rows receive new blip defaults without resetting saved policy", function()
@@ -273,14 +278,25 @@ test("existing CityWarn SQL rows receive new blip defaults without resetting sav
     stored.CityWarn.Enabled = false
     local restarted = new_server(server.database)
     assert(restarted.env.Config.CityWarn.Enabled == false)
-    assert(restarted.env.Config.CityWarn.Blip.Sprite == 10)
+    assert(restarted.env.Config.CityWarn.Blip.Sprite == 161)
     assert(restarted.env.Config.CityWarn.Blip.RadiusEnabled == true)
+end)
+
+test("existing CityWarn sprites survive upgrades while short titles become the default", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.CityWarn.Blip.Sprite = 10
+    stored.CityWarn.Blip.GroupByCategory = nil
+    local restarted = new_server(server.database)
+    local settings = new_client(restarted).config.CityWarn.Blip
+    assert(settings.Sprite == 10 and settings.GroupByCategory == false)
 end)
 
 test("invalid CityWarn native settings are rejected before persistence or broadcast", function()
     for _, invalid in ipairs({
         { "Sprite", -1 }, { "Sprite", 1.5 }, { "Sprite", 65536 },
         { "Display", 11 }, { "Display", 2.5 }, { "ShortRange", "false" },
+        { "GroupByCategory", "false" },
         { "CategoryId", 11 }, { "CategoryId", 134 }, { "CategoryName", "   " },
         { "CategoryName", "~r~Warnings" }, { "CategoryName", string.rep("x", 100) },
         { "RadiusEnabled", 1 }, { "Radius", 0 }, { "Radius", 50001 },

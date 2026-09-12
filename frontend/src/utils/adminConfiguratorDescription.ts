@@ -70,7 +70,7 @@ export function configuratorDescriptionKey(
   structure?: AdminConfiguratorStructure,
 ): string {
   const citywarnBlip = path.match(
-    /^CityWarn\.Blip\.(Sprite|Display|ShortRange|CategoryId|CategoryName|RadiusEnabled|Radius)$/,
+    /^CityWarn\.Blip\.(Sprite|Display|ShortRange|CategoryId|CategoryName|GroupByCategory|RadiusEnabled|Radius)$/,
   )
   if (citywarnBlip) return `citywarnBlip${citywarnBlip[1]}`
   if (path === 'Garage.System') return 'garageSystem'

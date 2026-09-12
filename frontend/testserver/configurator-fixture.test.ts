@@ -45,11 +45,12 @@ describe('CityWarn blip configuration', () => {
       .find((entry) => entry.path === 'CityWarn')
     expect(field).toBeDefined()
     expect((field?.value as { Blip: unknown }).Blip).toEqual({
-      Sprite: 10,
+      Sprite: 161,
       Display: 2,
-      ShortRange: false,
+      ShortRange: true,
       CategoryId: 12,
       CategoryName: 'CityWarn',
+      GroupByCategory: false,
       RadiusEnabled: true,
       Radius: 100,
     })
@@ -63,6 +64,7 @@ describe('CityWarn blip configuration', () => {
         'ShortRange',
         'CategoryId',
         'CategoryName',
+        'GroupByCategory',
         'RadiusEnabled',
         'Radius',
       ].sort(),

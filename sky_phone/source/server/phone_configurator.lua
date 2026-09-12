@@ -1571,6 +1571,7 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         or not integer_between(blip.Display, 0, 10)
         or not integer_between(blip.CategoryId, 12, 133)
         or type(blip.ShortRange) ~= "boolean"
+        or type(blip.GroupByCategory) ~= "boolean"
         or type(blip.RadiusEnabled) ~= "boolean"
         or type(blip.Radius) ~= "number" or not (blip.Radius >= 1.0 and blip.Radius <= 50000.0)
         or type(blip.CategoryName) ~= "string" or #blip.CategoryName > 99

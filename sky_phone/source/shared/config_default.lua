@@ -1090,11 +1090,12 @@ Config.Crypto = {
 Config.CityWarn = {
     Enabled = true,
     Blip = {
-        Sprite = 10, -- GTA blip sprite ID
+        Sprite = 161, -- GTA signal blip; sprite 10 is a screen-sized radius outline
         Display = 2, -- 2: main map and minimap, 3/4: main map, 5/9: minimap, 0/1/7: hidden
-        ShortRange = false, -- true: show on the minimap only when nearby
+        ShortRange = true, -- true: show on the minimap only when nearby
         CategoryId = 12, -- custom named category ID (12-133)
         CategoryName = "CityWarn", -- map legend category label
+        GroupByCategory = false, -- true: show the category name in the legend instead of individual short titles
         RadiusEnabled = true, -- show a fixed world-space area without a separate legend entry
         Radius = 100.0, -- area radius in metres, independent of the warning's notification area
     },

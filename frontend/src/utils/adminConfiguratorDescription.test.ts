@@ -16,6 +16,7 @@ describe('admin configurator descriptions', () => {
       'ShortRange',
       'CategoryId',
       'CategoryName',
+      'GroupByCategory',
       'RadiusEnabled',
       'Radius',
     ]) {

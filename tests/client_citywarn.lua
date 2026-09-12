@@ -6,9 +6,6 @@ local function new_client()
     env.vector3 = function(x, y, z) return { x = x, y = y, z = z } end
     assert(loadfile("sky_phone/config/config.lua", "t", env))()
     test.config = env.Config
-    env.SkyPhoneLocales = { Resolve = function()
-        return { Nui = { Apps = { citywarn = { name = "CityWarn" } } } }
-    end }
     env.GetGameTimer = function() return test.now end
     env.GetCurrentResourceName = function() return "sky_phone" end
     env.RegisterNetEvent = function(name, callback) test.events[name] = callback end
@@ -98,6 +95,11 @@ local function new_client()
         for _, handle in ipairs(test.handles) do if handle.exists then count = count + 1 end end
         return count
     end
+    function test.legend(handle)
+        local blip = test.handles[handle]
+        -- GTA custom categories override individual names in the map legend.
+        return test.text_entries["BLIP_CAT_" .. blip.Category] or blip.name
+    end
     function test.configure(enabled, settings)
         env.Config.CityWarn.Enabled = enabled
         for key, value in pairs(settings or {}) do env.Config.CityWarn.Blip[key] = value end
@@ -118,13 +120,13 @@ local client = new_client()
 client.snapshot({ alert() })
 client.run()
 assert(client.count() == 2 and client.requests == 1, "join/restart must restore blips without opening NUI")
-assert(client.handles[1].Display == 2 and client.handles[1].AsShortRange == false)
-assert(client.handles[1].Sprite == 10 and client.handles[1].Category == 12)
-assert(client.text_entries.BLIP_CAT_12 == "CityWarn")
+assert(client.handles[1].Display == 2 and client.handles[1].AsShortRange == true)
+assert(client.handles[1].Sprite == 161 and client.handles[1].Category == 2)
 assert(client.handles[2].size == 100 and client.handles[2].HiddenOnLegend == true,
     "the fixed area must be sized in world metres and hidden from the legend")
 assert(client.handles[1].Colour == 1 and client.handles[2].Alpha == 80)
-assert(client.handles[1].name == "CityWarn: Police operation")
+assert(client.handles[1].name == "Police operation" and client.legend(1) == "Police operation",
+    "the short title must remain visible in the legend instead of the category name")
 client.send("published", "alert-1")
 client.send("published", "alert-1")
 client.advance(1000)
@@ -138,7 +140,7 @@ assert(client.count() == 2 and #client.handles == 2,
     "changing a warning's notification radius must preserve the configured map radius")
 assert(client.handles[1].coords.x == -50 and client.handles[1].Colour == 27)
 assert(client.handles[2].size == 100 and client.handles[2].Colour == 27)
-assert(client.handles[1].name == "CityWarn: r" .. long_title, "names must strip GTA directives and preserve UTF-8")
+assert(client.legend(1) == "r" .. long_title, "names must strip GTA directives and preserve UTF-8")
 
 local district = alert()
 district.radius = nil
@@ -148,15 +150,18 @@ client.advance(1000)
 assert(client.count() == 2 and client.handles[1].exists, "located districts must retain the configured radius")
 
 client.configure(true, { Sprite = 375, Display = 3, ShortRange = true, CategoryId = 13,
-    CategoryName = "Public warnings", Radius = 250 })
+    CategoryName = "Public warnings", GroupByCategory = true, Radius = 250 })
 assert(client.handles[1].Sprite == 375 and client.handles[1].Display == 3
     and client.handles[1].AsShortRange == true and client.handles[1].Category == 13)
 assert(client.text_entries.BLIP_CAT_13 == "Public warnings")
+assert(client.legend(1) == "Public warnings" and client.handles[1].name == "Police operation",
+    "category grouping is opt-in and retains the underlying short title")
 assert(not client.handles[2].exists and client.handles[3].size == 250
     and client.handles[3].Display == 3 and client.handles[3].AsShortRange == true
     and client.handles[3].HiddenOnLegend == true,
     "panel changes must immediately update existing markers and recreate resized areas")
-client.configure(true, { RadiusEnabled = false, Display = 0, ShortRange = false })
+client.configure(true, { RadiusEnabled = false, Display = 0, ShortRange = false, GroupByCategory = false })
+assert(client.legend(1) == "Police operation", "turning grouping off must restore titles immediately")
 assert(client.count() == 1 and client.handles[1].Display == 0 and client.handles[1].AsShortRange == false,
     "disabling the radius must preserve the point, including false and zero settings")
 client.advance(1000)
@@ -259,5 +264,15 @@ for _, thread in ipairs(client.threads) do thread.wake = client.now end
 client.block = true
 client.run()
 assert(client.count() == 0, "expiry must survive signed GetGameTimer wraparound")
+
+client = new_client()
+client.snapshot({ alert({ title = "Road closed" }), alert({ id = "alert-2", title = "Storm warning" }) })
+client.run()
+assert(client.count() == 4 and client.legend(1) == "Road closed" and client.legend(3) == "Storm warning",
+    "warnings sharing a sprite must retain distinct short titles")
+client.configure(true, { GroupByCategory = true })
+assert(client.legend(1) == "CityWarn" and client.legend(3) == "CityWarn")
+client.configure(true, { GroupByCategory = false })
+assert(client.legend(1) == "Road closed" and client.legend(3) == "Storm warning")
 
 print("CityWarn client lifecycle tests passed")

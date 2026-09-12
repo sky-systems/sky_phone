@@ -419,6 +419,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
       'ShortRange',
       'CategoryId',
       'CategoryName',
+      'GroupByCategory',
       'RadiusEnabled',
       'Radius',
     ].map((key) => [
