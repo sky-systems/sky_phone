@@ -263,9 +263,11 @@ local function delete_valet_entities()
     if current_valet.driver and DoesEntityExist(current_valet.driver) then
         DeleteEntity(current_valet.driver)
     end
+    current_valet.driver = nil
     if current_valet.vehicle and DoesEntityExist(current_valet.vehicle) then
         DeleteEntity(current_valet.vehicle)
     end
+    current_valet.vehicle = nil
 end
 
 local function fail_valet(error_code, server_cancel)
@@ -431,6 +433,7 @@ local function run_valet_delivery(order)
         return
     end
 
+    local valet = current_valet
     current_valet.status = "arriving"
     current_valet.can_cancel = false
     current_valet.distance = 0
@@ -438,28 +441,66 @@ local function run_valet_delivery(order)
     send_valet_state()
     TaskVehicleTempAction(driver, vehicle, 27, 1800)
     Wait(1800)
+    if current_valet ~= valet or valet.cancelled then
+        return
+    end
+    if not DoesEntityExist(vehicle) or not DoesEntityExist(driver) then
+        fail_valet("valet_interrupted", true)
+        return
+    end
     SetVehicleEngineOn(vehicle, false, true, true)
     SetVehicleDoorsLocked(vehicle, 1)
+    -- End the driving task before handing the vehicle over to its owner.
+    SetPedKeepTask(driver, false)
+    ClearPedTasks(driver)
     TaskLeaveVehicle(driver, vehicle, 0)
 
     local leave_timeout = GetGameTimer() + 5000
-    while IsPedInVehicle(driver, vehicle, false) and GetGameTimer() < leave_timeout do
+    while current_valet == valet and not valet.cancelled
+        and DoesEntityExist(driver) and DoesEntityExist(vehicle) and GetGameTimer() < leave_timeout
+    do
+        local leave_status = GetScriptTaskStatus(driver, joaat("SCRIPT_TASK_LEAVE_VEHICLE"))
+        if not IsPedInVehicle(driver, vehicle, false) and leave_status ~= 0 and leave_status ~= 1 then
+            break
+        end
         Wait(100)
     end
-    local driver_target = GetOffsetFromEntityInWorldCoords(vehicle, 4.0, 8.0, 0.0)
-    TaskGoStraightToCoord(
-        driver,
-        driver_target.x,
-        driver_target.y,
-        driver_target.z,
-        1.0,
-        10000,
-        GetEntityHeading(driver),
-        0.5
-    )
-    SetPedKeepTask(driver, true)
-    SetEntityAsNoLongerNeeded(driver)
-    current_valet.driver = nil
+    if current_valet ~= valet or valet.cancelled then
+        return
+    end
+    if not DoesEntityExist(vehicle) or not DoesEntityExist(driver) then
+        fail_valet("valet_interrupted", true)
+        return
+    end
+    if IsPedInVehicle(driver, vehicle, false) then
+        -- A blocked exit must not leave the delivered vehicle occupied.
+        DeleteEntity(driver)
+        valet.driver = nil
+    else
+        local driver_target = GetOffsetFromEntityInWorldCoords(vehicle, 4.0, 8.0, 0.0)
+        ClearPedTasks(driver)
+        TaskFollowNavMeshToCoord(
+            driver,
+            driver_target.x,
+            driver_target.y,
+            driver_target.z,
+            1.0,
+            10000,
+            0.5,
+            0,
+            GetEntityHeading(driver)
+        )
+        SetPedKeepTask(driver, true)
+        -- Keep ownership until explicit cleanup so ambient AI cannot reclaim the car.
+        SetTimeout(10000, function()
+            if valet.driver == driver then
+                if DoesEntityExist(driver) then
+                    DeleteEntity(driver)
+                end
+                valet.driver = nil
+            end
+        end)
+    end
 
     local completion = Bridge.Callbacks.Trigger(
         "sky_phone:garage:valet-complete",
@@ -468,6 +509,9 @@ local function run_valet_delivery(order)
             networkId = NetworkGetNetworkIdFromEntity(vehicle),
         }
     )
+    if current_valet ~= valet or valet.cancelled then
+        return
+    end
     if not completion or not completion.success then
         fail_valet("valet_completion_failed", false)
         return
