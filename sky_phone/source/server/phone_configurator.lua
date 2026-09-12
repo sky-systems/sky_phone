@@ -290,7 +290,16 @@ local function merge_values(defaults, saved, path, excluded_paths)
     if type(defaults) ~= "table" or type(saved) ~= "table" then
         return copy_value(saved)
     end
-    if path == "Companies.Definitions" or radio_job_entry_default(path) ~= nil then
+    if path == "Companies.Definitions" then
+        local companies = copy_value(saved)
+        for _, definition in pairs(companies) do
+            if type(definition) == "table" and definition.CoverUrl == nil then
+                definition.CoverUrl = ""
+            end
+        end
+        return companies
+    end
+    if radio_job_entry_default(path) ~= nil then
         return copy_value(saved)
     end
     if defaults.__skyType == "map" and not saved.__skyType then
@@ -307,17 +316,21 @@ local function merge_values(defaults, saved, path, excluded_paths)
         for _, entry in ipairs(defaults.entries or {}) do
             local identity = entry.keyType .. ":" .. tostring(entry.key)
             local saved_entry = saved_entries[identity]
+            local value
+            if saved_entry then
+                value = merge_values(
+                    entry.value,
+                    saved_entry.value,
+                    path .. "." .. tostring(entry.key),
+                    excluded_paths
+                )
+            else
+                value = copy_value(entry.value)
+            end
             entries[#entries + 1] = {
                 key = entry.key,
                 keyType = entry.keyType,
-                value = saved_entry
-                    and merge_values(
-                        entry.value,
-                        saved_entry.value,
-                        path .. "." .. tostring(entry.key),
-                        excluded_paths
-                    )
-                    or copy_value(entry.value),
+                value = value,
             }
             included[identity] = true
         end
@@ -335,9 +348,11 @@ local function merge_values(defaults, saved, path, excluded_paths)
     if is_sequence(defaults) then
         local merged = copy_value(saved)
         for index, child in ipairs(defaults) do
-            merged[index] = saved[index] ~= nil
-                and merge_values(child, saved[index], path .. "." .. tostring(index), excluded_paths)
-                or copy_value(child)
+            if saved[index] ~= nil then
+                merged[index] = merge_values(child, saved[index], path .. "." .. tostring(index), excluded_paths)
+            else
+                merged[index] = copy_value(child)
+            end
         end
         return merged
     end
@@ -611,6 +626,7 @@ local function company_definition_entry_default(company_id, configuration)
     return {
         AcceptsRequests = true,
         Address = "",
+        CoverUrl = "",
         Category = configuration.Companies.Categories[1] or default_config.Companies.Categories[1],
         DefaultAvailability = "closed",
         Description = "",
@@ -635,7 +651,7 @@ local function company_definition_entry_default(company_id, configuration)
         ServiceLine = {
             AutoContact = true,
             CanCall = true,
-            CanMessage = false,
+            CanMessage = true,
             MinimumGrade = 0,
             Number = next_available_company_service_number(configuration),
             Routing = "round_robin",
@@ -1110,7 +1126,10 @@ end
 
 local function normalize_change_value(field, value)
     if field.type == "boolean" then
-        return type(value) == "boolean" and value or nil
+        if type(value) ~= "boolean" then
+            return nil
+        end
+        return value
     end
     if field.type == "number" then
         if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
@@ -1396,6 +1415,69 @@ local function migrate_police_service_line_messaging()
     )
 end
 
+local function migrate_company_service_line_messaging()
+    local migration_name = "sky-phone:configurator:service-line-messaging:v3"
+    local completed = Bridge.Database.Query(
+        "SELECT 1 FROM `sky_phone_migrations` WHERE `name` = ? LIMIT 1",
+        { migration_name }
+    )
+    if completed[1] then
+        return
+    end
+
+    local row = read_stored_row()
+    local config_payload = decode_payload(row.config_payload, "config")
+    local definitions = config_payload.Companies and config_payload.Companies.Definitions or {}
+    local migrated = false
+    for _, company_id in ipairs({ "ambulance", "fire", "mechanic", "taxi" }) do
+        local definition = definitions[company_id]
+        local line = type(definition) == "table" and definition.ServiceLine or nil
+        if type(line) == "table" and line.CanMessage == false then
+            line.CanMessage = true
+            migrated = true
+        end
+    end
+
+    local statements = {}
+    if migrated then
+        statements[#statements + 1] = {
+            query = ([[
+                UPDATE `%s`
+                SET `config_payload` = ?, `revision` = `revision` + 1
+                WHERE `id` = ?
+            ]]):format(TABLE_NAME),
+            params = { encode_payload(config_payload, "config"), CONFIG_ROW_ID },
+        }
+    end
+    statements[#statements + 1] = {
+        query = [[
+            INSERT IGNORE INTO `sky_phone_migrations` (`name`, `source`, `stats`)
+            VALUES (?, ?, ?)
+        ]],
+        params = {
+            migration_name,
+            "sky-phone",
+            json.encode({ companies = migrated }),
+        },
+    }
+    if not Bridge.Database.Transaction(statements) then
+        error("[sky_phone] Could not enable Phone Configurator company service-line messaging.")
+    end
+    if not migrated then
+        return
+    end
+
+    apply_stored_row(read_stored_row())
+    apply_runtime_configuration()
+    TriggerEvent("sky_phone:configurator:serverUpdated", revision)
+    SkyPhoneConfigurator.Broadcast(-1)
+    Bridge.Debug(
+        "info",
+        "[sky_phone] Enabled Phone Configurator company service-line messaging.",
+        { always = true }
+    )
+end
+
 default_config = {}
 for key, value in pairs(ConfigDefaults) do
     if key ~= "Media"
@@ -1423,6 +1505,7 @@ apply_runtime_configuration()
 Bridge.Database.AfterMigration("sky_phone", migrate_blank_company_definitions)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_request_defaults)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_service_line_messaging)
+Bridge.Database.AfterMigration("sky_phone", migrate_company_service_line_messaging)
 
 function SkyPhoneConfigurator.GetAdminData()
     local data = build_admin_data()

@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.3.5'
+version '0.3.7'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -43,6 +43,7 @@ client_scripts {
     'source/client/sim.lua',
     'source/client/camera.lua',
     'source/client/location.lua',
+    'source/client/citywarn.lua',
     'source/client/weather.lua',
     'source/client/garage.lua',
     'source/client/skyride.lua',

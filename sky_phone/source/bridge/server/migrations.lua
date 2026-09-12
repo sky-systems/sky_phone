@@ -73,51 +73,84 @@ local function quote_identifier(identifier)
     return ("`%s`"):format(tostring(identifier):gsub("`", "``"))
 end
 
-local function read_foreign_keys()
-    local rows = query_or_error([[
-        SELECT
-            kcu.CONSTRAINT_NAME AS `constraint_name`,
-            kcu.TABLE_NAME AS `table_name`,
-            kcu.COLUMN_NAME AS `column_name`,
-            kcu.REFERENCED_TABLE_NAME AS `referenced_table_name`,
-            kcu.REFERENCED_COLUMN_NAME AS `referenced_column_name`,
-            rc.UPDATE_RULE AS `update_rule`,
-            rc.DELETE_RULE AS `delete_rule`
-        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
-        INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
-            ON rc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
-            AND rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
-            AND rc.TABLE_NAME = kcu.TABLE_NAME
-        WHERE kcu.CONSTRAINT_SCHEMA = DATABASE()
-            AND kcu.REFERENCED_TABLE_SCHEMA = DATABASE()
-            AND kcu.REFERENCED_TABLE_NAME IS NOT NULL
-        ORDER BY kcu.TABLE_NAME, kcu.CONSTRAINT_NAME, kcu.ORDINAL_POSITION
-    ]], {}, "reading foreign key metadata")
+local function read_foreign_keys(table_names, include_incoming)
+    if not table_names[1] then
+        return {}
+    end
+
+    local placeholders = {}
+    local parameters = {}
+    for index, table_name in ipairs(table_names) do
+        placeholders[index] = "?"
+        parameters[index] = table_name
+    end
+    local table_filter = ("TABLE_NAME IN (%s)"):format(table.concat(placeholders, ", "))
+    if include_incoming then
+        table_filter = table_filter .. (" OR REFERENCED_TABLE_NAME IN (%s)"):format(table.concat(placeholders, ", "))
+        for _, table_name in ipairs(table_names) do
+            parameters[#parameters + 1] = table_name
+        end
+    end
+
+    -- Read constraint headers first, then columns only for their owning tables.
+    local rows = query_or_error(([[
+        SELECT CONSTRAINT_NAME, TABLE_NAME, REFERENCED_TABLE_NAME, UPDATE_RULE, DELETE_RULE
+        FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+        WHERE CONSTRAINT_SCHEMA = DATABASE()
+            AND UNIQUE_CONSTRAINT_SCHEMA = DATABASE()
+            AND (%s)
+        ORDER BY TABLE_NAME, CONSTRAINT_NAME
+    ]]):format(table_filter), parameters, "reading foreign key constraints")
     local foreign_keys = {}
     local foreign_keys_by_name = {}
+    local owner_tables = {}
+    local owner_table_names = {}
+    local owner_placeholders = {}
 
     for _, row in ipairs(rows) do
         local table_name = row.table_name or row.TABLE_NAME
         local constraint_name = row.constraint_name or row.CONSTRAINT_NAME
         local key = ("%s\0%s"):format(table_name:lower(), constraint_name:lower())
-        local foreign_key = foreign_keys_by_name[key]
-        if not foreign_key then
-            foreign_key = {
-                name = constraint_name,
-                table_name = table_name,
-                referenced_table_name = row.referenced_table_name or row.REFERENCED_TABLE_NAME,
-                update_rule = row.update_rule or row.UPDATE_RULE,
-                delete_rule = row.delete_rule or row.DELETE_RULE,
-                columns = {},
-                referenced_columns = {},
-            }
-            foreign_keys_by_name[key] = foreign_key
-            foreign_keys[#foreign_keys + 1] = foreign_key
+        local foreign_key = {
+            name = constraint_name,
+            table_name = table_name,
+            referenced_table_name = row.referenced_table_name or row.REFERENCED_TABLE_NAME,
+            update_rule = row.update_rule or row.UPDATE_RULE,
+            delete_rule = row.delete_rule or row.DELETE_RULE,
+            columns = {},
+            referenced_columns = {},
+        }
+        foreign_keys_by_name[key] = foreign_key
+        foreign_keys[#foreign_keys + 1] = foreign_key
+        if not owner_tables[table_name] then
+            owner_tables[table_name] = true
+            owner_table_names[#owner_table_names + 1] = table_name
+            owner_placeholders[#owner_placeholders + 1] = "?"
         end
+    end
 
-        foreign_key.columns[#foreign_key.columns + 1] = row.column_name or row.COLUMN_NAME
-        foreign_key.referenced_columns[#foreign_key.referenced_columns + 1] =
-            row.referenced_column_name or row.REFERENCED_COLUMN_NAME
+    if not foreign_keys[1] then
+        return foreign_keys
+    end
+
+    local columns = query_or_error(([[
+        SELECT CONSTRAINT_NAME, TABLE_NAME, COLUMN_NAME, REFERENCED_COLUMN_NAME
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME IN (%s)
+            AND REFERENCED_TABLE_SCHEMA = DATABASE()
+        ORDER BY TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION
+    ]]):format(table.concat(owner_placeholders, ", ")), owner_table_names, "reading foreign key columns")
+    for _, row in ipairs(columns) do
+        local table_name = row.table_name or row.TABLE_NAME
+        local constraint_name = row.constraint_name or row.CONSTRAINT_NAME
+        local key = ("%s\0%s"):format(table_name:lower(), constraint_name:lower())
+        local foreign_key = foreign_keys_by_name[key]
+        if foreign_key then
+            foreign_key.columns[#foreign_key.columns + 1] = row.column_name or row.COLUMN_NAME
+            foreign_key.referenced_columns[#foreign_key.referenced_columns + 1] =
+                row.referenced_column_name or row.REFERENCED_COLUMN_NAME
+        end
     end
 
     return foreign_keys
@@ -243,23 +276,29 @@ function Bridge.Database.Migrate(migration_name, schema)
     end
 
     local changed_columns = {}
+    local changed_table_names = {}
     for _, table_definition in ipairs(schema) do
         local table_name = table_definition.name:lower()
         if existing_tables[table_name] then
             local columns = existing_columns[table_name] or {}
+            local table_changed = false
             for _, column in ipairs(table_definition.columns) do
                 local current = columns[column.name:lower()]
                 if current and ((column.characterSet and current.character_set ~= column.characterSet)
                     or (column.collation and current.collation ~= column.collation)) then
                     changed_columns[column_key(table_definition.name, column.name)] = true
+                    table_changed = true
                 end
+            end
+            if table_changed then
+                changed_table_names[#changed_table_names + 1] = table_definition.name
             end
         end
     end
 
     local preserved_foreign_keys = {}
     if next(changed_columns) then
-        for _, foreign_key in ipairs(read_foreign_keys()) do
+        for _, foreign_key in ipairs(read_foreign_keys(changed_table_names, true)) do
             if foreign_key_touches_columns(foreign_key, changed_columns) then
                 if not schema_tables[foreign_key.table_name:lower()]
                     or not schema_tables[foreign_key.referenced_table_name:lower()] then
@@ -328,7 +367,7 @@ function Bridge.Database.Migrate(migration_name, schema)
 
     local existing_foreign_key_columns = {}
     local existing_foreign_key_targets = {}
-    for _, foreign_key in ipairs(read_foreign_keys()) do
+    for _, foreign_key in ipairs(read_foreign_keys(table_names)) do
         for index = 1, #foreign_key.columns do
             local key = column_key(foreign_key.table_name, foreign_key.columns[index])
             existing_foreign_key_columns[key] = true

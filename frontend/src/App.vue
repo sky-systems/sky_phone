@@ -826,7 +826,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     hydratePhone(event.data.data as PhoneOpenPayload)
     void syncNavigationState().then(() => nuiCall('ui:opened'))
   } else if (event.data?.type === 'device:updated') {
-    hydratePhone(event.data.data as PhoneOpenPayload)
+    if (phone.isOpen) hydratePhone(event.data.data as PhoneOpenPayload)
   } else if (event.data?.type === 'app:close') {
     activitySuspended.value = false
     phone.endDeviceSession()

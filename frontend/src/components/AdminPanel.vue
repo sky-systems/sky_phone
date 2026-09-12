@@ -871,7 +871,7 @@ onBeforeUnmount(() => {
           <span class="admin-panel-context__path">
             {{ t('tabs.' + tab) }}
           </span>
-          <ChevronRight :size="14" />
+          <ChevronRight :size="14" style="--admin-icon-size: 14" />
           <strong>{{
             tab === 'configurator'
               ? t('configurator.context')
@@ -894,8 +894,18 @@ onBeforeUnmount(() => {
             :disabled="!hasChanges || saving"
             @click="saveChanges"
           >
-            <LoaderCircle v-if="saving" :size="18" class="is-spinning" />
-            <Check v-else :size="19" stroke-width="3" />
+            <LoaderCircle
+              v-if="saving"
+              :size="18"
+              style="--admin-icon-size: 18"
+              class="is-spinning"
+            />
+            <Check
+              v-else
+              :size="19"
+              style="--admin-icon-size: 19"
+              stroke-width="3"
+            />
           </button>
           <button
             type="button"
@@ -904,7 +914,7 @@ onBeforeUnmount(() => {
             :title="t('editor.close')"
             @click="queueAction({ kind: 'close' })"
           >
-            <X :size="18" />
+            <X :size="18" style="--admin-icon-size: 18" />
           </button>
         </div>
       </header>
@@ -918,7 +928,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.overview')"
             @click="selectTab('overview')"
           >
-            <LayoutDashboard :size="19" />
+            <LayoutDashboard :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -927,7 +937,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.players')"
             @click="selectTab('players')"
           >
-            <UsersRound :size="19" />
+            <UsersRound :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -936,7 +946,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.devices')"
             @click="selectTab('devices')"
           >
-            <Smartphone :size="19" />
+            <Smartphone :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -945,7 +955,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.apps')"
             @click="selectTab('apps')"
           >
-            <Grid2X2 :size="19" />
+            <Grid2X2 :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -954,7 +964,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.accounts')"
             @click="selectTab('accounts')"
           >
-            <KeyRound :size="19" />
+            <KeyRound :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -963,7 +973,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.messages')"
             @click="selectTab('messages')"
           >
-            <MessageSquare :size="19" />
+            <MessageSquare :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -972,7 +982,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.calls')"
             @click="selectTab('calls')"
           >
-            <PhoneCall :size="19" />
+            <PhoneCall :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -981,7 +991,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.moderation')"
             @click="selectTab('moderation')"
           >
-            <ShieldAlert :size="19" />
+            <ShieldAlert :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -990,7 +1000,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.tones')"
             @click="selectTab('tones')"
           >
-            <BellRing :size="19" />
+            <BellRing :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -999,7 +1009,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.audit')"
             @click="selectTab('audit')"
           >
-            <ScrollText :size="19" />
+            <ScrollText :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -1009,7 +1019,7 @@ onBeforeUnmount(() => {
             :title="t('tabs.configurator')"
             @click="selectTab('configurator')"
           >
-            <Settings2 :size="19" />
+            <Settings2 :size="19" style="--admin-icon-size: 19" />
           </button>
         </nav>
 
@@ -1024,84 +1034,84 @@ onBeforeUnmount(() => {
             </div>
             <div class="admin-panel-overview-directory">
               <button type="button" @click="selectTab('players')">
-                <UsersRound :size="17" />
+                <UsersRound :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.players') }}</strong>
                   <small>{{ t('overview.playerFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
               <button type="button" @click="selectTab('devices')">
-                <Smartphone :size="17" />
+                <Smartphone :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.devices') }}</strong>
                   <small>{{ t('overview.deviceFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
               <button type="button" @click="selectTab('apps')">
-                <Grid2X2 :size="17" />
+                <Grid2X2 :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.apps') }}</strong>
                   <small>{{ t('overview.appFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
               <button type="button" @click="selectTab('accounts')">
-                <KeyRound :size="17" />
+                <KeyRound :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.accounts') }}</strong>
                   <small>{{ t('overview.accountFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
               <button type="button" @click="selectTab('messages')">
-                <MessageSquare :size="17" />
+                <MessageSquare :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.messages') }}</strong>
                   <small>{{ t('overview.messageFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
               <button type="button" @click="selectTab('calls')">
-                <PhoneCall :size="17" />
+                <PhoneCall :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.calls') }}</strong>
                   <small>{{ t('overview.callFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
               <button type="button" @click="selectTab('moderation')">
-                <ShieldAlert :size="17" />
+                <ShieldAlert :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.moderation') }}</strong>
                   <small>{{ t('overview.moderationFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
               <button type="button" @click="selectTab('audit')">
-                <ScrollText :size="17" />
+                <ScrollText :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.audit') }}</strong>
                   <small>{{ t('overview.auditFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
               <button type="button" @click="selectTab('tones')">
-                <BellRing :size="17" />
+                <BellRing :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.tones') }}</strong>
                   <small>{{ t('overview.tonesFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
               <button type="button" @click="selectTab('configurator')">
-                <Settings2 :size="17" />
+                <Settings2 :size="17" style="--admin-icon-size: 17" />
                 <span>
                   <strong>{{ t('tabs.configurator') }}</strong>
                   <small>{{ t('overview.configuratorFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" />
+                <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
             </div>
           </template>
@@ -1116,7 +1126,9 @@ onBeforeUnmount(() => {
             </div>
             <div class="admin-panel-tone-directory">
               <article>
-                <span><PhoneCall :size="16" /></span>
+                <span
+                  ><PhoneCall :size="16" style="--admin-icon-size: 16"
+                /></span>
                 <div>
                   <strong>{{ t('configurator.customTones.ringtones') }}</strong>
                   <small
@@ -1129,7 +1141,9 @@ onBeforeUnmount(() => {
                 </div>
               </article>
               <article>
-                <span><MessageSquare :size="16" /></span>
+                <span
+                  ><MessageSquare :size="16" style="--admin-icon-size: 16"
+                /></span>
                 <div>
                   <strong>{{
                     t('configurator.customTones.notifications')
@@ -1155,7 +1169,7 @@ onBeforeUnmount(() => {
               <strong>{{ filteredConfiguratorFieldCount }}</strong>
             </div>
             <label class="admin-panel-search">
-              <Search :size="16" />
+              <Search :size="16" style="--admin-icon-size: 16" />
               <input
                 v-model="configuratorQuery"
                 type="search"
@@ -1199,7 +1213,7 @@ onBeforeUnmount(() => {
                 }"
                 @click="selectedConfiguratorSection = section.id"
               >
-                <Settings2 :size="16" />
+                <Settings2 :size="16" style="--admin-icon-size: 16" />
                 <span>
                   <strong>{{ section.label }}</strong>
                   <small>{{
@@ -1214,7 +1228,7 @@ onBeforeUnmount(() => {
                 v-if="!filteredConfiguratorSections.length"
                 class="admin-panel-empty-list"
               >
-                <Search :size="24" />
+                <Search :size="24" style="--admin-icon-size: 24" />
                 <strong>{{ t('configurator.noResults') }}</strong>
               </div>
             </div>
@@ -1229,7 +1243,7 @@ onBeforeUnmount(() => {
               <strong>{{ filteredPlayers.length }}</strong>
             </div>
             <label class="admin-panel-search">
-              <Search :size="16" />
+              <Search :size="16" style="--admin-icon-size: 16" />
               <input
                 v-model="playerQuery"
                 type="search"
@@ -1265,7 +1279,7 @@ onBeforeUnmount(() => {
                 v-if="!filteredPlayers.length"
                 class="admin-panel-empty-list"
               >
-                <UsersRound :size="26" />
+                <UsersRound :size="26" style="--admin-icon-size: 26" />
                 <strong>{{ t('players.empty') }}</strong>
                 <span>{{ t('players.emptyBody') }}</span>
               </div>
@@ -1283,7 +1297,7 @@ onBeforeUnmount(() => {
             <div class="admin-panel-audit-mini-list">
               <article v-for="entry in admin.audit" :key="entry.id">
                 <span class="admin-panel-audit-icon"
-                  ><ScrollText :size="15"
+                  ><ScrollText :size="15" style="--admin-icon-size: 15"
                 /></span>
                 <div>
                   <strong>{{ t('audit.actions.' + entry.action) }}</strong>
@@ -1300,7 +1314,11 @@ onBeforeUnmount(() => {
             v-if="admin.loading && !admin.initialized"
             class="admin-panel-loading"
           >
-            <LoaderCircle :size="26" class="is-spinning" />
+            <LoaderCircle
+              :size="26"
+              style="--admin-icon-size: 26"
+              class="is-spinning"
+            />
             <span>{{ t('loading') }}</span>
           </div>
 
@@ -1318,22 +1336,22 @@ onBeforeUnmount(() => {
 
             <div class="admin-panel-stat-grid">
               <article>
-                <UsersRound :size="18" />
+                <UsersRound :size="18" style="--admin-icon-size: 18" />
                 <span>{{ t('overview.online') }}</span>
                 <strong>{{ formatStatistic(admin.stats.online) }}</strong>
               </article>
               <article>
-                <Smartphone :size="18" />
+                <Smartphone :size="18" style="--admin-icon-size: 18" />
                 <span>{{ t('overview.devices') }}</span>
                 <strong>{{ formatStatistic(admin.stats.devices) }}</strong>
               </article>
               <article>
-                <Database :size="18" />
+                <Database :size="18" style="--admin-icon-size: 18" />
                 <span>{{ t('overview.accounts') }}</span>
                 <strong>{{ formatStatistic(admin.stats.accounts) }}</strong>
               </article>
               <article>
-                <ScrollText :size="18" />
+                <ScrollText :size="18" style="--admin-icon-size: 18" />
                 <span>{{ t('overview.audit') }}</span>
                 <strong>{{ formatStatistic(admin.stats.auditEntries) }}</strong>
               </article>
@@ -1348,7 +1366,7 @@ onBeforeUnmount(() => {
                   <h2>{{ t('statistics.title') }}</h2>
                   <p>{{ t('statistics.body') }}</p>
                 </div>
-                <ChartNoAxesCombined :size="20" />
+                <ChartNoAxesCombined :size="20" style="--admin-icon-size: 20" />
               </div>
               <div class="admin-panel-statistics-layout">
                 <section class="admin-panel-activity-statistics">
@@ -1360,21 +1378,21 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="admin-panel-activity-grid">
                     <article>
-                      <MessageSquare :size="17" />
+                      <MessageSquare :size="17" style="--admin-icon-size: 17" />
                       <strong>{{
                         formatStatistic(admin.stats.messagesToday)
                       }}</strong>
                       <span>{{ t('statistics.messagesToday') }}</span>
                     </article>
                     <article>
-                      <PhoneCall :size="17" />
+                      <PhoneCall :size="17" style="--admin-icon-size: 17" />
                       <strong>{{
                         formatStatistic(admin.stats.callsToday)
                       }}</strong>
                       <span>{{ t('statistics.callsToday') }}</span>
                     </article>
                     <article>
-                      <ScrollText :size="17" />
+                      <ScrollText :size="17" style="--admin-icon-size: 17" />
                       <strong>{{
                         formatStatistic(admin.stats.auditToday)
                       }}</strong>
@@ -1446,7 +1464,7 @@ onBeforeUnmount(() => {
           >
             <div class="admin-panel-page-heading">
               <div class="admin-panel-heading-icon">
-                <BellRing :size="23" />
+                <BellRing :size="23" style="--admin-icon-size: 23" />
               </div>
               <div>
                 <span>{{ t('configurator.customTones.eyebrow') }}</span>
@@ -1465,14 +1483,18 @@ onBeforeUnmount(() => {
               v-if="admin.configuratorLoading && !admin.configurator"
               class="admin-panel-loading"
             >
-              <LoaderCircle :size="26" class="is-spinning" />
+              <LoaderCircle
+                :size="26"
+                style="--admin-icon-size: 26"
+                class="is-spinning"
+              />
               <span>{{ t('configurator.loading') }}</span>
             </div>
 
             <template v-else-if="admin.configurator">
               <div class="admin-panel-page-heading">
                 <div class="admin-panel-heading-icon">
-                  <Settings2 :size="23" />
+                  <Settings2 :size="23" style="--admin-icon-size: 23" />
                 </div>
                 <div class="admin-panel-config-heading-copy">
                   <span>{{ t('configurator.eyebrow') }}</span>
@@ -1485,7 +1507,7 @@ onBeforeUnmount(() => {
                 v-if="!admin.configurator.enabled"
                 class="admin-panel-config-disabled"
               >
-                <TriangleAlert :size="20" />
+                <TriangleAlert :size="20" style="--admin-icon-size: 20" />
                 <div>
                   <strong>{{ t('configurator.disabledTitle') }}</strong>
                   <p>{{ t('configurator.disabledBody') }}</p>
@@ -1494,7 +1516,7 @@ onBeforeUnmount(() => {
               </article>
 
               <article class="admin-panel-config-notice">
-                <Save :size="18" />
+                <Save :size="18" style="--admin-icon-size: 18" />
                 <div>
                   <strong>{{ t('configurator.manualSave') }}</strong>
                   <p>{{ t('configurator.refreshNotice') }}</p>
@@ -1659,7 +1681,7 @@ onBeforeUnmount(() => {
           >
             <div class="admin-panel-page-heading">
               <div class="admin-panel-heading-icon">
-                <ScrollText :size="23" />
+                <ScrollText :size="23" style="--admin-icon-size: 23" />
               </div>
               <div>
                 <span>{{ t('audit.eyebrow') }}</span>
@@ -1685,7 +1707,7 @@ onBeforeUnmount(() => {
               </article>
             </div>
             <div v-else class="admin-panel-empty-editor">
-              <ScrollText :size="34" />
+              <ScrollText :size="34" style="--admin-icon-size: 34" />
               <h2>{{ t('audit.empty') }}</h2>
               <p>{{ t('audit.emptyBody') }}</p>
             </div>
@@ -1712,14 +1734,16 @@ onBeforeUnmount(() => {
                   "
                   @click="openDeviceAction('reset-passcode')"
                 >
-                  <KeyRound :size="15" />{{ t('moderation.resetPasscode') }}
+                  <KeyRound :size="15" style="--admin-icon-size: 15" />{{
+                    t('moderation.resetPasscode')
+                  }}
                 </button>
                 <button
                   type="button"
                   :disabled="!selectedDevice.number || !!admin.actionKey"
                   @click="openDeviceAction('change-number')"
                 >
-                  <PhoneForwarded :size="15" />{{
+                  <PhoneForwarded :size="15" style="--admin-icon-size: 15" />{{
                     t('moderation.changeNumber')
                   }}
                 </button>
@@ -1730,7 +1754,9 @@ onBeforeUnmount(() => {
                   :title="hasChanges ? t('moderation.saveFirst') : ''"
                   @click="openDeviceAction('factory-reset')"
                 >
-                  <Trash2 :size="15" />{{ t('moderation.factoryReset') }}
+                  <Trash2 :size="15" style="--admin-icon-size: 15" />{{
+                    t('moderation.factoryReset')
+                  }}
                 </button>
               </div>
             </div>
@@ -1759,7 +1785,7 @@ onBeforeUnmount(() => {
                 }"
                 @click="selectedImei = device.imei"
               >
-                <Smartphone :size="16" />
+                <Smartphone :size="16" style="--admin-icon-size: 16" />
                 <span>{{ device.name }}</span>
                 <small>{{ device.number || device.imei.slice(-4) }}</small>
               </button>
@@ -1767,7 +1793,7 @@ onBeforeUnmount(() => {
 
             <div v-if="tab === 'players'" class="admin-panel-stat-grid">
               <article>
-                <WalletCards :size="18" />
+                <WalletCards :size="18" style="--admin-icon-size: 18" />
                 <span>{{ t('detail.cash') }}</span>
                 <strong>{{
                   formatMoney(
@@ -1777,7 +1803,7 @@ onBeforeUnmount(() => {
                 }}</strong>
               </article>
               <article>
-                <BadgeDollarSign :size="18" />
+                <BadgeDollarSign :size="18" style="--admin-icon-size: 18" />
                 <span>{{ t('detail.bank') }}</span>
                 <strong>{{
                   formatMoney(
@@ -1787,7 +1813,7 @@ onBeforeUnmount(() => {
                 }}</strong>
               </article>
               <article>
-                <BriefcaseBusiness :size="18" />
+                <BriefcaseBusiness :size="18" style="--admin-icon-size: 18" />
                 <span>{{ t('detail.job') }}</span>
                 <strong>{{
                   admin.selectedPlayer.job.label ||
@@ -1795,7 +1821,7 @@ onBeforeUnmount(() => {
                 }}</strong>
               </article>
               <article>
-                <Wifi :size="18" />
+                <Wifi :size="18" style="--admin-icon-size: 18" />
                 <span>{{ t('detail.duty') }}</span>
                 <strong>{{
                   admin.selectedPlayer.job.onDuty
@@ -1812,7 +1838,7 @@ onBeforeUnmount(() => {
                     <span>{{ t('editor.profile') }}</span>
                     <h2>{{ t('detail.playerData') }}</h2>
                   </div>
-                  <CircleUserRound :size="20" />
+                  <CircleUserRound :size="20" style="--admin-icon-size: 20" />
                 </div>
                 <dl class="admin-panel-field-list">
                   <div>
@@ -1846,11 +1872,11 @@ onBeforeUnmount(() => {
                     <span>{{ t('editor.device') }}</span>
                     <h2>{{ t('devices.title') }}</h2>
                   </div>
-                  <HardDrive :size="20" />
+                  <HardDrive :size="20" style="--admin-icon-size: 20" />
                 </div>
                 <div v-if="selectedDevice" class="admin-panel-device-summary">
                   <span class="admin-panel-device-summary__icon">
-                    <Smartphone :size="23" />
+                    <Smartphone :size="23" style="--admin-icon-size: 23" />
                   </span>
                   <div>
                     <strong>{{ selectedDevice.name }}</strong>
@@ -1888,11 +1914,11 @@ onBeforeUnmount(() => {
                   <h2>{{ t('devices.title') }}</h2>
                   <p>{{ t('devices.body') }}</p>
                 </div>
-                <HardDrive :size="20" />
+                <HardDrive :size="20" style="--admin-icon-size: 20" />
               </div>
               <div v-if="selectedDevice" class="admin-panel-device-summary">
                 <span class="admin-panel-device-summary__icon">
-                  <Smartphone :size="23" />
+                  <Smartphone :size="23" style="--admin-icon-size: 23" />
                 </span>
                 <div>
                   <strong>{{ selectedDevice.name }}</strong>
@@ -1942,13 +1968,17 @@ onBeforeUnmount(() => {
                   <h2>{{ t('activity.messagesTitle') }}</h2>
                   <p>{{ t('activity.messagesBody') }}</p>
                 </div>
-                <MessageSquare :size="20" />
+                <MessageSquare :size="20" style="--admin-icon-size: 20" />
               </div>
               <div
                 v-if="admin.activityKey === selectedDevice.imei + ':messages'"
                 class="admin-panel-inline-empty"
               >
-                <LoaderCircle :size="20" class="is-spinning" />
+                <LoaderCircle
+                  :size="20"
+                  style="--admin-icon-size: 20"
+                  class="is-spinning"
+                />
                 {{ t('activity.loading') }}
               </div>
               <div
@@ -1957,7 +1987,7 @@ onBeforeUnmount(() => {
               >
                 <article v-for="entry in selectedMessages" :key="entry.id">
                   <span class="admin-panel-activity-icon">
-                    <MessageSquare :size="17" />
+                    <MessageSquare :size="17" style="--admin-icon-size: 17" />
                   </span>
                   <div>
                     <span class="admin-panel-activity-meta">
@@ -1987,13 +2017,17 @@ onBeforeUnmount(() => {
                   <h2>{{ t('activity.callsTitle') }}</h2>
                   <p>{{ t('activity.callsBody') }}</p>
                 </div>
-                <PhoneCall :size="20" />
+                <PhoneCall :size="20" style="--admin-icon-size: 20" />
               </div>
               <div
                 v-if="admin.activityKey === selectedDevice.imei + ':calls'"
                 class="admin-panel-inline-empty"
               >
-                <LoaderCircle :size="20" class="is-spinning" />
+                <LoaderCircle
+                  :size="20"
+                  style="--admin-icon-size: 20"
+                  class="is-spinning"
+                />
                 {{ t('activity.loading') }}
               </div>
               <div
@@ -2002,7 +2036,7 @@ onBeforeUnmount(() => {
               >
                 <article v-for="entry in selectedCalls" :key="entry.id">
                   <span class="admin-panel-activity-icon">
-                    <PhoneCall :size="17" />
+                    <PhoneCall :size="17" style="--admin-icon-size: 17" />
                   </span>
                   <div>
                     <span class="admin-panel-activity-meta">
@@ -2032,7 +2066,7 @@ onBeforeUnmount(() => {
                   <h2>{{ t('moderation.title') }}</h2>
                   <p>{{ t('moderation.body') }}</p>
                 </div>
-                <ShieldAlert :size="20" />
+                <ShieldAlert :size="20" style="--admin-icon-size: 20" />
               </div>
               <div class="admin-panel-moderation-grid">
                 <button
@@ -2042,24 +2076,24 @@ onBeforeUnmount(() => {
                   "
                   @click="openDeviceAction('reset-passcode')"
                 >
-                  <KeyRound :size="20" />
+                  <KeyRound :size="20" style="--admin-icon-size: 20" />
                   <span>
                     <strong>{{ t('moderation.resetPasscode') }}</strong>
                     <small>{{ t('moderation.resetPasscodeBody') }}</small>
                   </span>
-                  <ChevronRight :size="15" />
+                  <ChevronRight :size="15" style="--admin-icon-size: 15" />
                 </button>
                 <button
                   type="button"
                   :disabled="!selectedDevice.number || !!admin.actionKey"
                   @click="openDeviceAction('change-number')"
                 >
-                  <PhoneForwarded :size="20" />
+                  <PhoneForwarded :size="20" style="--admin-icon-size: 20" />
                   <span>
                     <strong>{{ t('moderation.changeNumber') }}</strong>
                     <small>{{ t('moderation.changeNumberBody') }}</small>
                   </span>
-                  <ChevronRight :size="15" />
+                  <ChevronRight :size="15" style="--admin-icon-size: 15" />
                 </button>
                 <button
                   type="button"
@@ -2067,12 +2101,12 @@ onBeforeUnmount(() => {
                   :disabled="hasChanges || !!admin.actionKey"
                   @click="openDeviceAction('factory-reset')"
                 >
-                  <Trash2 :size="20" />
+                  <Trash2 :size="20" style="--admin-icon-size: 20" />
                   <span>
                     <strong>{{ t('moderation.factoryReset') }}</strong>
                     <small>{{ t('moderation.factoryResetBody') }}</small>
                   </span>
-                  <ChevronRight :size="15" />
+                  <ChevronRight :size="15" style="--admin-icon-size: 15" />
                 </button>
               </div>
             </article>
@@ -2086,7 +2120,7 @@ onBeforeUnmount(() => {
                   <span>{{ t('editor.security') }}</span>
                   <h2>{{ t('credentials.title') }}</h2>
                 </div>
-                <KeyRound :size="20" />
+                <KeyRound :size="20" style="--admin-icon-size: 20" />
               </div>
               <div class="admin-panel-security-grid">
                 <div class="admin-panel-credential-box">
@@ -2108,20 +2142,24 @@ onBeforeUnmount(() => {
                     "
                     @click="revealDialogImei = selectedDevice.imei"
                   >
-                    <Eye :size="15" />{{ t('credentials.reveal') }}
+                    <Eye :size="15" style="--admin-icon-size: 15" />{{
+                      t('credentials.reveal')
+                    }}
                   </button>
                   <button
                     v-else-if="revealedCredential"
                     type="button"
                     @click="copyPassword"
                   >
-                    <Clipboard :size="15" />{{ t('credentials.copy') }}
+                    <Clipboard :size="15" style="--admin-icon-size: 15" />{{
+                      t('credentials.copy')
+                    }}
                   </button>
                 </div>
                 <div
                   class="admin-panel-credential-box admin-panel-credential-box--pin"
                 >
-                  <LockKeyhole :size="18" />
+                  <LockKeyhole :size="18" style="--admin-icon-size: 18" />
                   <div>
                     <span>{{ t('credentials.passcode') }}</span>
                     <strong>{{
@@ -2157,7 +2195,7 @@ onBeforeUnmount(() => {
                     }}
                   </span>
                   <label class="admin-panel-search admin-panel-search--apps">
-                    <Search :size="15" />
+                    <Search :size="15" style="--admin-icon-size: 15" />
                     <input
                       v-model="appQuery"
                       type="search"
@@ -2169,7 +2207,7 @@ onBeforeUnmount(() => {
               </div>
 
               <div class="admin-panel-manual-save-note">
-                <Save :size="17" />
+                <Save :size="17" style="--admin-icon-size: 17" />
                 <div>
                   <strong>{{ t('editor.noAutoSave') }}</strong>
                   <span>{{ t('editor.noAutoSaveBody') }}</span>
@@ -2195,7 +2233,11 @@ onBeforeUnmount(() => {
                   @click="toggleApp(app)"
                 >
                   <span class="admin-panel-app-icon" :class="app.iconClass">
-                    <component :is="app.icon" :size="18" />
+                    <component
+                      :is="app.icon"
+                      :size="18"
+                      style="--admin-icon-size: 18"
+                    />
                   </span>
                   <span class="admin-panel-app-copy">
                     <strong>{{ getPhoneAppLabel(app, phone.t) }}</strong>
@@ -2233,24 +2275,24 @@ onBeforeUnmount(() => {
 
           <section v-else class="admin-panel-empty-editor">
             <span class="admin-panel-empty-editor__icon">
-              <LayoutDashboard :size="34" />
+              <LayoutDashboard :size="34" style="--admin-icon-size: 34" />
             </span>
             <span>{{ t('overview.eyebrow') }}</span>
             <h1>{{ t('overview.title') }}</h1>
             <p>{{ t('editor.selectPlayer') }}</p>
             <div class="admin-panel-empty-stats">
               <article>
-                <UsersRound :size="18" />
+                <UsersRound :size="18" style="--admin-icon-size: 18" />
                 <strong>{{ admin.stats.online }}</strong>
                 <span>{{ t('overview.online') }}</span>
               </article>
               <article>
-                <Smartphone :size="18" />
+                <Smartphone :size="18" style="--admin-icon-size: 18" />
                 <strong>{{ admin.stats.devices }}</strong>
                 <span>{{ t('overview.devices') }}</span>
               </article>
               <article>
-                <Database :size="18" />
+                <Database :size="18" style="--admin-icon-size: 18" />
                 <strong>{{ admin.stats.accounts }}</strong>
                 <span>{{ t('overview.accounts') }}</span>
               </article>
@@ -2262,15 +2304,21 @@ onBeforeUnmount(() => {
 
     <Transition name="admin-toast">
       <div v-if="toast" class="admin-panel-toast" :class="`is-${toastTone}`">
-        <Check v-if="toastTone === 'success'" :size="17" />
-        <TriangleAlert v-else :size="17" />
+        <Check
+          v-if="toastTone === 'success'"
+          :size="17"
+          style="--admin-icon-size: 17"
+        />
+        <TriangleAlert v-else :size="17" style="--admin-icon-size: 17" />
         {{ toast }}
       </div>
     </Transition>
 
     <div v-if="revealDialogImei" class="admin-panel-dialog-backdrop">
       <section class="admin-panel-dialog" role="alertdialog">
-        <span class="admin-panel-dialog__icon"><KeyRound :size="21" /></span>
+        <span class="admin-panel-dialog__icon"
+          ><KeyRound :size="21" style="--admin-icon-size: 21"
+        /></span>
         <div>
           <h2>{{ t('credentials.revealTitle') }}</h2>
           <p>{{ t('credentials.revealBody') }}</p>
@@ -2280,7 +2328,9 @@ onBeforeUnmount(() => {
             {{ t('credentials.cancel') }}
           </SkyButton>
           <SkyButton class="is-primary" @click="revealPassword">
-            <Eye :size="15" />{{ t('credentials.confirmReveal') }}
+            <Eye :size="15" style="--admin-icon-size: 15" />{{
+              t('credentials.confirmReveal')
+            }}
           </SkyButton>
         </div>
       </section>
@@ -2292,12 +2342,17 @@ onBeforeUnmount(() => {
           class="admin-panel-dialog__icon"
           :class="{ 'is-warning': deviceAction === 'factory-reset' }"
         >
-          <Trash2 v-if="deviceAction === 'factory-reset'" :size="21" />
+          <Trash2
+            v-if="deviceAction === 'factory-reset'"
+            :size="21"
+            style="--admin-icon-size: 21"
+          />
           <PhoneForwarded
             v-else-if="deviceAction === 'change-number'"
             :size="21"
+            style="--admin-icon-size: 21"
           />
-          <KeyRound v-else :size="21" />
+          <KeyRound v-else :size="21" style="--admin-icon-size: 21" />
         </span>
         <div>
           <h2>{{ t(`moderation.dialogs.${deviceAction}Title`) }}</h2>
@@ -2349,6 +2404,7 @@ onBeforeUnmount(() => {
             <LoaderCircle
               v-if="admin.actionKey"
               :size="15"
+              style="--admin-icon-size: 15"
               class="is-spinning"
             />
             {{ t(`moderation.confirm.${deviceAction}`) }}
@@ -2360,7 +2416,7 @@ onBeforeUnmount(() => {
     <div v-if="discardDialog" class="admin-panel-dialog-backdrop">
       <section class="admin-panel-dialog" role="alertdialog">
         <span class="admin-panel-dialog__icon is-warning">
-          <TriangleAlert :size="21" />
+          <TriangleAlert :size="21" style="--admin-icon-size: 21" />
         </span>
         <div>
           <h2>{{ t('editor.discardTitle') }}</h2>
@@ -2385,6 +2441,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .admin-panel-overlay {
+  /* One design pixel at 1080p, proportional growth on taller displays. */
+  --admin-unit: max(1px, 0.0925926vh);
   --admin-bg: #070908;
   --admin-panel: #0d0f0e;
   --admin-panel-raised: #131514;
@@ -2424,24 +2482,31 @@ onBeforeUnmount(() => {
   pointer-events: auto;
 }
 
+.admin-panel-overlay :deep(svg.lucide) {
+  width: calc(var(--admin-icon-size, 16) * var(--admin-unit));
+  height: calc(var(--admin-icon-size, 16) * var(--admin-unit));
+  flex-shrink: 0;
+}
+
 .admin-panel-window {
-  width: min(76vw, 1220px);
-  height: min(74vh, 700px);
+  width: min(76vw, calc(1220 * var(--admin-unit)));
+  height: min(74vh, calc(700 * var(--admin-unit)));
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.065);
-  border-radius: 4px;
+  border: calc(1 * var(--admin-unit)) solid rgba(255, 255, 255, 0.065);
+  border-radius: calc(4 * var(--admin-unit));
   background: var(--admin-bg);
   box-shadow:
-    0 20px 56px rgba(0, 0, 0, 0.72),
-    inset 0 1px rgba(255, 255, 255, 0.018);
+    0 calc(20 * var(--admin-unit)) calc(56 * var(--admin-unit))
+      rgba(0, 0, 0, 0.72),
+    inset 0 calc(1 * var(--admin-unit)) rgba(255, 255, 255, 0.018);
 }
 
 .admin-panel-header {
-  height: 50px;
+  height: calc(50 * var(--admin-unit));
   display: grid;
-  grid-template-columns: 320px 1fr auto;
+  grid-template-columns: calc(320 * var(--admin-unit)) 1fr auto;
   align-items: center;
-  border-bottom: 1px solid var(--admin-border);
+  border-bottom: calc(1 * var(--admin-unit)) solid var(--admin-border);
   background: #0b0d0c;
 }
 
@@ -2459,8 +2524,8 @@ onBeforeUnmount(() => {
 
 .admin-panel-brand {
   height: 100%;
-  padding: 0 17px;
-  border-right: 1px solid var(--admin-border);
+  padding: 0 calc(17 * var(--admin-unit));
+  border-right: calc(1 * var(--admin-unit)) solid var(--admin-border);
 }
 
 .admin-panel-brand div,
@@ -2472,22 +2537,22 @@ onBeforeUnmount(() => {
 }
 
 .admin-panel-brand strong {
-  font-size: 11px;
+  font-size: calc(11 * var(--admin-unit));
   letter-spacing: 0.13em;
 }
 
 .admin-panel-brand span:last-child {
   color: var(--admin-muted);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   letter-spacing: 0.11em;
 }
 
 .admin-panel-context {
-  gap: 7px;
+  gap: calc(7 * var(--admin-unit));
   min-width: 0;
-  padding: 0 16px;
+  padding: 0 calc(16 * var(--admin-unit));
   color: var(--admin-dim);
-  font-size: 11px;
+  font-size: calc(11 * var(--admin-unit));
 }
 
 .admin-panel-context strong {
@@ -2499,31 +2564,32 @@ onBeforeUnmount(() => {
 }
 
 .admin-panel-actions {
-  gap: 6px;
-  padding-right: 10px;
+  gap: calc(6 * var(--admin-unit));
+  padding-right: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-dirty {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-right: 5px;
+  gap: calc(7 * var(--admin-unit));
+  margin-right: calc(5 * var(--admin-unit));
   color: #d2a861;
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-dirty > span,
 .admin-panel-online-dot {
-  width: 6px;
-  height: 6px;
+  width: calc(6 * var(--admin-unit));
+  height: calc(6 * var(--admin-unit));
   border-radius: 50%;
   background: var(--admin-green);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--admin-green) 75%, transparent);
+  box-shadow: 0 0 calc(8 * var(--admin-unit))
+    color-mix(in srgb, var(--admin-green) 75%, transparent);
 }
 
 .admin-panel-dirty > span {
   background: #d8aa5e;
-  box-shadow: 0 0 8px rgba(216, 170, 94, 0.65);
+  box-shadow: 0 0 calc(8 * var(--admin-unit)) rgba(216, 170, 94, 0.65);
 }
 
 .admin-panel-icon-button,
@@ -2536,11 +2602,11 @@ onBeforeUnmount(() => {
 
 .admin-panel-icon-button,
 .admin-panel-save {
-  width: 40px;
-  height: 40px;
+  width: calc(40 * var(--admin-unit));
+  height: calc(40 * var(--admin-unit));
   display: grid;
   place-items: center;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--admin-unit));
   cursor: pointer;
 }
 
@@ -2560,7 +2626,8 @@ onBeforeUnmount(() => {
   color: var(--admin-green);
   background: transparent;
   filter: drop-shadow(
-    0 0 5px color-mix(in srgb, var(--admin-green) 42%, transparent)
+    0 0 calc(5 * var(--admin-unit))
+      color-mix(in srgb, var(--admin-green) 42%, transparent)
   );
 }
 
@@ -2568,7 +2635,8 @@ onBeforeUnmount(() => {
   color: color-mix(in srgb, var(--admin-green) 82%, white);
   background: transparent;
   filter: drop-shadow(
-    0 0 7px color-mix(in srgb, var(--admin-green) 65%, transparent)
+    0 0 calc(7 * var(--admin-unit))
+      color-mix(in srgb, var(--admin-green) 65%, transparent)
   );
 }
 
@@ -2583,27 +2651,29 @@ button:disabled {
 }
 
 .admin-panel-body {
-  height: calc(100% - 50px);
+  height: calc(100% - calc(50 * var(--admin-unit)));
   display: grid;
-  grid-template-columns: 50px 270px minmax(0, 1fr);
+  grid-template-columns:
+    calc(50 * var(--admin-unit)) calc(270 * var(--admin-unit))
+    minmax(0, 1fr);
 }
 
 .admin-panel-rail {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 8px 0;
-  border-right: 1px solid var(--admin-border);
+  gap: calc(5 * var(--admin-unit));
+  padding: calc(8 * var(--admin-unit)) 0;
+  border-right: calc(1 * var(--admin-unit)) solid var(--admin-border);
   background: #111311;
 }
 
 .admin-panel-rail button {
-  width: 38px;
-  height: 38px;
+  width: calc(38 * var(--admin-unit));
+  height: calc(38 * var(--admin-unit));
   display: grid;
   place-items: center;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--admin-unit));
   cursor: pointer;
 }
 
@@ -2625,16 +2695,16 @@ button:disabled {
 .admin-panel-directory {
   min-width: 0;
   overflow: hidden;
-  border-right: 1px solid var(--admin-border);
+  border-right: calc(1 * var(--admin-unit)) solid var(--admin-border);
   background: #101210;
 }
 
 .admin-panel-directory__header {
-  height: 62px;
+  height: calc(62 * var(--admin-unit));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 calc(16 * var(--admin-unit));
 }
 
 .admin-panel-directory__header div,
@@ -2642,7 +2712,7 @@ button:disabled {
 .admin-panel-app-heading > div:first-child,
 .admin-panel-page-heading > div:last-child {
   display: grid;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-directory__header span,
@@ -2650,7 +2720,7 @@ button:disabled {
 .admin-panel-page-heading span,
 .admin-panel-profile-heading > div > span {
   color: var(--admin-muted);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   font-weight: 650;
   letter-spacing: 0.08em;
 }
@@ -2666,38 +2736,38 @@ button:disabled {
 }
 
 .admin-panel-directory__header h2 {
-  font-size: 14px;
+  font-size: calc(14 * var(--admin-unit));
 }
 
 .admin-panel-directory__header > strong {
-  min-width: 28px;
-  padding: 4px 7px;
-  border-radius: 5px;
+  min-width: calc(28 * var(--admin-unit));
+  padding: calc(4 * var(--admin-unit)) calc(7 * var(--admin-unit));
+  border-radius: calc(5 * var(--admin-unit));
   color: #b7bcb7;
   background: #1b1e1b;
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   text-align: center;
 }
 
 .admin-panel-overview-directory {
-  height: calc(100% - 62px);
+  height: calc(100% - calc(62 * var(--admin-unit)));
   display: grid;
   align-content: start;
   gap: 0;
   overflow-y: auto;
-  margin: 0 14px;
+  margin: 0 calc(14 * var(--admin-unit));
 }
 
 .admin-panel-overview-directory button,
 .admin-panel-feature-grid button {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto;
+  grid-template-columns: calc(30 * var(--admin-unit)) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 9px;
-  min-height: 47px;
-  padding: 7px 4px;
+  gap: calc(9 * var(--admin-unit));
+  min-height: calc(47 * var(--admin-unit));
+  padding: calc(7 * var(--admin-unit)) calc(4 * var(--admin-unit));
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   color: var(--admin-muted);
   background: transparent;
   text-align: left;
@@ -2719,14 +2789,14 @@ button:disabled {
 .admin-panel-feature-grid button > span {
   display: grid;
   min-width: 0;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-overview-directory strong,
 .admin-panel-feature-grid strong {
   overflow: hidden;
   color: var(--admin-text);
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2736,20 +2806,20 @@ button:disabled {
 .admin-panel-feature-grid small {
   overflow: hidden;
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .admin-panel-search {
-  height: 38px;
+  height: calc(38 * var(--admin-unit));
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 12px 11px;
-  padding: 0 10px;
-  border: 1px solid var(--admin-border);
-  border-radius: 6px;
+  gap: calc(8 * var(--admin-unit));
+  margin: 0 calc(12 * var(--admin-unit)) calc(11 * var(--admin-unit));
+  padding: 0 calc(10 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border);
+  border-radius: calc(6 * var(--admin-unit));
   color: var(--admin-dim);
   background: #161816;
 }
@@ -2767,7 +2837,7 @@ button:disabled {
   color: var(--admin-text);
   background: transparent;
   font: inherit;
-  font-size: 11px;
+  font-size: calc(11 * var(--admin-unit));
 }
 
 .admin-panel-search input::placeholder {
@@ -2777,27 +2847,27 @@ button:disabled {
 .admin-panel-config-scopes {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px;
-  margin: 0 12px 8px;
-  padding: 3px;
-  border-radius: 4px;
+  gap: calc(2 * var(--admin-unit));
+  margin: 0 calc(12 * var(--admin-unit)) calc(8 * var(--admin-unit));
+  padding: calc(3 * var(--admin-unit));
+  border-radius: calc(4 * var(--admin-unit));
   background: #171917;
 }
 
 .admin-panel-config-scopes button {
   min-width: 0;
-  height: 27px;
+  height: calc(27 * var(--admin-unit));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  padding: 0 8px;
+  gap: calc(6 * var(--admin-unit));
+  padding: 0 calc(8 * var(--admin-unit));
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   color: var(--admin-muted);
   background: transparent;
   font: inherit;
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   cursor: pointer;
 }
 
@@ -2813,38 +2883,38 @@ button:disabled {
 
 .admin-panel-config-scopes em {
   color: var(--admin-dim);
-  font-size: 7px;
+  font-size: calc(7 * var(--admin-unit));
   font-style: normal;
 }
 
 .admin-panel-player-list,
 .admin-panel-audit-mini-list,
 .admin-panel-config-sections {
-  height: calc(100% - 115px);
+  height: calc(100% - calc(115 * var(--admin-unit)));
   overflow-y: auto;
-  padding: 0 8px 16px;
+  padding: 0 calc(8 * var(--admin-unit)) calc(16 * var(--admin-unit));
   scrollbar-color: #343834 transparent;
   scrollbar-width: thin;
 }
 
 .admin-panel-config-sections {
-  height: calc(100% - 149px);
+  height: calc(100% - calc(149 * var(--admin-unit)));
   overflow-y: auto;
-  padding: 0 8px 16px;
+  padding: 0 calc(8 * var(--admin-unit)) calc(16 * var(--admin-unit));
   scrollbar-color: #343834 transparent;
   scrollbar-width: thin;
 }
 
 .admin-panel-config-sections > button {
   width: 100%;
-  min-height: 44px;
+  min-height: calc(44 * var(--admin-unit));
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: calc(28 * var(--admin-unit)) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 7px 9px;
+  gap: calc(8 * var(--admin-unit));
+  padding: calc(7 * var(--admin-unit)) calc(9 * var(--admin-unit));
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   color: var(--admin-muted);
   background: transparent;
   text-align: left;
@@ -2859,7 +2929,7 @@ button:disabled {
 .admin-panel-config-sections > button.is-active {
   color: var(--admin-green);
   background: var(--admin-row-active);
-  box-shadow: inset 2px 0 var(--admin-green);
+  box-shadow: inset calc(2 * var(--admin-unit)) 0 var(--admin-green);
 }
 
 .admin-panel-config-sections > button > svg {
@@ -2869,7 +2939,7 @@ button:disabled {
 .admin-panel-config-sections > button > span {
   display: grid;
   min-width: 0;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-config-sections strong,
@@ -2881,21 +2951,21 @@ button:disabled {
 
 .admin-panel-config-sections strong {
   color: var(--admin-text);
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   font-weight: 600;
 }
 
 .admin-panel-config-sections small,
 .admin-panel-config-sections em {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   font-style: normal;
 }
 
 .admin-panel-config-sections em {
-  min-width: 23px;
-  padding: 3px 5px;
-  border-radius: 4px;
+  min-width: calc(23 * var(--admin-unit));
+  padding: calc(3 * var(--admin-unit)) calc(5 * var(--admin-unit));
+  border-radius: calc(4 * var(--admin-unit));
   background: #1d201d;
   text-align: center;
 }
@@ -2903,12 +2973,12 @@ button:disabled {
 .admin-panel-player-list > button {
   width: 100%;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: calc(34 * var(--admin-unit)) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 9px 9px;
+  gap: calc(10 * var(--admin-unit));
+  padding: calc(9 * var(--admin-unit)) calc(9 * var(--admin-unit));
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   color: var(--admin-text);
   background: transparent;
   text-align: left;
@@ -2921,7 +2991,7 @@ button:disabled {
 
 .admin-panel-player-list > button.is-active {
   background: var(--admin-row-active);
-  box-shadow: inset 2px 0 var(--admin-green);
+  box-shadow: inset calc(2 * var(--admin-unit)) 0 var(--admin-green);
 }
 
 .admin-panel-avatar,
@@ -2930,22 +3000,22 @@ button:disabled {
   place-items: center;
   flex: 0 0 auto;
   border: 0;
-  border-radius: 7px;
+  border-radius: calc(7 * var(--admin-unit));
   color: #c7e8c4;
   background: linear-gradient(145deg, #263126, #182018);
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   font-weight: 700;
 }
 
 .admin-panel-avatar {
-  width: 32px;
-  height: 32px;
+  width: calc(32 * var(--admin-unit));
+  height: calc(32 * var(--admin-unit));
 }
 
 .admin-panel-player-list__copy {
   display: grid;
   min-width: 0;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-player-list__copy strong,
@@ -2956,20 +3026,20 @@ button:disabled {
 }
 
 .admin-panel-player-list__copy strong {
-  font-size: 11px;
+  font-size: calc(11 * var(--admin-unit));
   font-weight: 580;
 }
 
 .admin-panel-player-list__copy small,
 .admin-panel-player-list__meta {
   color: var(--admin-muted);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-player-list__meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6 * var(--admin-unit));
 }
 
 .admin-panel-empty-list,
@@ -2982,32 +3052,32 @@ button:disabled {
 }
 
 .admin-panel-empty-list {
-  gap: 5px;
-  padding: 40px 22px;
+  gap: calc(5 * var(--admin-unit));
+  padding: calc(40 * var(--admin-unit)) calc(22 * var(--admin-unit));
   color: var(--admin-muted);
 }
 
 .admin-panel-empty-list strong {
   color: var(--admin-text);
-  font-size: 12px;
+  font-size: calc(12 * var(--admin-unit));
 }
 
 .admin-panel-empty-list span {
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   line-height: 1.5;
 }
 
 .admin-panel-audit-mini-list {
-  height: calc(100% - 62px);
-  padding-inline: 10px;
+  height: calc(100% - calc(62 * var(--admin-unit)));
+  padding-inline: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-audit-mini-list article {
   display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 9px;
-  padding: 10px 5px;
-  border-radius: 3px;
+  grid-template-columns: calc(28 * var(--admin-unit)) 1fr;
+  gap: calc(9 * var(--admin-unit));
+  padding: calc(10 * var(--admin-unit)) calc(5 * var(--admin-unit));
+  border-radius: calc(3 * var(--admin-unit));
 }
 
 .admin-panel-audit-mini-list article:hover {
@@ -3016,69 +3086,69 @@ button:disabled {
 
 .admin-panel-tone-directory {
   display: grid;
-  gap: 1px;
-  margin-top: 8px;
+  gap: calc(1 * var(--admin-unit));
+  margin-top: calc(8 * var(--admin-unit));
   background: var(--admin-border);
 }
 
 .admin-panel-tone-directory article {
-  min-height: 52px;
+  min-height: calc(52 * var(--admin-unit));
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-columns: calc(30 * var(--admin-unit)) minmax(0, 1fr);
   align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
+  gap: calc(9 * var(--admin-unit));
+  padding: calc(8 * var(--admin-unit)) calc(10 * var(--admin-unit));
   background: #111311;
 }
 
 .admin-panel-tone-directory article > span {
-  width: 30px;
-  height: 30px;
+  width: calc(30 * var(--admin-unit));
+  height: calc(30 * var(--admin-unit));
   display: grid;
   place-items: center;
-  border-radius: 5px;
+  border-radius: calc(5 * var(--admin-unit));
   color: var(--admin-accent);
   background: var(--admin-green-soft);
 }
 
 .admin-panel-tone-directory article > div {
   display: grid;
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
 }
 
 .admin-panel-tone-directory strong {
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-tone-directory small {
   color: var(--admin-muted);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-audit-icon {
-  width: 27px;
-  height: 27px;
+  width: calc(27 * var(--admin-unit));
+  height: calc(27 * var(--admin-unit));
   display: grid;
   place-items: center;
-  border-radius: 5px;
+  border-radius: calc(5 * var(--admin-unit));
   color: var(--admin-green);
   background: var(--admin-green-soft);
 }
 
 .admin-panel-audit-mini-list div {
   display: grid;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
   min-width: 0;
 }
 
 .admin-panel-audit-mini-list strong {
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-audit-mini-list span,
 .admin-panel-audit-mini-list small {
   color: var(--admin-muted);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-editor {
@@ -3090,7 +3160,7 @@ button:disabled {
 .admin-panel-editor__scroll {
   height: 100%;
   overflow-y: auto;
-  padding: 14px;
+  padding: calc(14 * var(--admin-unit));
   scrollbar-color: #343834 transparent;
   scrollbar-width: thin;
 }
@@ -3098,25 +3168,26 @@ button:disabled {
 .admin-panel-loading,
 .admin-panel-empty-editor {
   height: 100%;
-  gap: 9px;
+  gap: calc(9 * var(--admin-unit));
   color: var(--admin-muted);
 }
 
 .admin-panel-profile-heading {
-  gap: 13px;
-  min-height: 64px;
-  padding: 2px 3px 12px;
+  gap: calc(13 * var(--admin-unit));
+  min-height: calc(64 * var(--admin-unit));
+  padding: calc(2 * var(--admin-unit)) calc(3 * var(--admin-unit))
+    calc(12 * var(--admin-unit));
 }
 
 .admin-panel-profile-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 6px;
-  font-size: 12px;
+  width: calc(42 * var(--admin-unit));
+  height: calc(42 * var(--admin-unit));
+  border-radius: calc(6 * var(--admin-unit));
+  font-size: calc(12 * var(--admin-unit));
 }
 
 .admin-panel-profile-heading h1 {
-  font-size: 18px;
+  font-size: calc(18 * var(--admin-unit));
   letter-spacing: -0.025em;
 }
 
@@ -3127,28 +3198,28 @@ button:disabled {
 .admin-panel-dialog p {
   margin: 0;
   color: var(--admin-muted);
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   line-height: 1.55;
 }
 
 .admin-panel-player-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5 * var(--admin-unit));
   margin-left: auto;
 }
 
 .admin-panel-player-actions button {
-  min-height: 38px;
+  min-height: calc(38 * var(--admin-unit));
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 9px;
-  border: 1px solid var(--admin-border);
-  border-radius: 5px;
+  gap: calc(6 * var(--admin-unit));
+  padding: 0 calc(9 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border);
+  border-radius: calc(5 * var(--admin-unit));
   color: #b9beb9;
   background: #181a18;
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   font-weight: 600;
   cursor: pointer;
 }
@@ -3167,22 +3238,22 @@ button:disabled {
 
 .admin-panel-device-tabs {
   display: flex;
-  gap: 6px;
+  gap: calc(6 * var(--admin-unit));
   overflow-x: auto;
-  margin-bottom: 12px;
-  padding-bottom: 2px;
+  margin-bottom: calc(12 * var(--admin-unit));
+  padding-bottom: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-device-tabs button {
-  min-width: 155px;
+  min-width: calc(155 * var(--admin-unit));
   display: grid;
-  grid-template-columns: 20px 1fr;
+  grid-template-columns: calc(20 * var(--admin-unit)) 1fr;
   grid-template-rows: auto auto;
   align-items: center;
-  gap: 1px 7px;
-  padding: 8px 10px;
+  gap: calc(1 * var(--admin-unit)) calc(7 * var(--admin-unit));
+  padding: calc(8 * var(--admin-unit)) calc(10 * var(--admin-unit));
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   color: var(--admin-muted);
   background: #121412;
   text-align: left;
@@ -3195,17 +3266,17 @@ button:disabled {
 
 .admin-panel-device-tabs button span {
   color: #c8cdc8;
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-device-tabs button small {
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-device-tabs button.is-active {
   color: var(--admin-green);
   background: var(--admin-row-active);
-  box-shadow: inset 2px 0 var(--admin-green);
+  box-shadow: inset calc(2 * var(--admin-unit)) 0 var(--admin-green);
 }
 
 .admin-panel-device-tabs button:hover:not(.is-active) {
@@ -3214,8 +3285,8 @@ button:disabled {
 
 .admin-panel-device-tabs button.is-dirty::after {
   content: '';
-  width: 5px;
-  height: 5px;
+  width: calc(5 * var(--admin-unit));
+  height: calc(5 * var(--admin-unit));
   grid-column: 2;
   grid-row: 1 / 3;
   align-self: center;
@@ -3231,25 +3302,25 @@ button:disabled {
 .admin-panel-audit-grid,
 .admin-panel-empty-stats {
   display: grid;
-  gap: 10px;
+  gap: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-stat-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 10px;
-  gap: 2px;
+  margin-bottom: calc(10 * var(--admin-unit));
+  gap: calc(2 * var(--admin-unit));
   overflow: hidden;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   background: transparent;
 }
 
 .admin-panel-stat-grid article {
   display: grid;
-  grid-template-columns: 26px 1fr;
+  grid-template-columns: calc(26 * var(--admin-unit)) 1fr;
   align-items: center;
-  gap: 1px 8px;
+  gap: calc(1 * var(--admin-unit)) calc(8 * var(--admin-unit));
   min-width: 0;
-  padding: 10px 12px;
+  padding: calc(10 * var(--admin-unit)) calc(12 * var(--admin-unit));
   border: 0;
   border-right: 0;
   border-radius: 0;
@@ -3263,13 +3334,13 @@ button:disabled {
 
 .admin-panel-stat-grid span {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   text-transform: uppercase;
 }
 
 .admin-panel-stat-grid strong {
   overflow: hidden;
-  font-size: 12px;
+  font-size: calc(12 * var(--admin-unit));
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3280,75 +3351,75 @@ button:disabled {
 }
 
 .admin-panel-section-card {
-  margin-bottom: 10px;
-  padding: 13px;
+  margin-bottom: calc(10 * var(--admin-unit));
+  padding: calc(13 * var(--admin-unit));
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   background: #0f110f;
 }
 
 .admin-panel-section-card--compact {
-  padding: 11px 12px;
+  padding: calc(11 * var(--admin-unit)) calc(12 * var(--admin-unit));
 }
 
 .admin-panel-section-card--focused {
-  min-height: 210px;
+  min-height: calc(210 * var(--admin-unit));
 }
 
 .admin-panel-feature-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-statistics-layout {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 8px;
+  gap: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-activity-statistics,
 .admin-panel-coverage-statistics {
   min-width: 0;
-  padding: 10px;
-  border-radius: 3px;
+  padding: calc(10 * var(--admin-unit));
+  border-radius: calc(3 * var(--admin-unit));
   background: #0b0d0c;
 }
 
 .admin-panel-statistics-heading {
-  margin-bottom: 9px;
+  margin-bottom: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-statistics-heading > div {
   display: grid;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-statistics-heading strong {
   color: #d9ddd9;
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   font-weight: 600;
 }
 
 .admin-panel-statistics-heading small {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   line-height: 1.35;
 }
 
 .admin-panel-activity-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
 }
 
 .admin-panel-activity-grid article {
   min-width: 0;
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
+  grid-template-columns: calc(20 * var(--admin-unit)) minmax(0, 1fr);
   align-items: center;
-  gap: 2px 6px;
-  padding: 10px;
+  gap: calc(2 * var(--admin-unit)) calc(6 * var(--admin-unit));
+  padding: calc(10 * var(--admin-unit));
   background: #121412;
 }
 
@@ -3358,7 +3429,7 @@ button:disabled {
 
 .admin-panel-activity-grid strong {
   overflow: hidden;
-  font-size: 13px;
+  font-size: calc(13 * var(--admin-unit));
   font-weight: 620;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3368,7 +3439,7 @@ button:disabled {
   grid-column: 1 / -1;
   overflow: hidden;
   color: var(--admin-muted);
-  font-size: 7px;
+  font-size: calc(7 * var(--admin-unit));
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -3376,25 +3447,25 @@ button:disabled {
 
 .admin-panel-coverage-list {
   display: grid;
-  gap: 8px;
+  gap: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-coverage-list article {
   display: grid;
-  gap: 5px;
+  gap: calc(5 * var(--admin-unit));
 }
 
 .admin-panel-coverage-list article > div:first-child {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-coverage-list strong,
 .admin-panel-coverage-list span {
   overflow: hidden;
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3409,9 +3480,9 @@ button:disabled {
 }
 
 .admin-panel-statistics-progress {
-  height: 3px;
+  height: calc(3 * var(--admin-unit));
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: calc(999 * var(--admin-unit));
   background: #1d201e;
 }
 
@@ -3420,20 +3491,21 @@ button:disabled {
   display: block;
   border-radius: inherit;
   background: var(--admin-green);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--admin-green) 52%, transparent);
+  box-shadow: 0 0 calc(8 * var(--admin-unit))
+    color-mix(in srgb, var(--admin-green) 52%, transparent);
   transition: width 180ms ease;
 }
 
 .admin-panel-section-card__heading {
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--admin-border);
+  gap: calc(12 * var(--admin-unit));
+  margin-bottom: calc(12 * var(--admin-unit));
+  padding-bottom: calc(10 * var(--admin-unit));
+  border-bottom: calc(1 * var(--admin-unit)) solid var(--admin-border);
 }
 
 .admin-panel-section-card__heading h2 {
-  font-size: 12px;
+  font-size: calc(12 * var(--admin-unit));
 }
 
 .admin-panel-section-card__heading > svg {
@@ -3442,39 +3514,42 @@ button:disabled {
 
 .admin-panel-field-list {
   display: grid;
-  gap: 7px;
+  gap: calc(7 * var(--admin-unit));
   margin: 0;
 }
 
 .admin-panel-field-list > div {
   display: grid;
-  grid-template-columns: minmax(110px, 0.75fr) minmax(0, 1.25fr);
+  grid-template-columns: minmax(calc(110 * var(--admin-unit)), 0.75fr) minmax(
+      0,
+      1.25fr
+    );
   align-items: center;
-  gap: 10px;
+  gap: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-field-list dt {
   color: var(--admin-muted);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-field-list dd {
   min-width: 0;
   overflow: hidden;
   margin: 0;
-  padding: 7px 9px;
-  border: 1px solid var(--admin-border);
-  border-radius: 5px;
+  padding: calc(7 * var(--admin-unit)) calc(9 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border);
+  border-radius: calc(5 * var(--admin-unit));
   color: #d8dcd8;
   background: #191b19;
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .admin-panel-device-summary {
-  gap: 9px;
-  margin-bottom: 10px;
+  gap: calc(9 * var(--admin-unit));
+  margin-bottom: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-device-summary__icon,
@@ -3482,31 +3557,32 @@ button:disabled {
 .admin-panel-empty-editor__icon {
   display: grid;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--admin-green) 16%, transparent);
+  border: calc(1 * var(--admin-unit)) solid
+    color-mix(in srgb, var(--admin-green) 16%, transparent);
   color: var(--admin-green);
   background: var(--admin-green-soft);
 }
 
 .admin-panel-device-summary__icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 7px;
+  width: calc(38 * var(--admin-unit));
+  height: calc(38 * var(--admin-unit));
+  border-radius: calc(7 * var(--admin-unit));
 }
 
 .admin-panel-device-summary strong {
-  font-size: 11px;
+  font-size: calc(11 * var(--admin-unit));
 }
 
 .admin-panel-device-summary span,
 .admin-panel-device-summary small {
   color: var(--admin-muted);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-device-summary small {
   margin-left: auto;
-  padding: 4px 7px;
-  border-radius: 4px;
+  padding: calc(4 * var(--admin-unit)) calc(7 * var(--admin-unit));
+  border-radius: calc(4 * var(--admin-unit));
   background: #1b1e1b;
 }
 
@@ -3514,10 +3590,10 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 18px;
+  gap: calc(8 * var(--admin-unit));
+  padding: calc(18 * var(--admin-unit));
   color: var(--admin-muted);
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   text-align: center;
 }
 
@@ -3529,26 +3605,26 @@ button:disabled {
   position: relative;
   display: grid;
   align-content: center;
-  min-height: 66px;
-  gap: 5px;
-  padding: 9px 10px;
-  border: 1px solid var(--admin-border);
-  border-radius: 5px;
+  min-height: calc(66 * var(--admin-unit));
+  gap: calc(5 * var(--admin-unit));
+  padding: calc(9 * var(--admin-unit)) calc(10 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border);
+  border-radius: calc(5 * var(--admin-unit));
   background: #181a18;
 }
 
 .admin-panel-credential-box > span,
 .admin-panel-credential-box--pin div span {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   text-transform: uppercase;
 }
 
 .admin-panel-credential-box > strong,
 .admin-panel-credential-box--pin strong {
   overflow: hidden;
-  padding-right: 82px;
-  font-size: 10px;
+  padding-right: calc(82 * var(--admin-unit));
+  font-size: calc(10 * var(--admin-unit));
   font-weight: 550;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3556,19 +3632,19 @@ button:disabled {
 
 .admin-panel-credential-box button {
   position: absolute;
-  right: 7px;
-  bottom: 8px;
+  right: calc(7 * var(--admin-unit));
+  bottom: calc(8 * var(--admin-unit));
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 7px;
-  border: 1px solid var(--admin-border-strong);
-  border-radius: 4px;
+  gap: calc(5 * var(--admin-unit));
+  padding: calc(5 * var(--admin-unit)) calc(7 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border-strong);
+  border-radius: calc(4 * var(--admin-unit));
   color: #bbc0bb;
   background: #242724;
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   cursor: pointer;
-  min-height: 44px;
+  min-height: calc(44 * var(--admin-unit));
 }
 
 .admin-panel-password {
@@ -3578,9 +3654,9 @@ button:disabled {
 
 .admin-panel-credential-box--pin {
   grid-column: 1 / -1;
-  grid-template-columns: 24px 1fr;
+  grid-template-columns: calc(24 * var(--admin-unit)) 1fr;
   align-items: center;
-  min-height: 46px;
+  min-height: calc(46 * var(--admin-unit));
 }
 
 .admin-panel-credential-box--pin > svg {
@@ -3589,13 +3665,13 @@ button:disabled {
 
 .admin-panel-credential-box--pin div {
   display: grid;
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
 }
 
 .admin-panel-credential-box--pin strong {
   padding: 0;
   color: #b8bdb8;
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-app-heading {
@@ -3605,37 +3681,37 @@ button:disabled {
 .admin-panel-app-heading__actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-app-heading__actions > span {
   color: #d8aa5e;
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-search--apps {
-  width: 190px;
-  height: 44px;
+  width: calc(190 * var(--admin-unit));
+  height: calc(44 * var(--admin-unit));
   margin: 0;
 }
 
 .admin-panel-manual-save-note {
-  gap: 9px;
-  margin-bottom: 10px;
-  padding: 8px 10px;
+  gap: calc(9 * var(--admin-unit));
+  margin-bottom: calc(10 * var(--admin-unit));
+  padding: calc(8 * var(--admin-unit)) calc(10 * var(--admin-unit));
   border: 0;
-  border-radius: 5px;
+  border-radius: calc(5 * var(--admin-unit));
   color: var(--admin-green);
   background: color-mix(in srgb, var(--admin-green) 5.5%, transparent);
 }
 
 .admin-panel-manual-save-note strong {
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-manual-save-note span {
   color: #849184;
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-app-grid {
@@ -3644,13 +3720,13 @@ button:disabled {
 
 .admin-panel-app-grid > button {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-columns: calc(32 * var(--admin-unit)) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: calc(8 * var(--admin-unit));
   min-width: 0;
-  padding: 8px;
+  padding: calc(8 * var(--admin-unit));
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   color: var(--admin-text);
   background: #161816;
   text-align: left;
@@ -3668,15 +3744,15 @@ button:disabled {
     rgba(216, 170, 94, 0.04) 52%,
     transparent 100%
   );
-  box-shadow: inset 2px 0 #d8aa5e;
+  box-shadow: inset calc(2 * var(--admin-unit)) 0 #d8aa5e;
 }
 
 .admin-panel-app-icon {
-  width: 30px;
-  height: 30px;
+  width: calc(30 * var(--admin-unit));
+  height: calc(30 * var(--admin-unit));
   display: grid;
   place-items: center;
-  border-radius: 7px;
+  border-radius: calc(7 * var(--admin-unit));
   color: white;
   background: #292c29;
 }
@@ -3684,7 +3760,7 @@ button:disabled {
 .admin-panel-app-copy {
   display: grid;
   min-width: 0;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-app-copy strong,
@@ -3695,27 +3771,27 @@ button:disabled {
 }
 
 .admin-panel-app-copy strong {
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   font-weight: 550;
 }
 
 .admin-panel-app-copy small {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-switch {
-  width: 27px;
-  height: 15px;
-  padding: 2px;
-  border-radius: 999px;
+  width: calc(27 * var(--admin-unit));
+  height: calc(15 * var(--admin-unit));
+  padding: calc(2 * var(--admin-unit));
+  border-radius: calc(999 * var(--admin-unit));
   background: #353935;
   transition: background 150ms ease;
 }
 
 .admin-panel-switch span {
-  width: 11px;
-  height: 11px;
+  width: calc(11 * var(--admin-unit));
+  height: calc(11 * var(--admin-unit));
   display: block;
   border-radius: 50%;
   background: #c8cdc8;
@@ -3727,29 +3803,29 @@ button:disabled {
 }
 
 .admin-panel-app-grid > button.is-enabled .admin-panel-switch span {
-  transform: translateX(12px);
+  transform: translateX(calc(12 * var(--admin-unit)));
   background: #0b100b;
 }
 
 .admin-panel-activity-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
   overflow: hidden;
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
 }
 
 .admin-panel-activity-list article {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: calc(34 * var(--admin-unit)) minmax(0, 1fr);
   align-items: center;
-  gap: 9px;
+  gap: calc(9 * var(--admin-unit));
   min-width: 0;
-  padding: 9px 10px;
+  padding: calc(9 * var(--admin-unit)) calc(10 * var(--admin-unit));
   border: 0;
   border-bottom: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   background: #141614;
 }
 
@@ -3758,11 +3834,11 @@ button:disabled {
 }
 
 .admin-panel-activity-icon {
-  width: 32px;
-  height: 32px;
+  width: calc(32 * var(--admin-unit));
+  height: calc(32 * var(--admin-unit));
   display: grid;
   place-items: center;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--admin-unit));
   color: var(--admin-green);
   background: var(--admin-green-soft);
 }
@@ -3770,7 +3846,7 @@ button:disabled {
 .admin-panel-activity-list article > div {
   display: grid;
   min-width: 0;
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
 }
 
 .admin-panel-activity-list strong,
@@ -3782,31 +3858,31 @@ button:disabled {
 }
 
 .admin-panel-activity-list strong {
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   font-weight: 550;
 }
 
 .admin-panel-activity-list small,
 .admin-panel-activity-meta {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-moderation-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-moderation-grid button {
-  min-height: 84px;
+  min-height: calc(84 * var(--admin-unit));
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: calc(28 * var(--admin-unit)) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 9px;
-  padding: 11px;
-  border: 1px solid var(--admin-border);
-  border-radius: 5px;
+  gap: calc(9 * var(--admin-unit));
+  padding: calc(11 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border);
+  border-radius: calc(5 * var(--admin-unit));
   color: var(--admin-green);
   background: #161816;
   text-align: left;
@@ -3821,17 +3897,17 @@ button:disabled {
 .admin-panel-moderation-grid button > span {
   display: grid;
   min-width: 0;
-  gap: 4px;
+  gap: calc(4 * var(--admin-unit));
 }
 
 .admin-panel-moderation-grid strong {
   color: var(--admin-text);
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-moderation-grid small {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   line-height: 1.4;
 }
 
@@ -3844,25 +3920,25 @@ button:disabled {
 .admin-panel-page-heading {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding: 2px 0;
+  gap: calc(12 * var(--admin-unit));
+  margin-bottom: calc(12 * var(--admin-unit));
+  padding: calc(2 * var(--admin-unit)) 0;
 }
 
 .admin-panel-config-heading-copy {
   display: grid;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-config-disabled,
 .admin-panel-config-notice {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-columns: calc(26 * var(--admin-unit)) minmax(0, 1fr);
   align-items: start;
-  gap: 9px;
-  margin-bottom: 8px;
-  padding: 10px 11px;
-  border-radius: 3px;
+  gap: calc(9 * var(--admin-unit));
+  margin-bottom: calc(8 * var(--admin-unit));
+  padding: calc(10 * var(--admin-unit)) calc(11 * var(--admin-unit));
+  border-radius: calc(3 * var(--admin-unit));
   background: linear-gradient(90deg, rgba(240, 162, 75, 0.13), transparent 80%);
 }
 
@@ -3885,58 +3961,58 @@ button:disabled {
 .admin-panel-config-disabled div,
 .admin-panel-config-notice div {
   display: grid;
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
 }
 
 .admin-panel-config-disabled strong,
 .admin-panel-config-notice strong {
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-config-disabled p,
 .admin-panel-config-notice p {
   margin: 0;
   color: var(--admin-muted);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   line-height: 1.45;
 }
 
 .admin-panel-config-disabled code {
   width: fit-content;
-  margin-top: 3px;
-  padding: 4px 6px;
-  border-radius: 3px;
+  margin-top: calc(3 * var(--admin-unit));
+  padding: calc(4 * var(--admin-unit)) calc(6 * var(--admin-unit));
+  border-radius: calc(3 * var(--admin-unit));
   color: #f6c889;
   background: rgba(0, 0, 0, 0.25);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-config-workspace {
-  margin-top: 10px;
+  margin-top: calc(10 * var(--admin-unit));
   overflow: hidden;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   background: #111311;
 }
 
 .admin-panel-config-workspace > header {
-  min-height: 52px;
+  min-height: calc(52 * var(--admin-unit));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 9px 12px;
+  gap: calc(12 * var(--admin-unit));
+  padding: calc(9 * var(--admin-unit)) calc(12 * var(--admin-unit));
   background: #171917;
 }
 
 .admin-panel-config-workspace > header > div {
   display: grid;
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-config-workspace > header span,
 .admin-panel-config-workspace > header > strong {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -3944,30 +4020,33 @@ button:disabled {
 
 .admin-panel-config-workspace h2 {
   margin: 0;
-  font-size: 13px;
+  font-size: calc(13 * var(--admin-unit));
   font-weight: 600;
 }
 
 .admin-panel-config-fields {
   display: grid;
-  gap: 1px;
+  gap: calc(1 * var(--admin-unit));
   background: #0b0d0c;
 }
 
 .admin-panel-config-field {
-  min-height: 51px;
+  min-height: calc(51 * var(--admin-unit));
   display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(210px, 1.1fr);
+  grid-template-columns: minmax(calc(220 * var(--admin-unit)), 0.9fr) minmax(
+      calc(210 * var(--admin-unit)),
+      1.1fr
+    );
   align-items: center;
-  gap: 14px;
-  padding: 8px 12px;
+  gap: calc(14 * var(--admin-unit));
+  padding: calc(8 * var(--admin-unit)) calc(12 * var(--admin-unit));
   background: #121412;
 }
 
 .admin-panel-config-field.is-structured {
   grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
-  gap: 7px;
+  gap: calc(7 * var(--admin-unit));
 }
 
 .admin-panel-config-field:hover {
@@ -3976,13 +4055,13 @@ button:disabled {
 
 .admin-panel-config-field.is-dirty {
   background: var(--admin-row-active);
-  box-shadow: inset 2px 0 var(--admin-green);
+  box-shadow: inset calc(2 * var(--admin-unit)) 0 var(--admin-green);
 }
 
 .admin-panel-config-field__copy {
   display: grid;
   min-width: 0;
-  gap: 3px;
+  gap: calc(3 * var(--admin-unit));
 }
 
 .admin-panel-config-field__copy strong,
@@ -3994,20 +4073,20 @@ button:disabled {
 }
 
 .admin-panel-config-field__copy strong {
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
   font-weight: 600;
 }
 
 .admin-panel-config-field__copy small {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
   line-height: 1.25;
 }
 
 .admin-panel-config-field__copy code {
   color: var(--admin-dim);
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 7px;
+  font-size: calc(7 * var(--admin-unit));
 }
 
 .admin-panel-config-field > input,
@@ -4015,12 +4094,12 @@ button:disabled {
   max-width: 100%;
   min-width: 0;
   border: 0;
-  border-radius: 4px;
-  outline: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: calc(4 * var(--admin-unit));
+  outline: calc(1 * var(--admin-unit)) solid rgba(255, 255, 255, 0.07);
   color: var(--admin-text);
   background: #1b1e1b;
   font: inherit;
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-config-field > input {
@@ -4039,8 +4118,8 @@ button:disabled {
 
 .admin-panel-config-field > input,
 .admin-panel-config-optional > input {
-  height: 31px;
-  padding: 0 9px;
+  height: calc(31 * var(--admin-unit));
+  padding: 0 calc(9 * var(--admin-unit));
 }
 
 .admin-panel-config-field > input:focus,
@@ -4059,14 +4138,14 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-self: start;
-  gap: 8px;
+  gap: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-config-toggle {
   position: relative;
   justify-self: start;
-  width: 32px;
-  height: 18px;
+  width: calc(32 * var(--admin-unit));
+  height: calc(18 * var(--admin-unit));
 }
 
 .admin-panel-config-toggle input {
@@ -4081,7 +4160,7 @@ button:disabled {
 .admin-panel-config-toggle i {
   position: absolute;
   inset: 0;
-  border-radius: 999px;
+  border-radius: calc(999 * var(--admin-unit));
   background: #393d39;
   transition: background 150ms ease;
 }
@@ -4089,10 +4168,10 @@ button:disabled {
 .admin-panel-config-toggle i::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 12px;
-  height: 12px;
+  top: calc(3 * var(--admin-unit));
+  left: calc(3 * var(--admin-unit));
+  width: calc(12 * var(--admin-unit));
+  height: calc(12 * var(--admin-unit));
   border-radius: 50%;
   background: #c7ccc7;
   transition: transform 150ms ease;
@@ -4103,7 +4182,7 @@ button:disabled {
 }
 
 .admin-panel-config-toggle input:checked + i::after {
-  transform: translateX(14px);
+  transform: translateX(calc(14 * var(--admin-unit)));
   background: #f4f7f4;
 }
 
@@ -4113,31 +4192,31 @@ button:disabled {
 
 .admin-panel-heading-icon,
 .admin-panel-empty-editor__icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: calc(44 * var(--admin-unit));
+  height: calc(44 * var(--admin-unit));
+  border-radius: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-page-heading h1,
 .admin-panel-empty-editor h1 {
-  font-size: 17px;
+  font-size: calc(17 * var(--admin-unit));
 }
 
 .admin-panel-audit-grid {
   grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
+  gap: calc(2 * var(--admin-unit));
   overflow: hidden;
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
 }
 
 .admin-panel-audit-grid article {
   display: grid;
-  gap: 5px;
-  padding: 10px 11px;
+  gap: calc(5 * var(--admin-unit));
+  padding: calc(10 * var(--admin-unit)) calc(11 * var(--admin-unit));
   border: 0;
   border-bottom: 0;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--admin-unit));
   background: #141614;
 }
 
@@ -4148,41 +4227,41 @@ button:disabled {
 .admin-panel-audit-grid__topline {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: calc(10 * var(--admin-unit));
   color: var(--admin-green);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-audit-grid time,
 .admin-panel-audit-grid p {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-audit-grid strong {
-  font-size: 11px;
+  font-size: calc(11 * var(--admin-unit));
 }
 
 .admin-panel-empty-editor {
-  padding: 30px;
+  padding: calc(30 * var(--admin-unit));
 }
 
 .admin-panel-empty-editor > p {
-  max-width: 430px;
+  max-width: calc(430 * var(--admin-unit));
 }
 
 .admin-panel-empty-stats {
-  grid-template-columns: repeat(3, 130px);
-  margin-top: 14px;
+  grid-template-columns: repeat(3, calc(130 * var(--admin-unit)));
+  margin-top: calc(14 * var(--admin-unit));
 }
 
 .admin-panel-empty-stats article {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: calc(28 * var(--admin-unit)) 1fr;
   align-items: center;
-  padding: 10px;
-  border: 1px solid var(--admin-border);
-  border-radius: 6px;
+  padding: calc(10 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border);
+  border-radius: calc(6 * var(--admin-unit));
   background: var(--admin-panel);
   text-align: left;
 }
@@ -4193,12 +4272,12 @@ button:disabled {
 }
 
 .admin-panel-empty-stats strong {
-  font-size: 13px;
+  font-size: calc(13 * var(--admin-unit));
 }
 
 .admin-panel-empty-stats span {
   color: var(--admin-muted);
-  font-size: 8px;
+  font-size: calc(8 * var(--admin-unit));
 }
 
 .admin-panel-toast {
@@ -4208,15 +4287,17 @@ button:disabled {
   bottom: 4vh;
   display: flex;
   align-items: center;
-  gap: 8px;
-  max-width: 390px;
-  padding: 10px 13px;
-  border: 1px solid color-mix(in srgb, var(--admin-green) 25%, transparent);
-  border-radius: 6px;
+  gap: calc(8 * var(--admin-unit));
+  max-width: calc(390 * var(--admin-unit));
+  padding: calc(10 * var(--admin-unit)) calc(13 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid
+    color-mix(in srgb, var(--admin-green) 25%, transparent);
+  border-radius: calc(6 * var(--admin-unit));
   color: #d7ecd5;
   background: #152015;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-  font-size: 10px;
+  box-shadow: 0 calc(16 * var(--admin-unit)) calc(40 * var(--admin-unit))
+    rgba(0, 0, 0, 0.45);
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-toast.is-error {
@@ -4232,27 +4313,28 @@ button:disabled {
   display: grid;
   place-items: center;
   background: rgba(0, 0, 0, 0.66);
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(calc(3 * var(--admin-unit)));
 }
 
 .admin-panel-dialog {
-  width: min(420px, 90vw);
+  width: min(calc(420 * var(--admin-unit)), 90vw);
   display: grid;
-  grid-template-columns: 38px 1fr;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--admin-border-strong);
-  border-radius: 8px;
+  grid-template-columns: calc(38 * var(--admin-unit)) 1fr;
+  gap: calc(12 * var(--admin-unit));
+  padding: calc(16 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border-strong);
+  border-radius: calc(8 * var(--admin-unit));
   background: #121412;
-  box-shadow: 0 25px 75px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 calc(25 * var(--admin-unit)) calc(75 * var(--admin-unit))
+    rgba(0, 0, 0, 0.65);
 }
 
 .admin-panel-dialog__icon {
-  width: 36px;
-  height: 36px;
+  width: calc(36 * var(--admin-unit));
+  height: calc(36 * var(--admin-unit));
   display: grid;
   place-items: center;
-  border-radius: 7px;
+  border-radius: calc(7 * var(--admin-unit));
   color: var(--admin-green);
   background: var(--admin-green-soft);
 }
@@ -4263,39 +4345,39 @@ button:disabled {
 }
 
 .admin-panel-dialog h2 {
-  margin-bottom: 5px;
-  font-size: 14px;
+  margin-bottom: calc(5 * var(--admin-unit));
+  font-size: calc(14 * var(--admin-unit));
 }
 
 .admin-panel-dialog__actions {
   grid-column: 1 / -1;
   justify-content: flex-end;
-  gap: 7px;
-  margin-top: 5px;
+  gap: calc(7 * var(--admin-unit));
+  margin-top: calc(5 * var(--admin-unit));
 }
 
 .admin-panel-action-input {
   grid-column: 1 / -1;
   display: grid;
-  gap: 6px;
+  gap: calc(6 * var(--admin-unit));
 }
 
 .admin-panel-action-input span {
   color: var(--admin-muted);
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
 }
 
 .admin-panel-action-input input {
   width: 100%;
-  height: 44px;
-  padding: 0 11px;
-  border: 1px solid var(--admin-border-strong);
-  border-radius: 5px;
+  height: calc(44 * var(--admin-unit));
+  padding: 0 calc(11 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border-strong);
+  border-radius: calc(5 * var(--admin-unit));
   outline: 0;
   color: var(--admin-text);
   background: #1a1c1a;
   font: inherit;
-  font-size: 10px;
+  font-size: calc(10 * var(--admin-unit));
 }
 
 .admin-panel-action-input input:focus {
@@ -4305,25 +4387,25 @@ button:disabled {
 .admin-panel-dialog__actions button {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 10px;
-  border: 1px solid var(--admin-border-strong);
-  border-radius: 5px;
+  gap: calc(6 * var(--admin-unit));
+  padding: calc(7 * var(--admin-unit)) calc(10 * var(--admin-unit));
+  border: calc(1 * var(--admin-unit)) solid var(--admin-border-strong);
+  border-radius: calc(5 * var(--admin-unit));
   color: #c6cbc6;
   background: #202320;
-  font-size: 9px;
+  font-size: calc(9 * var(--admin-unit));
   cursor: pointer;
 }
 
 .admin-panel-overlay button:focus-visible,
 .admin-panel-overlay input:focus-visible {
-  outline: 2px solid var(--admin-green);
-  outline-offset: 2px;
+  outline: calc(2 * var(--admin-unit)) solid var(--admin-green);
+  outline-offset: calc(2 * var(--admin-unit));
 }
 
 .admin-panel-overlay .admin-panel-rail button:focus-visible {
   outline: 0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.13);
+  box-shadow: inset 0 0 0 calc(1 * var(--admin-unit)) rgba(255, 255, 255, 0.13);
 }
 
 .admin-panel-dialog__actions button.is-primary {
@@ -4352,7 +4434,7 @@ button:disabled {
 .admin-toast-enter-from,
 .admin-toast-leave-to {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(calc(8 * var(--admin-unit)));
 }
 
 @keyframes admin-spin {
@@ -4368,11 +4450,13 @@ button:disabled {
   }
 
   .admin-panel-body {
-    grid-template-columns: 50px 250px minmax(0, 1fr);
+    grid-template-columns:
+      calc(50 * var(--admin-unit)) calc(250 * var(--admin-unit))
+      minmax(0, 1fr);
   }
 
   .admin-panel-header {
-    grid-template-columns: 225px 1fr auto;
+    grid-template-columns: calc(225 * var(--admin-unit)) 1fr auto;
   }
 
   .admin-panel-stat-grid,

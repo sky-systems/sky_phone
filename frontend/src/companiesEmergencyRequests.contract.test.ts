@@ -79,7 +79,7 @@ describe('Companies emergency request contract', () => {
       'definition.Emergency and definition.AcceptsRequests',
     )
     expect(payload).toContain(
-      'acceptsRequests = tonumber(row.accepts_requests) == 1,',
+      'acceptsRequests = database_boolean(row.accepts_requests),',
     )
     expect(payload).not.toContain('not definition.Emergency')
     expect(createRequest).toContain(

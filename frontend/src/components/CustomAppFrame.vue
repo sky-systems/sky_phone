@@ -563,14 +563,18 @@ watch(() => catalog.openRequests[props.app.id], flushOpenRequest, {
 .custom-app-frame {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  /* CEF 103 zooms the iframe viewport without zooming its document. */
+  zoom: calc(1 / var(--phone-zoom, 1));
+  width: calc(100% / var(--phone-zoom, 1));
+  height: calc(100% / var(--phone-zoom, 1));
+  transform: scale(var(--phone-zoom, 1));
+  transform-origin: top left;
   border: 0;
   background: transparent;
 }
 
 .custom-app-frame--fix-blur {
-  transform: translateZ(0);
+  transform: scale(var(--phone-zoom, 1)) translateZ(0);
 }
 
 .custom-app-state {

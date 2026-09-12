@@ -2966,7 +2966,7 @@ const deviceData = {
   alarms: {
     payload: [
       {
-        enabled: true,
+        enabled: false,
         id: 'demo-weekday-alarm',
         lastTriggeredMinute: null,
         note: 'Morning patrol',
@@ -2975,7 +2975,7 @@ const deviceData = {
         weekdays: [1, 2, 3, 4, 5],
       },
       {
-        enabled: true,
+        enabled: false,
         id: 'demo-garage-alarm',
         lastTriggeredMinute: null,
         note: 'Garage appointment',
@@ -4224,7 +4224,7 @@ const companyProfiles = [
     availability: 'busy',
     availabilityUpdatedAt: isoTime(-22 * 60 * 1000),
     canCall: true,
-    canMessage: false,
+    canMessage: true,
     categoryId: 'medical',
     categoryName: 'Medical',
     coverUrl: 'https://picsum.photos/seed/companies-ems-cover/900/360',
@@ -6792,6 +6792,15 @@ app.post('/api/:endpoint', (request, response) => {
       company.availabilityUpdatedAt = new Date().toISOString()
     }
     if (endpoint === 'companies:update-profile') {
+      if (
+        request.body.coverMediaId != null ||
+        request.body.coverUrl != null ||
+        request.body.logoMediaId != null ||
+        request.body.logoUrl != null
+      ) {
+        response.json({ success: false, error: 'invalid_profile' })
+        return
+      }
       company.acceptsRequests = request.body.acceptsRequests === true
       company.description = String(request.body.description ?? '')
       company.location = {
@@ -6804,14 +6813,6 @@ app.post('/api/:endpoint', (request, response) => {
         district: String(request.body.district ?? ''),
         label: String(request.body.locationLabel ?? ''),
       }
-      const logo = mockMedia.find(
-        (item) => item.id === Number(request.body.logoMediaId),
-      )
-      const cover = mockMedia.find(
-        (item) => item.id === Number(request.body.coverMediaId),
-      )
-      if (logo) company.logoUrl = logo.url
-      if (cover) company.coverUrl = cover.url
     }
     if (endpoint === 'companies:update-hours') {
       company.hours = Array.isArray(request.body.hours)

@@ -121,18 +121,6 @@ type ManagerProfileDraft = {
   locationLabel: string
 }
 
-type ManagerMediaContext = {
-  announcement: { body: string; expiresAt: string }
-  companyId: string
-  coords: CompanyCoordinates | null
-  coverMedia: PhoneMedia | null
-  hours: CompanyHours[]
-  kind: 'cover' | 'logo'
-  logoMedia: PhoneMedia | null
-  profile: ManagerProfileDraft
-  services: CompanyService[]
-}
-
 const phone = usePhoneStore()
 const calls = useCallsStore()
 const messages = useMessagesStore()
@@ -180,8 +168,6 @@ const hoursDraft = ref<CompanyHours[]>([])
 const servicesDraft = ref<CompanyService[]>([])
 const announcementDraft = reactive({ body: '', expiresAt: '' })
 const profileCoords = ref<CompanyCoordinates | null>(null)
-const selectedLogoMedia = ref<PhoneMedia | null>(null)
-const selectedCoverMedia = ref<PhoneMedia | null>(null)
 const requestThreadBottom = ref<HTMLElement | null>(null)
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -200,12 +186,6 @@ const filtersActive = computed(
 )
 const activeCompany = computed(() => companies.company)
 const workCompany = computed(() => companies.workContext?.company ?? null)
-const managerLogoUrl = computed(
-  () => selectedLogoMedia.value?.url ?? workCompany.value?.logoUrl ?? null,
-)
-const managerCoverUrl = computed(
-  () => selectedCoverMedia.value?.url ?? workCompany.value?.coverUrl ?? null,
-)
 const requestProgress = computed(() => {
   if (!requestServiceId.value) return 0.25
   if (!requestSubject.value.trim() || !requestDescription.value.trim())
@@ -787,8 +767,6 @@ function syncManagerDraft(company: Company): void {
   profileCoords.value = company.location?.coords
     ? { ...company.location.coords }
     : null
-  selectedLogoMedia.value = null
-  selectedCoverMedia.value = null
 }
 
 function openManager(): void {
@@ -804,32 +782,6 @@ function managerResponseError(error?: string): void {
     return
   }
   showToast(errorText(error))
-}
-
-function chooseManagerMedia(kind: 'cover' | 'logo'): void {
-  const company = workCompany.value
-  if (!company) return
-  mediaPicker.begin(
-    'companies:manager-media',
-    'photo',
-    '/apps/companies?managerMedia=1',
-    1,
-    {
-      announcement: { ...announcementDraft },
-      companyId: company.id,
-      coords: profileCoords.value ? { ...profileCoords.value } : null,
-      coverMedia: selectedCoverMedia.value,
-      hours: hoursDraft.value.map((hours) => ({ ...hours })),
-      kind,
-      logoMedia: selectedLogoMedia.value,
-      profile: { ...profileDraft },
-      services: servicesDraft.value.map((service) => ({ ...service })),
-    } satisfies ManagerMediaContext,
-  )
-  void router.push({
-    path: '/apps/photos',
-    query: { mediaAttachment: 'photo' },
-  })
 }
 
 async function useCurrentLocation(): Promise<void> {
@@ -851,14 +803,8 @@ async function saveProfile(): Promise<void> {
     acceptsRequests: profileDraft.acceptsRequests,
     address: profileDraft.address.trim(),
     ...(profileCoords.value ? { coords: profileCoords.value } : {}),
-    ...(selectedCoverMedia.value
-      ? { coverMediaId: selectedCoverMedia.value.id }
-      : {}),
     description: profileDraft.description.trim(),
     district: profileDraft.district.trim(),
-    ...(selectedLogoMedia.value
-      ? { logoMediaId: selectedLogoMedia.value.id }
-      : {}),
     locationLabel: profileDraft.locationLabel.trim(),
     revision: company.revision,
   })
@@ -1030,9 +976,6 @@ watch(
 onMounted(async () => {
   const selection =
     mediaPicker.consumeMany<RequestMediaContext>('companies:request')
-  const managerSelection = mediaPicker.consumeMany<ManagerMediaContext>(
-    'companies:manager-media',
-  )
   const linkedRequestId =
     typeof route.query.requestId === 'string' ? route.query.requestId : null
   const linkedRequestOrigin: RequestOrigin =
@@ -1046,29 +989,6 @@ onMounted(async () => {
   if (linkedRequestId) {
     await router.replace('/apps/companies')
     await openRequest(linkedRequestId, linkedRequestOrigin)
-    return
-  }
-  if (
-    managerSelection?.context &&
-    managerSelection.context.companyId === workCompany.value?.id &&
-    companies.workContext?.permissions.canManageProfile
-  ) {
-    const context = managerSelection.context
-    openManager()
-    Object.assign(profileDraft, context.profile)
-    hoursDraft.value = context.hours.map((hours) => ({ ...hours }))
-    servicesDraft.value = context.services.map((service) => ({ ...service }))
-    announcementDraft.body = context.announcement.body
-    announcementDraft.expiresAt = context.announcement.expiresAt
-    profileCoords.value = context.coords ? { ...context.coords } : null
-    selectedLogoMedia.value = context.logoMedia
-    selectedCoverMedia.value = context.coverMedia
-    const selectedMedia = managerSelection.media[0]
-    if (selectedMedia && context.kind === 'logo') {
-      selectedLogoMedia.value = selectedMedia
-    } else if (selectedMedia && context.kind === 'cover') {
-      selectedCoverMedia.value = selectedMedia
-    }
     return
   }
   if (!selection?.context) return
@@ -1914,40 +1834,6 @@ onBeforeUnmount(() => {
         <SkyBlockTitle>{{
           phone.t('Apps.companies.manager.profile')
         }}</SkyBlockTitle>
-        <div class="manager-media-grid">
-          <SkyButton
-            variant="secondary"
-            rounded
-            large
-            class="manager-media-button"
-            @click="chooseManagerMedia('cover')"
-          >
-            <img
-              v-if="managerCoverUrl"
-              :src="managerCoverUrl"
-              :alt="phone.t('Apps.companies.manager.coverPhoto')"
-              loading="lazy"
-            />
-            <span v-else><ImagePlus :size="22" /></span>
-            <small>{{ phone.t('Apps.companies.manager.chooseCover') }}</small>
-          </SkyButton>
-          <SkyButton
-            variant="secondary"
-            rounded
-            large
-            class="manager-media-button"
-            @click="chooseManagerMedia('logo')"
-          >
-            <img
-              v-if="managerLogoUrl"
-              :src="managerLogoUrl"
-              :alt="phone.t('Apps.companies.manager.logoPhoto')"
-              loading="lazy"
-            />
-            <span v-else><ImagePlus :size="22" /></span>
-            <small>{{ phone.t('Apps.companies.manager.chooseLogo') }}</small>
-          </SkyButton>
-        </div>
         <SkyList inset strong class="manager-form-list">
           <SkyField
             type="textarea"
@@ -2050,13 +1936,21 @@ onBeforeUnmount(() => {
             </SkyListItem>
             <template v-if="!hours.isClosed">
               <SkyField
-                type="time"
+                type="text"
+                inputmode="numeric"
+                placeholder="HH:MM"
+                pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
+                :maxlength="5"
                 :label="phone.t('Apps.companies.manager.opensAt')"
                 :value="hours.opensAt ?? ''"
                 @input="updateHour(index, 'opensAt', $event)"
               />
               <SkyField
-                type="time"
+                type="text"
+                inputmode="numeric"
+                placeholder="HH:MM"
+                pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
+                :maxlength="5"
                 :label="phone.t('Apps.companies.manager.closesAt')"
                 :value="hours.closesAt ?? ''"
                 @input="updateHour(index, 'closesAt', $event)"
@@ -2727,6 +2621,12 @@ onBeforeUnmount(() => {
   gap: 3px;
 }
 
+.company-list :deep(.sky-list-item__title) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
 .company-row-after small {
   max-width: 82px;
   overflow: hidden;
@@ -3157,46 +3057,6 @@ onBeforeUnmount(() => {
 
 .manager-screen {
   padding-bottom: 35px;
-}
-
-.manager-media-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 9px;
-  margin: 0 0 14px;
-}
-
-.manager-media-button {
-  min-width: 0;
-  min-height: 86px;
-  overflow: hidden;
-  position: relative;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  padding: 0;
-}
-
-.manager-media-grid img {
-  width: 100%;
-  height: 86px;
-  object-fit: cover;
-}
-
-.manager-media-grid small {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  left: 6px;
-  overflow: hidden;
-  border-radius: 8px;
-  padding: 4px 6px;
-  color: white;
-  background: rgba(15, 23, 42, 0.72);
-  font-size: 9px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .manager-location {
