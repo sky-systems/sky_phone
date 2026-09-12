@@ -399,7 +399,7 @@ Config.Billing = {
 }
 
 Config.Garage = {
-    System = "auto", -- auto, custom, esx, qb, qbox, ak47, bp, cd, codem, ds-servercreator, hex, jg, my, okok, op, quasar, rx, vms, ws, zyke_garages
+    System = "auto", -- auto, custom, esx, qb, qbox, ak47, bp, cd, codem, ds-servercreator, hex, jg, msk, my, okok, op, quasar, rx, vms, ws, zyke_garages
     MaximumVehicles = 250,
     RequestsPerMinute = 30,
     VehicleImages = {

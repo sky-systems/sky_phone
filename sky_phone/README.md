@@ -536,6 +536,18 @@ The migration command is server-console only.
 
 Select the provider under `Config.Garage.System`. Vehicle images use the configured CDN template with an icon fallback when no image is available.
 
+For MSK Garage, select `msk` (or use `auto`) and start `msk_garage` before `sky_phone`.
+With the Phone Configurator enabled, set `Garage.System` to `msk` in `/phonepanel` instead.
+Automatic detection checks `jg-advancedgarages` before `msk_garage`; select `msk` explicitly if both run.
+The adapter uses MSK's standard framework vehicle schema: ESX `owned_vehicles` / `stored`,
+or QBCore and Qbox `player_vehicles` / `state` (MSK 5.6+). It reads the garage ID,
+custom vehicle name, properties and fuel, and changes only the parked flag for valet orders.
+MSK treats unparked vehicles as impound candidates; the phone shows them as out and only
+delivers parked, personally owned vehicles. Cancelled or failed deliveries restore the parked flag.
+With `msk_fuel`, valet preserves liters; the fuel percentage is available when that resource
+configures a tank capacity for the model. Otherwise the percentage is shown as unavailable.
+See the [MSK database contract](https://docu.msk-scripts.de/docs/msk_garage/database/).
+
 ### Housing
 
 Select `rtx`, `quasar`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, or `qbx_properties` under `Config.Housing.System`. Automatic mode uses `Config.Housing.AutoPriority` and keeps the existing `esx_property` and `qbx_properties` defaults ahead of newly supported providers. Select a provider explicitly when multiple housing resources are running. Each bridge exposes only the capabilities supported by the documented provider API.

@@ -2141,6 +2141,7 @@ Locales["es"] = {
     },
 }
 
+Locales["es"].Nui.AdminPanel.configurator.descriptions.garageSystem = "Proveedor de garajes: usa msk para msk_garage. Auto detecta primero jg-advancedgarages, después msk_garage y luego el garaje del framework."
 Locales["es"].Nui.AdminPanel.configurator.table.addJob = "Añadir trabajo"
 Locales["es"].Nui.AdminPanel.configurator.table.jobPlaceholder = "Nombre del trabajo"
 Locales["es"].Nui.AdminPanel.configurator.table.subtabs = {
