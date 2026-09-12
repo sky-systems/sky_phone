@@ -163,6 +163,11 @@
   --sky-surface-tint: #ffffff;
   --sky-surface-muted: #f7f7f8;
   --sky-surface-variant: #f4f4f4;
+  /* Solid action surfaces keep white labels readable in either theme. */
+  --sky-action-surface: #1c1c1d;
+  --sky-action-pressed: #323234;
+  --sky-action-muted: rgba(255, 255, 255, 0.65);
+  --sky-action-border: rgba(255, 255, 255, 0.22);
   --sky-message-received-background: #e5e5ea;
   --sky-message-meta: rgba(0, 0, 0, 0.45);
   --sky-messagebar-gradient-start: #efeff4;

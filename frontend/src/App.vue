@@ -1935,7 +1935,8 @@ onBeforeUnmount(() => {
                     'phone-app--light': !displayedDarkMode,
                     'phone-app--messages': route.params.appId === 'messages',
                     'phone-app--status-light':
-                      WHITE_STATUS_BAR_APP_IDS.has(activeAppId),
+                      WHITE_STATUS_BAR_APP_IDS.has(activeAppId) ||
+                      (activeAppId === 'phone' && calls.activeCall !== null),
                     'phone-app--status-dark':
                       DARK_STATUS_BAR_APP_IDS.has(activeAppId),
                     'phone-app--setup': setupRequired,
