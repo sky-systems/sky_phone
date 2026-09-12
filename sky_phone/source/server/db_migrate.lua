@@ -2606,6 +2606,7 @@ local schema = {
         name = "sky_phone_company_profiles",
         columns = {
             { name = "company_id", type = "VARCHAR(64) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "config_profile", type = "LONGTEXT NULL" },
             { name = "description", type = "VARCHAR(1000) NOT NULL DEFAULT ''" },
             { name = "district", type = "VARCHAR(80) NOT NULL DEFAULT ''" },
             { name = "location_label", type = "VARCHAR(80) NOT NULL DEFAULT ''" },

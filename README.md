@@ -667,6 +667,13 @@ Set each definition's `CoverUrl` to an HTTPS image URL in the configuration or P
 admin-managed; job members cannot change them through Companies. Previously uploaded job
 logos and covers are no longer used automatically.
 
+Changes to `Description`, `District`, `LocationLabel`, and `Address` in the Phone Configurator
+also update existing company profiles. Each profile stores the last applied configuration so
+manager edits survive unrelated panel saves and resource restarts; changing a field in the panel
+overrides that field only. On the first restart after this update, the automatic schema migration
+adds `config_profile` and replaces remaining stock profile texts with the configured values.
+Existing custom texts are preserved during this initial reconciliation.
+
 Opening hours use 24-hour `HH:MM` input. `ServiceLine.CanMessage` enables company SMS and defaults
 to `true` for new companies and the shipped service lines. On the first restart after this update,
 the Phone Configurator enables SMS once for the stored `ambulance`, `fire`, `mechanic`, and `taxi`

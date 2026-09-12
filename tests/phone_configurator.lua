@@ -223,3 +223,5 @@ test("stale revisions cannot overwrite saved settings", function()
 end)
 
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
+
+dofile("tests/companies_profile_config_sync.lua")

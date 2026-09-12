@@ -1189,6 +1189,7 @@ CREATE TABLE IF NOT EXISTS `sky_phone_crewlink_pings` (
 
 CREATE TABLE IF NOT EXISTS `sky_phone_company_profiles` (
     `company_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `config_profile` LONGTEXT NULL,
     `description` VARCHAR(1000) NOT NULL DEFAULT '',
     `district` VARCHAR(80) NOT NULL DEFAULT '',
     `location_label` VARCHAR(80) NOT NULL DEFAULT '',
