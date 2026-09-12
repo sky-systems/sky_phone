@@ -69,6 +69,10 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  const citywarnBlip = path.match(
+    /^CityWarn\.Blip\.(Sprite|Display|ShortRange|CategoryId|CategoryName|RadiusEnabled|Radius)$/,
+  )
+  if (citywarnBlip) return `citywarnBlip${citywarnBlip[1]}`
   if (/^Companies\.Definitions\.[^.]+\.Name$/.test(path)) return 'companyName'
   if (/^Companies\.Definitions\.[^.]+\.LogoUrl$/.test(path))
     return 'companyLogo'

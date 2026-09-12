@@ -222,6 +222,63 @@ test("stale revisions cannot overwrite saved settings", function()
     assert(server.env.Config.Companies.Enabled == true)
 end)
 
+test("CityWarn presentation roundtrips through SQL and reaches connected and new clients", function()
+    local server = new_server()
+    local defaults = server.field("CityWarn").value
+    assert(defaults.Blip.Sprite == 10 and defaults.Blip.CategoryName == "CityWarn")
+    assert(defaults.Blip.Display == 2 and defaults.Blip.ShortRange == false)
+    assert(defaults.Blip.RadiusEnabled == true and defaults.Blip.Radius == 100)
+    local client = new_client(server)
+    local settings = client.config.CityWarn.Blip
+    assert(client.config.CityWarn.Enabled and settings.Sprite == 10)
+    defaults.Blip = { Sprite = 375, Display = 0, ShortRange = true, CategoryId = 20,
+        CategoryName = "Public warnings", RadiusEnabled = false, Radius = 250.5 }
+    local result = server.save({ change("CityWarn", defaults) })
+    assert(result.success, tostring(result.error))
+    client.sync(server.broadcasts[1])
+    assert(client.config.CityWarn.Blip == settings, "live refresh must preserve the settings table")
+    assert(settings.Sprite == 375 and settings.Display == 0 and settings.ShortRange == true)
+    assert(settings.CategoryId == 20 and settings.CategoryName == "Public warnings")
+    assert(settings.RadiusEnabled == false and settings.Radius == 250.5)
+    assert(server.runtime().config.CityWarn.Publishers == nil, "publisher policy remains server-owned")
+    local restarted = new_server(server.database)
+    local reconnect = new_client(restarted)
+    assert(reconnect.config.CityWarn.Blip.RadiusEnabled == false and reconnect.config.CityWarn.Blip.Display == 0)
+    defaults.Enabled = false
+    defaults.Blip.ShortRange = false
+    assert(restarted.save({ change("CityWarn", defaults) }).success)
+    reconnect.sync(restarted.broadcasts[1])
+    assert(reconnect.config.CityWarn.Enabled == false and reconnect.config.CityWarn.Blip.ShortRange == false)
+end)
+
+test("existing CityWarn SQL rows receive new blip defaults without resetting saved policy", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.CityWarn.Blip = nil
+    stored.CityWarn.Enabled = false
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.CityWarn.Enabled == false)
+    assert(restarted.env.Config.CityWarn.Blip.Sprite == 10)
+    assert(restarted.env.Config.CityWarn.Blip.RadiusEnabled == true)
+end)
+
+test("invalid CityWarn native settings are rejected before persistence or broadcast", function()
+    for _, invalid in ipairs({
+        { "Sprite", -1 }, { "Sprite", 1.5 }, { "Sprite", 65536 },
+        { "Display", 11 }, { "Display", 2.5 }, { "ShortRange", "false" },
+        { "CategoryId", 11 }, { "CategoryId", 134 }, { "CategoryName", "   " },
+        { "CategoryName", "~r~Warnings" }, { "CategoryName", string.rep("x", 100) },
+        { "RadiusEnabled", 1 }, { "Radius", 0 }, { "Radius", 50001 },
+    }) do
+        local server = new_server()
+        local citywarn = server.field("CityWarn").value
+        citywarn.Blip[invalid[1]] = invalid[2]
+        local result = server.save({ change("CityWarn", citywarn) })
+        assert(not result.success and result.error == "invalid_value", invalid[1])
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")

@@ -412,6 +412,20 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyList: t('configurator.table.emptyList'),
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
+  fieldNames: Object.fromEntries(
+    [
+      'Sprite',
+      'Display',
+      'ShortRange',
+      'CategoryId',
+      'CategoryName',
+      'RadiusEnabled',
+      'Radius',
+    ].map((key) => [
+      `CityWarn.Blip.${key}`,
+      t(`configurator.citywarnBlipLabels.${key}`),
+    ]),
+  ),
   general: configuratorLocaleText('configurator.table.general', 'General'),
   jobPlaceholder: t('configurator.table.jobPlaceholder'),
   keyPlaceholder: t('configurator.table.keyPlaceholder'),

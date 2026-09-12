@@ -1172,6 +1172,11 @@ local function client_payload()
             payload[key] = copy_value(stored_config[key])
         end
     end
+    -- Public map presentation must reach clients even while their phone is closed.
+    payload.CityWarn = {
+        Enabled = stored_config.CityWarn.Enabled,
+        Blip = copy_value(stored_config.CityWarn.Blip),
+    }
     return payload
 end
 
@@ -1556,6 +1561,23 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     end
 
     local candidate_config = deserialize_value(next_config)
+    local citywarn = candidate_config.CityWarn
+    local blip = citywarn and citywarn.Blip
+    local function integer_between(value, minimum, maximum)
+        return type(value) == "number" and value % 1 == 0 and value >= minimum and value <= maximum
+    end
+    if type(citywarn) ~= "table" or type(citywarn.Enabled) ~= "boolean" or type(blip) ~= "table"
+        or not integer_between(blip.Sprite, 0, 65535)
+        or not integer_between(blip.Display, 0, 10)
+        or not integer_between(blip.CategoryId, 12, 133)
+        or type(blip.ShortRange) ~= "boolean"
+        or type(blip.RadiusEnabled) ~= "boolean"
+        or type(blip.Radius) ~= "number" or not (blip.Radius >= 1.0 and blip.Radius <= 50000.0)
+        or type(blip.CategoryName) ~= "string" or #blip.CategoryName > 99
+        or not blip.CategoryName:find("%S") or blip.CategoryName:find("[%c~]")
+    then
+        return { success = false, error = "invalid_value" }
+    end
     local companies_valid, validation_error = SkyPhoneCompanies.ValidateConfiguration(candidate_config)
     if not companies_valid then
         Bridge.Debug(

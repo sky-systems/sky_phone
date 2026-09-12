@@ -38,6 +38,38 @@ const configSource = readFileSync(
   'utf8',
 )
 
+describe('CityWarn blip configuration', () => {
+  it('exposes complete, fixed fields with native-compatible defaults', () => {
+    const field = loadConfiguratorSections()
+      .flatMap((section) => section.fields)
+      .find((entry) => entry.path === 'CityWarn')
+    expect(field).toBeDefined()
+    expect((field?.value as { Blip: unknown }).Blip).toEqual({
+      Sprite: 10,
+      Display: 2,
+      ShortRange: false,
+      CategoryId: 12,
+      CategoryName: 'CityWarn',
+      RadiusEnabled: true,
+      Radius: 100,
+    })
+    const structure = field?.structure?.fields?.Blip
+    expect(structure?.kind).toBe('table')
+    expect(structure?.mutableKeys).not.toBe(true)
+    expect(Object.keys(structure?.fields ?? {}).sort()).toEqual(
+      [
+        'Sprite',
+        'Display',
+        'ShortRange',
+        'CategoryId',
+        'CategoryName',
+        'RadiusEnabled',
+        'Radius',
+      ].sort(),
+    )
+  })
+})
+
 function countStructure(structure: ConfiguratorStructure | undefined): number {
   if (!structure) return 1
   if (structure.fields) {

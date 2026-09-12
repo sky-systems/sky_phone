@@ -1,7 +1,11 @@
 local function new_client()
-    local test = { now = 0, threads = {}, events = {}, handles = {}, requests = 0, logs = {} }
+    local test = { now = 0, threads = {}, events = {}, handles = {}, requests = 0, logs = {}, text_entries = {} }
     local env = setmetatable({}, { __index = _G })
-    env.Config = { CityWarn = { Enabled = true }, Bridge = { Locale = "en" } }
+    env.Config = {}
+    env.IsDuplicityVersion = function() return false end
+    env.vector3 = function(x, y, z) return { x = x, y = y, z = z } end
+    assert(loadfile("sky_phone/config/config.lua", "t", env))()
+    test.config = env.Config
     env.SkyPhoneLocales = { Resolve = function()
         return { Nui = { Apps = { citywarn = { name = "CityWarn" } } } }
     end }
@@ -46,7 +50,8 @@ local function new_client()
         test.handles[handle].exists = false
     end
     env.SetBlipCoords = function(handle, x, y, z) test.handles[handle].coords = coordinates(x, y, z) end
-    for _, property in ipairs({ "Sprite", "Scale", "Display", "AsShortRange", "Alpha", "Colour" }) do
+    env.AddTextEntry = function(key, value) test.text_entries[key] = value end
+    for _, property in ipairs({ "Sprite", "Scale", "Display", "AsShortRange", "Alpha", "Colour", "Category", "HiddenOnLegend" }) do
         env["SetBlip" .. property] = function(handle, value)
             assert(env.DoesBlipExist(handle))
             test.handles[handle][property] = value
@@ -93,8 +98,9 @@ local function new_client()
         for _, handle in ipairs(test.handles) do if handle.exists then count = count + 1 end end
         return count
     end
-    function test.configure(enabled)
+    function test.configure(enabled, settings)
         env.Config.CityWarn.Enabled = enabled
+        for key, value in pairs(settings or {}) do env.Config.CityWarn.Blip[key] = value end
         test.events["sky_phone:configurator:updated"]()
     end
     assert(loadfile("sky_phone/source/client/citywarn.lua", "t", env))()
@@ -113,6 +119,10 @@ client.snapshot({ alert() })
 client.run()
 assert(client.count() == 2 and client.requests == 1, "join/restart must restore blips without opening NUI")
 assert(client.handles[1].Display == 2 and client.handles[1].AsShortRange == false)
+assert(client.handles[1].Sprite == 10 and client.handles[1].Category == 12)
+assert(client.text_entries.BLIP_CAT_12 == "CityWarn")
+assert(client.handles[2].size == 100 and client.handles[2].HiddenOnLegend == true,
+    "the fixed area must be sized in world metres and hidden from the legend")
 assert(client.handles[1].Colour == 1 and client.handles[2].Alpha == 80)
 assert(client.handles[1].name == "CityWarn: Police operation")
 client.send("published", "alert-1")
@@ -124,9 +134,10 @@ local long_title = string.rep("Ä", 120)
 client.snapshot({ alert({ x = -50, y = 0, radius = 800, severity = "extreme", title = "~r~" .. long_title }) })
 client.send("update", "alert-1")
 client.advance(1000)
-assert(client.count() == 2 and #client.handles == 3 and not client.handles[2].exists)
+assert(client.count() == 2 and #client.handles == 2,
+    "changing a warning's notification radius must preserve the configured map radius")
 assert(client.handles[1].coords.x == -50 and client.handles[1].Colour == 27)
-assert(client.handles[3].size == 800 and client.handles[3].Colour == 27)
+assert(client.handles[2].size == 100 and client.handles[2].Colour == 27)
 assert(client.handles[1].name == "CityWarn: r" .. long_title, "names must strip GTA directives and preserve UTF-8")
 
 local district = alert()
@@ -134,7 +145,22 @@ district.radius = nil
 client.snapshot({ district })
 client.send("update", "alert-1")
 client.advance(1000)
-assert(client.count() == 1 and client.handles[1].exists, "district conversion must remove only the radius")
+assert(client.count() == 2 and client.handles[1].exists, "located districts must retain the configured radius")
+
+client.configure(true, { Sprite = 375, Display = 3, ShortRange = true, CategoryId = 13,
+    CategoryName = "Public warnings", Radius = 250 })
+assert(client.handles[1].Sprite == 375 and client.handles[1].Display == 3
+    and client.handles[1].AsShortRange == true and client.handles[1].Category == 13)
+assert(client.text_entries.BLIP_CAT_13 == "Public warnings")
+assert(not client.handles[2].exists and client.handles[3].size == 250
+    and client.handles[3].Display == 3 and client.handles[3].AsShortRange == true
+    and client.handles[3].HiddenOnLegend == true,
+    "panel changes must immediately update existing markers and recreate resized areas")
+client.configure(true, { RadiusEnabled = false, Display = 0, ShortRange = false })
+assert(client.count() == 1 and client.handles[1].Display == 0 and client.handles[1].AsShortRange == false,
+    "disabling the radius must preserve the point, including false and zero settings")
+client.advance(1000)
+assert(client.count() == 1, "snapshots must respect disabled radius settings")
 client.send("resolved", "alert-1", 12)
 assert(client.count() == 1, "local events must not control public blips")
 client.snapshot({})
@@ -145,6 +171,7 @@ client.advance(1000)
 assert(client.count() == 0, "delayed publication must not resurrect a resolved alert")
 
 client.snapshot({ alert() })
+client.configure(true, { RadiusEnabled = true, Display = 2 })
 client.advance(30000)
 assert(client.count() == 2, "periodic snapshots must recover missed publications")
 client.snapshot({})

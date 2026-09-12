@@ -9,6 +9,21 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains the CityWarn native settings and fixed radius separately', () => {
+    for (const key of [
+      'Sprite',
+      'Display',
+      'ShortRange',
+      'CategoryId',
+      'CategoryName',
+      'RadiusEnabled',
+      'Radius',
+    ]) {
+      expect(configuratorDescriptionKey(`CityWarn.Blip.${key}`, 10)).toBe(
+        `citywarnBlip${key}`,
+      )
+    }
+  })
   it('selects specific descriptions before generic value descriptions', () => {
     expect(configuratorDescriptionKey('Bridge.CallbackTimeout', 15000)).toBe(
       'milliseconds',

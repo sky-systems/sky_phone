@@ -63,9 +63,47 @@ local function set_name(handle, title)
     EndTextCommandSetBlipName(handle)
 end
 
+local function blip_settings()
+    local settings = Config.CityWarn.Blip or {}
+    local function integer(value, minimum, maximum, fallback)
+        local number = math.tointeger(value)
+        return number and number >= minimum and number <= maximum and number or fallback
+    end
+    local name = type(settings.CategoryName) == "string" and settings.CategoryName or "CityWarn"
+    if #name > 99 or not name:find("%S") or name:find("[%c~]") then
+        name = "CityWarn"
+    end
+    return {
+        Sprite = integer(settings.Sprite, 0, 65535, 10),
+        Display = integer(settings.Display, 0, 10, 2),
+        ShortRange = settings.ShortRange == true,
+        CategoryId = integer(settings.CategoryId, 12, 133, 12),
+        CategoryName = name,
+        RadiusEnabled = settings.RadiusEnabled ~= false,
+        Radius = finite_number(settings.Radius, 1, 50000) and settings.Radius or 100.0,
+    }
+end
+
+local function apply_blip_settings(entry, settings)
+    AddTextEntry("BLIP_CAT_" .. settings.CategoryId, settings.CategoryName)
+    if entry.point and DoesBlipExist(entry.point) then
+        SetBlipSprite(entry.point, settings.Sprite)
+        SetBlipCategory(entry.point, settings.CategoryId)
+        SetBlipDisplay(entry.point, settings.Display)
+        SetBlipAsShortRange(entry.point, settings.ShortRange)
+    end
+    if entry.radius and DoesBlipExist(entry.radius) then
+        SetBlipDisplay(entry.radius, settings.Display)
+        SetBlipAsShortRange(entry.radius, settings.ShortRange)
+        SetBlipHiddenOnLegend(entry.radius, true)
+    end
+end
+
 local function update_alert(alert, started_at)
     local entry = blips[alert.id] or {}
     blips[alert.id] = entry
+    local settings = blip_settings()
+    local radius = settings.RadiusEnabled and settings.Radius or nil
 
     if not entry.point or not DoesBlipExist(entry.point) then
         entry.point = AddBlipForCoord(alert.x + 0.0, alert.y + 0.0, 0.0)
@@ -73,22 +111,19 @@ local function update_alert(alert, started_at)
             remove_alert(alert.id)
             return false
         end
-        SetBlipSprite(entry.point, 161)
         SetBlipScale(entry.point, 0.9)
-        SetBlipDisplay(entry.point, 2)
-        SetBlipAsShortRange(entry.point, false)
     end
     SetBlipCoords(entry.point, alert.x + 0.0, alert.y + 0.0, 0.0)
     SetBlipColour(entry.point, severity_colours[alert.severity])
     set_name(entry.point, alert.title)
 
-    if entry.radius_size ~= alert.radius then
+    if entry.radius_size ~= radius then
         remove_handle(entry.radius)
         entry.radius = nil
     end
-    if alert.radius then
+    if radius then
         if not entry.radius or not DoesBlipExist(entry.radius) then
-            entry.radius = AddBlipForRadius(alert.x + 0.0, alert.y + 0.0, 0.0, alert.radius + 0.0)
+            entry.radius = AddBlipForRadius(alert.x + 0.0, alert.y + 0.0, 0.0, radius + 0.0)
             if not entry.radius or not DoesBlipExist(entry.radius) then
                 remove_alert(alert.id)
                 return false
@@ -98,7 +133,9 @@ local function update_alert(alert, started_at)
         SetBlipCoords(entry.radius, alert.x + 0.0, alert.y + 0.0, 0.0)
         SetBlipColour(entry.radius, severity_colours[alert.severity])
     end
-    entry.radius_size = alert.radius
+    apply_blip_settings(entry, settings)
+    entry.alert = alert
+    entry.radius_size = radius
     entry.started_at = started_at
     entry.remaining_ms = alert.remainingMs
     return true
@@ -146,6 +183,10 @@ AddEventHandler("sky_phone:configurator:updated", function()
     request_sync()
     if not enabled() then
         clear_blips()
+    else
+        for _, entry in pairs(blips) do
+            update_alert(entry.alert, entry.started_at)
+        end
     end
 end)
 

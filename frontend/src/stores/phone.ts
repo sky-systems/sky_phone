@@ -930,7 +930,29 @@ const adminPanelFallbackLocales = {
         playback: 'The tone could not be played.',
       },
     },
+    citywarnBlipLabels: {
+      Sprite: 'Sprite',
+      Display: 'Map display',
+      ShortRange: 'Short range',
+      CategoryId: 'Category ID',
+      CategoryName: 'Category name',
+      RadiusEnabled: 'Show radius',
+      Radius: 'Radius (metres)',
+    },
     descriptions: {
+      citywarnBlipSprite: 'GTA blip sprite ID. Default: 10.',
+      citywarnBlipDisplay:
+        'Display mode: 0/1/7 hidden; 2/6 map and minimap, selectable; 3/4 map only; 5/9 minimap only; 8/10 both, not selectable.',
+      citywarnBlipShortRange:
+        'When enabled, the minimap shows the blip only nearby. Default: off.',
+      citywarnBlipCategoryId:
+        'Custom named map category ID from 12 to 133. Default: 12. Choose an unused ID to avoid sharing another category.',
+      citywarnBlipCategoryName:
+        'Map legend category name, up to 99 bytes without GTA formatting. Default: CityWarn.',
+      citywarnBlipRadiusEnabled:
+        'Shows a fixed area around each located warning. The area has no separate map legend entry.',
+      citywarnBlipRadius:
+        'Fixed area radius in metres (1-50000). Default: 100. Independent of the warning notification area.',
       companyName: 'Company name shown in Discover (maximum 32 characters).',
       companyLogo: 'Admin-managed company logo (HTTPS image URL).',
       companyCover: 'Admin-managed company cover photo (HTTPS image URL).',
