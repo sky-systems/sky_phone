@@ -24,6 +24,27 @@ local function new_client(options)
     end }
     env.GetGameTimer = function() return test.now end
     env.GetCurrentResourceName = function() return "sky_phone" end
+    env.GetResourceState = function(name)
+        return name == "msk_fuel" and options.msk_fuel and "started" or "missing"
+    end
+    env.exports = { msk_fuel = {
+        SetVehicleFuel = function(_, vehicle, fuel)
+            assert(vehicle == 2)
+            test.msk_fuel = fuel
+        end,
+        Config = function()
+            test.fuel_config_reads = (test.fuel_config_reads or 0) + 1
+            return { PetrolTankVolume = { [1] = 200 } }
+        end,
+    } }
+    env.Entity = function(vehicle)
+        assert(vehicle == 2)
+        return { state = { set = function(_, key, fuel, replicated)
+            assert(key == "fuel" and replicated)
+            test.fuel_state = fuel
+        end } }
+    end
+    env.SetVehicleFuelLevel = function(_, fuel) test.native_fuel = fuel end
     env.RegisterNetEvent = function(name, callback) test.events[name] = callback end
     env.AddEventHandler = env.RegisterNetEvent
     env.RegisterNUICallback = function(name, callback) test.callbacks[name] = callback end
@@ -38,10 +59,13 @@ local function new_client(options)
     env.Bridge = {
         Framework = { Notify = function() end },
         Callbacks = { Trigger = function(name)
+            if name == "sky_phone:garage:vehicles" then
+                return { success = true, data = { vehicles = options.overview or {} } }
+            end
             if name == "sky_phone:garage:valet-request" then
                 return { success = true, data = {
                     orderId = "test-order", cost = 750, driverModel = "valet",
-                    vehicle = { model = 1, plate = "VALET", properties = {} },
+                    vehicle = options.vehicle or { model = 1, plate = "VALET", properties = {} },
                 } }
             end
             if name == "sky_phone:garage:valet-complete" then
@@ -61,6 +85,10 @@ local function new_client(options)
     env.GetGamePool = function() return {} end
     env.GetDisplayNameFromVehicleModel = function() return "TEST" end
     env.GetLabelText = function() return "Test vehicle" end
+    for _, name in ipairs({ "IsThisModelABoat", "IsThisModelAPlane", "IsThisModelAHeli",
+        "IsThisModelABike", "IsThisModelABicycle" }) do
+        env[name] = function() return nil end
+    end
     env.GetEntityCoords = function() return vector(0.0, 0.0, 0.0) end
     env.GetOffsetFromEntityInWorldCoords = function(_, x, y, z) return vector(x, y, z) end
     env.GetClosestVehicleNodeWithHeading = function() return 1, vector(0.0, 0.0, 0.0), 0.0 end
@@ -147,6 +175,11 @@ local function new_client(options)
     end
     function test.stop() test.events.onResourceStop("sky_phone") end
     function test.abort() test.events["sky_phone:garage:valet-aborted"]("valet_timeout") end
+    function test.overview()
+        local result
+        test.callbacks["garage:vehicles"]({}, function(value) result = value end)
+        return result.data.vehicles
+    end
     assert(loadfile("sky_phone/source/client/garage.lua", "t", env))()
     test.callbacks["garage:valet-request"]({ plate = "VALET" }, function(result)
         assert(result.success, "request must be accepted")
@@ -219,4 +252,34 @@ delayed.advance(5000)
 assert(delayed.state.status == "delivered" and delayed.entities[2],
     "delivery must still complete if the driver has already despawned")
 
-print("Client garage valet tests passed (8 scenarios)")
+local msk_liters = new_client({ msk_fuel = true, vehicle = {
+    model = 1, plate = "VALET", garageSystem = "msk", fuel = 140, properties = { fuelLevel = 20 },
+} })
+msk_liters.advance(0)
+assert(msk_liters.msk_fuel == 140 and msk_liters.native_fuel == nil,
+    "MSK's stored liters must reach its fuel export without the percentage clamp")
+
+local msk_standard = new_client({ vehicle = {
+    model = 1, plate = "VALET", garageSystem = "msk", fuel = 45, properties = { fuelLevel = 99 },
+} })
+msk_standard.advance(0)
+assert(msk_standard.native_fuel == 45 and msk_standard.fuel_state == 45,
+    "MSK's fuel column must override properties and restore its fuel state bag")
+
+local other_provider = new_client({ msk_fuel = true, vehicle = {
+    model = 1, plate = "VALET", garageSystem = "esx", fuel = 45, properties = { fuelLevel = 99 },
+} })
+other_provider.advance(0)
+assert(other_provider.native_fuel == 99 and other_provider.msk_fuel == nil,
+    "other garage providers must keep their existing fuel behavior")
+
+local msk_overview = new_client({ msk_fuel = true, overview = {
+    { model = 1, mskFuel = 140 }, { model = 1, mskFuel = 40 }, { model = 2, mskFuel = 40 },
+} })
+local vehicles = msk_overview.overview()
+assert(vehicles[1].fuel == 70 and vehicles[2].fuel == 20 and vehicles[3].fuel == nil,
+    "fuel percentages require a known model tank capacity")
+assert(msk_overview.fuel_config_reads == 1, "read MSK fuel config once per overview")
+for _, vehicle in ipairs(vehicles) do assert(vehicle.mskFuel == nil, "keep provider data out of NUI") end
+
+print("Client garage valet tests passed (12 scenarios)")

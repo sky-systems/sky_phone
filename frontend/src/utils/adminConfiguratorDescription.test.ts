@@ -10,6 +10,9 @@ import {
 
 describe('admin configurator descriptions', () => {
   it('selects specific descriptions before generic value descriptions', () => {
+    expect(configuratorDescriptionKey('Garage.System', 'msk')).toBe(
+      'garageSystem',
+    )
     expect(configuratorDescriptionKey('Bridge.CallbackTimeout', 15000)).toBe(
       'milliseconds',
     )

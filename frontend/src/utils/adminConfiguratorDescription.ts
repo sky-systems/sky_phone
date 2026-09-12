@@ -69,6 +69,7 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  if (path === 'Garage.System') return 'garageSystem'
   if (/^Companies\.Definitions\.[^.]+\.Name$/.test(path)) return 'companyName'
   if (/^Companies\.Definitions\.[^.]+\.LogoUrl$/.test(path))
     return 'companyLogo'

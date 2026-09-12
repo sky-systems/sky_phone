@@ -127,6 +127,21 @@ local function test(name, callback)
     end
 end
 
+test("MSK garage selection survives SQL reload and reaches connected phones", function()
+    local server = new_server()
+    local client = new_client(server)
+    local garage = server.field("Garage").value
+    assert(garage.System == "auto")
+    assert(server.field("Garage").structure.fields.System.valueType == "string")
+    garage.System = "msk"
+    assert(server.save({ change("Garage", garage) }).success)
+    client.sync(server.broadcasts[1])
+    assert(server.env.Config.Garage.System == "msk" and client.config.Garage.System == "msk")
+    local restarted = new_server(server.database)
+    assert(restarted.field("Garage").value.System == "msk")
+    assert(new_client(restarted).config.Garage.System == "msk")
+end)
+
 test("false scalar settings save together with other panel changes and survive reload", function()
     local server = new_server()
     local apps = server.field("Apps").value
