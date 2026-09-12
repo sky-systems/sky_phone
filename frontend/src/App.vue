@@ -392,6 +392,7 @@ const dynamicIslandActivity = ref<DynamicIslandActivity | null>(null)
 const simPicker = ref<SimPickerPayload | null>(null)
 const setupRequired = computed(
   () =>
+    phone.isOpen &&
     !(isDevelopment && setupDevelopmentSkipped.value) &&
     (!phone.preferences.settings.setupCompleted ||
       (isDevelopment &&
