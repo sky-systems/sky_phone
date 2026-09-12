@@ -80,12 +80,20 @@ RegisterNUICallback("garage:vehicles", function(data, cb)
         cb(type(result) == "table" and result or { success = false, error = "request_failed" })
         return
     end
+    local msk_fuel_config
     for _, vehicle in ipairs(result.data.vehicles or {}) do
         local model_hash = tonumber(vehicle.model)
         if not model_hash and type(vehicle.model) == "string" and vehicle.model ~= "" then
             model_hash = joaat(vehicle.model)
         end
         if model_hash then
+            if vehicle.mskFuel ~= nil and GetResourceState("msk_fuel") == "started" then
+                msk_fuel_config = msk_fuel_config or exports.msk_fuel:Config()
+                local capacity = tonumber((msk_fuel_config.PetrolTankVolume or {})[model_hash])
+                if capacity and capacity > 0 then
+                    vehicle.fuel = math.max(0, math.min(100, math.floor(vehicle.mskFuel / capacity * 100 + 0.5)))
+                end
+            end
             local display_name = GetDisplayNameFromVehicleModel(model_hash)
             local label = display_name and GetLabelText(display_name) or nil
             if label and label ~= "NULL" and label ~= "CARNOTFOUND" then
@@ -95,6 +103,7 @@ RegisterNUICallback("garage:vehicles", function(data, cb)
             end
             vehicle.kind = vehicle_kind(model_hash, vehicle.kind)
         end
+        vehicle.mskFuel = nil
     end
     cb(result)
 end)
@@ -198,10 +207,21 @@ local function apply_vehicle_properties(vehicle, properties, fallback)
         end
     end
     local fuel = tonumber(properties.fuelLevel or properties.fuel or fallback.fuel)
+    if fallback.garageSystem == "msk" then
+        fuel = tonumber(fallback.fuel) or fuel
+    end
     local engine = tonumber(properties.engineHealth or properties.engine or fallback.engine and fallback.engine * 10)
     local body = tonumber(properties.bodyHealth or properties.body or fallback.body and fallback.body * 10)
     if fuel then
-        SetVehicleFuelLevel(vehicle, math.max(0.0, math.min(100.0, fuel)))
+        if fallback.garageSystem == "msk" and GetResourceState("msk_fuel") == "started" then
+            exports.msk_fuel:SetVehicleFuel(vehicle, math.max(0.0, fuel))
+        else
+            fuel = math.max(0.0, math.min(100.0, fuel))
+            SetVehicleFuelLevel(vehicle, fuel)
+            if fallback.garageSystem == "msk" then
+                Entity(vehicle).state:set("fuel", fuel, true)
+            end
+        end
     end
     if engine then
         SetVehicleEngineHealth(vehicle, math.max(-4000.0, math.min(1000.0, engine)))
