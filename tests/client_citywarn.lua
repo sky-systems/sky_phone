@@ -275,4 +275,14 @@ assert(client.legend(1) == "CityWarn" and client.legend(3) == "CityWarn")
 client.configure(true, { GroupByCategory = false })
 assert(client.legend(1) == "Road closed" and client.legend(3) == "Storm warning")
 
+client = new_client()
+client.response = { success = false, error = "server_initializing" }
+client.run()
+client.advance(5000)
+assert(client.requests == 2 and client.count() == 0 and #client.logs == 0,
+    "declared but pending startup callbacks must retry without reporting a failed sync")
+client.snapshot({ alert() })
+client.advance(5000)
+assert(client.count() == 2, "startup must recover without opening the phone")
+
 print("CityWarn client lifecycle tests passed")

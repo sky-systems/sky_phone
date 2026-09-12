@@ -1,3 +1,5 @@
+Bridge.Callbacks.RegisterDeferred("sky_phone:citywarn:blips")
+
 Bridge.Database.AfterMigration("sky_phone", function()
 local config = Config.CityWarn
 

@@ -70,7 +70,10 @@ end
 
 Bridge = {
     Database = { AfterMigration = function(_, callback) callback() end, Query = database },
-    Callbacks = { Register = function(name, callback) callbacks[name] = callback end },
+    Callbacks = {
+        RegisterDeferred = function(name) assert(name == "sky_phone:citywarn:blips") end,
+        Register = function(name, callback) callbacks[name] = callback end,
+    },
     Framework = {
         GetJob = function() return { name = "police", label = "Police", grade = 3, onDuty = true } end,
         GetIdentifier = function() return "test-author" end,

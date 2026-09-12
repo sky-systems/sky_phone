@@ -1,6 +1,9 @@
 local function new_client()
     local net_events, nui_callbacks, messages = {}, {}, {}
     local focused = false
+    local threads, timers, logs = {}, {}, {}
+    local client = { events = net_events, messages = messages, tone_requests = 0, timers = timers, logs = logs,
+        tone_response = { success = true, data = { ringtones = {}, notificationSounds = {} } } }
     local noop = function() end
     local locale = { Controls = {}, DeviceErrors = { default = "Phone unavailable" }, Nui = {} }
 
@@ -13,12 +16,19 @@ local function new_client()
     Locales = { en = locale }
     SkyPhoneLocales = { Resolve = function() return locale, "en" end }
     Bridge = {
-        Debug = noop,
+        Debug = function(level, message, ...)
+            if level == "warn" or level == "error" then logs[#logs + 1] = message:format(...) end
+        end,
         Framework = { Notify = noop },
         Callbacks = {
             Trigger = function(name)
                 if name == "sky_phone:device:open-request" then
                     return coroutine.yield("awaiting_inventory")
+                end
+                if name == "sky_phone:tones:list" then
+                    client.tone_requests = client.tone_requests + 1
+                    if client.block_tones then return coroutine.yield("awaiting_tones") end
+                    return client.tone_response
                 end
                 return { success = true, data = {} }
             end,
@@ -36,11 +46,27 @@ local function new_client()
     RegisterNetEvent = function(name, callback) net_events[name] = callback end
     RegisterNUICallback = function(name, callback) nui_callbacks[name] = callback end
     SendNUIMessage = function(message) messages[#messages + 1] = message end
-    RegisterCommand, RegisterKeyMapping, AddEventHandler, TriggerEvent, CreateThread = noop, noop, noop, noop, noop
+    RegisterCommand, RegisterKeyMapping, TriggerEvent = noop, noop, noop
+    AddEventHandler = RegisterNetEvent
+    GetCurrentResourceName = function() return "sky_phone" end
+    CreateThread = function(callback) threads[#threads + 1] = coroutine.create(callback) end
+    SetTimeout = function(delay, callback) timers[#timers + 1] = { delay = delay, callback = callback } end
 
     dofile("sky_phone/source/client/main.lua")
 
-    local client = { events = net_events, messages = messages }
+    function client.run_threads()
+        while #threads > 0 do
+            local thread = table.remove(threads, 1)
+            local success, state = coroutine.resume(thread)
+            assert(success, state)
+            if state == "awaiting_tones" then client.pending_tones = thread end
+        end
+    end
+    function client.fire_timer()
+        local timer = assert(table.remove(timers, 1))
+        timer.callback()
+        client.run_threads()
+    end
     function client.nui(name, data)
         local response
         nui_callbacks[name](data or {}, function(result) response = result end)
@@ -147,6 +173,74 @@ test("current device updates and server-authorized device switching still work",
     client.events["sky_phone:device:open"](device("next-session", "5553333333"))
     assert(#client.take_messages("device:updated") == 1)
     assert(SkyPhoneClient.GetState().phoneNumber == "5553333333")
+end)
+
+test("tone loading never blocks NUI readiness and coalesces concurrent refreshes", function()
+    local client = new_client()
+    client.block_tones = true
+    assert(client.nui("ui:ready", { protocolVersion = 1 }).success)
+    assert(client.tone_requests == 0, "NUI must reply before starting the server request")
+    client.run_threads()
+    assert(client.pending_tones and client.tone_requests == 1)
+    client.events["sky_phone:tones:changed"]()
+    client.events["sky_phone:tones:changed"]()
+    client.run_threads()
+    assert(client.tone_requests == 1, "only one catalog request may be in flight")
+    client.block_tones = false
+    assert(coroutine.resume(client.pending_tones, { success = true, data = { old = true } }))
+    assert(#client.take_messages("phone:tones") == 0, "superseded catalogs must not reach NUI")
+    client.run_threads()
+    local catalogs = client.take_messages("phone:tones")
+    assert(client.tone_requests == 2 and #catalogs == 1 and catalogs[1].data == client.tone_response.data)
+end)
+
+test("tone catalog retries startup failures without duplicate requests or warning spam", function()
+    local client = new_client()
+    client.tone_response = { success = false, error = "server_initializing" }
+    client.nui("ui:ready", { protocolVersion = 1 })
+    client.run_threads()
+    assert(#client.timers == 1 and client.timers[1].delay == 5000 and #client.logs == 0)
+    client.events["sky_phone:tones:changed"]()
+    client.nui("ui:ready", { protocolVersion = 1 })
+    client.run_threads()
+    assert(client.tone_requests == 1 and #client.timers == 1)
+    client.fire_timer()
+    assert(client.tone_requests == 2 and #client.logs == 0 and #client.timers == 1)
+    client.tone_response = { success = true, data = { ringtones = {}, notificationSounds = {} } }
+    client.fire_timer()
+    assert(client.tone_requests == 3 and #client.take_messages("phone:tones") == 1 and #client.timers == 0)
+end)
+
+test("tone retries handle timeouts, malformed responses and rate limits", function()
+    local client = new_client()
+    client.tone_response = nil
+    client.nui("ui:ready", { protocolVersion = 1 })
+    client.run_threads()
+    assert(client.logs[1]:find("request_failed", 1, true) and client.timers[1].delay == 5000)
+    client.tone_response = { success = true, data = "invalid" }
+    client.fire_timer()
+    assert(client.logs[2]:find("invalid_response", 1, true) and #client.take_messages("phone:tones") == 0)
+    client.tone_response = { success = false, error = "rate_limited" }
+    client.fire_timer()
+    assert(client.timers[1].delay == 60000)
+end)
+
+test("resource stop cancels pending catalog retries and discards in-flight results", function()
+    local client = new_client()
+    client.tone_response = nil
+    client.nui("ui:ready", { protocolVersion = 1 })
+    client.run_threads()
+    client.events.onResourceStop("sky_phone")
+    client.fire_timer()
+    assert(client.tone_requests == 1 and #client.take_messages("phone:tones") == 0 and #client.timers == 0)
+
+    client = new_client()
+    client.block_tones = true
+    client.nui("ui:ready", { protocolVersion = 1 })
+    client.run_threads()
+    client.events.onResourceStop("sky_phone")
+    assert(coroutine.resume(client.pending_tones, client.tone_response))
+    assert(#client.take_messages("phone:tones") == 0 and #client.timers == 0)
 end)
 
 assert(failures == 0, ("%s phone lifecycle tests failed"):format(failures))

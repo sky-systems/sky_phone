@@ -224,7 +224,8 @@ CreateThread(function()
                 else
                     error_code = response and response.error or "request_failed"
                 end
-                if error_code and error_code ~= last_error then
+                -- Deferred registration is expected during startup; the server reports stalls.
+                if error_code and error_code ~= "server_initializing" and error_code ~= last_error then
                     Bridge.Debug("warn", "[sky_phone] CityWarn blip sync failed: %s.", tostring(error_code))
                 end
                 last_error = error_code

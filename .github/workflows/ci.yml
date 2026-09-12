@@ -52,6 +52,11 @@ jobs:
           lua5.4 tests/client_citywarn.lua
           lua5.4 tests/server_citywarn.lua
 
+      - name: Test server startup and tone catalog recovery
+        run: |
+          lua5.4 tests/server_callback_startup.lua
+          lua5.4 tests/client_phone_lifecycle.lua
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
