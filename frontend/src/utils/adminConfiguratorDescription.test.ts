@@ -9,6 +9,20 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains both service-line routing modes and their timing controls', () => {
+    expect(
+      configuratorDescriptionKey(
+        'Companies.Definitions.police.ServiceLine.Routing',
+        'ring_all',
+      ),
+    ).toBe('companyCallRouting')
+    expect(
+      configuratorDescriptionKey('Companies.CallRouting.MaxAttempts', 3),
+    ).toBe('companyCallAttempts')
+    expect(
+      configuratorDescriptionKey('Companies.CallRouting.RingSeconds', 10),
+    ).toBe('companyCallRingSeconds')
+  })
   it('explains the shared category colors for both maps and the app', () => {
     expect(configuratorDescriptionKey('CityWarn.CategoryColors', {})).toBe(
       'citywarnCategoryColor',

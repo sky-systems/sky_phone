@@ -21,7 +21,7 @@ local function fixture()
     local job_reads, device_reads = 0, 0
     local thread
     local env = setmetatable({
-        Config = { Companies = { Enabled = true } },
+        Config = { Companies = { Enabled = true }, Sim = { Enabled = true } },
         SkyPhoneCompanies = {},
         definitions = {
             mechanic = { ServiceLine = { CanCall = true, MinimumGrade = 1 } },
@@ -134,6 +134,23 @@ assert(targets[1].imei == "device-1" and targets[1].simId == "sim-1")
 targets = state.env.SkyPhoneCompanies.GetCallTargets("mechanic")
 assert(#targets == 2 and targets[1].source == 2 and targets[2].source == 1)
 assert(state.env.call_availability[3], "Routing another company must preserve its readiness")
+state.env.definitions.mechanic.ServiceLine.Routing = "ring_all"
+for _ = 1, 3 do
+    targets = state.env.SkyPhoneCompanies.GetCallTargets("mechanic")
+    assert(#targets == 2 and targets[1].source == 1 and targets[2].source == 2,
+        "Ring-all must return all eligible employees without advancing round robin")
+end
+state.env.Config.Sim.Enabled = false
+for _, device in pairs(state.devices) do
+    device.sim_type = "anonymous"
+    device.registered_at = nil
+    device.sim_is_virtual = 1
+end
+assert(#state.env.SkyPhoneCompanies.GetCallTargets("mechanic") == 2,
+    "Automatic phone numbers must receive company calls when SIM cards are disabled")
+state.env.Config.Sim.Enabled = true
+assert(#state.env.SkyPhoneCompanies.GetCallTargets("mechanic") == 0,
+    "Enabling SIM cards must restore the registration requirement")
 state.env.Config.Companies.Enabled = false
 local before = state.reads()
 assert(#state.env.SkyPhoneCompanies.GetCallTargets("mechanic") == 0 and state.reads() == before)
@@ -154,6 +171,26 @@ for iteration = 1, 4 do
 end
 assert(state.env.SkyPhoneCompanies.GetCallTargets("taxi")[1].source == 10,
     "Dispatch priority must stay inside the employee's company")
+
+state.env.definitions.mechanic.ServiceLine.Routing = "ring_all"
+state.env.Config.Sim.Enabled = false
+state.devices["device-8"].sim_type = "anonymous"
+state.devices["device-8"].registered_at = nil
+state.devices["device-8"].sim_is_virtual = 1
+for _ = 1, 3 do
+    targets = state.env.SkyPhoneCompanies.GetCallTargets("mechanic")
+    local expected = { 8, 9, 1, 2 }
+    assert(#targets == #expected, "Ring-all must include dispatchers and ordinary employees")
+    for index, player in ipairs(expected) do
+        assert(targets[index].source == player,
+            "Ring-all must retain dispatchers with automatic numbers without rotating either group")
+    end
+end
+state.env.definitions.mechanic.ServiceLine.Routing = "round_robin"
+targets = state.env.SkyPhoneCompanies.GetCallTargets("mechanic")
+for index, player in ipairs({ 8, 9, 1, 2 }) do
+    assert(targets[index].source == player, "Ring-all must preserve both round-robin positions")
+end
 
 for _, change in ipairs({ "job", "grade", "sim", "slot" }) do
     state = fixture()
@@ -236,6 +273,7 @@ state.ready(9, "mechanic", true)
 local env = state.env
 local airplane, rings, saved_statuses = {}, {}, {}
 env.calls, env.active_by_source, env.active_by_sim, env.dialing_by_sim = {}, {}, {}, {}
+env.dial_locks = {}
 env.SkyPhoneCompanies.IsServiceNumber = function() return false end
 env.find_device_holder = function(imei)
     for player, owned in pairs(state.slots) do
@@ -254,6 +292,7 @@ env.ring_callee = function(call) rings[#rings + 1] = call.callee_source end
 env.schedule_no_answer = function() end
 local routing = assert(load(
     "local reroute_company_call\n"
+        .. block("local function log_call(", "local function send_state(", calls_source)
         .. block("local function company_call_target(", "local function ring_callee(", calls_source)
         .. block("reroute_company_call = function(", "handle_no_answer = function(", calls_source)
         .. "return { target = company_call_target, reroute = reroute_company_call }",

@@ -10,6 +10,7 @@ export type PhoneSim = {
   number: string
   removable: boolean
   registered: boolean
+  servicesAllowed?: boolean
   type: SimType
 }
 

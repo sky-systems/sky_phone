@@ -696,11 +696,12 @@ Opening hours use 24-hour `HH:MM` input. `ServiceLine.CanMessage` enables compan
 to `true` for new companies and the shipped service lines. On the first restart after this update,
 the Phone Configurator enables SMS once for the stored `ambulance`, `fire`, `mechanic`, and `taxi`
 definitions; later admin changes are preserved. App requests still require the company and the
-selected public service to accept requests, plus a registered SIM.
+selected public service to accept requests. A registered SIM is required when `Config.Sim.Enabled`
+is enabled; with SIM cards disabled, the phone's automatic number can use company services.
 
 In **Companies → Work**, employees allowed to take company calls can enable **Take dispatch duty**
-(German: **Leitstelle übernehmen**). This also enables their call availability on the active registered
-SIM. Incoming service-line calls try available dispatchers first, rotating between them, then other
+(German: **Leitstelle übernehmen**). This also enables their call availability on the active phone.
+With `ServiceLine.Routing = "round_robin"`, incoming calls try available dispatchers first, rotating between them, then other
 available employees. Busy or unreachable phones are skipped; declined or unanswered calls move to
 the next eligible recipient within `Config.Companies.CallRouting.MaxAttempts` and `RingSeconds`.
 The existing `ServiceLine.CanCall` and `ServiceLine.MinimumGrade` settings control access to both
@@ -708,6 +709,11 @@ ordinary calls and dispatch duty. Turning off dispatch duty keeps ordinary call 
 turning off company calls, disconnecting, or losing eligibility also removes dispatch priority.
 Closing the phone keeps call readiness active. Dispatch duty is session state and must be enabled
 again after reconnecting or restarting the resource; no database or configuration migration is needed.
+
+With `ServiceLine.Routing = "ring_all"`, every eligible available employee rings, including dispatchers.
+The first accepted answer connects and the other phones stop ringing. `RingSeconds` applies to the
+whole group; `MaxAttempts` applies only to round robin. Ring-all calls do not advance either
+dispatcher or ordinary employee round-robin positions.
 
 ### Weazel News
 

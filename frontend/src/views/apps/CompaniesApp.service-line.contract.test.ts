@@ -19,6 +19,22 @@ function sourceBlock(startMarker: string, endMarker: string) {
 }
 
 describe('CompaniesApp outbound service-line dialer contract', () => {
+  it('uses the server service capability for automatic numbers without pretending the SIM is registered', () => {
+    const capability = sourceBlock(
+      'const canUseServiceRequests = computed(',
+      'const requestProgress = computed(',
+    )
+    expect(capability).toContain('sim.servicesAllowed ?? sim.registered')
+    const composer = sourceBlock(
+      'const requestProgress = computed(',
+      'const canSendThreadMessage = computed(',
+    )
+    expect(composer).toContain('canUseServiceRequests.value')
+    expect(composer).not.toContain('sim?.registered')
+    expect(source).toContain(
+      'v-if="canUseServiceRequests && phone.device?.sim"',
+    )
+  })
   it('gates the work action and its opener by service-line permission', () => {
     const openDialer = sourceBlock(
       'function openServiceLineDialer()',

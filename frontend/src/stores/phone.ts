@@ -174,7 +174,7 @@ const companiesFallbackLocales = {
     descriptionPlaceholder:
       'Describe what happened and how the company can help.',
     contact: 'Contact number',
-    registeredSim: 'Replies go to your registered SIM {number}.',
+    registeredSim: 'Replies go to your phone number {number}.',
     registeredSimRequired: 'A registered SIM is required to send a request.',
     addPhotos: 'Add Photos ({count}/3)',
     selectedPhoto: 'Selected request photo',
@@ -224,7 +224,7 @@ const companiesFallbackLocales = {
     workspace: 'Company Workspace',
     publicAvailability: 'Public Availability',
     takeCalls: 'Take company calls',
-    takeCallsBody: 'Route new service-line calls to this active SIM.',
+    takeCallsBody: 'Route new service-line calls to this phone.',
     dispatch: 'Take dispatch duty',
     dispatchBody: 'Receive company calls before other employees.',
     dialServiceLine: 'Call from service line',
@@ -296,7 +296,7 @@ const companiesFallbackLocales = {
     address: 'Address',
     district: 'District',
     acceptRequests: 'Accept service requests',
-    acceptRequestsBody: 'Allow registered SIMs to open structured requests.',
+    acceptRequestsBody: 'Allow customers to send service requests.',
     saveProfile: 'Save Profile',
     hours: 'Opening Hours',
     dayOpen: 'Company is open on this day',
@@ -1070,6 +1070,12 @@ const adminPanelFallbackLocales = {
       companyName: 'Company name shown in Discover (maximum 32 characters).',
       companyLogo: 'Admin-managed company logo (HTTPS image URL).',
       companyCover: 'Admin-managed company cover photo (HTTPS image URL).',
+      companyCallRouting:
+        'round_robin: ring available employees one at a time. ring_all: ring all available employees together; the first to answer gets the call. Requires call availability and MinimumGrade; busy or unreachable phones are skipped.',
+      companyCallAttempts:
+        'Maximum total attempts for round_robin, including the first employee (1-20). Ignored by ring_all.',
+      companyCallRingSeconds:
+        'Ring time in seconds (1-120) per round_robin attempt or for the entire ring_all group.',
       featureToggle: 'Turns {name} on or off.',
       boolean: 'Controls whether {name} is allowed.',
       number: 'Sets the numeric value for {name}.',
