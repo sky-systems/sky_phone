@@ -225,6 +225,8 @@ const companiesFallbackLocales = {
     publicAvailability: 'Public Availability',
     takeCalls: 'Take company calls',
     takeCallsBody: 'Route new service-line calls to this active SIM.',
+    dispatch: 'Take dispatch duty',
+    dispatchBody: 'Receive company calls before other employees.',
     dialServiceLine: 'Call from service line',
     dialServiceLineBody: 'Make an outgoing call that displays {number}.',
     dialServiceLineHint:
@@ -326,6 +328,10 @@ const companiesFallbackLocales = {
     locationUpdated: 'Current location selected.',
     callsEnabled: 'Company calls enabled.',
     callsDisabled: 'Company calls disabled.',
+    dispatchEnabled:
+      'Dispatch duty enabled. Company calls will reach you first.',
+    dispatchDisabled:
+      'Dispatch duty ended. You can still receive company calls.',
     profileSaved: 'Company profile saved.',
     hoursSaved: 'Opening hours saved.',
     servicesSaved: 'Services saved.',

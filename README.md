@@ -692,6 +692,17 @@ the Phone Configurator enables SMS once for the stored `ambulance`, `fire`, `mec
 definitions; later admin changes are preserved. App requests still require the company and the
 selected public service to accept requests, plus a registered SIM.
 
+In **Companies → Work**, employees allowed to take company calls can enable **Take dispatch duty**
+(German: **Leitstelle übernehmen**). This also enables their call availability on the active registered
+SIM. Incoming service-line calls try available dispatchers first, rotating between them, then other
+available employees. Busy or unreachable phones are skipped; declined or unanswered calls move to
+the next eligible recipient within `Config.Companies.CallRouting.MaxAttempts` and `RingSeconds`.
+The existing `ServiceLine.CanCall` and `ServiceLine.MinimumGrade` settings control access to both
+ordinary calls and dispatch duty. Turning off dispatch duty keeps ordinary call availability active;
+turning off company calls, disconnecting, or losing eligibility also removes dispatch priority.
+Closing the phone keeps call readiness active. Dispatch duty is session state and must be enabled
+again after reconnecting or restarting the resource; no database or configuration migration is needed.
+
 ### Weazel News
 
 Configure editorial jobs and minimum grades:
