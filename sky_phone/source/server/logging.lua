@@ -266,7 +266,10 @@ local function enqueue(category, action, status, actor, details)
         parts[#parts + 1] = content:sub(first, last)
         first = last + 1
     end
-    if first <= #content then parts[#parts] = parts[#parts] .. "\n[log content limit reached]" end
+    if first <= #content then
+        local labels = SkyPhoneLog.Labels("DiscordAudit").values or {}
+        parts[#parts] = parts[#parts] .. "\n" .. (labels.limitReached or "[log content limit reached]")
+    end
     if queued + #parts > limit("QueueLimit", 1000, 10000) then
         diagnostic("overflow", "Queue is full; new record dropped. Check channel traffic and webhook delivery.")
         return false
@@ -329,7 +332,7 @@ function SkyPhoneLog.Publish(action, post)
         local function field(name, value)
             if value ~= nil and tostring(value) ~= "" then
                 local label = text(labels[name] or name, 80)
-                local content = text(value, math.max(0, math.min(250, remaining - #label)))
+                local content = text(SkyPhoneLog.ContentLabel(spec.category, name, value), math.max(0, math.min(250, remaining - #label)))
                 if content == "" then return end
                 fields[#fields + 1] = { name = label, value = content, inline = true }
                 remaining = remaining - #label - #content

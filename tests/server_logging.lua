@@ -26,6 +26,7 @@ local function reset()
     Locales = {}
     dofile("sky_phone/config/locales/en.lua")
     dofile("sky_phone/config/locales/de.lua")
+    dofile("sky_phone/config/locales/es.lua")
     json = {
         encode = function(value)
             local body = encode(value)
@@ -741,6 +742,59 @@ if skypic_file then
     end
     print("Actual SkyPic branch logging integration passed")
 end
+
+-- Exercise actual output in each shipped language, including catalog fields
+-- and status values that previously fell back to internal English names.
+for _, case in ipairs({
+    { "en", "Calls", "Microphone muted", "Story visibility", "Friends", "Property" },
+    { "de", "Anrufe", "Mikrofon stummgeschaltet", "Story-Sichtbarkeit", "Freunde", "Immobilien" },
+    { "es", "Llamadas", "Micrófono silenciado", "Visibilidad de las historias", "Amigos", "Inmuebles" },
+}) do
+    reset()
+    Config.Bridge.Locale = case[1]
+    local language = Locales[case[1]]
+    local labels = language.DiscordAudit
+    for name, spec in pairs(SkyPhoneLog.Actions) do
+        assert(language.Nui.AdminPanel.webhooks.categoryLabels[spec.category], "Missing category: " .. case[1] .. ": " .. spec.category)
+        for key in spec.fields:gmatch("%S+") do
+            assert(labels.fields[key], "Missing audit field: " .. case[1] .. ": " .. key)
+        end
+        for _, data in ipairs({ {}, { enabled = true, active = true, saved = true, blocked = true,
+            accepted = true, accept = true, id = 1, favorite = true, forEveryone = true, draft = true } }) do
+            local state = type(spec.status) == "function" and spec.status(data) or spec.status
+            assert(labels.states[state], "Missing audit state: " .. case[1] .. ": " .. name .. " / " .. state)
+        end
+    end
+    local title, description = SkyPhoneLog.FormatAudit("Calls", "calls:set-muted", "muted", {
+        actor = { name = "Sample user" }, details = { request = { enabled = true } },
+    }, 1800000000)
+    assert(title == case[2] .. " · " .. case[3], title)
+    assert(description:find("<t:1800000000:F>", 1, true))
+    assert(description:find("<t:1800000000:R>", 1, true))
+    title, description = SkyPhoneLog.FormatAudit("SkyPic", "skypic:update-profile", "edited", {
+        actor = { name = "Sample user" }, details = { request = { story_privacy = "friends", allowStoryReplies = true,
+            body = "friends", mediaType = "video" } },
+    }, 1800000000)
+    assert(description:find("**" .. case[4] .. ":** " .. case[5], 1, true), description)
+    assert(description:find("**" .. labels.fields.body .. ":** friends", 1, true), "Player text must not be translated")
+    local _, limited = SkyPhoneLog.FormatAudit("Device", "device:save", "saved", {
+        details = { logLimit = "Additional content omitted", contentError = "Content lookup failed; request and result retained" },
+    }, 1800000000)
+    assert(limited:find(labels.values.omitted, 1, true))
+    assert(limited:find(labels.values.lookupFailed, 1, true))
+    WebHooks.Public.Marketplace = fallback_url
+    assert(SkyPhoneLog.Publish("marketplace:create", { status = "published", body = "Unchanged player text", category = "property" }))
+    advance()
+    local embed = requests[1].payload.embeds[1]
+    assert(embed.title == language.DiscordPublic.published)
+    assert(embed.fields[1].name == language.DiscordPublic.category)
+    assert(embed.fields[1].value == case[6], embed.fields[1].value)
+    assert(embed.description == "Unchanged player text")
+    assert(SkyPhoneLog.ContentLabel("Marketplace", "category", "custom player category") == "custom player category")
+end
+reset()
+Config.Bridge.Locale = "missing-locale"
+assert(SkyPhoneLog.AppLabel("Calls") == "Calls", "Unknown languages must retain the English fallback")
 
 local file = assert(io.open("sky_phone/fxmanifest.lua", "rb"))
 local manifest = file:read("*a"); file:close()

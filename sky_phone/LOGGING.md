@@ -194,6 +194,13 @@ visible for edits and deletions. Dates use native Discord timestamps, including 
 relative timestamp in the admin description. Player/account/device identifiers
 remain available under labeled player details for staff follow-up.
 
+Webhook text follows `Config.Bridge.Locale` (`en`, `de`, or `es`), with English
+as the fallback for unknown languages. The locales cover admin titles, action
+states, detail labels, public announcements and Phonepanel controls/categories,
+including the prepared SkyPic actions. Stored visibility, price-type, category
+and district values use readable translations; player-written text and custom
+category names are preserved. Discord handles each reader's timestamp display.
+
 Password/PIN values, peppers, session tokens, API keys, webhook URLs, IP/license
 fields and raw binary/base64 payloads are filtered. Administrative password
 reveal actions log their occurrence without the revealed password. Device/config

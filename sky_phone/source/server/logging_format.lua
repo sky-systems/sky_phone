@@ -1,6 +1,5 @@
 -- Human-readable presentation of the already sanitized server audit record.
 -- Keep transport, authorization and content capture independent of formatting.
-local app_names = { Pages = "Local Pages", Marketplace = "CityMarkt", WeazelNews = "Weazel News", Crypto = "VaultX" }
 local subjects = {
     Calls = "call", Contacts = "contact", Messages = "message", Picstagram = "post", Feather = "post",
     FlipTok = "video", SkyPic = "snap", DarkChat = "message", Flare = "profile", Mail = "mail",
@@ -26,6 +25,23 @@ function SkyPhoneLog.Labels(section)
     return language and language[section] or {}
 end
 
+function SkyPhoneLog.AppLabel(category)
+    local nui = SkyPhoneLog.Labels("Nui")
+    local labels = nui.AdminPanel and nui.AdminPanel.webhooks and nui.AdminPanel.webhooks.categoryLabels
+    return labels and labels[category] or category
+end
+
+-- Reuse app translations for stored category/district IDs. Free-form player
+-- text, including unknown/custom categories, must remain exactly as entered.
+function SkyPhoneLog.ContentLabel(category, key, value)
+    local app = ({ Pages = "localPages", Marketplace = "citymarkt", WeazelNews = "weazelNews", CityWarn = "citywarn" })[category]
+    local group = ({ category = "categories", district = "districts", condition = "conditions", priceType = "priceTypes", price_type = "priceTypes" })[key]
+    local apps = SkyPhoneLog.Labels("Nui").Apps
+    local labels = apps and apps[app] and apps[app][group]
+    if not labels and category == "Pages" and key == "district" then labels = apps and apps.citymarkt and apps.citymarkt.districts end
+    return labels and labels[value] or value
+end
+
 local function readable(key)
     return tostring(key):gsub("(%l)(%u)", "%1 %2"):gsub("[_:%-]", " ")
 end
@@ -33,7 +49,8 @@ end
 function SkyPhoneLog.FormatAudit(category, action, status, record, timestamp)
     local labels = SkyPhoneLog.Labels("DiscordAudit")
     local function label(group, key, fallback)
-        return labels[group] and labels[group][key] or fallback or readable(key)
+        local camel = tostring(key):gsub("_(%l)", string.upper)
+        return labels[group] and (labels[group][key] or labels[group][camel]) or fallback or readable(key)
     end
     local operation = action:match("([^:]+)$") or action
     local subject = subjects[category] or "activity"
@@ -55,14 +72,35 @@ function SkyPhoneLog.FormatAudit(category, action, status, record, timestamp)
         if value == nil or value == "" then return end
         if type(value) ~= "table" then
             local content = type(value) == "boolean" and label("values", value and "yes" or "no") or tostring(value)
-            if key == "status" or key == "state" then content = label("states", content) end
+            if key == "status" or key == "state" or key == "calleeStatus" or key == "previousStatus"
+                or key == "action" or key == "choice" then content = label("states", content, content) end
             local instant = tonumber(value)
             if instant and (tostring(key):match("_at$") or tostring(key):match("At$")) then
                 if instant > 100000000000 then instant = instant / 1000 end
                 if instant > 1000000000 and instant < 10000000000 then content = "<t:" .. math.floor(instant) .. ":f>" end
             end
             if key == "author_handle" or key == "handle" then content = "@" .. content:gsub("^@", "") end
-            if key == "media_type" then content = label("values", content) end
+            local value_keys = { media_type = true, mediaType = true, message_type = true, messageType = true,
+                visibility = true, privacy = true, storyPrivacy = true, story_privacy = true,
+                price_type = true, priceType = true, folder = true, notificationMode = true,
+                notification_mode = true, accountType = true, account_type = true, role = true }
+            if value_keys[key] then content = label("values", content, content) end
+            content = SkyPhoneLog.ContentLabel(category, key, content)
+            local markers = {
+                ["[log content limit reached]"] = "limitReached", ["[circular value]"] = "circular",
+                ["[redacted webhook]"] = "redactedWebhook", ["Additional content omitted"] = "omitted",
+                ["First 101 rows shown; additional content omitted"] = "rowsOmitted",
+                ["First 101 rows shown; additional content may be omitted"] = "rowsOmitted",
+                ["Content lookup failed; request and result retained"] = "lookupFailed",
+            }
+            -- Translate sanitizer/content-reader markers for Discord only.
+            -- Developer diagnostics remain in English.
+            if key == "logLimit" or key == "contentError" then
+                content = markers[content] and label("values", markers[content]) or content
+            end
+            for _, marker in ipairs({ "[log content limit reached]", "[circular value]", "[redacted webhook]" }) do
+                content = content:gsub(marker:gsub("(%W)", "%%%1"), function() return label("values", markers[marker]) end)
+            end
             -- Keep before/after values, but omit request/result duplicates of
             -- persisted content that staff have already read above.
             local signature = tostring(key) .. "\0" .. content
@@ -113,5 +151,5 @@ function SkyPhoneLog.FormatAudit(category, action, status, record, timestamp)
     render(other, "details", 0)
     append("\n**" .. label("fields", "player", "Player") .. "**")
     for _, key in ipairs({ "source", "accountId", "phoneNumber", "imei" }) do render(actor[key], key, 0) end
-    return (app_names[category] or label("apps", category, category)) .. " · " .. title, table.concat(lines, "\n")
+    return SkyPhoneLog.AppLabel(category) .. " · " .. title, table.concat(lines, "\n")
 end

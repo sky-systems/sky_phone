@@ -32,13 +32,7 @@ watch(audience, () => {
 })
 const t = (key: string) => phone.t(`AdminPanel.webhooks.${key}`)
 const categoryLabel = (value: string) =>
-  value === 'Default'
-    ? t('default')
-    : value === 'Pages'
-      ? 'Local Pages'
-      : value === 'Marketplace'
-        ? 'CityMarkt'
-        : value
+  value === 'Default' ? t('default') : t(`categoryLabels.${value}`)
 const audienceEndpoints = computed(() =>
   (admin.webhooks?.endpoints ?? []).filter(
     (row) => row.audience === audience.value,
