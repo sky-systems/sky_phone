@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const client = readFileSync(
-  new URL('../../sky_phone/source/client/nui_server_bridge.lua', import.meta.url),
+  new URL(
+    '../../sky_phone/source/client/nui_server_bridge.lua',
+    import.meta.url,
+  ),
   'utf8',
 ).replace(/\r\n/g, '\n')
 const companiesServer = readFileSync(
@@ -116,8 +119,9 @@ describe('Companies background call availability contract', () => {
       'SkyPhone.FindDeviceSlots(source, readiness.imei)',
     )
     expect(getCallTargets).toContain('device.sim_id == readiness.sim_id')
-    expect(getCallTargets).toContain('device.sim_type == "registered"')
-    expect(getCallTargets).toContain('device.registered_at ~= nil')
+    expect(getCallTargets).toContain(
+      'SkyPhoneCompanies.CanUseServiceDevice(device)',
+    )
     expect(getCallTargets).not.toContain('current_device(source, true)')
   })
 })

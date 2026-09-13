@@ -50,6 +50,14 @@ jobs:
       - name: Test media import URL probes and validation
         run: lua5.4 tests/media_import.lua
 
+      - name: Test service-line routing and call lifecycle
+        run: |
+          lua5.4 tests/server_calls.lua
+          lua5.4 tests/server_calls_ring_all.lua
+          lua5.4 tests/companies_call_availability_spec.lua
+          lua5.4 tests/companies_service_device_spec.lua
+          lua5.4 tests/server_phone_modules.lua
+
       - name: Test CityWarn blip lifecycle
         run: |
           lua5.4 tests/client_citywarn.lua

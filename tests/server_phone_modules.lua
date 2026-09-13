@@ -203,6 +203,7 @@ local phone_item = {
 local opened_event
 local device_error
 local hide_phone_during_prepare = false
+local automatic_number = false
 
 Bridge.Framework.GetIdentifier = function(source)
     assert(source == 1)
@@ -235,7 +236,10 @@ Bridge.Database.Query = function(query)
                 imei = phone_item.metadata.imei,
                 device_name = Config.Phone.DeviceName,
                 account_id = nil,
-                sim_id = nil,
+                sim_id = automatic_number and "automatic-sim" or nil,
+                phone_number = automatic_number and "5550001" or nil,
+                sim_type = automatic_number and "anonymous" or nil,
+                sim_is_virtual = automatic_number and 1 or nil,
             },
         }
     end
@@ -266,6 +270,10 @@ SkyPhoneMemos = {
 SkyPhoneCompanies = {
     ClearCallAvailability = function()
     end,
+    CanUseServiceDevice = function(device)
+        assert(device.sim_id == "automatic-sim" and Config.Sim.Enabled == false)
+        return true
+    end,
 }
 TriggerClientEvent = function(event_name, source, payload)
     if event_name == "sky_phone:device:open" then
@@ -284,6 +292,16 @@ assert(no_sim_open.success == true, "a phone item without a SIM must still open"
 assert(opened_event and opened_event.source == 1, "no-SIM open must reach the client")
 assert(opened_event.payload.device.imei == phone_item.metadata.imei)
 assert(opened_event.payload.device.sim == nil, "no-SIM bootstrap must keep device.sim nullable")
+
+automatic_number = true
+Config.Sim.Enabled = false
+assert(registered_callbacks["sky_phone:device:open-request"](1, {}).success)
+local automatic_sim = assert(opened_event.payload.device.sim)
+assert(automatic_sim.servicesAllowed and automatic_sim.number == "5550001")
+assert(not automatic_sim.registered and not automatic_sim.removable,
+    "Service eligibility must not change registration or enable SIM removal")
+automatic_number = false
+Config.Sim.Enabled = true
 
 opened_event = nil
 device_error = nil
