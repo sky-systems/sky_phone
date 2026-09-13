@@ -1129,7 +1129,7 @@ const adminPanelFallbackLocales = {
       importEnabled:
         'Allows imports of external HTTPS images and videos in Photos. The import button appears only when at least one enabled, valid source under Websites is accessible to the player.',
       importWebsites:
-        'Setup example: set FiveManage.ApiKey, enable Import and the FiveManage source, then add wallpapercave.com to AllowedMediaHosts. Save with the green check. In Photos → Import → FiveManage, paste https://wallpapercave.com/wp/wp6735117.jpg.',
+        'To set up FiveManage imports, enter your own FiveManage.ApiKey and enable Import and the source. Add the domain of your image host to AllowedMediaHosts and save with the green check. Paste your own direct HTTPS image URL in Photos → Import.',
       importSource:
         'One import source shown in Photos, for example FiveManage. Expand it to configure the adapter, allowed domains and media types.',
       importSourceId:
@@ -1147,7 +1147,7 @@ const adminPanelFallbackLocales = {
       importMediaTypes:
         'Allowed media types: photo for images, video for videos. Add each as a separate list entry. For wallpapers, include photo.',
       importHosts:
-        'Add each domain as a separate entry, for example wallpapercave.com. No https://, path or *. Subdomains are included. Keep fivemanage.com for FiveManage media. Paste the complete image URL in Photos → Import.',
+        'Add each domain as a separate entry, for example media.example.com. No https://, path or *. Subdomains are included. Keep fivemanage.com for FiveManage media. Paste the complete image URL in Photos → Import.',
       importManifestUrl:
         'HTTPS URL of your own JSON media catalog, for example https://media.example.com/sky-phone/media.json. Requires version: 1 and items with id, filename, type, mimeType, size and url. This field is not for a JPG link.',
       importRequiredAce:
