@@ -20,6 +20,19 @@ const config = readFileSync(
 )
 
 describe('CityWarn product contract', () => {
+  it('keeps map input local, exposes zoom controls and preserves pin target sizes', () => {
+    expect(source).toContain('@pointerdown.capture="onMapPointerDown"')
+    expect(source).toContain('@wheel="onMapWheel"')
+    expect(source).toContain('@click.capture="onMapClickCapture"')
+    expect(source).toContain('@lostpointercapture="onMapPointerEnd"')
+    expect(source).toContain('@keydown="onMapKeydown"')
+    expect(source).toContain('...mapTransform')
+    expect(source).toContain('scale(var(--citywarn-map-pin-scale, 1))')
+    for (const key of ['mapZoomIn', 'mapZoomOut', 'mapReset']) {
+      expect(source).toContain(`:aria-label="t('${key}')"`)
+    }
+    expect(source).toContain('touch-action: none;')
+  })
   it('renders category colors and map pins with CEF-compatible colors and matching map layers', () => {
     expect(source).not.toContain('color-mix(')
     expect(source).toContain('defaultMainlandStyle')

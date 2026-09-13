@@ -11,10 +11,12 @@ import {
   Info,
   LocateFixed,
   MapPinned,
+  Minus,
   Megaphone,
   Plus,
   RadioTower,
   RefreshCw,
+  RotateCcw,
   ShieldAlert,
   ShieldCheck,
   Siren,
@@ -29,6 +31,7 @@ import {
   defaultMainlandStyle,
   defaultMapCoordinates,
 } from '@/features/map/defaultMapGeometry'
+import { useMapPanZoom } from '@/features/map/useMapPanZoom'
 import {
   cityWarnColorStyle,
   cityWarnMapArea,
@@ -82,6 +85,23 @@ const manageOpened = ref(false)
 const manageMode = ref<ManageMode>('update')
 const manageText = ref('')
 const managing = ref(false)
+const mapViewport = ref<HTMLElement | null>(null)
+const mapCanvas = ref<HTMLElement | null>(null)
+const {
+  canvasStyle: mapTransform,
+  changeZoom,
+  dragging: mapDragging,
+  maxZoom,
+  minZoom,
+  onClickCapture: onMapClickCapture,
+  onKeydown: onMapKeydown,
+  onPointerDown: onMapPointerDown,
+  onPointerEnd: onMapPointerEnd,
+  onPointerMove: onMapPointerMove,
+  onWheel: onMapWheel,
+  reset: resetMap,
+  zoom: mapZoom,
+} = useMapPanZoom(mapViewport, mapCanvas)
 
 const draftCategory = ref<CityWarnCategory>('public_safety')
 const draftSeverity = ref<CityWarnSeverity>('warning')
@@ -546,13 +566,31 @@ onMounted(async () => {
           <div>
             <h2>{{ t('mapTitle') }}</h2>
             <p>{{ t('mapBody') }}</p>
+            <p>{{ t('mapHint') }}</p>
           </div>
         </section>
-        <div class="citywarn-map">
+        <div
+          ref="mapViewport"
+          class="citywarn-map"
+          :class="{ 'citywarn-map--dragging': mapDragging }"
+          tabindex="0"
+          role="region"
+          :aria-label="t('mapTitle')"
+          @pointerdown.capture="onMapPointerDown"
+          @pointermove="onMapPointerMove"
+          @pointerup="onMapPointerEnd"
+          @pointercancel="onMapPointerEnd"
+          @lostpointercapture="onMapPointerEnd"
+          @click.capture="onMapClickCapture"
+          @wheel="onMapWheel"
+          @keydown="onMapKeydown"
+        >
           <div
+            ref="mapCanvas"
             class="citywarn-map-canvas"
             :style="{
               aspectRatio: `${defaultMapCoordinates.width} / ${defaultMapCoordinates.height}`,
+              ...mapTransform,
             }"
           >
             <img
@@ -598,6 +636,38 @@ onMounted(async () => {
                 /></span>
               </button>
             </template>
+          </div>
+          <div
+            class="citywarn-map-controls"
+            data-map-controls
+            role="group"
+            :aria-label="t('mapControls')"
+            @pointerdown.stop
+            @click.stop
+          >
+            <SkyButton
+              icon-only
+              :aria-label="t('mapZoomIn')"
+              :title="t('mapZoomIn')"
+              :disabled="mapZoom >= maxZoom"
+              @click="changeZoom(mapZoom * 1.25)"
+              ><Plus :size="19"
+            /></SkyButton>
+            <SkyButton
+              icon-only
+              :aria-label="t('mapZoomOut')"
+              :title="t('mapZoomOut')"
+              :disabled="mapZoom <= minZoom"
+              @click="changeZoom(mapZoom / 1.25)"
+              ><Minus :size="19"
+            /></SkyButton>
+            <SkyButton
+              icon-only
+              :aria-label="t('mapReset')"
+              :title="t('mapReset')"
+              @click="resetMap"
+              ><RotateCcw :size="18"
+            /></SkyButton>
           </div>
         </div>
         <div class="citywarn-map-list">
@@ -1444,12 +1514,41 @@ onMounted(async () => {
   border: 1px solid #d1d5db;
   border-radius: 18px;
   background: #dfe6dc;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.citywarn-map--dragging,
+.citywarn-map--dragging .citywarn-map-pin {
+  cursor: grabbing;
+}
+.citywarn-map:focus-visible {
+  outline: 2px solid var(--sky-app-accent);
+  outline-offset: 2px;
+}
+.citywarn-map-controls {
+  position: absolute;
+  top: var(--sky-space-2);
+  right: var(--sky-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sky-space-1);
+}
+.citywarn-map-controls :deep(.sky-button) {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border: 1px solid var(--sky-hairline);
+  border-radius: var(--sky-radius-control);
+  background: var(--sky-surface);
+  color: var(--sky-text);
 }
 .citywarn-map-canvas {
   position: relative;
   height: 100%;
   max-width: 100%;
   margin: auto;
+  transform-origin: center;
 }
 .citywarn-map-canvas > img {
   position: absolute;
@@ -1473,7 +1572,7 @@ onMounted(async () => {
   border: 0;
   background: transparent;
   clip-path: circle(50%);
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--citywarn-map-pin-scale, 1));
   cursor: pointer;
 }
 .citywarn-map-pin > span {
@@ -1488,7 +1587,7 @@ onMounted(async () => {
   box-shadow: 0 2px 6px rgb(0 0 0 / 50%);
 }
 .citywarn-map-pin:focus-visible {
-  outline: 2px solid var(--sky-text-primary);
+  outline: 2px solid var(--sky-text);
   outline-offset: -2px;
   border-radius: 50%;
 }

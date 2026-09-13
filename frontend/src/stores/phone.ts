@@ -726,6 +726,11 @@ const citywarnFallbackLocales = {
   emptyFilteredBody: 'Your personal filters hide the current alerts.',
   mapTitle: 'Warning areas',
   mapBody: 'Highlighted areas show the approximate scope of active alerts.',
+  mapControls: 'Map controls',
+  mapZoomIn: 'Zoom in',
+  mapZoomOut: 'Zoom out',
+  mapReset: 'Reset map view',
+  mapHint: 'Drag to move the map. Use the mouse wheel or + / - to zoom.',
   publisher: {
     title: 'Authority tools',
     body: 'You are on duty as {job} ({grade}) and may publish warnings.',
