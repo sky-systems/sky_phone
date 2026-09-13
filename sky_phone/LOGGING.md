@@ -11,7 +11,7 @@ No additional resource is required. The additive migration automatically creates
 WebHooks = {
     Enabled = true,
     Username = "Sky Phone",
-    AvatarUrl = "", -- Optional HTTPS image URL; empty keeps Discord's webhook avatar
+    AvatarUrl = "", -- Admin webhook avatar (public posts use the app's icon)
     Default = "", -- Optional fallback webhook
     Calls = "", -- Paste the webhook for your call audit channel
     Messages = "", -- Paste the webhook for your SMS audit channel
@@ -47,8 +47,20 @@ the same category under `Public` for player information. For example, put the
 staff URL in `WebHooks.Feather` and the player URL in `WebHooks.Public.Feather`.
 An admin route may be disabled while its public route remains enabled.
 
-Public announcements contain readable, localized app/status titles, public author
-names, text, images/media links and relevant listing details. They are built from
+Public announcements use the app name and icon as their webhook identity. The
+embed starts with the author's platform profile picture and `@username`, followed
+by a localized title such as **New post**, the content and images. Its footer uses
+the Sky logo and **Sky Phone**, plus Discord's native timestamp. Discord renders
+the date/time in each reader's locale and timezone; no formatted date is hardcoded
+in footer text. Platforms without a handle use their public display name.
+
+App icon URLs (`FeatherIconUrl`, `PagesIconUrl`, `MarketplaceIconUrl`,
+`PicstagramIconUrl`, `FlipTokIconUrl`, `SkyPicIconUrl`, `WeazelNewsIconUrl`) and
+`FooterIconUrl` ship with public Sky assets and can be replaced in WebHooks.lua or
+Phonepanel. Empty profile pictures are omitted. Empty app-icon URLs use the
+Discord webhook's configured avatar.
+
+Posts contain text, images and relevant listing details. They are built from
 persisted public content after a successful server mutation. Request payloads,
 audit snapshots, account IDs, IMEIs, phone numbers and direct messages are never
 copied into public announcements. Mentions are disabled for both audiences.
@@ -74,13 +86,25 @@ They **never** inherit admin destinations. Empty public defaults disable public
 delivery until configured; `false` disables a specific route. Only the supported
 publication actions are offered as public destinations in Phonepanel.
 
+### Video attachments
+
+MP4 and WebM videos are uploaded as actual Discord file attachments in the same
+message. `VideoMaxBytes` defaults to 20 MiB and bounds the combined video bytes per
+message. The server checks Content-Length with HEAD before downloading and
+disables redirects. It downloads only from FiveManage's upload host or enabled
+media import websites' `AllowedMediaHosts` in the existing media configuration.
+At most two video deliveries prepare files concurrently; queued messages retain
+URLs rather than video data. A failed/oversized download or a rejected Discord
+upload retains a visible video link and the post text. No transcoding occurs;
+playback depends on Discord supporting the uploaded video's codec.
+
 ## Routing and appearance
 
 - Every category has its own URL in `config/WebHooks.lua`.
 - An empty category (`""`) uses `Default`. With no default URL, it produces no logs.
 - `false` explicitly disables a category, including its default fallback.
 - `Enabled = false` disables admin logging and public announcements.
-- `Username` and `AvatarUrl` apply to every webhook message. Leave `AvatarUrl`
+- `Username` and `AvatarUrl` apply to admin messages. Leave `AvatarUrl`
   empty to preserve the avatar configured on the Discord webhook.
 - `Actions` can override an individual action. Use its callback name without
   `sky_phone:`, for example `Actions["skypic:send-snap"]`. A URL overrides the
@@ -95,6 +119,7 @@ The **Webhooks** tab uses the existing `phonepanel` permission and requires
 on the server. It works independently of `Config.PhoneConfigurator.Enabled`.
 
 - Edit the logging toggle, webhook name, avatar URL, queue limit and retry limit.
+- Edit the public app icons, Sky footer logo and maximum video attachment size.
 - Select **Admin logs** or **Public player info** before editing destinations.
   Each audience has its own app channels, individual actions and default channel.
 - Choose app channels or filter individual actions, including the prepared SkyPic
@@ -162,6 +187,13 @@ persisted content before and after the action. Content lookups are parameterized
 and failures retain the basic action log with an explicit diagnostic. Bulk
 deletions include a bounded preview of up to 101 rows and a limit indication.
 
+Admin embeds use localized, readable titles and labeled text instead of JSON
+code blocks: for example **Feather · New post** or **Settings changed**, with the
+player, platform profile, content and saved changes. Before/after values remain
+visible for edits and deletions. Dates use native Discord timestamps, including a
+relative timestamp in the admin description. Player/account/device identifiers
+remain available under labeled player details for staff follow-up.
+
 Password/PIN values, peppers, session tokens, API keys, webhook URLs, IP/license
 fields and raw binary/base64 payloads are filtered. Administrative password
 reveal actions log their occurrence without the revealed password. Device/config
@@ -176,7 +208,7 @@ working after their source file is deleted. Scheduled expiration is represented
 by the stored expiration timestamp; cleanup jobs do not emit individual expiry
 events.
 
-Long content is split into numbered Discord messages with a shared record ID,
+Long content is split into numbered Discord messages with the event timestamp,
 respecting UTF-8 and embed limits. A record is bounded to 64 KB of string content,
 2,000 values, depth 10 and 24 continuation parts; exceeding a limit is marked in
 the content. Delivery is queued by webhook URL, so categories sharing a webhook
@@ -224,6 +256,8 @@ They do not contact Discord.
 Public tests exercise every announcement route, private/draft/expired exclusions,
 independent admin/public payloads and fallbacks, actual Feather publication through
 the deferred callback dispatcher, and SQL projections against the resource schema.
+They also verify localized admin text, app/profile/footer images, actual multipart
+video bytes, download host restrictions, size/time limits and link fallback.
 
 The webhook editor tests cover permission/rate-limit checks, masked responses,
 secret-free audit data, validation, atomic rejection, concurrent revisions,

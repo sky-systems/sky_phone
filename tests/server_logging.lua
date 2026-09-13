@@ -1,6 +1,6 @@
 -- Run from the repository root with Lua 5.4. HTTP and timers are local doubles;
 -- this test never contacts Discord or requires a configured webhook.
-local now, timers, requests, diagnostics, responses, encoded, queries
+local now, timers, requests, diagnostics, responses, encoded, queries, formatted, downloads, download_requests
 local function encode(value)
     if type(value) == "string" then
         return '"' .. value:gsub("\\", "\\\\"):gsub('"', '\\"'):gsub("\n", "\\n"):gsub("\r", "\\r"):gsub("\t", "\\t") .. '"'
@@ -20,6 +20,12 @@ end
 
 local function reset()
     now, timers, requests, diagnostics, responses, encoded, queries = 0, {}, {}, {}, {}, {}, {}
+    formatted = {}
+    downloads, download_requests = {}, {}
+    Config = { Bridge = { Locale = "en" } }
+    Locales = {}
+    dofile("sky_phone/config/locales/en.lua")
+    dofile("sky_phone/config/locales/de.lua")
     json = {
         encode = function(value)
             local body = encode(value)
@@ -47,14 +53,40 @@ local function reset()
     function GetGameTimer() return now end
     function SetTimeout(delay, callback) timers[#timers + 1] = { at = now + delay, callback = callback } end
     function PerformHttpRequest(url, callback, method, body, headers, options)
-        assert(method == "POST" and headers["Content-Type"] == "application/json")
         assert(options.followLocation == false, "Webhook requests must not follow redirects")
-        requests[#requests + 1] = { at = now, url = url, body = body, payload = encoded[body] }
+        if method == "HEAD" or method == "GET" then
+            download_requests[#download_requests + 1] = { url = url, method = method }
+            local media = assert(downloads[url], "Unexpected media fetch: " .. url)
+            if media.hang == method then return end
+            if method == "HEAD" then
+                callback(media.head_status or 200, "", { ["Content-Length"] = media.head_size or #media.body,
+                    ["Content-Type"] = media.mime or "video/webm" })
+            else
+                assert(headers.Range, "Downloads must request a bounded byte range")
+                callback(media.status or 200, media.body, { ["Content-Type"] = media.mime or "video/webm" })
+            end
+            return
+        end
+        assert(method == "POST")
+        local payload = encoded[body]
+        if headers["Content-Type"]:find("multipart/form-data", 1, true) then
+            local content = assert(body:match('name="payload_json"\r\nContent%-Type: application/json\r\n\r\n(.-)\r\n%-%-'))
+            payload = assert(encoded[content])
+        else assert(headers["Content-Type"] == "application/json") end
+        requests[#requests + 1] = { at = now, url = url, body = body, payload = payload, content_type = headers["Content-Type"] }
         local response = table.remove(responses, 1) or { status = 200 }
         callback(response.status, response.body, response.headers)
     end
     dofile("sky_phone/config/WebHooks.lua")
     dofile("sky_phone/source/server/logging.lua")
+    dofile("sky_phone/source/server/logging_format.lua")
+    dofile("sky_phone/source/server/logging_media.lua")
+    local format = SkyPhoneLog.FormatAudit
+    SkyPhoneLog.FormatAudit = function(category, action, status, audit, timestamp)
+        local title, description = format(category, action, status, audit, timestamp)
+        formatted[description] = audit
+        return title, description
+    end
     dofile("sky_phone/source/server/logging_actions.lua")
     dofile("sky_phone/source/server/logging_content.lua")
     dofile("sky_phone/source/server/logging_public.lua")
@@ -76,7 +108,8 @@ end
 
 local function record(request)
     local description = request.payload.embeds[1].description
-    return assert(encoded[description:sub(9, -5)], "Expected one-part audit JSON")
+    assert(not description:find("```", 1, true), "Admin logs must be readable without a JSON code block")
+    return assert(formatted[description], "Expected a complete formatted audit record")
 end
 
 local calls_url = "https://discord.com/api/webhooks/1/test-calls"
@@ -259,7 +292,7 @@ local joined = {}
 for _, request in ipairs(requests) do
     local embed = request.payload.embeds[1]
     assert(utf8.len(embed.description) and #embed.description <= 4096, "Embed limits and UTF-8 must be respected")
-    joined[#joined + 1] = embed.description:sub(9, -5)
+    joined[#joined + 1] = embed.description
 end
 assert(table.concat(joined):find(long_body, 1, true), "Ordinary long content must not be silently truncated")
 
@@ -302,6 +335,7 @@ local public_url = "https://discord.com/api/webhooks/4/test-public"
 local public_row = {
     id = "550e8400-e29b-41d4-a716-446655440002", body = "Persisted public content",
     author_name = "Public Author", author_handle = "author", title = "Public title",
+    author_avatar = "https://example.invalid/profile.webp",
     category = "news", district = "downtown", location = "City", price = 125, price_type = "fixed",
     status = "published", private = 0, profile_status = "active", visibility = "public", privacy = "everyone",
     expires_at = os.time() + 3600, media_url = "https://example.invalid/photo.webp", media_type = "photo",
@@ -369,6 +403,13 @@ for action, spec in pairs(public_actions) do
         if request.url == public_url .. "?wait=true" then
             seen_public = true
             assert(request.payload.embeds[1].description == public_row.body)
+            assert(request.payload.username == spec.label and request.payload.avatar_url == WebHooks[spec.category .. "IconUrl"])
+            assert(request.payload.embeds[1].author.name == "@author")
+            assert(request.payload.embeds[1].author.icon_url == public_row.author_avatar)
+            assert(request.payload.embeds[1].footer.text == "Sky Phone")
+            assert(request.payload.embeds[1].footer.icon_url == WebHooks.FooterIconUrl)
+            assert(request.payload.embeds[1].timestamp:match("^%d%d%d%d%-%d%d%-%d%dT%d%d:%d%d:%d%dZ$"))
+            assert(not request.payload.embeds[1].title:find(spec.label, 1, true))
             assert(request.payload.embeds[1].image.url == public_row.media_url)
             assert(not request.body:find("PRIVATE_", 1, true) and not request.body:find("UNTRUSTED_REQUEST", 1, true))
             assert(not request.body:find("test-device", 1, true) and not request.body:find("accountId", 1, true))
@@ -486,6 +527,133 @@ local total = #public_embed.title + #public_embed.description + #public_embed.fo
 for _, field in ipairs(public_embed.fields) do total = total + #field.name + #field.value end
 assert(total <= 6000 and utf8.len(requests[1].body), "Public embeds must fit Discord limits with valid UTF-8")
 
+reset()
+Config.Bridge.Locale = "de"
+WebHooks.Default = fallback_url
+SkyPhoneLog.Record("Feather", "feather:create-post", "created", 1, {
+    content = { records = {{ author_handle = "dean", body = "Ein Homegym ist etwas Feines", created_at = 1789310000000 }} },
+})
+SkyPhoneLog.Record("Device", "device:save", "saved", 1, { request = { namespace = "settings", revision = 3 } })
+advance()
+assert(requests[1].payload.embeds[1].title == "Feather · Neuer Beitrag")
+assert(requests[1].body:find("@dean", 1, true) and requests[1].body:find("Ein Homegym ist etwas Feines", 1, true))
+assert(requests[1].body:find("**Von:** Test Player 1", 1, true))
+assert(requests[1].body:find("<t:1789310000:f>", 1, true), "Database millisecond dates need readable Discord timestamps")
+assert(requests[2].payload.embeds[1].title:find("Einstellungen geändert", 1, true))
+assert(requests[2].body:find("Einstellungsbereich", 1, true) and not requests[2].body:find('"actor"', 1, true))
+
+local video_url = "https://r2.fivemanage.com/phone-test-clip.webm"
+local binary_video = "\26\69\223\163\0TEST_VIDEO_BYTES\255"
+local function publish_video(url, mime)
+    return SkyPhoneLog.Publish("fliptok:publish", { body = "Video post", author_handle = "dean",
+        media = {{ url = url or video_url, media_type = "video", mime_type = mime or "video/webm" }} })
+end
+reset()
+WebHooks.Public.FlipTok = public_url
+downloads[video_url] = { body = binary_video }
+assert(publish_video())
+assert(#download_requests == 0, "Media downloads must not run inside gameplay callbacks")
+advance()
+assert(#requests == 1 and #download_requests == 2)
+assert(requests[1].content_type:find("multipart/form-data", 1, true))
+assert(requests[1].body:find(binary_video, 1, true), "Video bytes must actually be attached")
+assert(requests[1].body:find('name="files[0]"; filename="video-1.webm"', 1, true))
+assert(requests[1].payload.attachments[1].id == 0 and requests[1].payload.content == nil)
+assert(requests[1].payload.embeds[1].author.name == "@dean")
+
+for _, media in ipairs({
+    { body = binary_video, head_size = 21 * 1024 * 1024 },
+    { body = binary_video, head_status = 302 },
+    { body = binary_video, status = 404 },
+    { body = binary_video, hang = "GET" },
+    { body = binary_video, hang = "HEAD" },
+    { body = binary_video, head_size = 1 },
+    { body = binary_video, mime = "text/html" },
+}) do
+    reset()
+    WebHooks.Public.FlipTok = public_url
+    downloads[video_url] = media
+    assert(publish_video())
+    advance()
+    assert(#requests == 1 and requests[1].content_type == "application/json")
+    assert(requests[1].payload.content == video_url, "Unavailable video must retain its visible link")
+    assert(requests[1].payload.embeds[1].description == "Video post")
+end
+for _, url in ipairs({ "https://127.0.0.1/video.webm", "https://localhost/video.webm",
+    "https://r2.fivemanage.com.evil.invalid/video.webm", "https://unconfigured.invalid/video.webm" }) do
+    reset()
+    WebHooks.Public.FlipTok = public_url
+    assert(publish_video(url))
+    advance()
+    assert(#download_requests == 0 and #requests == 1, "Untrusted hosts must not trigger server downloads")
+end
+reset()
+WebHooks.Public.FlipTok = public_url
+downloads[video_url] = { body = binary_video }
+responses[1] = { status = 429, body = json.encode({ retry_after = 2 }) }
+responses[2] = { status = 413 }
+assert(publish_video())
+advance()
+assert(#requests == 3 and requests[2].at >= 2001)
+assert(requests[3].content_type == "application/json" and requests[3].payload.content == video_url,
+    "Discord upload rejection must retry the post with a visible video link")
+
+reset()
+WebHooks.Public.FlipTok, WebHooks.Calls = public_url, fallback_url
+downloads[video_url] = { body = binary_video }
+local http = PerformHttpRequest
+PerformHttpRequest = function(url, callback, method, body, headers, options)
+    if method == "GET" then
+        SetTimeout(100, function() http(url, callback, method, body, headers, options) end)
+    else http(url, callback, method, body, headers, options) end
+end
+assert(publish_video())
+advance(1)
+responses[1] = { status = 429, body = json.encode({ retry_after = 2, global = true }) }
+assert(SkyPhoneLog.Record("Calls", "calls:created", "ringing", 1, {}))
+advance()
+assert(#requests == 3, "The global cooldown must retain both the call retry and the video")
+for _, request in ipairs(requests) do
+    if request.url == public_url .. "?wait=true" then
+        assert(request.at >= 2002, "Global Discord cooldown must be rechecked after downloading media")
+    end
+end
+
+reset()
+WebHooks.Public.FlipTok, WebHooks.Public.Feather, WebHooks.Public.Pages = public_url, calls_url, messages_url
+WebHooks.Calls = fallback_url
+downloads[video_url] = { body = binary_video }
+http = PerformHttpRequest
+local in_progress, peak = 0, 0
+PerformHttpRequest = function(url, callback, method, body, headers, options)
+    if method == "GET" then
+        in_progress = in_progress + 1
+        peak = math.max(peak, in_progress)
+        SetTimeout(100, function()
+            in_progress = in_progress - 1
+            http(url, callback, method, body, headers, options)
+        end)
+    else http(url, callback, method, body, headers, options) end
+end
+for _, action in ipairs({ "fliptok:publish", "feather:create-post", "pages:create" }) do
+    assert(SkyPhoneLog.Publish(action, { body = "Concurrent video", media = {{ url = video_url, media_type = "video", mime_type = "video/webm" }} }))
+end
+assert(SkyPhoneLog.Record("Calls", "calls:created", "ringing", 1, {}))
+advance(50)
+assert(#requests == 1 and requests[1].url == fallback_url .. "?wait=true", "Downloads must not block ordinary admin delivery")
+advance()
+assert(peak == 2 and #requests == 4, "Video downloads must respect the shared concurrency cap and release capacity")
+
+reset()
+WebHooks.Public.FlipTok = public_url
+local mp4_url = "https://cdn.example.invalid/phone-test.mp4"
+Config.Media = { Import = { Enabled = true, Websites = {{ Enabled = true, AllowedMediaHosts = { "example.invalid" } }} } }
+downloads[mp4_url] = { body = "TEST_MP4_BYTES", mime = "video/mp4" }
+assert(publish_video(mp4_url, "video/mp4"))
+advance()
+assert(requests[1].payload.attachments[1].filename == "video-1.mp4")
+assert(requests[1].body:find("Content-Type: video/mp4", 1, true))
+
 -- Exercise prepared SkyPic actions without requiring the feature's tables at
 -- startup. The real feature source can also be checked with the optional suite.
 reset()
@@ -555,7 +723,7 @@ if skypic_file then
         audit = record(requests[#requests])
         assert(audit.details.snapshots.before.records[1].status == "active")
         assert(audit.details.content.records[1].status == "removed")
-        assert(requests[#requests].payload.embeds[1].title:find(case[3], 1, true))
+        assert(requests[#requests].payload.embeds[1].title:lower():find(Locales.en.DiscordAudit.states[case[3]]:lower(), 1, true))
     end
     local delivered = #requests
     authorized = false

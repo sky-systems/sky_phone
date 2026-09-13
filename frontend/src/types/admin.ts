@@ -210,6 +210,15 @@ export type AdminCustomToneCreate = {
 export type AdminWebhookMode = 'file' | 'inherit' | 'disabled' | 'custom'
 
 export type AdminWebhookOptions = {
+  FooterIconUrl: string
+  FeatherIconUrl: string
+  PagesIconUrl: string
+  MarketplaceIconUrl: string
+  PicstagramIconUrl: string
+  FlipTokIconUrl: string
+  SkyPicIconUrl: string
+  WeazelNewsIconUrl: string
+  VideoMaxBytes: number
   Enabled: boolean
   Username: string
   AvatarUrl: string

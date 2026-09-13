@@ -69,6 +69,8 @@ local replacement_url = "https://discord.com/api/webhooks/456/REPLACEMENT_TEST_T
 WebHooks.Calls = file_url
 WebHooks.Public.Feather = file_url
 dofile("sky_phone/source/server/logging.lua")
+dofile("sky_phone/source/server/logging_format.lua")
+dofile("sky_phone/source/server/logging_media.lua")
 dofile("sky_phone/source/server/logging_actions.lua")
 dofile("sky_phone/source/server/logging_public.lua")
 dofile("sky_phone/source/server/logging_settings.lua")
@@ -201,4 +203,15 @@ assert(not SkyPhoneLog.IsPublicEnabled("feather:create-post"))
 assert(save({ { path = "Public.Actions.messages:send", mode = "custom", url = file_url } }).error == "invalid_field")
 assert(save({ { path = "Public.Feather", mode = "custom", url = "https://example.invalid/hook" } }).error == "invalid_webhook")
 no_secrets(get())
+assert(save({ { path = "FooterIconUrl", value = "https://example.invalid/sky.png" },
+    { path = "FeatherIconUrl", value = "https://example.invalid/feather.png" },
+    { path = "VideoMaxBytes", value = 10 * 1024 * 1024 } }).success)
+assert(WebHooks.FeatherIconUrl == "https://example.invalid/feather.png" and WebHooks.FooterIconUrl == "https://example.invalid/sky.png")
+assert(save({ { path = "FooterIconUrl", value = file_url } }).error == "invalid_value")
+assert(save({ { path = "VideoMaxBytes", value = 21 * 1024 * 1024 } }).error == "invalid_value")
+dofile("sky_phone/config/WebHooks.lua")
+dofile("sky_phone/source/server/logging_settings.lua")
+assert(WebHooks.VideoMaxBytes == 10 * 1024 * 1024 and WebHooks.FeatherIconUrl == "https://example.invalid/feather.png")
+assert(save({ { path = "FeatherIconUrl", mode = "file" } }).success)
+assert(WebHooks.FeatherIconUrl:find("/feather.webp", 1, true))
 print("Server webhook settings and Phonepanel authorization tests passed")

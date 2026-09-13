@@ -4,7 +4,6 @@ SkyPhoneLog = {}
 local contexts = setmetatable({}, { __mode = "k" })
 local queues = {}
 local queued = 0
-local sequence = 0
 local global_retry_at = 0
 local warned = {}
 local max_record_bytes = 64000
@@ -163,8 +162,9 @@ deliver = function(url, queue)
     local remaining = math.max(global_retry_at, queue.ready_at or 0) - GetGameTimer()
     if remaining > 0 then schedule(url, queue, remaining) return end
     queue.inflight = true
-    item.attempts = item.attempts + 1
+    local release_media = function() end
     local function complete(status, body, headers)
+        release_media()
         queue.inflight = false
         local delay = 400
         local retry = status == 429 or status == 0 or status < 0 or status >= 500
@@ -181,6 +181,12 @@ deliver = function(url, queue)
             delay = math.min(60000, 1000 * 2 ^ (item.attempts - 1))
         elseif header(headers, "x-ratelimit-remaining") == 0 then
             delay = math.max(400, (header(headers, "x-ratelimit-reset-after") or 1) * 1000)
+        end
+        if (status == 413 or status == 400) and item.videos and #item.videos > 0 and not item.skipVideos then
+            item.skipVideos = true
+            diagnostic("video-size", "Discord rejected the video attachment; retrying with media links.")
+            schedule(url, queue, delay)
+            return
         end
         if retry and item.attempts < limit("MaxAttempts", 5, 10) then
             schedule(url, queue, delay)
@@ -200,9 +206,29 @@ deliver = function(url, queue)
             if queues[url] == queue then deliver(url, queue) end
         end)
     end
-    local ok = pcall(PerformHttpRequest, url, complete, "POST", item.body,
-        { ["Content-Type"] = "application/json" }, { followLocation = false })
-    if not ok then complete(0, "", {}) end
+    local function send(body, content_type, release)
+        local remaining = math.max(global_retry_at, queue.ready_at or 0) - GetGameTimer()
+        if remaining > 0 then
+            SetTimeout(math.ceil(remaining), function() send(body, content_type, release) end)
+            return
+        end
+        release_media = release
+        item.attempts = item.attempts + 1
+        local completed = false
+        local function receive(...)
+            if completed then return end
+            completed = true
+            complete(...)
+        end
+        SetTimeout(30000, function() receive(0, "", {}) end)
+        local ok = pcall(PerformHttpRequest, url, receive, "POST", body,
+            { ["Content-Type"] = content_type }, { followLocation = false })
+        if not ok then receive(0, "", {}) end
+    end
+    if not SkyPhoneLog.PrepareMedia(item, send) then
+        queue.inflight = false
+        schedule(url, queue, 1000)
+    end
 end
 
 local function queue_pending(category, url, pending)
@@ -228,7 +254,8 @@ local function enqueue(category, action, status, actor, details)
     local url = webhook(category, action)
     if not url then return false end
     local record = safe_value({ actor = actor, details = details })
-    local content = json.encode(record, { indent = true })
+    local timestamp = os.time()
+    local heading, content = SkyPhoneLog.FormatAudit(category, action, status, record, timestamp)
     local parts = {}
     local first = 1
     while first <= #content and #parts < max_parts do
@@ -244,11 +271,9 @@ local function enqueue(category, action, status, actor, details)
         diagnostic("overflow", "Queue is full; new record dropped. Check channel traffic and webhook delivery.")
         return false
     end
-    sequence = sequence + 1
-    local record_id = tostring(os.time()) .. "-" .. sequence
     local pending = {}
     for index, part in ipairs(parts) do
-        local title = truncate_utf8(clean_string(category .. " | " .. action .. " | " .. status), 230)
+        local title = truncate_utf8(clean_string(heading), 230)
         local payload = {
             username = truncate_utf8(clean_string(tostring(WebHooks.Username or "Sky Phone")), 80),
             avatar_url = type(WebHooks.AvatarUrl) == "string"
@@ -257,10 +282,11 @@ local function enqueue(category, action, status, actor, details)
             allowed_mentions = { parse = json.decode("[]") },
             embeds = {{
                 title = title,
-                description = "```json\n" .. part .. "\n```",
+                description = part,
                 color = status == "deleted" and 15158332 or status == "edited" and 16705372 or 3447003,
                 timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-                footer = { text = "Sky Phone | " .. record_id .. " | " .. index .. "/" .. #parts },
+                footer = { text = "Sky Phone" .. (#parts > 1 and (" · " .. index .. "/" .. #parts) or ""),
+                    icon_url = WebHooks.FooterIconUrl ~= "" and WebHooks.FooterIconUrl or nil },
             }},
         }
         pending[#pending + 1] = { body = json.encode(payload), category = category, attempts = 0 }
@@ -284,17 +310,18 @@ function SkyPhoneLog.Publish(action, post)
         labels = labels and labels.DiscordPublic or {}
         local status = post.status or "published"
         local embed = {
-            title = text(spec.label .. " | " .. (labels[status] or status), 240),
+            title = text(labels[status] or status, 240),
             description = text(post.body, 3000),
             color = spec.color,
             timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-            footer = { text = text(spec.label .. " | " .. tostring(post.id), 180) },
+            footer = { text = "Sky Phone", icon_url = WebHooks.FooterIconUrl ~= "" and WebHooks.FooterIconUrl or nil },
         }
-        local author = text(post.author_name, 120)
-        if type(post.author_handle) == "string" and post.author_handle ~= "" then
-            author = author .. " (@" .. text(post.author_handle, 80) .. ")"
+        local author = text(post.author_handle or post.author_name, 120):gsub("^@", "")
+        if author ~= "" then
+            author = "@" .. author
+            embed.author = { name = author, icon_url = type(post.author_avatar) == "string"
+                and post.author_avatar:match("^https://[^/@%s]+/%S+$") and post.author_avatar or nil }
         end
-        if author ~= "" then embed.author = { name = author } end
         local fields = {}
         -- Count bytes conservatively so all text fits Discord's 6000-character
         -- aggregate embed limit, including non-BMP characters and media links.
@@ -313,6 +340,7 @@ function SkyPhoneLog.Publish(action, post)
         field("district", post.district)
         field("location", post.location)
         field("price", post.price)
+        local videos = {}
         for index, media in ipairs(post.media or {}) do
             if index > 4 then break end
             local media_url = type(media.url) == "string" and media.url
@@ -320,6 +348,8 @@ function SkyPhoneLog.Publish(action, post)
                 and not media_url:find("/webhooks/", 1, true) then
                 if media.media_type == "photo" and not embed.image then
                     embed.image = { url = media_url }
+                elseif media.media_type == "video" then
+                    videos[#videos + 1] = { url = media_url, mime_type = media.mime_type }
                 else
                     local label = text(labels.media or "Media", 80) .. " " .. index
                     if #label + #media_url <= remaining then
@@ -331,13 +361,13 @@ function SkyPhoneLog.Publish(action, post)
         end
         if #fields > 0 then embed.fields = fields end
         local payload = {
-            username = text(WebHooks.Username or "Sky Phone", 80),
-            avatar_url = type(WebHooks.AvatarUrl) == "string" and WebHooks.AvatarUrl:match("^https://%S+$") and WebHooks.AvatarUrl or nil,
+            username = text(spec.label, 80),
+            avatar_url = WebHooks[spec.category .. "IconUrl"] ~= "" and WebHooks[spec.category .. "IconUrl"] or nil,
             allowed_mentions = { parse = json.decode("[]") },
             embeds = { embed },
         }
         return queue_pending("Public." .. spec.category, url, {{
-            body = json.encode(payload), category = "Public." .. spec.category, attempts = 0,
+            body = json.encode(payload), category = "Public." .. spec.category, attempts = 0, videos = videos,
         }})
     end)
     if not ok then diagnostic("public", "Could not prepare a public announcement.") end

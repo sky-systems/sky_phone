@@ -38,6 +38,16 @@ entity("skypic-message", "sky_phone_skypic_messages", "media_id")
 entity("skypic-story", "sky_phone_skypic_stories", "media_id")
 entity("skypic-spotlight", "sky_phone_skypic_spotlights", "media_id")
 entity("skypic-comment", "sky_phone_skypic_spotlight_comments")
+for name, profile in pairs({
+    ["feather-post"] = "feather", ["picstagram-post"] = "picstagram", ["picstagram-comment"] = "picstagram",
+    ["picstagram-story"] = "picstagram", ["fliptok-video"] = "fliptok", ["fliptok-comment"] = "fliptok",
+    ["skypic-story"] = "skypic", ["skypic-spotlight"] = "skypic", ["skypic-comment"] = "skypic",
+}) do
+    local definition = entities[name]
+    definition.query = definition.query:gsub("SELECT record%.%*", "SELECT record.*, author.`handle` AS `author_handle`, author.`display_name` AS `author_name`")
+        :gsub(" WHERE record%.`id`", " LEFT JOIN `sky_phone_" .. profile
+            .. "_profiles` author ON author.`id` = record.`profile_id` WHERE record.`id`")
+end
 entities["mail-entry"] = {
     query = [[SELECT entry.*, message.`subject`, message.`body`, message.`recipients`, message.`sender_account_id`
         FROM `sky_phone_mail_entries` entry

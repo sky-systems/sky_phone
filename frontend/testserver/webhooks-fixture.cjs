@@ -11,6 +11,15 @@ const categories = [...source.matchAll(/^    (\w+) =/gm)]
   .filter(
     (key) =>
       ![
+        'FooterIconUrl',
+        'FeatherIconUrl',
+        'PagesIconUrl',
+        'MarketplaceIconUrl',
+        'PicstagramIconUrl',
+        'FlipTokIconUrl',
+        'SkyPicIconUrl',
+        'WeazelNewsIconUrl',
+        'VideoMaxBytes',
         'Enabled',
         'Username',
         'AvatarUrl',
@@ -21,6 +30,22 @@ const categories = [...source.matchAll(/^    (\w+) =/gm)]
       ].includes(key),
   )
 const defaults = {
+  FooterIconUrl: 'https://avatars.githubusercontent.com/u/94749467?v=4',
+  FeatherIconUrl:
+    'https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/feather.webp',
+  PagesIconUrl:
+    'https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/local-pages.webp',
+  MarketplaceIconUrl:
+    'https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/citymarkt.webp',
+  PicstagramIconUrl:
+    'https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/picstagram.webp',
+  FlipTokIconUrl:
+    'https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/fliptok.webp',
+  SkyPicIconUrl:
+    'https://raw.githubusercontent.com/sky-systems/sky_phone/89982508ca4e1ee14cf32bba52b3664b70127aea/frontend/src/assets/img/app-icons/skypic.jpg',
+  WeazelNewsIconUrl:
+    'https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/weazel-news.webp',
+  VideoMaxBytes: 20971520,
   Enabled: true,
   Username: 'Sky Phone',
   AvatarUrl: '',

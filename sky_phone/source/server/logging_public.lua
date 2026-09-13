@@ -5,10 +5,14 @@ SkyPhoneLog.PublicCategories = { "Feather", "Pages", "Marketplace", "Picstagram"
 local entities = {}
 
 local function entity(key, table_name, columns, joins, visible, media_table, media_key, media_order)
+    if joins:find("p%.`") then
+        columns = columns .. ", avatar.`url` AS `author_avatar`"
+        joins = joins .. " LEFT JOIN `sky_phone_media` avatar ON avatar.`id` = p.`avatar_media_id` "
+    end
     entities[key] = {
         query = "SELECT r.`id`, " .. columns .. " FROM `" .. table_name .. "` r " .. joins .. " WHERE r.`id` = ? LIMIT 1",
         visible = visible,
-        media = media_table and ("SELECT m.`url`, m.`media_type` FROM `%s` a JOIN `sky_phone_media` m "
+        media = media_table and ("SELECT m.`url`, m.`media_type`, m.`mime_type` FROM `%s` a JOIN `sky_phone_media` m "
             .. "ON m.`id` = a.`media_id` WHERE a.`%s` = ? ORDER BY a.`%s` LIMIT 4"):format(media_table, media_key, media_order or "sort_order"),
     }
 end
@@ -21,7 +25,7 @@ local function active_story(row)
 end
 local author = "p.`display_name` AS `author_name`, p.`handle` AS `author_handle`"
 local media_join = " LEFT JOIN `sky_phone_media` m ON m.`id` = r.`media_id` "
-local media_columns = ", m.`url` AS `media_url`, m.`media_type`"
+local media_columns = ", m.`url` AS `media_url`, m.`media_type`, m.`mime_type`"
 
 entity("feather", "sky_phone_feather_posts", "r.`body`, r.`status`, " .. author,
     "JOIN `sky_phone_feather_profiles` p ON p.`id` = r.`profile_id`", published,
@@ -98,7 +102,7 @@ function SkyPhoneLog.AnnouncePublic(action, data, response)
     -- Explicit projection: even an extra column in a future query cannot expose
     -- account IDs, IMEIs, private snapshots, reports or direct messages.
     local post = { id = row.id, status = spec.status }
-    for key in ("title body author_name author_handle category district location"):gmatch("%S+") do post[key] = row[key] end
+    for key in ("title body author_name author_handle author_avatar category district location"):gmatch("%S+") do post[key] = row[key] end
     if spec.status == "availability" then post.status = row.status end
     if spec.category == "Marketplace" then
         local currency = Config and Config.Marketplace and Config.Marketplace.Currency or "$"
@@ -110,6 +114,7 @@ function SkyPhoneLog.AnnouncePublic(action, data, response)
                 .. (row.price_type == "negotiable" and (" (" .. (labels.negotiable or "Negotiable") .. ")") or "")
     end
     if spec.entity.media then post.media = Bridge.Database.Query(spec.entity.media, { id })
-    elseif row.media_url then post.media = {{ url = row.media_url, media_type = row.media_type }} end
+    elseif row.media_url then post.media = {{ url = row.media_url, media_type = row.media_type,
+        mime_type = row.mime_type }} end
     return SkyPhoneLog.Publish(action, post)
 end

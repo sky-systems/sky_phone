@@ -87,6 +87,8 @@ server_scripts {
     'source/bridge/server/migrations.lua',
     'source/server/phone_configurator_schema.lua',
     'source/server/logging.lua',
+    'source/server/logging_format.lua',
+    'source/server/logging_media.lua',
     'source/server/logging_actions.lua',
     'source/server/logging_content.lua',
     'source/server/logging_public.lua',

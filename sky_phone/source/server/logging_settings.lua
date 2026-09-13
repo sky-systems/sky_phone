@@ -24,6 +24,15 @@ end
 table.sort(categories)
 
 local general = { Enabled = true, Username = "Sky Phone", AvatarUrl = "", QueueLimit = 1000, MaxAttempts = 5 }
+general.FooterIconUrl = "https://avatars.githubusercontent.com/u/94749467?v=4"
+general.FeatherIconUrl = "https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/feather.webp"
+general.PagesIconUrl = "https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/local-pages.webp"
+general.MarketplaceIconUrl = "https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/citymarkt.webp"
+general.PicstagramIconUrl = "https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/picstagram.webp"
+general.FlipTokIconUrl = "https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/fliptok.webp"
+general.SkyPicIconUrl = "https://raw.githubusercontent.com/sky-systems/sky_phone/89982508ca4e1ee14cf32bba52b3664b70127aea/frontend/src/assets/img/app-icons/skypic.jpg"
+general.WeazelNewsIconUrl = "https://raw.githubusercontent.com/sky-systems/sky_phone/2fc93a3c7c799277039d40c8dec34e83b5c92533/frontend/src/assets/img/app-icons/weazel-news.webp"
+general.VideoMaxBytes = 20971520
 local direct_actions = {
     ["admin:save-webhooks"] = "Admin",
     ["calls:created"] = "Calls", ["calls:answered"] = "Calls", ["calls:ended"] = "Calls",
@@ -113,13 +122,16 @@ end
 
 local function valid_general(path, value)
     if path == "Enabled" then return type(value) == "boolean" end
+    if path == "VideoMaxBytes" then
+        return type(value) == "number" and value % 1 == 0 and value >= 1 and value <= 20 * 1024 * 1024
+    end
     if path == "QueueLimit" or path == "MaxAttempts" then
         return type(value) == "number" and value >= 1 and value % 1 == 0
             and value <= (path == "QueueLimit" and 10000 or 10)
     end
     if type(value) ~= "string" or not utf8.len(value) or value:find("[%c]") then return false end
     if path == "Username" then return #value >= 1 and #value <= 80 end
-    if path == "AvatarUrl" then
+    if path == "AvatarUrl" or path:match("IconUrl$") then
         return value == "" or (#value <= 2048 and value:match("^https://[^/@%s]+/%S*$") ~= nil
             and not value:find("/webhooks/", 1, true))
     end

@@ -821,6 +821,12 @@ const citywarnFallbackLocales = {
 
 const adminPanelFallbackLocales = {
   webhooks: {
+    appearance: 'Public appearance and videos',
+    footerIcon: 'Sky Phone footer logo URL',
+    appIcon: 'App icon URL',
+    videoMaxBytes: 'Maximum video attachment size (bytes)',
+    videoHelp:
+      'Videos are uploaded as Discord attachments. Oversized or unavailable files retain a visible link. Maximum 20 MiB.',
     title: 'Discord webhooks',
     body: 'Configure admin logs and public player announcements separately. Save changes using the button at the top of Phonepanel.',
     sidebar:
@@ -836,8 +842,8 @@ const adminPanelFallbackLocales = {
       'Full activity logs for administrators, including private content. Use channels accessible only to staff.',
     publicHelp:
       'Announces public posts, stories and listings. Private profiles, messages and player identifiers are excluded. Uses only public destinations.',
-    username: 'Webhook name',
-    avatarUrl: 'Avatar URL',
+    username: 'Admin webhook name',
+    avatarUrl: 'Admin avatar URL',
     avatarHelp:
       'Optional HTTPS image URL. Leave empty to use the webhook’s Discord avatar.',
     queueLimit: 'Maximum queued message parts',

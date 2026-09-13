@@ -18,6 +18,15 @@ const query = ref('')
 const category = ref('all')
 const scope = ref('categories')
 const audience = ref('admin')
+const iconOptions = [
+  'FeatherIconUrl',
+  'PagesIconUrl',
+  'MarketplaceIconUrl',
+  'PicstagramIconUrl',
+  'FlipTokIconUrl',
+  'SkyPicIconUrl',
+  'WeazelNewsIconUrl',
+] as const
 watch(audience, () => {
   category.value = 'all'
 })
@@ -175,6 +184,41 @@ function updateEndpoint(
         >
           {{ t('resetGeneral') }}
         </SkyButton>
+      </fieldset>
+      <fieldset :disabled="disabled" class="admin-webhooks__options">
+        <legend>{{ t('appearance') }}</legend>
+        <SkyField
+          outline
+          component="div"
+          type="url"
+          :label="t('footerIcon')"
+          :model-value="option('FooterIconUrl')"
+          :maxlength="2048"
+          @update:model-value="updateOption('FooterIconUrl', $event)"
+        />
+        <SkyField
+          v-for="key in iconOptions"
+          :key="key"
+          outline
+          component="div"
+          type="url"
+          :label="`${categoryLabel(key.replace(/IconUrl$/, ''))} · ${t('appIcon')}`"
+          :model-value="option(key)"
+          :maxlength="2048"
+          @update:model-value="updateOption(key, $event)"
+        />
+        <SkyField
+          outline
+          component="div"
+          type="number"
+          :label="t('videoMaxBytes')"
+          :help="t('videoHelp')"
+          :model-value="option('VideoMaxBytes')"
+          :min="1"
+          :max="20971520"
+          :step="1"
+          @update:model-value="updateOption('VideoMaxBytes', Number($event))"
+        />
       </fieldset>
       <div class="admin-webhooks__filters">
         <SkyField
