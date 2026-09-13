@@ -9,7 +9,8 @@ local function block(first, following)
 end
 
 -- Execute the production membership, routing and periodic cleanup with a deterministic scheduler.
-local code = block("local function membership(source)", "local function require_permission(")
+local code = block("function SkyPhoneCompanies.CanUseServiceDevice(device)", "local function current_device(")
+    .. block("local function membership(source)", "local function require_permission(")
     .. block("local function call_member(source)", "function SkyPhoneCompanies.CanAnswerCompanyCall(")
     .. block("function SkyPhoneCompanies.GetCallTargets(company_id)", "local function profile_row(")
     .. block("CreateThread(function()\n    while true do\n        Wait(1000)", "local function company_summary(")
@@ -19,7 +20,7 @@ local function fixture()
     local job_reads, device_reads = 0, 0
     local thread
     local env = setmetatable({
-        Config = { Companies = { Enabled = true } },
+        Config = { Companies = { Enabled = true }, Sim = { Enabled = true } },
         SkyPhoneCompanies = {},
         definitions = {
             mechanic = { ServiceLine = { CanCall = true, MinimumGrade = 1 } },
@@ -118,6 +119,23 @@ assert(targets[1].imei == "device-1" and targets[1].simId == "sim-1")
 targets = state.env.SkyPhoneCompanies.GetCallTargets("mechanic")
 assert(#targets == 2 and targets[1].source == 2 and targets[2].source == 1)
 assert(state.env.call_availability[3], "Routing another company must preserve its readiness")
+state.env.definitions.mechanic.ServiceLine.Routing = "ring_all"
+for _ = 1, 3 do
+    targets = state.env.SkyPhoneCompanies.GetCallTargets("mechanic")
+    assert(#targets == 2 and targets[1].source == 1 and targets[2].source == 2,
+        "Ring-all must return all eligible employees without advancing round robin")
+end
+state.env.Config.Sim.Enabled = false
+for _, device in pairs(state.devices) do
+    device.sim_type = "anonymous"
+    device.registered_at = nil
+    device.sim_is_virtual = 1
+end
+assert(#state.env.SkyPhoneCompanies.GetCallTargets("mechanic") == 2,
+    "Automatic phone numbers must receive company calls when SIM cards are disabled")
+state.env.Config.Sim.Enabled = true
+assert(#state.env.SkyPhoneCompanies.GetCallTargets("mechanic") == 0,
+    "Enabling SIM cards must restore the registration requirement")
 state.env.Config.Companies.Enabled = false
 local before = state.reads()
 assert(#state.env.SkyPhoneCompanies.GetCallTargets("mechanic") == 0 and state.reads() == before)

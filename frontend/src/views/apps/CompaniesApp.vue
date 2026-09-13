@@ -186,11 +186,15 @@ const filtersActive = computed(
 )
 const activeCompany = computed(() => companies.company)
 const workCompany = computed(() => companies.workContext?.company ?? null)
+const canUseServiceRequests = computed(() => {
+  const sim = phone.device?.sim
+  return Boolean(sim && (sim.servicesAllowed ?? sim.registered))
+})
 const requestProgress = computed(() => {
   if (!requestServiceId.value) return 0.25
   if (!requestSubject.value.trim() || !requestDescription.value.trim())
     return 0.5
-  if (!phone.device?.sim?.registered) return 0.75
+  if (!canUseServiceRequests.value) return 0.75
   return 1
 })
 const canSubmitRequest = computed(
@@ -198,7 +202,7 @@ const canSubmitRequest = computed(
     Boolean(requestServiceId.value) &&
     requestSubject.value.trim().length >= 3 &&
     requestDescription.value.trim().length >= 10 &&
-    Boolean(phone.device?.sim?.registered) &&
+    canUseServiceRequests.value &&
     !companies.mutating,
 )
 const canSendThreadMessage = computed(
@@ -2234,7 +2238,7 @@ onBeforeUnmount(() => {
             <Phone :size="18" />
             <span>
               <strong>{{ phone.t('Apps.companies.composer.contact') }}</strong>
-              <span v-if="phone.device?.sim?.registered">
+              <span v-if="canUseServiceRequests && phone.device?.sim">
                 {{
                   phone.t('Apps.companies.composer.registeredSim', {
                     number: maskedPhoneNumber(phone.device.sim.number),

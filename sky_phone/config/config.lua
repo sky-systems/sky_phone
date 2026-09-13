@@ -173,6 +173,7 @@ Config.AdminPanel = {
 }
 
 Config.Sim = {
+    -- With SIM cards disabled, company calls and service requests use the automatic phone number too.
     Enabled = true, -- false: devices receive a persistent random number automatically; forced false for metadata-free inventories
     RegisteredItem = "sky_phone_sim_registered",
     AnonymousItem = "sky_phone_sim_anonymous",
@@ -1245,8 +1246,14 @@ if IsDuplicityVersion() then
             CallAvailability = 30,
         },
         CallRouting = {
-            MaxAttempts = 3,
-            RingSeconds = 10,
+            -- Choose the routing mode per company in Definitions.<company>.ServiceLine.Routing:
+            -- "round_robin": ring one available employee at a time, rotating the starting employee.
+            -- "ring_all" (simultaneous ring): ring all available employees together;
+            -- the first to answer gets the call and ringing stops for everyone else.
+            -- Both modes require enabled call availability, MinimumGrade and an eligible phone/SIM.
+            -- Busy/unreachable employees are skipped. Declining ring_all only stops that employee's ring.
+            MaxAttempts = 3, -- round_robin only: maximum total attempts, including the first employee (1-20).
+            RingSeconds = 10, -- 1-120 seconds per round_robin attempt or for the entire ring_all group.
         },
         Categories = {
             "public_services",
@@ -1290,7 +1297,7 @@ if IsDuplicityVersion() then
                     AutoContact = true,
                     CanCall = true,
                     CanMessage = true,
-                    Routing = "round_robin",
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {
@@ -1335,7 +1342,7 @@ if IsDuplicityVersion() then
                     AutoContact = true,
                     CanCall = true,
                     CanMessage = true,
-                    Routing = "round_robin",
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {
@@ -1372,7 +1379,7 @@ if IsDuplicityVersion() then
                     AutoContact = true,
                     CanCall = true,
                     CanMessage = true,
-                    Routing = "round_robin",
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {
@@ -1409,7 +1416,7 @@ if IsDuplicityVersion() then
                     AutoContact = true,
                     CanCall = true,
                     CanMessage = true,
-                    Routing = "round_robin",
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {
@@ -1461,7 +1468,7 @@ if IsDuplicityVersion() then
                     AutoContact = true,
                     CanCall = true,
                     CanMessage = true,
-                    Routing = "round_robin",
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {

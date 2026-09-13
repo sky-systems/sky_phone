@@ -579,6 +579,7 @@ local function bootstrap(source, security, security_loaded)
                 removable = Config.Sim.Enabled ~= false and tonumber(device.sim_is_virtual) ~= 1,
                 type = device.sim_type,
                 registered = device.registered_at ~= nil,
+                servicesAllowed = SkyPhoneCompanies.CanUseServiceDevice(device),
             } or nil,
             data = load_device_data(device.imei),
         },

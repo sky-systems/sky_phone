@@ -339,7 +339,7 @@ local function validate_configuration(configuration)
         if line.AutoContact and not definition.Public then
             return nil, ("[sky_phone] Private company '%s' cannot create a public system contact."):format(company_id)
         end
-        if line.Routing ~= "round_robin" then
+        if line.Routing ~= "round_robin" and line.Routing ~= "ring_all" then
             return nil, ("[sky_phone] Company '%s' uses unsupported call routing '%s'."):format(
                 company_id,
                 tostring(line.Routing)
@@ -714,6 +714,12 @@ function SkyPhoneCompanies.ClearCallAvailability(source)
     call_availability[tonumber(source) or source] = nil
 end
 
+function SkyPhoneCompanies.CanUseServiceDevice(device)
+    return type(device) == "table" and type(device.sim_id) == "string" and device.sim_id ~= ""
+        and (Config.Sim.Enabled == false
+            or (device.sim_type == "registered" and device.registered_at ~= nil))
+end
+
 local function current_device(source, registered_required)
     local session, error_response = SkyPhone.RequireSession(source)
     if not session then
@@ -726,7 +732,7 @@ local function current_device(source, registered_required)
     if not device.sim_id then
         return nil, { success = false, error = "no_sim" }
     end
-    if registered_required and (device.sim_type ~= "registered" or not device.registered_at) then
+    if registered_required and not SkyPhoneCompanies.CanUseServiceDevice(device) then
         return nil, { success = false, error = "anonymous_sim" }
     end
     return device
@@ -815,8 +821,7 @@ function SkyPhoneCompanies.GetCallTargets(company_id)
         local readiness_valid = member and device and device_slots[1]
             and member.company_id == readiness.company_id
             and device.sim_id == readiness.sim_id
-            and device.sim_type == "registered"
-            and device.registered_at ~= nil
+            and SkyPhoneCompanies.CanUseServiceDevice(device)
         if not readiness_valid then
             call_availability[source] = nil
         elseif readiness.company_id == company_id then
@@ -832,7 +837,7 @@ function SkyPhoneCompanies.GetCallTargets(company_id)
     table.sort(targets, function(left, right)
         return left.source < right.source
     end)
-    if #targets < 2 then
+    if #targets < 2 or definition.ServiceLine.Routing == "ring_all" then
         return targets
     end
     local start = (round_robin_positions[company_id] or 0) % #targets + 1
@@ -1308,7 +1313,7 @@ local function request_access(source, request_id)
         return nil, { success = false, error = "request_failed" }
     end
     if device.sim_id and device.sim_id == row.customer_sim_id
-        and device.sim_type == "registered" and device.registered_at
+        and SkyPhoneCompanies.CanUseServiceDevice(device)
     then
         return { audience = "customer", row = row, device = device }
     end

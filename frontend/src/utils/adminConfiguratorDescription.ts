@@ -76,6 +76,11 @@ export function configuratorDescriptionKey(
   if (/^CityWarn\.CategoryColors(?:\.[^.]+)?$/.test(path))
     return 'citywarnCategoryColor'
   if (path === 'Garage.System') return 'garageSystem'
+  if (/^Companies\.Definitions\.[^.]+\.ServiceLine\.Routing$/.test(path))
+    return 'companyCallRouting'
+  if (path === 'Companies.CallRouting.MaxAttempts') return 'companyCallAttempts'
+  if (path === 'Companies.CallRouting.RingSeconds')
+    return 'companyCallRingSeconds'
   if (/^Companies\.Definitions\.[^.]+\.Name$/.test(path)) return 'companyName'
   if (/^Companies\.Definitions\.[^.]+\.LogoUrl$/.test(path))
     return 'companyLogo'

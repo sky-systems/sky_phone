@@ -116,6 +116,17 @@ local function change(path, value, scope)
     return { scope = scope or "config", path = path, value = value }
 end
 
+local function use_company_validation(server)
+    -- Reuse the production validator without starting Companies persistence/background work.
+    local file = assert(io.open("sky_phone/source/server/companies.lua", "r"))
+    local source = file:read("*a"):gsub("\r\n", "\n")
+    file:close()
+    local finish = assert(source:find("local function profile_configuration(", 1, true))
+    local validation = source:sub(1, finish - 1):gsub('^Bridge.Database.AfterMigration%("sky_phone", function%(%)\n', '')
+    load_script("source/shared/sim_number.lua", server.env)
+    assert(load(validation, "@companies_validation", "t", server.env))()
+end
+
 local failures = 0
 local function test(name, callback)
     local success, message = pcall(callback)
@@ -126,6 +137,43 @@ local function test(name, callback)
         print("FAIL " .. name .. ": " .. tostring(message))
     end
 end
+
+test("service-line routing modes validate and roundtrip through SQL and server runtime", function()
+    local server = new_server()
+    use_company_validation(server)
+    local field = server.field("Companies.Definitions")
+    assert(field.structure.fields.police.fields.ServiceLine.fields.Routing.valueType == "string")
+    assert(field.value.police.ServiceLine.Routing == "round_robin", "preserve the existing default")
+    for _, mode in ipairs({ "ring_all", "round_robin" }) do
+        local definitions = server.field("Companies.Definitions").value
+        definitions.police.ServiceLine.Routing = mode
+        local result = server.save({ change("Companies.Definitions", definitions) })
+        assert(result.success, tostring(result.error))
+        assert(server.env.Config.Companies.Definitions.police.ServiceLine.Routing == mode)
+        assert(server.updates[#server.updates].config.Companies.Definitions.police.ServiceLine.Routing == mode)
+        assert(server.broadcasts[#server.broadcasts].config.Companies == nil, "routing stays server-owned")
+        local restarted = new_server(server.database)
+        assert(restarted.field("Companies.Definitions").value.police.ServiceLine.Routing == mode)
+        assert(restarted.env.Config.Companies.Definitions.police.ServiceLine.Routing == mode)
+    end
+end)
+
+test("unsupported service-line routing and invalid timing reject the entire Configurator save", function()
+    for _, invalid in ipairs({ "random", "", "RING_ALL", false, 12 }) do
+        local server = new_server()
+        use_company_validation(server)
+        local definitions = server.field("Companies.Definitions").value
+        definitions.police.ServiceLine.Routing = invalid
+        assert(not server.save({ change("Companies.Definitions", definitions) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+    for _, invalid in ipairs({ { "MaxAttempts", 0 }, { "MaxAttempts", 21 }, { "RingSeconds", 0 }, { "RingSeconds", 121 } }) do
+        local server = new_server()
+        use_company_validation(server)
+        assert(not server.save({ change("Companies.CallRouting." .. invalid[1], invalid[2]) }).success)
+        assert(server.database.writes == 0)
+    end
+end)
 
 test("MSK garage selection survives SQL reload and reaches connected phones", function()
     local server = new_server()
