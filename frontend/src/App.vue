@@ -20,6 +20,8 @@ import PhoneMediaCapture from '@/components/PhoneMediaCapture.vue'
 import PhoneMemoRecorder from '@/components/PhoneMemoRecorder.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhonePasscode from '@/components/PhonePasscode.vue'
+import PhoneFaceId from '@/components/PhoneFaceId.vue'
+import { faceIdErrorKey } from '@/utils/face-id'
 import PhoneSetupAssistant from '@/components/PhoneSetupAssistant.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import NotificationPhonePreview from '@/components/NotificationPhonePreview.vue'
@@ -377,6 +379,10 @@ const adminPanelOpen = ref(
 const springboardEditing = ref(false)
 const isUnlocking = ref(false)
 const passcodeBusy = ref(false)
+const faceIdVisible = ref(false)
+const faceIdBusy = ref(false)
+const faceIdError = ref('')
+let faceIdRequest = 0
 const passcodeError = ref('')
 const passcodeResetKey = ref(0)
 const passcodeRetrySeconds = ref(0)
@@ -1384,11 +1390,47 @@ function finishUnlock(): void {
 function unlockPhone(): void {
   if (!isLocked.value) return
   if (phone.security.enabled && passcodeRequired.value) {
+    if (phone.security.faceIdEnabled) {
+      void submitUnlockFaceId()
+      return
+    }
     passcodeError.value = ''
     passcodeVisible.value = true
     return
   }
   finishUnlock()
+}
+
+function useUnlockPin(): void {
+  faceIdRequest += 1
+  faceIdVisible.value = false
+  faceIdBusy.value = false
+  passcodeError.value = ''
+  passcodeVisible.value = true
+}
+
+async function submitUnlockFaceId(): Promise<void> {
+  if (faceIdBusy.value) return
+  const request = ++faceIdRequest
+  const token = phone.deviceSessionToken
+  faceIdVisible.value = true
+  faceIdBusy.value = true
+  faceIdError.value = ''
+  const response = await phone.unlockWithFaceId()
+  if (
+    request !== faceIdRequest ||
+    token !== phone.deviceSessionToken ||
+    !phone.isOpen ||
+    !isLocked.value
+  )
+    return
+  faceIdBusy.value = false
+  if (response.success) {
+    faceIdVisible.value = false
+    finishUnlock()
+    return
+  }
+  faceIdError.value = phone.t(faceIdErrorKey(response.error))
 }
 
 function openLockScreenNotification(notification: PhoneNotification): void {
@@ -1681,6 +1723,9 @@ watch(
 watch(
   () => phone.isOpen,
   (isOpen) => {
+    faceIdRequest += 1
+    faceIdVisible.value = false
+    faceIdBusy.value = false
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
     if (!isOpen) {
       updateTextInputFocus(false)
@@ -2013,11 +2058,20 @@ onBeforeUnmount(() => {
                   <SkyProvider
                     v-if="lockedCallVisible && !setupRequired"
                     class="phone-app-theme"
-                    :inert="passcodeVisible"
+                    :inert="passcodeVisible || faceIdVisible"
                     dark
                   >
                     <PhoneCallScreen locked @unlock="unlockPhone" />
                   </SkyProvider>
+                  <Transition name="lock-screen">
+                    <PhoneFaceId
+                      v-if="isLocked && faceIdVisible && !setupRequired"
+                      :busy="faceIdBusy"
+                      :error="faceIdError"
+                      @retry="submitUnlockFaceId"
+                      @passcode="useUnlockPin"
+                    />
+                  </Transition>
                   <Transition name="lock-screen">
                     <PhonePasscode
                       v-if="isLocked && passcodeVisible && !setupRequired"

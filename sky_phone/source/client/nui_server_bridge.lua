@@ -70,7 +70,7 @@ local callback_groups = {
         remove-comment publish-story stories view-story story-viewers remove-story activities mark-activities
         block report admin-reports admin-resolve-report
     ]],
-    security = [[unlock set-passcode change-passcode disable-passcode]],
+    security = [[unlock set-passcode change-passcode disable-passcode face-id-unlock set-face-id]],
     sim = [[insert eject]],
     tones = [[list]],
     ["weazel-news"] = [[context list get manage-list create update delete]],

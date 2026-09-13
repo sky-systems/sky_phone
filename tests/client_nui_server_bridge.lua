@@ -24,7 +24,7 @@ local callback_count = 0
 for _ in pairs(callbacks) do
     callback_count = callback_count + 1
 end
-assert(callback_count == 311, ("expected 311 NUI server callbacks, got %d"):format(callback_count))
+assert(callback_count == 313, ("expected 313 NUI server callbacks, got %d"):format(callback_count))
 for _, required in ipairs({
     "companies:dial-service-line",
     "mail:mailboxes",
@@ -33,6 +33,8 @@ for _, required in ipairs({
     "flare:delete-profile",
     "admin:webhooks",
     "admin:save-webhooks",
+    "security:set-face-id",
+    "security:face-id-unlock",
 }) do
     assert(type(callbacks[required]) == "function", ("missing callback %s"):format(required))
 end

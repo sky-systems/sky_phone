@@ -7,6 +7,7 @@ import {
   Gauge,
   LockKeyhole,
   Palette,
+  ScanFace,
   ShieldCheck,
   Signal,
   Smartphone,
@@ -16,6 +17,7 @@ import {
 import { computed, ref } from 'vue'
 
 import PhonePasscode from '@/components/PhonePasscode.vue'
+import { faceIdErrorKey } from '@/utils/face-id'
 import { getPhoneApp, getPhoneAppLabel } from '@/config/apps'
 import { useAccountStore } from '@/stores/account'
 import { useAppStoreStore } from '@/stores/app-store'
@@ -54,7 +56,9 @@ const password = ref('')
 const passwordConfirm = ref('')
 const accountBusy = ref(false)
 const accountError = ref('')
-const passcodeStage = ref<'create' | 'confirm' | null>(null)
+const passcodeStage = ref<'create' | 'confirm' | 'face-id' | null>(null)
+const passcodeBusy = ref(false)
+const showFaceIdSetup = ref(false)
 const passcodeFirst = ref('')
 const passcodeResetKey = ref(0)
 const passcodeError = ref('')
@@ -71,7 +75,14 @@ const setupCompleteError = ref('')
 
 const setupApps = computed(() =>
   (
-    ['banking', 'garage', 'skyride', 'citymarkt', 'picstagram', 'snake'] as const
+    [
+      'banking',
+      'garage',
+      'skyride',
+      'citymarkt',
+      'picstagram',
+      'snake',
+    ] as const
   ).flatMap((id) => {
     const app = getPhoneApp(id)
     return app && appStore.isAvailable(id) ? [app] : []
@@ -199,7 +210,21 @@ function updateAccountName(event: Event): void {
   email.value = localPart
 }
 
-function submitPasscode(passcode: string): void {
+async function submitPasscode(passcode: string): Promise<void> {
+  if (passcodeBusy.value) return
+  if (passcodeStage.value === 'face-id') {
+    passcodeBusy.value = true
+    const response = await phone.setFaceId(true, passcode)
+    passcodeBusy.value = false
+    if (!response.success) {
+      passcodeError.value = phone.t(faceIdErrorKey(response.error))
+      passcodeResetKey.value += 1
+      return
+    }
+    passcodeStage.value = null
+    continueSetup()
+    return
+  }
   if (passcodeStage.value === 'create') {
     passcodeFirst.value = passcode
     passcodeStage.value = 'confirm'
@@ -213,16 +238,25 @@ function submitPasscode(passcode: string): void {
     passcodeResetKey.value += 1
     return
   }
-  void phone.setPasscode(passcode).then((response) => {
-    if (!response.success) {
-      passcodeError.value = phone.t('Setup.security.failed')
-      passcodeStage.value = 'create'
-      passcodeResetKey.value += 1
-      return
-    }
-    passcodeStage.value = null
-    continueSetup()
-  })
+  passcodeBusy.value = true
+  const response = await phone.setPasscode(passcode)
+  passcodeBusy.value = false
+  if (!response.success) {
+    passcodeError.value = phone.t('Setup.security.failed')
+    passcodeStage.value = 'create'
+    passcodeResetKey.value += 1
+    return
+  }
+  passcodeStage.value = null
+  passcodeFirst.value = ''
+  showFaceIdSetup.value = true
+}
+
+function beginFaceIdSetup(): void {
+  passcodeError.value = ''
+  passcodeResetKey.value += 1
+  passcodeLength.value = phone.security.length ?? passcodeLength.value
+  passcodeStage.value = phone.security.enabled ? 'face-id' : 'create'
 }
 
 function choosePasscodeLength(length: 4 | 6): void {
@@ -521,6 +555,56 @@ function skipSetupForDevelopment(): void {
           </div>
         </template>
 
+        <template
+          v-else-if="step === 3 && (showFaceIdSetup || phone.security.enabled)"
+        >
+          <div class="setup-assistant__icon setup-assistant__icon--security">
+            <ScanFace :size="46" :stroke-width="1.6" />
+          </div>
+          <p class="setup-assistant__eyebrow">
+            {{ phone.t('Setup.security.eyebrow') }}
+          </p>
+          <h1>{{ phone.t('FaceId.title') }}</h1>
+          <p class="setup-assistant__lead">{{ phone.t('FaceId.setupBody') }}</p>
+          <div class="setup-assistant__notice">
+            <ShieldCheck :size="19" />
+            <p>
+              {{
+                phone.t(
+                  phone.security.enabled
+                    ? 'FaceId.pinFallback'
+                    : 'FaceId.requiresPin',
+                )
+              }}
+            </p>
+          </div>
+          <SkyButton
+            class="setup-assistant__primary"
+            @click="
+              phone.security.faceIdEnabled
+                ? continueSetup()
+                : beginFaceIdSetup()
+            "
+          >
+            {{
+              phone.t(
+                phone.security.faceIdEnabled
+                  ? 'Common.continue'
+                  : phone.security.enabled
+                    ? 'FaceId.enable'
+                    : 'Setup.security.create',
+              )
+            }}
+          </SkyButton>
+          <button
+            type="button"
+            class="setup-assistant__later"
+            @click="continueSetup"
+          >
+            {{ phone.t('Setup.setUpLater') }}
+          </button>
+        </template>
+
         <template v-else-if="step === 3">
           <div class="setup-assistant__icon setup-assistant__icon--security">
             <LockKeyhole :size="43" />
@@ -581,7 +665,7 @@ function skipSetupForDevelopment(): void {
           <button
             type="button"
             class="setup-assistant__later"
-            @click="continueSetup"
+            @click="showFaceIdSetup = true"
           >
             {{ phone.t('Setup.setUpLater') }}
           </button>
@@ -865,22 +949,27 @@ function skipSetupForDevelopment(): void {
 
     <PhonePasscode
       v-if="passcodeStage"
+      :busy="passcodeBusy"
       :length="passcodeLength"
       :reset-key="passcodeResetKey"
       :error="passcodeError"
       :title="
         phone.t(
-          passcodeStage === 'create'
-            ? 'Setup.security.enter'
-            : 'Setup.security.confirm',
+          passcodeStage === 'face-id'
+            ? 'Apps.settings.passcode.enterCurrent'
+            : passcodeStage === 'create'
+              ? 'Setup.security.enter'
+              : 'Setup.security.confirm',
         )
       "
       :subtitle="
-        phone.t(
-          passcodeLength === 4
-            ? 'Setup.security.fourDigitHint'
-            : 'Setup.security.sixDigitHint',
-        )
+        passcodeStage === 'face-id'
+          ? phone.t('FaceId.pinFallback')
+          : phone.t(
+              passcodeLength === 4
+                ? 'Setup.security.fourDigitHint'
+                : 'Setup.security.sixDigitHint',
+            )
       "
       @cancel="passcodeStage = null"
       @complete="submitPasscode"

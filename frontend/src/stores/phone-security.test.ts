@@ -11,6 +11,67 @@ vi.mock('@/utils/nui', () => ({
 const mockNuiCall = vi.mocked(nuiCall)
 
 describe('phone passcode store', () => {
+  it('enrolls Face ID using the PIN and accepts only the returned server state', async () => {
+    const phone = usePhoneStore()
+    phone.security = { enabled: true, length: 4, lockedUntil: 0 }
+    mockNuiCall.mockResolvedValueOnce({
+      success: false,
+      error: 'invalid_passcode',
+    })
+    await phone.setFaceId(true, '0000')
+    expect(phone.security.faceIdEnabled).toBeUndefined()
+    const security = { ...phone.security, faceIdEnabled: true }
+    mockNuiCall.mockResolvedValueOnce({ success: true, data: { security } })
+    await phone.setFaceId(true, '1234')
+    expect(phone.security.faceIdEnabled).toBe(true)
+    expect(mockNuiCall).toHaveBeenLastCalledWith('security:set-face-id', {
+      enabled: true,
+      passcode: '1234',
+    })
+  })
+
+  it('asks the server to recognize the player without sending an owner identifier', async () => {
+    mockNuiCall.mockResolvedValueOnce({
+      success: false,
+      error: 'face_id_not_recognized',
+    })
+    const response = await usePhoneStore().unlockWithFaceId()
+    expect(mockNuiCall).toHaveBeenCalledWith('security:face-id-unlock')
+    expect(response.success).toBe(false)
+  })
+
+  it.each(['unlock', 'enroll'] as const)(
+    'discards a late Face ID %s result from a closed device session',
+    async (action) => {
+      const phone = usePhoneStore()
+      phone.deviceSessionToken = 'old-session'
+      let resolve!: (result: Awaited<ReturnType<typeof nuiCall>>) => void
+      mockNuiCall.mockReturnValueOnce(
+        new Promise((done) => {
+          resolve = done
+        }),
+      )
+      const pending =
+        action === 'unlock'
+          ? phone.unlockWithFaceId()
+          : phone.setFaceId(true, '1234')
+      phone.deviceSessionToken = 'new-session'
+      resolve({
+        success: true,
+        data: {
+          security: {
+            enabled: true,
+            length: 4,
+            lockedUntil: 0,
+            faceIdEnabled: true,
+          },
+        },
+      })
+      expect((await pending).success).toBe(false)
+      expect(phone.security.faceIdEnabled).toBeFalsy()
+    },
+  )
+
   beforeEach(() => {
     vi.stubGlobal('window', {
       matchMedia: vi.fn(() => ({ matches: false })),

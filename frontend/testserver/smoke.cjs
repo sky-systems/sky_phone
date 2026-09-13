@@ -261,6 +261,66 @@ function verifyBrowserTestData(dataByEndpoint) {
 }
 
 async function verifyStatefulActions(baseUrl) {
+  assert.equal(
+    (
+      await post(baseUrl, 'security:set-face-id', {
+        enabled: true,
+        passcode: '1234',
+      })
+    ).error,
+    'passcode_not_set',
+  )
+  await expectSuccess(baseUrl, 'security:set-passcode', { passcode: '1234' })
+  assert.equal(
+    (
+      await post(baseUrl, 'security:set-face-id', {
+        enabled: true,
+        passcode: '0000',
+      })
+    ).error,
+    'invalid_passcode',
+  )
+  const faceId = await expectSuccess(
+    baseUrl,
+    'security:set-face-id',
+    { enabled: true, passcode: '1234' },
+    true,
+  )
+  assert.equal(faceId.security.faceIdEnabled, true)
+  await expectSuccess(baseUrl, 'security:face-id-unlock')
+  assert.equal(
+    (
+      await post(baseUrl, 'security:face-id-unlock', {
+        _testScenario: 'face-id-other-character',
+        ownerIdentifier: 'phone-owner',
+      })
+    ).error,
+    'face_id_not_recognized',
+  )
+  await expectSuccess(baseUrl, 'security:change-passcode', {
+    currentPasscode: '1234',
+    newPasscode: '123456',
+  })
+  await expectSuccess(baseUrl, 'security:face-id-unlock')
+  await expectSuccess(baseUrl, 'security:set-face-id', {
+    enabled: false,
+    passcode: '123456',
+  })
+  assert.equal(
+    (await post(baseUrl, 'security:face-id-unlock')).error,
+    'face_id_not_enabled',
+  )
+  await expectSuccess(baseUrl, 'security:set-face-id', {
+    enabled: true,
+    passcode: '123456',
+  })
+  await expectSuccess(baseUrl, 'security:disable-passcode', {
+    passcode: '123456',
+  })
+  assert.equal(
+    (await post(baseUrl, 'security:face-id-unlock')).error,
+    'face_id_not_enabled',
+  )
   const cryptoBeforeTransfer = await expectSuccess(
     baseUrl,
     'crypto:bootstrap',

@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-  ChevronLeft,
-  Pause,
-  Play,
-} from 'lucide-vue-next'
+import { ChevronLeft, Pause, Play } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 
 import {
@@ -24,6 +20,8 @@ const snake = useSnakeStore()
 const speedOptions: SnakeSpeed[] = ['relaxed', 'normal', 'fast']
 const game = computed(() => snake.game)
 const boardMotionStyle = computed(() => ({
+  '--snake-body-color': snake.progression.skin.body,
+  '--snake-tail-color': snake.progression.skin.tail,
   '--snake-motion-duration': `${Math.min(
     110,
     Math.round(snake.tickMilliseconds * 0.7),
@@ -116,11 +114,9 @@ function handleKeydown(event: KeyboardEvent): void {
 }
 
 snake.hydrate()
-watch(
-  () => [snake.game?.status, snake.tickMilliseconds],
-  syncGameTimer,
-  { immediate: true },
-)
+watch(() => [snake.game?.status, snake.tickMilliseconds], syncGameTimer, {
+  immediate: true,
+})
 onMounted(() => window.addEventListener('keydown', handleKeydown))
 onBeforeUnmount(() => {
   stopGameTimer()
@@ -152,8 +148,20 @@ onBeforeUnmount(() => {
               <stop offset="0.55" stop-color="#72d267" />
               <stop offset="1" stop-color="#94e879" />
             </linearGradient>
-            <filter id="snake-menu-shadow" x="-30%" y="-30%" width="160%" height="170%">
-              <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#000" flood-opacity="0.28" />
+            <filter
+              id="snake-menu-shadow"
+              x="-30%"
+              y="-30%"
+              width="160%"
+              height="170%"
+            >
+              <feDropShadow
+                dx="0"
+                dy="7"
+                stdDeviation="6"
+                flood-color="#000"
+                flood-opacity="0.28"
+              />
             </filter>
           </defs>
           <g filter="url(#snake-menu-shadow)">
@@ -166,8 +174,18 @@ onBeforeUnmount(() => {
               stroke-width="22"
             />
             <circle cx="25" cy="96" r="7" fill="#4fae51" />
-            <g class="snake-mark__head" transform="translate(111 29) rotate(-35)">
-              <rect x="-13" y="-13" width="34" height="27" rx="13" fill="#91e678" />
+            <g
+              class="snake-mark__head"
+              transform="translate(111 29) rotate(-35)"
+            >
+              <rect
+                x="-13"
+                y="-13"
+                width="34"
+                height="27"
+                rx="13"
+                fill="#91e678"
+              />
               <circle cx="12" cy="-6" r="3.3" fill="#f4ffe9" />
               <circle cx="12" cy="7" r="3.3" fill="#f4ffe9" />
               <circle cx="13" cy="-6" r="1.7" fill="#10241e" />
@@ -176,8 +194,21 @@ onBeforeUnmount(() => {
           </g>
           <g class="snake-mark__fruit" transform="translate(126 87)">
             <circle r="12" fill="#ff6256" />
-            <path d="M0 -11 C1 -17 5 -19 8 -20" fill="none" stroke="#6fbe58" stroke-linecap="round" stroke-width="3" />
-            <ellipse cx="8" cy="-17" rx="6" ry="3" fill="#8adb67" transform="rotate(-22 8 -17)" />
+            <path
+              d="M0 -11 C1 -17 5 -19 8 -20"
+              fill="none"
+              stroke="#6fbe58"
+              stroke-linecap="round"
+              stroke-width="3"
+            />
+            <ellipse
+              cx="8"
+              cy="-17"
+              rx="6"
+              ry="3"
+              fill="#8adb67"
+              transform="rotate(-22 8 -17)"
+            />
             <circle cx="-4" cy="-4" r="2.5" fill="#ff9b8f" opacity="0.72" />
           </g>
         </svg>
@@ -185,6 +216,9 @@ onBeforeUnmount(() => {
       <div>
         <h1>{{ phone.t('Apps.snake.readyTitle') }}</h1>
         <p>{{ phone.t('Apps.snake.readyBody') }}</p>
+        <p class="snake-progression-hint">
+          {{ phone.t('Apps.snake.levelHint') }}
+        </p>
       </div>
       <fieldset class="snake-speed-picker">
         <legend>{{ phone.t('Apps.snake.speed') }}</legend>
@@ -206,7 +240,10 @@ onBeforeUnmount(() => {
 
     <section v-else class="snake-game">
       <div class="snake-game__meta">
-        <SkyButton glass icon-only rounded
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
           class="snake-game__back"
           :aria-label="phone.t('Apps.snake.backToMenu')"
@@ -218,6 +255,19 @@ onBeforeUnmount(() => {
         <div>
           <span>{{ phone.t('Apps.snake.score') }}</span>
           <strong>{{ game.score }}</strong>
+        </div>
+        <div class="snake-game__level" aria-live="polite">
+          <span>{{ phone.t('Apps.snake.level') }}</span>
+          <strong>{{ snake.progression.level }}</strong>
+          <progress
+            :value="snake.progression.progress"
+            max="10"
+            :aria-label="
+              phone.t('Apps.snake.nextLevel', {
+                score: String(snake.progression.nextLevelScore),
+              })
+            "
+          ></progress>
         </div>
         <SkyButton
           v-if="game.status !== 'game-over'"
@@ -235,7 +285,11 @@ onBeforeUnmount(() => {
           "
           @click="game.status === 'paused' ? snake.resume() : snake.pause()"
         >
-          <Play v-if="game.status === 'paused'" :size="18" fill="currentColor" />
+          <Play
+            v-if="game.status === 'paused'"
+            :size="18"
+            fill="currentColor"
+          />
           <Pause v-else :size="18" fill="currentColor" />
         </SkyButton>
       </div>
@@ -255,19 +309,42 @@ onBeforeUnmount(() => {
           v-for="(segment, index) in game.body"
           :key="`body-${index}`"
           class="snake-body-segment"
-          :class="{ 'snake-body-segment--tail': index === game.body.length - 1 }"
+          :class="{
+            'snake-body-segment--tail': index === game.body.length - 1,
+          }"
           :style="bodySegmentStyle(segment)"
         ></span>
         <span
           class="snake-head"
-          :class="`snake-head--${game.direction}`"
+          :class="[
+            `snake-head--${game.direction}`,
+            { 'snake-head--sprite': snake.progression.skin.image },
+          ]"
           :style="cellStyle(game.body[0])"
         >
-          <i class="snake-head__eye snake-head__eye--top"></i>
-          <i class="snake-head__eye snake-head__eye--bottom"></i>
+          <img
+            v-if="snake.progression.skin.image"
+            :src="snake.progression.skin.image"
+            alt=""
+            draggable="false"
+          />
+          <template v-else>
+            <i class="snake-head__eye snake-head__eye--top"></i>
+            <i class="snake-head__eye snake-head__eye--bottom"></i>
+          </template>
         </span>
-        <span class="snake-fruit" :style="cellStyle(game.fruit)">
-          <i></i>
+        <span
+          class="snake-fruit"
+          :class="{ 'snake-fruit--sprite': snake.progression.food.image }"
+          :style="cellStyle(game.fruit)"
+        >
+          <img
+            v-if="snake.progression.food.image"
+            :src="snake.progression.food.image"
+            alt=""
+            draggable="false"
+          />
+          <i v-else></i>
         </span>
 
         <div v-if="game.status !== 'playing'" class="snake-overlay">
@@ -279,7 +356,9 @@ onBeforeUnmount(() => {
             </button>
           </template>
           <template v-else>
-            <span class="snake-overline">{{ phone.t('Apps.snake.score') }} {{ game.score }}</span>
+            <span class="snake-overline"
+              >{{ phone.t('Apps.snake.score') }} {{ game.score }}</span
+            >
             <h2>{{ phone.t('Apps.snake.gameOver') }}</h2>
             <button type="button" class="snake-primary" @click="startGame">
               {{ phone.t('Apps.snake.restart') }}
@@ -375,7 +454,9 @@ onBeforeUnmount(() => {
   background:
     radial-gradient(circle at 75% 20%, rgb(138 226 118 / 14%), transparent 34%),
     rgb(255 255 255 / 4%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 18px 32px rgb(0 0 0 / 19%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 5%),
+    0 18px 32px rgb(0 0 0 / 19%);
 }
 
 .snake-mark svg {
@@ -396,13 +477,25 @@ onBeforeUnmount(() => {
 }
 
 @keyframes snake-menu-breathe {
-  0%, 100% { opacity: 0.94; transform: scale(0.985); }
-  50% { opacity: 1; transform: scale(1.01); }
+  0%,
+  100% {
+    opacity: 0.94;
+    transform: scale(0.985);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.01);
+  }
 }
 
 @keyframes snake-menu-fruit {
-  0%, 100% { transform: translate(126px, 87px) scale(0.94); }
-  50% { transform: translate(126px, 87px) scale(1.05); }
+  0%,
+  100% {
+    transform: translate(126px, 87px) scale(0.94);
+  }
+  50% {
+    transform: translate(126px, 87px) scale(1.05);
+  }
 }
 
 .snake-menu h1,
@@ -486,7 +579,7 @@ onBeforeUnmount(() => {
   left: 18px;
   height: 42px;
   display: grid;
-  grid-template-columns: 32px 1fr 32px;
+  grid-template-columns: 32px 1fr 1fr 32px;
   align-items: center;
   gap: 4px;
   padding: 4px;
@@ -529,8 +622,12 @@ onBeforeUnmount(() => {
   color: #dff6d9;
 }
 
-.snake-game__meta .snake-game__pause { justify-self: end; }
-.snake-game__meta .snake-game__back { justify-self: start; }
+.snake-game__meta .snake-game__pause {
+  justify-self: end;
+}
+.snake-game__meta .snake-game__back {
+  justify-self: start;
+}
 
 .snake-board {
   position: absolute;
@@ -567,7 +664,7 @@ onBeforeUnmount(() => {
 .snake-body-segment {
   position: absolute;
   z-index: 1;
-  background: #6dcc62;
+  background: var(--snake-body-color, #6dcc62);
   transition-duration: var(--snake-motion-duration);
   transition-timing-function: cubic-bezier(0.22, 0.68, 0.3, 1);
   will-change: left, top, width, height;
@@ -584,7 +681,7 @@ onBeforeUnmount(() => {
 }
 
 .snake-body-segment--tail {
-  background: #62be5c;
+  background: var(--snake-tail-color, #62be5c);
   transform: scale(0.86);
 }
 
@@ -603,10 +700,18 @@ onBeforeUnmount(() => {
   will-change: left, top;
 }
 
-.snake-head--right { transform: scale(0.92) rotate(0deg); }
-.snake-head--down { transform: scale(0.92) rotate(90deg); }
-.snake-head--left { transform: scale(0.92) rotate(180deg); }
-.snake-head--up { transform: scale(0.92) rotate(-90deg); }
+.snake-head--right {
+  transform: scale(0.92) rotate(0deg);
+}
+.snake-head--down {
+  transform: scale(0.92) rotate(90deg);
+}
+.snake-head--left {
+  transform: scale(0.92) rotate(180deg);
+}
+.snake-head--up {
+  transform: scale(0.92) rotate(-90deg);
+}
 
 .snake-head__eye {
   position: absolute;
@@ -618,8 +723,12 @@ onBeforeUnmount(() => {
   background: #10241e;
 }
 
-.snake-head__eye--top { top: 17%; }
-.snake-head__eye--bottom { bottom: 17%; }
+.snake-head__eye--top {
+  top: 17%;
+}
+.snake-head__eye--bottom {
+  bottom: 17%;
+}
 
 .snake-fruit {
   z-index: 2;
@@ -644,9 +753,53 @@ onBeforeUnmount(() => {
   transform: rotate(25deg);
 }
 
+.snake-progression-hint {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.snake-game__level {
+  position: relative;
+}
+.snake-game__level progress {
+  position: absolute;
+  bottom: -4px;
+  width: 42px;
+  height: 2px;
+  border: 0;
+  border-radius: 2px;
+  overflow: hidden;
+  appearance: none;
+}
+.snake-game__level progress::-webkit-progress-bar {
+  background: rgb(255 255 255 / 12%);
+}
+.snake-game__level progress::-webkit-progress-value {
+  background: #8ae276;
+}
+.snake-head--sprite,
+.snake-fruit--sprite {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.snake-head img,
+.snake-fruit img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
 @keyframes snake-fruit-pulse {
-  0%, 100% { transform: scale(0.88); }
-  50% { transform: scale(1.06); }
+  0%,
+  100% {
+    transform: scale(0.88);
+  }
+  50% {
+    transform: scale(1.06);
+  }
 }
 
 .snake-overlay {
@@ -702,6 +855,8 @@ button:active {
 
 @media (prefers-reduced-motion: reduce) {
   .snake-mark__body,
-  .snake-mark__fruit { animation: none; }
+  .snake-mark__fruit {
+    animation: none;
+  }
 }
 </style>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { faceIdErrorKey } from '@/utils/face-id'
 import {
   BellRing,
   Bluetooth,
@@ -129,6 +130,8 @@ type PasscodeFlow =
   | 'change-new'
   | 'change-confirm'
   | 'disable'
+  | 'face-id-enable'
+  | 'face-id-disable'
   | null
 
 const FACTORY_RESET_DURATION_MS = 8_000
@@ -428,7 +431,9 @@ const passcodeTitle = computed(() => {
   }
   if (
     passcodeFlow.value === 'change-current' ||
-    passcodeFlow.value === 'disable'
+    passcodeFlow.value === 'disable' ||
+    passcodeFlow.value === 'face-id-enable' ||
+    passcodeFlow.value === 'face-id-disable'
   ) {
     return phone.t('Apps.settings.passcode.enterCurrent')
   }
@@ -562,14 +567,19 @@ async function submitSettingsPasscode(passcode: string): Promise<void> {
 
   passcodeBusy.value = true
   const response =
-    passcodeFlow.value === 'set-confirm'
-      ? await phone.setPasscode(passcode)
-      : passcodeFlow.value === 'change-confirm'
-        ? await phone.changePasscode(passcodeCurrent.value, passcode)
-        : await phone.disablePasscode(passcode)
+    passcodeFlow.value === 'face-id-enable' ||
+    passcodeFlow.value === 'face-id-disable'
+      ? await phone.setFaceId(passcodeFlow.value === 'face-id-enable', passcode)
+      : passcodeFlow.value === 'set-confirm'
+        ? await phone.setPasscode(passcode)
+        : passcodeFlow.value === 'change-confirm'
+          ? await phone.changePasscode(passcodeCurrent.value, passcode)
+          : await phone.disablePasscode(passcode)
   passcodeBusy.value = false
   if (!response.success) {
-    passcodeError.value = passcodeRequestError(response.error)
+    passcodeError.value = passcodeFlow.value?.startsWith('face-id-')
+      ? phone.t(faceIdErrorKey(response.error))
+      : passcodeRequestError(response.error)
     if (
       passcodeFlow.value === 'change-confirm' &&
       response.error === 'invalid_passcode'
@@ -583,9 +593,11 @@ async function submitSettingsPasscode(passcode: string): Promise<void> {
   }
 
   accountToast.value = phone.t(
-    passcodeFlow.value === 'disable'
-      ? 'Apps.settings.passcode.disabled'
-      : 'Apps.settings.passcode.saved',
+    passcodeFlow.value?.startsWith('face-id-')
+      ? 'FaceId.saved'
+      : passcodeFlow.value === 'disable'
+        ? 'Apps.settings.passcode.disabled'
+        : 'Apps.settings.passcode.saved',
   )
   cancelPasscodeFlow()
 }
@@ -1076,6 +1088,29 @@ onBeforeUnmount(() => {
       </template>
 
       <template v-else-if="activeView === 'security'">
+        <SkySettingsGroup :title="phone.t('FaceId.title')">
+          <SkySettingsRow
+            :key="passcodeFlow ?? 'face-id-idle'"
+            kind="toggle"
+            :title="phone.t('FaceId.unlock')"
+            :description="
+              phone.t(
+                phone.security.enabled
+                  ? 'FaceId.pinFallback'
+                  : 'FaceId.requiresPin',
+              )
+            "
+            :model-value="Boolean(phone.security.faceIdEnabled)"
+            :disabled="!phone.security.enabled || passcodeBusy"
+            @update:model-value="
+              (enabled) => {
+                passcodeLength = phone.security.length ?? 6
+                resetPasscodeInput()
+                passcodeFlow = enabled ? 'face-id-enable' : 'face-id-disable'
+              }
+            "
+          />
+        </SkySettingsGroup>
         <SkyBlock class="settings-copy">
           {{ phone.t('Apps.settings.passcode.description') }}
         </SkyBlock>

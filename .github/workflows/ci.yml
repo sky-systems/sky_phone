@@ -54,6 +54,7 @@ jobs:
           lua5.4 tests/companies_call_availability_spec.lua
           lua5.4 tests/companies_service_device_spec.lua
           lua5.4 tests/server_phone_modules.lua
+          lua5.4 tests/server_phone_face_id.lua
 
       - name: Test CityWarn blip lifecycle
         run: |

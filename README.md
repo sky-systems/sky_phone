@@ -69,8 +69,10 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | **Social** | Picstagram, FlipTok, Feather, Flare, and CrewLink |
 | **City & business** | Banking, Billing, Companies, CityMarkt, Local Pages, Garage, Housing, Maps, SkyRide, Weazel News, CityWarn, Crypto, and Health |
 | **Media & productivity** | Camera, Photos, Music, Calendar, Clock, Notes, Voice Memos, Calculator, and Weather |
-| **Games** | Snake, Memory, Number Merge, Minesweeper, Tower Stack, Sky Flappy, and Neon Drop |
-| **Phone system** | App Store, Settings, lock screen, setup assistant, notifications, widgets, folders, passcodes, multiple wallpapers, and light/dark appearance |
+| **Games** | Snake with levels, changing fruit and skins; Memory, Number Merge, Minesweeper, Tower Stack, Sky Flappy, and Neon Drop |
+| **Phone system** | App Store, Settings, lock screen, setup assistant, notifications, widgets, folders, passcodes, optional Face ID, multiple wallpapers, and light/dark appearance |
+
+Snake advances one level every 10 points, cycles through six food appearances, and changes between four skins every 30 points. The selected game speed stays unchanged. Restarting a round resets the level and skin; the high score remains saved. Artwork prompts and the existing visual reference are recorded in [the Snake asset directory](frontend/src/assets/img/games/snake/PROMPTS.md).
 
 ## Built for players, owners, and developers
 
@@ -314,6 +316,8 @@ server console reports whether the installed version is current and shows the re
 update is available. A failed GitHub request is reported but does not prevent the phone from starting.
 
 ## Security values
+
+Face ID is optional during device setup and can be enabled or disabled later under **Settings → Passcode & Security**. A device passcode is required as a fallback, and changing Face ID requires that passcode. The server binds Face ID to the character identifier returned by the framework at enrollment and checks it against the current holder of that physical phone. No camera or biometric data is collected. Changing the SIM or Sky Cloud account does not transfer the enrollment; removing the passcode, an admin passcode reset, or a factory reset clears it. The nullable enrollment column is added automatically by the runtime migration.
 
 Sky Phone ships with stable generated defaults in `Config.Server`:
 

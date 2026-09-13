@@ -24,7 +24,7 @@ end
 
 local function load_device_security(imei)
     local rows = Bridge.Database.Query([[
-        SELECT `passcode_length`, `failed_attempts`, `locked_until`
+        SELECT `passcode_length`, `failed_attempts`, `locked_until`, `face_id_identifier`
         FROM `sky_phone_device_security`
         WHERE `device_imei` = ?
         LIMIT 1
@@ -115,10 +115,83 @@ function SkyPhoneSecurity.Status(imei, security, security_loaded)
     end
     return {
         enabled = security ~= nil,
+        faceIdEnabled = security ~= nil and type(security.face_id_identifier) == "string"
+            and security.face_id_identifier ~= "",
         length = security and tonumber(security.passcode_length) or nil,
         lockedUntil = security and tonumber(security.locked_until) or 0,
     }
 end
+
+local function character_identifier(source)
+    local identifier = Bridge.Framework.GetIdentifier(source)
+    if identifier == nil then return nil end
+    identifier = tostring(identifier)
+    if identifier == "" or #identifier > 80 then return nil end
+    return identifier
+end
+
+local function same_device_session(source, session, identifier)
+    local current = SkyPhone.RequireDeviceSession(source)
+    return current == session and character_identifier(source) == identifier
+end
+
+Bridge.Callbacks.Register("sky_phone:security:face-id-unlock", function(source)
+    if not SkyPhone.AllowOperation(source, "security_unlock", Config.Security.AttemptsPerMinute, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local session, error_response = SkyPhone.RequireDeviceSession(source)
+    if not session then return error_response end
+    local identifier = character_identifier(source)
+    local security = load_device_security(session.imei)
+    if not security or not security.face_id_identifier then
+        return { success = false, error = "face_id_not_enabled" }
+    end
+    if not identifier or security.face_id_identifier ~= identifier then
+        return { success = false, error = "face_id_not_recognized" }
+    end
+    if not same_device_session(source, session, identifier) then
+        return { success = false, error = "device_not_open" }
+    end
+    session.unlocked = true
+    return { success = true, data = { security = SkyPhoneSecurity.Status(session.imei, security, true) } }
+end)
+
+Bridge.Callbacks.Register("sky_phone:security:set-face-id", function(source, data)
+    if not SkyPhone.AllowOperation(source, "security_settings", Config.Security.AttemptsPerMinute, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local session, error_response = SkyPhone.RequireSession(source)
+    if not session then return error_response end
+    if type(data) ~= "table" or type(data.enabled) ~= "boolean" then
+        return { success = false, error = "invalid_request" }
+    end
+    local identifier = character_identifier(source)
+    if not identifier then return { success = false, error = "face_id_unavailable" } end
+    -- Enrollment always requires the device PIN; possession of an unlocked item is insufficient.
+    local verified, verification_error = verify_passcode(session, data.passcode)
+    if not verified then return verification_error end
+    if not same_device_session(source, session, identifier) then
+        return { success = false, error = "device_not_open" }
+    end
+    if data.enabled then
+        Bridge.Database.Query([[
+            UPDATE `sky_phone_device_security` SET `face_id_identifier` = ? WHERE `device_imei` = ?
+        ]], { identifier, session.imei })
+    else
+        Bridge.Database.Query([[
+            UPDATE `sky_phone_device_security` SET `face_id_identifier` = NULL WHERE `device_imei` = ?
+        ]], { session.imei })
+    end
+    local security = load_device_security(session.imei)
+    if not same_device_session(source, session, identifier) then
+        return { success = false, error = "device_not_open" }
+    end
+    if not security or (data.enabled and security.face_id_identifier ~= identifier)
+        or (not data.enabled and security.face_id_identifier ~= nil) then
+        return { success = false, error = "request_failed" }
+    end
+    return { success = true, data = { security = SkyPhoneSecurity.Status(session.imei, security, true) } }
+end)
 
 Bridge.Callbacks.Register("sky_phone:security:unlock", function(source, data)
     if not SkyPhone.AllowOperation(source, "security_unlock", Config.Security.AttemptsPerMinute, 60) then
