@@ -26,6 +26,7 @@ import {
   Info,
   Images,
   Grid3X3,
+  LockKeyhole,
   Mail,
   MessageCircle,
   MicOff,
@@ -71,6 +72,8 @@ type ContactPhotoContext = {
   phoneNumber: string
 }
 
+const props = defineProps<{ locked?: boolean }>()
+const emit = defineEmits<{ unlock: [] }>()
 const phone = usePhoneStore()
 const calls = useCallsStore()
 const easyShare = useEasyShareStore()
@@ -688,6 +691,10 @@ function formatRecentDate(value: string): string {
 }
 
 onMounted(async () => {
+  updateCallElapsed()
+  callClock = window.setInterval(updateCallElapsed, 500)
+  if (props.locked) return
+
   window.addEventListener('keydown', handleKeypadKeyboard)
   await calls.bootstrap()
   const photoSelection = mediaPicker.consumeMany<ContactPhotoContext>(
@@ -727,7 +734,6 @@ onMounted(async () => {
     openContact(undefined, route.query.newContactNumber)
     await router.replace('/apps/phone')
   }
-  callClock = window.setInterval(updateCallElapsed, 500)
 })
 
 onBeforeUnmount(() => {
@@ -742,6 +748,7 @@ onBeforeUnmount(() => {
     :class="{
       'phone-app--light': !phone.isDarkMode,
       'phone-calls-app--profile': Boolean(selectedNumber),
+      'phone-calls-app--locked': locked,
     }"
   >
     <template v-if="calls.activeCall">
@@ -916,10 +923,15 @@ onBeforeUnmount(() => {
                 glass
                 rounded
                 class="phone-call-action"
-                @click="callMoreOpened = !callMoreOpened"
+                @click="
+                  locked ? emit('unlock') : (callMoreOpened = !callMoreOpened)
+                "
               >
-                <MoreHorizontal />
-                <span>{{ phone.t('Apps.phone.more') }}</span>
+                <LockKeyhole v-if="locked" />
+                <MoreHorizontal v-else />
+                <span>{{
+                  phone.t(locked ? 'HardwareButtons.unlock' : 'Apps.phone.more')
+                }}</span>
               </sky-button>
             </div>
             <sky-button
@@ -972,7 +984,7 @@ onBeforeUnmount(() => {
       </SkyProvider>
     </template>
 
-    <template v-else>
+    <template v-else-if="!locked">
       <div
         ref="phoneContent"
         class="phone-call-content"
@@ -1757,6 +1769,10 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.phone-calls-app--locked {
+  z-index: 85;
+}
+
 .phone-active-call {
   position: absolute;
   z-index: 30;
