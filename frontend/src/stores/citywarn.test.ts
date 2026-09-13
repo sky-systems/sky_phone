@@ -57,6 +57,23 @@ const bootstrap: CityWarnBootstrap = {
 }
 
 describe('CityWarn store', () => {
+  it('loads the map radius and applies panel edits without changing warning notification areas', async () => {
+    const store = useCityWarnStore()
+    mockNuiCall.mockResolvedValueOnce({
+      success: true,
+      data: { ...bootstrap, mapBlip: { radiusEnabled: true, radius: 250.5 } },
+    })
+    await store.load()
+    expect(store.mapBlip).toEqual({ radiusEnabled: true, radius: 250.5 })
+    store.applyEvent({ mapBlip: { radiusEnabled: false, radius: 100 } })
+    expect(store.mapBlip).toEqual({ radiusEnabled: false, radius: 100 })
+    store.applyEvent({ alert: alert({ title: 'Updated warning' }) })
+    expect(store.mapBlip.radiusEnabled).toBe(false)
+    expect(store.active[0]?.area.radius).toBe(500)
+    store.applyEvent({ mapBlip: { radiusEnabled: true, radius: 500 } })
+    expect(store.mapBlip).toEqual({ radiusEnabled: true, radius: 500 })
+    expect(store.active).toHaveLength(1)
+  })
   it('applies category colors on bootstrap and live configuration updates without creating an alert', async () => {
     setActivePinia(createPinia())
     const store = useCityWarnStore()
@@ -84,6 +101,7 @@ describe('CityWarn store', () => {
     expect(citywarn.active).toEqual(bootstrap.active)
     expect(citywarn.context?.canPublish).toBe(true)
     expect(citywarn.onlinePlayers).toBe(42)
+    expect(citywarn.mapBlip).toEqual({ radiusEnabled: true, radius: 100 })
     expect(mockNuiCall).toHaveBeenCalledWith('citywarn:bootstrap')
   })
 

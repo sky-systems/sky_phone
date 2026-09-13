@@ -610,11 +610,11 @@ onMounted(async () => {
               :key="`area-${alert.id}`"
             >
               <span
-                v-if="cityWarnMapArea(alert.area)"
+                v-if="cityWarnMapArea(alert.area, citywarn.mapBlip)"
                 class="citywarn-map-zone"
                 :style="{
                   ...categoryStyle(alert.category),
-                  ...cityWarnMapArea(alert.area),
+                  ...cityWarnMapArea(alert.area, citywarn.mapBlip),
                 }"
                 aria-hidden="true"
               ></span>
@@ -1557,7 +1557,7 @@ onMounted(async () => {
 }
 .citywarn-map-zone {
   position: absolute;
-  border: 2px solid var(--category);
+  box-shadow: inset 0 0 0 1px var(--category);
   border-radius: 50%;
   background: var(--category-area);
   pointer-events: none;

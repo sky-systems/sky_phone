@@ -725,7 +725,8 @@ const citywarnFallbackLocales = {
   emptyFiltered: 'No matching warnings',
   emptyFilteredBody: 'Your personal filters hide the current alerts.',
   mapTitle: 'Warning areas',
-  mapBody: 'Highlighted areas show the approximate scope of active alerts.',
+  mapBody:
+    'The map marks active warning locations. Open a warning for details about the affected area.',
   mapControls: 'Map controls',
   mapZoomIn: 'Zoom in',
   mapZoomOut: 'Zoom out',
@@ -960,9 +961,9 @@ const adminPanelFallbackLocales = {
       citywarnBlipGroupByCategory:
         'Groups warnings under the category name in the map legend, hiding individual short titles. Leave off to show each short title. Default: off.',
       citywarnBlipRadiusEnabled:
-        'Shows a fixed area around each located warning. The area has no separate map legend entry.',
+        'Shows the same fixed area around each located warning on the GTA map and in CityWarn. The area has no separate GTA map legend entry.',
       citywarnBlipRadius:
-        'Fixed area radius in metres (1-50000). Default: 100. Independent of the warning notification area.',
+        'Shared radius for the GTA map and CityWarn app, in metres (1-50000). Default: 100. Independent of the warning notification area.',
       citywarnCategoryColor:
         'Color in #RRGGBB format for this warning category. Applies to GTA blips, radius areas and the CityWarn app. Text contrast adjusts automatically.',
       companyName: 'Company name shown in Discover (maximum 32 characters).',

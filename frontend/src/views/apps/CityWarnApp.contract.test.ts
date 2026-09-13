@@ -38,7 +38,7 @@ describe('CityWarn product contract', () => {
     expect(source).toContain('defaultMainlandStyle')
     expect(source).toContain('defaultCayoStyle')
     expect(source).toContain('cityWarnMapPosition(alert.area)')
-    expect(source).toContain('cityWarnMapArea(alert.area)')
+    expect(source).toContain('cityWarnMapArea(alert.area, citywarn.mapBlip)')
     expect(source).toContain('categoryStyle(selected.category)')
     expect(source).toContain('background: var(--category);')
     expect(source).not.toContain("draftAreaType.value === 'city' ||")

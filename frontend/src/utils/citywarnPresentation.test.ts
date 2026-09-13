@@ -1,16 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import {
-  defaultMapCoordinates,
-  defaultMapPercentToWorld,
-} from '@/features/map/defaultMapGeometry'
-import type { CityWarnArea } from '@/types/citywarn'
+import { defaultMapPercentToWorld } from '@/features/map/defaultMapGeometry'
+import type { CityWarnArea, CityWarnAreaType } from '@/types/citywarn'
 import {
   cityWarnColorStyle,
   cityWarnMapArea,
   cityWarnMapPosition,
   DEFAULT_CITYWARN_COLORS,
   parseCityWarnColors,
+  parseCityWarnMapBlip,
 } from './citywarnPresentation'
 
 const area: CityWarnArea = {
@@ -80,23 +78,68 @@ describe('CityWarn map presentation', () => {
       })
       expect(world.x).toBeCloseTo(point.x)
       expect(world.y).toBeCloseTo(point.y)
-      const radius = cityWarnMapArea(area)!
-      expect(
-        (parseFloat(radius.width!) / 100) * defaultMapCoordinates.width,
-      ).toBeCloseTo(1600)
-      expect(
-        (parseFloat(radius.height!) / 100) * defaultMapCoordinates.height,
-      ).toBeCloseTo(1600)
     },
   )
 
-  it('shows city-wide coverage and does not invent zero coordinates for legacy unlocated warnings', () => {
+  it.each<CityWarnAreaType>(['radius', 'district', 'city'])(
+    'uses the configured GTA radius for %s warnings instead of their notification area',
+    (type) => {
+      for (const configuredRadius of [1, 100, 250.5, 50000]) {
+        const warningArea = { ...area, type }
+        const style = cityWarnMapArea(warningArea, {
+          radiusEnabled: true,
+          radius: configuredRadius,
+        })!
+        const left = parseFloat(style.left!) / 100
+        const top = parseFloat(style.top!) / 100
+        const width = parseFloat(style.width!) / 100
+        const height = parseFloat(style.height!) / 100
+        const east = defaultMapPercentToWorld({ x: left + width / 2, y: top })
+        const north = defaultMapPercentToWorld({ x: left, y: top - height / 2 })
+        expect(east.x - warningArea.centerX!).toBeCloseTo(configuredRadius)
+        expect(north.y - warningArea.centerY!).toBeCloseTo(configuredRadius)
+        expect(style).not.toHaveProperty('inset')
+      }
+    },
+  )
+
+  it.each([
+    undefined,
+    null,
+    {},
+    { radius: 0 },
+    { radius: 50001 },
+    { radius: NaN },
+    { radius: Infinity },
+    { radius: '250' },
+  ])('matches native defaults for missing or invalid config: %o', (value) => {
+    expect(parseCityWarnMapBlip(value)).toEqual({
+      radiusEnabled: true,
+      radius: 100,
+    })
+  })
+
+  it('accepts fractional radii and preserves an explicitly disabled radius', () => {
+    const settings = parseCityWarnMapBlip({
+      radiusEnabled: false,
+      radius: 250.5,
+    })
+    expect(settings).toEqual({ radiusEnabled: false, radius: 250.5 })
+    for (const type of ['radius', 'district', 'city'] as const) {
+      expect(cityWarnMapArea({ ...area, type }, settings)).toBeNull()
+      expect(cityWarnMapPosition({ ...area, type })).not.toBeNull()
+    }
+  })
+
+  it('does not invent coverage for legacy unlocated warnings', () => {
     expect(cityWarnMapPosition({ ...area, centerX: null })).toBeNull()
-    expect(
-      cityWarnMapArea({ ...area, type: 'district', centerX: null }),
-    ).toBeNull()
-    expect(
-      cityWarnMapArea({ ...area, type: 'city', centerX: null, centerY: null }),
-    ).toHaveProperty('inset')
+    for (const type of ['radius', 'district', 'city'] as const) {
+      expect(
+        cityWarnMapArea(
+          { ...area, type, centerX: null },
+          parseCityWarnMapBlip(null),
+        ),
+      ).toBeNull()
+    }
   })
 })

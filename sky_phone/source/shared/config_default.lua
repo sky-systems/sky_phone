@@ -1105,8 +1105,8 @@ Config.CityWarn = {
         CategoryId = 12, -- custom named category ID (12-133)
         CategoryName = "CityWarn", -- map legend category label
         GroupByCategory = false, -- true: show the category name in the legend instead of individual short titles
-        RadiusEnabled = true, -- show a fixed world-space area without a separate legend entry
-        Radius = 100.0, -- area radius in metres, independent of the warning's notification area
+        RadiusEnabled = true, -- show the same fixed area in GTA and CityWarn; no separate GTA legend entry
+        Radius = 100.0, -- shared GTA/CityWarn map radius in metres, independent of the warning's notification area
     },
     PageSize = 30,
     MaximumActiveAlerts = 20,

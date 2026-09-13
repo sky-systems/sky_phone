@@ -367,10 +367,24 @@ local function invalidate_blips()
     blip_version = blip_version + 1
 end
 
+local function map_blip_dto()
+    local settings = config.Blip or {}
+    local radius = settings.Radius
+    -- Match the native client's fallback for older or invalid file settings.
+    return {
+        radiusEnabled = settings.RadiusEnabled ~= false,
+        radius = type(radius) == "number" and radius == radius and radius >= 1 and radius <= 50000
+            and radius or 100.0,
+    }
+end
+
 AddEventHandler("sky_phone:configurator:serverUpdated", function()
     config = Config.CityWarn
     invalidate_blips()
-    TriggerClientEvent("sky_phone:citywarn:changed", -1, { categoryColors = config.CategoryColors })
+    TriggerClientEvent("sky_phone:citywarn:changed", -1, {
+        categoryColors = config.CategoryColors,
+        mapBlip = map_blip_dto(),
+    })
 end)
 
 -- Population warnings are public, including while a phone is closed. This
@@ -444,6 +458,7 @@ Bridge.Callbacks.Register("sky_phone:citywarn:bootstrap", function(source)
             archive = query_alerts("archive"),
             context = context_dto(source),
             categoryColors = config.CategoryColors,
+            mapBlip = map_blip_dto(),
             onlinePlayers = #Bridge.Framework.GetPlayers(),
         },
     }

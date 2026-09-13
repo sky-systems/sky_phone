@@ -182,6 +182,7 @@ function verifyBrowserTestData(dataByEndpoint) {
   expectItems(cityWarn.active, 'active CityWarn alerts', 2)
   expectItems(cityWarn.archive, 'CityWarn alert history')
   assert.equal(cityWarn.context.canPublish, true)
+  assert.deepEqual(cityWarn.mapBlip, { radiusEnabled: true, radius: 100 })
   assert.deepEqual(
     cityWarn.active.map((alert) => alert.title),
     ['Police operation in Mission Row', 'Water supply disruption'],

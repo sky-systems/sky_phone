@@ -59,11 +59,17 @@ export type CityWarnPublisherContext = {
 }
 
 export type CityWarnBootstrap = {
+  mapBlip?: CityWarnMapBlip
   categoryColors?: Partial<Record<CityWarnCategory, string>>
   active: CityWarnAlert[]
   archive: CityWarnAlert[]
   context: CityWarnPublisherContext
   onlinePlayers: number
+}
+
+export type CityWarnMapBlip = {
+  radiusEnabled: boolean
+  radius: number
 }
 
 export type CityWarnPreferences = {
@@ -83,6 +89,7 @@ export type CityWarnPublishInput = {
 }
 
 export type CityWarnEventData = {
+  mapBlip?: CityWarnMapBlip
   categoryColors?: Partial<Record<CityWarnCategory, string>>
   alert?: CityWarnAlert
   alertId?: string

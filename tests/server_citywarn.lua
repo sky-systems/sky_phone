@@ -56,6 +56,7 @@ local function database(sql, parameters)
     elseif sql:find("INSERT INTO `sky_phone_citywarn_updates`", 1, true) then
         return 1
     elseif sql:find("UPDATE `sky_phone_citywarn_alerts`", 1, true) then
+        if #parameters == 0 and sql:find("'expired'", 1, true) then return 0 end
         local row = rows[parameters[1]]
         assert(row and row.revision == parameters[2])
         row.revision = row.revision + 1
@@ -65,6 +66,9 @@ local function database(sql, parameters)
         return {}
     elseif sql:find("WHERE alert.`id` = ?", 1, true) then
         return { rows[parameters[1]] }
+    elseif sql:find("FROM `sky_phone_citywarn_alerts` alert", 1, true) then
+        assert(next(rows) == nil, "bootstrap fixture expects an empty feed")
+        return {}
     end
     error("Unexpected query: " .. sql)
 end
@@ -103,6 +107,25 @@ function TriggerClientEvent(name, target, data)
 end
 
 dofile("sky_phone/source/server/citywarn.lua")
+local function bootstrap() return callbacks["sky_phone:citywarn:bootstrap"](1).data end
+local defaults = bootstrap().mapBlip
+assert(defaults.radiusEnabled == true and defaults.radius == 100,
+    "old file settings must use the native radius defaults in the app")
+for _, radius in ipairs({ 1, 100, 250.5, 50000 }) do
+    Config.CityWarn.Blip = { RadiusEnabled = true, Radius = radius }
+    events["sky_phone:configurator:serverUpdated"]()
+    assert(broadcast.mapBlip.radius == radius and broadcast.mapBlip.radiusEnabled == true)
+    assert(bootstrap().mapBlip.radius == radius, "reopening the app must keep the configured GTA radius")
+end
+Config.CityWarn.Blip.RadiusEnabled = false
+events["sky_phone:configurator:serverUpdated"]()
+assert(broadcast.mapBlip.radiusEnabled == false and bootstrap().mapBlip.radiusEnabled == false,
+    "disabling radius areas in the panel must also hide them in the app")
+for _, radius in ipairs({ 0, 50001, 0/0, math.huge, "250" }) do
+    Config.CityWarn.Blip.Radius = radius
+    assert(bootstrap().mapBlip.radius == 100, "invalid file radii must match the native fallback")
+end
+Config.CityWarn.Blip = nil
 local function snapshot() return callbacks["sky_phone:citywarn:blips"](1) end
 local function publish(area, category)
     local result = callbacks["sky_phone:citywarn:publish"](1, {

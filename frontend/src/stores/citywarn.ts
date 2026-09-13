@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 
-import { parseCityWarnColors } from '@/utils/citywarnPresentation'
+import {
+  parseCityWarnColors,
+  parseCityWarnMapBlip,
+} from '@/utils/citywarnPresentation'
 import { usePhoneStore } from '@/stores/phone'
 import type {
   CityWarnAlert,
@@ -86,6 +89,7 @@ export const useCityWarnStore = defineStore('citywarn', {
     archive: [] as CityWarnAlert[],
     context: null as CityWarnBootstrap['context'] | null,
     categoryColors: parseCityWarnColors(null),
+    mapBlip: parseCityWarnMapBlip(null),
     error: '',
     initialized: false,
     isLoading: false,
@@ -134,6 +138,7 @@ export const useCityWarnStore = defineStore('citywarn', {
         this.archive = response.data.archive
         this.context = response.data.context
         this.categoryColors = parseCityWarnColors(response.data.categoryColors)
+        this.mapBlip = parseCityWarnMapBlip(response.data.mapBlip)
         this.onlinePlayers = response.data.onlinePlayers
         this.error = ''
         this.initialized = true
@@ -146,6 +151,7 @@ export const useCityWarnStore = defineStore('citywarn', {
       return this.load()
     },
     applyEvent(data: CityWarnEventData): void {
+      if (data.mapBlip) this.mapBlip = parseCityWarnMapBlip(data.mapBlip)
       if (data.categoryColors)
         this.categoryColors = parseCityWarnColors(data.categoryColors)
       const alert = data.alert

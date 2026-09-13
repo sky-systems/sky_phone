@@ -2,7 +2,28 @@ import {
   defaultMapCoordinates,
   defaultMapWorldToPercent,
 } from '@/features/map/defaultMapGeometry'
-import type { CityWarnArea, CityWarnCategory } from '@/types/citywarn'
+import type {
+  CityWarnArea,
+  CityWarnCategory,
+  CityWarnMapBlip,
+} from '@/types/citywarn'
+
+export function parseCityWarnMapBlip(value: unknown): CityWarnMapBlip {
+  const settings =
+    value && typeof value === 'object'
+      ? (value as Partial<CityWarnMapBlip>)
+      : {}
+  return {
+    radiusEnabled: settings.radiusEnabled !== false,
+    radius:
+      typeof settings.radius === 'number' &&
+      Number.isFinite(settings.radius) &&
+      settings.radius >= 1 &&
+      settings.radius <= 50000
+        ? settings.radius
+        : 100,
+  }
+}
 
 export const DEFAULT_CITYWARN_COLORS: Record<CityWarnCategory, string> = {
   public_safety: '#d97706',
@@ -62,16 +83,15 @@ export function cityWarnMapPosition(
 
 export function cityWarnMapArea(
   area: CityWarnArea,
+  blip: CityWarnMapBlip,
 ): Record<string, string> | null {
-  if (area.type === 'city')
-    return { inset: '1%', borderRadius: 'var(--sky-radius-control)' }
   const position = cityWarnMapPosition(area)
-  if (!position || area.type !== 'radius' || !area.radius || area.radius <= 0)
-    return null
+  if (!position || !blip.radiusEnabled) return null
+  // The notification area is independent of the fixed GTA map blip radius.
   return {
     ...position,
-    width: `${((area.radius * 2) / defaultMapCoordinates.width) * 100}%`,
-    height: `${((area.radius * 2) / defaultMapCoordinates.height) * 100}%`,
+    width: `${((blip.radius * 2) / defaultMapCoordinates.width) * 100}%`,
+    height: `${((blip.radius * 2) / defaultMapCoordinates.height) * 100}%`,
     transform: 'translate(-50%, -50%)',
   }
 }
