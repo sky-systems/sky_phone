@@ -25,24 +25,46 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function setup() {
+function setup(legacyZoom?: number) {
   const captured = new Set<number>()
   const capture = {
     setPointerCapture: vi.fn((id: number) => captured.add(id)),
     hasPointerCapture: (id: number) => captured.has(id),
     releasePointerCapture: vi.fn((id: number) => captured.delete(id)),
   }
+  const phoneWrapper = {
+    getBoundingClientRect: () => ({
+      left: 100,
+      top: 50,
+      width: 390 * (legacyZoom ?? 1),
+      height: 844 * (legacyZoom ?? 1),
+    }),
+  }
+  const phoneCanvas = {
+    offsetWidth: 390,
+    offsetHeight: 844,
+    closest: () => phoneWrapper,
+    getBoundingClientRect: () => ({
+      left: 100 / (legacyZoom ?? 1),
+      top: 50 / (legacyZoom ?? 1),
+      width: 390,
+      height: 844,
+    }),
+  }
   const viewport = {
     ...capture,
     clientWidth: 360,
     clientHeight: 430,
     getBoundingClientRect: () => ({
-      left: 100,
-      top: 50,
-      width: 180,
-      height: 215,
+      left: legacyZoom ? 100 / legacyZoom + 15 : 100,
+      top: legacyZoom ? 50 / legacyZoom + 62 : 50,
+      width: legacyZoom ? 360 : 180,
+      height: legacyZoom ? 430 : 215,
     }),
-    closest: () => null,
+    closest: (selector: string) =>
+      legacyZoom && selector === '.phone-resolution-canvas'
+        ? phoneCanvas
+        : null,
   } as unknown as HTMLElement
   const canvas = { clientWidth: 300, clientHeight: 430 } as HTMLElement
   const viewportRef = shallowRef<HTMLElement | null>(viewport)
@@ -80,6 +102,46 @@ function setup() {
 }
 
 describe('CityWarn map interaction', () => {
+  it.each([0.667, 0.828, 1.656])(
+    'keeps wheel zoom and panning under the pointer at CEF CSS zoom %s',
+    (phoneZoom) => {
+      const { map, pointer } = setup(phoneZoom)
+      const focal = {
+        x: 100 + (15 + 270) * phoneZoom,
+        y: 50 + (62 + 215) * phoneZoom,
+      }
+      map.onWheel({
+        deltaY: -180,
+        deltaMode: 0,
+        clientX: focal.x,
+        clientY: focal.y,
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      } as unknown as WheelEvent)
+      const expectedZoom = Math.exp(180 * 0.0024)
+      const zoomPan = map.canvasStyle.value.transform
+        .match(/translate\(([^,]+)px, ([^)]+)px\)/)!
+        .slice(1)
+        .map(Number)
+      expect(map.zoom.value).toBeCloseTo(expectedZoom)
+      expect(zoomPan[0]).toBeCloseTo(90 * (1 - expectedZoom))
+      expect(zoomPan[1]).toBeCloseTo(0)
+
+      map.reset()
+      map.changeZoom(2)
+      map.onPointerDown(pointer(focal.x, focal.y))
+      map.onPointerMove(
+        pointer(focal.x + 20 * phoneZoom, focal.y + 16 * phoneZoom),
+      )
+      const dragPan = map.canvasStyle.value.transform
+        .match(/translate\(([^,]+)px, ([^)]+)px\)/)!
+        .slice(1)
+        .map(Number)
+      expect(dragPan[0]).toBeCloseTo(20)
+      expect(dragPan[1]).toBeCloseTo(16)
+    },
+  )
+
   it('zooms around the mouse position even when the phone is scaled', () => {
     const { map } = setup()
     map.changeZoom(2, { x: 235, y: 157.5 })

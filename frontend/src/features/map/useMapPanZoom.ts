@@ -1,5 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue'
 
+import { readPhoneViewportGeometry } from '@/utils/phoneViewportGeometry'
+
 import type { MapPoint } from './defaultMapGeometry'
 import { clampMapPan, zoomPanAtPoint } from './mapViewport'
 
@@ -45,9 +47,12 @@ export function useMapPanZoom(
 
   function localPoint(client: MapPoint): MapPoint | null {
     const viewport = viewportRef.value
-    const bounds = viewport?.getBoundingClientRect()
-    if (!viewport || !bounds?.width || !bounds.height) return null
-    // The phone itself can be scaled; client coordinates are rendered pixels.
+    if (!viewport) return null
+    const bounds =
+      readPhoneViewportGeometry(viewport)?.rect(viewport) ??
+      viewport.getBoundingClientRect()
+    if (!bounds.width || !bounds.height) return null
+    // Match rendered pointer coordinates even when CEF reports unzoomed rects.
     return {
       x: ((client.x - bounds.left) * viewport.clientWidth) / bounds.width,
       y: ((client.y - bounds.top) * viewport.clientHeight) / bounds.height,
