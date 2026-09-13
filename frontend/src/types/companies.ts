@@ -188,6 +188,7 @@ export type CompanyWorkPermissions = {
 export type CompanyWorkContext = {
   authorized: boolean
   callAvailable: boolean
+  callDispatcher: boolean
   company: Company | null
   metrics: CompanyWorkMetrics
   ownRequests: CompanyRequestSummary[]

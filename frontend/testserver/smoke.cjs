@@ -295,6 +295,35 @@ async function verifyStatefulActions(baseUrl) {
     'VX-DEAD-BEEF-C0DE-2026',
   )
 
+  const dispatchDuty = await expectSuccess(
+    baseUrl,
+    'companies:set-call-availability',
+    { available: true, dispatcher: true },
+    true,
+  )
+  assert.equal(dispatchDuty.context.callAvailable, true)
+  assert.equal(dispatchDuty.context.callDispatcher, true)
+  const regularDuty = await expectSuccess(
+    baseUrl,
+    'companies:set-call-availability',
+    { available: true, dispatcher: false },
+    true,
+  )
+  assert.equal(regularDuty.context.callAvailable, true)
+  assert.equal(regularDuty.context.callDispatcher, false)
+  await expectSuccess(baseUrl, 'companies:set-call-availability', {
+    available: true,
+    dispatcher: true,
+  })
+  const offDuty = await expectSuccess(
+    baseUrl,
+    'companies:set-call-availability',
+    { available: false },
+    true,
+  )
+  assert.equal(offDuty.context.callAvailable, false)
+  assert.equal(offDuty.context.callDispatcher, false)
+
   const companyCall = await expectSuccess(
     baseUrl,
     'companies:dial-service-line',

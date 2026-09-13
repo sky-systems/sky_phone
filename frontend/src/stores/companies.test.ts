@@ -9,6 +9,7 @@ import type {
   CompanyRequest,
   CompanyRequestPage,
   CompanySummary,
+  CompanyWorkContext,
 } from '@/types/companies'
 import { nuiCall, type NuiResponse } from '@/utils/nui'
 
@@ -46,6 +47,27 @@ const company: Company = {
   hours: [],
   revision: 3,
   services: [],
+}
+
+const workContext: CompanyWorkContext = {
+  authorized: true,
+  callAvailable: false,
+  callDispatcher: false,
+  company,
+  metrics: { assigned: 0, completedToday: 0, new: 0, waiting: 0 },
+  ownRequests: [],
+  permissions: {
+    canAssign: false,
+    canManageAnnouncement: false,
+    canManageHours: false,
+    canManageProfile: false,
+    canManageServices: false,
+    canSetAvailability: false,
+    canTakeCalls: true,
+  },
+  recentRequests: [],
+  role: 'employee',
+  unreadCount: 0,
 }
 
 const request: CompanyRequest = {
@@ -434,6 +456,7 @@ describe('companies store', () => {
           context: {
             authorized: false,
             callAvailable: false,
+            callDispatcher: false,
             company: null,
             metrics: { assigned: 0, completedToday: 0, new: 0, waiting: 0 },
             ownRequests: [],
@@ -538,6 +561,76 @@ describe('companies store', () => {
       serviceId: 'response',
       subject: 'Help needed',
     })
+  })
+
+  it('uses the server dispatch role and clears it when call availability is disabled', async () => {
+    const dispatcher = {
+      ...workContext,
+      callAvailable: true,
+      callDispatcher: true,
+    }
+    mockNuiCall
+      .mockResolvedValueOnce({ data: { context: dispatcher }, success: true })
+      .mockResolvedValueOnce({ data: { context: workContext }, success: true })
+    const store = useCompaniesStore()
+
+    await store.setCallAvailability(true, true)
+    expect(mockNuiCall).toHaveBeenLastCalledWith(
+      'companies:set-call-availability',
+      {
+        available: true,
+        dispatcher: true,
+      },
+    )
+    expect(store.workContext?.callDispatcher).toBe(true)
+    expect(store.workContext?.callAvailable).toBe(true)
+
+    await store.setCallAvailability(false)
+    expect(mockNuiCall).toHaveBeenLastCalledWith(
+      'companies:set-call-availability',
+      {
+        available: false,
+        dispatcher: false,
+      },
+    )
+    expect(store.workContext?.callDispatcher).toBe(false)
+    expect(store.workContext?.callAvailable).toBe(false)
+    expect(store.mutating).toBe(false)
+  })
+
+  it('preserves the current role when taking dispatch duty is rejected', async () => {
+    mockNuiCall.mockResolvedValueOnce({
+      error: 'not_authorized',
+      success: false,
+    })
+    const store = useCompaniesStore()
+    store.workContext = workContext
+
+    await store.setCallAvailability(true, true)
+
+    expect(store.workContext?.callDispatcher).toBe(false)
+    expect(store.mutationError).toBe('not_authorized')
+    expect(store.mutating).toBe(false)
+  })
+
+  it('ignores a dispatch response after the active device changes', async () => {
+    const pending = deferred<NuiResponse<{ context: CompanyWorkContext }>>()
+    mockNuiCall.mockReturnValueOnce(pending.promise)
+    const store = useCompaniesStore()
+    store.bindDeviceScope('device-a', 'sim-a')
+    store.workContext = workContext
+    const mutation = store.setCallAvailability(true, true)
+    store.bindDeviceScope('device-b', 'sim-b')
+    pending.resolve({
+      data: {
+        context: { ...workContext, callAvailable: true, callDispatcher: true },
+      },
+      success: true,
+    })
+
+    expect((await mutation).success).toBe(false)
+    expect(store.workContext?.callDispatcher).toBe(false)
+    expect(store.mutating).toBe(false)
   })
 
   it('dials through the service line with only the target number and returns the server call state', async () => {
