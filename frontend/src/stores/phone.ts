@@ -1078,21 +1078,28 @@ const adminPanelFallbackLocales = {
         'Ring time in seconds (1-120) per round_robin attempt or for the entire ring_all group.',
       featureToggle: 'Turns {name} on or off.',
       boolean: 'Controls whether {name} is allowed.',
-      number: 'Sets the numeric value for {name}.',
+      number:
+        'Numeric value for {name}. Enter the number without a unit or Lua calculation.',
       text: 'Sets the text value used for {name}.',
       optionalText:
         'Sets the optional value for {name}; switch it off to disable it.',
-      list: 'Manages all entries used for {name}.',
+      list: 'Entries for {name}. Add each value in its own row; do not paste a comma-separated list or Lua braces into one field.',
       table: 'Groups the related settings for {name}.',
       credential: 'Stores the protected credential used by {name}.',
-      url: 'Sets the URL or endpoint used by {name}.',
-      hosts: 'Defines which domains are allowed for {name}.',
-      milliseconds: 'Sets the timing for {name} in milliseconds.',
-      seconds: 'Sets the timing for {name} in seconds.',
-      rateLimit: 'Limits how many {name} actions are allowed per minute.',
-      byteLimit: 'Sets the maximum data size allowed for {name}.',
-      textLimit: 'Sets the maximum text length allowed for {name}.',
-      distance: 'Sets the world distance used for {name}.',
+      url: 'URL or endpoint for {name}. Enter the complete address, for example https://media.example.com/image.jpg. Use a direct file link for images.',
+      hosts:
+        'Allowed domains for {name}. Example: media.example.com. Add one domain per row, without https:// or a file path.',
+      milliseconds:
+        'Timing for {name} in milliseconds. Example: 10000 = 10 seconds. Enter only 10000.',
+      seconds:
+        'Timing for {name} in seconds. Example: 60 = 1 minute. Enter only 60.',
+      rateLimit:
+        'Maximum {name} actions per minute. Example: 20 allows up to 20 actions in 60 seconds.',
+      byteLimit:
+        'Maximum size for {name} in bytes. Example: 15728640 = 15 MiB. Enter 15728640, not 15 or a Lua calculation.',
+      textLimit:
+        'Maximum length for {name}. Example: 200 limits the text to 200 characters.',
+      distance: 'World distance for {name} in metres. Example: 10 = 10 metres.',
       coordinates: 'Sets the world coordinates or orientation for {name}.',
       gameAsset: 'Sets the GTA model or prop used for {name}.',
       animation: 'Sets the animation asset used for {name}.',
@@ -1100,14 +1107,65 @@ const adminPanelFallbackLocales = {
       integration: 'Selects the connected framework or provider for {name}.',
       path: 'Sets the storage or resource path used for {name}.',
       color: 'Sets the interface color used for {name}.',
-      displayText: 'Sets the text shown to players for {name}.',
+      displayText:
+        'Text shown to players for {name}. Enter the text directly, without Lua quotation marks.',
       phoneNumber: 'Sets the phone or service number used for {name}.',
       routing: 'Controls how incoming requests are routed for {name}.',
-      command: 'Sets the chat command used to open or run {name}.',
-      locale: 'Selects the language used for {name}.',
+      command:
+        'Chat command for {name}. Enter the name without the leading slash. Example: phonepanel is opened with /phonepanel.',
+      locale:
+        'Language code for {name}. Examples: de = German, en = English, es = Spanish.',
       debug: 'Controls detailed diagnostic output for {name}.',
       mediaQuality: 'Sets the media quality or volume used for {name}.',
       amount: 'Sets the maximum or displayed amount for {name}.',
+      giphyApiKey:
+        'API key from developers.giphy.com → Dashboard → Create an API Key. Paste your own key, not the website URL. Used for GIF search; it does not enable photo imports.',
+      gifRating:
+        'Maximum GIPHY content rating. Enter g, pg, pg-13 or r. Example: pg-13.',
+      fiveManageApiKey:
+        'Create a token with Media access in the FiveManage dashboard → Tokens and paste it here. Required for camera uploads and FiveManage import sources, including external links imported through that source.',
+      fiveManageBaseUrl:
+        'FiveManage API endpoint, not an image link. Normally keep https://api.fivemanage.com/api/v3/file. Paste the image URL in Photos → Import instead.',
+      importEnabled:
+        'Allows imports of external HTTPS images and videos in Photos. The import button appears only when at least one enabled, valid source under Websites is accessible to the player.',
+      importWebsites:
+        'To set up FiveManage imports, enter your own FiveManage.ApiKey and enable Import and the source. Add the domain of your image host to AllowedMediaHosts and save with the green check. Paste your own direct HTTPS image URL in Photos → Import.',
+      importSource:
+        'One import source shown in Photos, for example FiveManage. Expand it to configure the adapter, allowed domains and media types.',
+      importSourceId:
+        'Unique internal source ID, for example city_media. Use 1–64 lowercase letters, digits, underscores or hyphens. Keep the ID stable after importing media.',
+      importSourceLabel:
+        'Source name players see in Photos. Example: City Wallpapers. Maximum 64 characters.',
+      importSourceEnabled:
+        'Enables this source. It appears in Photos only if its adapter settings are valid and the player has any RequiredAce permission. For FiveManage, also set the API key.',
+      importAdapter:
+        'Enter fivemanage for a FiveManage source (API key and Path required), or manifest for your own JSON media catalog (ManifestUrl required). Adding a domain does not create an adapter.',
+      importApiKey:
+        'Optional FiveManage token for this source. Leave empty to use FiveManage.ApiKey. Paste only your own token with Media access, not a URL.',
+      importPath:
+        'FiveManage catalog folder, for example sky_phone/imports. Keep this value when allowing an external image host; add its domain under AllowedMediaHosts.',
+      importMediaTypes:
+        'Allowed media types: photo for images, video for videos. Add each as a separate list entry. For wallpapers, include photo.',
+      importHosts:
+        'Add each domain as a separate entry, for example media.example.com. No https://, path or *. Subdomains are included. Keep fivemanage.com for FiveManage media. Paste the complete image URL in Photos → Import.',
+      importManifestUrl:
+        'HTTPS URL of your own JSON media catalog, for example https://media.example.com/sky-phone/media.json. Requires version: 1 and items with id, filename, type, mimeType, size and url. This field is not for a JPG link.',
+      importRequiredAce:
+        'Optional ACE permission for this source, for example sky_phone.import.city_media. Leave empty to allow all players who can use Photos.',
+      importAuth:
+        'Manifest authentication: none for a public catalog, bearer with TokenConvar, or header with Header and ValueConvar. Example: Type = none for a publicly accessible media.json.',
+      importAuthConvar:
+        'Name of the server convar containing the manifest credential, for example sky_phone_city_media_token. Set its secret value in server.cfg with set; enter only the convar name here.',
+      importAuthHeader:
+        'HTTP header name for manifest authentication with Type = header. Example: X-API-Key. Put the convar name for its secret value in ValueConvar.',
+      wallpaperImport:
+        'Shows external image import in the wallpaper picker. Also requires Import.Enabled and an accessible import source whose MediaTypes includes photo. Camera and existing Photos remain available independently.',
+      photoEncoding:
+        'Image format for camera captures. Enter jpg, png or webp. Example: jpg for compressed photos.',
+      photoQuality:
+        'Camera image quality from 0 to 1. Example: 0.95 for high quality. Higher values usually create larger JPG/WebP files; PNG ignores this setting.',
+      videoBitrate:
+        'Video recording bitrate in kilobits per second. Example: 1500 = 1.5 Mbit/s. Higher values increase quality and upload size.',
     },
     table: {
       list: 'List',
