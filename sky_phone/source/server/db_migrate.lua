@@ -17,6 +17,17 @@ end
 
 local schema = {
     {
+        name = "sky_phone_webhooks",
+        columns = {
+            { name = "id", type = "TINYINT UNSIGNED NOT NULL" },
+            { name = "payload", type = "LONGTEXT NOT NULL" },
+            { name = "revision", type = "INT UNSIGNED NOT NULL DEFAULT 0" },
+            { name = "updated_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        tableOptions = "ENGINE=InnoDB",
+    },
+    {
         name = "sky_phone_accounts",
         columns = {
             { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },

@@ -518,6 +518,7 @@ RegisterNetEvent("sky_phone:memos:complete-upload", function(data)
         error(("[sky_phone] Created voice memo %s could not be hydrated."):format(memo_id))
     end
     upload_result(src, state.memo.correlation_id, true, nil, created)
+    if SkyPhoneLog then SkyPhoneLog.Record("Memos", "memos:created", "created", src, created) end
 end)
 
 RegisterNetEvent("sky_phone:memos:cancel-upload", function(data)

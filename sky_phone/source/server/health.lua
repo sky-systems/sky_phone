@@ -258,6 +258,12 @@ RegisterNetEvent("sky_phone:health:record-activity", function(data)
             `active_seconds` = `active_seconds` + VALUES(`active_seconds`),
             `energy_kcal` = `energy_kcal` + VALUES(`energy_kcal`)
     ]], { identifier, data.steps, data.distanceMeters, data.activeSeconds, energy_kcal })
+    if SkyPhoneLog then
+        SkyPhoneLog.Record("Health", "health:activity", "recorded", player_source, {
+            steps = data.steps, distanceMeters = data.distanceMeters,
+            activeSeconds = data.activeSeconds, energyKcal = energy_kcal,
+        })
+    end
     TriggerClientEvent("sky_phone:health:changed", player_source)
 end)
 

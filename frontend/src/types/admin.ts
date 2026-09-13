@@ -206,3 +206,45 @@ export type AdminCustomToneCreate = {
   payload: string
   toneType: 'notification' | 'ringtone'
 }
+
+export type AdminWebhookMode = 'file' | 'inherit' | 'disabled' | 'custom'
+
+export type AdminWebhookOptions = {
+  FooterIconUrl: string
+  FeatherIconUrl: string
+  PagesIconUrl: string
+  MarketplaceIconUrl: string
+  PicstagramIconUrl: string
+  FlipTokIconUrl: string
+  SkyPicIconUrl: string
+  WeazelNewsIconUrl: string
+  VideoMaxBytes: number
+  Enabled: boolean
+  Username: string
+  AvatarUrl: string
+  QueueLimit: number
+  MaxAttempts: number
+}
+
+export type AdminWebhookEndpoint = {
+  path: string
+  category: string
+  audience: 'admin' | 'public'
+  mode: AdminWebhookMode
+  effectiveMode: Exclude<AdminWebhookMode, 'file'>
+  configured: boolean
+}
+
+export type AdminWebhooks = {
+  revision: number
+  settings: AdminWebhookOptions
+  defaults: AdminWebhookOptions
+  endpoints: AdminWebhookEndpoint[]
+}
+
+export type AdminWebhookChange = {
+  path: string
+  mode?: AdminWebhookMode
+  url?: string
+  value?: boolean | number | string
+}
