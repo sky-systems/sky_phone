@@ -2,6 +2,7 @@
 import { kApp } from 'konsta/vue'
 import {
   computed,
+  defineAsyncComponent,
   onBeforeUnmount,
   onMounted,
   ref,
@@ -90,6 +91,10 @@ import { consumeEscape } from '@/utils/keyboard'
 import type { CustomPhoneToneCatalog } from '@/utils/customTones'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 import SpringboardView from '@/views/SpringboardView.vue'
+
+const PhoneCallScreen = defineAsyncComponent(
+  () => import('@/views/apps/PhoneApp.vue'),
+)
 
 type AppMessage = {
   openHome?: boolean
@@ -392,11 +397,15 @@ const dynamicIslandActivity = ref<DynamicIslandActivity | null>(null)
 const simPicker = ref<SimPickerPayload | null>(null)
 const setupRequired = computed(
   () =>
+    phone.isOpen &&
     !(isDevelopment && setupDevelopmentSkipped.value) &&
     (!phone.preferences.settings.setupCompleted ||
       (isDevelopment &&
         developmentParameters.has('setupPreview') &&
         !setupPreviewDismissed.value)),
+)
+const lockedCallVisible = computed(
+  () => phone.isOpen && isLocked.value && calls.activeCall !== null,
 )
 const displayedDarkMode = computed(
   () =>
@@ -923,7 +932,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     notifications.show(notification)
   } else if (event.data?.type === 'citywarn:changed' && event.data.data) {
     const data = event.data.data as CityWarnEventData
-    if (data.alert) citywarn.applyEvent(data)
+    citywarn.applyEvent(data)
     if (phone.isOpen && citywarn.initialized) void citywarn.refresh()
 
     const alert = data.alert
@@ -1935,9 +1944,11 @@ onBeforeUnmount(() => {
                     'phone-app--light': !displayedDarkMode,
                     'phone-app--messages': route.params.appId === 'messages',
                     'phone-app--status-light':
+                      lockedCallVisible ||
                       WHITE_STATUS_BAR_APP_IDS.has(activeAppId) ||
                       (activeAppId === 'phone' && calls.activeCall !== null),
                     'phone-app--status-dark':
+                      !lockedCallVisible &&
                       DARK_STATUS_BAR_APP_IDS.has(activeAppId),
                     'phone-app--setup': setupRequired,
                     [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
@@ -1945,20 +1956,25 @@ onBeforeUnmount(() => {
                   }"
                 >
                   <PhoneStatusBar
-                    v-if="!isLocked && !(isHomeRoute && springboardEditing)"
+                    v-if="
+                      (lockedCallVisible && !passcodeVisible) ||
+                      (!isLocked && !(isHomeRoute && springboardEditing))
+                    "
                     :control-center-opened="controlCenterOpened"
-                    :interactive="!setupRequired"
-                    :lockable="!setupRequired"
+                    :interactive="!setupRequired && !isLocked"
+                    :lockable="!setupRequired && !isLocked"
                     @control-center="toggleControlCenter"
                     @lock="lockPhone"
                   />
                   <SpringboardView
                     v-if="!isDevelopmentRoute && !setupRequired"
+                    :inert="isLocked"
                     @edit-mode-change="springboardEditing = $event"
                   />
                   <SkyProvider
                     class="phone-app-theme"
                     :dark="displayedDarkMode"
+                    :inert="isLocked"
                     safe-areas
                   >
                     <RouterView v-slot="{ Component }">
@@ -1983,7 +1999,7 @@ onBeforeUnmount(() => {
                   />
                   <Transition name="lock-screen" @after-leave="completeUnlock">
                     <PhoneLockScreen
-                      v-if="isLocked && !setupRequired"
+                      v-if="isLocked && !lockedCallVisible && !setupRequired"
                       :notifications="notifications.lockScreenNotifications"
                       @camera="unlockCamera"
                       @clear-notifications="notifications.clearLockScreen"
@@ -1994,6 +2010,14 @@ onBeforeUnmount(() => {
                       @unlock="unlockPhone"
                     />
                   </Transition>
+                  <SkyProvider
+                    v-if="lockedCallVisible && !setupRequired"
+                    class="phone-app-theme"
+                    :inert="passcodeVisible"
+                    dark
+                  >
+                    <PhoneCallScreen locked @unlock="unlockPhone" />
+                  </SkyProvider>
                   <Transition name="lock-screen">
                     <PhonePasscode
                       v-if="isLocked && passcodeVisible && !setupRequired"
@@ -2039,6 +2063,7 @@ onBeforeUnmount(() => {
               />
               <PhoneDynamicIsland
                 v-if="!setupRequired && !isDynamicIslandGalleryRoute"
+                :call-screen-visible="lockedCallVisible"
                 @expanded-change="dynamicIslandExpanded = $event"
                 @live-activity-change="dynamicIslandActivity = $event"
               />

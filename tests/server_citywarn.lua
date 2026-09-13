@@ -10,7 +10,7 @@ Config = { CityWarn = {
     DefaultDurationMinutes = 60, MaximumDurationMinutes = 1440,
     RateLimits = { Read = 180, Write = 20 },
     Publishers = { police = { MinimumGrade = 2, MaximumSeverity = "extreme", CityWide = true,
-        Categories = { "police" } } },
+        Categories = { "public_safety", "police", "fire", "medical", "infrastructure", "evacuation" } } },
 } }
 
 local function database(sql, parameters)
@@ -18,12 +18,13 @@ local function database(sql, parameters)
         snapshot_queries = snapshot_queries + 1
         assert(not sql:find("LIMIT", 1, true), "blips must not be truncated to the app page size")
         assert(sql:find("`status` = 'active'", 1, true) and sql:find("`expires_at` > NOW()", 1, true))
-        assert(sql:find("`area_type` IN ('radius', 'district')", 1, true))
+        assert(not sql:find("`area_type` IN", 1, true), "located city-wide warnings also need blips")
+        assert(sql:find("`category`", 1, true), "snapshots must include category colors for all warnings")
         assert(sql:find("`center_x` IS NOT NULL AND `center_y` IS NOT NULL", 1, true))
         local result = {}
         for _, row in pairs(rows) do
             if row.status == "active" and row.expires_at_unix > now / 1000
-                and row.area_type ~= "city" and row.center_x and row.center_y
+                and row.center_x and row.center_y
             then
                 local copy = {}
                 for key, value in pairs(row) do copy[key] = value end
@@ -55,6 +56,7 @@ local function database(sql, parameters)
     elseif sql:find("INSERT INTO `sky_phone_citywarn_updates`", 1, true) then
         return 1
     elseif sql:find("UPDATE `sky_phone_citywarn_alerts`", 1, true) then
+        if #parameters == 0 and sql:find("'expired'", 1, true) then return 0 end
         local row = rows[parameters[1]]
         assert(row and row.revision == parameters[2])
         row.revision = row.revision + 1
@@ -64,13 +66,19 @@ local function database(sql, parameters)
         return {}
     elseif sql:find("WHERE alert.`id` = ?", 1, true) then
         return { rows[parameters[1]] }
+    elseif sql:find("FROM `sky_phone_citywarn_alerts` alert", 1, true) then
+        assert(next(rows) == nil, "bootstrap fixture expects an empty feed")
+        return {}
     end
     error("Unexpected query: " .. sql)
 end
 
 Bridge = {
     Database = { AfterMigration = function(_, callback) callback() end, Query = database },
-    Callbacks = { Register = function(name, callback) callbacks[name] = callback end },
+    Callbacks = {
+        RegisterDeferred = function(name) assert(name == "sky_phone:citywarn:blips") end,
+        Register = function(name, callback) callbacks[name] = callback end,
+    },
     Framework = {
         GetJob = function() return { name = "police", label = "Police", grade = 3, onDuty = true } end,
         GetIdentifier = function() return "test-author" end,
@@ -90,6 +98,8 @@ SkyPhone = {
     end,
 }
 function GetGameTimer() return now end
+function GetPlayerPed() return 42 end
+function GetEntityCoords(ped) assert(ped == 42) return { x = 321, y = -456, z = 10 } end
 function AddEventHandler(name, callback) events[name] = callback end
 function TriggerClientEvent(name, target, data)
     assert(name == "sky_phone:citywarn:changed" and target == -1)
@@ -97,11 +107,30 @@ function TriggerClientEvent(name, target, data)
 end
 
 dofile("sky_phone/source/server/citywarn.lua")
+local function bootstrap() return callbacks["sky_phone:citywarn:bootstrap"](1).data end
+local defaults = bootstrap().mapBlip
+assert(defaults.radiusEnabled == true and defaults.radius == 100,
+    "old file settings must use the native radius defaults in the app")
+for _, radius in ipairs({ 1, 100, 250.5, 50000 }) do
+    Config.CityWarn.Blip = { RadiusEnabled = true, Radius = radius }
+    events["sky_phone:configurator:serverUpdated"]()
+    assert(broadcast.mapBlip.radius == radius and broadcast.mapBlip.radiusEnabled == true)
+    assert(bootstrap().mapBlip.radius == radius, "reopening the app must keep the configured GTA radius")
+end
+Config.CityWarn.Blip.RadiusEnabled = false
+events["sky_phone:configurator:serverUpdated"]()
+assert(broadcast.mapBlip.radiusEnabled == false and bootstrap().mapBlip.radiusEnabled == false,
+    "disabling radius areas in the panel must also hide them in the app")
+for _, radius in ipairs({ 0, 50001, 0/0, math.huge, "250" }) do
+    Config.CityWarn.Blip.Radius = radius
+    assert(bootstrap().mapBlip.radius == 100, "invalid file radii must match the native fallback")
+end
+Config.CityWarn.Blip = nil
 local function snapshot() return callbacks["sky_phone:citywarn:blips"](1) end
-local function publish(area)
+local function publish(area, category)
     local result = callbacks["sky_phone:citywarn:publish"](1, {
         title = "Test warning", body = "Avoid the area", instructions = "", durationMinutes = 1,
-        category = "police", severity = "danger",
+        category = category or "police", severity = "danger",
         area = area or { type = "radius", label = "Test area", centerX = 100, centerY = 200, radius = 500 },
     })
     assert(result.success)
@@ -140,12 +169,12 @@ publish({ type = "district", label = "District", centerX = 0, centerY = 0 })
 publish({ type = "district", label = "Unlocated district" })
 publish({ type = "city", label = "Whole city" })
 state = snapshot().data.alerts
-assert(#state == 2, "all located alerts, including zero coordinates, must be returned beyond PageSize")
+assert(#state == 4, "all located alerts, including zero coordinates, must be returned beyond PageSize")
 local points, radii = 0, 0
 for _, item in ipairs(state) do
     if item.radius then radii = radii + 1 else points = points + 1 end
 end
-assert(points == 1 and radii == 1, "districts must not receive a fabricated radius")
+assert(points == 3 and radii == 1, "districts must not receive a fabricated radius")
 
 allow_operation = false
 assert(snapshot().error == "rate_limited")
@@ -155,7 +184,7 @@ events["sky_phone:configurator:serverUpdated"]()
 assert(#snapshot().data.alerts == 0, "disabling CityWarn must return an empty authoritative snapshot")
 Config.CityWarn.Enabled = true
 events["sky_phone:configurator:serverUpdated"]()
-assert(#snapshot().data.alerts == 2)
+assert(#snapshot().data.alerts == 4)
 now = now + 61000
 assert(#snapshot().data.alerts == 0, "expiry must work without opening bootstrap or mutating DB status")
 
@@ -164,4 +193,18 @@ during_query = function() events["sky_phone:configurator:serverUpdated"]() end
 assert(snapshot().error == "revision_conflict", "an invalidated in-flight query must not populate the cache")
 assert(#snapshot().data.alerts == 1, "the next snapshot must recover after a racing change")
 
+for _, category in ipairs(Config.CityWarn.Publishers.police.Categories) do
+    for _, area_type in ipairs({ "radius", "district", "city" }) do
+        local created = publish({ type = area_type, label = category, centerX = 0, centerY = 0, radius = 500 }, category)
+        local found
+        for _, item in ipairs(snapshot().data.alerts) do
+            if item.id == created.id then found = item end
+        end
+        assert(found and found.category == category and found.x == 0 and found.y == 0,
+            "every category and located area type must appear in the snapshot")
+    end
+end
+local anchored = publish({ type = "city", label = "City" }, "evacuation")
+assert(anchored.area.centerX == 321 and anchored.area.centerY == -456,
+    "old clients must get a server-provided incident location for new city warnings")
 print("CityWarn server lifecycle tests passed")

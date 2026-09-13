@@ -100,16 +100,50 @@ local function send_admin_panel_open()
     })
 end
 
+local tone_catalog_loading = false
+local tone_catalog_requested = false
+local tone_catalog_retry_pending = false
+local tone_catalog_stopped = false
+local tone_catalog_error
+
 local function send_phone_tone_catalog()
-    local response = Bridge.Callbacks.Trigger("sky_phone:tones:list", {})
-    if not response or not response.success then
-        Bridge.Debug("warn", "[sky_phone] Could not load the custom tone catalog.")
+    if tone_catalog_stopped then
         return
     end
-    SendNUIMessage({
-        type = "phone:tones",
-        data = response.data,
-    })
+    tone_catalog_requested = true
+    if tone_catalog_loading or tone_catalog_retry_pending then
+        return
+    end
+    tone_catalog_loading = true
+    CreateThread(function()
+        tone_catalog_requested = false
+        local response = Bridge.Callbacks.Trigger("sky_phone:tones:list", {})
+        tone_catalog_loading = false
+        if tone_catalog_stopped then
+            return
+        end
+        if type(response) == "table" and response.success and type(response.data) == "table" then
+            tone_catalog_error = nil
+            -- A changed catalog or NUI reload during the request needs fresh data.
+            if tone_catalog_requested then
+                send_phone_tone_catalog()
+                return
+            end
+            SendNUIMessage({ type = "phone:tones", data = response.data })
+            return
+        end
+        local error_code = type(response) == "table" and (response.error or "invalid_response") or "request_failed"
+        -- Deferred registration is expected during startup; the server reports stalls.
+        if error_code ~= "server_initializing" and error_code ~= tone_catalog_error then
+            Bridge.Debug("warn", "[sky_phone] Could not load the custom tone catalog: %s. Retrying.", tostring(error_code))
+        end
+        tone_catalog_error = error_code
+        tone_catalog_retry_pending = true
+        SetTimeout(error_code == "rate_limited" and 60000 or 5000, function()
+            tone_catalog_retry_pending = false
+            send_phone_tone_catalog()
+        end)
+    end)
 end
 
 RegisterNetEvent("sky_phone:tones:changed", function()
@@ -590,6 +624,7 @@ AddEventHandler("onResourceStop", function(resource_name)
         return
     end
 
+    tone_catalog_stopped = true
     is_open = false
     open_requested = false
     device_open_authorized = false

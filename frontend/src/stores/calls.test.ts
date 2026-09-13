@@ -1,30 +1,39 @@
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, disposePinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useCallsStore } from '@/stores/calls'
 import { usePhoneStore } from '@/stores/phone'
+import type { PhoneCall } from '@/types/phone'
 import { nuiCall } from '@/utils/nui'
-import { playPhoneTone, playPhoneVibration } from '@/utils/tones'
+import {
+  playPhoneMediaTone,
+  playPhoneTone,
+  playPhoneVibration,
+} from '@/utils/tones'
 
 vi.mock('@/utils/nui', () => ({
   nuiCall: vi.fn(async () => ({ success: true, data: [] })),
 }))
 vi.mock('@/utils/tones', () => ({
+  playPhoneMediaTone: vi.fn(() => vi.fn()),
   playPhoneTone: vi.fn(() => vi.fn()),
   playPhoneVibration: vi.fn(() => vi.fn()),
 }))
 
 describe('calls store', () => {
+  let pinia: ReturnType<typeof createPinia>
   beforeEach(() => {
     vi.useFakeTimers()
     vi.stubGlobal('window', {
       matchMedia: vi.fn(() => ({ matches: false })),
       setTimeout,
     })
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
   })
 
   afterEach(() => {
+    disposePinia(pinia)
     vi.clearAllMocks()
     vi.clearAllTimers()
     vi.useRealTimers()
@@ -44,6 +53,7 @@ describe('calls store', () => {
       state: 'ringing',
     })
     expect(playPhoneTone).toHaveBeenCalledWith('apex', 80, true)
+    expect(playPhoneMediaTone).not.toHaveBeenCalled()
 
     calls.applyCallState({
       direction: 'incoming',
@@ -70,6 +80,175 @@ describe('calls store', () => {
     })
 
     expect(playPhoneVibration).toHaveBeenCalledWith('call', true)
+    expect(playPhoneMediaTone).not.toHaveBeenCalled()
+  })
+
+  const outgoingCall: PhoneCall = {
+    direction: 'outgoing',
+    id: 'outgoing-call',
+    otherNumber: '5551110025',
+    startedAt: 1,
+    state: 'ringing',
+  }
+
+  it('loops the supplied calling sound once across duplicate outgoing states', () => {
+    const stop = vi.fn()
+    vi.mocked(playPhoneMediaTone).mockReturnValueOnce(stop)
+    const calls = useCallsStore()
+    calls.applyCallState(outgoingCall)
+    calls.applyCallState({ ...outgoingCall, otherNumber: '5552220035' })
+
+    expect(playPhoneMediaTone).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining('sounds/calling.mp3'),
+      100,
+      true,
+    )
+    expect(stop).not.toHaveBeenCalled()
+    expect(playPhoneTone).not.toHaveBeenCalled()
+    expect(playPhoneVibration).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    'connected',
+    'completed',
+    'missed',
+    'declined',
+    'busy',
+    'unavailable',
+    'no_answer',
+    'cancelled',
+    'disconnected',
+    'sim_removed',
+  ] as const)('stops the outgoing sound immediately on %s', (state) => {
+    const stop = vi.fn()
+    vi.mocked(playPhoneMediaTone).mockReturnValueOnce(stop)
+    const calls = useCallsStore()
+    calls.applyCallState(outgoingCall)
+    calls.applyCallState({ ...outgoingCall, state })
+    expect(stop).toHaveBeenCalledOnce()
+    if (state === 'connected') {
+      expect(playPhoneMediaTone).toHaveBeenCalledOnce()
+    } else {
+      expect(playPhoneMediaTone).toHaveBeenLastCalledWith(
+        expect.stringContaining('sounds/endcall.mp3'),
+        100,
+        false,
+      )
+      expect(stop.mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(playPhoneMediaTone).mock.invocationCallOrder[1]!,
+      )
+    }
+  })
+
+  it('starts the sound after a successful dial and stops on local hangup', async () => {
+    const stop = vi.fn()
+    vi.mocked(playPhoneMediaTone).mockReturnValueOnce(stop)
+    vi.mocked(nuiCall).mockResolvedValueOnce({
+      success: true,
+      data: outgoingCall,
+    })
+    const calls = useCallsStore()
+    await calls.dial(outgoingCall.otherNumber)
+    expect(playPhoneMediaTone).toHaveBeenCalledOnce()
+    expect(await calls.hangup()).toBe(true)
+    expect(stop).toHaveBeenCalledOnce()
+    expect(calls.activeCall).toBeNull()
+  })
+
+  it('does not play a calling sound when dialing fails', async () => {
+    vi.mocked(nuiCall).mockResolvedValueOnce({
+      success: false,
+      error: 'unavailable',
+    })
+    await useCallsStore().dial(outgoingCall.otherNumber)
+    expect(playPhoneMediaTone).not.toHaveBeenCalled()
+  })
+
+  it('releases the outgoing sound when the active call is cleared or the store is disposed', () => {
+    const stopFirst = vi.fn()
+    const stopEnd = vi.fn()
+    const stopSecond = vi.fn()
+    vi.mocked(playPhoneMediaTone)
+      .mockReturnValueOnce(stopFirst)
+      .mockReturnValueOnce(stopEnd)
+      .mockReturnValueOnce(stopSecond)
+    const calls = useCallsStore()
+    calls.applyCallState(outgoingCall)
+    calls.activeCall = null
+    expect(stopFirst).toHaveBeenCalledOnce()
+    calls.applyCallState({ ...outgoingCall, id: 'next-call' })
+    expect(stopEnd).toHaveBeenCalledOnce()
+    calls.$dispose()
+    expect(stopSecond).toHaveBeenCalledOnce()
+  })
+
+  it('replaces the outgoing sound with the ringtone when switching to an incoming call', () => {
+    const stop = vi.fn()
+    vi.mocked(playPhoneMediaTone).mockReturnValueOnce(stop)
+    const calls = useCallsStore()
+    calls.applyCallState(outgoingCall)
+    calls.applyCallState({
+      ...outgoingCall,
+      id: 'incoming-call',
+      direction: 'incoming',
+    })
+    expect(stop).toHaveBeenCalledOnce()
+    expect(playPhoneTone).toHaveBeenCalledWith('apex', 80, true)
+  })
+
+  it.each(['incoming', 'outgoing'] as const)(
+    'plays the end tone once for a completed %s call despite repeated terminal events',
+    async (direction) => {
+      const stopEnd = vi.fn()
+      vi.mocked(playPhoneMediaTone).mockReturnValueOnce(stopEnd)
+      const calls = useCallsStore()
+      calls.applyCallState({ ...outgoingCall, direction, state: 'connected' })
+      calls.applyCallState({ ...outgoingCall, direction, state: 'completed' })
+      calls.applyCallState({ ...outgoingCall, direction, state: 'completed' })
+      calls.applyCallState({
+        ...outgoingCall,
+        direction,
+        state: 'disconnected',
+      })
+      await vi.advanceTimersByTimeAsync(1600)
+
+      expect(playPhoneMediaTone).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining('sounds/endcall.mp3'),
+        100,
+        false,
+      )
+      expect(stopEnd).not.toHaveBeenCalled()
+      expect(calls.activeCall).toBeNull()
+      calls.$dispose()
+      expect(stopEnd).toHaveBeenCalledOnce()
+    },
+  )
+
+  it('does not duplicate or cut off the end tone when hangup acknowledgement clears a terminal state', async () => {
+    const stopEnd = vi.fn()
+    vi.mocked(playPhoneMediaTone).mockReturnValueOnce(stopEnd)
+    const calls = useCallsStore()
+    calls.applyCallState({ ...outgoingCall, state: 'connected' })
+    const pendingHangup = calls.hangup()
+    calls.applyCallState({ ...outgoingCall, state: 'completed' })
+    await pendingHangup
+    calls.applyCallState({ ...outgoingCall, state: 'completed' })
+    expect(playPhoneMediaTone).toHaveBeenCalledOnce()
+    expect(stopEnd).not.toHaveBeenCalled()
+  })
+
+  it('stops the end tone when a new call begins', () => {
+    const stopEnd = vi.fn()
+    vi.mocked(playPhoneMediaTone).mockReturnValueOnce(stopEnd)
+    const calls = useCallsStore()
+    calls.applyCallState({ ...outgoingCall, state: 'completed' })
+    calls.applyCallState({ ...outgoingCall, id: 'next-call' })
+    expect(stopEnd).toHaveBeenCalledOnce()
+    expect(playPhoneMediaTone).toHaveBeenLastCalledWith(
+      expect.stringContaining('sounds/calling.mp3'),
+      100,
+      true,
+    )
   })
 
   it('clears terminal states and refreshes recents', async () => {

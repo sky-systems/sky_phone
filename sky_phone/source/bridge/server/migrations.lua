@@ -422,8 +422,20 @@ function Bridge.Database.CompleteMigration(migration_name)
     migration_callbacks[migration_name] = nil
 
     Bridge.Debug("info", "[sky_phone] Database migration '%s' completed.", migration_name)
+    local failures = 0
     for index = 1, #callbacks do
-        callbacks[index]()
+        -- The schema has completed. One broken module must not discard the
+        -- remaining modules' initialization callbacks, including public reads.
+        local success, reason = xpcall(callbacks[index], debug.traceback)
+        if not success then
+            failures = failures + 1
+            Bridge.Debug("error", "[sky_phone] Initialization callback %d after migration '%s' failed: %s",
+                index, migration_name, tostring(reason))
+        end
+    end
+    if failures > 0 then
+        error(("[sky_phone] %d module initialization callback(s) failed after migration '%s'; see errors above.")
+            :format(failures, migration_name))
     end
 end
 

@@ -73,7 +73,7 @@ describe('Springboard page swipe contract', () => {
       '@edit-mode-change="springboardEditing = $event"',
     )
     expect(appSource).toMatch(
-      /v-if="\s*!isLocked && !\(isHomeRoute && springboardEditing\)\s*"/,
+      /v-if="\s*\(lockedCallVisible && !passcodeVisible\) \|\|\s*\(!isLocked && !\(isHomeRoute && springboardEditing\)\)\s*"/,
     )
     expect(mainCss).toMatch(
       /\.springboard-edit-add\s*\{[^}]*top:\s*14px;[^}]*left:\s*28px;[^}]*width:\s*58px;[^}]*height:\s*30px;/s,

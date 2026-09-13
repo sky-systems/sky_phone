@@ -20,6 +20,29 @@ const config = readFileSync(
 )
 
 describe('CityWarn product contract', () => {
+  it('keeps map input local, exposes zoom controls and preserves pin target sizes', () => {
+    expect(source).toContain('@pointerdown.capture="onMapPointerDown"')
+    expect(source).toContain('@wheel="onMapWheel"')
+    expect(source).toContain('@click.capture="onMapClickCapture"')
+    expect(source).toContain('@lostpointercapture="onMapPointerEnd"')
+    expect(source).toContain('@keydown="onMapKeydown"')
+    expect(source).toContain('...mapTransform')
+    expect(source).toContain('scale(var(--citywarn-map-pin-scale, 1))')
+    for (const key of ['mapZoomIn', 'mapZoomOut', 'mapReset']) {
+      expect(source).toContain(`:aria-label="t('${key}')"`)
+    }
+    expect(source).toContain('touch-action: none;')
+  })
+  it('renders category colors and map pins with CEF-compatible colors and matching map layers', () => {
+    expect(source).not.toContain('color-mix(')
+    expect(source).toContain('defaultMainlandStyle')
+    expect(source).toContain('defaultCayoStyle')
+    expect(source).toContain('cityWarnMapPosition(alert.area)')
+    expect(source).toContain('cityWarnMapArea(alert.area, citywarn.mapBlip)')
+    expect(source).toContain('categoryStyle(selected.category)')
+    expect(source).toContain('background: var(--category);')
+    expect(source).not.toContain("draftAreaType.value === 'city' ||")
+  })
   it('uses central Sky navigation, scrolling, settings and sheets', () => {
     expect(source).toContain('SkyPillNavigation')
     expect(source).toContain('SkyScrollArea')

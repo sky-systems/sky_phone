@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const resourceSource = (path: string): string =>
-  readFileSync(new URL(`../../sky_phone/${path}`, import.meta.url), 'utf8')
+  readFileSync(
+    new URL(`../../sky_phone/${path}`, import.meta.url),
+    'utf8',
+  ).replace(/\r\n/g, '\n')
 
 const configSource = resourceSource('config/config.lua')
 const configuratorSource = resourceSource(
