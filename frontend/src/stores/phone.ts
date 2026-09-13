@@ -725,7 +725,13 @@ const citywarnFallbackLocales = {
   emptyFiltered: 'No matching warnings',
   emptyFilteredBody: 'Your personal filters hide the current alerts.',
   mapTitle: 'Warning areas',
-  mapBody: 'Highlighted areas show the approximate scope of active alerts.',
+  mapBody:
+    'The map marks active warning locations. Open a warning for details about the affected area.',
+  mapControls: 'Map controls',
+  mapZoomIn: 'Zoom in',
+  mapZoomOut: 'Zoom out',
+  mapReset: 'Reset map view',
+  mapHint: 'Drag to move the map. Use the mouse wheel or + / - to zoom.',
   publisher: {
     title: 'Authority tools',
     body: 'You are on duty as {job} ({grade}) and may publish warnings.',
@@ -972,7 +978,36 @@ const adminPanelFallbackLocales = {
         playback: 'The tone could not be played.',
       },
     },
+    citywarnCategoryColors: 'Category colors',
+    citywarnBlipLabels: {
+      Sprite: 'Sprite',
+      Display: 'Map display',
+      ShortRange: 'Short range',
+      CategoryId: 'Category ID',
+      CategoryName: 'Category name',
+      GroupByCategory: 'Group by category',
+      RadiusEnabled: 'Show radius',
+      Radius: 'Radius (metres)',
+    },
     descriptions: {
+      citywarnBlipSprite:
+        'GTA blip sprite ID. Default: 161 (signal). Sprite 10 draws a large outline; use the separate radius setting for a fixed map area.',
+      citywarnBlipDisplay:
+        'Display mode: 0/1/7 hidden; 2/6 map and minimap, selectable; 3/4 map only; 5/9 minimap only; 8/10 both, not selectable.',
+      citywarnBlipShortRange:
+        'When enabled, the minimap shows the blip only nearby. Default: on.',
+      citywarnBlipCategoryId:
+        'Custom named map category ID from 12 to 133. Default: 12. Choose an unused ID to avoid sharing another category.',
+      citywarnBlipCategoryName:
+        'Map legend category name, up to 99 bytes without GTA formatting. Default: CityWarn.',
+      citywarnBlipGroupByCategory:
+        'Groups warnings under the category name in the map legend, hiding individual short titles. Leave off to show each short title. Default: off.',
+      citywarnBlipRadiusEnabled:
+        'Shows the same fixed area around each located warning on the GTA map and in CityWarn. The area has no separate GTA map legend entry.',
+      citywarnBlipRadius:
+        'Shared radius for the GTA map and CityWarn app, in metres (1-50000). Default: 100. Independent of the warning notification area.',
+      citywarnCategoryColor:
+        'Color in #RRGGBB format for this warning category. Applies to GTA blips, radius areas and the CityWarn app. Text contrast adjusts automatically.',
       companyName: 'Company name shown in Discover (maximum 32 characters).',
       companyLogo: 'Admin-managed company logo (HTTPS image URL).',
       companyCover: 'Admin-managed company cover photo (HTTPS image URL).',
@@ -3226,6 +3261,7 @@ const defaultLocales: LocaleTree = {
       privateLabel: 'Private',
       contactCard: 'Contact Card',
       removeContact: 'Remove Contact',
+      returnToCall: 'Return to Call',
       mobile: 'Mobile',
       messagesProfile: 'Messages',
       notes: 'Notes',
@@ -4629,6 +4665,9 @@ const defaultLocales: LocaleTree = {
       microphoneOff: 'Microphone muted',
       focusHelp: 'Hold the look key to look around',
       returnHelp: 'Release the look key for controls',
+      lockCamera: 'Lock camera movement',
+      unlockCamera: 'Unlock camera movement',
+      lookKey: 'Look',
       uploading: '{count} uploading',
       saving: 'Saving video...',
       openGallery: 'Open Photos',

@@ -58,6 +58,10 @@ jobs:
           lua5.4 tests/server_webhooks.lua
           lua5.4 tests/server_calls.lua
           lua5.4 tests/client_nui_server_bridge.lua
+      - name: Test server startup and tone catalog recovery
+        run: |
+          lua5.4 tests/server_callback_startup.lua
+          lua5.4 tests/client_phone_lifecycle.lua
 
   frontend:
     name: Frontend

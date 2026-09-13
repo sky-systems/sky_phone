@@ -41,6 +41,7 @@ import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 
 const props = withDefaults(
   defineProps<{
+    callScreenVisible?: boolean
     preview?: boolean
     previewActivity?: DynamicIslandActivity
     previewExpanded?: boolean
@@ -118,7 +119,7 @@ const runtimeActivity = computed<DynamicIslandActivity | null>(() => {
   if (!currentActivity || !phone.isOpen) return currentActivity
   if (
     (currentActivity === 'incoming-call' || currentActivity === 'call') &&
-    activeAppId.value === 'phone'
+    (props.callScreenVisible || activeAppId.value === 'phone')
   ) {
     return null
   }

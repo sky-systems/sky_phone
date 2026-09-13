@@ -9,6 +9,30 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains the shared category colors for both maps and the app', () => {
+    expect(configuratorDescriptionKey('CityWarn.CategoryColors', {})).toBe(
+      'citywarnCategoryColor',
+    )
+    expect(
+      configuratorDescriptionKey('CityWarn.CategoryColors.medical', '#059669'),
+    ).toBe('citywarnCategoryColor')
+  })
+  it('explains the CityWarn native settings and fixed radius separately', () => {
+    for (const key of [
+      'Sprite',
+      'Display',
+      'ShortRange',
+      'CategoryId',
+      'CategoryName',
+      'GroupByCategory',
+      'RadiusEnabled',
+      'Radius',
+    ]) {
+      expect(configuratorDescriptionKey(`CityWarn.Blip.${key}`, 10)).toBe(
+        `citywarnBlip${key}`,
+      )
+    }
+  })
   it('selects specific descriptions before generic value descriptions', () => {
     expect(configuratorDescriptionKey('Garage.System', 'msk')).toBe(
       'garageSystem',

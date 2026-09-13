@@ -1,4 +1,5 @@
 SkyPhoneTones = SkyPhoneTones or {}
+Bridge.Callbacks.RegisterDeferred("sky_phone:tones:list")
 
 local MAX_TONES_PER_TYPE = 32
 local MAX_AUDIO_BYTES = 2000000

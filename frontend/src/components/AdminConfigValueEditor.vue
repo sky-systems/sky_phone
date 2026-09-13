@@ -27,6 +27,7 @@ export type AdminConfigEditorLabels = {
   emptyList: string
   emptyTable: string
   entry: string
+  fieldNames?: Record<string, string>
   general: string
   jobPlaceholder: string
   keyPlaceholder: string
@@ -337,6 +338,10 @@ function toggleStructuredEntry(entry: string): void {
 
 function tableEntryPath(key: string): string {
   return props.path ? `${props.path}.${key}` : key
+}
+
+function tableEntryLabel(key: string): string {
+  return props.labels.fieldNames?.[tableEntryPath(key)] ?? key
 }
 
 function listEntryPath(index: number): string {
@@ -931,12 +936,12 @@ function mapEntryStructure(
           v-if="isStructuredValue(value, tableFieldStructure(key))"
           type="button"
           class="config-structured-editor__section-toggle"
-          :aria-label="`${ariaLabel} ${key}`"
+          :aria-label="`${ariaLabel} ${tableEntryLabel(key)}`"
           :aria-expanded="expandedEntry === `table:${key}`"
           @click="toggleStructuredEntry(`table:${key}`)"
         >
           <span class="config-structured-editor__field-copy">
-            <strong>{{ key }}</strong>
+            <strong>{{ tableEntryLabel(key) }}</strong>
             <small
               :title="
                 describe(tableEntryPath(key), value, tableFieldStructure(key))
@@ -951,7 +956,7 @@ function mapEntryStructure(
           <ChevronDown :size="14" style="--admin-icon-size: 14" />
         </button>
         <span v-else class="config-structured-editor__field-copy">
-          <strong>{{ key }}</strong>
+          <strong>{{ tableEntryLabel(key) }}</strong>
           <small
             :title="
               describe(tableEntryPath(key), value, tableFieldStructure(key))
@@ -967,7 +972,7 @@ function mapEntryStructure(
           "
           :model-value="value"
           :structure="tableFieldStructure(key)"
-          :aria-label="`${ariaLabel} ${key}`"
+          :aria-label="`${ariaLabel} ${tableEntryLabel(key)}`"
           :describe="describe"
           :labels="labels"
           :tab-label="tabLabel"

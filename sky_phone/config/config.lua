@@ -1124,6 +1124,75 @@ Config.Crypto = {
     },
 }
 
+-- -------------------------------------------------------------------------
+-- CityWarn population warnings
+-- -------------------------------------------------------------------------
+
+Config.CityWarn = {
+    Enabled = true,
+    -- #RRGGBB colors shared by GTA blips, radius areas and the CityWarn app.
+    CategoryColors = {
+        public_safety = "#d97706",
+        police = "#2563eb",
+        fire = "#dc2626",
+        medical = "#059669",
+        infrastructure = "#7c3aed",
+        evacuation = "#0891b2",
+    },
+    Blip = {
+        Sprite = 161, -- GTA signal blip; sprite 10 is a screen-sized radius outline
+        Display = 2, -- 2: main map and minimap, 3/4: main map, 5/9: minimap, 0/1/7: hidden
+        ShortRange = true, -- true: show on the minimap only when nearby
+        CategoryId = 12, -- custom named category ID (12-133)
+        CategoryName = "CityWarn", -- map legend category label
+        GroupByCategory = false, -- true: show the category name in the legend instead of individual short titles
+        RadiusEnabled = true, -- show the same fixed area in GTA and CityWarn; no separate GTA legend entry
+        Radius = 100.0, -- shared GTA/CityWarn map radius in metres, independent of the warning's notification area
+    },
+    PageSize = 30,
+    MaximumActiveAlerts = 20,
+    TitleMaxLength = 120,
+    BodyMaxLength = 2000,
+    InstructionsMaxLength = 2000,
+    UpdateMaxLength = 2000,
+    AreaLabelMaxLength = 120,
+    MinimumRadius = 100,
+    MaximumRadius = 10000,
+    DefaultDurationMinutes = 60,
+    MaximumDurationMinutes = 1440,
+    RequireDuty = true,
+    RateLimits = {
+        Read = 180,
+        Write = 20,
+    },
+    Publishers = {
+        police = {
+            MinimumGrade = 2,
+            MaximumSeverity = "extreme",
+            CityWide = true,
+            Categories = { "public_safety", "police", "infrastructure", "evacuation" },
+        },
+        fire = {
+            MinimumGrade = 2,
+            MaximumSeverity = "extreme",
+            CityWide = true,
+            Categories = { "public_safety", "fire", "infrastructure", "evacuation" },
+        },
+        ambulance = {
+            MinimumGrade = 2,
+            MaximumSeverity = "danger",
+            CityWide = false,
+            Categories = { "public_safety", "medical", "evacuation" },
+        },
+        government = {
+            MinimumGrade = 2,
+            MaximumSeverity = "extreme",
+            CityWide = true,
+            Categories = { "public_safety", "police", "fire", "medical", "infrastructure", "evacuation" },
+        },
+    },
+}
+
 -- =============================================================================
 -- Server-only configuration
 -- =============================================================================
@@ -1473,56 +1542,6 @@ if IsDuplicityVersion() then
         AllowedJobs = {
             weazel = 0,
             reporter = 0,
-        },
-    }
-
-    -- -------------------------------------------------------------------------
-    -- CityWarn population warnings
-    -- -------------------------------------------------------------------------
-
-    Config.CityWarn = {
-        Enabled = true,
-        PageSize = 30,
-        MaximumActiveAlerts = 20,
-        TitleMaxLength = 120,
-        BodyMaxLength = 2000,
-        InstructionsMaxLength = 2000,
-        UpdateMaxLength = 2000,
-        AreaLabelMaxLength = 120,
-        MinimumRadius = 100,
-        MaximumRadius = 10000,
-        DefaultDurationMinutes = 60,
-        MaximumDurationMinutes = 1440,
-        RequireDuty = true,
-        RateLimits = {
-            Read = 180,
-            Write = 20,
-        },
-        Publishers = {
-            police = {
-                MinimumGrade = 2,
-                MaximumSeverity = "extreme",
-                CityWide = true,
-                Categories = { "public_safety", "police", "infrastructure", "evacuation" },
-            },
-            fire = {
-                MinimumGrade = 2,
-                MaximumSeverity = "extreme",
-                CityWide = true,
-                Categories = { "public_safety", "fire", "infrastructure", "evacuation" },
-            },
-            ambulance = {
-                MinimumGrade = 2,
-                MaximumSeverity = "danger",
-                CityWide = false,
-                Categories = { "public_safety", "medical", "evacuation" },
-            },
-            government = {
-                MinimumGrade = 2,
-                MaximumSeverity = "extreme",
-                CityWide = true,
-                Categories = { "public_safety", "police", "fire", "medical", "infrastructure", "evacuation" },
-            },
         },
     }
 

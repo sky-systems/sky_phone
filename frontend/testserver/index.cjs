@@ -6146,7 +6146,17 @@ let cityWarnAlerts = [
 
 function cityWarnBootstrap(testScenario) {
   const readonly = testScenario === 'citywarn-readonly'
+  const settings = adminMockConfigurator.sections
+    .flatMap((section) => section.fields)
+    .find(
+      (field) => field.scope === 'config' && field.path === 'CityWarn',
+    )?.value
   return {
+    categoryColors: settings?.CategoryColors,
+    mapBlip: {
+      radiusEnabled: settings?.Blip?.RadiusEnabled !== false,
+      radius: settings?.Blip?.Radius ?? 100,
+    },
     active: cityWarnAlerts.filter(
       (alert) => alert.status === 'active' && alert.expiresAt > Date.now(),
     ),

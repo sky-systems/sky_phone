@@ -61,6 +61,7 @@ import {
   describeConfiguratorValue,
 } from '@/utils/adminConfiguratorDescription'
 import { copyText } from '@/utils/clipboard'
+import { DEFAULT_CITYWARN_COLORS } from '@/utils/citywarnPresentation'
 import { parseDatabaseDate } from '@/utils/date'
 import { nuiCall } from '@/utils/nui'
 
@@ -421,6 +422,26 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyList: t('configurator.table.emptyList'),
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
+  fieldNames: Object.fromEntries([
+    ['CityWarn.CategoryColors', t('configurator.citywarnCategoryColors')],
+    ...Object.keys(DEFAULT_CITYWARN_COLORS).map((category) => [
+      `CityWarn.CategoryColors.${category}`,
+      phone.t(`Apps.citywarn.categories.${category}`),
+    ]),
+    ...[
+      'Sprite',
+      'Display',
+      'ShortRange',
+      'CategoryId',
+      'CategoryName',
+      'GroupByCategory',
+      'RadiusEnabled',
+      'Radius',
+    ].map((key) => [
+      `CityWarn.Blip.${key}`,
+      t(`configurator.citywarnBlipLabels.${key}`),
+    ]),
+  ]),
   general: configuratorLocaleText('configurator.table.general', 'General'),
   jobPlaceholder: t('configurator.table.jobPlaceholder'),
   keyPlaceholder: t('configurator.table.keyPlaceholder'),
