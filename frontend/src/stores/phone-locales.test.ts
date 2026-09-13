@@ -225,4 +225,25 @@ describe('phone locale fallback', () => {
     expect(phone.t('Common.cancel')).toBe('Cancel from en.lua')
     expect(phone.t('Common.close')).toBe('Close')
   })
+
+  it('keeps call and camera controls readable with older client locales', () => {
+    const phone = usePhoneStore()
+    phone.open({
+      locales: {
+        Apps: { camera: { name: 'Kamera' }, phone: { name: 'Telefon' } },
+        HardwareButtons: { lock: 'Handy sperren' },
+      },
+      fallbackLocales: {
+        Apps: { camera: { name: 'Camera' }, phone: { name: 'Phone' } },
+      },
+    })
+
+    expect(phone.t('HardwareButtons.unlock')).toBe('Unlock phone')
+    expect(phone.t('Apps.phone.returnToCall')).toBe('Return to Call')
+    expect(phone.t('Apps.camera.lockCamera')).toBe('Lock camera movement')
+    expect(phone.t('Apps.camera.unlockCamera')).toBe('Unlock camera movement')
+    expect(phone.t('Apps.camera.lookKey')).toBe('Look')
+    expect(phone.t('Apps.camera.name')).toBe('Kamera')
+    expect(phone.t('Apps.phone.name')).toBe('Telefon')
+  })
 })
