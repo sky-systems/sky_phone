@@ -318,7 +318,7 @@ local function load_alert(id)
     return alert and attach_updates({ alert })[1] or nil
 end
 
-local function validate_area(data, access)
+local function validate_area(data, access, source)
     if type(data) ~= "table" or (data.type ~= "radius" and data.type ~= "district" and data.type ~= "city") then
         return nil
     end
@@ -340,6 +340,15 @@ local function validate_area(data, access)
         if not center_x or not center_y then
             return nil
         end
+    else
+        -- Older NUI versions omit the incident location for district/city alerts.
+        -- Preserve their affected area, but anchor new map blips at the publisher.
+        local ped = GetPlayerPed(source)
+        if not ped or ped == 0 then return nil end
+        local coords = GetEntityCoords(ped)
+        center_x = valid_number(coords.x, -10000, 10000)
+        center_y = valid_number(coords.y, -10000, 10000)
+        if not center_x or not center_y then return nil end
     end
     return {
         type = data.type,
@@ -361,6 +370,7 @@ end
 AddEventHandler("sky_phone:configurator:serverUpdated", function()
     config = Config.CityWarn
     invalidate_blips()
+    TriggerClientEvent("sky_phone:citywarn:changed", -1, { categoryColors = config.CategoryColors })
 end)
 
 -- Population warnings are public, including while a phone is closed. This
@@ -377,11 +387,10 @@ Bridge.Callbacks.Register("sky_phone:citywarn:blips", function(source)
         local version = blip_version
         local started_at = GetGameTimer()
         local rows = Bridge.Database.Query([[
-            SELECT `id`, `title`, `severity`, `area_type`, `center_x`, `center_y`, `radius`,
+            SELECT `id`, `title`, `category`, `severity`, `area_type`, `center_x`, `center_y`, `radius`,
                 TIMESTAMPDIFF(SECOND, NOW(), `expires_at`) AS `remaining_seconds`
             FROM `sky_phone_citywarn_alerts`
             WHERE `status` = 'active' AND `expires_at` > NOW()
-                AND `area_type` IN ('radius', 'district')
                 AND `center_x` IS NOT NULL AND `center_y` IS NOT NULL
         ]], {})
         -- A publication/resolution can complete while the database query yields.
@@ -399,6 +408,7 @@ Bridge.Callbacks.Register("sky_phone:citywarn:blips", function(source)
             alerts[#alerts + 1] = {
                 id = row.id,
                 title = row.title,
+                category = row.category,
                 severity = row.severity,
                 x = tonumber(row.center_x),
                 y = tonumber(row.center_y),
@@ -433,6 +443,7 @@ Bridge.Callbacks.Register("sky_phone:citywarn:bootstrap", function(source)
             active = query_alerts("active"),
             archive = query_alerts("archive"),
             context = context_dto(source),
+            categoryColors = config.CategoryColors,
             onlinePlayers = #Bridge.Framework.GetPlayers(),
         },
     }
@@ -452,7 +463,7 @@ Bridge.Callbacks.Register("sky_phone:citywarn:publish", function(source, data)
     local body = type(data) == "table" and valid_text(data.body, config.BodyMaxLength, false) or nil
     local instructions = type(data) == "table" and valid_text(data.instructions, config.InstructionsMaxLength, true) or nil
     local duration = type(data) == "table" and valid_integer(data.durationMinutes, 1, config.MaximumDurationMinutes) or nil
-    local area = type(data) == "table" and validate_area(data.area, access) or nil
+    local area = type(data) == "table" and validate_area(data.area, access, source) or nil
     if not actor or not title or not body or instructions == nil or not duration or not area
         or not access.allowed_lookup[data.category]
         or not severity_rank[data.severity]

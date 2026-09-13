@@ -57,6 +57,20 @@ const bootstrap: CityWarnBootstrap = {
 }
 
 describe('CityWarn store', () => {
+  it('applies category colors on bootstrap and live configuration updates without creating an alert', async () => {
+    setActivePinia(createPinia())
+    const store = useCityWarnStore()
+    mockNuiCall.mockResolvedValueOnce({
+      success: true,
+      data: { ...bootstrap, categoryColors: { police: '#123456' } },
+    })
+    await store.load()
+    expect(store.categoryColors.police).toBe('#123456')
+    store.applyEvent({ categoryColors: { police: '#abcdef', fire: '#ff0000' } })
+    expect(store.categoryColors.police).toBe('#abcdef')
+    expect(store.categoryColors.fire).toBe('#ff0000')
+    expect(store.active).toHaveLength(1)
+  })
   beforeEach(() => {
     setActivePinia(createPinia())
     mockNuiCall.mockReset()

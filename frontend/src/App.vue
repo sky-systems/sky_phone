@@ -932,7 +932,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     notifications.show(notification)
   } else if (event.data?.type === 'citywarn:changed' && event.data.data) {
     const data = event.data.data as CityWarnEventData
-    if (data.alert) citywarn.applyEvent(data)
+    citywarn.applyEvent(data)
     if (phone.isOpen && citywarn.initialized) void citywarn.refresh()
 
     const alert = data.alert

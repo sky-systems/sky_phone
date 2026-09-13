@@ -285,4 +285,30 @@ client.snapshot({ alert() })
 client.advance(5000)
 assert(client.count() == 2, "startup must recover without opening the phone")
 
+local category_client = new_client()
+local warnings = {}
+for category in pairs(category_client.config.CityWarn.CategoryColors) do
+    warnings[#warnings + 1] = alert({ id = category, category = category })
+end
+category_client.snapshot(warnings)
+category_client.run()
+assert(category_client.count() == 12, "all six categories must create a point and radius")
+local colors = {}
+for _, handle in ipairs(category_client.handles) do
+    colors[handle.Colour] = true
+end
+local color_count = 0
+for _ in pairs(colors) do color_count = color_count + 1 end
+assert(color_count == 6, "category colors must override the shared severity")
+for category in pairs(category_client.config.CityWarn.CategoryColors) do
+    category_client.config.CityWarn.CategoryColors[category] = "#abcdef"
+end
+category_client.configure(true)
+for _, handle in ipairs(category_client.handles) do
+    assert(handle.Colour == 0xabcdefff - 0x100000000, "live category colors must reach point and radius as signed RGBA")
+end
+category_client.snapshot({})
+category_client.send("resolved", "police")
+category_client.advance(1000)
+assert(category_client.count() == 0)
 print("CityWarn client lifecycle tests passed")

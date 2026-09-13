@@ -59,6 +59,7 @@ export type CityWarnPublisherContext = {
 }
 
 export type CityWarnBootstrap = {
+  categoryColors?: Partial<Record<CityWarnCategory, string>>
   active: CityWarnAlert[]
   archive: CityWarnAlert[]
   context: CityWarnPublisherContext
@@ -82,6 +83,7 @@ export type CityWarnPublishInput = {
 }
 
 export type CityWarnEventData = {
+  categoryColors?: Partial<Record<CityWarnCategory, string>>
   alert?: CityWarnAlert
   alertId?: string
   kind?: CityWarnUpdateKind

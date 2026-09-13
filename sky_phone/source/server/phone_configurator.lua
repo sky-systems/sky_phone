@@ -1176,6 +1176,7 @@ local function client_payload()
     payload.CityWarn = {
         Enabled = stored_config.CityWarn.Enabled,
         Blip = copy_value(stored_config.CityWarn.Blip),
+        CategoryColors = copy_value(stored_config.CityWarn.CategoryColors),
     }
     return payload
 end
@@ -1578,6 +1579,20 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         or not blip.CategoryName:find("%S") or blip.CategoryName:find("[%c~]")
     then
         return { success = false, error = "invalid_value" }
+    end
+    if type(citywarn.CategoryColors) ~= "table" then
+        return { success = false, error = "invalid_value" }
+    end
+    for category in pairs(ConfigDefaults.CityWarn.CategoryColors) do
+        local color = citywarn.CategoryColors[category]
+        if type(color) ~= "string" or not color:match("^#%x%x%x%x%x%x$") then
+            return { success = false, error = "invalid_value" }
+        end
+    end
+    for category in pairs(citywarn.CategoryColors) do
+        if ConfigDefaults.CityWarn.CategoryColors[category] == nil then
+            return { success = false, error = "invalid_value" }
+        end
     end
     local companies_valid, validation_error = SkyPhoneCompanies.ValidateConfiguration(candidate_config)
     if not companies_valid then

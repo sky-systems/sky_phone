@@ -24,7 +24,16 @@ import {
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
-import { defaultMapWorldToPercent } from '@/features/map/defaultMapGeometry'
+import {
+  defaultCayoStyle,
+  defaultMainlandStyle,
+  defaultMapCoordinates,
+} from '@/features/map/defaultMapGeometry'
+import {
+  cityWarnColorStyle,
+  cityWarnMapArea,
+  cityWarnMapPosition,
+} from '@/utils/citywarnPresentation'
 import {
   CITYWARN_CATEGORIES,
   CITYWARN_SEVERITIES,
@@ -58,6 +67,7 @@ import { nuiCall } from '@/utils/nui'
 type CityWarnTab = 'active' | 'map' | 'archive' | 'settings'
 type ManageMode = 'resolve' | 'update'
 
+const mapAssetBase = `${import.meta.env.BASE_URL}img/maps/`
 const route = useRoute()
 const phone = usePhoneStore()
 const citywarn = useCityWarnStore()
@@ -123,11 +133,12 @@ const composeValid = computed(() => {
   if (composeStep.value === 1) return true
   if (composeStep.value === 2) {
     if (!draftAreaLabel.value.trim()) return false
-    if (draftAreaType.value !== 'radius') return true
     return (
+      draftCenterX.value.trim() !== '' &&
+      draftCenterY.value.trim() !== '' &&
       Number.isFinite(Number(draftCenterX.value)) &&
       Number.isFinite(Number(draftCenterY.value)) &&
-      Number(draftRadius.value) >= 100
+      (draftAreaType.value !== 'radius' || Number(draftRadius.value) >= 100)
     )
   }
   if (composeStep.value === 3) {
@@ -232,14 +243,8 @@ async function publishWarning(): Promise<void> {
   composeError.value = ''
   const response = await citywarn.publish({
     area: {
-      centerX:
-        draftAreaType.value === 'city' || !draftCenterX.value
-          ? null
-          : Number(draftCenterX.value),
-      centerY:
-        draftAreaType.value === 'city' || !draftCenterY.value
-          ? null
-          : Number(draftCenterY.value),
+      centerX: !draftCenterX.value ? null : Number(draftCenterX.value),
+      centerY: !draftCenterY.value ? null : Number(draftCenterY.value),
       label: draftAreaLabel.value.trim(),
       radius:
         draftAreaType.value === 'radius' ? Number(draftRadius.value) : null,
@@ -287,30 +292,14 @@ async function submitManage(): Promise<void> {
   feedback.value = manageMode.value === 'resolve' ? t('manage.resolved') : ''
 }
 
-function alertMapStyle(alert: CityWarnAlert): Record<string, string> {
-  if (alert.area.type === 'city') return {}
-  const percent = defaultMapWorldToPercent({
-    x: alert.area.centerX ?? 0,
-    y: alert.area.centerY ?? 0,
-  })
-  const size =
-    alert.area.type === 'radius'
-      ? Math.min(130, Math.max(42, (alert.area.radius ?? 500) / 11))
-      : 88
-  return {
-    height: `${size}px`,
-    left: `${percent.x * 100}%`,
-    top: `${percent.y * 100}%`,
-    width: `${size}px`,
-  }
+function categoryStyle(category: CityWarnCategory): Record<string, string> {
+  return cityWarnColorStyle(citywarn.categoryColors[category])
 }
 
 function setAreaType(type: CityWarnAreaType): void {
   draftAreaType.value = type
   if (type === 'city') {
     draftAreaLabel.value = 'Los Santos'
-    draftCenterX.value = ''
-    draftCenterY.value = ''
   }
 }
 
@@ -354,7 +343,11 @@ onMounted(async () => {
       </template>
     </SkyNavbar>
 
-    <SkyScrollArea v-if="selected" class="citywarn-scroll citywarn-detail">
+    <SkyScrollArea
+      v-if="selected"
+      class="citywarn-scroll citywarn-detail"
+      :style="categoryStyle(selected.category)"
+    >
       <section
         class="citywarn-detail-hero"
         :class="`severity-${selected.severity}`"
@@ -484,7 +477,7 @@ onMounted(async () => {
             v-for="alert in citywarn.visibleActive"
             :key="alert.id"
             class="citywarn-alert-card"
-            :class="`severity-${alert.severity}`"
+            :style="categoryStyle(alert.category)"
             tabindex="0"
             role="button"
             @click="openAlert(alert)"
@@ -556,19 +549,56 @@ onMounted(async () => {
           </div>
         </section>
         <div class="citywarn-map">
-          <img src="/img/maps/gtav-map.svg" alt="" />
-          <button
-            v-for="alert in citywarn.visibleActive"
-            :key="alert.id"
-            class="citywarn-map-zone"
-            :class="[
-              `severity-${alert.severity}`,
-              { 'citywarn-map-zone--city': alert.area.type === 'city' },
-            ]"
-            :style="alertMapStyle(alert)"
-            :aria-label="alert.title"
-            @click="openAlert(alert)"
-          ></button>
+          <div
+            class="citywarn-map-canvas"
+            :style="{
+              aspectRatio: `${defaultMapCoordinates.width} / ${defaultMapCoordinates.height}`,
+            }"
+          >
+            <img
+              :src="`${mapAssetBase}gtav-map.svg`"
+              :style="defaultMainlandStyle"
+              alt=""
+              draggable="false"
+            />
+            <img
+              :src="`${mapAssetBase}cayo-perico.svg`"
+              :style="defaultCayoStyle"
+              alt=""
+              draggable="false"
+            />
+            <template
+              v-for="alert in citywarn.visibleActive"
+              :key="`area-${alert.id}`"
+            >
+              <span
+                v-if="cityWarnMapArea(alert.area)"
+                class="citywarn-map-zone"
+                :style="{
+                  ...categoryStyle(alert.category),
+                  ...cityWarnMapArea(alert.area),
+                }"
+                aria-hidden="true"
+              ></span>
+            </template>
+            <template v-for="alert in citywarn.visibleActive" :key="alert.id">
+              <button
+                v-if="cityWarnMapPosition(alert.area)"
+                class="citywarn-map-pin"
+                :style="{
+                  ...categoryStyle(alert.category),
+                  ...cityWarnMapPosition(alert.area),
+                }"
+                :aria-label="alert.title"
+                :title="alert.title"
+                @click="openAlert(alert)"
+              >
+                <span
+                  ><component :is="categoryIcons[alert.category]" :size="17"
+                /></span>
+              </button>
+            </template>
+          </div>
         </div>
         <div class="citywarn-map-list">
           <button
@@ -576,7 +606,10 @@ onMounted(async () => {
             :key="alert.id"
             @click="openAlert(alert)"
           >
-            <span :class="`map-list-dot severity-${alert.severity}`"></span>
+            <span
+              class="map-list-dot"
+              :style="categoryStyle(alert.category)"
+            ></span>
             <div>
               <strong>{{ alert.area.label }}</strong
               ><small>{{ alert.title }}</small>
@@ -597,7 +630,7 @@ onMounted(async () => {
             @click="openAlert(alert)"
             @keydown.enter="openAlert(alert)"
           >
-            <span :class="`archive-icon severity-${alert.severity}`"
+            <span class="archive-icon" :style="categoryStyle(alert.category)"
               ><component :is="categoryIcons[alert.category]" :size="18"
             /></span>
             <div>
@@ -662,6 +695,7 @@ onMounted(async () => {
               ><template #leading
                 ><component
                   :is="categoryIcons[category]"
+                  :style="{ color: citywarn.categoryColors[category] }"
                   :size="19" /></template
             ></SkySettingsRow>
           </SkySettingsGroup>
@@ -732,6 +766,7 @@ onMounted(async () => {
                 v-for="category in availableCategories"
                 :key="category"
                 :class="{ active: draftCategory === category }"
+                :style="categoryStyle(category)"
                 @click="draftCategory = category"
               >
                 <component :is="categoryIcons[category]" :size="21" /><span>{{
@@ -785,31 +820,30 @@ onMounted(async () => {
                 :label="t('compose.areaLabel')"
                 :placeholder="t('compose.areaPlaceholder')"
               />
-              <template v-if="draftAreaType === 'radius'">
-                <SkyField
-                  v-model="draftRadius"
-                  component="div"
-                  outline
-                  type="number"
-                  min="100"
-                  max="10000"
-                  :label="t('compose.radius')"
-                />
-                <SkyButton
-                  block
-                  outline
-                  :disabled="locating"
-                  @click="useCurrentLocation"
-                  ><LocateFixed :size="17" />
-                  {{
-                    locating
-                      ? t('loading')
-                      : draftCenterX
-                        ? t('compose.locationSet')
-                        : t('compose.useLocation')
-                  }}</SkyButton
-                >
-              </template>
+              <SkyField
+                v-if="draftAreaType === 'radius'"
+                v-model="draftRadius"
+                component="div"
+                outline
+                type="number"
+                min="100"
+                max="10000"
+                :label="t('compose.radius')"
+              />
+              <SkyButton
+                block
+                outline
+                :disabled="locating"
+                @click="useCurrentLocation"
+                ><LocateFixed :size="17" />
+                {{
+                  locating
+                    ? t('loading')
+                    : draftCenterX
+                      ? t('compose.locationSet')
+                      : t('compose.useLocation')
+                }}</SkyButton
+              >
             </div>
           </template>
 
@@ -1109,7 +1143,7 @@ onMounted(async () => {
   bottom: 0;
   left: 0;
   width: 4px;
-  background: var(--severity);
+  background: var(--category);
 }
 .citywarn-card-top {
   display: grid;
@@ -1123,15 +1157,15 @@ onMounted(async () => {
   height: 32px;
   place-items: center;
   border-radius: var(--sky-radius-control);
-  color: var(--severity);
-  background: color-mix(in srgb, var(--severity) 12%, white);
+  color: var(--category-ink);
+  background: var(--category-soft);
 }
 .citywarn-card-top div:nth-child(2) {
   display: flex;
   flex-direction: column;
 }
 .citywarn-card-top span {
-  color: var(--severity);
+  color: var(--category-ink);
   font-size: 10.5px;
   font-weight: 800;
   text-transform: uppercase;
@@ -1224,12 +1258,8 @@ onMounted(async () => {
 .citywarn-detail-hero {
   position: relative;
   padding: 24px 18px 22px;
-  color: white;
-  background: linear-gradient(
-    145deg,
-    var(--severity),
-    color-mix(in srgb, var(--severity) 65%, #111827)
-  );
+  color: var(--category-foreground);
+  background: var(--category);
 }
 .citywarn-detail-icon {
   display: grid;
@@ -1255,7 +1285,7 @@ onMounted(async () => {
 }
 .citywarn-detail-hero p {
   margin: 0;
-  color: rgb(255 255 255 / 76%);
+  color: inherit;
   font-size: 12px;
 }
 .citywarn-detail-content {
@@ -1280,12 +1310,12 @@ onMounted(async () => {
   background: #fff;
 }
 .citywarn-meta-grid svg {
-  color: var(--severity, #dc2626);
+  color: var(--category-ink);
   grid-row: span 2;
 }
 .citywarn-meta-grid span {
   overflow: hidden;
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 9.5px;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -1415,27 +1445,52 @@ onMounted(async () => {
   border-radius: 18px;
   background: #dfe6dc;
 }
-.citywarn-map > img {
-  width: 100%;
+.citywarn-map-canvas {
+  position: relative;
   height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  margin: auto;
+}
+.citywarn-map-canvas > img {
+  position: absolute;
   opacity: 0.86;
+  pointer-events: none;
 }
 .citywarn-map-zone {
   position: absolute;
-  padding: 0;
-  border: 2px solid color-mix(in srgb, var(--severity) 75%, white);
+  border: 2px solid var(--category);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--severity) 26%, transparent);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--severity) 10%, transparent);
-  transform: translate(-50%, -50%);
+  background: var(--category-area);
+  pointer-events: none;
 }
-.citywarn-map-zone--city {
-  inset: 8px;
-  width: auto !important;
-  height: auto !important;
-  border-radius: 14px;
-  transform: none;
+.citywarn-map-pin {
+  position: absolute;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  clip-path: circle(50%);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+.citywarn-map-pin > span {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 50%;
+  color: var(--category-foreground);
+  background: var(--category);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 50%);
+}
+.citywarn-map-pin:focus-visible {
+  outline: 2px solid var(--sky-text-primary);
+  outline-offset: -2px;
+  border-radius: 50%;
 }
 .citywarn-map-list {
   margin-top: 10px;
@@ -1461,7 +1516,12 @@ onMounted(async () => {
 .citywarn-map-list button:last-child {
   border-bottom: 0;
 }
-.map-list-dot,
+.map-list-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--category);
+}
 .settings-dot {
   width: 9px;
   height: 9px;
@@ -1504,8 +1564,8 @@ onMounted(async () => {
   height: 36px;
   place-items: center;
   border-radius: 11px;
-  color: var(--severity);
-  background: color-mix(in srgb, var(--severity) 12%, white);
+  color: var(--category-ink);
+  background: var(--category-soft);
 }
 .citywarn-archive-card div {
   display: flex;
@@ -1524,7 +1584,7 @@ onMounted(async () => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.citywarn-archive-card span {
+.citywarn-archive-card div > span {
   color: #6b7280;
   font-size: 10.5px;
 }
@@ -1658,11 +1718,14 @@ onMounted(async () => {
   font-weight: 700;
   text-align: left;
 }
+.compose-category-grid button > svg {
+  color: var(--category);
+}
 .compose-category-grid button.active {
-  border-color: #dc2626;
-  color: #b91c1c;
-  background: #fef2f2;
-  box-shadow: inset 0 0 0 1px #dc2626;
+  border-color: var(--category);
+  color: var(--category-ink);
+  background: var(--category-soft);
+  box-shadow: inset 0 0 0 1px var(--category);
 }
 .compose-severity-list {
   display: flex;
@@ -1693,7 +1756,7 @@ onMounted(async () => {
 .compose-severity-list button.active {
   border-color: var(--severity);
   color: var(--severity);
-  background: color-mix(in srgb, var(--severity) 7%, white);
+  background: #f3f4f6;
 }
 .compose-area-tabs {
   margin: 13px 0;
@@ -1714,9 +1777,9 @@ onMounted(async () => {
 }
 .compose-preview {
   padding: 15px;
-  border: 1px solid color-mix(in srgb, var(--severity) 45%, #e5e7eb);
+  border: 1px solid var(--severity);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--severity) 6%, white);
+  background: var(--sky-surface-primary, #fff);
 }
 .compose-preview > span {
   color: var(--severity);
@@ -1840,7 +1903,11 @@ onMounted(async () => {
   color: #e5e7eb;
   background: #1c1f24;
 }
-.sky-app-page--dark .compose-category-grid button.active,
+.sky-app-page--dark .compose-category-grid button.active {
+  border-color: var(--category);
+  color: var(--category-ink);
+  background: var(--category-soft);
+}
 .sky-app-page--dark .compose-severity-list button.active {
   border-color: var(--severity, #dc2626);
   background: #321a1a;

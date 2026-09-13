@@ -930,6 +930,7 @@ const adminPanelFallbackLocales = {
         playback: 'The tone could not be played.',
       },
     },
+    citywarnCategoryColors: 'Category colors',
     citywarnBlipLabels: {
       Sprite: 'Sprite',
       Display: 'Map display',
@@ -957,6 +958,8 @@ const adminPanelFallbackLocales = {
         'Shows a fixed area around each located warning. The area has no separate map legend entry.',
       citywarnBlipRadius:
         'Fixed area radius in metres (1-50000). Default: 100. Independent of the warning notification area.',
+      citywarnCategoryColor:
+        'Color in #RRGGBB format for this warning category. Applies to GTA blips, radius areas and the CityWarn app. Text contrast adjusts automatically.',
       companyName: 'Company name shown in Discover (maximum 32 characters).',
       companyLogo: 'Admin-managed company logo (HTTPS image URL).',
       companyCover: 'Admin-managed company cover photo (HTTPS image URL).',

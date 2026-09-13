@@ -240,6 +240,13 @@ end)
 test("CityWarn presentation roundtrips through SQL and reaches connected and new clients", function()
     local server = new_server()
     local defaults = server.field("CityWarn").value
+    assert(defaults.CategoryColors.police == "#2563eb")
+    local category_count = 0
+    for category in pairs(defaults.CategoryColors) do
+        category_count = category_count + 1
+        defaults.CategoryColors[category] = ("#12%04x"):format(category_count)
+    end
+    assert(category_count == 6)
     assert(defaults.Blip.Sprite == 161 and defaults.Blip.CategoryName == "CityWarn")
     assert(defaults.Blip.Display == 2 and defaults.Blip.ShortRange == true)
     assert(defaults.Blip.GroupByCategory == false)
@@ -253,6 +260,9 @@ test("CityWarn presentation roundtrips through SQL and reaches connected and new
     assert(result.success, tostring(result.error))
     client.sync(server.broadcasts[1])
     assert(client.config.CityWarn.Blip == settings, "live refresh must preserve the settings table")
+    for category, color in pairs(defaults.CategoryColors) do
+        assert(client.config.CityWarn.CategoryColors[category] == color)
+    end
     assert(settings.Sprite == 375 and settings.Display == 0 and settings.ShortRange == true)
     assert(settings.CategoryId == 20 and settings.CategoryName == "Public warnings")
     assert(settings.GroupByCategory == true)
@@ -262,6 +272,9 @@ test("CityWarn presentation roundtrips through SQL and reaches connected and new
     local reconnect = new_client(restarted)
     assert(reconnect.config.CityWarn.Blip.RadiusEnabled == false and reconnect.config.CityWarn.Blip.Display == 0)
     assert(reconnect.config.CityWarn.Blip.GroupByCategory == true)
+    for category, color in pairs(defaults.CategoryColors) do
+        assert(reconnect.config.CityWarn.CategoryColors[category] == color, "saved category colors must survive restart")
+    end
     defaults.Enabled = false
     defaults.Blip.ShortRange = false
     defaults.Blip.GroupByCategory = false
@@ -275,11 +288,13 @@ test("existing CityWarn SQL rows receive new blip defaults without resetting sav
     local server = new_server()
     local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
     stored.CityWarn.Blip = nil
+    stored.CityWarn.CategoryColors = nil
     stored.CityWarn.Enabled = false
     local restarted = new_server(server.database)
     assert(restarted.env.Config.CityWarn.Enabled == false)
     assert(restarted.env.Config.CityWarn.Blip.Sprite == 161)
     assert(restarted.env.Config.CityWarn.Blip.RadiusEnabled == true)
+    assert(restarted.env.Config.CityWarn.CategoryColors.evacuation == "#0891b2")
 end)
 
 test("existing CityWarn sprites survive upgrades while short titles become the default", function()
@@ -308,6 +323,24 @@ test("invalid CityWarn native settings are rejected before persistence or broadc
         assert(not result.success and result.error == "invalid_value", invalid[1])
         assert(server.database.writes == 0 and #server.broadcasts == 0)
     end
+end)
+
+test("invalid CityWarn colors and unknown categories cannot be saved", function()
+    for _, value in ipairs({ "red", "#fff", "#12345678", "#12gg00", "", 3, false }) do
+        local server = new_server()
+        local citywarn = server.field("CityWarn").value
+        citywarn.CategoryColors.police = value
+        local result = server.save({ change("CityWarn", citywarn) })
+        assert(not result.success and result.error == "invalid_value")
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+    local server = new_server()
+    local citywarn = server.field("CityWarn").value
+    citywarn.CategoryColors.unknown = "#123456"
+    assert(not server.save({ change("CityWarn", citywarn) }).success)
+    citywarn.CategoryColors.unknown = nil
+    citywarn.CategoryColors.police = nil
+    assert(not server.save({ change("CityWarn", citywarn) }).success)
 end)
 
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))

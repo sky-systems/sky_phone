@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 
+import { parseCityWarnColors } from '@/utils/citywarnPresentation'
 import { usePhoneStore } from '@/stores/phone'
 import type {
   CityWarnAlert,
@@ -84,6 +85,7 @@ export const useCityWarnStore = defineStore('citywarn', {
     active: [] as CityWarnAlert[],
     archive: [] as CityWarnAlert[],
     context: null as CityWarnBootstrap['context'] | null,
+    categoryColors: parseCityWarnColors(null),
     error: '',
     initialized: false,
     isLoading: false,
@@ -131,6 +133,7 @@ export const useCityWarnStore = defineStore('citywarn', {
         this.active = response.data.active
         this.archive = response.data.archive
         this.context = response.data.context
+        this.categoryColors = parseCityWarnColors(response.data.categoryColors)
         this.onlinePlayers = response.data.onlinePlayers
         this.error = ''
         this.initialized = true
@@ -143,6 +146,8 @@ export const useCityWarnStore = defineStore('citywarn', {
       return this.load()
     },
     applyEvent(data: CityWarnEventData): void {
+      if (data.categoryColors)
+        this.categoryColors = parseCityWarnColors(data.categoryColors)
       const alert = data.alert
       if (!alert) return
       this.active = this.active.filter((item) => item.id !== alert.id)

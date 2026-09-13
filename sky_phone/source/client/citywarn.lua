@@ -102,6 +102,17 @@ local function apply_blip_settings(entry, settings)
     end
 end
 
+local function alert_colour(alert)
+    local colors = Config.CityWarn.CategoryColors or {}
+    local color = colors[alert.category]
+    if type(color) == "string" and color:match("^#%x%x%x%x%x%x$") then
+        -- SET_BLIP_COLOUR accepts custom RRGGBBAA colors. Use a signed native int.
+        local rgba = (tonumber(color:sub(2), 16) << 8) | 255
+        return rgba >= 0x80000000 and rgba - 0x100000000 or rgba
+    end
+    return severity_colours[alert.severity]
+end
+
 local function update_alert(alert, started_at)
     local entry = blips[alert.id] or {}
     blips[alert.id] = entry
@@ -131,11 +142,11 @@ local function update_alert(alert, started_at)
             SetBlipAlpha(entry.radius, 80)
         end
         SetBlipCoords(entry.radius, alert.x + 0.0, alert.y + 0.0, 0.0)
-        SetBlipColour(entry.radius, severity_colours[alert.severity])
+        SetBlipColour(entry.radius, alert_colour(alert))
     end
     apply_blip_settings(entry, settings)
     SetBlipScale(entry.point, 0.9)
-    SetBlipColour(entry.point, severity_colours[alert.severity])
+    SetBlipColour(entry.point, alert_colour(alert))
     set_name(entry.point, alert.title)
     entry.alert = alert
     entry.radius_size = radius

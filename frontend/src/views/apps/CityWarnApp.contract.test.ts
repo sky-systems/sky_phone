@@ -20,6 +20,16 @@ const config = readFileSync(
 )
 
 describe('CityWarn product contract', () => {
+  it('renders category colors and map pins with CEF-compatible colors and matching map layers', () => {
+    expect(source).not.toContain('color-mix(')
+    expect(source).toContain('defaultMainlandStyle')
+    expect(source).toContain('defaultCayoStyle')
+    expect(source).toContain('cityWarnMapPosition(alert.area)')
+    expect(source).toContain('cityWarnMapArea(alert.area)')
+    expect(source).toContain('categoryStyle(selected.category)')
+    expect(source).toContain('background: var(--category);')
+    expect(source).not.toContain("draftAreaType.value === 'city' ||")
+  })
   it('uses central Sky navigation, scrolling, settings and sheets', () => {
     expect(source).toContain('SkyPillNavigation')
     expect(source).toContain('SkyScrollArea')

@@ -1130,6 +1130,15 @@ Config.Crypto = {
 
 Config.CityWarn = {
     Enabled = true,
+    -- #RRGGBB colors shared by GTA blips, radius areas and the CityWarn app.
+    CategoryColors = {
+        public_safety = "#d97706",
+        police = "#2563eb",
+        fire = "#dc2626",
+        medical = "#059669",
+        infrastructure = "#7c3aed",
+        evacuation = "#0891b2",
+    },
     Blip = {
         Sprite = 161, -- GTA signal blip; sprite 10 is a screen-sized radius outline
         Display = 2, -- 2: main map and minimap, 3/4: main map, 5/9: minimap, 0/1/7: hidden
