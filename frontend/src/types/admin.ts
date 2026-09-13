@@ -220,6 +220,7 @@ export type AdminWebhookOptions = {
 export type AdminWebhookEndpoint = {
   path: string
   category: string
+  audience: 'admin' | 'public'
   mode: AdminWebhookMode
   effectiveMode: Exclude<AdminWebhookMode, 'file'>
   configured: boolean

@@ -67,8 +67,10 @@ dofile("sky_phone/config/WebHooks.lua")
 local file_url = "https://discord.com/api/webhooks/123/FILE_TEST_TOKEN"
 local replacement_url = "https://discord.com/api/webhooks/456/REPLACEMENT_TEST_TOKEN"
 WebHooks.Calls = file_url
+WebHooks.Public.Feather = file_url
 dofile("sky_phone/source/server/logging.lua")
 dofile("sky_phone/source/server/logging_actions.lua")
+dofile("sky_phone/source/server/logging_public.lua")
 dofile("sky_phone/source/server/logging_settings.lua")
 dofile("sky_phone/source/server/admin.lua")
 
@@ -99,6 +101,12 @@ end
 
 assert(row(get().data, "Calls").configured and row(get().data, "Calls").mode == "file")
 assert(row(get().data, "Actions.skypic:send-snap").category == "SkyPic")
+assert(row(get().data, "Calls").audience == "admin")
+assert(row(get().data, "Public.Feather").audience == "public" and WebHooks.Public.Feather == file_url)
+assert(row(get().data, "Public.Actions.skypic:publish-story").category == "SkyPic")
+for _, endpoint in ipairs(get().data.endpoints) do
+    assert(endpoint.path ~= "Public.Actions.skypic:send-snap", "Private actions must not offer public routes")
+end
 authorized = false
 local before = query_count
 assert(get().error == "not_authorized")
@@ -173,5 +181,24 @@ assert(save({ { path = "Username", value = "Stale edit" } }, initial_revision).e
 assert(save({ { path = "Username", value = "Latest edit" } }).success)
 assert(coroutine.resume(slow_save))
 assert(WebHooks.Username == "Latest edit" and get().data.revision == initial_revision + 2)
+no_secrets(get())
+-- Public destinations use the same protected persistence but independent paths.
+assert(save({ { path = "Public.Feather", mode = "custom", url = replacement_url } }).success)
+assert(WebHooks.Public.Feather == replacement_url and WebHooks.Feather == "")
+assert(save({ { path = "Public.Feather", mode = "custom", url = "" } }).success)
+assert(WebHooks.Public.Feather == replacement_url)
+assert(save({ { path = "Public.Default", mode = "custom", url = file_url },
+    { path = "Public.Actions.feather:create-post", mode = "disabled" } }).success)
+assert(not SkyPhoneLog.IsPublicEnabled("feather:create-post"))
+assert(save({ { path = "Public.Actions.feather:create-post", mode = "inherit" },
+    { path = "Public.Feather", mode = "inherit" } }).success)
+assert(SkyPhoneLog.IsPublicEnabled("feather:create-post"))
+dofile("sky_phone/config/WebHooks.lua")
+dofile("sky_phone/source/server/logging_settings.lua")
+assert(WebHooks.Public.Default == file_url and WebHooks.Public.Feather == "" and WebHooks.Default == "")
+assert(save({ { path = "Public.Default", mode = "file" } }).success)
+assert(not SkyPhoneLog.IsPublicEnabled("feather:create-post"))
+assert(save({ { path = "Public.Actions.messages:send", mode = "custom", url = file_url } }).error == "invalid_field")
+assert(save({ { path = "Public.Feather", mode = "custom", url = "https://example.invalid/hook" } }).error == "invalid_webhook")
 no_secrets(get())
 print("Server webhook settings and Phonepanel authorization tests passed")

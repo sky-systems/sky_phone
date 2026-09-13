@@ -15,6 +15,7 @@ const categories = [...source.matchAll(/^    (\w+) =/gm)]
         'Username',
         'AvatarUrl',
         'Actions',
+        'Public',
         'QueueLimit',
         'MaxAttempts',
       ].includes(key),
@@ -30,6 +31,7 @@ const options = { ...defaults }
 const rows = categories.map((path) => ({
   path,
   category: path,
+  audience: 'admin',
   mode: 'file',
   effectiveMode: 'inherit',
   configured: false,
@@ -46,10 +48,44 @@ for (const [action, category] of Object.entries({
   rows.push({
     path: `Actions.${action}`,
     category,
+    audience: 'admin',
     mode: 'file',
     effectiveMode: 'inherit',
     configured: false,
   })
+for (const category of [
+  'Default',
+  'Feather',
+  'Pages',
+  'Marketplace',
+  'Picstagram',
+  'FlipTok',
+  'SkyPic',
+  'WeazelNews',
+]) {
+  rows.push({
+    path: `Public.${category}`,
+    category,
+    audience: 'public',
+    mode: 'file',
+    effectiveMode: 'inherit',
+    configured: false,
+  })
+}
+for (const match of readFileSync(
+  resolve(__dirname, '../../sky_phone/source/server/logging_public.lua'),
+  'utf8',
+).matchAll(/^add\("(\w+)", "[^"]+", \d+, "([^"]+)"/gm)) {
+  for (const action of match[2].split(' '))
+    rows.push({
+      path: `Public.Actions.${action}`,
+      category: match[1],
+      audience: 'public',
+      mode: 'file',
+      effectiveMode: 'inherit',
+      configured: false,
+    })
+}
 let revision = 0
 
 function getWebhooks() {

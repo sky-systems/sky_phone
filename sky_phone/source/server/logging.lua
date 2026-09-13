@@ -34,12 +34,16 @@ function SkyPhoneLog.IsValidWebhook(url)
             or path:match("^/api/v%d+/webhooks/%d+/[%w_-]+$")) ~= nil
 end
 
-local function webhook(category, action)
+local function webhook(category, action, audience)
     if type(WebHooks) ~= "table" or WebHooks.Enabled == false then return nil end
+    local routes = WebHooks
+    -- An absent public configuration must never fall back to admin routes.
+    if audience == "public" then routes = WebHooks.Public end
+    if type(routes) ~= "table" then return nil end
     local url
-    if type(WebHooks.Actions) == "table" then url = WebHooks.Actions[action] end
-    if url == nil or url == "" then url = WebHooks[category] end
-    if url == nil or url == "" then url = WebHooks.Default end
+    if type(routes.Actions) == "table" then url = routes.Actions[action] end
+    if url == nil or url == "" then url = routes[category] end
+    if url == nil or url == "" then url = routes.Default end
     if url == nil or url == "" or url == false then return nil end
     if SkyPhoneLog.IsValidWebhook(url) then return url .. "?wait=true" end
     diagnostic("url:" .. category, "Invalid webhook configured for " .. category .. ".")
@@ -47,6 +51,11 @@ end
 
 function SkyPhoneLog.IsEnabled(category, action)
     return webhook(category, action) ~= nil
+end
+
+function SkyPhoneLog.IsPublicEnabled(action)
+    local spec = SkyPhoneLog.PublicActions and SkyPhoneLog.PublicActions[action]
+    return spec ~= nil and webhook(spec.category, action, "public") ~= nil
 end
 
 local function clean_string(value)
@@ -196,6 +205,25 @@ deliver = function(url, queue)
     if not ok then complete(0, "", {}) end
 end
 
+local function queue_pending(category, url, pending)
+    if queued + #pending > limit("QueueLimit", 1000, 10000) then
+        diagnostic("overflow", "Queue is full; new record dropped. Check channel traffic and webhook delivery.")
+        return false
+    end
+    local queue = queues[url]
+    if not queue then
+        queue = { items = {}, first = 1, last = 0, inflight = false }
+        queues[url] = queue
+    end
+    for _, item in ipairs(pending) do
+        queue.last = queue.last + 1
+        queue.items[queue.last] = item
+        queued = queued + 1
+    end
+    schedule(url, queue, 1)
+    return true
+end
+
 local function enqueue(category, action, status, actor, details)
     local url = webhook(category, action)
     if not url then return false end
@@ -237,18 +265,83 @@ local function enqueue(category, action, status, actor, details)
         }
         pending[#pending + 1] = { body = json.encode(payload), category = category, attempts = 0 }
     end
-    local queue = queues[url]
-    if not queue then
-        queue = { items = {}, first = 1, last = 0, inflight = false }
-        queues[url] = queue
-    end
-    for _, item in ipairs(pending) do
-        queue.last = queue.last + 1
-        queue.items[queue.last] = item
-        queued = queued + 1
-    end
-    schedule(url, queue, 1)
-    return true
+    return queue_pending(category, url, pending)
+end
+
+-- Only logging_public.lua supplies these server-verified, public fields. Never
+-- use the audit record, callback request/result or identity as public content.
+function SkyPhoneLog.Publish(action, post)
+    local spec = SkyPhoneLog.PublicActions and SkyPhoneLog.PublicActions[action]
+    if not spec then return false end
+    local url = webhook(spec.category, action, "public")
+    if not url then return false end
+    local ok, result = pcall(function()
+        local function text(value, maximum)
+            return truncate_utf8(clean_string(tostring(value or "")), maximum)
+        end
+        local locale = Config and Config.Bridge and Config.Bridge.Locale or "en"
+        local labels = Locales and (Locales[locale] or Locales.en)
+        labels = labels and labels.DiscordPublic or {}
+        local status = post.status or "published"
+        local embed = {
+            title = text(spec.label .. " | " .. (labels[status] or status), 240),
+            description = text(post.body, 3000),
+            color = spec.color,
+            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+            footer = { text = text(spec.label .. " | " .. tostring(post.id), 180) },
+        }
+        local author = text(post.author_name, 120)
+        if type(post.author_handle) == "string" and post.author_handle ~= "" then
+            author = author .. " (@" .. text(post.author_handle, 80) .. ")"
+        end
+        if author ~= "" then embed.author = { name = author } end
+        local fields = {}
+        -- Count bytes conservatively so all text fits Discord's 6000-character
+        -- aggregate embed limit, including non-BMP characters and media links.
+        local remaining = 5900 - #embed.title - #embed.description - #embed.footer.text - #author
+        local function field(name, value)
+            if value ~= nil and tostring(value) ~= "" then
+                local label = text(labels[name] or name, 80)
+                local content = text(value, math.max(0, math.min(250, remaining - #label)))
+                if content == "" then return end
+                fields[#fields + 1] = { name = label, value = content, inline = true }
+                remaining = remaining - #label - #content
+            end
+        end
+        field("title", post.title)
+        field("category", post.category)
+        field("district", post.district)
+        field("location", post.location)
+        field("price", post.price)
+        for index, media in ipairs(post.media or {}) do
+            if index > 4 then break end
+            local media_url = type(media.url) == "string" and media.url
+            if media_url and #media_url <= 900 and media_url:match("^https://[^/@%s]+/%S+$")
+                and not media_url:find("/webhooks/", 1, true) then
+                if media.media_type == "photo" and not embed.image then
+                    embed.image = { url = media_url }
+                else
+                    local label = text(labels.media or "Media", 80) .. " " .. index
+                    if #label + #media_url <= remaining then
+                        fields[#fields + 1] = { name = label, value = media_url }
+                        remaining = remaining - #label - #media_url
+                    end
+                end
+            end
+        end
+        if #fields > 0 then embed.fields = fields end
+        local payload = {
+            username = text(WebHooks.Username or "Sky Phone", 80),
+            avatar_url = type(WebHooks.AvatarUrl) == "string" and WebHooks.AvatarUrl:match("^https://%S+$") and WebHooks.AvatarUrl or nil,
+            allowed_mentions = { parse = json.decode("[]") },
+            embeds = { embed },
+        }
+        return queue_pending("Public." .. spec.category, url, {{
+            body = json.encode(payload), category = "Public." .. spec.category, attempts = 0,
+        }})
+    end)
+    if not ok then diagnostic("public", "Could not prepare a public announcement.") end
+    return ok and result or false
 end
 
 function SkyPhoneLog.Record(category, action, status, source, details, actor)
@@ -286,7 +379,9 @@ function SkyPhoneLog.WrapCallback(name, callback)
     local spec = action and SkyPhoneLog.Actions and SkyPhoneLog.Actions[action]
     if not spec then return callback end
     return function(source, data, ...)
-        if not SkyPhoneLog.IsEnabled(spec.category, action) then return callback(source, data, ...) end
+        local audit_enabled = SkyPhoneLog.IsEnabled(spec.category, action)
+        local public_enabled = SkyPhoneLog.IsPublicEnabled(action)
+        if not audit_enabled and not public_enabled then return callback(source, data, ...) end
         local thread = coroutine.running()
         local previous = contexts[thread]
         local context = { snapshots = {} }
@@ -297,7 +392,7 @@ function SkyPhoneLog.WrapCallback(name, callback)
             if type(data) == "table" then request[field] = data[field] end
         end
         local sanitized, saved_request = pcall(safe_value, request)
-        if spec.before and actor_ok and actor.imei then
+        if audit_enabled and spec.before and actor_ok and actor.imei then
             local ok, content = pcall(spec.before, source, data or {}, actor)
             if ok then SkyPhoneLog.Capture("before", content)
             else diagnostic("before:" .. action, "Could not read previous content for " .. action .. ".") end
@@ -306,7 +401,7 @@ function SkyPhoneLog.WrapCallback(name, callback)
         contexts[thread] = previous
         if not result[1] then error(result[2], 0) end
         local response = result[2]
-        if type(response) == "table" and response.success == true then
+        if audit_enabled and type(response) == "table" and response.success == true then
             local ok = pcall(function()
                 local status = type(spec.status) == "function" and spec.status(data or {}, response) or spec.status
                 local details = {
@@ -328,6 +423,10 @@ function SkyPhoneLog.WrapCallback(name, callback)
                 SkyPhoneLog.Record(spec.category, action, status or "completed", source, details, actor_ok and actor or nil)
             end)
             if not ok then diagnostic("callback", "Could not prepare callback audit content for " .. action .. ".") end
+        end
+        if public_enabled and type(response) == "table" and response.success == true then
+            local ok = pcall(SkyPhoneLog.AnnouncePublic, action, data or {}, response)
+            if not ok then diagnostic("public:" .. action, "Could not read public content for " .. action .. ".") end
         end
         return table.unpack(result, 2, result.n)
     end

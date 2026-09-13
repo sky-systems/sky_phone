@@ -22,6 +22,7 @@ const data: AdminWebhooks = {
     {
       path: 'Calls',
       category: 'Calls',
+      audience: 'admin',
       configured: true,
       mode: 'custom',
       effectiveMode: 'custom',
@@ -80,6 +81,34 @@ describe('Phonepanel webhook drafts', () => {
     await admin.loadWebhooks()
     expect(admin.webhookDrafts).toEqual({})
     expect(admin.webhooks.revision).toBe(5)
+  })
+
+  it('saves public and admin routes independently and clears replacement URLs after saving', async () => {
+    const admin = useAdminStore()
+    admin.webhooks = data
+    admin.webhookDrafts.Feather = { path: 'Feather', mode: 'disabled' }
+    admin.webhookDrafts['Public.Feather'] = {
+      path: 'Public.Feather',
+      mode: 'custom',
+      url: 'public-test-replacement',
+    }
+    mockNuiCall.mockResolvedValueOnce({
+      success: true,
+      data: { ...data, revision: 5 },
+    })
+    expect((await admin.saveWebhooks()).success).toBe(true)
+    expect(mockNuiCall).toHaveBeenLastCalledWith('admin:save-webhooks', {
+      revision: 4,
+      changes: [
+        { path: 'Feather', mode: 'disabled' },
+        {
+          path: 'Public.Feather',
+          mode: 'custom',
+          url: 'public-test-replacement',
+        },
+      ],
+    })
+    expect(admin.webhookDrafts).toEqual({})
   })
 
   it('keeps empty replacement input explicit without inventing masked credentials', async () => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { useAdminStore } from '@/stores/admin'
 import { usePhoneStore } from '@/stores/phone'
@@ -17,7 +17,24 @@ const phone = usePhoneStore()
 const query = ref('')
 const category = ref('all')
 const scope = ref('categories')
+const audience = ref('admin')
+watch(audience, () => {
+  category.value = 'all'
+})
 const t = (key: string) => phone.t(`AdminPanel.webhooks.${key}`)
+const categoryLabel = (value: string) =>
+  value === 'Default'
+    ? t('default')
+    : value === 'Pages'
+      ? 'Local Pages'
+      : value === 'Marketplace'
+        ? 'CityMarkt'
+        : value
+const audienceEndpoints = computed(() =>
+  (admin.webhooks?.endpoints ?? []).filter(
+    (row) => row.audience === audience.value,
+  ),
+)
 const modes = computed(() =>
   (['file', 'inherit', 'disabled', 'custom'] as const).map((value) => ({
     value,
@@ -26,20 +43,20 @@ const modes = computed(() =>
 )
 const categoryOptions = computed(() => [
   { value: 'all', label: t('allCategories') },
-  ...[...new Set(admin.webhooks?.endpoints.map((row) => row.category) ?? [])]
+  ...[...new Set(audienceEndpoints.value.map((row) => row.category))]
     .filter((value) => value !== 'Default')
     .sort()
-    .map((value) => ({ value, label: value })),
+    .map((value) => ({ value, label: categoryLabel(value) })),
 ])
 const endpoints = computed(() =>
-  (admin.webhooks?.endpoints ?? []).filter((row) => {
-    const isAction = row.path.startsWith('Actions.')
+  audienceEndpoints.value.filter((row) => {
+    const isAction = /^(Public\.)?Actions\./.test(row.path)
     return (
       (scope.value === 'actions' ? isAction : !isAction) &&
       (category.value === 'all' ||
         row.category === category.value ||
-        row.path === 'Default') &&
-      row.path
+        row.category === 'Default') &&
+      (row.path + ' ' + categoryLabel(row.category))
         .toLocaleLowerCase()
         .includes(query.value.trim().toLocaleLowerCase())
     )
@@ -162,6 +179,17 @@ function updateEndpoint(
       <div class="admin-webhooks__filters">
         <SkyField
           outline
+          v-model="audience"
+          component="div"
+          type="select"
+          :label="t('audience')"
+          :options="[
+            { value: 'admin', label: t('admin') },
+            { value: 'public', label: t('public') },
+          ]"
+        />
+        <SkyField
+          outline
           v-model="scope"
           component="div"
           type="select"
@@ -187,7 +215,10 @@ function updateEndpoint(
           :label="t('search')"
         />
       </div>
-      <p class="admin-webhooks__hint">{{ t('routingHelp') }}</p>
+      <p class="admin-webhooks__hint">
+        {{ t(audience === 'public' ? 'publicHelp' : 'adminHelp') }}
+        {{ t('routingHelp') }}
+      </p>
       <p v-if="!endpoints.length">{{ t('empty') }}</p>
       <fieldset
         v-for="row in endpoints"
@@ -197,9 +228,9 @@ function updateEndpoint(
       >
         <legend>
           {{
-            row.path === 'Default'
-              ? t('default')
-              : row.path.replace(/^Actions\./, '')
+            /^(Public\.)?Actions\./.test(row.path)
+              ? row.path.replace(/^(Public\.)?Actions\./, '')
+              : categoryLabel(row.category)
           }}
         </legend>
         <p>
@@ -295,7 +326,7 @@ function updateEndpoint(
 }
 .admin-webhooks__filters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sky-space-3, 12px);
 }
 .admin-webhooks :deep(.sky-field__input),

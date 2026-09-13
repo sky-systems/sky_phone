@@ -8,6 +8,11 @@ for key, value in pairs(WebHooks) do
 end
 defaults.Actions = {}
 for key, value in pairs(WebHooks.Actions or {}) do defaults.Actions[key] = value end
+defaults.Public = { Actions = {} }
+for key, value in pairs(WebHooks.Public or {}) do
+    if key ~= "Actions" then defaults.Public[key] = value end
+end
+for key, value in pairs((WebHooks.Public or {}).Actions or {}) do defaults.Public.Actions[key] = value end
 
 local categories = {}
 for category in ([[Calls Contacts Messages Picstagram Feather FlipTok SkyPic DarkChat
@@ -39,13 +44,21 @@ local function endpoint_catalog()
         local path = "Actions." .. action
         result[path] = result[path] or "CustomApps"
     end
+    result["Public.Default"] = "Default"
+    for _, category in ipairs(SkyPhoneLog.PublicCategories or {}) do result["Public." .. category] = category end
+    for action, spec in pairs(SkyPhoneLog.PublicActions or {}) do
+        result["Public.Actions." .. action] = spec.category
+    end
     return result
 end
 
 local function file_value(path)
+    local source = defaults
+    local public_path = path:match("^Public%.(.+)$")
+    if public_path then source, path = defaults.Public, public_path end
     local action = path:match("^Actions%.(.+)$")
-    if action then return defaults.Actions[action] end
-    return defaults[path]
+    if action then return source.Actions[action] end
+    return source[path]
 end
 
 local function effective_value(path)
@@ -54,7 +67,7 @@ local function effective_value(path)
 end
 
 local function apply()
-    local effective = { Actions = {} }
+    local effective = { Actions = {}, Public = { Actions = {} } }
     for key, fallback in pairs(general) do
         local value = effective_value(key)
         if value == nil then value = fallback end
@@ -62,8 +75,11 @@ local function apply()
     end
     for path in pairs(endpoint_catalog()) do
         local value = effective_value(path)
+        local target = effective
+        local public_path = path:match("^Public%.(.+)$")
+        if public_path then target, path = effective.Public, public_path end
         local action = path:match("^Actions%.(.+)$")
-        if action then effective.Actions[action] = value else effective[path] = value end
+        if action then target.Actions[action] = value else target[path] = value end
     end
     WebHooks = effective
 end
@@ -85,6 +101,7 @@ function settings.GetAdminData()
         local value = effective_value(path)
         endpoints[#endpoints + 1] = {
             path = path, category = category,
+            audience = path:match("^Public%.") and "public" or "admin",
             mode = overrides[path] == nil and "file" or endpoint_mode(value),
             effectiveMode = endpoint_mode(value),
             configured = SkyPhoneLog.IsValidWebhook(value) == true,

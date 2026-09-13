@@ -89,6 +89,7 @@ server_scripts {
     'source/server/logging.lua',
     'source/server/logging_actions.lua',
     'source/server/logging_content.lua',
+    'source/server/logging_public.lua',
     'source/bridge/server/callbacks.lua',
     'source/server/phone_configurator.lua',
     'source/bridge/server/framework.lua',

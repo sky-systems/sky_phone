@@ -1,4 +1,4 @@
-# Discord audit logging
+# Discord admin logs and public announcements
 
 Configure Discord logging in `config/WebHooks.lua`, then restart `sky_phone`,
 or open **Phonepanel > Webhooks** to edit the settings in game.
@@ -19,20 +19,67 @@ WebHooks = {
     Feather = "",
     FlipTok = "",
     SkyPic = "",
+    Public = {
+        Default = "", -- Independent fallback for player-facing announcements
+        Feather = "", -- Paste the webhook for the public Feather channel
+        Pages = "", -- Local Pages
+        Marketplace = "", -- CityMarkt
+        Picstagram = "",
+        FlipTok = "",
+        SkyPic = "",
+        WeazelNews = "",
+        Actions = {},
+    },
     -- Keep the other categories and delivery settings from the supplied file.
 }
 ```
 
-These are administrative audit channels. Entries can contain private messages,
+The top-level app URLs are administrative audit channels. Entries can contain private messages,
 mail, snap captions, media links, account IDs, phone numbers and device IMEIs.
 The channels must be accessible only to the staff who should see that content.
+Player-facing URLs belong exclusively under `WebHooks.Public`. Existing top-level
+URLs and saved Phonepanel overrides keep their administrative meaning.
+
+## Public social announcements
+
+Use two Discord webhooks per social app: the top-level category for admin logs and
+the same category under `Public` for player information. For example, put the
+staff URL in `WebHooks.Feather` and the player URL in `WebHooks.Public.Feather`.
+An admin route may be disabled while its public route remains enabled.
+
+Public announcements contain readable, localized app/status titles, public author
+names, text, images/media links and relevant listing details. They are built from
+persisted public content after a successful server mutation. Request payloads,
+audit snapshots, account IDs, IMEIs, phone numbers and direct messages are never
+copied into public announcements. Mentions are disabled for both audiences.
+
+| App                       | Public announcements                                                           |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| Feather                   | New posts, replies and quotes                                                  |
+| Local Pages (`Pages`)     | New posts and shared CityMarkt listings                                        |
+| CityMarkt (`Marketplace`) | New/edited listings and available/reserved/sold status                         |
+| Picstagram                | Published/edited public posts, restored posts and new public stories           |
+| FlipTok                   | Published videos visible to everyone                                           |
+| SkyPic                    | Stories visible to everyone and public Spotlight posts, once the app is merged |
+| Weazel News               | Published articles and edits                                                   |
+
+Private profiles, restricted stories/videos, drafts, removed content and expired
+stories are excluded. Deletions, archives, moderation, reactions and private
+activity continue to use admin logs. Public edits create a new Discord announcement;
+existing Discord messages are not synchronized or removed. Public text/media
+previews are bounded to one embed; the admin log retains its fuller audit record.
+
+Public routes follow `Public.Actions[action]` → `Public[category]` → `Public.Default`.
+They **never** inherit admin destinations. Empty public defaults disable public
+delivery until configured; `false` disables a specific route. Only the supported
+publication actions are offered as public destinations in Phonepanel.
 
 ## Routing and appearance
 
 - Every category has its own URL in `config/WebHooks.lua`.
 - An empty category (`""`) uses `Default`. With no default URL, it produces no logs.
 - `false` explicitly disables a category, including its default fallback.
-- `Enabled = false` disables all logging.
+- `Enabled = false` disables admin logging and public announcements.
 - `Username` and `AvatarUrl` apply to every webhook message. Leave `AvatarUrl`
   empty to preserve the avatar configured on the Discord webhook.
 - `Actions` can override an individual action. Use its callback name without
@@ -48,6 +95,8 @@ The **Webhooks** tab uses the existing `phonepanel` permission and requires
 on the server. It works independently of `Config.PhoneConfigurator.Enabled`.
 
 - Edit the logging toggle, webhook name, avatar URL, queue limit and retry limit.
+- Select **Admin logs** or **Public player info** before editing destinations.
+  Each audience has its own app channels, individual actions and default channel.
 - Choose app channels or filter individual actions, including the prepared SkyPic
   actions and server-owned call/media events.
 - **Own webhook** lets you enter a replacement URL. Previously saved URLs are
@@ -172,6 +221,9 @@ callbacks, long UTF-8 content, rate limits/retries, queue overflow, the real
 callback dispatcher and server-only manifest loading. The call tests cover
 server API and timer termination, participant data and duplicate suppression.
 They do not contact Discord.
+Public tests exercise every announcement route, private/draft/expired exclusions,
+independent admin/public payloads and fallbacks, actual Feather publication through
+the deferred callback dispatcher, and SQL projections against the resource schema.
 
 The webhook editor tests cover permission/rate-limit checks, masked responses,
 secret-free audit data, validation, atomic rejection, concurrent revisions,

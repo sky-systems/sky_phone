@@ -53,7 +53,21 @@ WebHooks = {
     -- Example: ["skypic:send-snap"] = "", ["calls:ended"] = false.
     Actions = {},
 
-    -- Bounded in-memory delivery queue; no database migration is required.
+    -- Player-facing announcements. These NEVER inherit administrative URLs above.
+    -- Only public posts/stories/listings are announced; private activity is admin-only.
+    Public = {
+        Default = "",
+        Feather = "",
+        Pages = "", -- Local Pages
+        Marketplace = "", -- CityMarkt
+        Picstagram = "",
+        FlipTok = "",
+        SkyPic = "",
+        WeazelNews = "",
+        Actions = {}, -- Optional per-action overrides, e.g. ["feather:create-post"] = ""
+    },
+
+    -- Bounded in-memory delivery queue (shared by admin/public destinations).
     QueueLimit = 1000, -- Discord messages, including continuation parts
     MaxAttempts = 5, -- retry rate limits, network errors and Discord 5xx responses
 }

@@ -57,6 +57,7 @@ local function reset()
     dofile("sky_phone/source/server/logging.lua")
     dofile("sky_phone/source/server/logging_actions.lua")
     dofile("sky_phone/source/server/logging_content.lua")
+    dofile("sky_phone/source/server/logging_public.lua")
 end
 
 local function advance(until_time)
@@ -294,6 +295,196 @@ advance()
 assert(#client_results == 1 and client_results[1][4].success == true)
 assert(not encode(client_results):find("test-default", 1, true), "Webhook config must never reach callback responses")
 assert(#requests == 1, "The real callback dispatcher must invoke the audit wrapper")
+
+-- Public announcements and administrative audit records have independent
+-- routes and payloads. Exercise every registered public action after success.
+local public_url = "https://discord.com/api/webhooks/4/test-public"
+local public_row = {
+    id = "550e8400-e29b-41d4-a716-446655440002", body = "Persisted public content",
+    author_name = "Public Author", author_handle = "author", title = "Public title",
+    category = "news", district = "downtown", location = "City", price = 125, price_type = "fixed",
+    status = "published", private = 0, profile_status = "active", visibility = "public", privacy = "everyone",
+    expires_at = os.time() + 3600, media_url = "https://example.invalid/photo.webp", media_type = "photo",
+    account_id = "PRIVATE_ACCOUNT", phone_number = "PRIVATE_PHONE", imei = "PRIVATE_DEVICE",
+    author_identifier = "PRIVATE_IDENTIFIER", password = "PRIVATE_PASSWORD",
+}
+local function public_storage(query, params)
+    assert(type(params) == "table", "Queries must use bound parameters")
+    if query:find("SELECT r.", 1, true) then
+        assert(params[1] == public_row.id)
+        return { public_row }
+    elseif query:find("SELECT m.", 1, true) then
+        return {{ url = public_row.media_url, media_type = "photo" }}
+    end
+    return {}
+end
+reset()
+local public_actions = SkyPhoneLog.PublicActions
+local function read_file(path)
+    local file = io.open(path, "rb")
+    if not file then return "" end
+    local content = file:read("*a"); file:close()
+    return content
+end
+local schema = read_file("sky_phone/sql/install.sql")
+local migrations = read_file("sky_phone/source/server/db_migrate.lua")
+local feature_path = os.getenv("SKY_PHONE_SKYPIC_SOURCE")
+if feature_path then
+    schema = schema .. read_file(feature_path:gsub("source/server/skypic.lua$", "sql/install.sql"))
+    migrations = migrations .. read_file(feature_path:gsub("source/server/skypic.lua$", "source/server/db_migrate.lua"))
+end
+-- Validate projected SQL against actual owned schema, including attachment
+-- ordering columns (Weazel uses position; other apps use sort_order).
+for _, spec in pairs(public_actions) do
+    for _, sql in ipairs({ spec.entity.query, spec.entity.media }) do
+        local aliases = {}
+        for table_name, alias in sql:gmatch("[FJ][RO][OI][MN]%s+`([^`]+)`%s+(%w+)") do aliases[alias] = table_name end
+        for alias, column in sql:gmatch("(%w+)%.`([^`]+)`") do
+            local table_name = assert(aliases[alias], "Unknown SQL alias: " .. alias)
+            local definition = schema:match("CREATE TABLE IF NOT EXISTS `" .. table_name .. "`%s*%((.-)%) ENGINE")
+                or migrations:match('name = "' .. table_name .. '",%s*columns = {(.-)primaryKey')
+            if definition then
+                assert(definition:find("`" .. column .. "`", 1, true) or definition:find('name = "' .. column .. '"', 1, true),
+                    "Invalid public SQL column: " .. table_name .. "." .. column)
+            else
+                assert(table_name:find("sky_phone_skypic_", 1, true) and not feature_path, "Missing schema: " .. table_name)
+            end
+        end
+    end
+end
+for action, spec in pairs(public_actions) do
+    reset()
+    WebHooks.Default, WebHooks.Public.Default = fallback_url, public_url
+    Bridge.Database.Query = public_storage
+    public_row.status = (spec.category == "Marketplace" or spec.category == "SkyPic" or spec.status == "story")
+        and "active" or "published"
+    local result = { success = true, data = { id = public_row.id, article = { id = public_row.id }, private = "PRIVATE_RESULT" } }
+    assert(SkyPhoneLog.WrapCallback("sky_phone:" .. action, function() return result end)(1, {
+        id = public_row.id, body = "UNTRUSTED_REQUEST", caption = "UNTRUSTED_REQUEST",
+    }) == result, "Logging must preserve the callback result")
+    advance()
+    assert(#requests == 2, "Missing admin/public delivery for " .. action)
+    local seen_admin, seen_public = false, false
+    for _, request in ipairs(requests) do
+        if request.url == public_url .. "?wait=true" then
+            seen_public = true
+            assert(request.payload.embeds[1].description == public_row.body)
+            assert(request.payload.embeds[1].image.url == public_row.media_url)
+            assert(not request.body:find("PRIVATE_", 1, true) and not request.body:find("UNTRUSTED_REQUEST", 1, true))
+            assert(not request.body:find("test-device", 1, true) and not request.body:find("accountId", 1, true))
+            assert(next(request.payload.allowed_mentions.parse) == nil)
+        else
+            seen_admin = request.url == fallback_url .. "?wait=true"
+            assert(record(request).actor.accountId == 101)
+        end
+    end
+    assert(seen_admin and seen_public, "Audiences must use distinct configured destinations")
+end
+
+for _, case in ipairs({
+    { "picstagram:publish-post", "private", 1 },
+    { "picstagram:publish-post", "profile_status", "suspended" },
+    { "picstagram:publish-post", "status", "draft" },
+    { "picstagram:publish-story", "private", 1 },
+    { "picstagram:publish-story", "expires_at", os.time() - 1 },
+    { "fliptok:publish", "visibility", "followers" },
+    { "fliptok:publish", "visibility", "private" },
+    { "fliptok:publish", "status", "draft" },
+    { "skypic:publish-story", "privacy", "friends" },
+    { "skypic:publish-spotlight", "profile_status", "removed" },
+    { "skypic:publish-spotlight", "expires_at", os.time() - 1 },
+    { "marketplace:update", "status", "removed" },
+    { "marketplace:set-status", "status", "expired" },
+    { "weazel-news:create", "status", "draft" },
+    { "weazel-news:update", "deleted_at", "2026-01-01" },
+}) do
+    reset()
+    WebHooks.Default, WebHooks.Public.Default = fallback_url, public_url
+    Bridge.Database.Query = public_storage
+    public_row.status = (case[1]:find("story", 1, true) or case[1]:find("spotlight", 1, true)
+        or case[1]:find("marketplace", 1, true)) and "active" or "published"
+    local original = public_row[case[2]]
+    public_row[case[2]] = case[3]
+    SkyPhoneLog.WrapCallback("sky_phone:" .. case[1], function()
+        return { success = true, data = { id = public_row.id } }
+    end)(1, { id = public_row.id })
+    advance()
+    assert(#requests == 1 and requests[1].url == fallback_url .. "?wait=true",
+        "Private/unpublished content reached public Discord: " .. case[1] .. " / " .. case[2])
+    public_row[case[2]] = original
+end
+
+reset()
+WebHooks.Default = fallback_url
+assert(not SkyPhoneLog.IsPublicEnabled("feather:create-post"), "Public must never inherit an admin default")
+WebHooks.Public = nil
+assert(not SkyPhoneLog.IsPublicEnabled("feather:create-post"), "Legacy files must keep public announcements disabled")
+WebHooks.Public = { Default = public_url, Actions = { ["feather:create-post"] = false } }
+assert(not SkyPhoneLog.IsPublicEnabled("feather:create-post"))
+assert(not SkyPhoneLog.IsPublicEnabled("messages:send") and not SkyPhoneLog.IsPublicEnabled("skypic:send-snap"))
+WebHooks.Public.Actions["feather:create-post"] = ""
+assert(SkyPhoneLog.IsPublicEnabled("feather:create-post"))
+WebHooks.Enabled = false
+assert(not SkyPhoneLog.IsPublicEnabled("feather:create-post"))
+
+-- Actual Feather mutation through the real dispatcher, including delayed
+-- registration from dev's startup handling, with public logging alone enabled.
+reset()
+WebHooks.Public.Feather = public_url
+Config = { Feather = { PostsPerMinute = 5, TextMaxLength = 500, MaxImages = 4 } }
+local allowed, transaction_ok, persisted = true, true, nil
+SkyPhone.AllowOperation = function() return true end
+SkyPhone.RequireAccount = function()
+    if allowed then return { id = 101 } end
+    return nil, { success = false, error = "not_authenticated" }
+end
+Bridge.Database.AfterMigration = function(_, callback) callback() end
+Bridge.Database.Transaction = function(statements)
+    if transaction_ok then persisted = statements[1].params[3] end
+    return transaction_ok
+end
+Bridge.Database.Query = function(query, params)
+    if query:find("SELECT UUID()", 1, true) then return {{ id = public_row.id }} end
+    if query:find("SELECT * FROM `sky_phone_feather_profiles`", 1, true) then return {{ id = 1 }} end
+    if query:find("SELECT r.", 1, true) then
+        assert(persisted, "Public lookup must happen after successful persistence")
+        return {{ id = public_row.id, body = persisted, author_handle = "author", status = "published" }}
+    end
+    return {}
+end
+client_results = {}
+dofile("sky_phone/source/bridge/server/callbacks.lua")
+Bridge.Callbacks.RegisterDeferred("sky_phone:feather:create-post")
+source = 1
+event.callback("sky_phone:feather:create-post", 1, { body = "  Actual Feather text  " })
+assert(client_results[1][4].error == "server_initializing")
+dofile("sky_phone/source/server/feather.lua")
+event.callback("sky_phone:feather:create-post", 2, { body = "  Actual Feather text  " })
+advance()
+assert(client_results[2][4].success and #requests == 1)
+assert(requests[1].payload.embeds[1].description == "Actual Feather text")
+allowed = false
+event.callback("sky_phone:feather:create-post", 3, { body = "Rejected text" })
+allowed, transaction_ok = true, false
+event.callback("sky_phone:feather:create-post", 4, { body = "Uncommitted text" })
+advance()
+assert(#requests == 1, "Rejected/failed real mutations must not produce public announcements")
+assert(client_results[3][4].error == "not_authenticated" and client_results[4][4].error == "request_failed")
+
+reset()
+WebHooks.Public.Default = public_url
+local long_media = "https://example.invalid/" .. string.rep("x", 850)
+assert(SkyPhoneLog.Publish("marketplace:create", {
+    id = string.rep("i", 200), body = string.rep("😀", 2000), author_name = string.rep("a", 250),
+    author_handle = string.rep("h", 250), title = string.rep("t", 400), category = string.rep("c", 400),
+    district = string.rep("d", 400), location = string.rep("l", 400), price = string.rep("p", 400),
+    media = {{ url = long_media }, { url = long_media }, { url = long_media }, { url = long_media }},
+}))
+advance()
+local public_embed = requests[1].payload.embeds[1]
+local total = #public_embed.title + #public_embed.description + #public_embed.footer.text + #public_embed.author.name
+for _, field in ipairs(public_embed.fields) do total = total + #field.name + #field.value end
+assert(total <= 6000 and utf8.len(requests[1].body), "Public embeds must fit Discord limits with valid UTF-8")
 
 -- Exercise prepared SkyPic actions without requiring the feature's tables at
 -- startup. The real feature source can also be checked with the optional suite.
