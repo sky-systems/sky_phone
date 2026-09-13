@@ -4,6 +4,9 @@
 
 <h1 align="center">Sky Phone: Free FiveM Phone Script</h1>
 
+For server-only Discord webhooks, Phonepanel editing, app coverage and the
+optional avatar URL, see [Discord logging](LOGGING.md).
+
 <p align="center">
   <strong>The complete, free FiveM phone for ESX, QBCore, and Qbox.</strong><br>
   A premium-grade smartphone experience with 41 built-in apps, LB Phone migration, and first-class custom app support.

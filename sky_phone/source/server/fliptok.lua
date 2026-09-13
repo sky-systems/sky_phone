@@ -982,6 +982,10 @@ local function run_verify_command(source, arguments)
         profileId = tonumber(rows[1].id),
         verified = verified,
     })
+    if SkyPhoneLog then
+        SkyPhoneLog.Record("FlipTok", "fliptok:verification", verified and "verified" or "unverified", source,
+            { profileId = tonumber(rows[1].id), handle = handle })
+    end
     local message = command_message(command_locale.updated, {
         handle = handle,
         state = verified and command_locale.verified or command_locale.unverified,

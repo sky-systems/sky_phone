@@ -78,6 +78,13 @@ local operation_attempts = {}
 local phone_open_in_progress = {}
 local character_device_cache = {}
 
+-- Read-only server audit identity. Never return session tokens or credentials.
+function SkyPhone.GetLogIdentity(player_source)
+    local session = sessions[player_source]
+    if not session then return nil end
+    return { imei = session.imei, accountId = session.account_id, phoneNumber = equipped_phone_numbers[player_source] }
+end
+
 local function trim(value)
     if type(value) ~= "string" then
         return nil

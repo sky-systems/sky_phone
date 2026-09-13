@@ -228,6 +228,14 @@ CREATE TABLE IF NOT EXISTS `sky_phone_configurator` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_webhooks` (
+    `id` TINYINT UNSIGNED NOT NULL,
+    `payload` LONGTEXT NOT NULL,
+    `revision` INT UNSIGNED NOT NULL DEFAULT 0,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_notes` (
     `id` VARCHAR(64) NOT NULL,
     `account_id` BIGINT UNSIGNED NULL,

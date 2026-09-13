@@ -24,13 +24,15 @@ local callback_count = 0
 for _ in pairs(callbacks) do
     callback_count = callback_count + 1
 end
-assert(callback_count == 292, ("expected 292 NUI server callbacks, got %d"):format(callback_count))
+assert(callback_count == 311, ("expected 311 NUI server callbacks, got %d"):format(callback_count))
 for _, required in ipairs({
     "companies:dial-service-line",
     "mail:mailboxes",
     "calls:set-speaker",
     "media:import:commit",
     "flare:delete-profile",
+    "admin:webhooks",
+    "admin:save-webhooks",
 }) do
     assert(type(callbacks[required]) == "function", ("missing callback %s"):format(required))
 end

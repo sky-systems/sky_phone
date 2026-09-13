@@ -4,6 +4,13 @@ local client_events = {}
 local transactions = {}
 local stopped_calls = {}
 local speaker_enabled = true
+local audit_records = {}
+
+SkyPhoneLog = { Record = function(category, action, status, source, details)
+    audit_records[#audit_records + 1] = {
+        category = category, action = action, status = status, source = source, details = details,
+    }
+end }
 
 Bridge = {
     Callbacks = {
@@ -215,12 +222,18 @@ local ended_id_call, ended_id_error = SkyPhoneCalls.GetById(call.id)
 assert(ended_id_call == nil and ended_id_error == "call_not_found", "ended calls must not remain addressable")
 assert(#stopped_calls == 1 and stopped_calls[1].callId == call.id, "termination must stop the voice backend")
 assert(#transactions == 1, "termination must persist the completed call lifecycle")
+assert(#audit_records == 1 and audit_records[1].action == "calls:ended"
+    and audit_records[1].status == "completed", "Server API termination must log the final call status")
+assert(audit_records[1].details.caller.number == "5550101"
+    and audit_records[1].details.callee.number == "5550102", "Call logs need both participants")
+assert(audit_records[1].details.durationSeconds >= 0, "Call logs need the connected duration")
 assert(transactions[1][1].params[1] == "completed", "answered calls must remain completed")
 assert(#client_events == 2, "both participants must receive the terminal state")
 assert(client_events[1].payload.channel == nil and client_events[2].payload.channel == nil, "terminal states must drop the voice channel")
 
 ended, end_error = SkyPhoneCalls.EndForSource(10)
 assert(not ended and end_error == "call_not_found", "finished calls must not be ended twice")
+assert(#audit_records == 1, "A finished call must not generate duplicate end logs")
 
 local callback_call = {
     id = "550e8400-e29b-41d4-a716-446655440001",
@@ -238,6 +251,8 @@ local hangup_response = registered_callbacks["sky_phone:calls:hangup"](30, { id 
 assert(hangup_response.success, "the existing NUI hangup callback must retain its behavior")
 assert(transactions[2][1].params[1] == "cancelled", "unanswered caller hangups must remain cancelled")
 assert(transactions[2][3].params[1] == "missed", "unanswered callees must retain their missed status")
+assert(audit_records[2].status == "cancelled" and audit_records[2].details.extra.calleeStatus == "missed",
+    "Unanswered logs must distinguish caller cancellation and callee missed status")
 
 local company_call = {
     id = "550e8400-e29b-41d4-a716-446655440002",
@@ -284,5 +299,16 @@ local spoofed_terminate = registered_callbacks["sky_phone:calls:terminate"](
 )
 assert(not spoofed_terminate.success and spoofed_terminate.error == "call_not_found",
     "provider termination must revalidate the participant and call ID")
+assert(#audit_records == 4, "Rejected termination must not produce an audit entry")
+
+local finish_call = find_upvalue(SkyPhoneCalls.TerminateForSource, "finish_call")
+local timeout_call = { id = "550e8400-e29b-41d4-a716-446655440004", caller_source = 90,
+    callee_source = 91, caller_number = "5550190", callee_number = "5550191", started_at = os.time() }
+seed_call(timeout_call)
+finish_call(timeout_call, "no_answer")
+assert(audit_records[5].status == "no_answer" and audit_records[5].details.extra.calleeStatus == "missed",
+    "Timer-driven call endings must be logged without a client callback")
+finish_call(timeout_call, "no_answer")
+assert(#audit_records == 5, "Repeated timer completion must not duplicate logs")
 
 print("Server call seam tests passed")

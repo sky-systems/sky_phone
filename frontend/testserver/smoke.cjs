@@ -4,6 +4,7 @@ const { once } = require('node:events')
 const { app } = require('./index.cjs')
 
 const browserDataRequests = [
+  ['admin:webhooks', {}],
   ['development:bootstrap', {}],
   ['account:devices', {}],
   ['banking:overview', {}],
@@ -1140,6 +1141,41 @@ async function main() {
       )
     }
     verifyBrowserTestData(dataByEndpoint)
+    const webhookSettings = dataByEndpoint.get('admin:webhooks')
+    assert(
+      webhookSettings.endpoints.some(
+        (row) => row.path === 'Actions.skypic:send-snap',
+      ),
+    )
+    const webhookSaved = await expectSuccess(
+      baseUrl,
+      'admin:save-webhooks',
+      {
+        revision: webhookSettings.revision,
+        changes: [
+          {
+            path: 'Calls',
+            mode: 'custom',
+            url: 'https://discord.com/api/webhooks/123/SMOKE_TEST_ONLY',
+          },
+          { path: 'AvatarUrl', value: 'https://example.invalid/avatar.png' },
+        ],
+      },
+      true,
+    )
+    assert.equal(
+      webhookSaved.settings.AvatarUrl,
+      'https://example.invalid/avatar.png',
+    )
+    assert(
+      webhookSaved.endpoints.find((row) => row.path === 'Calls').configured,
+    )
+    assert(!JSON.stringify(webhookSaved).includes('SMOKE_TEST_ONLY'))
+    const webhookConflict = await post(baseUrl, 'admin:save-webhooks', {
+      revision: webhookSettings.revision,
+      changes: [{ path: 'Calls', mode: 'disabled' }],
+    })
+    assert.equal(webhookConflict.error, 'revision_conflict')
 
     await verifyStatefulActions(baseUrl)
 

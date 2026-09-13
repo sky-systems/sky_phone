@@ -1322,6 +1322,10 @@ exports("CreateCrewLinkPing", function(group_id, data)
     end
     local ping, error_code = create_ping(group_id, nil, invoking_resource, data)
     if ping then
+        if SkyPhoneLog then
+            SkyPhoneLog.Record("CrewLink", "crewlink:external-ping-created", "created", nil,
+                { groupId = group_id, ping = ping, resource = invoking_resource })
+        end
         notify_group(group_id, "ping", invoking_resource, {
             groupName = groups[1].name,
             pingType = ping.type,
@@ -1346,6 +1350,10 @@ exports("RemoveCrewLinkPing", function(group_id, ping_id)
     end
     TriggerEvent("sky_phone:crewlink:pingRemoved", group_id, ping_id)
     refresh_group(group_id)
+    if SkyPhoneLog then
+        SkyPhoneLog.Record("CrewLink", "crewlink:external-ping-removed", "deleted", nil,
+            { groupId = group_id, pingId = ping_id, resource = invoking_resource })
+    end
     return true
 end)
 end)

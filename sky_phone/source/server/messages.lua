@@ -437,6 +437,16 @@ Bridge.Callbacks.Register("sky_phone:messages:delete", function(source, data)
         values[#values + 1] = number
     end
     local list = table.concat(placeholders, ", ")
+    if SkyPhoneLog then
+        SkyPhoneLog.CaptureQuery("deletedMessages", ([[
+            SELECT `id`, `sender_number`, `recipient_number`, `message_type`, `body`,
+                `media_mime`, `media_duration_ms`, `created_at`
+            FROM `sky_phone_sms_messages`
+            WHERE (`sender_sim_id` = ? AND `recipient_number` IN (%s))
+                OR (`recipient_sim_id` = ? AND `sender_number` IN (%s))
+            ORDER BY `created_at`, `id` LIMIT 101
+        ]]):format(list, list), values)
+    end
     Bridge.Database.Query(([[
         DELETE FROM `sky_phone_sms_messages`
         WHERE (`sender_sim_id` = ? AND `recipient_number` IN (%s))

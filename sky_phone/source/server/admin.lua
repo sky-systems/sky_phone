@@ -951,6 +951,34 @@ Bridge.Callbacks.Register("sky_phone:admin:save-configurator", function(source, 
     return response
 end)
 
+Bridge.Callbacks.Register("sky_phone:admin:webhooks", function(source)
+    local authorized, error_response = require_admin(source, "webhooks_read", Config.AdminPanel.ReadRequestsPerMinute)
+    if not authorized then return error_response end
+    local data = SkyPhoneWebhookSettings.GetAdminData()
+    if not data then return { success = false, error = "request_failed" } end
+    return { success = true, data = data }
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:save-webhooks", function(source, data)
+    local authorized, error_response = require_admin(source, "webhooks_save", Config.AdminPanel.ActionRequestsPerMinute)
+    if not authorized then return error_response end
+    if type(data) ~= "table" then return { success = false, error = "invalid_request" } end
+    local actor_identifier = Bridge.Framework.GetIdentifier(source)
+    if not actor_identifier then return { success = false, error = "player_unavailable" } end
+    local response, changed_paths = SkyPhoneWebhookSettings.Save(data.revision, data.changes)
+    if response.success then
+        write_audit(source, source, actor_identifier, nil, "save_webhooks", {
+            changedPaths = changed_paths,
+            changeCount = #changed_paths,
+            revision = response.data.revision,
+        })
+        SkyPhoneLog.Record("Admin", "admin:save-webhooks", "edited", source, {
+            changedPaths = changed_paths, revision = response.data.revision,
+        })
+    end
+    return response
+end)
+
 Bridge.Callbacks.Register("sky_phone:admin:tones", function(source)
     local authorized, error_response = require_admin(
         source,
