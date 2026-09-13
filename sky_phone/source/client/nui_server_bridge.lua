@@ -2,7 +2,7 @@ local callback_groups = {
     account = [[login register logout devices remove-device]],
     admin = [[
         bootstrap player save-apps reveal-password activity
-        reset-passcode change-number factory-reset configurator save-configurator
+        reset-passcode change-number factory-reset configurator save-configurator webhooks save-webhooks
         tones tone-upload-start tone-upload-chunk tone-upload-finish tone-upload-cancel delete-tone
     ]],
     banking = [[overview transfer]],

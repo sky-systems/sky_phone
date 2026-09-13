@@ -14,6 +14,8 @@ import type {
   AdminPlayerDetail,
   AdminPlayerSummary,
   AdminStats,
+  AdminWebhooks,
+  AdminWebhookChange,
 } from '@/types/admin'
 import {
   cacheCustomPhoneTonePayload,
@@ -70,8 +72,47 @@ export const useAdminStore = defineStore('admin', {
     >,
     selectedPlayer: null as AdminPlayerDetail | null,
     stats: { ...EMPTY_STATS },
+    webhooks: null as AdminWebhooks | null,
+    webhooksLoading: false,
+    webhookDrafts: {} as Record<string, AdminWebhookChange>,
   }),
   actions: {
+    async loadWebhooks(): Promise<boolean> {
+      this.webhooksLoading = true
+      try {
+        const response = await nuiCall<AdminWebhooks>('admin:webhooks')
+        if (!response.success || !response.data) {
+          this.error = response.error ?? 'request_failed'
+          return false
+        }
+        this.webhooks = response.data
+        this.webhookDrafts = {}
+        this.error = ''
+        return true
+      } finally {
+        this.webhooksLoading = false
+      }
+    },
+    async saveWebhooks(): Promise<NuiResponse<AdminWebhooks>> {
+      if (!this.webhooks) return { success: false, error: 'request_failed' }
+      this.actionKey = 'webhooks:save'
+      try {
+        const response = await nuiCall<AdminWebhooks>('admin:save-webhooks', {
+          revision: this.webhooks.revision,
+          changes: Object.values(this.webhookDrafts),
+        })
+        if (response.success && response.data) {
+          this.webhooks = response.data
+          this.webhookDrafts = {}
+          this.error = ''
+        } else {
+          this.error = response.error ?? 'request_failed'
+        }
+        return response
+      } finally {
+        this.actionKey = ''
+      }
+    },
     async load(): Promise<boolean> {
       this.loading = true
       const response = await nuiCall<AdminBootstrap>('admin:bootstrap')

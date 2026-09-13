@@ -1498,6 +1498,10 @@ local function run_verify_command(source, args)
         profileId = target.id,
         verified = state == 1,
     })
+    if SkyPhoneLog then
+        SkyPhoneLog.Record("Picstagram", "picstagram:verification", state == 1 and "verified" or "unverified", source,
+            { profileId = target.id, handle = handle })
+    end
     send_command_feedback(command_message(command_locale.updated, {
         handle = handle,
         state = state == 1 and command_locale.verified or command_locale.unverified,

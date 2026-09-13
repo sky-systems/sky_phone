@@ -81,6 +81,7 @@ local function current_scope(source)
     local account_id, device_imei = scope_for_device(device)
     return {
         account_id = account_id,
+        source = source,
         device = device,
         device_imei = device_imei,
         session = session,
@@ -172,6 +173,23 @@ local function call_snapshot(call, source)
     payload.payphone = call.payphone ~= nil
     payload.video = false
     return payload
+end
+
+local function log_call(call, action, status, actor_source, extra)
+    if not SkyPhoneLog then return end
+    SkyPhoneLog.Record("Calls", "calls:" .. action, status, actor_source or call.caller_source, {
+        id = call.id,
+        caller = { source = call.caller_source, number = call.caller_number, simId = call.caller_sim_id },
+        callee = { source = call.callee_source, number = call.callee_number, simId = call.callee_sim_id },
+        companyId = call.company_id,
+        payphone = call.payphone ~= nil,
+        startedAt = call.started_at,
+        answeredAt = call.answered_at,
+        durationSeconds = call.answered_at and math.max(0, os.time() - call.answered_at) or 0,
+        voiceProvider = call.voice_provider,
+        totalCost = call.payphone and call.payphone.total_cost or nil,
+        extra = extra,
+    })
 end
 
 local function send_state(call, source, state, channel)
@@ -369,6 +387,7 @@ local function finish_call(call, status)
         )
         send_payphone_visual(call, "stop", hangup_duration)
     end
+    log_call(call, "ended", status, nil, { calleeStatus = callee_status, endedAt = ended_at })
     calls[call.id] = nil
 end
 
@@ -734,6 +753,12 @@ local function create_terminal_call(scope, number, target_sim, status, caller_nu
     })
     add_call_entry(id, scope.device, "outgoing", status, number)
     notify_recents(scope.device, nil)
+    log_call({
+        id = id, caller_source = scope.source,
+        caller_number = caller_number or scope.device.phone_number,
+        caller_sim_id = scope.device.sim_id, callee_number = number,
+        callee_sim_id = target_sim and target_sim.id, started_at = os.time(),
+    }, "ended", status)
     return {
         id = id,
         state = status,
@@ -843,6 +868,8 @@ local function start_ringing_call(call, ring_seconds)
     call.ring_seconds = math.max(1, math.floor(tonumber(ring_seconds) or Config.Calls.RingSeconds))
     ring_callee(call)
     schedule_no_answer(call)
+
+    log_call(call, "created", "ringing")
 
     local result = {
         id = call.id,
@@ -954,6 +981,7 @@ reroute_company_call = function(call, previous_status)
     call.rerouting = nil
     ring_callee(call)
     schedule_no_answer(call)
+    log_call(call, "rerouted", "ringing", nil, { previousSource = previous_source, previousStatus = previous_status })
     return true
 end
 
@@ -1247,8 +1275,8 @@ local function valid_payphone_position(source, detected_booth)
     return vector3(location.coords.x, location.coords.y, location.coords.z), location.model
 end
 
-local function payphone_terminal(number, state)
-    return {
+local function payphone_terminal(number, state, player_source)
+    local result = {
         id = ("payphone-terminal-%s-%s"):format(os.time(), math.random(100000, 999999)),
         state = state,
         direction = "outgoing",
@@ -1257,6 +1285,9 @@ local function payphone_terminal(number, state)
         elapsedSeconds = 0,
         totalCost = 0,
     }
+    log_call({ id = result.id, caller_source = player_source, callee_number = number,
+        started_at = result.startedAt, payphone = {} }, "ended", state)
+    return result
 end
 
 Bridge.Callbacks.Register("sky_phone:payphone:dial", function(source, data)
@@ -1290,12 +1321,12 @@ Bridge.Callbacks.Register("sky_phone:payphone:dial", function(source, data)
     if service_line then
         if not service_line.canCall then
             dial_locks[source] = nil
-            return { success = true, data = payphone_terminal(number, "unavailable") }
+            return { success = true, data = payphone_terminal(number, "unavailable", source) }
         end
         local company_target, target_status = company_call_target(service_line.companyId, source, nil)
         if not company_target then
             dial_locks[source] = nil
-            return { success = true, data = payphone_terminal(number, target_status) }
+            return { success = true, data = payphone_terminal(number, target_status, source) }
         end
         return {
             success = true,
@@ -1336,7 +1367,7 @@ Bridge.Callbacks.Register("sky_phone:payphone:dial", function(source, data)
     local callee_source, target_status = lock_direct_target(source, target)
     if not callee_source then
         dial_locks[source] = nil
-        return { success = true, data = payphone_terminal(number, target_status) }
+        return { success = true, data = payphone_terminal(number, target_status, source) }
     end
 
     return {
@@ -1414,6 +1445,7 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     end
     send_state(call, call.caller_source, "connected", call.channel)
     send_state(call, call.callee_source, "connected", call.channel)
+    log_call(call, "answered", "connected", source)
     return { success = true }
 end)
 

@@ -575,6 +575,12 @@ Automatic selection checks YACA, PMA Voice, and SaltyChat. Restricted frequency 
 
 Radio display-name permissions are configured in `Config.Radio.DisplayName.AllowedJobs`.
 
+## Discord logging
+
+Configure separate app/action webhooks and an optional avatar URL in the
+server-only `config/WebHooks.lua` or through **Phonepanel > Webhooks**. See the
+[logging setup and coverage](sky_phone/LOGGING.md), including prepared SkyPic support.
+
 ## Payphones
 
 Sky Phone automatically detects nearby world props listed in `Config.Payphones.Props`; GTA V payphones do not need configured coordinates. Pricing, payment account, prop models, and validation distances are configured under `Config.Payphones`.

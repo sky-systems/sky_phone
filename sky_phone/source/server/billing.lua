@@ -166,6 +166,14 @@ local function create_invoice(data)
         amount = amount,
         issuer = issuer_label,
     })
+    if SkyPhoneLog then
+        SkyPhoneLog.Record("Billing", "billing:created", "created", tonumber(data.issuerSource), {
+            id = id, title = title, description = description, amount = amount,
+            currency = Config.Billing.Currency, issuer = issuer_label, issuerAccount = issuer_account,
+            recipientSource = tonumber(data.recipientSource), dueDays = due_days,
+            resource = GetInvokingResource(),
+        })
+    end
     return id
 end
 
@@ -403,6 +411,10 @@ exports("CancelInvoice", function(invoice_id, actor_identifier)
             notify_identifier(rows[1].issuer_identifier, "sky_phone:billing:changed")
         end
     end
+    if SkyPhoneLog then
+        SkyPhoneLog.Record("Billing", "billing:cancelled", "cancelled", nil,
+            { id = invoice_id, resource = GetInvokingResource() })
+    end
     return true
 end)
 
@@ -425,7 +437,12 @@ exports("RemoveBillingAccountBalance", function(account_key, value)
         UPDATE `sky_phone_billing_accounts` SET `balance` = `balance` - ?
         WHERE `account_key` = ? AND `balance` >= ?
     ]], { amount, key, amount })
-    return affected_rows(result) == 1
+    local removed = affected_rows(result) == 1
+    if removed and SkyPhoneLog then
+        SkyPhoneLog.Record("Billing", "billing:balance-withdrawn", "withdrawn", nil,
+            { account = key, amount = amount, resource = GetInvokingResource() })
+    end
+    return removed
 end)
 
 end)

@@ -4,6 +4,7 @@ const cors = require('cors')
 const express = require('express')
 
 const { loadConfiguratorSections } = require('./configurator-fixture.cjs')
+const { getWebhooks, saveWebhooks } = require('./webhooks-fixture.cjs')
 
 const app = express()
 const port = Number(process.argv[2]) || 3001
@@ -4943,6 +4944,9 @@ function adminCustomToneList() {
 app.post('/api/:endpoint', async (request, response, next) => {
   const endpoint = request.params.endpoint
   const loggedBody = { ...request.body }
+  if (endpoint === 'admin:save-webhooks') {
+    loggedBody.changes = '<redacted webhook changes>'
+  }
   if (typeof loggedBody.password === 'string')
     loggedBody.password = '<redacted>'
   if (
@@ -4975,6 +4979,14 @@ app.post('/api/:endpoint', async (request, response, next) => {
   }
   if (endpoint === 'admin:configurator') {
     response.json({ success: true, data: adminMockConfigurator })
+    return
+  }
+  if (endpoint === 'admin:webhooks') {
+    response.json({ success: true, data: getWebhooks() })
+    return
+  }
+  if (endpoint === 'admin:save-webhooks') {
+    response.json(saveWebhooks(request.body))
     return
   }
   if (endpoint === 'admin:tones') {
