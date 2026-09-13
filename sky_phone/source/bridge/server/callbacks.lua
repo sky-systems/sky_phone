@@ -18,7 +18,7 @@ function Bridge.Callbacks.Register(name, callback)
     assert(type(name) == "string", "Callback name must be a string")
     assert(type(callback) == "function", "Callback handler must be a function")
     assert(not registered_callbacks[name], ("Callback '%s' is already registered"):format(name))
-    registered_callbacks[name] = callback
+    registered_callbacks[name] = SkyPhoneLog and SkyPhoneLog.WrapCallback(name, callback) or callback
     deferred_callbacks[name] = nil
 end
 

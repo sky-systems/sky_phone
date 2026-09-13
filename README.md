@@ -575,6 +575,12 @@ Automatic selection checks YACA, PMA Voice, and SaltyChat. Restricted frequency 
 
 Radio display-name permissions are configured in `Config.Radio.DisplayName.AllowedJobs`.
 
+## Discord logging
+
+Configure separate app/action webhooks and an optional avatar URL in the
+server-only `config/WebHooks.lua` or through **Phonepanel > Webhooks**. See the
+[logging setup and coverage](sky_phone/LOGGING.md), including prepared SkyPic support.
+
 ## Payphones
 
 Sky Phone automatically detects nearby world props listed in `Config.Payphones.Props`; GTA V payphones do not need configured coordinates. Pricing, payment account, prop models, and validation distances are configured under `Config.Payphones`.
@@ -691,6 +697,17 @@ to `true` for new companies and the shipped service lines. On the first restart 
 the Phone Configurator enables SMS once for the stored `ambulance`, `fire`, `mechanic`, and `taxi`
 definitions; later admin changes are preserved. App requests still require the company and the
 selected public service to accept requests, plus a registered SIM.
+
+In **Companies → Work**, employees allowed to take company calls can enable **Take dispatch duty**
+(German: **Leitstelle übernehmen**). This also enables their call availability on the active registered
+SIM. Incoming service-line calls try available dispatchers first, rotating between them, then other
+available employees. Busy or unreachable phones are skipped; declined or unanswered calls move to
+the next eligible recipient within `Config.Companies.CallRouting.MaxAttempts` and `RingSeconds`.
+The existing `ServiceLine.CanCall` and `ServiceLine.MinimumGrade` settings control access to both
+ordinary calls and dispatch duty. Turning off dispatch duty keeps ordinary call availability active;
+turning off company calls, disconnecting, or losing eligibility also removes dispatch priority.
+Closing the phone keeps call readiness active. Dispatch duty is session state and must be enabled
+again after reconnecting or restarting the resource; no database or configuration migration is needed.
 
 ### Weazel News
 

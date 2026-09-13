@@ -4,6 +4,7 @@ const cors = require('cors')
 const express = require('express')
 
 const { loadConfiguratorSections } = require('./configurator-fixture.cjs')
+const { getWebhooks, saveWebhooks } = require('./webhooks-fixture.cjs')
 
 const app = express()
 const port = Number(process.argv[2]) || 3001
@@ -4176,6 +4177,7 @@ const companyCategories = [
   { id: 'gastronomy', name: 'Food & Drink' },
 ]
 let companyCallAvailable = false
+let companyCallDispatcher = false
 const companyProfiles = [
   {
     acceptsRequests: true,
@@ -4584,6 +4586,7 @@ function companyWorkContext(testScenario = '') {
     return {
       authorized: false,
       callAvailable: false,
+      callDispatcher: false,
       company: null,
       metrics: { assigned: 0, completedToday: 0, new: 0, waiting: 0 },
       ownRequests: [],
@@ -4610,6 +4613,7 @@ function companyWorkContext(testScenario = '') {
   return {
     authorized: true,
     callAvailable: companyCallAvailable,
+    callDispatcher: companyCallAvailable && companyCallDispatcher,
     company: companyProfiles.find((company) => company.id === 'bennys'),
     metrics: {
       assigned: open.filter((request) => request.assignedLabel).length,
@@ -4943,6 +4947,9 @@ function adminCustomToneList() {
 app.post('/api/:endpoint', async (request, response, next) => {
   const endpoint = request.params.endpoint
   const loggedBody = { ...request.body }
+  if (endpoint === 'admin:save-webhooks') {
+    loggedBody.changes = '<redacted webhook changes>'
+  }
   if (typeof loggedBody.password === 'string')
     loggedBody.password = '<redacted>'
   if (
@@ -4975,6 +4982,14 @@ app.post('/api/:endpoint', async (request, response, next) => {
   }
   if (endpoint === 'admin:configurator') {
     response.json({ success: true, data: adminMockConfigurator })
+    return
+  }
+  if (endpoint === 'admin:webhooks') {
+    response.json({ success: true, data: getWebhooks() })
+    return
+  }
+  if (endpoint === 'admin:save-webhooks') {
+    response.json(saveWebhooks(request.body))
     return
   }
   if (endpoint === 'admin:tones') {
@@ -6862,7 +6877,25 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'companies:set-call-availability') {
+    const { available, dispatcher } = request.body
+    if (
+      typeof available !== 'boolean' ||
+      (dispatcher !== undefined && typeof dispatcher !== 'boolean') ||
+      (dispatcher === true && !available)
+    ) {
+      response.json({ success: false, error: 'invalid_request' })
+      return
+    }
+    const context = companyWorkContext(testScenario)
+    if (
+      available &&
+      (!context.authorized || !context.permissions.canTakeCalls)
+    ) {
+      response.json({ success: false, error: 'not_authorized' })
+      return
+    }
     companyCallAvailable = request.body.available === true
+    companyCallDispatcher = companyCallAvailable && dispatcher === true
     response.json({
       success: true,
       data: { context: companyWorkContext(testScenario) },

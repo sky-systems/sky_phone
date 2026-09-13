@@ -809,10 +809,10 @@ function SkyPhoneCompanies.CanPlaceCompanyCall(source, company_id)
 end
 
 function SkyPhoneCompanies.GetCallTargets(company_id)
-    local targets = {}
+    local target_groups = { {}, {} }
     local definition = definitions[company_id]
     if not Config.Companies.Enabled or not definition or not definition.ServiceLine.CanCall then
-        return targets
+        return {}
     end
     for source, readiness in pairs(call_availability) do
         local member = call_member(source)
@@ -825,6 +825,7 @@ function SkyPhoneCompanies.GetCallTargets(company_id)
         if not readiness_valid then
             call_availability[source] = nil
         elseif readiness.company_id == company_id then
+            local targets = target_groups[readiness.dispatcher == true and 1 or 2]
             targets[#targets + 1] = {
                 source = source,
                 simId = device.sim_id,
@@ -834,18 +835,27 @@ function SkyPhoneCompanies.GetCallTargets(company_id)
             }
         end
     end
-    table.sort(targets, function(left, right)
-        return left.source < right.source
-    end)
-    if #targets < 2 or definition.ServiceLine.Routing == "ring_all" then
-        return targets
-    end
-    local start = (round_robin_positions[company_id] or 0) % #targets + 1
+    -- Dispatchers come first; only round-robin rotates within each priority group.
+    local ring_all = definition.ServiceLine.Routing == "ring_all"
+    local positions = round_robin_positions[company_id] or {}
     local ordered = {}
-    for offset = 0, #targets - 1 do
-        ordered[#ordered + 1] = targets[(start + offset - 1) % #targets + 1]
+    for group_index, targets in ipairs(target_groups) do
+        table.sort(targets, function(left, right)
+            return left.source < right.source
+        end)
+        if #targets > 0 then
+            local start = ring_all and 1 or (positions[group_index] or 0) % #targets + 1
+            for offset = 0, #targets - 1 do
+                ordered[#ordered + 1] = targets[(start + offset - 1) % #targets + 1]
+            end
+            if not ring_all then
+                positions[group_index] = start
+            end
+        end
     end
-    round_robin_positions[company_id] = start
+    if not ring_all then
+        round_robin_positions[company_id] = positions
+    end
     return ordered
 end
 
@@ -1523,6 +1533,7 @@ local function work_context(source)
         return {
             authorized = false,
             callAvailable = false,
+            callDispatcher = false,
             company = nil,
             metrics = { assigned = 0, completedToday = 0, new = 0, waiting = 0 },
             ownRequests = {},
@@ -1579,12 +1590,14 @@ local function work_context(source)
     local manager = permissions.canAssign or permissions.canManageAnnouncement
         or permissions.canManageHours or permissions.canManageProfile or permissions.canManageServices
     local readiness = call_availability[source]
+    local call_available = permissions.canTakeCalls and readiness ~= nil
+        and readiness.company_id == member.company_id
     local company = company_payload(member.company_id, true)
     company.updatedAtUnix = nil
     return {
         authorized = true,
-        callAvailable = permissions.canTakeCalls and readiness ~= nil
-            and readiness.company_id == member.company_id,
+        callAvailable = call_available,
+        callDispatcher = call_available and readiness.dispatcher == true,
         company = company,
         metrics = {
             new = tonumber(metrics.new_count) or 0,
@@ -3356,7 +3369,10 @@ Bridge.Callbacks.Register("sky_phone:companies:set-call-availability", function(
     if not allowed then
         return rate_error
     end
-    if type(data) ~= "table" or type(data.available) ~= "boolean" then
+    if type(data) ~= "table" or type(data.available) ~= "boolean"
+        or (data.dispatcher ~= nil and type(data.dispatcher) ~= "boolean")
+        or (data.dispatcher == true and not data.available)
+    then
         return { success = false, error = "invalid_request" }
     end
     if not data.available then
@@ -3375,6 +3391,7 @@ Bridge.Callbacks.Register("sky_phone:companies:set-call-availability", function(
         company_id = member.company_id,
         sim_id = device.sim_id,
         imei = device.imei,
+        dispatcher = data.dispatcher == true,
     }
     return { success = true, data = { context = work_context(source) } }
 end)

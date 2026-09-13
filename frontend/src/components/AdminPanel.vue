@@ -29,6 +29,7 @@ import {
   TriangleAlert,
   UsersRound,
   WalletCards,
+  Webhook,
   Wifi,
   X,
 } from 'lucide-vue-next'
@@ -68,6 +69,7 @@ import AdminConfigValueEditor, {
   type AdminConfigEditorLabels,
 } from './AdminConfigValueEditor.vue'
 import AdminCustomToneManager from './AdminCustomToneManager.vue'
+import AdminWebhookManager from './AdminWebhookManager.vue'
 
 type AdminTab =
   | 'overview'
@@ -79,11 +81,15 @@ type AdminTab =
   | 'calls'
   | 'moderation'
   | 'tones'
+  | 'webhooks'
   | 'audit'
   | 'configurator'
 type ConfiguratorScope = 'config' | 'media'
 type DeviceAction = 'reset-passcode' | 'change-number' | 'factory-reset'
-type PendingAction = { kind: 'close' } | { kind: 'player'; source: number }
+type PendingAction =
+  | { kind: 'close' }
+  | { kind: 'player'; source: number }
+  | { kind: 'reload-webhooks' }
 const emit = defineEmits<{ close: [] }>()
 const admin = useAdminStore()
 const phone = usePhoneStore()
@@ -167,7 +173,10 @@ const configuratorPendingCount = computed(
   () => Object.keys(configuratorDrafts.value).length,
 )
 const pendingCount = computed(
-  () => appPendingCount.value + configuratorPendingCount.value,
+  () =>
+    appPendingCount.value +
+    configuratorPendingCount.value +
+    Object.keys(admin.webhookDrafts).length,
 )
 const hasChanges = computed(() => pendingCount.value > 0)
 const selectedDeviceChanges = computed(() =>
@@ -551,6 +560,7 @@ async function refreshData(): Promise<void> {
 }
 
 function queueAction(action: PendingAction): void {
+  if (saving.value) return
   if (!hasChanges.value) {
     void runAction(action)
     return
@@ -561,6 +571,11 @@ function queueAction(action: PendingAction): void {
 
 function selectTab(nextTab: AdminTab): void {
   tab.value = nextTab
+  if (nextTab === 'webhooks' && !admin.webhooks && !admin.webhooksLoading) {
+    void admin.loadWebhooks().then((loaded) => {
+      if (!loaded) showToast(errorText(), 'error')
+    })
+  }
   if (nextTab === 'overview' && admin.initialized && !admin.loading) {
     void admin.load()
   }
@@ -588,6 +603,10 @@ function statisticPercentage(value: number, total: number): number {
 }
 
 async function runAction(action: PendingAction): Promise<void> {
+  if (action.kind === 'reload-webhooks') {
+    if (!(await admin.loadWebhooks())) showToast(errorText(), 'error')
+    return
+  }
   if (action.kind === 'close') {
     const response = await nuiCall('admin:close')
     if (response.success) emit('close')
@@ -601,6 +620,7 @@ async function discardAndContinue(): Promise<void> {
   const action = pendingAction.value
   drafts.value = {}
   configuratorDrafts.value = {}
+  admin.webhookDrafts = {}
   pendingAction.value = null
   discardDialog.value = false
   if (action) await runAction(action)
@@ -714,6 +734,15 @@ async function saveChanges(): Promise<void> {
   const player = admin.selectedPlayer
   if (!hasChanges.value || saving.value) return
   saving.value = true
+
+  if (Object.keys(admin.webhookDrafts).length) {
+    const response = await admin.saveWebhooks()
+    if (!response.success) {
+      saving.value = false
+      showToast(errorText(response.error), 'error')
+      return
+    }
+  }
 
   if (configuratorPendingCount.value) {
     const changes = buildConfiguratorChanges()
@@ -871,6 +900,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  admin.webhookDrafts = {}
+  admin.webhooks = null
   document.removeEventListener('keydown', onKeydown)
   if (toastTimer) window.clearTimeout(toastTimer)
   if (statisticsTimer) window.clearInterval(statisticsTimer)
@@ -896,9 +927,11 @@ onBeforeUnmount(() => {
           <strong>{{
             tab === 'configurator'
               ? t('configurator.context')
-              : tab === 'tones'
-                ? t('configurator.customTones.context')
-                : admin.selectedPlayer?.name || t('editor.noSelection')
+              : tab === 'webhooks'
+                ? t('webhooks.title')
+                : tab === 'tones'
+                  ? t('configurator.customTones.context')
+                  : admin.selectedPlayer?.name || t('editor.noSelection')
           }}</strong>
         </div>
 
@@ -1025,6 +1058,15 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
+            :class="{ 'is-active': tab === 'webhooks' }"
+            :aria-label="t('tabs.webhooks')"
+            :title="t('tabs.webhooks')"
+            @click="selectTab('webhooks')"
+          >
+            <Webhook :size="19" style="--admin-icon-size: 19" />
+          </button>
+          <button
+            type="button"
             :class="{ 'is-active': tab === 'audit' }"
             :aria-label="t('tabs.audit')"
             :title="t('tabs.audit')"
@@ -1134,6 +1176,21 @@ onBeforeUnmount(() => {
                 </span>
                 <ChevronRight :size="14" style="--admin-icon-size: 14" />
               </button>
+            </div>
+          </template>
+
+          <template v-else-if="tab === 'webhooks'">
+            <div class="admin-panel-directory__header">
+              <div>
+                <span>Discord</span>
+                <h2>{{ t('tabs.webhooks') }}</h2>
+              </div>
+              <Webhook :size="19" style="--admin-icon-size: 19" />
+            </div>
+            <div class="admin-panel-overview-directory">
+              <p class="admin-panel-webhook-help">
+                {{ t('webhooks.sidebar') }}
+              </p>
             </div>
           </template>
 
@@ -1477,6 +1534,16 @@ onBeforeUnmount(() => {
                 </section>
               </div>
             </article>
+          </section>
+
+          <section
+            v-else-if="tab === 'webhooks'"
+            class="admin-panel-editor__scroll"
+          >
+            <AdminWebhookManager
+              :disabled="saving"
+              @reload="queueAction({ kind: 'reload-webhooks' })"
+            />
           </section>
 
           <section
@@ -2461,6 +2528,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.admin-panel-webhook-help {
+  padding: var(--sky-space-4);
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .admin-panel-overlay {
   /* One design pixel at 1080p, proportional growth on taller displays. */
   --admin-unit: max(1px, 0.0925926vh);

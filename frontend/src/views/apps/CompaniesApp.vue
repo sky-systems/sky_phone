@@ -50,6 +50,7 @@ import {
   ClipboardList,
   Clock3,
   Compass,
+  Headset,
   ImagePlus,
   MapPin,
   Megaphone,
@@ -712,19 +713,25 @@ async function setCompanyAvailability(
   showToast(phone.t('Apps.companies.feedback.availabilityUpdated'))
 }
 
-async function toggleCallAvailability(): Promise<void> {
-  const context = companies.workContext
-  if (!context) return
-  const response = await companies.setCallAvailability(!context.callAvailable)
+async function setCallAvailability(
+  available: boolean,
+  dispatcher = false,
+): Promise<void> {
+  const wasDispatcher = companies.workContext?.callDispatcher
+  const response = await companies.setCallAvailability(available, dispatcher)
   if (!response.success) {
     showToast(errorText(response.error))
     return
   }
-  showToast(
-    phone.t(
-      `Apps.companies.feedback.${response.data?.context.callAvailable ? 'callsEnabled' : 'callsDisabled'}`,
-    ),
-  )
+  const context = response.data?.context
+  const feedback = context?.callDispatcher
+    ? 'dispatchEnabled'
+    : wasDispatcher && context?.callAvailable
+      ? 'dispatchDisabled'
+      : context?.callAvailable
+        ? 'callsEnabled'
+        : 'callsDisabled'
+  showToast(phone.t(`Apps.companies.feedback.${feedback}`))
 }
 
 function openServiceLineDialer(): void {
@@ -1385,7 +1392,29 @@ onBeforeUnmount(() => {
                   :checked="companies.workContext.callAvailable"
                   :disabled="companies.mutating"
                   :aria-label="phone.t('Apps.companies.work.takeCalls')"
-                  @change="toggleCallAvailability"
+                  @change="
+                    setCallAvailability(!companies.workContext.callAvailable)
+                  "
+                />
+              </template>
+            </SkyListItem>
+            <SkyListItem
+              v-if="companies.workContext.permissions.canTakeCalls"
+              :title="phone.t('Apps.companies.work.dispatch')"
+              :text="phone.t('Apps.companies.work.dispatchBody')"
+            >
+              <template #media><Headset :size="20" /></template>
+              <template #after>
+                <SkyToggle
+                  :checked="companies.workContext.callDispatcher"
+                  :disabled="companies.mutating"
+                  :aria-label="phone.t('Apps.companies.work.dispatch')"
+                  @change="
+                    setCallAvailability(
+                      true,
+                      !companies.workContext.callDispatcher,
+                    )
+                  "
                 />
               </template>
             </SkyListItem>

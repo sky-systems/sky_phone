@@ -847,6 +847,12 @@ RegisterNetEvent("sky_phone:media:complete-upload", function(data)
         diagnostic_text(state.correlation_id, 80),
         tostring(media_id)
     )
+    if SkyPhoneLog then
+        SkyPhoneLog.Record("Uploads", "media:uploaded", "created", src, {
+            id = media_id, url = verified.url, mediaType = state.media_type,
+            mimeType = verified.mime_type, accountId = owner.account_id, imei = owner.imei,
+        })
+    end
     upload_result(src, state.correlation_id, true, nil, {
         id = media_id,
         url = verified.url,
@@ -962,6 +968,11 @@ local function delete_owned_media(src, owner, media_id)
     end
     Bridge.Database.Query(("DELETE FROM `sky_phone_media` WHERE `id` = ? AND %s"):format(condition), query_params)
     pending_deletes[delete_key] = nil
+    if SkyPhoneLog then
+        SkyPhoneLog.Record("Gallery", "media:deleted", "deleted", src, {
+            id = media_id, url = row.url, mediaType = row.media_type, origin = row.origin,
+        })
+    end
     return true, nil, row.url
 end
 

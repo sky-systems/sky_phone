@@ -497,13 +497,18 @@ export const useCompaniesStore = defineStore('companies', {
     },
     async setCallAvailability(
       available: boolean,
+      dispatcher = false,
     ): Promise<NuiResponse<{ context: CompanyWorkContext }>> {
       this.mutating = true
+      const deviceScopeVersion = this.deviceScopeVersion
       const response = await nuiCall<{ context: CompanyWorkContext }>(
         'companies:set-call-availability',
-        { available },
+        { available, dispatcher },
       )
       this.mutating = false
+      if (deviceScopeVersion !== this.deviceScopeVersion) {
+        return { error: 'request_failed', success: false }
+      }
       if (!response.success || !response.data?.context) {
         this.mutationError = response.error ?? 'request_failed'
         return response
