@@ -797,6 +797,15 @@ function mapEntryStructure(
       class="config-structured-editor__tab-panel"
       role="tabpanel"
     >
+      <p class="config-structured-editor__tab-description">
+        {{
+          describe(
+            tableEntryPath(activeRootTableField.key),
+            activeRootTableField.value,
+            tableFieldStructure(activeRootTableField.key),
+          )
+        }}
+      </p>
       <div
         v-if="!isFixedTableField(activeRootTableField.key)"
         class="config-structured-editor__tab-panel-actions"
@@ -1249,6 +1258,15 @@ function mapEntryStructure(
   background: #0f1110;
 }
 
+.config-structured-editor__tab-description {
+  margin: 0;
+  padding: calc(10 * var(--admin-unit));
+  color: var(--admin-muted);
+  font-size: calc(9 * var(--admin-unit));
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .config-structured-editor__tab-panel > .config-structured-editor {
   border-radius: 0;
   outline: 0;
@@ -1454,13 +1472,12 @@ function mapEntryStructure(
 }
 
 .config-structured-editor__field-copy small {
-  overflow: hidden;
   color: var(--admin-muted);
   font-size: calc(7.5 * var(--admin-unit));
   font-weight: 450;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .config-structured-editor__section-toggle

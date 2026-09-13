@@ -45,8 +45,37 @@ describe('admin configurator descriptions', () => {
     )
     expect(configuratorDescriptionKey('Radio.AllowedJobs', [])).toBe('access')
     expect(configuratorDescriptionKey('FiveManage.ApiKey', '')).toBe(
+      'fiveManageApiKey',
+    )
+  })
+
+  it.each([
+    ['Import.Enabled', 'importEnabled'],
+    ['Import.Websites', 'importWebsites'],
+    ['Import.Websites[1]', 'importSource'],
+    ['Import.Websites[2].Adapter', 'importAdapter'],
+    ['Import.Websites[2].ApiKey', 'importApiKey'],
+    ['Import.Websites[1].Path', 'importPath'],
+    ['Import.Websites[1].AllowedMediaHosts', 'importHosts'],
+    ['Import.Websites[1].AllowedMediaHosts[2]', 'importHosts'],
+    ['Media.Import.Websites[1].MediaTypes[1]', 'importMediaTypes'],
+    ['Import.Websites.2.ManifestUrl', 'importManifestUrl'],
+    ['Import.Websites[2].Auth.TokenConvar', 'importAuthConvar'],
+    ['Import.Websites[2].RequiredAce', 'importRequiredAce'],
+    ['Wallpaper.CustomUploadEnabled', 'wallpaperImport'],
+    ['Photo.Quality', 'photoQuality'],
+    ['Video.BitrateKbps', 'videoBitrate'],
+  ])('explains media setup for %s', (path, key) => {
+    expect(configuratorDescriptionKey(path, '')).toBe(key)
+  })
+
+  it('retains generic help for unrelated fields and import timeouts', () => {
+    expect(configuratorDescriptionKey('CustomApp.ApiKey', '')).toBe(
       'credential',
     )
+    expect(
+      configuratorDescriptionKey('Import.Websites[1].RequestTimeoutMs', 10000),
+    ).toBe('milliseconds')
   })
 
   it('describes structured values from their schema', () => {

@@ -437,6 +437,56 @@ function SkyPhoneMediaImport.HttpRequest(url, headers, timeout_ms, method)
     return Citizen.Await(request)
 end
 
+-- FXServer sends HEAD as a custom curl method without CURLOPT_NOBODY, which
+-- can fail with curl error 18. Request one byte and read the total size from
+-- Content-Range instead. A host ignoring Range may return its full body (200).
+function SkyPhoneMediaImport.ProbePublicUrl(website, url)
+    local response = SkyPhoneMediaImport.HttpRequest(
+        url,
+        { ["Range"] = "bytes=0-0", ["Accept-Encoding"] = "identity" },
+        tonumber(website.RequestTimeoutMs or Config.Media.FiveManage.RequestTimeoutMs) or 10000,
+        "GET"
+    )
+    if response.status == 0 then
+        return nil, "import_source_unavailable"
+    end
+    if response.status ~= 200 and response.status ~= 206 then
+        return nil, "import_url_unavailable"
+    end
+
+    local content_type = SkyPhoneMediaImport.ResponseHeader(response.headers, "content-type")
+    content_type = type(content_type) == "string" and content_type:lower():match("^%s*([^;%s]+)") or nil
+    local media_type = content_type and media_types_by_mime[content_type] or nil
+    if not media_type or not website._media_types[media_type] then
+        return nil, "import_media_not_allowed"
+    end
+
+    local content_length = tonumber(SkyPhoneMediaImport.ResponseHeader(response.headers, "content-length"))
+    if response.status == 206 then
+        -- Content-Length is the range size, not the full media size.
+        local content_range = SkyPhoneMediaImport.ResponseHeader(response.headers, "content-range")
+        content_length = type(content_range) == "string"
+            and tonumber(content_range:lower():match("^bytes 0%-0/(%d+)$")) or nil
+    end
+    if not content_length or content_length <= 0 or content_length ~= math.floor(content_length) then
+        return nil, "import_size_unavailable"
+    end
+
+    local external_id = ("url:%08x%08x"):format(
+        joaat(url) & 0xffffffff,
+        joaat("sky_phone:" .. url) & 0xffffffff
+    )
+    local url_path = url:match("^https://[^/]+(/[^?#]*)") or ""
+    return {
+        externalId = external_id,
+        filename = url_path:match("/([^/]+)$") or external_id,
+        mediaType = media_type,
+        mimeType = content_type,
+        size = content_length,
+        url = url,
+    }
+end
+
 function SkyPhoneMediaImport.ResolveUrl(source_id, url)
     if not initialized or not valid_source_id(source_id) or type(url) ~= "string" then
         return nil, "invalid_import_url"
@@ -457,44 +507,11 @@ function SkyPhoneMediaImport.ResolveUrl(source_id, url)
         return normalize_media(website, item)
     end
 
-    local response = SkyPhoneMediaImport.HttpRequest(
-        trimmed_url,
-        {},
-        tonumber(website.RequestTimeoutMs or Config.Media.FiveManage.RequestTimeoutMs) or 10000,
-        "HEAD"
-    )
-    if response.status == 0 then
-        return nil, "import_source_unavailable"
+    local item, resolve_error = SkyPhoneMediaImport.ProbePublicUrl(website, trimmed_url)
+    if not item then
+        return nil, resolve_error
     end
-    if response.status < 200 or response.status >= 300 then
-        return nil, "import_url_unavailable"
-    end
-
-    local content_type = SkyPhoneMediaImport.ResponseHeader(response.headers, "content-type")
-    content_type = type(content_type) == "string" and content_type:lower():match("^%s*([^;%s]+)") or nil
-    local media_type = content_type and media_types_by_mime[content_type] or nil
-    if not media_type or not website._media_types[media_type] then
-        return nil, "import_media_not_allowed"
-    end
-
-    local content_length = tonumber(SkyPhoneMediaImport.ResponseHeader(response.headers, "content-length"))
-    if not content_length or content_length <= 0 or content_length ~= math.floor(content_length) then
-        return nil, "import_size_unavailable"
-    end
-
-    local external_id = ("url:%08x%08x"):format(
-        joaat(trimmed_url) & 0xffffffff,
-        joaat("sky_phone:" .. trimmed_url) & 0xffffffff
-    )
-    local url_path = trimmed_url:match("^https://[^/]+(/[^?#]*)") or ""
-    return normalize_media(website, {
-        externalId = external_id,
-        filename = url_path:match("/([^/]+)$") or external_id,
-        mediaType = media_type,
-        mimeType = content_type,
-        size = content_length,
-        url = trimmed_url,
-    })
+    return normalize_media(website, item)
 end
 
 function SkyPhoneMediaImport.UrlEncode(value)

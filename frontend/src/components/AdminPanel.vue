@@ -4160,7 +4160,6 @@ button:disabled {
 }
 
 .admin-panel-config-field__copy strong,
-.admin-panel-config-field__copy small,
 .admin-panel-config-field__copy code {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4175,7 +4174,9 @@ button:disabled {
 .admin-panel-config-field__copy small {
   color: var(--admin-muted);
   font-size: calc(8 * var(--admin-unit));
-  line-height: 1.25;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .admin-panel-config-field__copy code {
