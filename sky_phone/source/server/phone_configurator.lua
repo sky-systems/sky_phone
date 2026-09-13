@@ -1567,6 +1567,21 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     local function integer_between(value, minimum, maximum)
         return type(value) == "number" and value % 1 == 0 and value >= minimum and value <= maximum
     end
+    local crew_blip = candidate_config.CrewLink.Blip
+    local quick_ping = candidate_config.CrewLink.QuickPing
+    if type(crew_blip) ~= "table" or type(crew_blip.Enabled) ~= "boolean"
+        or not integer_between(crew_blip.Sprite, 0, 65535)
+        or not integer_between(crew_blip.PingSprite, 0, 65535)
+        or not integer_between(crew_blip.CategoryId, 12, 133)
+        or type(crew_blip.CategoryName) ~= "string" or #crew_blip.CategoryName > 99
+        or not crew_blip.CategoryName:find("%S") or crew_blip.CategoryName:find("[%c~]")
+        or type(crew_blip.Scale) ~= "number" or not (crew_blip.Scale >= 0.1 and crew_blip.Scale <= 5.0)
+        or type(quick_ping) ~= "table" or type(quick_ping.Enabled) ~= "boolean"
+        or type(quick_ping.DefaultKey) ~= "string" or #quick_ping.DefaultKey > 32
+        or not quick_ping.DefaultKey:match("^[A-Z0-9_]+$")
+    then
+        return { success = false, error = "invalid_value" }
+    end
     if type(citywarn) ~= "table" or type(citywarn.Enabled) ~= "boolean" or type(blip) ~= "table"
         or not integer_between(blip.Sprite, 0, 65535)
         or not integer_between(blip.Display, 0, 10)

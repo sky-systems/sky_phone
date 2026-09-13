@@ -48,6 +48,23 @@ describe('admin configurator descriptions', () => {
     }
   })
   it('selects specific descriptions before generic value descriptions', () => {
+    for (const key of [
+      'Enabled',
+      'Sprite',
+      'PingSprite',
+      'CategoryId',
+      'CategoryName',
+      'Scale',
+    ]) {
+      expect(configuratorDescriptionKey(`CrewLink.Blip.${key}`, 1)).toBe(
+        `crewlinkBlip${key}`,
+      )
+    }
+    for (const key of ['Enabled', 'DefaultKey']) {
+      expect(
+        configuratorDescriptionKey(`CrewLink.QuickPing.${key}`, 'NUMPAD5'),
+      ).toBe(`crewlinkQuickPing${key}`)
+    }
     expect(configuratorDescriptionKey('Garage.System', 'msk')).toBe(
       'garageSystem',
     )

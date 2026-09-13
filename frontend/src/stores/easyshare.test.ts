@@ -77,6 +77,104 @@ describe('easyshare store', () => {
     })
   })
 
+  it('replaces acceptance with progress when the sender reports an accepted transfer', () => {
+    const store = useEasyShareStore()
+    store.applyEvent({ transfer: incoming })
+    store.applyEvent({
+      transfer: { ...incoming, status: 'transferring', progress: 10 },
+    })
+    expect(store.incomingTransfer).toBeNull()
+    expect(store.activeTransfer?.progress).toBe(10)
+    store.applyEvent({
+      transfer: { ...incoming, status: 'completed', progress: 100 },
+    })
+    expect(store.activeTransfer?.status).toBe('completed')
+    expect(store.pending).toEqual([])
+  })
+
+  it('prevents repeated acceptance while the server is responding', async () => {
+    let resolve!: (value: { success: boolean; data: EasyShareTransfer }) => void
+    mockNuiCall.mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done
+      }),
+    )
+    const store = useEasyShareStore()
+    store.applyEvent({ transfer: incoming })
+    const first = store.respond(incoming.id, true)
+    expect(store.pendingActionId).toBe(incoming.id)
+    expect(await store.respond(incoming.id, true)).toBe(false)
+    expect(mockNuiCall).toHaveBeenCalledTimes(1)
+    resolve({ success: true, data: { ...incoming, status: 'transferring' } })
+    expect(await first).toBe(true)
+    expect(store.pendingActionId).toBeNull()
+    expect(store.incomingTransfer).toBeNull()
+    expect(store.activeTransfer?.status).toBe('transferring')
+  })
+
+  it.each(['too_far', 'transfer_not_found', 'rate_limited', 'disabled'])(
+    'preserves the actual receiver error %s and clears it for a new share',
+    async (error) => {
+      mockNuiCall.mockResolvedValueOnce({ success: false, error })
+      const store = useEasyShareStore()
+      expect(await store.respond(incoming.id, true)).toBe(false)
+      expect(store.error).toBe(error)
+      expect(store.pendingActionId).toBeNull()
+      store.applyEvent({ transfer: incoming })
+      expect(store.error).toBe('')
+    },
+  )
+
+  it('shows expiry as transfer status instead of keeping the acceptance buttons', () => {
+    const store = useEasyShareStore()
+    store.applyEvent({ transfer: incoming })
+    store.applyEvent({ transfer: { ...incoming, status: 'expired' } })
+    expect(store.incomingTransfer).toBeNull()
+    expect(store.activeTransfer?.status).toBe('expired')
+  })
+
+  it('does not resurrect completed transfers when acceptance responds after progress events', async () => {
+    let resolve!: (value: { success: boolean; data: EasyShareTransfer }) => void
+    mockNuiCall.mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done
+      }),
+    )
+    const store = useEasyShareStore()
+    store.applyEvent({ transfer: incoming })
+    const request = store.respond(incoming.id, true)
+    store.applyEvent({
+      transfer: { ...incoming, status: 'completed', progress: 100 },
+    })
+    resolve({
+      success: true,
+      data: { ...incoming, status: 'transferring', progress: 0 },
+    })
+    await request
+    store.applyEvent({ transfer: incoming })
+    expect(store.activeTransfer?.status).toBe('completed')
+    expect(store.incomingTransfer).toBeNull()
+    expect(store.pending).toEqual([])
+  })
+
+  it('preserves discovery errors and clears them after a successful retry', async () => {
+    mockNuiCall.mockResolvedValueOnce({ success: false, error: 'disabled' })
+    const store = useEasyShareStore()
+    expect(await store.bootstrap()).toBe(false)
+    expect(store.error).toBe('disabled')
+    mockNuiCall.mockResolvedValueOnce({
+      success: true,
+      data: {
+        targets: [],
+        pending: [],
+        history: [],
+        visibility: 'everyone',
+      },
+    })
+    expect(await store.bootstrap()).toBe(true)
+    expect(store.error).toBe('')
+  })
+
   it('hands a prepared share message to the selected chat app once', () => {
     const easyShare = useEasyShareStore()
     easyShare.open({ ...payload, link: 'https://notes.sky/note-1' })

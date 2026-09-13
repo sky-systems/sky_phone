@@ -584,6 +584,18 @@ Config.MapMarkers = {
 }
 
 Config.CrewLink = {
+    Blip = {
+        Enabled = true,
+        Sprite = 126,
+        PingSprite = 280,
+        CategoryId = 13, -- named custom category; keep distinct from other resources
+        CategoryName = "CrewLink",
+        Scale = 0.8,
+    },
+    QuickPing = {
+        Enabled = true,
+        DefaultKey = "NUMPAD5", -- players can override this in FiveM key bindings
+    },
     UsernameMinLength = 3,
     UsernameMaxLength = 20,
     PasswordMinLength = 8,

@@ -391,6 +391,64 @@ test("invalid CityWarn colors and unknown categories cannot be saved", function(
     assert(not server.save({ change("CityWarn", citywarn) }).success)
 end)
 
+test("CrewLink map and quick-ping settings roundtrip to closed phones and survive SQL reload", function()
+    local server = new_server()
+    local settings = server.field("CrewLink").value
+    assert(settings.Blip.Sprite == 126 and settings.Blip.PingSprite == 280)
+    assert(settings.Blip.CategoryName == "CrewLink" and settings.Blip.CategoryId == 13)
+    assert(settings.QuickPing.DefaultKey == "NUMPAD5" and settings.QuickPing.Enabled)
+    local client = new_client(server)
+    settings.Blip.Sprite, settings.Blip.PingSprite = 1, 2
+    settings.Blip.CategoryId, settings.Blip.CategoryName, settings.Blip.Scale = 21, "Road crew", 1.2
+    settings.QuickPing.DefaultKey, settings.QuickPing.Enabled = "F6", false
+    assert(server.save({ change("CrewLink", settings) }).success)
+    client.sync(server.broadcasts[1])
+    assert(client.config.CrewLink.Blip.Sprite == 1 and client.config.CrewLink.Blip.PingSprite == 2)
+    assert(client.config.CrewLink.Blip.CategoryName == "Road crew" and client.config.CrewLink.Blip.Scale == 1.2)
+    assert(client.config.CrewLink.QuickPing.DefaultKey == "F6" and not client.config.CrewLink.QuickPing.Enabled)
+    local restarted = new_server(server.database)
+    local reconnect = new_client(restarted)
+    assert(reconnect.config.CrewLink.Blip.CategoryId == 21)
+    assert(reconnect.config.CrewLink.QuickPing.DefaultKey == "F6")
+    settings.Blip.Enabled = false
+    assert(restarted.save({ change("CrewLink", settings) }).success)
+    reconnect.sync(restarted.broadcasts[1])
+    assert(not reconnect.config.CrewLink.Blip.Enabled)
+end)
+
+test("existing CrewLink SQL settings receive map defaults without resetting privacy limits", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.CrewLink.Blip, stored.CrewLink.QuickPing = nil, nil
+    stored.CrewLink.OverheadDistance = 15
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.CrewLink.Blip.Sprite == 126)
+    assert(restarted.env.Config.CrewLink.QuickPing.DefaultKey == "NUMPAD5")
+    assert(restarted.env.Config.CrewLink.OverheadDistance == 15)
+end)
+
+test("invalid CrewLink native settings and key defaults cannot reach SQL or clients", function()
+    for _, invalid in ipairs({
+        { "Sprite", -1 }, { "Sprite", 1.5 }, { "PingSprite", 65536 },
+        { "CategoryId", 11 }, { "CategoryId", 134 },
+        { "CategoryName", "" }, { "CategoryName", "~r~crew" }, { "CategoryName", string.rep("a", 100) },
+        { "Scale", 0 }, { "Scale", 6 }, { "Enabled", "true" },
+    }) do
+        local server = new_server()
+        local settings = server.field("CrewLink").value
+        settings.Blip[invalid[1]] = invalid[2]
+        assert(not server.save({ change("CrewLink", settings) }).success)
+        assert(#server.broadcasts == 0)
+    end
+    for _, key in ipairs({ "", "a b", ";quit", string.rep("F", 33) }) do
+        local server = new_server()
+        local settings = server.field("CrewLink").value
+        settings.QuickPing.DefaultKey = key
+        assert(not server.save({ change("CrewLink", settings) }).success)
+        assert(#server.broadcasts == 0)
+    end
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")

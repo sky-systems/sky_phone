@@ -1422,6 +1422,7 @@ const defaultLocales: LocaleTree = {
       history: 'Transfer History',
       noHistory: 'No transfers yet.',
       noNearby: 'No visible players are nearby.',
+      readyToReceive: 'Ready to receive a share.',
       visibility: 'Visibility',
       requestSent: 'Waiting for acceptance...',
       incomingFrom: '{name} wants to share',

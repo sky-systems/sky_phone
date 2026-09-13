@@ -69,6 +69,8 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  const crewlink = path.match(/^CrewLink\.(Blip|QuickPing)\.([^.]+)$/)
+  if (crewlink) return `crewlink${crewlink[1]}${crewlink[2]}`
   const citywarnBlip = path.match(
     /^CityWarn\.Blip\.(Sprite|Display|ShortRange|CategoryId|CategoryName|GroupByCategory|RadiusEnabled|Radius)$/,
   )
