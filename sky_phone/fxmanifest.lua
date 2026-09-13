@@ -76,7 +76,7 @@ server_scripts {
     'source/server/crypto_password.js',
     'config/config.lua',
     'config/media.lua',
-    'config/WebHooks.lua',
+    'config/webhooks.lua',
     'config/locales/en.lua',
     'config/locales/de.lua',
     'config/locales/es.lua',
