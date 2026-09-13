@@ -397,37 +397,54 @@ test("CrewLink map and quick-ping settings roundtrip to closed phones and surviv
     assert(settings.Blip.Sprite == 126 and settings.Blip.PingSprite == 280)
     assert(settings.Blip.CategoryName == "CrewLink" and settings.Blip.CategoryId == 13)
     assert(settings.QuickPing.DefaultKey == "NUMPAD5" and settings.QuickPing.Enabled)
+    assert(settings.PingCooldownSeconds == 5)
     local client = new_client(server)
     settings.Blip.Sprite, settings.Blip.PingSprite = 1, 2
     settings.Blip.CategoryId, settings.Blip.CategoryName, settings.Blip.Scale = 21, "Road crew", 1.2
     settings.QuickPing.DefaultKey, settings.QuickPing.Enabled = "F6", false
+    settings.PingCooldownSeconds = 15
     assert(server.save({ change("CrewLink", settings) }).success)
     client.sync(server.broadcasts[1])
     assert(client.config.CrewLink.Blip.Sprite == 1 and client.config.CrewLink.Blip.PingSprite == 2)
     assert(client.config.CrewLink.Blip.CategoryName == "Road crew" and client.config.CrewLink.Blip.Scale == 1.2)
     assert(client.config.CrewLink.QuickPing.DefaultKey == "F6" and not client.config.CrewLink.QuickPing.Enabled)
+    assert(server.env.Config.CrewLink.PingCooldownSeconds == 15 and client.config.CrewLink.PingCooldownSeconds == 15)
     local restarted = new_server(server.database)
     local reconnect = new_client(restarted)
     assert(reconnect.config.CrewLink.Blip.CategoryId == 21)
     assert(reconnect.config.CrewLink.QuickPing.DefaultKey == "F6")
+    assert(reconnect.config.CrewLink.PingCooldownSeconds == 15)
     settings.Blip.Enabled = false
+    settings.PingCooldownSeconds = 0
     assert(restarted.save({ change("CrewLink", settings) }).success)
     reconnect.sync(restarted.broadcasts[1])
     assert(not reconnect.config.CrewLink.Blip.Enabled)
+    assert(reconnect.config.CrewLink.PingCooldownSeconds == 0)
+    assert(new_server(restarted.database).env.Config.CrewLink.PingCooldownSeconds == 0,
+        "disabled cooldowns must survive SQL reload")
 end)
 
 test("existing CrewLink SQL settings receive map defaults without resetting privacy limits", function()
     local server = new_server()
     local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
     stored.CrewLink.Blip, stored.CrewLink.QuickPing = nil, nil
+    stored.CrewLink.PingCooldownSeconds = nil
     stored.CrewLink.OverheadDistance = 15
     local restarted = new_server(server.database)
     assert(restarted.env.Config.CrewLink.Blip.Sprite == 126)
     assert(restarted.env.Config.CrewLink.QuickPing.DefaultKey == "NUMPAD5")
     assert(restarted.env.Config.CrewLink.OverheadDistance == 15)
+    assert(restarted.env.Config.CrewLink.PingCooldownSeconds == 5)
 end)
 
 test("invalid CrewLink native settings and key defaults cannot reach SQL or clients", function()
+    for _, cooldown in ipairs({ -1, 1.5, 3601, "5", false }) do
+        local server = new_server()
+        local settings = server.field("CrewLink").value
+        settings.PingCooldownSeconds = cooldown
+        assert(not server.save({ change("CrewLink", settings) }).success)
+        assert(#server.broadcasts == 0, "invalid cooldowns must not reach connected clients")
+    end
     for _, invalid in ipairs({
         { "Sprite", -1 }, { "Sprite", 1.5 }, { "PingSprite", 65536 },
         { "CategoryId", 11 }, { "CategoryId", 134 },

@@ -107,6 +107,8 @@ assert(test.mappings[1].key == "NUMPAD5" and test.mappings[1].mapper == "keyboar
 assert(not test.events["sky_phone:nuiClosed"], "closing the phone must not clear world state")
 test.commands.sky_phone_crewlink_ping()
 assert(test.quick_requests == 1 and test.notification == "Ping shared")
+test.commands.sky_phone_crewlink_ping()
+assert(test.quick_requests == 1, "cooldown keypresses must not generate network requests")
 test.focused = true
 test.commands.sky_phone_crewlink_ping()
 assert(test.quick_requests == 1, "typing in the phone must not send pings")
@@ -124,6 +126,11 @@ assert(test.handles[#test.handles - 1].Sprite == 7 and test.handles[#test.handle
 assert(#test.mappings == 1, "config changes must preserve player key bindings")
 advance(4500)
 assert(count() == 1, "expired pings must disappear without waiting for server refresh")
+test.commands.sky_phone_crewlink_ping()
+assert(test.quick_requests == 2, "the configured cooldown must allow a ping after expiry")
+env.Config.CrewLink.PingCooldownSeconds = 0
+test.commands.sky_phone_crewlink_ping()
+assert(test.quick_requests == 3, "runtime cooldown changes must reach the keybind")
 test.result.data.members[2].mapVisible = false
 advance(3000)
 assert(count() == 0, "revoking location sharing must remove the blip")

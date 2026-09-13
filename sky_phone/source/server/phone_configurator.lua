@@ -1569,6 +1569,9 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     end
     local crew_blip = candidate_config.CrewLink.Blip
     local quick_ping = candidate_config.CrewLink.QuickPing
+    if not integer_between(candidate_config.CrewLink.PingCooldownSeconds, 0, 3600) then
+        return { success = false, error = "invalid_value" }
+    end
     if type(crew_blip) ~= "table" or type(crew_blip.Enabled) ~= "boolean"
         or not integer_between(crew_blip.Sprite, 0, 65535)
         or not integer_between(crew_blip.PingSprite, 0, 65535)

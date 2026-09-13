@@ -12,6 +12,8 @@ local carried, logged_in, phone_open, app_enabled = true, true, true, true
 local inserted_ping
 local ping_count, account_offset = 0, 0
 local allow_operation = true
+local ping_timer = 0
+local pause_ping_query, fail_ping_query = false, false
 local profile = { id = "profile-1", account_id = 1, username = "Skyline" }
 local group = {
     id = "group-1", group_id = "group-1", name = "Road Crew", colour = "blue",
@@ -26,6 +28,7 @@ local env = setmetatable({
     TriggerEvent = function() end,
     exports = function() end,
     os = { time = function() return now end },
+    GetGameTimer = function() return ping_timer end,
     GetPlayerRoutingBucket = function(source) return source == 2 and bucket or 0 end,
     GetPlayerPed = function() return player_ped end,
     GetEntityCoords = function() return { x = 10, y = 20, z = 30 } end,
@@ -60,6 +63,11 @@ env.Bridge = {
         Query = function(query, params)
             if query:find("SELECT UUID()", 1, true) then return {{ id = "ping-1" }} end
             if query:find("SELECT COUNT(*) AS `count` FROM `sky_phone_crewlink_pings`", 1, true) then
+                if pause_ping_query then coroutine.yield("ping_query") end
+                if fail_ping_query then
+                    fail_ping_query = false
+                    error("Test database failure")
+                end
                 return {{ count = ping_count }}
             end
             if query:find("INSERT INTO `sky_phone_crewlink_pings`", 1, true) then
@@ -143,8 +151,53 @@ local ping = call("quick-ping", { groupId = "forged", coords = { x = 999, y = 99
 assert(ping.success and ping.data.coords.x == 10, "quick pings must use server coordinates with the phone closed")
 assert(inserted_ping[2] == profile.active_group_id and inserted_ping[3] == profile.id,
     "quick pings must target the authenticated active crew and creator")
+assert(call("quick-ping").error == "ping_cooldown", "the keybind must not send another ping immediately")
+env.Config.CrewLink.PingCooldownSeconds = nil
+assert(call("quick-ping").error == "ping_cooldown", "existing config files must use the shipped default")
+env.Config.CrewLink.PingCooldownSeconds = 5
+profile.id = "another-profile"
+assert(call("quick-ping").success, "another crew member must have an independent cooldown")
+profile.id = "profile-1"
+phone_open = true
+assert(call("create-ping", { type = "meeting", label = "Test", useCurrent = true }).error == "ping_cooldown",
+    "app and keybind pings must share a cooldown")
+profile.active_group_id = "other-group"
+assert(call("quick-ping").error == "ping_cooldown", "switching crews must not bypass the profile cooldown")
+profile.active_group_id = group.id
+ping_timer = 4999
+assert(call("quick-ping").error == "ping_cooldown", "the full configured interval must elapse")
+ping_timer = 5000
+assert(call("create-ping", { type = "meeting", label = "Test", useCurrent = true }).success)
+assert(call("quick-ping").error == "ping_cooldown", "an app ping must also delay the keybind")
+phone_open = false
+env.Config.CrewLink.PingCooldownSeconds = 10
+ping_timer = 10000
+assert(call("quick-ping").error == "ping_cooldown", "longer runtime cooldowns must apply immediately")
+env.Config.CrewLink.PingCooldownSeconds = 2
+assert(call("quick-ping").success, "shorter runtime cooldowns must apply immediately")
+env.Config.CrewLink.PingCooldownSeconds = 0
+assert(call("quick-ping").success and call("quick-ping").success, "zero must disable the timed cooldown")
+env.Config.CrewLink.PingCooldownSeconds = 5
+ping_timer = 15000
+pause_ping_query = true
+local concurrent_result
+local request = coroutine.create(function() concurrent_result = call("quick-ping") end)
+local ok, marker = coroutine.resume(request)
+assert(ok and marker == "ping_query")
+assert(call("quick-ping").error == "ping_cooldown", "a database yield must not allow concurrent pings")
+pause_ping_query = false
+assert(coroutine.resume(request))
+assert(concurrent_result.success)
+ping_timer = 20000
+fail_ping_query = true
+local succeeded, failure = pcall(call, "quick-ping")
+assert(not succeeded and tostring(failure):find("Test database failure", 1, true))
+assert(call("quick-ping").success, "database failures must release the in-flight reservation")
+ping_timer = 25000
 ping_count = env.Config.CrewLink.MaximumActivePings
 assert(call("quick-ping").error == "ping_limit", "quick pings must respect the shared active-ping limit")
+ping_count = 0
+assert(call("quick-ping").success, "rejected pings must not start the cooldown")
 ping_count, allow_operation = 0, false
 assert(call("quick-ping").error == "rate_limited", "quick pings must respect the shared rate limit")
 allow_operation = true

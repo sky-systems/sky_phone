@@ -584,6 +584,7 @@ Config.MapMarkers = {
 }
 
 Config.CrewLink = {
+    PingCooldownSeconds = 5, -- shared by app and keybind pings per profile; 0 disables the cooldown
     Blip = {
         Enabled = true,
         Sprite = 126,

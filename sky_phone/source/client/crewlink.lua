@@ -6,6 +6,7 @@ local sync_requested = true
 local version = 0
 local stopped = false
 local quick_ping_pending = false
+local last_quick_ping_at
 local key_mapping_registered = false
 local colours = { cyan = 18, blue = 3, violet = 7, orange = 17, green = 2, rose = 8 }
 
@@ -132,6 +133,7 @@ end
 
 RegisterCommand("sky_phone_crewlink_ping", function()
     if not Config.CrewLink.QuickPing.Enabled or quick_ping_pending or IsNuiFocused() or IsPauseMenuActive() then return end
+    if last_quick_ping_at and elapsed(last_quick_ping_at) < (Config.CrewLink.PingCooldownSeconds or 5) * 1000 then return end
     quick_ping_pending = true
     local result = Bridge.Callbacks.Trigger("sky_phone:crewlink:quick-ping", {})
     quick_ping_pending = false
@@ -140,7 +142,10 @@ RegisterCommand("sky_phone_crewlink_ping", function()
     Bridge.Framework.Notify(locale.name, success and locale.pingCreated
         or locale.errors[result and result.error or "request_failed"] or locale.errors.request_failed,
         success and "success" or "error", 4000)
-    if success then request_sync() end
+    if success then
+        last_quick_ping_at = GetGameTimer()
+        request_sync()
+    end
 end, false)
 register_key_mapping()
 

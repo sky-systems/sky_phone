@@ -423,6 +423,10 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
+    [
+      'CrewLink.PingCooldownSeconds',
+      t('configurator.crewlinkPingCooldownLabel'),
+    ],
     ...[
       'Enabled',
       'Sprite',

@@ -69,6 +69,7 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  if (path === 'CrewLink.PingCooldownSeconds') return 'crewlinkPingCooldown'
   const crewlink = path.match(/^CrewLink\.(Blip|QuickPing)\.([^.]+)$/)
   if (crewlink) return `crewlink${crewlink[1]}${crewlink[2]}`
   const citywarnBlip = path.match(

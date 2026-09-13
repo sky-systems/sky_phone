@@ -48,6 +48,9 @@ describe('admin configurator descriptions', () => {
     }
   })
   it('selects specific descriptions before generic value descriptions', () => {
+    expect(configuratorDescriptionKey('CrewLink.PingCooldownSeconds', 5)).toBe(
+      'crewlinkPingCooldown',
+    )
     for (const key of [
       'Enabled',
       'Sprite',

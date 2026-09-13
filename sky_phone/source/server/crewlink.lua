@@ -39,6 +39,8 @@ local live_sources_cache = {
     expires_at = 0,
     sources = {},
 }
+local last_ping_at = {}
+local pending_pings = {}
 
 if password_pepper == "" then
     Bridge.Debug(
@@ -1219,10 +1221,22 @@ local function send_ping(source, data, background)
             coords = { x = coords.x, y = coords.y, z = coords.z },
         }
     end
-    local ping, error_code = create_ping(group_id, profile.id, nil, ping_data)
+    local last_sent = last_ping_at[profile.id]
+    if pending_pings[profile.id]
+        or (last_sent and ((GetGameTimer() - last_sent) & 0xffffffff) < (Config.CrewLink.PingCooldownSeconds or 5) * 1000)
+    then
+        return { success = false, error = "ping_cooldown" }
+    end
+    -- Reserve before database calls yield, so simultaneous app/keybind requests
+    -- cannot pass the cooldown together. Rejected creations do not start it.
+    pending_pings[profile.id] = true
+    local success, ping, error_code = pcall(create_ping, group_id, profile.id, nil, ping_data)
+    pending_pings[profile.id] = nil
+    if not success then error(ping) end
     if not ping then
         return { success = false, error = error_code }
     end
+    last_ping_at[profile.id] = GetGameTimer()
     notify_group(group_id, "ping", profile.username, {
         groupName = member.group_name,
         pingType = ping.type,
