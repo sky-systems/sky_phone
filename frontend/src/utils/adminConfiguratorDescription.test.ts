@@ -9,6 +9,21 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains model-specific Face ID masks and texture wildcards', () => {
+    expect(configuratorDescriptionKey('Security.FaceIdMaskWhitelist', [])).toBe(
+      'faceIdMaskWhitelist',
+    )
+    for (const key of ['Model', 'Drawable', 'Texture']) {
+      for (const entry of ['[1]', '.1']) {
+        expect(
+          configuratorDescriptionKey(
+            `Security.FaceIdMaskWhitelist${entry}.${key}`,
+            1,
+          ),
+        ).toBe(`faceIdMask${key}`)
+      }
+    }
+  })
   it('explains both service-line routing modes and their timing controls', () => {
     expect(
       configuratorDescriptionKey(
@@ -48,6 +63,26 @@ describe('admin configurator descriptions', () => {
     }
   })
   it('selects specific descriptions before generic value descriptions', () => {
+    expect(configuratorDescriptionKey('CrewLink.PingCooldownSeconds', 5)).toBe(
+      'crewlinkPingCooldown',
+    )
+    for (const key of [
+      'Enabled',
+      'Sprite',
+      'PingSprite',
+      'CategoryId',
+      'CategoryName',
+      'Scale',
+    ]) {
+      expect(configuratorDescriptionKey(`CrewLink.Blip.${key}`, 1)).toBe(
+        `crewlinkBlip${key}`,
+      )
+    }
+    for (const key of ['Enabled', 'DefaultKey']) {
+      expect(
+        configuratorDescriptionKey(`CrewLink.QuickPing.${key}`, 'NUMPAD5'),
+      ).toBe(`crewlinkQuickPing${key}`)
+    }
     expect(configuratorDescriptionKey('Garage.System', 'msk')).toBe(
       'garageSystem',
     )

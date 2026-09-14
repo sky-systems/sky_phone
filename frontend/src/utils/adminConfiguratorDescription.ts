@@ -101,6 +101,14 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  if (path === 'Security.FaceIdMaskWhitelist') return 'faceIdMaskWhitelist'
+  const faceIdMask = path.match(
+    /^Security\.FaceIdMaskWhitelist(?:\[\d+\]|\.\d+)\.(Model|Drawable|Texture)$/,
+  )
+  if (faceIdMask) return `faceIdMask${faceIdMask[1]}`
+  if (path === 'CrewLink.PingCooldownSeconds') return 'crewlinkPingCooldown'
+  const crewlink = path.match(/^CrewLink\.(Blip|QuickPing)\.([^.]+)$/)
+  if (crewlink) return `crewlink${crewlink[1]}${crewlink[2]}`
   const mediaPath = path.replace(/^Media\./, '').replace(/\[\d+\]$/, '')
   const source = path
     .replace(/^Media\./, '')

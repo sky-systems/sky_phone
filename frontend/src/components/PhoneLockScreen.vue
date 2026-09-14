@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { kFab, kGlass } from 'konsta/vue'
-import { Camera, Flashlight, LockKeyhole, Trash2 } from 'lucide-vue-next'
+import {
+  Camera,
+  Flashlight,
+  LockKeyhole,
+  ScanFace,
+  Trash2,
+} from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import PhoneStatusIndicators from '@/components/PhoneStatusIndicators.vue'
@@ -312,7 +318,8 @@ onBeforeUnmount(() => {
       <PhoneStatusIndicators class="lock-screen__indicators" />
     </header>
 
-    <LockKeyhole
+    <component
+      :is="!preview && phone.security.faceIdEnabled ? ScanFace : LockKeyhole"
       class="lock-screen__lock"
       :size="14"
       :stroke-width="1.8"

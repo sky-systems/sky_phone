@@ -980,6 +980,12 @@ const adminPanelFallbackLocales = {
     ofDevices: '{count} of {total} devices',
   },
   configurator: {
+    faceIdMaskWhitelistLabel: 'Allowed Face ID masks',
+    faceIdMaskLabels: {
+      Model: 'Ped model',
+      Drawable: 'Mask drawable ID',
+      Texture: 'Texture ID (-1 = all)',
+    },
     context: 'Runtime configuration',
     eyebrow: 'System tool',
     sections: 'Configuration',
@@ -1049,6 +1055,15 @@ const adminPanelFallbackLocales = {
       Radius: 'Radius (metres)',
     },
     descriptions: {
+      faceIdMaskWhitelist:
+        'Exceptions for masks on ped component 1, up to 256 entries. No mask (drawable 0) is always allowed. Each exception applies only to the specified ped model.',
+      faceIdMaskModel:
+        'Ped model name, e.g. mp_m_freemode_01 or mp_f_freemode_01. Custom models are supported (up to 64 letters, digits, underscores or hyphens).',
+      faceIdMaskDrawable:
+        'Global drawable ID of the allowed mask on component 1 (1-65535). IDs may differ between models and clothing packs.',
+      faceIdMaskTexture:
+        'Allowed texture ID (0-65535). Use -1 to allow every texture of this mask.',
+
       citywarnBlipSprite:
         'GTA blip sprite ID. Default: 161 (signal). Sprite 10 draws a large outline; use the separate radius setting for a fixed map area.',
       citywarnBlipDisplay:
@@ -1444,6 +1459,37 @@ const adminPanelFallbackLocales = {
 }
 
 const defaultLocales: LocaleTree = {
+  FaceId: {
+    title: 'Face ID',
+    setupBody:
+      'Unlock your phone with a glance. You can set up Face ID now or later in Settings.',
+    pinFallback: 'Your device passcode remains available at any time.',
+    requiresPin:
+      'Create a device passcode first. It is your backup when Face ID is unavailable.',
+    enable: 'Set Up Face ID',
+    unlock: 'Unlock with Face ID',
+    saved: 'Face ID settings saved.',
+    scanning: 'Recognizing you…',
+    retry: 'Try Again',
+    usePin: 'Use Passcode',
+    errors: {
+      face_id_not_enabled:
+        'Face ID is not set up on this phone. Use your passcode.',
+      face_id_not_recognized:
+        'Face not recognized. Try again or use the device passcode.',
+      face_id_unavailable: 'Face ID is currently unavailable.',
+      face_id_masked:
+        'Remove your mask to use Face ID, or enter your passcode.',
+      invalid_passcode: 'Incorrect device passcode.',
+      passcode_locked:
+        'Too many attempts. Wait before entering your passcode again.',
+      passcode_not_set: 'Set up a device passcode first.',
+      rate_limited: 'Please wait a moment before trying again.',
+      device_not_open: 'Open this phone again to continue.',
+      device_locked: 'Unlock this phone first.',
+      request_failed: 'Face ID is unavailable. Try again or use your passcode.',
+    },
+  },
   AdminPanel: adminPanelFallbackLocales,
   Apps: {
     citywarn: citywarnFallbackLocales,
@@ -1480,6 +1526,7 @@ const defaultLocales: LocaleTree = {
       history: 'Transfer History',
       noHistory: 'No transfers yet.',
       noNearby: 'No visible players are nearby.',
+      readyToReceive: 'Ready to receive a share.',
       visibility: 'Visibility',
       requestSent: 'Waiting for acceptance...',
       incomingFrom: '{name} wants to share',
@@ -4109,6 +4156,9 @@ const defaultLocales: LocaleTree = {
       clearHistory: 'Clear History',
     },
     snake: {
+      level: 'Level',
+      levelHint: 'New fruit every 10 points. New skin every 30 points.',
+      nextLevel: 'Next level at {score} points',
       name: 'Snake',
       backToMenu: 'Back to game menu',
       board: 'Snake game board',
@@ -6230,6 +6280,38 @@ export const usePhoneStore = defineStore('phone', {
         ),
       ].slice(0, 4)
       this.saveDeviceNamespace('settings', this.preferences)
+    },
+    async unlockWithFaceId(): Promise<NuiResponse<PasscodeResponseData>> {
+      const token = this.deviceSessionToken
+      const imei = this.device?.imei
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:face-id-unlock',
+      )
+      if (token !== this.deviceSessionToken || imei !== this.device?.imei) {
+        return { success: false, error: 'device_not_open' }
+      }
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
+    },
+    async setFaceId(
+      enabled: boolean,
+      passcode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const token = this.deviceSessionToken
+      const imei = this.device?.imei
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:set-face-id',
+        { enabled, passcode },
+      )
+      if (token !== this.deviceSessionToken || imei !== this.device?.imei) {
+        return { success: false, error: 'device_not_open' }
+      }
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
     },
     async unlockWithPasscode(
       passcode: string,

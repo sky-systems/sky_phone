@@ -70,7 +70,7 @@ local callback_groups = {
         remove-comment publish-story stories view-story story-viewers remove-story activities mark-activities
         block report admin-reports admin-resolve-report
     ]],
-    security = [[unlock set-passcode change-passcode disable-passcode]],
+    security = [[unlock set-passcode change-passcode disable-passcode face-id-unlock set-face-id]],
     sim = [[insert eject]],
     tones = [[list]],
     ["weazel-news"] = [[context list get manage-list create update delete]],
@@ -83,6 +83,21 @@ for namespace, endpoints in pairs(callback_groups) do
             if type(data) ~= "table" then
                 cb({ success = false, error = "invalid_request" })
                 return
+            end
+
+            if callback_name == "security:face-id-unlock"
+                or (callback_name == "security:set-face-id" and data.enabled == true) then
+                local ped = PlayerPedId()
+                if ped == 0 or not DoesEntityExist(ped) then
+                    cb({ success = false, error = "face_id_unavailable" })
+                    return
+                end
+                -- Read the current mask for every scan; never accept appearance supplied by NUI.
+                data.faceIdAppearance = {
+                    model = GetEntityModel(ped),
+                    drawable = GetPedDrawableVariation(ped, 1),
+                    texture = GetPedTextureVariation(ped, 1),
+                }
             end
 
             local result = Bridge.Callbacks.Trigger("sky_phone:" .. callback_name, data)

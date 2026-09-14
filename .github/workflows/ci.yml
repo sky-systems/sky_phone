@@ -57,11 +57,17 @@ jobs:
           lua5.4 tests/companies_call_availability_spec.lua
           lua5.4 tests/companies_service_device_spec.lua
           lua5.4 tests/server_phone_modules.lua
+          lua5.4 tests/server_phone_face_id.lua
 
       - name: Test CityWarn blip lifecycle
         run: |
           lua5.4 tests/client_citywarn.lua
           lua5.4 tests/server_citywarn.lua
+
+      - name: Test CrewLink visibility, world blips and quick pings
+        run: |
+          lua5.4 tests/server_crewlink.lua
+          lua5.4 tests/client_crewlink.lua
 
       - name: Test Discord logging and call lifecycle
         run: |

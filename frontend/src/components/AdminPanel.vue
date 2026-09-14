@@ -423,6 +423,33 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
+    [
+      'Security.FaceIdMaskWhitelist',
+      t('configurator.faceIdMaskWhitelistLabel'),
+    ],
+    ...['Model', 'Drawable', 'Texture'].map((key) => [
+      `Security.FaceIdMaskWhitelist[].${key}`,
+      t(`configurator.faceIdMaskLabels.${key}`),
+    ]),
+    [
+      'CrewLink.PingCooldownSeconds',
+      t('configurator.crewlinkPingCooldownLabel'),
+    ],
+    ...[
+      'Enabled',
+      'Sprite',
+      'PingSprite',
+      'CategoryId',
+      'CategoryName',
+      'Scale',
+    ].map((key) => [
+      `CrewLink.Blip.${key}`,
+      t(`configurator.crewlinkBlipLabels.${key}`),
+    ]),
+    ...['Enabled', 'DefaultKey'].map((key) => [
+      `CrewLink.QuickPing.${key}`,
+      t(`configurator.crewlinkQuickPingLabels.${key}`),
+    ]),
     ['CityWarn.CategoryColors', t('configurator.citywarnCategoryColors')],
     ...Object.keys(DEFAULT_CITYWARN_COLORS).map((category) => [
       `CityWarn.CategoryColors.${category}`,

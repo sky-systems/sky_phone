@@ -3110,6 +3110,7 @@ const deviceData = {
   },
 }
 let mockPasscode = ''
+let mockFaceIdOwner = null
 let mockSecurity = { enabled: false, length: null, lockedUntil: 0 }
 let mockSim = {
   id: 'development-sim',
@@ -10935,6 +10936,50 @@ app.post('/api/:endpoint', (request, response) => {
     response.json({ success: true, data: { revision } })
     return
   }
+  if (endpoint === 'security:face-id-unlock') {
+    const character =
+      request.body._testScenario === 'face-id-other-character'
+        ? 'other-character'
+        : 'phone-owner'
+    response.json(
+      !mockSecurity.faceIdEnabled
+        ? { success: false, error: 'face_id_not_enabled' }
+        : mockFaceIdOwner !== character
+          ? { success: false, error: 'face_id_not_recognized' }
+          : request.body._testScenario === 'face-id-masked'
+            ? { success: false, error: 'face_id_masked' }
+            : { success: true, data: { security: mockSecurity } },
+    )
+    return
+  }
+  if (endpoint === 'security:set-face-id') {
+    if (typeof request.body.enabled !== 'boolean') {
+      response.json({ success: false, error: 'invalid_request' })
+      return
+    }
+    if (!mockSecurity.enabled || request.body.passcode !== mockPasscode) {
+      response.json({
+        success: false,
+        error: mockSecurity.enabled ? 'invalid_passcode' : 'passcode_not_set',
+      })
+      return
+    }
+    if (
+      request.body.enabled &&
+      request.body._testScenario === 'face-id-masked'
+    ) {
+      response.json({ success: false, error: 'face_id_masked' })
+      return
+    }
+    mockFaceIdOwner = request.body.enabled
+      ? request.body._testScenario === 'face-id-other-character'
+        ? 'other-character'
+        : 'phone-owner'
+      : null
+    mockSecurity = { ...mockSecurity, faceIdEnabled: request.body.enabled }
+    response.json({ success: true, data: { security: mockSecurity } })
+    return
+  }
   if (endpoint === 'security:unlock') {
     response.json(
       !mockSecurity.enabled || request.body.passcode === mockPasscode
@@ -10960,6 +11005,7 @@ app.post('/api/:endpoint', (request, response) => {
     }
     mockPasscode = String(request.body.newPasscode)
     mockSecurity = {
+      ...mockSecurity,
       enabled: true,
       length: mockPasscode.length,
       lockedUntil: 0,

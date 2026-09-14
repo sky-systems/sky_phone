@@ -181,7 +181,10 @@ const rootTableTabs = computed<RootTableTab[]>(() => {
       count: configuratorStructureSize(tableFieldStructure(key)),
       id: `field:${key}`,
       key,
-      label: props.tabLabel?.(key, tableValue.value[key]) ?? key,
+      label:
+        props.labels.fieldNames?.[tableEntryPath(key)] ??
+        props.tabLabel?.(key, tableValue.value[key]) ??
+        key,
     })),
   ]
 })
@@ -341,7 +344,12 @@ function tableEntryPath(key: string): string {
 }
 
 function tableEntryLabel(key: string): string {
-  return props.labels.fieldNames?.[tableEntryPath(key)] ?? key
+  const path = tableEntryPath(key)
+  return (
+    props.labels.fieldNames?.[path] ??
+    props.labels.fieldNames?.[path.replace(/\[\d+\]/g, '[]')] ??
+    key
+  )
 }
 
 function listEntryPath(index: number): string {
@@ -785,6 +793,16 @@ function mapEntryStructure(
         role="tab"
         :class="{ 'is-active': activeRootTableTab?.id === tableTab.id }"
         :aria-selected="activeRootTableTab?.id === tableTab.id"
+        :title="
+          tableTab.key
+            ? describe(
+                tableEntryPath(tableTab.key),
+                tableValue[tableTab.key],
+                tableFieldStructure(tableTab.key),
+                tableTab.label,
+              )
+            : undefined
+        "
         @click="selectedTableTab = tableTab.id"
       >
         <span>{{ tableTab.label }}</span>

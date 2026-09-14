@@ -159,6 +159,11 @@ Config.Security = {
     MaximumAttempts = 5,
     LockSeconds = 30,
     AttemptsPerMinute = 12,
+    -- Face ID rejects masks on ped component 1 (drawable 0 means no mask).
+    -- Exceptions are model-specific; Texture = -1 allows every texture of that mask.
+    FaceIdMaskWhitelist = {
+        -- { Model = "mp_m_freemode_01", Drawable = 12, Texture = -1 },
+    },
 }
 
 Config.AdminPanel = {
@@ -625,6 +630,19 @@ Config.MapMarkers = {
 }
 
 Config.CrewLink = {
+    PingCooldownSeconds = 5, -- shared by app and keybind pings per profile; 0 disables the cooldown
+    Blip = {
+        Enabled = true,
+        Sprite = 126,
+        PingSprite = 280,
+        CategoryId = 13, -- named custom category; keep distinct from other resources
+        CategoryName = "CrewLink",
+        Scale = 0.8,
+    },
+    QuickPing = {
+        Enabled = true,
+        DefaultKey = "NUMPAD5", -- players can override this in FiveM key bindings
+    },
     UsernameMinLength = 3,
     UsernameMaxLength = 20,
     PasswordMinLength = 8,
