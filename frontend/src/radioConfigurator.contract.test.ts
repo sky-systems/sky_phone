@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
+import { collectLuaLocaleValues } from './testing/lua-locale'
 
 const resourceSource = (path: string): string =>
   readFileSync(
@@ -75,14 +76,22 @@ describe('radio configurator access contract', () => {
     expect(editorSource).toContain(".replace(/[^a-z0-9_-]/g, '')")
     expect(editorSource).toContain('.slice(0, 64)')
 
-    for (const locale of ['en', 'de', 'es']) {
-      const localeSource = resourceSource(`config/locales/${locale}.lua`)
-      expect(localeSource).toContain(
-        `Locales["${locale}"].Nui.AdminPanel.configurator.table.addJob`,
+    const localeDirectory = new URL(
+      '../../sky_phone/config/locales/',
+      import.meta.url,
+    )
+    for (const file of readdirSync(localeDirectory).filter((name) =>
+      name.endsWith('.lua'),
+    )) {
+      const values = collectLuaLocaleValues(
+        resourceSource(`config/locales/${file}`),
       )
-      expect(localeSource).toContain(
-        `Locales["${locale}"].Nui.AdminPanel.configurator.table.jobPlaceholder`,
+      expect(values.get('Nui.AdminPanel.configurator.table.addJob')).toMatch(
+        /\S/,
       )
+      expect(
+        values.get('Nui.AdminPanel.configurator.table.jobPlaceholder'),
+      ).toMatch(/\S/)
     }
   })
 })
