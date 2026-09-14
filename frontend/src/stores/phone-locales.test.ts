@@ -15,6 +15,27 @@ describe('phone locale fallback', () => {
     vi.unstubAllGlobals()
   })
 
+  it.each([
+    ['cn', 'zh-CN'],
+    ['cz', 'cs-CZ'],
+    ['rs', 'sr-Cyrl-RS'],
+    ['se', 'sv-SE'],
+    ['de', 'de'],
+  ])('formats %s using the correct browser language', (code, expected) => {
+    const phone = usePhoneStore()
+    const copy = { caption: 'Localized caption' }
+    phone.open({ lang: code, locales: copy })
+    expect(phone.lang).toBe(expected)
+    expect(phone.t('caption')).toBe(copy.caption)
+    expect(new Intl.DateTimeFormat(phone.lang).resolvedOptions().locale).toBe(
+      expected,
+    )
+
+    phone.setLocale(code, copy, {})
+    expect(phone.lang).toBe(expected)
+    expect(phone.t('caption')).toBe(copy.caption)
+  })
+
   it('keeps CityMarkt profile copy translated with a partial server locale', () => {
     const phone = usePhoneStore()
     phone.open({ locales: { Apps: { citymarkt: { name: 'CityMarkt' } } } })

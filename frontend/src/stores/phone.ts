@@ -29,6 +29,13 @@ import {
 
 type LocaleTree = Record<string, unknown>
 
+const intlLocaleCodes: Record<string, string> = {
+  cn: 'zh-CN',
+  cz: 'cs-CZ',
+  rs: 'sr-Cyrl-RS',
+  se: 'sv-SE',
+}
+
 export type PasscodeResponseData = {
   attemptsRemaining?: number
   retryAfter?: number
@@ -6038,7 +6045,7 @@ export const usePhoneStore = defineStore('phone', {
       locales: LocaleTree,
       fallbackLocales: LocaleTree,
     ): void {
-      this.lang = lang
+      this.lang = intlLocaleCodes[lang] ?? lang
       this.locales = locales
       this.fallbackLocales = fallbackLocales
     },
@@ -6082,7 +6089,8 @@ export const usePhoneStore = defineStore('phone', {
         this.persistenceGeneration += 1
       }
       this.deviceSessionToken = nextToken
-      this.lang = payload.lang ?? 'en'
+      const lang = payload.lang ?? 'en'
+      this.lang = intlLocaleCodes[lang] ?? lang
       this.fallbackLocales = payload.fallbackLocales ?? defaultLocales
       this.locales = payload.locales ?? this.fallbackLocales
       if (payload.device) this.hydrateDevice(payload.device)
