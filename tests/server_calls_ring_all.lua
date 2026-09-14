@@ -468,3 +468,41 @@ local company_result = company_fixture.env.SkyPhoneCalls.StartCompanyCall(1, "po
 assert(company_result.success and company_result.data.state == "ringing" and company_result.data.video == false,
     "Company calls without a UI request payload must remain valid audio calls")
 print("PASS outbound company calls: no undefined video-request payload")
+
+test("restrictions reject callers and direct callees, clear active calls and preserve other ring-all targets", function()
+    local state = fixture()
+    local blocked = { [2] = "player_cuffed" }
+    state.env.Bridge.PlayerState = { GetBlockReason = function(src) return blocked[src] end }
+    local denied = state.callbacks["sky_phone:calls:dial"](2, { phoneNumber = "5550001" })
+    assert(not denied.success and denied.error == "player_cuffed")
+    local unavailable = state.dial(1, "5550002")
+    assert(unavailable.state == "unavailable" and state.event_count("sky_phone:call:incoming", 2) == 0)
+    local call = state.dial()
+    assert(not state.active(2) and state.active(3) and state.active(4))
+    blocked[3] = "player_incapacitated"
+    state.handlers["sky_phone:player:restricted"](3)
+    assert(not state.active(3) and state.active(4) and state.active(1))
+    assert(not state.action("answer", 3, call.id).success)
+    assert(state.action("answer", 4, call.id).success)
+    blocked[4] = "player_cuffed"
+    state.tick()
+    assert(not state.active(4) and not state.active(1) and #state.voice_stops == 1)
+end)
+
+test("becoming incapacitated while accepting cannot attach a late voice connection", function()
+    for _, phase in ipairs({ "permission", "inventory", "voice", "transaction" }) do
+        local state = fixture()
+        local blocked = {}
+        state.env.Bridge.PlayerState = { GetBlockReason = function(src) return blocked[src] end }
+        local call = state.dial()
+        state.hooks[phase] = function() state.hooks[phase] = nil; coroutine.yield() end
+        local result
+        local answer = coroutine.create(function() result = state.action("answer", 3, call.id) end)
+        assert(coroutine.resume(answer))
+        blocked[3] = "player_incapacitated"
+        state.handlers["sky_phone:player:restricted"](3)
+        local ok, err = coroutine.resume(answer); assert(ok, err)
+        assert(not result.success, phase)
+        if phase == "voice" or phase == "transaction" then assert(#state.voice_stops >= 1, phase) end
+    end
+end)

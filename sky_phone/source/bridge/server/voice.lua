@@ -118,6 +118,7 @@ end
 -- Remember the pre-mute voice state; never revive a dead/downed player on unmute.
 local salty_muted = {}
 local function player_is_dead(player_source)
+    if Bridge.PlayerState then return Bridge.PlayerState.Get(player_source).dead end
     local player = Player(player_source)
     local state = player and player.state
     if state and (state.isDead or state.dead or state.isdead or state.inlaststand) then return true end
@@ -379,4 +380,22 @@ function Bridge.Radio.SetPlayerSpeaker(player_source, enabled)
         return false
     end
     return true
+end
+
+function Bridge.Radio.DisconnectPlayer(player_source)
+    local selected = resolve_radio_provider()
+    local ok, err = pcall(function()
+        if selected == "pma" then
+            exports["pma-voice"]:setPlayerRadio(tonumber(player_source), 0)
+        elseif selected == "saltychat" then
+            exports.saltychat:SetPlayerRadioSpeaker(tonumber(player_source), false)
+            exports.saltychat:SetPlayerRadioChannel(tonumber(player_source), "", true)
+            exports.saltychat:SetPlayerRadioChannel(tonumber(player_source), "", false)
+        elseif selected == "yaca" then
+            exports["yaca-voice"]:setPlayerRadioChannel(tonumber(player_source), 1, "0")
+            exports["yaca-voice"]:setPlayerRadioChannel(tonumber(player_source), 2, "0")
+        end
+    end)
+    if not ok then Bridge.Debug("error", "[sky_phone] Radio disconnect failed: %s", tostring(err)) end
+    return ok
 end

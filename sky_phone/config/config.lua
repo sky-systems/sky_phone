@@ -48,6 +48,10 @@ Config.Bridge = {
 Config.Command = "phone"
 
 Config.Phone = {
+    -- Applies to phone use, ringing/active calls (including video), streams and radio.
+    -- Optional Sky ambulance/police exports and ESX/Qbox/QBCore status are detected automatically.
+    BlockWhenDead = true, -- includes unconscious/laststand; false permits phone/voice use while downed
+    BlockWhenCuffed = true, -- false permits phone/voice use while handcuffed
     Item = "phone",
     Unique = true, -- true: data follows each phone item; false: one persistent phone per character; forced false for metadata-free inventories
     Keybind = "F1", -- false disables the configurable phone key mapping
@@ -269,6 +273,9 @@ Config.Payphones = {
 }
 
 Config.Radio = {
+    -- Checks Config.Phone.Item on join and once per second for connected radio users only.
+    -- Losing the last phone disconnects both frequencies, including background radio.
+    RequirePhoneItem = true, -- false allows radio without a phone item, including auto-rejoin
     VoiceProvider = "auto", -- auto, yaca, pma, saltychat
     DefaultVolume = 50,
     HistoryLimit = 8,

@@ -5,6 +5,9 @@ RegisterNetEvent("SaltyChat_TalkStateChanged", function(value) salty.talking = v
 RegisterNetEvent("SaltyChat_MicStateChanged", function(value) salty.muted = value == true end)
 RegisterNetEvent("SaltyChat_MicEnabledChanged", function(value) salty.enabled = value == true end)
 local function state()
+    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then
+        return { talking = false, enabled = false, range = 0 }
+    end
     local provider = Bridge.Calls.GetProvider()
     if provider == "saltychat" then
         return { talking = salty.talking and not salty.muted and salty.enabled,
@@ -49,6 +52,10 @@ CreateThread(function()
             end
         end
     end
+end)
+AddEventHandler("sky_phone:client:restricted", function()
+    capturing = false
+    SendNUIMessage({ type = "realtime:reset" })
 end)
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then

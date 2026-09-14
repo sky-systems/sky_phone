@@ -3020,3 +3020,24 @@ Locales["en"].Nui.AdminPanel.configurator.descriptions.wallpaperImport = "Shows 
 Locales["en"].Nui.AdminPanel.configurator.descriptions.photoEncoding = "Image format for camera captures. Enter jpg, png or webp. Example: jpg for compressed photos."
 Locales["en"].Nui.AdminPanel.configurator.descriptions.photoQuality = "Camera image quality from 0 to 1. Example: 0.95 for high quality. Higher values usually create larger JPG/WebP files; PNG ignores this setting."
 Locales["en"].Nui.AdminPanel.configurator.descriptions.videoBitrate = "Video recording bitrate in kilobits per second. Example: 1500 = 1.5 Mbit/s. Higher values increase quality and upload size."
+
+Locales["en"].Nui.AdminPanel.configurator.playerRestrictionLabels = {}
+Locales["en"].Nui.AdminPanel.configurator.playerRestrictionLabels.BlockWhenDead = "Block while dead or unconscious"
+Locales["en"].Nui.AdminPanel.configurator.playerRestrictionLabels.BlockWhenCuffed = "Block while handcuffed"
+Locales["en"].Nui.AdminPanel.configurator.playerRestrictionLabels.RequirePhoneItem = "Require a phone item for radio"
+Locales["en"].Nui.AdminPanel.configurator.descriptions.phoneBlockWhenDead = "Enabled by default. Blocks phone use, ends ringing and active calls/video calls and streams, and disconnects both radio frequencies while dead, unconscious or in laststand. Detects sky_ambulancejob exports and ESX/Qbox/QBCore state automatically. Disabling permits use in these states."
+Locales["en"].Nui.AdminPanel.configurator.descriptions.phoneBlockWhenCuffed = "Enabled by default. Blocks phone use and ends calls, streams and radio while handcuffed. Uses sky_policejob exports, ESX police handcuff state and Qbox/QBCore police metadata. No edits to voice or job resources are required."
+Locales["en"].Nui.AdminPanel.configurator.descriptions.radioRequirePhoneItem = "Enabled by default. Requires Phone.Item when joining or automatically rejoining radio. Only connected radio users are checked once per second; losing the last phone disconnects both frequencies even with the phone closed. Disable to allow radio without a phone item."
+Locales["en"].DeviceErrors.player_incapacitated = "You cannot use your phone while dead or unconscious."
+Locales["en"].DeviceErrors.player_cuffed = "You cannot use your phone while handcuffed."
+Locales["en"].DeviceErrors.phone_not_owned = "You need a phone item to use the radio."
+Locales["en"].DeviceErrors.request_cancelled = "The connection was cancelled."
+
+Locales["en"].Nui.Apps.radio.errors.player_incapacitated = "You cannot use your phone while dead or unconscious."
+Locales["en"].Nui.Apps.radio.errors.player_cuffed = "You cannot use your phone while handcuffed."
+Locales["en"].Nui.Apps.radio.errors.phone_not_owned = "You need a phone item to use the radio."
+Locales["en"].Nui.Apps.radio.errors.request_cancelled = "The connection was cancelled."
+
+Locales["en"].Nui.Apps.phone.errors.player_incapacitated = "You cannot use your phone while dead or unconscious."
+Locales["en"].Nui.Apps.phone.errors.player_cuffed = "You cannot use your phone while handcuffed."
+Locales["en"].Nui.Apps.phone.errors.request_cancelled = "The connection was cancelled."

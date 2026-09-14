@@ -45,6 +45,7 @@ function SendNUIMessage(message)
 end
 
 function TriggerEvent() end
+function AddEventHandler(name, callback) net_events[name] = callback end
 
 dofile("sky_phone/source/client/calls.lua")
 

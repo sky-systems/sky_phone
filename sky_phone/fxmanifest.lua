@@ -17,6 +17,7 @@ provide 'yseries'
 shared_scripts {
     'config/init.lua',
     'source/bridge/shared.lua',
+    'source/shared/player_state.lua',
     'source/shared/imei.lua',
     'source/shared/sim_number.lua',
     'source/shared/custom_apps.lua',
@@ -34,6 +35,7 @@ client_scripts {
     'source/bridge/client/callbacks.lua',
     'source/client/phone_configurator.lua',
     'source/bridge/client/framework.lua',
+    'source/bridge/client/player_state.lua',
     'source/bridge/client/housing.lua',
     'source/bridge/client/housing/*.lua',
     'source/bridge/client/calls.lua',
@@ -97,6 +99,7 @@ server_scripts {
     'source/server/phone_configurator.lua',
     'source/bridge/server/framework.lua',
     'source/bridge/server/frameworks/*.lua',
+    'source/bridge/server/player_state.lua',
     'source/bridge/server/housing.lua',
     'source/bridge/server/housing/*.lua',
     'source/bridge/server/inventory.lua',

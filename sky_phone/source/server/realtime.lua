@@ -22,6 +22,7 @@ local function call_for(source, id)
     if call and call.id == id and call.state == "connected" and call.video then return call end
 end
 local function nearby_distance(source, host)
+    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(source) then return nil end
     local voice = voice_states[source]
     if not voice or os.time() - voice.at > 15 or not voice.enabled then return nil end
     if GetPlayerRoutingBucket(source) ~= GetPlayerRoutingBucket(host) then return nil end
@@ -109,6 +110,7 @@ local function end_room(room, reason)
     room.members = {}
 end
 local function authorized(source, room, member)
+    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(source) then return false end
     if not room or not member or rooms[room.id] ~= room or room.members[source] ~= member or not Config.Realtime.Enabled then return false end
     if room.kind == "call" then return call_for(source, room.callId) ~= nil end
     if member.role == "nearby" then
@@ -413,13 +415,15 @@ CreateThread(function()
         local now = os.time()
         for _, room in pairs(rooms) do
             local host = room.members[room.host]
-            if not Config.Realtime.Enabled or not host or now - host.at > 30
+            if (Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(room.host))
+                or not Config.Realtime.Enabled or not host or now - host.at > 30
                 or now - room.created > Config.Realtime.MaxDurationMinutes * 60
                 or (room.kind == "call" and not call_for(room.host, room.callId)) then
                 end_room(room)
             else
                 for src, member in pairs(room.members) do
-                    if now - member.at > 30 then remove_member(room, src, "session_timeout")
+                    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(src) then remove_member(room, src, "player_restricted")
+                    elseif now - member.at > 30 then remove_member(room, src, "session_timeout")
                     elseif member.role == "nearby" then
                         local distance, gain = nearby_distance(src, room.host)
                         if not Config.Realtime.NearbyAudio or not distance then remove_member(room, src)
@@ -441,6 +445,12 @@ CreateThread(function()
                 broadcast(room)
             end
         end
+    end
+end)
+AddEventHandler("sky_phone:player:restricted", function(src, reason)
+    for _, room in pairs(rooms) do
+        if room.host == src or (room.kind == "call" and room.members[src]) then end_room(room, reason)
+        else remove_member(room, src, reason) end
     end
 end)
 AddEventHandler("playerDropped", function()

@@ -761,7 +761,10 @@ function openDevelopmentPayphonePreview(): void {
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (!isTrustedRootMessageSource(event.source, window)) return
 
-  if (event.data?.type === 'admin:open') {
+  if (event.data?.type === 'radio:disconnected') {
+    const payload = event.data.data as { reason?: string } | undefined
+    radio.forceDisconnect(payload?.reason)
+  } else if (event.data?.type === 'admin:open') {
     const data = event.data.data as AdminPanelOpenPayload | undefined
     if (data?.lang && data.locales && data.fallbackLocales) {
       phone.setLocale(data.lang, data.locales, data.fallbackLocales)

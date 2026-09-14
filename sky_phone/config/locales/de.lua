@@ -3020,3 +3020,24 @@ Locales["de"].Nui.AdminPanel.configurator.descriptions.wallpaperImport = "Zeigt 
 Locales["de"].Nui.AdminPanel.configurator.descriptions.photoEncoding = "Bildformat für Kameraaufnahmen. jpg, png oder webp eintragen. Beispiel: jpg für komprimierte Fotos."
 Locales["de"].Nui.AdminPanel.configurator.descriptions.photoQuality = "Bildqualität der Kamera von 0 bis 1. Beispiel: 0.95 für hohe Qualität. Höhere Werte ergeben meist größere JPG-/WebP-Dateien; PNG ignoriert diese Einstellung."
 Locales["de"].Nui.AdminPanel.configurator.descriptions.videoBitrate = "Video-Bitrate in Kilobit pro Sekunde. Beispiel: 1500 = 1.5 Mbit/s. Höhere Werte erhöhen Qualität und Uploadgröße."
+
+Locales["de"].Nui.AdminPanel.configurator.playerRestrictionLabels = {}
+Locales["de"].Nui.AdminPanel.configurator.playerRestrictionLabels.BlockWhenDead = "Bei Tod oder Bewusstlosigkeit sperren"
+Locales["de"].Nui.AdminPanel.configurator.playerRestrictionLabels.BlockWhenCuffed = "Bei Handschellen sperren"
+Locales["de"].Nui.AdminPanel.configurator.playerRestrictionLabels.RequirePhoneItem = "Handy-Item für Funk voraussetzen"
+Locales["de"].Nui.AdminPanel.configurator.descriptions.phoneBlockWhenDead = "Standardmäßig aktiv. Sperrt die Handynutzung, beendet klingelnde und aktive Anrufe/Videoanrufe sowie Streams und trennt beide Funkfrequenzen bei Tod, Bewusstlosigkeit oder Laststand. Erkennt sky_ambulancejob-Exports und ESX/Qbox/QBCore-Zustände automatisch. Deaktivieren erlaubt die Nutzung in diesen Zuständen."
+Locales["de"].Nui.AdminPanel.configurator.descriptions.phoneBlockWhenCuffed = "Standardmäßig aktiv. Sperrt Handy, Anrufe, Streams und Funk bei Handschellen. Nutzt sky_policejob-Exports, den ESX-Polizeifesselstatus und Qbox/QBCore-Polizeimetadaten. Keine Änderungen an Voice- oder Job-Ressourcen nötig."
+Locales["de"].Nui.AdminPanel.configurator.descriptions.radioRequirePhoneItem = "Standardmäßig aktiv. Benötigt Phone.Item beim Funkbeitritt und automatischen Wiederbeitritt. Nur verbundene Funkteilnehmer werden einmal pro Sekunde geprüft. Ohne das letzte Handy werden beide Frequenzen auch bei geschlossenem Handy getrennt. Deaktivieren erlaubt Funk ohne Handy-Item."
+Locales["de"].DeviceErrors.player_incapacitated = "Du kannst dein Handy bei Tod oder Bewusstlosigkeit nicht benutzen."
+Locales["de"].DeviceErrors.player_cuffed = "Du kannst dein Handy mit Handschellen nicht benutzen."
+Locales["de"].DeviceErrors.phone_not_owned = "Du brauchst ein Handy-Item für den Funk."
+Locales["de"].DeviceErrors.request_cancelled = "Die Verbindung wurde abgebrochen."
+
+Locales["de"].Nui.Apps.radio.errors.player_incapacitated = "Du kannst dein Handy bei Tod oder Bewusstlosigkeit nicht benutzen."
+Locales["de"].Nui.Apps.radio.errors.player_cuffed = "Du kannst dein Handy mit Handschellen nicht benutzen."
+Locales["de"].Nui.Apps.radio.errors.phone_not_owned = "Du brauchst ein Handy-Item für den Funk."
+Locales["de"].Nui.Apps.radio.errors.request_cancelled = "Die Verbindung wurde abgebrochen."
+
+Locales["de"].Nui.Apps.phone.errors.player_incapacitated = "Du kannst dein Handy bei Tod oder Bewusstlosigkeit nicht benutzen."
+Locales["de"].Nui.Apps.phone.errors.player_cuffed = "Du kannst dein Handy mit Handschellen nicht benutzen."
+Locales["de"].Nui.Apps.phone.errors.request_cancelled = "Die Verbindung wurde abgebrochen."

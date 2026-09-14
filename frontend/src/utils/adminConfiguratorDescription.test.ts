@@ -172,3 +172,15 @@ it('explains the integrated voice controls alongside the provider and speaker sw
     'phoneSpeaker',
   )
 })
+
+it('explains the independent default-on player and radio restrictions', () => {
+  expect(configuratorDescriptionKey('Phone.BlockWhenDead', true)).toBe(
+    'phoneBlockWhenDead',
+  )
+  expect(configuratorDescriptionKey('Phone.BlockWhenCuffed', true)).toBe(
+    'phoneBlockWhenCuffed',
+  )
+  expect(configuratorDescriptionKey('Radio.RequirePhoneItem', true)).toBe(
+    'radioRequirePhoneItem',
+  )
+})

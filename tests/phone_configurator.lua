@@ -563,6 +563,41 @@ test("Realtime invalid settings reject the entire save", function()
     end
 end)
 
+test("player restrictions and radio item requirement default on, persist false and reject wrong types", function()
+    local server = new_server()
+    assert(server.env.Config.Phone.BlockWhenDead == true)
+    assert(server.env.Config.Phone.BlockWhenCuffed == true)
+    assert(server.env.Config.Radio.RequirePhoneItem == true)
+    local phone = server.field("Phone").value
+    phone.BlockWhenDead, phone.BlockWhenCuffed = false, false
+    local radio = server.field("Radio").value
+    radio.RequirePhoneItem = false
+    local result = server.save({ change("Phone", phone), change("Radio", radio) })
+    assert(result.success, tostring(result.error))
+    local restarted = new_server(server.database)
+    local client = new_client(restarted)
+    assert(client.config.Phone.BlockWhenDead == false and client.config.Phone.BlockWhenCuffed == false)
+    assert(client.config.Radio.RequirePhoneItem == false)
+    for _, key in ipairs({ "BlockWhenDead", "BlockWhenCuffed" }) do
+        local bad = restarted.field("Phone").value
+        bad[key] = "false"
+        assert(not restarted.save({ change("Phone", bad) }).success)
+    end
+    radio = restarted.field("Radio").value
+    radio.RequirePhoneItem = 0
+    assert(not restarted.save({ change("Radio", radio) }).success)
+end)
+
+test("existing SQL rows receive default-on restrictions without resetting other settings", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.Phone.BlockWhenDead, stored.Phone.BlockWhenCuffed = nil, nil
+    stored.Radio.RequirePhoneItem, stored.Phone.AllowMovement = nil, false
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.Phone.BlockWhenDead and restarted.env.Config.Phone.BlockWhenCuffed)
+    assert(restarted.env.Config.Radio.RequirePhoneItem and restarted.env.Config.Phone.AllowMovement == false)
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")

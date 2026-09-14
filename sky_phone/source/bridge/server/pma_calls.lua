@@ -51,6 +51,7 @@ local function refresh()
                         local channel = channel_of(player)
                         if not participants[player] and target.bucket == position.bucket
                             and not SkyPhoneCalls.IsActiveForSource(player)
+                            and not (Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(player))
                             and (channel == 0 or channel == guests[player]) then
                             local a, b = position.coords, target.coords
                             local distance = (a.x-b.x)^2 + (a.y-b.y)^2 + (a.z-b.z)^2
@@ -84,6 +85,11 @@ end
 function SkyPhonePmaCalls.Stop(id)
     local call = active[id]
     if call then
+        if GetResourceState("pma-voice") == "started" then
+            for _, player in ipairs(call.players) do
+                if channel_of(player) == call.channel then set_channel(player, 0) end
+            end
+        end
         for player in pairs(call.muted) do TriggerClientEvent("sky_phone:calls:pma-muted", player, false) end
     end
     active[id] = nil

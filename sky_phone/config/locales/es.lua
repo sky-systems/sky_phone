@@ -3018,3 +3018,24 @@ Locales["es"].Nui.AdminPanel.configurator.descriptions.wallpaperImport = "Muestr
 Locales["es"].Nui.AdminPanel.configurator.descriptions.photoEncoding = "Formato de las capturas. Introduce jpg, png o webp. Ejemplo: jpg para fotos comprimidas."
 Locales["es"].Nui.AdminPanel.configurator.descriptions.photoQuality = "Calidad de cámara de 0 a 1. Ejemplo: 0.95 para calidad alta. Valores mayores suelen crear JPG/WebP más grandes; PNG ignora este ajuste."
 Locales["es"].Nui.AdminPanel.configurator.descriptions.videoBitrate = "Tasa de vídeo en kilobits por segundo. Ejemplo: 1500 = 1.5 Mbit/s. Valores mayores aumentan la calidad y el tamaño."
+
+Locales["es"].Nui.AdminPanel.configurator.playerRestrictionLabels = {}
+Locales["es"].Nui.AdminPanel.configurator.playerRestrictionLabels.BlockWhenDead = "Bloquear al morir o perder el conocimiento"
+Locales["es"].Nui.AdminPanel.configurator.playerRestrictionLabels.BlockWhenCuffed = "Bloquear con esposas"
+Locales["es"].Nui.AdminPanel.configurator.playerRestrictionLabels.RequirePhoneItem = "Exigir un teléfono para la radio"
+Locales["es"].Nui.AdminPanel.configurator.descriptions.phoneBlockWhenDead = "Activado por defecto. Bloquea el teléfono, finaliza llamadas, videollamadas y directos, y desconecta ambas frecuencias al morir, quedar inconsciente o entrar en laststand. Detecta los exports de sky_ambulancejob y los estados ESX/Qbox/QBCore."
+Locales["es"].Nui.AdminPanel.configurator.descriptions.phoneBlockWhenCuffed = "Activado por defecto. Bloquea el teléfono, las llamadas, los directos y la radio con esposas. Usa exports de sky_policejob, el estado de esposas ESX y los metadatos de policía Qbox/QBCore. No requiere editar los recursos de voz o trabajos."
+Locales["es"].Nui.AdminPanel.configurator.descriptions.radioRequirePhoneItem = "Activado por defecto. Requiere Phone.Item al conectar o reconectar la radio. Solo comprueba a los usuarios conectados una vez por segundo. Perder el último teléfono desconecta ambas frecuencias incluso con el teléfono cerrado. Desactivar permite radio sin teléfono."
+Locales["es"].DeviceErrors.player_incapacitated = "No puedes usar el teléfono al morir o estar inconsciente."
+Locales["es"].DeviceErrors.player_cuffed = "No puedes usar el teléfono con esposas."
+Locales["es"].DeviceErrors.phone_not_owned = "Necesitas un teléfono para usar la radio."
+Locales["es"].DeviceErrors.request_cancelled = "La conexión se canceló."
+
+Locales["es"].Nui.Apps.radio.errors.player_incapacitated = "No puedes usar el teléfono al morir o estar inconsciente."
+Locales["es"].Nui.Apps.radio.errors.player_cuffed = "No puedes usar el teléfono con esposas."
+Locales["es"].Nui.Apps.radio.errors.phone_not_owned = "Necesitas un teléfono para usar la radio."
+Locales["es"].Nui.Apps.radio.errors.request_cancelled = "La conexión se canceló."
+
+Locales["es"].Nui.Apps.phone.errors.player_incapacitated = "No puedes usar el teléfono al morir o estar inconsciente."
+Locales["es"].Nui.Apps.phone.errors.player_cuffed = "No puedes usar el teléfono con esposas."
+Locales["es"].Nui.Apps.phone.errors.request_cancelled = "La conexión se canceló."

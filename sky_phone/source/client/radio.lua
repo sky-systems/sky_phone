@@ -112,7 +112,26 @@ local function apply_server_state(data)
     end
 end
 
+local connection_version = 0
+local provider_joining = false
+local function reset_radio(reason)
+    connection_version = connection_version + 1
+    -- Zero state before calling exports: Yaca emits frequency events on leave.
+    current_primary, current_secondary = 0, 0
+    Bridge.Radio.Leave()
+    clear_hud_members()
+    SendNUIMessage({ type = "radio:disconnected", data = { reason = reason } })
+end
+RegisterNetEvent("sky_phone:radio:disconnected", function(data)
+    reset_radio(type(data) == "table" and data.reason or nil)
+end)
+AddEventHandler("sky_phone:client:restricted", reset_radio)
+
 local function join_radio(primary, secondary)
+    local blocked = Bridge.PlayerState and Bridge.PlayerState.GetBlockReason()
+    if blocked then return { success = false, error = blocked } end
+    connection_version = connection_version + 1
+    local version = connection_version
     if not Bridge.Radio.SupportsSecondary() then
         secondary = 0
     end
@@ -120,6 +139,10 @@ local function join_radio(primary, secondary)
         frequency = primary,
         secondaryFrequency = secondary,
     })
+    blocked = Bridge.PlayerState and Bridge.PlayerState.GetBlockReason()
+    if version ~= connection_version or blocked then
+        return { success = false, error = blocked or "request_cancelled" }
+    end
     if not approved.success then
         return approved
     end
@@ -130,11 +153,20 @@ local function join_radio(primary, secondary)
     local data = approved.data
     local approved_primary = tonumber(data.frequency) or 0
     local approved_secondary = tonumber(data.secondaryFrequency) or 0
-    if not Bridge.Radio.Join(approved_primary, approved_secondary) then
+    provider_joining = true
+    local joined = Bridge.Radio.Join(approved_primary, approved_secondary)
+    provider_joining = false
+    if not joined then
         request("disconnect")
         return { success = false, error = "voice_unavailable" }
     end
 
+    blocked = Bridge.PlayerState and Bridge.PlayerState.GetBlockReason()
+    if version ~= connection_version or blocked then
+        reset_radio(blocked or "request_cancelled")
+        request("disconnect")
+        return { success = false, error = blocked or "request_cancelled" }
+    end
     if current_primary ~= approved_primary or current_secondary ~= approved_secondary then
         clear_hud_members()
     end
@@ -153,9 +185,10 @@ local function join_radio(primary, secondary)
 end
 
 local function leave_radio()
-    Bridge.Radio.Leave()
+    connection_version = connection_version + 1
     current_primary = 0
     current_secondary = 0
+    Bridge.Radio.Leave()
     clear_hud_members()
     return request("disconnect")
 end
@@ -164,7 +197,9 @@ AddEventHandler("sky_phone:client:radioProviderUpdated", function()
     if current_primary <= 0 then
         return
     end
-    if not Bridge.Radio.Join(current_primary, current_secondary) then
+    local version = connection_version
+    if not Bridge.Radio.Join(current_primary, current_secondary) or version ~= connection_version then
+        reset_radio("request_cancelled")
         request("disconnect")
         current_primary = 0
         current_secondary = 0
@@ -180,7 +215,9 @@ RegisterNUICallback("radio:get", function(data, cb)
         cb({ success = false, error = "invalid_request" })
         return
     end
+    local version = connection_version
     local result = request("get")
+    if version ~= connection_version then cb({ success = false, error = "request_cancelled" }); return end
     if result.success and type(result.data) == "table" then
         apply_server_state(result.data)
         result.data.volume = current_volume
@@ -361,6 +398,10 @@ RegisterNetEvent("yaca:external:setRadioFrequency", function(channel, frequency)
     end
     local channel_id = tonumber(channel)
     local value = math.max(0, tonumber(frequency) or 0)
+    -- Our own approved joins/leaves are echoed by Yaca. Do not submit another
+    -- join (and hit its rate limit) while applying or confirming that state.
+    if provider_joining or (channel_id == 1 and value == current_primary)
+        or (channel_id == 2 and value == current_secondary) then return end
     if channel_id == 1 then
         hud_members[1] = {}
         current_primary = value
@@ -370,13 +411,15 @@ RegisterNetEvent("yaca:external:setRadioFrequency", function(channel, frequency)
             hud_talking = {}
             request("disconnect")
         else
-            request("connect", { frequency = current_primary, secondaryFrequency = current_secondary })
+            local result = request("connect", { frequency = current_primary, secondaryFrequency = current_secondary })
+            if not result.success then reset_radio(result.error); request("disconnect") end
         end
     elseif channel_id == 2 then
         hud_members[2] = {}
         current_secondary = value == current_primary and 0 or value
         if current_primary > 0 then
-            request("connect", { frequency = current_primary, secondaryFrequency = current_secondary })
+            local result = request("connect", { frequency = current_primary, secondaryFrequency = current_secondary })
+            if not result.success then reset_radio(result.error); request("disconnect") end
         end
     end
     send_hud_members()

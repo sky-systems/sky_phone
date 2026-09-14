@@ -438,6 +438,14 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
       'Realtime.NearbyMaxSpeakers',
       phone.t('Realtime.settings.NearbyMaxSpeakers'),
     ],
+    ...[
+      'Phone.BlockWhenDead',
+      'Phone.BlockWhenCuffed',
+      'Radio.RequirePhoneItem',
+    ].map((path) => [
+      path,
+      t(`configurator.playerRestrictionLabels.${path.split('.').at(-1)}`),
+    ]),
     ['Realtime.ForceRelay', phone.t('Realtime.settings.ForceRelay')],
     ['Realtime.Transport', phone.t('Realtime.settings.Transport')],
     ['Realtime.MaxVideoEdge', phone.t('Realtime.settings.MaxVideoEdge')],

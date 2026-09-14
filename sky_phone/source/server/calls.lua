@@ -3,6 +3,13 @@ Bridge.Database.AfterMigration("sky_phone", function()
 SkyPhoneCalls = {}
 
 local calls = {}
+local function player_blocked(source)
+    return source and Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(source)
+end
+AddEventHandler("sky_phone:player:restricted", function(source)
+    -- Ring-all: release this employee without cancelling other employees' rings.
+    SkyPhoneCalls.EndForSource(source)
+end)
 local active_by_source = {}
 local active_by_sim = {}
 local dial_locks = {}
@@ -863,6 +870,7 @@ local function company_call_target(company_id, caller_source, caller_sim_id, exc
         local candidate_sim_id = candidate.simId
         local candidate_imei = candidate.imei
         if candidate_source and type(candidate_sim_id) == "string" and type(candidate_imei) == "string"
+            and not player_blocked(candidate_source)
             and candidate_source ~= caller_source and candidate_sim_id ~= caller_sim_id
             and (not excluded_sim_ids or not excluded_sim_ids[candidate_sim_id])
         then
@@ -884,7 +892,7 @@ local function company_call_target(company_id, caller_source, caller_sim_id, exc
                         tostring(candidate_source),
                         tostring(device.phone_number)
                     )
-                elseif airplane_mode(candidate_imei) then
+                elseif player_blocked(candidate_source) or airplane_mode(candidate_imei) then
                     dialing_by_sim[candidate_sim_id] = nil
                 elseif active_by_source[candidate_source] or dial_locks[candidate_source] or active_by_sim[candidate_sim_id]
                     or not SkyPhoneCompanies.CanAnswerCompanyCall(
@@ -921,7 +929,9 @@ local function ring_callee(call, target)
     if call.ended or call.answered_at or (target and call.ringing_targets[source] ~= target) then
         return
     end
+    if player_blocked(source) or player_blocked(call.caller_source) then return end
     SkyPhone.OpenDeviceForCall(source, device.imei)
+    if player_blocked(source) or player_blocked(call.caller_source) then return end
     if call.ended or call.answered_at or (target and call.ringing_targets[source] ~= target) then
         return
     end
@@ -982,6 +992,10 @@ local function start_ringing_call(call, ring_seconds)
     end
     dial_locks[call.caller_source] = nil
 
+    if player_blocked(call.caller_source) or player_blocked(call.callee_source) then
+        finish_call(call, "unavailable")
+        return call_payload(call, call.caller_source, "unavailable")
+    end
     send_state(call, call.caller_source, "ringing")
     if call.payphone then
         send_payphone_visual(call, "start")
@@ -1138,7 +1152,7 @@ local function lock_direct_target(caller_source, target, caller_sim_id)
         end
     end
     local callee_source = find_device_holder(target.imei)
-    if not callee_source or callee_source == caller_source then
+    if not callee_source or callee_source == caller_source or player_blocked(callee_source) then
         return nil, "unavailable"
     end
     if active_by_source[callee_source] or active_by_sim[target.id] or dialing_by_sim[target.id] then
@@ -1153,6 +1167,8 @@ local function lock_direct_target(caller_source, target, caller_sim_id)
 end
 
 function SkyPhoneCalls.StartCompanyCall(source, company_id, customer_number)
+    local blocked = player_blocked(source)
+    if blocked then return false, blocked end
     source = tonumber(source)
     if not source or type(company_id) ~= "string" then
         return { success = false, error = "invalid_request" }
@@ -1237,6 +1253,8 @@ function SkyPhoneCalls.StartCompanyCall(source, company_id, customer_number)
 end
 
 Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
+    local blocked = player_blocked(source)
+    if blocked then return { success = false, error = blocked } end
     if not SkyPhone.AllowOperation(source, "call_dial", 15, 60) then
         return { success = false, error = "rate_limited" }
     end
@@ -1430,6 +1448,8 @@ local function payphone_terminal(number, state, player_source)
 end
 
 Bridge.Callbacks.Register("sky_phone:payphone:dial", function(source, data)
+    local blocked = player_blocked(source)
+    if blocked then return { success = false, error = blocked } end
     if type(data) ~= "table" then
         return { success = false, error = "invalid_request" }
     end
@@ -1537,6 +1557,8 @@ Bridge.Callbacks.Register("sky_phone:payphone:dial", function(source, data)
 end)
 
 Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
+    local blocked = player_blocked(source)
+    if blocked then return { success = false, error = blocked } end
     local call = type(data) == "table" and calls[data.id] or nil
     if not call or call.ended or not is_callee(call, source)
         or call.answered_at or call.rerouting or call.answering_source
@@ -1558,6 +1580,7 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     local sim_id = target and target.sim_id or call.callee_sim_id
     local function still_ringing()
         return not call.ended and calls[call.id] == call and is_callee(call, source)
+            and not player_blocked(source) and not player_blocked(call.caller_source)
     end
     local function reject(error_code)
         call.answering_source = nil
@@ -1691,6 +1714,8 @@ function SkyPhoneCalls.StopVideo(id)
 end
 
 Bridge.Callbacks.Register("sky_phone:calls:video", function(source, data)
+    local blocked = player_blocked(source)
+    if blocked then return { success = false, error = blocked } end
     if not Config.Realtime or not Config.Realtime.Enabled or not Config.Realtime.VideoCalls then
         return { success = false, error = "feature_disabled" }
     end
@@ -1723,6 +1748,8 @@ Bridge.Callbacks.Register("sky_phone:calls:video", function(source, data)
 end)
 
 Bridge.Callbacks.Register("sky_phone:calls:set-speaker", function(source, data)
+    local blocked = player_blocked(source)
+    if blocked then return { success = false, error = blocked } end
     if type(data) ~= "table" or type(data.id) ~= "string" or type(data.enabled) ~= "boolean" then
         return { success = false, error = "invalid_request" }
     end
@@ -1758,6 +1785,8 @@ Bridge.Callbacks.Register("sky_phone:calls:set-speaker", function(source, data)
 end)
 
 Bridge.Callbacks.Register("sky_phone:calls:set-muted", function(source, data)
+    local blocked = player_blocked(source)
+    if blocked then return { success = false, error = blocked } end
     if type(data) ~= "table" or type(data.id) ~= "string" or type(data.enabled) ~= "boolean" then
         return { success = false, error = "invalid_request" }
     end
@@ -1903,12 +1932,14 @@ CreateThread(function()
             end
             local callee_valid = not call.callee_source
                 or SkyPhone.FindDeviceSlots(call.callee_source, call.callee_device.imei)[1] ~= nil
+            caller_valid = caller_valid and not player_blocked(call.caller_source)
+            callee_valid = callee_valid and not player_blocked(call.callee_source)
             if not caller_valid then
                 calls_to_finish[call_id] = "disconnected"
             elseif call.ringing_targets then
                 local invalid_sources = {}
                 for target_source, target in pairs(call.ringing_targets) do
-                    if not SkyPhone.FindDeviceSlots(target_source, target.device.imei)[1]
+                    if player_blocked(target_source) or not SkyPhone.FindDeviceSlots(target_source, target.device.imei)[1]
                         or not SkyPhoneCompanies.CanAnswerCompanyCall(
                             target_source, call.company_id, target.device.imei, target.sim_id
                         )
