@@ -14,7 +14,11 @@ import {
 } from '@/ui'
 import RealtimeVideo from './RealtimeVideo.vue'
 const props = withDefaults(
-  defineProps<{ app: LiveApp; hideTrigger?: boolean }>(),
+  defineProps<{
+    app: LiveApp
+    hideTrigger?: boolean
+    reserveNavigation?: boolean
+  }>(),
   { hideTrigger: false },
 )
 const phone = usePhoneStore()
@@ -31,6 +35,24 @@ const current = computed(() =>
 const enabled = computed(
   () => realtime.config?.enabled && realtime.config[props.app],
 )
+let previousStatusBar: boolean | null = null
+let ownsStatusBar = false
+function releaseStatusBar(): void {
+  if (ownsStatusBar) phone.appStatusBarLight = previousStatusBar
+  ownsStatusBar = false
+}
+watch(
+  () => opened.value && Boolean(current.value),
+  (active) => {
+    if (active) {
+      if (!ownsStatusBar) previousStatusBar = phone.appStatusBarLight
+      ownsStatusBar = true
+      phone.appStatusBarLight = true
+    } else releaseStatusBar()
+  },
+  { flush: 'post' },
+)
+onBeforeUnmount(releaseStatusBar)
 const validMessage = computed(
   () =>
     [...draft.value.trim()].length > 0 && [...draft.value.trim()].length <= 300,
@@ -67,7 +89,8 @@ watch(
   () => current.value?.messages?.at(-1)?.id,
   async () => {
     await nextTick()
-    chatEnd.value?.scrollIntoView({ block: 'nearest' })
+    const chat = chatEnd.value?.parentElement
+    if (chat) chat.scrollTop = chat.scrollHeight
   },
 )
 onMounted(async () => {
@@ -90,6 +113,10 @@ onBeforeUnmount(() => {
   </slot>
   <SkySheet
     class="live-broadcast-sheet"
+    :class="{
+      'live-broadcast-sheet--active': current,
+      'live-broadcast-sheet--navigation': reserveNavigation,
+    }"
     :show-grabber="false"
     :opened="opened"
     :aria-label="t('live')"
@@ -298,8 +325,18 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   gap: var(--sky-space-1);
 }
+.live-broadcast-sheet {
+  bottom: 0;
+}
+.live-broadcast-sheet--navigation {
+  bottom: calc(var(--sky-safe-area-bottom) + var(--sky-tabbar-height) + 18px);
+}
 .live-broadcast-sheet :deep(.sky-sheet__panel) {
   max-height: 100%;
+}
+.live-broadcast-sheet--active :deep(.sky-sheet__panel) {
+  height: 100%;
+  overflow: hidden;
 }
 .live-broadcast {
   position: relative;
@@ -314,8 +351,10 @@ onBeforeUnmount(() => {
   background: var(--sky-surface);
 }
 .live-broadcast--active {
-  height: calc(100cqh - var(--sky-safe-area-top));
+  height: 100%;
+  box-sizing: border-box;
   max-height: none;
+  padding-top: calc(var(--sky-safe-area-top) + var(--sky-space-4));
   padding-bottom: calc(var(--sky-safe-area-bottom) + var(--sky-space-4));
   background: var(--sky-action-surface);
 }

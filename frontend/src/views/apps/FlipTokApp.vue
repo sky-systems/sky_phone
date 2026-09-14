@@ -2449,7 +2449,11 @@ onBeforeUnmount(() => {
             >{{ phone.t('Realtime.goLive') }}</SkySegmentedButton
           >
         </SkySegmented>
-        <LiveSetup v-if="liveCompose" app="fliptok" />
+        <LiveSetup
+          v-if="liveCompose"
+          app="fliptok"
+          @started="liveDirectory?.open()"
+        />
         <template v-else>
           <header class="compose-intro">
             <span><Video /></span>

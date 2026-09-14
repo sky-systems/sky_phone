@@ -133,9 +133,12 @@ local function call_payload(call, source, state, channel)
     local speaker_supported = Bridge.Speaker.IsEnabled() and (
         call.voice_provider == "yaca"
         or call.voice_provider == "saltychat"
+        or call.voice_provider == "pma"
         or (not call.voice_provider and Bridge.Calls.SupportsSpeaker())
     )
     local mute_supported = call.voice_provider == "yaca"
+        or call.voice_provider == "saltychat"
+        or call.voice_provider == "pma"
         or (not call.voice_provider and Bridge.Calls.SupportsMute())
     local payload = {
         id = call.id,
@@ -343,6 +346,9 @@ local function finish_call(call, status)
     if call.voice_started then
         local player_handles = { call.caller_source, call.callee_source }
         for _, player_source in ipairs(player_handles) do
+            if call.muted and call.muted[player_source] then
+                Bridge.Calls.SetMuted(player_source, false, call.voice_provider)
+            end
             if call.speakers and call.speakers[player_source] then
                 Bridge.Calls.SetSpeaker(player_source, false, call.voice_provider)
             end
@@ -919,17 +925,9 @@ local function ring_callee(call, target)
     if call.ended or call.answered_at or (target and call.ringing_targets[source] ~= target) then
         return
     end
-    TriggerClientEvent("sky_phone:call:incoming", source, {
-        id = call.id,
-        state = "ringing",
-        direction = "incoming",
-        otherNumber = call.caller_number,
-        startedAt = call.started_at,
-        device = {
-            imei = device.imei,
-            name = device.device_name,
-        },
-    })
+    local payload = call_payload(call, source, "ringing")
+    payload.device = { imei = device.imei, name = device.device_name }
+    TriggerClientEvent("sky_phone:call:incoming", source, payload)
 end
 
 local function schedule_no_answer(call)
@@ -1012,13 +1010,7 @@ local function start_ringing_call(call, ring_seconds)
 
     log_call(call, "created", "ringing")
 
-    local result = {
-        id = call.id,
-        state = "ringing",
-        direction = "outgoing",
-        otherNumber = call.callee_number,
-        startedAt = call.started_at,
-    }
+    local result = call_payload(call, call.caller_source, "ringing")
     if call.payphone then
         result.elapsedSeconds = 0
         result.totalCost = 0
@@ -1324,7 +1316,7 @@ Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
                 caller_sim_id = scope.device.sim_id,
                 caller_number = scope.device.phone_number,
                 caller_device = scope.device,
-            video = data.video == true and Config.Realtime and Config.Realtime.Enabled and Config.Realtime.VideoCalls or false,
+                video = data.video == true and Config.Realtime and Config.Realtime.Enabled and Config.Realtime.VideoCalls or false,
                 callee_source = company_target.source,
                 callee_sim_id = company_target.sim_id,
                 callee_number = service_line.number,
@@ -1370,6 +1362,7 @@ Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
             caller_sim_id = scope.device.sim_id,
             caller_number = scope.device.phone_number,
             caller_device = scope.device,
+            video = data.video == true and Config.Realtime and Config.Realtime.Enabled and Config.Realtime.VideoCalls or false,
             callee_source = callee_source,
             callee_sim_id = target.id,
             callee_number = number,
@@ -1607,10 +1600,12 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     if not Bridge.Calls.IsAvailable() then
         return reject("voice_unavailable")
     end
+    local voice_channel = next_voice_channel
+    next_voice_channel = next_voice_channel + 1
     local voice_started, voice_provider = Bridge.Calls.Start(call.id, {
         call.caller_source,
         source,
-    })
+    }, voice_channel)
     if not still_ringing() then
         if voice_started then
             Bridge.Calls.Stop(call.id, { call.caller_source, source }, voice_provider)
@@ -1628,8 +1623,7 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     -- Answering with audio explicitly declines the initial camera invitation.
     call.video = call.video == true and data.video == true
     call.answered_at = os.time()
-    call.channel = next_voice_channel
-    next_voice_channel = next_voice_channel + 1
+    call.channel = voice_channel
     local other_targets = {}
     if target then
         for other_source, other_target in pairs(call.ringing_targets) do
@@ -1741,7 +1735,8 @@ Bridge.Callbacks.Register("sky_phone:calls:set-speaker", function(source, data)
     if not call or call.id ~= data.id or not call.answered_at or call.ended or not call.voice_started then
         return { success = false, error = "call_not_found" }
     end
-    if call.voice_provider ~= "yaca" and call.voice_provider ~= "saltychat" then
+    if call.voice_provider ~= "yaca" and call.voice_provider ~= "saltychat"
+        and call.voice_provider ~= "pma" then
         return { success = false, error = "speaker_unsupported" }
     end
     if not Bridge.Speaker.IsEnabled() then
@@ -1775,7 +1770,8 @@ Bridge.Callbacks.Register("sky_phone:calls:set-muted", function(source, data)
     if not call or call.id ~= data.id or not call.answered_at or call.ended or not call.voice_started then
         return { success = false, error = "call_not_found" }
     end
-    if call.voice_provider ~= "yaca" then
+    if call.voice_provider ~= "yaca" and call.voice_provider ~= "saltychat"
+        and call.voice_provider ~= "pma" then
         return { success = false, error = "mute_unsupported" }
     end
     if not Bridge.Calls.SetMuted(source, data.enabled, call.voice_provider) then

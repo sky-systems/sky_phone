@@ -92,7 +92,8 @@ local function fixture(routing)
     env.Bridge.Calls.SupportsSpeaker = function() return false end
     env.Bridge.Calls.SupportsMute = function() return false end
     env.Bridge.Calls.IsAvailable = function() return true end
-    function env.Bridge.Calls.Start(id, sources)
+    function env.Bridge.Calls.Start(id, sources, channel)
+        assert(type(channel) == "number" and channel > 0, "Reserve a numeric PMA channel before provider startup")
         state.voice_starts[#state.voice_starts + 1] = { id = id, sources = sources }
         hook("voice")
         return not state.fail_voice, "yaca"
@@ -441,3 +442,29 @@ assert(not f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id, video
 assert(f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id }).success,
     "Existing audio-only integrations can still answer without a video field")
 print("Direct FaceTime answer tests passed")
+
+for _, accepted_video in ipairs({ true, false }) do
+    local f = fixture()
+    f.env.Config.Realtime = { Enabled = true, VideoCalls = true }
+    local response = f.callbacks["sky_phone:calls:dial"](1, { phoneNumber = "5550002", video = true })
+    assert(response.success, response.error)
+    assert(response.data.video, "Direct contact FaceTime must preserve the video flag")
+    local incoming
+    for _, event in ipairs(f.events) do
+        if event.name == "sky_phone:call:incoming" and event.source == 2 then incoming = event.payload end
+    end
+    assert(incoming and incoming.video, "The actual incoming network event must carry the video invitation")
+    assert(f.env.SkyPhoneCalls.GetForSource(2).video, "Direct recipient must see a video invitation")
+    local answer = f.callbacks["sky_phone:calls:answer"](2, { id = response.data.id, video = accepted_video })
+    assert(answer.success, answer.error)
+    assert(answer.data.video == accepted_video)
+    assert(f.env.SkyPhoneCalls.GetForSource(1).video == accepted_video)
+end
+print("PASS direct FaceTime: video invitation and explicit video/audio answers")
+
+local company_fixture = fixture()
+company_fixture.env.SkyPhoneCompanies.CanPlaceCompanyCall = function() return true end
+local company_result = company_fixture.env.SkyPhoneCalls.StartCompanyCall(1, "police", "5550002")
+assert(company_result.success and company_result.data.state == "ringing" and company_result.data.video == false,
+    "Company calls without a UI request payload must remain valid audio calls")
+print("PASS outbound company calls: no undefined video-request payload")

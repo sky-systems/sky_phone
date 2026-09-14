@@ -21,7 +21,7 @@ Background alpha is composited. Simple gradients are checked against their color
 
 Account scenarios additionally cover login and registration (empty, filled and rejected submission) in Feather, CrewLink, CityMarkt, Local Pages, Picstagram, FlipTok, VaultX, Mail and Sky Cloud. Flare onboarding, Feather's first profile setup and Calendar's account-required view are checked too. A source discovery guard requires a fixture for new standard account-entry views, including apps using `AppProfileAuth` or an `authMode` / `accountMode` state. Authentication submissions are intercepted inside the browser so these checks cannot create accounts.
 
-Additional browser scenarios cover Feather's profile and editor, both social discovery views, live avatar entry, empty and filled live forms, host/viewer counters and chat, and direct video/audio answering. These use the production Vue components with development media fixtures, not a real FiveM/voice-provider connection.
+Additional browser scenarios cover Feather's profile and editor, both social discovery views, live avatar entry, empty and filled live forms, host/viewer counters and chat, host-composer geometry above the real app navigation/home indicator, direct video/audio answering, and audio-button state/color with integrated PMA and SaltyChat controls. These use the production Vue components with development media fixtures, not a real FiveM/voice-provider connection.
 
 ## Review and extend
 

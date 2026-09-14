@@ -62,6 +62,7 @@ function Wait()
 end
 function PlayerPedId() return 7 end
 function PlayerId() return 8 end
+function GetFrameTime() return 1.0 / 60.0 end
 function GetFollowPedCamViewMode() return 1 end
 function GetFollowVehicleCamViewMode() return 2 end
 function IsRadarHidden() return false end

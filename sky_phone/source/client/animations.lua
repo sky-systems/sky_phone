@@ -71,6 +71,28 @@ local function can_animate(ped)
     return true
 end
 
+SkyPhoneAnimations = {}
+
+function SkyPhoneAnimations.AimCamera(camera_position, target_position, front)
+    local ped = animation_state.ped
+    if not animation_state.camera_active or not Config.Animations.Enabled
+        or not ped or not animation_state.prop or not can_animate(ped)
+        or animation_state.current_mode == MODE_HIDDEN then return end
+    local head = GetPedBoneCoords(ped, 31086, 0.0, 0.0, 0.0)
+    local direction = front and (camera_position - target_position) or (target_position - camera_position)
+    local length = math.sqrt(direction.x ^ 2 + direction.y ^ 2 + direction.z ^ 2)
+    if length < 0.001 then return end
+    -- Keep the target in arm's reach; the phone prop stays attached to the hand.
+    local reach = front and 0.52 or 0.40
+    local hand = head + direction * (reach / length)
+    local left = Config.Animations.PropBone == 60309 or Config.Animations.PropBone == 18905
+    -- ITF_IK_TAG_MODE_ALLOW lets the arm follow the camera over the base animation.
+    SetIkTarget(ped, left and 3 or 4, 0, -1, hand.x, hand.y, hand.z - 0.14, 16, 150, 150)
+    if front then
+        SetIkTarget(ped, 1, 0, -1, camera_position.x, camera_position.y, camera_position.z, 16, 150, 150)
+    end
+end
+
 local function get_phone_dictionary(ped)
     if not IsPedInAnyVehicle(ped, false) then
         return Config.Animations.Dictionaries.OnFoot, "on_foot"

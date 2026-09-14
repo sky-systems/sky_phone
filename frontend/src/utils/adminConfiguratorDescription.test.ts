@@ -163,3 +163,12 @@ describe('admin configurator descriptions', () => {
     )
   })
 })
+
+it('explains the integrated voice controls alongside the provider and speaker switch', () => {
+  expect(configuratorDescriptionKey('Calls.VoiceProvider', 'pma')).toBe(
+    'callsVoiceProvider',
+  )
+  expect(configuratorDescriptionKey('Speaker.Enabled', true)).toBe(
+    'phoneSpeaker',
+  )
+})

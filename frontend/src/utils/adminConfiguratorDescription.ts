@@ -101,6 +101,8 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  if (path === 'Calls.VoiceProvider') return 'callsVoiceProvider'
+  if (path === 'Speaker.Enabled') return 'phoneSpeaker'
   if (path === 'Security.FaceIdMaskWhitelist') return 'faceIdMaskWhitelist'
   const faceIdMask = path.match(
     /^Security\.FaceIdMaskWhitelist(?:\[\d+\]|\.\d+)\.(Model|Drawable|Texture)$/,

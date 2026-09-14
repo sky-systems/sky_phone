@@ -154,6 +154,12 @@ Config.Speaker = {
     Enabled = true, -- global phone and radio speaker controls
 }
 
+-- All voice controls run in sky_phone; no pma-voice manifest change is required.
+-- PMA: speaker adds nearby players (3 m, same routing bucket) to the call so they
+-- can hear and speak. Mute silences the microphone for calls, proximity and radio.
+-- SaltyChat: speaker uses SetPhoneSpeaker; mute uses SetPlayerAlive(false), which
+-- also affects proximity/radio. The previous alive state is restored on unmute/end
+-- only if the player is not dead/downed. Yaca uses its phone-specific exports.
 Config.Calls = {
     VoiceProvider = "pma", -- auto, yaca (alias: yaca-voice), pma (alias: pma-voice), saltychat (alias: salty)
     RingSeconds = 30,

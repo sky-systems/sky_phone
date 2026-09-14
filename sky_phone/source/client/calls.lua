@@ -45,6 +45,7 @@ end
 
 local function join_voice(channel)
     local next_channel = tonumber(channel) or 0
+    if next_channel > 0 and next_channel == call_channel then return true end
     if not Bridge.Calls.Join(next_channel) then
         return false
     end

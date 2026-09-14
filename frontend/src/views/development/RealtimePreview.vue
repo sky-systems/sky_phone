@@ -155,11 +155,13 @@ async function show(): Promise<void> {
       state: ringing ? 'ringing' : 'connected',
       startedAt: Date.now() - 83000,
       answeredAt: Date.now() - 83000,
-      video: !['request', 'audio'].includes(callView.value),
+      video: !['request', 'audio', 'pma', 'pma-enabled', 'salty'].includes(
+        callView.value,
+      ),
       videoIncoming: callView.value === 'request',
       videoRequested: callView.value === 'request',
-      muteSupported: callView.value !== 'pma',
-      speakerSupported: callView.value !== 'pma',
+      muteSupported: true,
+      speakerSupported: true,
     }
     if (ringing || !calls.activeCall.video) {
       realtime.room = null
@@ -213,23 +215,38 @@ realtime.list = async (app) => [
   },
 ]
 realtime.refreshConfig = async () => undefined
-realtime.startLive = async (_app, title, description = '') => {
+function simulateLive(
+  app: LiveApp,
+  role: 'host' | 'viewer',
+  title: string,
+  description = '',
+): void {
+  const stream = makeStream(false)
+  realtime.localStream = role === 'host' ? stream : null
+  realtime.streams = role === 'viewer' ? new Map([[2, stream]]) : new Map()
+  realtime.room = {
+    id: 'preview',
+    kind: 'live',
+    app,
+    role,
+    self: 1,
+    peers: [],
+    viewers: 42,
+    transport: 'p2p',
+    hostName: 'Luna Walker',
+    title,
+    description,
+    messages: [],
+  }
+}
+realtime.startLive = async (app, title, description = '') => {
   previewTitle = title
   previewDescription = description
-  window.setTimeout(
-    () =>
-      void router.replace({
-        path: `/development/realtime/${scene.value}`,
-        query: { view: 'host' },
-      }),
-    0,
-  )
+  simulateLive(app, 'host', title, description)
 }
 realtime.watchLive = async () => {
-  await router.replace({
-    path: `/development/realtime/${scene.value}`,
-    query: { view: 'viewer' },
-  })
+  if (scene.value !== 'call')
+    simulateLive(scene.value, 'viewer', 'Sonnenuntergang in Vespucci')
 }
 calls.answer = async (video = false) => {
   await router.replace({
@@ -316,6 +333,7 @@ onBeforeUnmount(() => {
               'request',
               'connected',
               'pma',
+              'salty',
             ]"
             :key="option"
             clear
@@ -333,6 +351,7 @@ onBeforeUnmount(() => {
                 request: 'Videoanfrage',
                 connected: 'Verbunden',
                 pma: 'PMA',
+                salty: 'SaltyChat',
               }[option]
             }}</SkyButton
           >

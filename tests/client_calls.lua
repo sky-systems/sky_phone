@@ -136,3 +136,29 @@ call_animation("connected", false); assert(mode() == "call", "Returning to audio
 animation_handlers["sky_phone:animation:camera"]({ active = false })
 call_animation("completed", false); assert(mode() == "phone_read")
 print("FaceTime animation priority tests passed")
+
+local animation_state = upvalue(mode, "animation_state")
+local ik = {}
+local vector = {}
+vector.__index = vector
+vector.__add = function(a, b) return setmetatable({ x = a.x + b.x, y = a.y + b.y, z = a.z + b.z }, vector) end
+vector.__sub = function(a, b) return setmetatable({ x = a.x - b.x, y = a.y - b.y, z = a.z - b.z }, vector) end
+vector.__mul = function(a, scale) return setmetatable({ x = a.x * scale, y = a.y * scale, z = a.z * scale }, vector) end
+local function vec(x,y,z) return setmetatable({ x=x, y=y, z=z },vector) end
+function GetPedBoneCoords() return vec(0, 0, 1.7) end
+function SetIkTarget(ped, part, entity, bone, x, y, z, flags)
+    assert(ped == 1 and entity == 0 and bone == -1 and flags == 16)
+    assert(type(x) == "number" and type(y) == "number" and type(z) == "number")
+    ik[part] = { x=x, y=y, z=z }
+end
+animation_state.ped, animation_state.prop, animation_state.camera_active = 1, 1, true
+Config.Animations.PropBone = 28422
+SkyPhoneAnimations.AimCamera(vec(0, 1, 1.7), vec(0, 0, 1.7), true)
+assert(ik[4] and ik[1] and math.abs(ik[4].y - 0.52) < 0.001)
+SkyPhoneAnimations.AimCamera(vec(1, 0, 1.7), vec(0, 0, 1.7), true)
+assert(ik[4].x > 0.5 and ik[4].y == 0, "Hand must follow camera direction instead of holding a static pose")
+animation_state.camera_active = false
+ik = {}
+SkyPhoneAnimations.AimCamera(vec(1, 0, 1.7), vec(0, 0, 1.7), true)
+assert(not next(ik), "Camera IK must stop immediately when the camera closes")
+print("PASS camera arm IK: camera direction, bounded reach and cleanup")

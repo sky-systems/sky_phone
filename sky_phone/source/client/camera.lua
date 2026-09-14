@@ -51,6 +51,8 @@ local camera_state = {
     front_camera_handle = nil,
     front_camera_pitch = 0.0,
     front_camera_yaw = 0.0,
+    front_camera_render_pitch = 0.0,
+    front_camera_render_yaw = 0.0,
     game_input = false,
     landscape = false,
     locked = false,
@@ -95,8 +97,8 @@ end
 local function get_front_camera_transform(ped)
     local head_position = GetPedBoneCoords(ped, 31086, 0.0, 0.0, 0.0)
     local forward = GetEntityForwardVector(ped)
-    local yaw = math.rad(camera_state.front_camera_yaw)
-    local pitch = math.rad(camera_state.front_camera_pitch)
+    local yaw = math.rad(camera_state.front_camera_render_yaw)
+    local pitch = math.rad(camera_state.front_camera_render_pitch)
     local orbit_direction = vector3(
         (forward.x * math.cos(yaw)) - (forward.y * math.sin(yaw)),
         (forward.x * math.sin(yaw)) + (forward.y * math.cos(yaw)),
@@ -136,7 +138,13 @@ local function apply_front_camera(ped)
         RenderScriptCams(true, false, 0, true, true)
     end
 
+    local blend = 1.0 - math.exp(-12.0 * math.min(GetFrameTime(), 0.1))
+    camera_state.front_camera_render_yaw = camera_state.front_camera_render_yaw
+        + (camera_state.front_camera_yaw - camera_state.front_camera_render_yaw) * blend
+    camera_state.front_camera_render_pitch = camera_state.front_camera_render_pitch
+        + (camera_state.front_camera_pitch - camera_state.front_camera_render_pitch) * blend
     local camera_position, target_position = get_front_camera_transform(ped)
+    if SkyPhoneAnimations then SkyPhoneAnimations.AimCamera(camera_position, target_position, true) end
     SetCamCoord(
         camera_state.front_camera_handle,
         camera_position.x,
@@ -291,6 +299,8 @@ local function set_camera_active(active)
         camera_state.front_camera = false
         camera_state.front_camera_pitch = 0.0
         camera_state.front_camera_yaw = 0.0
+        camera_state.front_camera_render_yaw = 0.0
+        camera_state.front_camera_render_pitch = 0.0
         camera_state.landscape = false
         camera_state.locked = false
         camera_state.zoom = 1.0
@@ -315,6 +325,9 @@ local function set_camera_active(active)
                 HideHudAndRadarThisFrame()
                 if camera_state.front_camera then
                     apply_front_camera(PlayerPedId())
+                elseif SkyPhoneAnimations then
+                    local position = GetGameplayCamCoord()
+                    SkyPhoneAnimations.AimCamera(position, position + rotation_to_direction(GetGameplayCamRot(2)), false)
                 end
                 apply_camera_view()
                 Wait(0)
@@ -327,6 +340,8 @@ local function set_camera_active(active)
     camera_state.front_camera = false
     camera_state.front_camera_pitch = 0.0
     camera_state.front_camera_yaw = 0.0
+    camera_state.front_camera_render_yaw = 0.0
+    camera_state.front_camera_render_pitch = 0.0
     camera_state.game_input = false
     camera_state.landscape = false
     camera_state.locked = false
@@ -353,6 +368,8 @@ local function set_front_camera(active)
     if active then
         camera_state.front_camera_pitch = 0.0
         camera_state.front_camera_yaw = 0.0
+        camera_state.front_camera_render_yaw = 0.0
+        camera_state.front_camera_render_pitch = 0.0
         apply_front_camera(PlayerPedId())
     else
         clear_front_camera()

@@ -1506,7 +1506,11 @@ onBeforeUnmount(() => {
               >{{ phone.t('Realtime.goLive') }}</SkySegmentedButton
             >
           </SkySegmented>
-          <LiveSetup v-if="composeKind === 'live'" app="picstagram" />
+          <LiveSetup
+            v-if="composeKind === 'live'"
+            app="picstagram"
+            @started="liveDirectory?.open()"
+          />
           <template v-else>
             <SkyCard class="ps-create-card">
               <div
@@ -2558,7 +2562,12 @@ onBeforeUnmount(() => {
       ></SkyDialog
     >
     <SkyNotification :opened="Boolean(feedback)" :text="feedback" />
-    <LiveBroadcast ref="liveDirectory" app="picstagram" hide-trigger />
+    <LiveBroadcast
+      ref="liveDirectory"
+      app="picstagram"
+      hide-trigger
+      reserve-navigation
+    />
   </SkyAppPage>
 </template>
 

@@ -55,6 +55,9 @@ jobs:
           lua5.4 tests/server_easyshare.lua
           lua5.4 tests/server_social_discovery.lua
           lua5.4 tests/client_calls.lua
+          lua5.4 tests/client_camera.lua
+          lua5.4 tests/client_pma_calls.lua
+          lua5.4 tests/server_pma_calls.lua
 
       - name: Test media import URL probes and validation
         run: lua5.4 tests/media_import.lua

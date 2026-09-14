@@ -5,13 +5,12 @@ import { SkyButton, SkyCard, SkyField, SkyList } from '@/ui'
 import { usePhoneStore } from '@/stores/phone'
 import { useRealtimeStore } from '@/features/realtime/store'
 import type { LiveApp } from '@/features/realtime/types'
-import LiveBroadcast from './LiveBroadcast.vue'
 const props = defineProps<{ app: LiveApp }>()
 const phone = usePhoneStore(),
   realtime = useRealtimeStore()
 const title = ref(''),
   description = ref('')
-const live = ref<InstanceType<typeof LiveBroadcast> | null>(null)
+const emit = defineEmits<{ started: [] }>()
 const valid = computed(() =>
   props.app === 'picstagram'
     ? title.value.trim().length > 0
@@ -34,7 +33,7 @@ async function start(): Promise<void> {
     starting = false
   }
   if (realtime.room?.app === props.app && realtime.room.role === 'host')
-    await live.value?.open()
+    emit('started')
 }
 </script>
 <template>
@@ -82,7 +81,6 @@ async function start(): Promise<void> {
     <p v-if="realtime.error" role="alert">
       {{ phone.t('Realtime.errors.default') }}
     </p>
-    <LiveBroadcast ref="live" :app="app" hide-trigger />
   </SkyCard>
 </template>
 <style scoped>
