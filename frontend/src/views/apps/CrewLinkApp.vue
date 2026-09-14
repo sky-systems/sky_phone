@@ -68,6 +68,7 @@ import {
   defaultMapWorldToPercent,
   type MapPoint,
 } from '@/features/map/defaultMapGeometry'
+import { zoomPanAtPoint } from '@/features/map/mapViewport'
 import AccountLogoutDialog from '@/components/account/AccountLogoutDialog.vue'
 import AppProfileAuth from '@/components/account/AppProfileAuth.vue'
 import { useAccountStore } from '@/stores/account'
@@ -89,6 +90,7 @@ import { copyText } from '@/utils/clipboard'
 import { easyShareCrewLinkInviteCode } from '@/utils/easyshare'
 import { consumeEscape, handleEnterAction } from '@/utils/keyboard'
 import { nuiCall } from '@/utils/nui'
+import { readPhoneViewportGeometry } from '@/utils/phoneViewportGeometry'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 
 type CrewLinkTab = 'map' | 'group' | 'pings' | 'profile'
@@ -278,7 +280,7 @@ const authUsernameValid = computed(() =>
 )
 const canvasStyle = computed(() => ({
   aspectRatio: String(mapAspect.value),
-  transform: `translate3d(-50%, -50%, 0) translate3d(${pan.value.x}px, ${pan.value.y}px, 0) scale(${zoom.value})`,
+  transform: `translate(-50%, -50%) translate(${pan.value.x}px, ${pan.value.y}px) scale(${zoom.value})`,
   width: 'max(128%, 128vh)',
 }))
 const activeColour = computed(
@@ -292,7 +294,7 @@ const activeCrewStyle = computed(() => ({
   '--crew-glow': `${activeColour.value}61`,
   '--crew-ring': `${activeColour.value}47`,
 }))
-const mapCenterCoords = computed(() => {
+function readMapCenterCoords(): MapPoint | null {
   const viewport = viewportRef.value?.getBoundingClientRect()
   const canvas = canvasRef.value?.getBoundingClientRect()
   if (!viewport || !canvas) return null
@@ -312,7 +314,7 @@ const mapCenterCoords = computed(() => {
       ),
     ),
   })
-})
+}
 
 function mapToWorld(coords: MapPoint): MapPoint {
   return {
@@ -785,7 +787,7 @@ function cancelPingPlacement(): void {
 }
 
 function confirmPingPlacement(): void {
-  const center = mapCenterCoords.value
+  const center = readMapCenterCoords()
   if (!center) {
     showToast(errorText())
     return
@@ -1002,21 +1004,29 @@ function centerOwnLocation(): void {
 }
 
 function setZoomAt(nextZoom: number, clientX?: number, clientY?: number): void {
-  const viewport = viewportRef.value?.getBoundingClientRect()
+  const viewport = viewportRef.value
   const currentZoom = zoom.value
   const clampedZoom = Math.max(0.85, Math.min(mapMaxZoom.value, nextZoom))
   if (!viewport || clampedZoom === currentZoom) return
 
-  const anchorX = clientX ?? viewport.left + viewport.width / 2
-  const anchorY = clientY ?? viewport.top + viewport.height / 2
-  const offsetX = anchorX - (viewport.left + viewport.width / 2)
-  const offsetY = anchorY - (viewport.top + viewport.height / 2)
-  const scale = clampedZoom / currentZoom
-
-  pan.value = {
-    x: offsetX - (offsetX - pan.value.x) * scale,
-    y: offsetY - (offsetY - pan.value.y) * scale,
+  const bounds =
+    readPhoneViewportGeometry(viewport)?.rect(viewport) ??
+    viewport.getBoundingClientRect()
+  if (!bounds.width || !bounds.height) return
+  const focal = {
+    x:
+      clientX === undefined
+        ? viewport.clientWidth / 2
+        : ((clientX - bounds.left) * viewport.clientWidth) / bounds.width,
+    y:
+      clientY === undefined
+        ? viewport.clientHeight / 2
+        : ((clientY - bounds.top) * viewport.clientHeight) / bounds.height,
   }
+  pan.value = zoomPanAtPoint(pan.value, currentZoom, clampedZoom, focal, {
+    x: viewport.clientWidth,
+    y: viewport.clientHeight,
+  })
   zoom.value = clampedZoom
 }
 
@@ -1043,9 +1053,21 @@ function onPointerMove(event: PointerEvent): void {
   if (pointerFrame) return
   pointerFrame = requestAnimationFrame(() => {
     pointerFrame = undefined
+    const viewport = viewportRef.value
+    if (!viewport) return
+    const bounds =
+      readPhoneViewportGeometry(viewport)?.rect(viewport) ??
+      viewport.getBoundingClientRect()
+    if (!bounds.width || !bounds.height) return
     pan.value = {
-      x: pointerStart.panX + pointerLatest.x - pointerStart.x,
-      y: pointerStart.panY + pointerLatest.y - pointerStart.y,
+      x:
+        pointerStart.panX +
+        ((pointerLatest.x - pointerStart.x) * viewport.clientWidth) /
+          bounds.width,
+      y:
+        pointerStart.panY +
+        ((pointerLatest.y - pointerStart.y) * viewport.clientHeight) /
+          bounds.height,
     }
   })
 }
@@ -2885,7 +2907,6 @@ onBeforeUnmount(() => {
   left: 50%;
   top: 50%;
   transform-origin: center;
-  will-change: transform;
 }
 .crewlink-map__mainland,
 .crewlink-map__cayo {

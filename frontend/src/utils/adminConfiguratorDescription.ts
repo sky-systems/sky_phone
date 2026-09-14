@@ -12,6 +12,38 @@ export type AdminConfiguratorDescribe = (
   label?: string,
 ) => string
 
+const MEDIA_DESCRIPTIONS: Record<string, string> = {
+  GiphyApiKey: 'giphyApiKey',
+  GifRating: 'gifRating',
+  'FiveManage.ApiKey': 'fiveManageApiKey',
+  'FiveManage.BaseUrl': 'fiveManageBaseUrl',
+  'Import.Enabled': 'importEnabled',
+  'Import.Websites': 'importWebsites',
+  'Wallpaper.CustomUploadEnabled': 'wallpaperImport',
+  'Photo.Encoding': 'photoEncoding',
+  'Photo.Quality': 'photoQuality',
+  'Video.BitrateKbps': 'videoBitrate',
+}
+
+const IMPORT_SOURCE_DESCRIPTIONS: Record<string, string> = {
+  Id: 'importSourceId',
+  Label: 'importSourceLabel',
+  Enabled: 'importSourceEnabled',
+  Adapter: 'importAdapter',
+  ApiKey: 'importApiKey',
+  BaseUrl: 'fiveManageBaseUrl',
+  Path: 'importPath',
+  MediaTypes: 'importMediaTypes',
+  AllowedMediaHosts: 'importHosts',
+  ManifestUrl: 'importManifestUrl',
+  RequiredAce: 'importRequiredAce',
+  Auth: 'importAuth',
+  'Auth.Type': 'importAuth',
+  'Auth.TokenConvar': 'importAuthConvar',
+  'Auth.ValueConvar': 'importAuthConvar',
+  'Auth.Header': 'importAuthHeader',
+}
+
 const DESCRIPTION_RULES: Array<[RegExp, string]> = [
   [/(?:^|\.)(?:apikey|token|password|secret)$/i, 'credential'],
   [/(?:base|manifest|image|icon)?url$/i, 'url'],
@@ -69,6 +101,25 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  if (path === 'Security.FaceIdMaskWhitelist') return 'faceIdMaskWhitelist'
+  const faceIdMask = path.match(
+    /^Security\.FaceIdMaskWhitelist(?:\[\d+\]|\.\d+)\.(Model|Drawable|Texture)$/,
+  )
+  if (faceIdMask) return `faceIdMask${faceIdMask[1]}`
+  if (path === 'CrewLink.PingCooldownSeconds') return 'crewlinkPingCooldown'
+  const crewlink = path.match(/^CrewLink\.(Blip|QuickPing)\.([^.]+)$/)
+  if (crewlink) return `crewlink${crewlink[1]}${crewlink[2]}`
+  const mediaPath = path.replace(/^Media\./, '').replace(/\[\d+\]$/, '')
+  const source = path
+    .replace(/^Media\./, '')
+    .match(/^Import\.Websites(?:\[\d+\]|\.\d+)(?:\.(.*))?$/)
+  if (source) {
+    if (!source[1]) return 'importSource'
+    const field = source[1].replace(/\[\d+\]$/, '')
+    if (IMPORT_SOURCE_DESCRIPTIONS[field])
+      return IMPORT_SOURCE_DESCRIPTIONS[field]
+  }
+  if (MEDIA_DESCRIPTIONS[mediaPath]) return MEDIA_DESCRIPTIONS[mediaPath]
   const citywarnBlip = path.match(
     /^CityWarn\.Blip\.(Sprite|Display|ShortRange|CategoryId|CategoryName|GroupByCategory|RadiusEnabled|Radius)$/,
   )

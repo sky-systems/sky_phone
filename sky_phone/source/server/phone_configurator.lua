@@ -518,6 +518,20 @@ local function empty_structure(scope, path)
     if scope ~= "config" then
         return nil
     end
+    if path == "Security.FaceIdMaskWhitelist" then
+        return {
+            items = {},
+            kind = "list",
+            template = {
+                kind = "table",
+                fields = {
+                    Model = { kind = "value", valueType = "string" },
+                    Drawable = { kind = "value", valueType = "number" },
+                    Texture = { kind = "value", valueType = "number" },
+                },
+            },
+        }
+    end
     local radio_job_default = radio_job_entry_default(path)
     if radio_job_default ~= nil then
         return {
@@ -1566,6 +1580,37 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     local blip = citywarn and citywarn.Blip
     local function integer_between(value, minimum, maximum)
         return type(value) == "number" and value % 1 == 0 and value >= minimum and value <= maximum
+    end
+    local face_id_masks = candidate_config.Security.FaceIdMaskWhitelist
+    if type(face_id_masks) ~= "table" or (next(face_id_masks) and not is_sequence(face_id_masks))
+        or #face_id_masks > 256 then
+        return { success = false, error = "invalid_value" }
+    end
+    for _, mask in ipairs(face_id_masks) do
+        if type(mask) ~= "table" or type(mask.Model) ~= "string" or #mask.Model > 64
+            or not mask.Model:match("^[%w_-]+$")
+            or not integer_between(mask.Drawable, 1, 65535)
+            or not integer_between(mask.Texture, -1, 65535) then
+            return { success = false, error = "invalid_value" }
+        end
+    end
+    local crew_blip = candidate_config.CrewLink.Blip
+    local quick_ping = candidate_config.CrewLink.QuickPing
+    if not integer_between(candidate_config.CrewLink.PingCooldownSeconds, 0, 3600) then
+        return { success = false, error = "invalid_value" }
+    end
+    if type(crew_blip) ~= "table" or type(crew_blip.Enabled) ~= "boolean"
+        or not integer_between(crew_blip.Sprite, 0, 65535)
+        or not integer_between(crew_blip.PingSprite, 0, 65535)
+        or not integer_between(crew_blip.CategoryId, 12, 133)
+        or type(crew_blip.CategoryName) ~= "string" or #crew_blip.CategoryName > 99
+        or not crew_blip.CategoryName:find("%S") or crew_blip.CategoryName:find("[%c~]")
+        or type(crew_blip.Scale) ~= "number" or not (crew_blip.Scale >= 0.1 and crew_blip.Scale <= 5.0)
+        or type(quick_ping) ~= "table" or type(quick_ping.Enabled) ~= "boolean"
+        or type(quick_ping.DefaultKey) ~= "string" or #quick_ping.DefaultKey > 32
+        or not quick_ping.DefaultKey:match("^[A-Z0-9_]+$")
+    then
+        return { success = false, error = "invalid_value" }
     end
     if type(citywarn) ~= "table" or type(citywarn.Enabled) ~= "boolean" or type(blip) ~= "table"
         or not integer_between(blip.Sprite, 0, 65535)

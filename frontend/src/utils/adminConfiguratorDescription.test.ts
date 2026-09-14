@@ -9,6 +9,21 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains model-specific Face ID masks and texture wildcards', () => {
+    expect(configuratorDescriptionKey('Security.FaceIdMaskWhitelist', [])).toBe(
+      'faceIdMaskWhitelist',
+    )
+    for (const key of ['Model', 'Drawable', 'Texture']) {
+      for (const entry of ['[1]', '.1']) {
+        expect(
+          configuratorDescriptionKey(
+            `Security.FaceIdMaskWhitelist${entry}.${key}`,
+            1,
+          ),
+        ).toBe(`faceIdMask${key}`)
+      }
+    }
+  })
   it('explains both service-line routing modes and their timing controls', () => {
     expect(
       configuratorDescriptionKey(
@@ -48,6 +63,26 @@ describe('admin configurator descriptions', () => {
     }
   })
   it('selects specific descriptions before generic value descriptions', () => {
+    expect(configuratorDescriptionKey('CrewLink.PingCooldownSeconds', 5)).toBe(
+      'crewlinkPingCooldown',
+    )
+    for (const key of [
+      'Enabled',
+      'Sprite',
+      'PingSprite',
+      'CategoryId',
+      'CategoryName',
+      'Scale',
+    ]) {
+      expect(configuratorDescriptionKey(`CrewLink.Blip.${key}`, 1)).toBe(
+        `crewlinkBlip${key}`,
+      )
+    }
+    for (const key of ['Enabled', 'DefaultKey']) {
+      expect(
+        configuratorDescriptionKey(`CrewLink.QuickPing.${key}`, 'NUMPAD5'),
+      ).toBe(`crewlinkQuickPing${key}`)
+    }
     expect(configuratorDescriptionKey('Garage.System', 'msk')).toBe(
       'garageSystem',
     )
@@ -59,8 +94,37 @@ describe('admin configurator descriptions', () => {
     )
     expect(configuratorDescriptionKey('Radio.AllowedJobs', [])).toBe('access')
     expect(configuratorDescriptionKey('FiveManage.ApiKey', '')).toBe(
+      'fiveManageApiKey',
+    )
+  })
+
+  it.each([
+    ['Import.Enabled', 'importEnabled'],
+    ['Import.Websites', 'importWebsites'],
+    ['Import.Websites[1]', 'importSource'],
+    ['Import.Websites[2].Adapter', 'importAdapter'],
+    ['Import.Websites[2].ApiKey', 'importApiKey'],
+    ['Import.Websites[1].Path', 'importPath'],
+    ['Import.Websites[1].AllowedMediaHosts', 'importHosts'],
+    ['Import.Websites[1].AllowedMediaHosts[2]', 'importHosts'],
+    ['Media.Import.Websites[1].MediaTypes[1]', 'importMediaTypes'],
+    ['Import.Websites.2.ManifestUrl', 'importManifestUrl'],
+    ['Import.Websites[2].Auth.TokenConvar', 'importAuthConvar'],
+    ['Import.Websites[2].RequiredAce', 'importRequiredAce'],
+    ['Wallpaper.CustomUploadEnabled', 'wallpaperImport'],
+    ['Photo.Quality', 'photoQuality'],
+    ['Video.BitrateKbps', 'videoBitrate'],
+  ])('explains media setup for %s', (path, key) => {
+    expect(configuratorDescriptionKey(path, '')).toBe(key)
+  })
+
+  it('retains generic help for unrelated fields and import timeouts', () => {
+    expect(configuratorDescriptionKey('CustomApp.ApiKey', '')).toBe(
       'credential',
     )
+    expect(
+      configuratorDescriptionKey('Import.Websites[1].RequestTimeoutMs', 10000),
+    ).toBe('milliseconds')
   })
 
   it('describes structured values from their schema', () => {

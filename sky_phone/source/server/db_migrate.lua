@@ -411,6 +411,7 @@ local schema = {
                 collation = "ascii_bin",
             },
             { name = "passcode_length", type = "TINYINT UNSIGNED NOT NULL" },
+            { name = "face_id_identifier", type = "VARCHAR(80) NULL", characterSet = "ascii", collation = "ascii_bin" },
             { name = "failed_attempts", type = "TINYINT UNSIGNED NOT NULL DEFAULT 0" },
             { name = "locked_until", type = "BIGINT UNSIGNED NOT NULL DEFAULT 0" },
             {

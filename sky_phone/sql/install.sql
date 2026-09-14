@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS `sky_phone_device_security` (
     `passcode_hash` BINARY(32) NOT NULL,
     `passcode_salt` CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     `passcode_length` TINYINT UNSIGNED NOT NULL,
+    `face_id_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NULL,
     `failed_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
     `locked_until` BIGINT UNSIGNED NOT NULL DEFAULT 0,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

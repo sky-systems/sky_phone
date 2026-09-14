@@ -181,7 +181,10 @@ const rootTableTabs = computed<RootTableTab[]>(() => {
       count: configuratorStructureSize(tableFieldStructure(key)),
       id: `field:${key}`,
       key,
-      label: props.tabLabel?.(key, tableValue.value[key]) ?? key,
+      label:
+        props.labels.fieldNames?.[tableEntryPath(key)] ??
+        props.tabLabel?.(key, tableValue.value[key]) ??
+        key,
     })),
   ]
 })
@@ -341,7 +344,12 @@ function tableEntryPath(key: string): string {
 }
 
 function tableEntryLabel(key: string): string {
-  return props.labels.fieldNames?.[tableEntryPath(key)] ?? key
+  const path = tableEntryPath(key)
+  return (
+    props.labels.fieldNames?.[path] ??
+    props.labels.fieldNames?.[path.replace(/\[\d+\]/g, '[]')] ??
+    key
+  )
 }
 
 function listEntryPath(index: number): string {
@@ -785,6 +793,16 @@ function mapEntryStructure(
         role="tab"
         :class="{ 'is-active': activeRootTableTab?.id === tableTab.id }"
         :aria-selected="activeRootTableTab?.id === tableTab.id"
+        :title="
+          tableTab.key
+            ? describe(
+                tableEntryPath(tableTab.key),
+                tableValue[tableTab.key],
+                tableFieldStructure(tableTab.key),
+                tableTab.label,
+              )
+            : undefined
+        "
         @click="selectedTableTab = tableTab.id"
       >
         <span>{{ tableTab.label }}</span>
@@ -797,6 +815,15 @@ function mapEntryStructure(
       class="config-structured-editor__tab-panel"
       role="tabpanel"
     >
+      <p class="config-structured-editor__tab-description">
+        {{
+          describe(
+            tableEntryPath(activeRootTableField.key),
+            activeRootTableField.value,
+            tableFieldStructure(activeRootTableField.key),
+          )
+        }}
+      </p>
       <div
         v-if="!isFixedTableField(activeRootTableField.key)"
         class="config-structured-editor__tab-panel-actions"
@@ -1249,6 +1276,15 @@ function mapEntryStructure(
   background: #0f1110;
 }
 
+.config-structured-editor__tab-description {
+  margin: 0;
+  padding: calc(10 * var(--admin-unit));
+  color: var(--admin-muted);
+  font-size: calc(9 * var(--admin-unit));
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .config-structured-editor__tab-panel > .config-structured-editor {
   border-radius: 0;
   outline: 0;
@@ -1454,13 +1490,12 @@ function mapEntryStructure(
 }
 
 .config-structured-editor__field-copy small {
-  overflow: hidden;
   color: var(--admin-muted);
   font-size: calc(7.5 * var(--admin-unit));
   font-weight: 450;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .config-structured-editor__section-toggle

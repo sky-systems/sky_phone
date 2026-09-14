@@ -27,6 +27,7 @@ export type PhoneNotificationDevicePayload = {
 
 export type DeviceSecurity = {
   enabled: boolean
+  faceIdEnabled?: boolean
   length: 4 | 6 | null
   lockedUntil: number
 }

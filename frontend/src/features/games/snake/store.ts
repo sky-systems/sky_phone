@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { useGamesStore } from '@/features/games/store'
 
 import { createSnakeGame, stepSnake, turnSnake } from './engine'
+import { snakeProgression } from './progression'
 import type { SnakeDirection, SnakeGameState, SnakeSpeed } from './types'
 
 type SnakeSave = {
@@ -29,6 +30,7 @@ export const useSnakeStore = defineStore('snake', {
   }),
   getters: {
     tickMilliseconds: (state) => SPEED_TICK_MS[state.speed],
+    progression: (state) => snakeProgression(state.game?.score ?? 0),
   },
   actions: {
     hydrate(): void {
@@ -72,7 +74,10 @@ export const useSnakeStore = defineStore('snake', {
       if (!this.game) return
 
       this.game = stepSnake(this.game)
-      if (this.game.status === 'game-over' && this.game.score > this.highScore) {
+      if (
+        this.game.status === 'game-over' &&
+        this.game.score > this.highScore
+      ) {
         this.highScore = this.game.score
         this.persist()
       }

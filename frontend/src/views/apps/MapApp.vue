@@ -46,6 +46,7 @@ import { usePhoneStore } from '@/stores/phone'
 import type { MapMarker, MapMarkerColor } from '@/types/map'
 import { handleEnterAction } from '@/utils/keyboard'
 import { nuiCall, type NuiResponse } from '@/utils/nui'
+import { readPhoneViewportGeometry } from '@/utils/phoneViewportGeometry'
 
 type MapStyle = 'default' | 'satellite' | 'atlas' | 'roads'
 
@@ -267,8 +268,15 @@ function cancelMarkerPlacement(): void {
 
 function openMarkerEditor(): void {
   const viewportElement = viewportRef.value
-  const viewport = viewportElement?.getBoundingClientRect()
-  const canvas = canvasRef.value?.getBoundingClientRect()
+  const canvasElement = canvasRef.value
+  const geometry = readPhoneViewportGeometry(viewportElement)
+  const viewport = viewportElement
+    ? (geometry?.rect(viewportElement) ??
+      viewportElement.getBoundingClientRect())
+    : null
+  const canvas = canvasElement
+    ? (geometry?.rect(canvasElement) ?? canvasElement.getBoundingClientRect())
+    : null
   if (
     !viewportElement ||
     !viewport ||
@@ -398,8 +406,11 @@ function normalizeViewport(
 
 function viewportPoint(point: MapPoint): MapPoint | null {
   const viewport = viewportRef.value
-  const bounds = viewport?.getBoundingClientRect()
-  if (!viewport || !bounds || bounds.width <= 0 || bounds.height <= 0) {
+  if (!viewport) return null
+  const bounds =
+    readPhoneViewportGeometry(viewport)?.rect(viewport) ??
+    viewport.getBoundingClientRect()
+  if (bounds.width <= 0 || bounds.height <= 0) {
     return null
   }
 
@@ -457,8 +468,11 @@ function onPointerMove(event: PointerEvent): void {
   pointerMoveFrame = requestAnimationFrame(() => {
     pointerMoveFrame = undefined
     const viewportElement = viewportRef.value
-    const viewport = viewportElement?.getBoundingClientRect()
-    if (!viewportElement || !viewport) return
+    if (!viewportElement) return
+    const viewport =
+      readPhoneViewportGeometry(viewportElement)?.rect(viewportElement) ??
+      viewportElement.getBoundingClientRect()
+    if (viewport.width <= 0 || viewport.height <= 0) return
     const renderedScaleX = viewport.width / viewportElement.clientWidth
     const renderedScaleY = viewport.height / viewportElement.clientHeight
     const metrics = viewportMetrics()
