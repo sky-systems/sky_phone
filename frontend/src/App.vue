@@ -17,6 +17,7 @@ import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
 import PhoneControlCenter from '@/components/PhoneControlCenter.vue'
 import PhoneDynamicIsland from '@/components/PhoneDynamicIsland.vue'
 import PhoneMediaCapture from '@/components/PhoneMediaCapture.vue'
+import RealtimeService from '@/components/RealtimeService.vue'
 import PhoneMemoRecorder from '@/components/PhoneMemoRecorder.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhonePasscode from '@/components/PhonePasscode.vue'
@@ -367,7 +368,9 @@ const isDynamicIslandGalleryRoute = computed(
 const isDevelopmentRoute = computed(
   () =>
     isDevelopment &&
-    (route.name === 'development-sky-ui' || isDynamicIslandGalleryRoute.value),
+    (route.name === 'development-sky-ui' ||
+      route.name === 'development-realtime' ||
+      isDynamicIslandGalleryRoute.value),
 )
 const appTransitionName = computed(() =>
   route.query.transition === 'app-switch' ? 'app-switch' : 'app-window',
@@ -1626,6 +1629,18 @@ onMounted(() => {
   }, 1000)
   if (isDevelopment) {
     const developmentHydration = hydrateDevelopmentPhone()
+    const realtimePreview = developmentParameters.get('realtimePreview')
+    if (
+      realtimePreview &&
+      ['call', 'picstagram', 'fliptok'].includes(realtimePreview)
+    ) {
+      void developmentHydration.then(() =>
+        router.replace({
+          path: `/development/realtime/${realtimePreview}`,
+          query: { view: developmentParameters.get('liveView') ?? 'host' },
+        }),
+      )
+    }
     if (developmentParameters.has('simPickerPreview')) {
       simPicker.value = {
         choices: [
@@ -1830,6 +1845,7 @@ onBeforeUnmount(() => {
     <AdminPanel @close="adminPanelOpen = false" />
   </SkyProvider>
   <PhoneMediaCapture />
+  <RealtimeService />
   <PhoneMemoRecorder />
   <RadioHud />
   <PayphoneOverlay />
@@ -1990,6 +2006,9 @@ onBeforeUnmount(() => {
                     'phone-app--messages': route.params.appId === 'messages',
                     'phone-app--status-light':
                       lockedCallVisible ||
+                      (isDevelopment &&
+                        route.name === 'development-realtime' &&
+                        route.params.scene === 'call') ||
                       WHITE_STATUS_BAR_APP_IDS.has(activeAppId) ||
                       (activeAppId === 'phone' && calls.activeCall !== null),
                     'phone-app--status-dark':
@@ -2117,7 +2136,12 @@ onBeforeUnmount(() => {
               />
               <PhoneDynamicIsland
                 v-if="!setupRequired && !isDynamicIslandGalleryRoute"
-                :call-screen-visible="lockedCallVisible"
+                :call-screen-visible="
+                  lockedCallVisible ||
+                  (isDevelopment &&
+                    route.name === 'development-realtime' &&
+                    route.params.scene === 'call')
+                "
                 @expanded-change="dynamicIslandExpanded = $event"
                 @live-activity-change="dynamicIslandActivity = $event"
               />

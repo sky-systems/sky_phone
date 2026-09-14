@@ -44,9 +44,11 @@ import {
   Volume2,
   X,
 } from 'lucide-vue-next'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import RealtimeVideo from '@/components/RealtimeVideo.vue'
+import { useRealtimeStore } from '@/features/realtime/store'
 import { useCallsStore } from '@/stores/calls'
 import { useEasyShareStore } from '@/stores/easyshare'
 import { useMessageMediaStore } from '@/stores/messageMedia'
@@ -76,6 +78,10 @@ const props = defineProps<{ locked?: boolean }>()
 const emit = defineEmits<{ unlock: [] }>()
 const phone = usePhoneStore()
 const calls = useCallsStore()
+const realtime = useRealtimeStore()
+const videoEnabled = computed(
+  () => realtime.config?.enabled && realtime.config.videoCalls,
+)
 const easyShare = useEasyShareStore()
 const mediaPicker = useMessageMediaStore()
 const messages = useMessagesStore()
@@ -424,9 +430,9 @@ async function openMessage(number: string): Promise<void> {
 }
 
 function triggerContactAction(action: ContactProfileAction): void {
-  if (action === 'call') {
+  if (action === 'call' || action === 'video') {
     if (selectedContact.value?.canCall === false) return
-    void startCall(selectedNumber.value)
+    void startCall(selectedNumber.value, action === 'video')
     return
   }
   if (action === 'message' && selectedContact.value?.canMessage !== false) {
@@ -434,9 +440,9 @@ function triggerContactAction(action: ContactProfileAction): void {
   }
 }
 
-async function startCall(number: string): Promise<void> {
+async function startCall(number: string, video = false): Promise<void> {
   error.value = ''
-  const response = await calls.dial(number)
+  const response = await calls.dial(number, video)
   if (!response.success) {
     error.value = phone.t(`Apps.phone.errors.${response.error ?? 'default'}`)
   }
@@ -690,13 +696,34 @@ function formatRecentDate(value: string): string {
   }).format(date)
 }
 
+async function openSharedContact(): Promise<void> {
+  const number = route.query.sharedContactNumber
+  if (props.locked || typeof number !== 'string') return
+  await calls.loadContacts()
+  if (route.query.sharedContactNumber !== number) return
+  tab.value = 'contacts'
+  openRecentDetail(number)
+  const query = { ...route.query }
+  delete query.sharedContactNumber
+  delete query.easyShareId
+  delete query.easyShareKind
+  delete query.easyShareLink
+  await router.replace({ path: route.path, query })
+}
+
+watch(
+  () => route.query.sharedContactNumber,
+  () => void openSharedContact(),
+)
+
 onMounted(async () => {
   updateCallElapsed()
   callClock = window.setInterval(updateCallElapsed, 500)
   if (props.locked) return
 
   window.addEventListener('keydown', handleKeypadKeyboard)
-  await calls.bootstrap()
+  await Promise.all([calls.bootstrap(), realtime.refreshConfig()])
+  await openSharedContact()
   const photoSelection = mediaPicker.consumeMany<ContactPhotoContext>(
     'phone:contact-photo',
   )
@@ -754,10 +781,36 @@ onBeforeUnmount(() => {
     <template v-if="calls.activeCall">
       <SkyProvider
         class="phone-active-call"
-        :class="{ 'phone-active-call--more': callMoreOpened }"
+        :class="{
+          'phone-active-call--more': callMoreOpened,
+          'phone-active-call--video':
+            calls.activeCall.video && calls.activeCall.state === 'connected',
+        }"
         component="section"
         dark
       >
+        <div v-if="realtime.room?.kind === 'call'" class="phone-live-video">
+          <RealtimeVideo
+            v-for="[id, stream] in realtime.streams"
+            :key="id"
+            :stream="stream"
+            muted
+          />
+          <RealtimeVideo
+            :stream="realtime.localStream"
+            class="phone-live-video__preview"
+            muted
+          />
+          <SkyButton
+            glass
+            rounded
+            icon-only
+            class="phone-live-video__flip"
+            :aria-label="phone.t('Realtime.flip')"
+            @click="realtime.flip"
+            ><Camera :size="20"
+          /></SkyButton>
+        </div>
         <header class="phone-active-call__identity">
           <div class="phone-active-call__status">
             <span>P</span>
@@ -766,7 +819,34 @@ onBeforeUnmount(() => {
           <h1>
             {{ contactNameFor(calls.activeCall.otherNumber) }}
           </h1>
+          <p v-if="calls.activeCall.video && !realtime.streams.size">
+            {{
+              phone.t(
+                calls.activeCall.state === 'connected'
+                  ? 'Realtime.connecting'
+                  : 'Realtime.videoCall',
+              )
+            }}
+          </p>
           <p v-if="error" class="phone-active-call__error">{{ error }}</p>
+          <p v-if="realtime.error && calls.activeCall.video" role="alert">
+            {{ phone.t('Realtime.errors.default') }}
+          </p>
+          <div
+            v-if="calls.activeCall.videoIncoming"
+            class="phone-video-request"
+          >
+            <p>{{ phone.t('Realtime.videoRequest') }}</p>
+            <SkyButton @click="calls.videoAction('accept')">{{
+              phone.t('Realtime.accept')
+            }}</SkyButton>
+            <SkyButton tonal @click="calls.videoAction('decline')">{{
+              phone.t('Realtime.decline')
+            }}</SkyButton>
+          </div>
+          <p v-else-if="calls.activeCall.videoRequested">
+            {{ phone.t('Realtime.videoWaiting') }}
+          </p>
         </header>
 
         <Transition name="call-panel" mode="out-in">
@@ -889,8 +969,18 @@ onBeforeUnmount(() => {
             <sky-button
               glass
               rounded
-              class="phone-call-action is-disabled"
-              disabled
+              class="phone-call-action"
+              :class="{ 'is-active': calls.activeCall.video }"
+              :disabled="
+                !videoEnabled ||
+                calls.activeCall.state !== 'connected' ||
+                calls.activeCall.payphone ||
+                calls.activeCall.videoRequested
+              "
+              :aria-pressed="calls.activeCall.video === true"
+              @click="
+                calls.videoAction(calls.activeCall.video ? 'stop' : 'request')
+              "
             >
               <Video />
               <span>{{ phone.t('Apps.phone.faceTime') }}</span>
@@ -1061,7 +1151,9 @@ onBeforeUnmount(() => {
                   class="phone-profile-action"
                   :disabled="
                     viewingOwnCard ||
-                    ['video', 'mail'].includes(action.id) ||
+                    action.id === 'mail' ||
+                    (action.id === 'video' &&
+                      (!videoEnabled || selectedContact?.canCall === false)) ||
                     (action.id === 'call' &&
                       selectedContact?.canCall === false) ||
                     (action.id === 'message' &&
@@ -3981,5 +4073,45 @@ onBeforeUnmount(() => {
     rgba(248, 248, 250, 0.94),
     rgba(222, 222, 227, 0.9)
   );
+}
+.phone-active-call > .phone-live-video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.phone-live-video > video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.phone-live-video > .phone-live-video__preview {
+  position: absolute;
+  right: var(--sky-space-4);
+  top: 24%;
+  width: 24%;
+  height: 22%;
+  border-radius: var(--sky-radius-control);
+}
+.phone-live-video__flip {
+  position: absolute;
+  right: var(--sky-space-4);
+  top: 47%;
+  z-index: 2;
+}
+.phone-active-call--video .phone-active-call__identity {
+  padding-top: var(--sky-safe-area-top);
+  background: var(--sky-surface);
+  border-radius: 0 0 var(--sky-radius-card) var(--sky-radius-card);
+  padding-bottom: var(--sky-space-3);
+}
+.phone-active-call--video .phone-active-call__identity h1 {
+  font-size: var(--sky-font-medium-title);
+}
+.phone-video-request {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sky-space-2);
+  justify-content: center;
 }
 </style>

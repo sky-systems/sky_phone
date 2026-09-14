@@ -1,3 +1,4 @@
+SkyPhoneRealtime = SkyPhoneRealtime or { Apps = {} }
 Bridge.Database.AfterMigration("sky_phone", function()
 local report_reasons = {}
 local password_pepper = ""
@@ -147,6 +148,14 @@ local function load_profile(profile_id, viewer_id)
     ]], { viewer_id, profile_id, viewer_id, viewer_id })
     return rows[1] and hydrate_profile(rows[1], viewer_id) or nil
 end
+
+SkyPhoneRealtime.Apps.picstagram = {
+    profile = profile_for_session,
+    canView = function(viewer, profile_id)
+        local profile = load_profile(profile_id, viewer.id)
+        return profile ~= nil and not profile.locked
+    end,
+}
 
 local function load_post_media(posts)
     if #posts == 0 then

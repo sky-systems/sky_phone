@@ -139,6 +139,9 @@ local function call_payload(call, source, state, channel)
         or (not call.voice_provider and Bridge.Calls.SupportsMute())
     local payload = {
         id = call.id,
+        video = call.video == true,
+        videoRequested = call.video_requester ~= nil,
+        videoIncoming = call.video_requester ~= nil and call.video_requester ~= source,
         state = state,
         direction = outgoing and "outgoing" or "incoming",
         otherNumber = outgoing and call.callee_number or call.caller_number,
@@ -178,7 +181,7 @@ local function call_snapshot(call, source)
     }
     payload.companyId = call.company_id
     payload.payphone = call.payphone ~= nil
-    payload.video = false
+    payload.video = call.video == true
     return payload
 end
 
@@ -1321,6 +1324,7 @@ Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
                 caller_sim_id = scope.device.sim_id,
                 caller_number = scope.device.phone_number,
                 caller_device = scope.device,
+            video = data.video == true and Config.Realtime and Config.Realtime.Enabled and Config.Realtime.VideoCalls or false,
                 callee_source = company_target.source,
                 callee_sim_id = company_target.sim_id,
                 callee_number = service_line.number,
@@ -1671,6 +1675,46 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     send_state(call, call.caller_source, "connected", call.channel)
     send_state(call, call.callee_source, "connected", call.channel)
     log_call(call, "answered", "connected", source)
+    return { success = true }
+end)
+
+function SkyPhoneCalls.StopVideo(id)
+    local call = calls[id]
+    if not call or not call.answered_at then return end
+    call.video, call.video_requester = false, nil
+    send_state(call, call.caller_source, "connected", call.channel)
+    send_state(call, call.callee_source, "connected", call.channel)
+end
+
+Bridge.Callbacks.Register("sky_phone:calls:video", function(source, data)
+    if not Config.Realtime or not Config.Realtime.Enabled or not Config.Realtime.VideoCalls then
+        return { success = false, error = "feature_disabled" }
+    end
+    if type(data) ~= "table" or not SkyPhone.AllowOperation(source, "call_video", 20, 60) then
+        return { success = false, error = "invalid_request" }
+    end
+    local call = active_call_for_source(source)
+    if not call or call.id ~= data.id or not call.answered_at or call.payphone then
+        return { success = false, error = "call_not_found" }
+    end
+    if data.action == "request" then
+        if call.video or call.video_requester then return { success = false, error = "busy" } end
+        call.video_requester = source
+        SetTimeout(30000, function()
+            if active_call_for_source(source) == call and call.video_requester == source then
+                call.video_requester = nil
+                send_state(call, call.caller_source, "connected", call.channel)
+                send_state(call, call.callee_source, "connected", call.channel)
+            end
+        end)
+    elseif data.action == "accept" then
+        if not call.video_requester or call.video_requester == source then return { success = false, error = "invalid_request" } end
+        call.video, call.video_requester = true, nil
+    elseif data.action == "decline" or data.action == "stop" then
+        call.video, call.video_requester = false, nil
+    else return { success = false, error = "invalid_request" } end
+    send_state(call, call.caller_source, "connected", call.channel)
+    send_state(call, call.callee_source, "connected", call.channel)
     return { success = true }
 end)
 

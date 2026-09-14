@@ -47,6 +47,13 @@ jobs:
       - name: Test Phone Configurator persistence and runtime sync
         run: lua5.4 tests/phone_configurator.lua
 
+      - name: Test realtime media and EasyShare receive flows
+        run: |
+          lua5.4 tests/server_realtime.lua
+          lua5.4 tests/server_realtime_cloudflare.lua
+          lua5.4 tests/client_realtime.lua
+          lua5.4 tests/server_easyshare.lua
+
       - name: Test media import URL probes and validation
         run: lua5.4 tests/media_import.lua
 

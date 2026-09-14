@@ -997,6 +997,13 @@ onMounted(async () => {
     companies.loadWorkContext(),
     calls.loadContacts(),
   ])
+  if (
+    route.query.easyShareKind === 'profile' &&
+    typeof route.query.easyShareId === 'string'
+  ) {
+    await openCompany(route.query.easyShareId)
+    return
+  }
   if (linkedRequestId) {
     await router.replace('/apps/companies')
     await openRequest(linkedRequestId, linkedRequestOrigin)

@@ -303,6 +303,7 @@ local function normalize_server_tracks()
 end
 
 normalize_server_tracks()
+SkyPhoneMusic = { GetServerTrack = function(id) return server_tracks_by_id[id] end }
 
 AddEventHandler("sky_phone:configurator:serverUpdated", normalize_server_tracks)
 

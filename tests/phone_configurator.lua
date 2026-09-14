@@ -532,6 +532,37 @@ test("invalid CrewLink native settings and key defaults cannot reach SQL or clie
     end
 end)
 
+test("Realtime options and masked credentials roundtrip without reaching clients", function()
+    local server = new_server()
+    local settings = server.field("Realtime").value
+    assert(settings.Transport == "p2p" and settings.NearbyAudio == true)
+    settings.Transport, settings.TurnEnabled, settings.ForceRelay = "cloudflare", true, true
+    settings.MaxViewers, settings.NearbyMaxSpeakers = 100, 0
+    local secret = { AppId = "test-app", AppSecret = "test-secret", TurnKeyId = "test-turn", ApiToken = "test-token" }
+    local saved = server.save({ change("Realtime", settings), change("RealtimeSecrets", secret) })
+    assert(saved.success, saved.error)
+    local runtime = server.runtime()
+    assert(runtime.config.Realtime.Transport == "cloudflare")
+    assert(runtime.config.RealtimeSecrets == nil, "secrets must never replicate to NUI/clients")
+    local masked = server.field("RealtimeSecrets").value
+    assert(masked.AppSecret == "***REDACTED***" and masked.ApiToken == "***REDACTED***")
+    assert(server.save({ change("RealtimeSecrets", masked) }).success)
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.RealtimeSecrets.ApiToken == "test-token")
+    assert(restarted.env.Config.Realtime.MaxViewers == 100)
+end)
+test("Realtime invalid settings reject the entire save", function()
+    for _, invalid in ipairs({ { "Transport", "external" }, { "MaxViewers", 0 }, { "MaxViewers", 129 },
+        { "FrameRate", 60 }, { "MaxVideoEdge", 2000 }, { "NearbyDistance", 31 },
+        { "NearbyMaxSpeakers", -1 }, { "NearbyAudio", "yes" }, { "ForceRelay", true } }) do
+        local server = new_server()
+        local settings = server.field("Realtime").value
+        settings[invalid[1]] = invalid[2]
+        assert(not server.save({ change("Realtime", settings) }).success, invalid[1])
+        assert(server.database.writes == 0)
+    end
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")

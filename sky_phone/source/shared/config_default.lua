@@ -162,6 +162,31 @@ Config.Calls = {
     RecentPageSize = 100,
 }
 
+-- Video calls and Picstagram / FlipTok live broadcasts. Managed in /phonepanel.
+-- p2p sends one stream per viewer; cloudflare publishes once to Cloudflare SFU.
+-- TURN is independently selectable and relays connections blocked by NAT/firewalls.
+-- Default: P2P video calls and livestreams, with no Cloudflare account or credentials.
+-- Cloudflare SFU and TURN are OPTIONAL: enable for connection problems, larger audiences,
+-- or when the server owner prefers Cloudflare. TURN can also be used with P2P.
+Config.Realtime = {
+    Enabled = true,
+    Transport = "p2p", -- p2p, cloudflare
+    VideoCalls = true,
+    Picstagram = true,
+    FlipTok = true,
+    FrameRate = 24,
+    VideoBitrateKbps = 1200,
+    MaxVideoEdge = 720,
+    MaxViewers = 32, -- use SFU for larger audiences; P2P consumes broadcaster upload per viewer
+    MaxBroadcasts = 8,
+    MaxDurationMinutes = 120,
+    NearbyAudio = true,
+    NearbyDistance = 15.0, -- upper bound, also limited by each contributor's voice range
+    NearbyMaxSpeakers = 8,
+    TurnEnabled = false,
+    ForceRelay = false, -- requires TurnEnabled; applies to P2P (SFU connects directly to Cloudflare)
+}
+
 Config.Payphones = {
     Enabled = true,
     -- Existing world props with these models are detected automatically.
@@ -1176,6 +1201,26 @@ Config.CityWarn = {
 -- =============================================================================
 
 if IsDuplicityVersion() then
+    -- Cloudflare dashboard > Realtime > SFU: create an application, copy App ID / App Secret.
+    -- Cloudflare dashboard > Realtime > TURN: create a key, copy Token ID / API Token.
+    -- https://developers.cloudflare.com/realtime/sfu/quickstart/
+    -- https://developers.cloudflare.com/realtime/turn/generate-credentials/
+    -- Configure these in /phonepanel (SQL mode). Keep the placeholders below empty.
+    -- config.lua is downloaded by clients even inside IsDuplicityVersion(). Never paste secrets here.
+    -- File mode: set the following NON-REPLICATED convars in server.cfg before ensure sky_phone:
+    -- set sky_phone_cf_sfu_app_id "<App ID>"
+    -- set sky_phone_cf_sfu_app_secret "<App Secret>"
+    -- set sky_phone_cf_turn_key_id "<TURN Token ID>"
+    -- set sky_phone_cf_turn_api_token "<TURN API Token>"
+    -- Use set, NEVER setr or sets. No Cloudflare account is required for default P2P.
+    Config.RealtimeSecrets = {
+        AppId = "",
+        AppSecret = "",
+        TurnKeyId = "",
+        ApiToken = "",
+    }
+
+
     -- -------------------------------------------------------------------------
     -- Server secrets
     -- -------------------------------------------------------------------------

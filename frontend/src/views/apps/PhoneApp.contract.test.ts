@@ -83,7 +83,9 @@ describe('PhoneApp EasyShare contract', () => {
       source.indexOf('onMounted(async () => {'),
       source.indexOf('onBeforeUnmount(() => {'),
     )
-    const bootstrapIndex = mounted.indexOf('await calls.bootstrap()')
+    const bootstrapIndex = mounted.indexOf(
+      'await Promise.all([calls.bootstrap(), realtime.refreshConfig()])',
+    )
     const contactRequestIndex = mounted.indexOf(
       "typeof route.query.contactId === 'string'",
     )
@@ -105,7 +107,9 @@ describe('PhoneApp EasyShare contract', () => {
       source.indexOf('onMounted(async () => {'),
       source.indexOf('onBeforeUnmount(() => {'),
     )
-    const bootstrapIndex = mounted.indexOf('await calls.bootstrap()')
+    const bootstrapIndex = mounted.indexOf(
+      'await Promise.all([calls.bootstrap(), realtime.refreshConfig()])',
+    )
     const newContactRequestIndex = mounted.indexOf(
       "typeof route.query.newContactNumber === 'string'",
     )

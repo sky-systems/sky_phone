@@ -136,10 +136,23 @@ export const useCallsStore = defineStore('calls', () => {
     return response.success
   }
 
-  async function dial(phoneNumber: string): Promise<NuiResponse<PhoneCall>> {
-    const response = await nuiCall<PhoneCall>('calls:dial', { phoneNumber })
+  async function dial(
+    phoneNumber: string,
+    video = false,
+  ): Promise<NuiResponse<PhoneCall>> {
+    const response = await nuiCall<PhoneCall>('calls:dial', {
+      phoneNumber,
+      video,
+    })
     if (response.success && response.data) applyCallState(response.data)
     return response
+  }
+
+  async function videoAction(
+    action: 'request' | 'accept' | 'decline' | 'stop',
+  ): Promise<NuiResponse> {
+    if (!activeCall.value) return { success: false, error: 'call_not_found' }
+    return nuiCall('calls:video', { id: activeCall.value.id, action })
   }
 
   async function answer(): Promise<NuiResponse> {
@@ -253,6 +266,7 @@ export const useCallsStore = defineStore('calls', () => {
 
   return {
     activeCall,
+    videoAction,
     answer,
     applyCallState,
     bootstrap,

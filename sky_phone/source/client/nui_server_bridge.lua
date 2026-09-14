@@ -8,7 +8,8 @@ local callback_groups = {
     banking = [[overview transfer]],
     billing = [[overview list detail markRead pay dispute]],
     calendar = [[list create update delete]],
-    calls = [[recents dial answer set-speaker set-muted decline hangup block]],
+    realtime = [[config list create join ready chat drop leave heartbeat signal sfu]],
+    calls = [[recents dial answer set-speaker set-muted video decline hangup block]],
     citywarn = [[bootstrap publish update resolve]],
     companies = [[
         list get my-requests get-request work-context work-queue list-members

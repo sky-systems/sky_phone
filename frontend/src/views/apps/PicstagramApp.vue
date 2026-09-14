@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LiveBroadcast from '@/components/LiveBroadcast.vue'
+import LiveSetup from '@/components/LiveSetup.vue'
+import { useRealtimeStore } from '@/features/realtime/store'
 import {
   Bell,
   Bookmark,
@@ -78,7 +81,7 @@ import {
 
 type Tab = 'home' | 'explore' | 'create' | 'activity' | 'profile'
 type AuthMode = 'login' | 'register'
-type ComposeKind = 'post' | 'story'
+type ComposeKind = 'post' | 'story' | 'live'
 type ConnectionMode = 'followers' | 'following'
 type ProfileSection = 'all' | 'videos' | 'tagged'
 type MediaSource = 'camera' | 'photos'
@@ -96,6 +99,7 @@ const authDisplayName = ref('')
 const authPassword = ref('')
 const authConfirmPassword = ref('')
 const authSubmitting = ref(false)
+const realtime = useRealtimeStore()
 const composeKind = ref<ComposeKind>('post')
 const selectedMedia = ref<PhoneMedia[]>([])
 const composePreviewIndex = ref(0)
@@ -1170,6 +1174,7 @@ onBeforeUnmount(() => {
             /></SkyLink>
           </template>
           <template #right>
+            <LiveBroadcast app="picstagram" />
             <SkyLink
               component="button"
               icon-only
@@ -1443,14 +1448,18 @@ onBeforeUnmount(() => {
 
       <template v-else-if="tab === 'create'">
         <SkyNavbar
-          :title="t(composeKind === 'post' ? 'newPost' : 'newStory')"
+          :title="
+            composeKind === 'live'
+              ? phone.t('Realtime.goLive')
+              : t(composeKind === 'post' ? 'newPost' : 'newStory')
+          "
           show-back
           :back-label="phone.t('Common.back')"
           back-appearance="surface"
           variant="compact"
           @back="showTab('home')"
         >
-          <template #right>
+          <template v-if="composeKind !== 'live'" #right>
             <SkyLink
               component="button"
               class="ps-publish-link"
@@ -1474,158 +1483,167 @@ onBeforeUnmount(() => {
               @click="setComposeKind('story')"
               >{{ t('newStory') }}</SkySegmentedButton
             >
-          </SkySegmented>
-          <SkyCard class="ps-create-card">
-            <div
-              v-if="selectedMedia.length && currentComposeMedia"
-              class="ps-selection-preview"
+            <SkySegmentedButton
+              v-if="realtime.config?.enabled && realtime.config.picstagram"
+              :active="composeKind === 'live'"
+              @click="setComposeKind('live')"
+              >{{ phone.t('Realtime.goLive') }}</SkySegmentedButton
             >
-              <div :key="currentComposeMedia.id" class="ps-selection-slide">
-                <video
-                  v-if="currentComposeMedia.mediaType === 'video'"
-                  :src="currentComposeMedia.url"
-                  autoplay
-                  loop
-                  muted
-                  playsinline
-                />
-                <img v-else :src="currentComposeMedia.url" alt="" />
-                <button
-                  class="ps-selection-remove"
-                  :aria-label="t('remove')"
-                  @click="removeComposeMedia(currentComposeMedia.id)"
-                >
-                  <X />
-                </button>
-              </div>
-              <template v-if="selectedMedia.length > 1">
-                <SkyButton
-                  glass
-                  icon-only
-                  rounded
-                  class="ps-selection-arrow ps-selection-arrow--left"
-                  :aria-label="t('previousPhoto')"
-                  :disabled="composePreviewIndex === 0"
-                  @click="moveComposePreview(-1)"
-                >
-                  <ChevronLeft />
-                </SkyButton>
-                <SkyButton
-                  glass
-                  icon-only
-                  rounded
-                  class="ps-selection-arrow ps-selection-arrow--right"
-                  :aria-label="t('nextPhoto')"
-                  :disabled="composePreviewIndex === selectedMedia.length - 1"
-                  @click="moveComposePreview(1)"
-                >
-                  <ChevronRight />
-                </SkyButton>
-                <span class="ps-selection-counter">
-                  {{ composePreviewIndex + 1 }}/{{ selectedMedia.length }}
-                </span>
-                <div class="ps-selection-dots" aria-hidden="true">
-                  <span
-                    v-for="(_, index) in selectedMedia"
-                    :key="index"
-                    :class="{ active: composePreviewIndex === index }"
+          </SkySegmented>
+          <LiveSetup v-if="composeKind === 'live'" app="picstagram" />
+          <template v-else>
+            <SkyCard class="ps-create-card">
+              <div
+                v-if="selectedMedia.length && currentComposeMedia"
+                class="ps-selection-preview"
+              >
+                <div :key="currentComposeMedia.id" class="ps-selection-slide">
+                  <video
+                    v-if="currentComposeMedia.mediaType === 'video'"
+                    :src="currentComposeMedia.url"
+                    autoplay
+                    loop
+                    muted
+                    playsinline
                   />
+                  <img v-else :src="currentComposeMedia.url" alt="" />
+                  <button
+                    class="ps-selection-remove"
+                    :aria-label="t('remove')"
+                    @click="removeComposeMedia(currentComposeMedia.id)"
+                  >
+                    <X />
+                  </button>
+                </div>
+                <template v-if="selectedMedia.length > 1">
+                  <SkyButton
+                    glass
+                    icon-only
+                    rounded
+                    class="ps-selection-arrow ps-selection-arrow--left"
+                    :aria-label="t('previousPhoto')"
+                    :disabled="composePreviewIndex === 0"
+                    @click="moveComposePreview(-1)"
+                  >
+                    <ChevronLeft />
+                  </SkyButton>
+                  <SkyButton
+                    glass
+                    icon-only
+                    rounded
+                    class="ps-selection-arrow ps-selection-arrow--right"
+                    :aria-label="t('nextPhoto')"
+                    :disabled="composePreviewIndex === selectedMedia.length - 1"
+                    @click="moveComposePreview(1)"
+                  >
+                    <ChevronRight />
+                  </SkyButton>
+                  <span class="ps-selection-counter">
+                    {{ composePreviewIndex + 1 }}/{{ selectedMedia.length }}
+                  </span>
+                  <div class="ps-selection-dots" aria-hidden="true">
+                    <span
+                      v-for="(_, index) in selectedMedia"
+                      :key="index"
+                      :class="{ active: composePreviewIndex === index }"
+                    />
+                  </div>
+                </template>
+                <SkyChip>{{
+                  t('selectedPhotos', { count: String(selectedMedia.length) })
+                }}</SkyChip>
+                <span
+                  v-if="currentComposeMedia.mediaType === 'video'"
+                  class="ps-video-preview-badge"
+                  ><Video />{{ t('video') }}</span
+                >
+              </div>
+              <template v-else>
+                <div class="ps-create-intro">
+                  <span><ImagePlus /></span
+                  ><strong>{{
+                    t(composeKind === 'post' ? 'newPost' : 'newStory')
+                  }}</strong>
+                  <p>
+                    {{
+                      t(
+                        composeKind === 'post'
+                          ? 'choosePhotosHint'
+                          : 'chooseStoryHint',
+                      )
+                    }}
+                  </p>
+                </div>
+                <div class="ps-source-grid">
+                  <button @click="openComposeMedia('photos', 'photo')">
+                    <Images /><span
+                      ><strong>{{ t('photo') }}</strong
+                      ><small>{{ t('gallery') }}</small></span
+                    >
+                  </button>
+                  <button @click="openComposeMedia('camera', 'photo')">
+                    <Camera /><span
+                      ><strong>{{ t('photo') }}</strong
+                      ><small>{{ t('camera') }}</small></span
+                    >
+                  </button>
+                  <button @click="openComposeMedia('photos', 'video')">
+                    <Video /><span
+                      ><strong>{{ t('video') }}</strong
+                      ><small>{{ t('gallery') }}</small></span
+                    >
+                  </button>
+                  <button @click="openComposeMedia('camera', 'video')">
+                    <Camera /><span
+                      ><strong>{{ t('video') }}</strong
+                      ><small>{{ t('camera') }}</small></span
+                    >
+                  </button>
                 </div>
               </template>
-              <SkyChip>{{
-                t('selectedPhotos', { count: String(selectedMedia.length) })
-              }}</SkyChip>
-              <span
-                v-if="currentComposeMedia.mediaType === 'video'"
-                class="ps-video-preview-badge"
-                ><Video />{{ t('video') }}</span
+              <SkyButton
+                v-if="selectedMedia.length"
+                block
+                rounded
+                tonal
+                class="ps-change-selection"
+                @click="changeComposeSelection"
               >
+                <Images />{{ t('changePhotos') }}
+              </SkyButton>
+            </SkyCard>
+            <div class="ps-compose-fields">
+              <SkyField
+                v-if="composeKind === 'post'"
+                v-model="caption"
+                :label="t('caption')"
+                :placeholder="t('captionPlaceholder')"
+                type="textarea"
+                :rows="4"
+              />
+              <SkyField
+                v-else
+                v-model="storyText"
+                :label="t('story')"
+                :placeholder="t('storyTextPlaceholder')"
+                type="textarea"
+                :rows="4"
+              />
+              <SkyField
+                v-if="composeKind === 'post'"
+                v-model="location"
+                :label="t('location')"
+                :placeholder="t('locationPlaceholder')"
+                ><template #media><MapPin /></template
+              ></SkyField>
+              <label v-if="composeKind === 'post'" class="ps-toggle-row"
+                ><span
+                  ><strong>{{ t('allowComments') }}</strong
+                  ><small>{{ t('comments') }}</small></span
+                ><SkyToggle v-model="commentsEnabled"
+              /></label>
             </div>
-            <template v-else>
-              <div class="ps-create-intro">
-                <span><ImagePlus /></span
-                ><strong>{{
-                  t(composeKind === 'post' ? 'newPost' : 'newStory')
-                }}</strong>
-                <p>
-                  {{
-                    t(
-                      composeKind === 'post'
-                        ? 'choosePhotosHint'
-                        : 'chooseStoryHint',
-                    )
-                  }}
-                </p>
-              </div>
-              <div class="ps-source-grid">
-                <button @click="openComposeMedia('photos', 'photo')">
-                  <Images /><span
-                    ><strong>{{ t('photo') }}</strong
-                    ><small>{{ t('gallery') }}</small></span
-                  >
-                </button>
-                <button @click="openComposeMedia('camera', 'photo')">
-                  <Camera /><span
-                    ><strong>{{ t('photo') }}</strong
-                    ><small>{{ t('camera') }}</small></span
-                  >
-                </button>
-                <button @click="openComposeMedia('photos', 'video')">
-                  <Video /><span
-                    ><strong>{{ t('video') }}</strong
-                    ><small>{{ t('gallery') }}</small></span
-                  >
-                </button>
-                <button @click="openComposeMedia('camera', 'video')">
-                  <Camera /><span
-                    ><strong>{{ t('video') }}</strong
-                    ><small>{{ t('camera') }}</small></span
-                  >
-                </button>
-              </div>
-            </template>
-            <SkyButton
-              v-if="selectedMedia.length"
-              block
-              rounded
-              tonal
-              class="ps-change-selection"
-              @click="changeComposeSelection"
-            >
-              <Images />{{ t('changePhotos') }}
-            </SkyButton>
-          </SkyCard>
-          <div class="ps-compose-fields">
-            <SkyField
-              v-if="composeKind === 'post'"
-              v-model="caption"
-              :label="t('caption')"
-              :placeholder="t('captionPlaceholder')"
-              type="textarea"
-              :rows="4"
-            />
-            <SkyField
-              v-else
-              v-model="storyText"
-              :label="t('story')"
-              :placeholder="t('storyTextPlaceholder')"
-              type="textarea"
-              :rows="4"
-            />
-            <SkyField
-              v-if="composeKind === 'post'"
-              v-model="location"
-              :label="t('location')"
-              :placeholder="t('locationPlaceholder')"
-              ><template #media><MapPin /></template
-            ></SkyField>
-            <label v-if="composeKind === 'post'" class="ps-toggle-row"
-              ><span
-                ><strong>{{ t('allowComments') }}</strong
-                ><small>{{ t('comments') }}</small></span
-              ><SkyToggle v-model="commentsEnabled"
-            /></label>
-          </div>
+          </template>
         </SkyScrollArea>
       </template>
 

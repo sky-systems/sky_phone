@@ -1,3 +1,4 @@
+SkyPhoneRealtime = SkyPhoneRealtime or { Apps = {} }
 Bridge.Database.AfterMigration("sky_phone", function()
 local account_types = { person = true, business = true, organization = true, media = true, event = true }
 local visibilities = { public = true, followers = true, private = true }
@@ -165,6 +166,13 @@ local function load_profile(profile_id, viewer_id)
     return rows[1] and hydrate_profile(rows[1], viewer_id) or nil
 end
 
+SkyPhoneRealtime.Apps.fliptok = {
+    profile = profile_for_session,
+    canView = function(viewer, profile_id)
+        return load_profile(profile_id, viewer.id) ~= nil and not are_profiles_blocked(viewer.id, profile_id)
+    end,
+}
+
 local function load_accessible_video(video_id, viewer_id)
     if type(video_id) ~= "string" or video_id == "" or #video_id > 64 then return nil end
     local rows = Bridge.Database.Query([[SELECT v.`profile_id`, v.`comments_enabled`
@@ -280,7 +288,7 @@ local function truncate_discord_text(value, maximum_characters)
     local length = utf8.len(value)
     if not length or length <= maximum_characters then return value end
     local boundary = utf8.offset(value, maximum_characters + 1)
-    return boundary and value:sub(1, boundary - 1) .. "…" or value
+    return boundary and value:sub(1, boundary - 1) .. "â€¦" or value
 end
 
 local function list_videos(viewer_id, where_clause, values, limit, offset, ranking)
@@ -872,7 +880,7 @@ Bridge.Callbacks.Register("sky_phone:fliptok:report", function(source, data)
     end
     local video = videos[1]
     local payload = {
-        username = "Sky Phone · FlipTok Reports",
+        username = "Sky Phone Â· FlipTok Reports",
         allowed_mentions = { parse = {} },
         embeds = {{
             title = "New FlipTok report",
@@ -884,7 +892,7 @@ Bridge.Callbacks.Register("sky_phone:fliptok:report", function(source, data)
                 { name = "Video", value = tostring(data.id), inline = true },
                 { name = "Creator", value = ("@%s (%s)"):format(video.handle, video.display_name), inline = false },
                 { name = "Reporter", value = ("@%s (%s)"):format(profile.handle, profile.display_name), inline = false },
-                { name = "Caption", value = video.caption ~= "" and truncate_discord_text(video.caption, 240) or "—", inline = false },
+                { name = "Caption", value = video.caption ~= "" and truncate_discord_text(video.caption, 240) or "â€”", inline = false },
             },
             footer = { text = "sky_phone FlipTok" },
         }},
