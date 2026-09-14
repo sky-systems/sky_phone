@@ -980,6 +980,12 @@ const adminPanelFallbackLocales = {
     ofDevices: '{count} of {total} devices',
   },
   configurator: {
+    faceIdMaskWhitelistLabel: 'Allowed Face ID masks',
+    faceIdMaskLabels: {
+      Model: 'Ped model',
+      Drawable: 'Mask drawable ID',
+      Texture: 'Texture ID (-1 = all)',
+    },
     context: 'Runtime configuration',
     eyebrow: 'System tool',
     sections: 'Configuration',
@@ -1049,6 +1055,15 @@ const adminPanelFallbackLocales = {
       Radius: 'Radius (metres)',
     },
     descriptions: {
+      faceIdMaskWhitelist:
+        'Exceptions for masks on ped component 1, up to 256 entries. No mask (drawable 0) is always allowed. Each exception applies only to the specified ped model.',
+      faceIdMaskModel:
+        'Ped model name, e.g. mp_m_freemode_01 or mp_f_freemode_01. Custom models are supported (up to 64 letters, digits, underscores or hyphens).',
+      faceIdMaskDrawable:
+        'Global drawable ID of the allowed mask on component 1 (1-65535). IDs may differ between models and clothing packs.',
+      faceIdMaskTexture:
+        'Allowed texture ID (0-65535). Use -1 to allow every texture of this mask.',
+
       citywarnBlipSprite:
         'GTA blip sprite ID. Default: 161 (signal). Sprite 10 draws a large outline; use the separate radius setting for a fixed map area.',
       citywarnBlipDisplay:
@@ -1463,6 +1478,8 @@ const defaultLocales: LocaleTree = {
       face_id_not_recognized:
         'Face not recognized. Try again or use the device passcode.',
       face_id_unavailable: 'Face ID is currently unavailable.',
+      face_id_masked:
+        'Remove your mask to use Face ID, or enter your passcode.',
       invalid_passcode: 'Incorrect device passcode.',
       passcode_locked:
         'Too many attempts. Wait before entering your passcode again.',

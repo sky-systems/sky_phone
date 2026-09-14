@@ -135,7 +135,37 @@ local function same_device_session(source, session, identifier)
     return current == session and character_identifier(source) == identifier
 end
 
-Bridge.Callbacks.Register("sky_phone:security:face-id-unlock", function(source)
+local function verify_face_id_mask(source, data)
+    -- Clothing getters are client-only natives. Treat the sampled appearance as
+    -- untrusted input; the server owns the whitelist, ped model and owner check.
+    local appearance = type(data) == "table" and data.faceIdAppearance
+    local function integer_between(value, minimum, maximum)
+        return type(value) == "number" and value % 1 == 0 and value >= minimum and value <= maximum
+    end
+    if type(appearance) ~= "table"
+        or not integer_between(appearance.model, -2147483648, 4294967295)
+        or not integer_between(appearance.drawable, 0, 65535)
+        or not integer_between(appearance.texture, 0, 65535) then
+        return false, { success = false, error = "face_id_unavailable" }
+    end
+    local ped = GetPlayerPed(tostring(source))
+    local model = ped ~= 0 and GetEntityModel(ped) or 0
+    if model == 0 or (model & 0xffffffff) ~= (appearance.model & 0xffffffff) then
+        return false, { success = false, error = "face_id_unavailable" }
+    end
+    if appearance.drawable == 0 then return true end
+    for _, mask in ipairs(Config.Security.FaceIdMaskWhitelist or {}) do
+        if type(mask) == "table" and type(mask.Model) == "string"
+            and (GetHashKey(mask.Model) & 0xffffffff) == (model & 0xffffffff)
+            and mask.Drawable == appearance.drawable
+            and (mask.Texture == -1 or mask.Texture == appearance.texture) then
+            return true
+        end
+    end
+    return false, { success = false, error = "face_id_masked" }
+end
+
+Bridge.Callbacks.Register("sky_phone:security:face-id-unlock", function(source, data)
     if not SkyPhone.AllowOperation(source, "security_unlock", Config.Security.AttemptsPerMinute, 60) then
         return { success = false, error = "rate_limited" }
     end
@@ -149,6 +179,8 @@ Bridge.Callbacks.Register("sky_phone:security:face-id-unlock", function(source)
     if not identifier or security.face_id_identifier ~= identifier then
         return { success = false, error = "face_id_not_recognized" }
     end
+    local visible, visibility_error = verify_face_id_mask(source, data)
+    if not visible then return visibility_error end
     if not same_device_session(source, session, identifier) then
         return { success = false, error = "device_not_open" }
     end
@@ -170,6 +202,10 @@ Bridge.Callbacks.Register("sky_phone:security:set-face-id", function(source, dat
     -- Enrollment always requires the device PIN; possession of an unlocked item is insufficient.
     local verified, verification_error = verify_passcode(session, data.passcode)
     if not verified then return verification_error end
+    if data.enabled then
+        local visible, visibility_error = verify_face_id_mask(source, data)
+        if not visible then return visibility_error end
+    end
     if not same_device_session(source, session, identifier) then
         return { success = false, error = "device_not_open" }
     end

@@ -10946,7 +10946,9 @@ app.post('/api/:endpoint', (request, response) => {
         ? { success: false, error: 'face_id_not_enabled' }
         : mockFaceIdOwner !== character
           ? { success: false, error: 'face_id_not_recognized' }
-          : { success: true, data: { security: mockSecurity } },
+          : request.body._testScenario === 'face-id-masked'
+            ? { success: false, error: 'face_id_masked' }
+            : { success: true, data: { security: mockSecurity } },
     )
     return
   }
@@ -10960,6 +10962,13 @@ app.post('/api/:endpoint', (request, response) => {
         success: false,
         error: mockSecurity.enabled ? 'invalid_passcode' : 'passcode_not_set',
       })
+      return
+    }
+    if (
+      request.body.enabled &&
+      request.body._testScenario === 'face-id-masked'
+    ) {
+      response.json({ success: false, error: 'face_id_masked' })
       return
     }
     mockFaceIdOwner = request.body.enabled

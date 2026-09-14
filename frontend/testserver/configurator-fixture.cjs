@@ -402,6 +402,20 @@ function maskValue(value, path) {
 
 function emptyStructure(scope, path) {
   if (scope !== 'config') return undefined
+  if (path === 'Security.FaceIdMaskWhitelist') {
+    return {
+      items: [],
+      kind: 'list',
+      template: {
+        kind: 'table',
+        fields: {
+          Model: { kind: 'value', valueType: 'string' },
+          Drawable: { kind: 'value', valueType: 'number' },
+          Texture: { kind: 'value', valueType: 'number' },
+        },
+      },
+    }
+  }
   if (path === 'Garage.VehicleImages.ModelNames') {
     return {
       entries: [],

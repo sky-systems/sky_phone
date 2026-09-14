@@ -159,6 +159,11 @@ Config.Security = {
     MaximumAttempts = 5,
     LockSeconds = 30,
     AttemptsPerMinute = 12,
+    -- Face ID rejects masks on ped component 1 (drawable 0 means no mask).
+    -- Exceptions are model-specific; Texture = -1 allows every texture of that mask.
+    FaceIdMaskWhitelist = {
+        -- { Model = "mp_m_freemode_01", Drawable = 12, Texture = -1 },
+    },
 }
 
 Config.AdminPanel = {

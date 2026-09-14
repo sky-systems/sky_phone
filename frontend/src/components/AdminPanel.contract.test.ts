@@ -486,8 +486,8 @@ describe('standalone admin panel contracts', () => {
     )
     expect(source).toContain(':tab-label="configuratorSubtabLabel"')
     expect(source).toContain('configurator.table.subtabs.${key}')
-    expect(configuratorValueEditor).toContain(
-      'props.tabLabel?.(key, tableValue.value[key]) ?? key',
+    expect(configuratorValueEditor).toMatch(
+      /props\.labels\.fieldNames\?\.\[tableEntryPath\(key\)\]\s*\?\?\s*props\.tabLabel\?\.\(key, tableValue\.value\[key\]\)\s*\?\?\s*key/,
     )
     expect(source).toContain('v-config-input-width')
     expect(configuratorValueEditor).toContain('v-config-input-width')

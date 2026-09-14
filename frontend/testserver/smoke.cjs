@@ -287,6 +287,22 @@ async function verifyStatefulActions(baseUrl) {
     true,
   )
   assert.equal(faceId.security.faceIdEnabled, true)
+  for (const endpoint of ['security:face-id-unlock', 'security:set-face-id']) {
+    assert.equal(
+      (
+        await post(baseUrl, endpoint, {
+          _testScenario: 'face-id-masked',
+          enabled: true,
+          passcode: '1234',
+        })
+      ).error,
+      'face_id_masked',
+    )
+  }
+  await expectSuccess(baseUrl, 'security:unlock', {
+    _testScenario: 'face-id-masked',
+    passcode: '1234',
+  })
   await expectSuccess(baseUrl, 'security:face-id-unlock')
   assert.equal(
     (
@@ -305,6 +321,7 @@ async function verifyStatefulActions(baseUrl) {
   await expectSuccess(baseUrl, 'security:set-face-id', {
     enabled: false,
     passcode: '123456',
+    _testScenario: 'face-id-masked',
   })
   assert.equal(
     (await post(baseUrl, 'security:face-id-unlock')).error,

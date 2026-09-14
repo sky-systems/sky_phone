@@ -424,6 +424,14 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
     [
+      'Security.FaceIdMaskWhitelist',
+      t('configurator.faceIdMaskWhitelistLabel'),
+    ],
+    ...['Model', 'Drawable', 'Texture'].map((key) => [
+      `Security.FaceIdMaskWhitelist[].${key}`,
+      t(`configurator.faceIdMaskLabels.${key}`),
+    ]),
+    [
       'CrewLink.PingCooldownSeconds',
       t('configurator.crewlinkPingCooldownLabel'),
     ],

@@ -1,6 +1,7 @@
 -- Run from the repository root with Lua 5.4.
 local callbacks, security, session, identifier, pin, query_hook
 local allow_operation, carried, now = true, true, 100
+local ped, model, appearance
 local function copy(value)
     if type(value) ~= "table" then return value end
     local result = {}
@@ -12,6 +13,11 @@ local env = setmetatable({
         AttemptsPerMinute = 10, MaximumAttempts = 3, LockSeconds = 30,
     } },
     AddEventHandler = function() end,
+    GetPlayerPed = function(source) assert(source == "1"); return ped end,
+    GetEntityModel = function(entity) assert(entity == ped); return model end,
+    GetHashKey = function(name)
+        return name == "mp_m_freemode_01" and 1885233650 or 2627665880
+    end,
     os = { time = function() return now end },
 }, { __index = _G })
 callbacks = {}
@@ -68,8 +74,13 @@ local function reset()
     security = { passcode_length = 4, failed_attempts = 0, locked_until = 0 }
     session = { imei = "123456789012345", unlocked = true }
     identifier, pin, carried, allow_operation, query_hook = "character:owner", "1234", true, true, nil
+    ped, model = 9, 1885233650
+    appearance = { model = model, drawable = 0, texture = 0 }
+    env.Config.Security.FaceIdMaskWhitelist = {}
 end
 local function call(action, data)
+    data = copy(data or {})
+    data.faceIdAppearance = data.faceIdAppearance or copy(appearance)
     return callbacks["sky_phone:security:" .. action](1, data)
 end
 local function rejected(action, data, expected)
@@ -141,4 +152,49 @@ local old_session = session
 query_hook = function() session = { imei = "different", unlocked = false } end
 rejected("face-id-unlock", {}, "device_not_open")
 assert(not old_session.unlocked and not session.unlocked)
-print("Phone Face ID enrollment, ownership, PIN fallback, reset, rate limits and session races passed")
+
+reset()
+appearance.drawable = 12
+rejected("set-face-id", { enabled = true, passcode = pin }, "face_id_masked")
+assert(security.face_id_identifier == nil, "A masked character cannot enroll")
+appearance.drawable = 0
+assert(call("set-face-id", { enabled = true, passcode = pin }).success)
+session.unlocked, appearance.drawable = false, 12
+rejected("face-id-unlock", { isMasked = false }, "face_id_masked")
+assert(not session.unlocked)
+assert(call("unlock", { passcode = pin }).success, "PIN fallback works while wearing a mask")
+assert(call("set-face-id", { enabled = false, passcode = pin }).success, "Masked owners can disable Face ID with their PIN")
+env.Config.Security.FaceIdMaskWhitelist = { { Model = "mp_m_freemode_01", Drawable = 12, Texture = 3 } }
+rejected("set-face-id", { enabled = true, passcode = pin }, "face_id_masked")
+appearance.texture = 3
+assert(call("set-face-id", { enabled = true, passcode = pin }).success)
+session.unlocked = false
+assert(call("face-id-unlock").success, "Exact mask and texture are allowed")
+appearance.texture = 4
+rejected("face-id-unlock", {}, "face_id_masked")
+env.Config.Security.FaceIdMaskWhitelist[1].Texture = -1
+assert(call("face-id-unlock").success, "Wildcard permits every texture")
+model, appearance.model = 2627665880, 2627665880
+rejected("face-id-unlock", {}, "face_id_masked")
+env.Config.Security.FaceIdMaskWhitelist[1].Model = "mp_f_freemode_01"
+appearance.model = model - 4294967296
+assert(call("face-id-unlock").success, "Signed and unsigned ped hashes match")
+identifier = "character:other"
+rejected("face-id-unlock", {}, "face_id_not_recognized")
+identifier = "character:owner"
+env.Config.Security.FaceIdMaskWhitelist = {}
+session.unlocked = false
+rejected("face-id-unlock", {}, "face_id_masked")
+appearance.drawable = 0
+assert(call("face-id-unlock").success, "Removing the mask permits retry without reopening the phone")
+session.unlocked = false
+for _, invalid in ipairs({ {}, { model = model, drawable = -1, texture = 0 },
+    { model = model, drawable = "0", texture = 0 }, { model = model, drawable = 0.5, texture = 0 },
+    { model = model, drawable = 0, texture = -1 }, { model = 1, drawable = 0, texture = 0 } }) do
+    rejected("face-id-unlock", { faceIdAppearance = invalid }, "face_id_unavailable")
+    assert(not session.unlocked)
+end
+assert(callbacks["sky_phone:security:face-id-unlock"](1, {}).error == "face_id_unavailable")
+ped = 0
+rejected("face-id-unlock", {}, "face_id_unavailable")
+print("Phone Face ID ownership, masks, whitelist, PIN fallback, rate limits and session races passed")

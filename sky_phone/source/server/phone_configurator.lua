@@ -518,6 +518,20 @@ local function empty_structure(scope, path)
     if scope ~= "config" then
         return nil
     end
+    if path == "Security.FaceIdMaskWhitelist" then
+        return {
+            items = {},
+            kind = "list",
+            template = {
+                kind = "table",
+                fields = {
+                    Model = { kind = "value", valueType = "string" },
+                    Drawable = { kind = "value", valueType = "number" },
+                    Texture = { kind = "value", valueType = "number" },
+                },
+            },
+        }
+    end
     local radio_job_default = radio_job_entry_default(path)
     if radio_job_default ~= nil then
         return {
@@ -1566,6 +1580,19 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     local blip = citywarn and citywarn.Blip
     local function integer_between(value, minimum, maximum)
         return type(value) == "number" and value % 1 == 0 and value >= minimum and value <= maximum
+    end
+    local face_id_masks = candidate_config.Security.FaceIdMaskWhitelist
+    if type(face_id_masks) ~= "table" or (next(face_id_masks) and not is_sequence(face_id_masks))
+        or #face_id_masks > 256 then
+        return { success = false, error = "invalid_value" }
+    end
+    for _, mask in ipairs(face_id_masks) do
+        if type(mask) ~= "table" or type(mask.Model) ~= "string" or #mask.Model > 64
+            or not mask.Model:match("^[%w_-]+$")
+            or not integer_between(mask.Drawable, 1, 65535)
+            or not integer_between(mask.Texture, -1, 65535) then
+            return { success = false, error = "invalid_value" }
+        end
     end
     local crew_blip = candidate_config.CrewLink.Blip
     local quick_ping = candidate_config.CrewLink.QuickPing

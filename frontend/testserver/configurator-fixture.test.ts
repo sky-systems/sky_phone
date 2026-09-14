@@ -38,6 +38,29 @@ const configSource = readFileSync(
   'utf8',
 )
 
+describe('Face ID mask configuration', () => {
+  it('provides a typed empty list so admins can add their first mask exception', () => {
+    const field = loadConfiguratorSections()
+      .flatMap((section) => section.fields)
+      .find((entry) => entry.path === 'Security')
+    expect(
+      (field?.value as { FaceIdMaskWhitelist: unknown }).FaceIdMaskWhitelist,
+    ).toEqual([])
+    expect(field?.structure?.fields?.FaceIdMaskWhitelist).toEqual({
+      kind: 'list',
+      items: [],
+      template: {
+        kind: 'table',
+        fields: {
+          Model: { kind: 'value', valueType: 'string' },
+          Drawable: { kind: 'value', valueType: 'number' },
+          Texture: { kind: 'value', valueType: 'number' },
+        },
+      },
+    })
+  })
+})
+
 describe('CityWarn blip configuration', () => {
   it('exposes complete, fixed fields with native-compatible defaults', () => {
     const field = loadConfiguratorSections()

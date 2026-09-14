@@ -85,6 +85,21 @@ for namespace, endpoints in pairs(callback_groups) do
                 return
             end
 
+            if callback_name == "security:face-id-unlock"
+                or (callback_name == "security:set-face-id" and data.enabled == true) then
+                local ped = PlayerPedId()
+                if ped == 0 or not DoesEntityExist(ped) then
+                    cb({ success = false, error = "face_id_unavailable" })
+                    return
+                end
+                -- Read the current mask for every scan; never accept appearance supplied by NUI.
+                data.faceIdAppearance = {
+                    model = GetEntityModel(ped),
+                    drawable = GetPedDrawableVariation(ped, 1),
+                    texture = GetPedTextureVariation(ped, 1),
+                }
+            end
+
             local result = Bridge.Callbacks.Trigger("sky_phone:" .. callback_name, data)
             if callback_name:match("^media:import:") and (not result or not result.success) then
                 Bridge.Debug(

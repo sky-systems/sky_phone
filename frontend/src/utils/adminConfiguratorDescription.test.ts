@@ -9,6 +9,21 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains model-specific Face ID masks and texture wildcards', () => {
+    expect(configuratorDescriptionKey('Security.FaceIdMaskWhitelist', [])).toBe(
+      'faceIdMaskWhitelist',
+    )
+    for (const key of ['Model', 'Drawable', 'Texture']) {
+      for (const entry of ['[1]', '.1']) {
+        expect(
+          configuratorDescriptionKey(
+            `Security.FaceIdMaskWhitelist${entry}.${key}`,
+            1,
+          ),
+        ).toBe(`faceIdMask${key}`)
+      }
+    }
+  })
   it('explains both service-line routing modes and their timing controls', () => {
     expect(
       configuratorDescriptionKey(

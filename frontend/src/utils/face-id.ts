@@ -2,6 +2,7 @@ const faceIdErrors = new Set([
   'face_id_not_enabled',
   'face_id_not_recognized',
   'face_id_unavailable',
+  'face_id_masked',
   'invalid_passcode',
   'passcode_locked',
   'passcode_not_set',

@@ -138,6 +138,72 @@ local function test(name, callback)
     end
 end
 
+test("Face ID mask whitelist can be created, edited and cleared through SQL and live clients", function()
+    local server = new_server()
+    local client = new_client(server)
+    local field = server.field("Security")
+    local masks = field.structure.fields.FaceIdMaskWhitelist
+    assert(masks.kind == "list" and #masks.items == 0)
+    assert(masks.template.fields.Model.valueType == "string")
+    assert(masks.template.fields.Drawable.valueType == "number")
+    assert(masks.template.fields.Texture.valueType == "number")
+    assert(next(field.value.FaceIdMaskWhitelist) == nil)
+    local settings = field.value
+    settings.FaceIdMaskWhitelist = {
+        { Model = "mp_m_freemode_01", Drawable = 12, Texture = -1 },
+        { Model = "mp_f_freemode_01", Drawable = 14, Texture = 3 },
+    }
+    assert(server.save({ change("Security", settings) }).success)
+    client.sync(server.broadcasts[1])
+    assert(client.config.Security.FaceIdMaskWhitelist[1].Texture == -1)
+    assert(server.env.Config.Security.FaceIdMaskWhitelist[2].Drawable == 14)
+    local restarted = new_server(server.database)
+    assert(new_client(restarted).config.Security.FaceIdMaskWhitelist[2].Model == "mp_f_freemode_01")
+    settings = restarted.field("Security").value
+    settings.FaceIdMaskWhitelist[1].Texture = 2
+    table.remove(settings.FaceIdMaskWhitelist, 2)
+    assert(restarted.save({ change("Security", settings) }).success)
+    assert(#new_server(restarted.database).env.Config.Security.FaceIdMaskWhitelist == 1)
+    settings.FaceIdMaskWhitelist = {}
+    assert(restarted.save({ change("Security", settings) }).success)
+    assert(next(new_client(new_server(restarted.database)).config.Security.FaceIdMaskWhitelist) == nil)
+end)
+
+test("existing SQL configurations acquire the empty Face ID whitelist", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.Security.FaceIdMaskWhitelist = nil
+    assert(next(new_server(server.database).env.Config.Security.FaceIdMaskWhitelist) == nil)
+end)
+
+test("invalid Face ID mask rules reject the entire save without writes or broadcasts", function()
+    local invalid_rules = {
+        { Model = "", Drawable = 12, Texture = -1 },
+        { Model = "model with spaces", Drawable = 12, Texture = -1 },
+        { Model = string.rep("a", 65), Drawable = 12, Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = 0, Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = 1.5, Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = 65536, Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = "12", Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = 12, Texture = -2 },
+        { Model = "mp_m_freemode_01", Drawable = 12, Texture = 65536 },
+        { Model = "mp_m_freemode_01", Drawable = 12 },
+        { Model = "mp_m_freemode_01", Drawable = 12, Texture = -1, Unknown = true },
+    }
+    for _, rule in ipairs(invalid_rules) do
+        local server = new_server()
+        local settings = server.field("Security").value
+        settings.FaceIdMaskWhitelist = { rule }
+        assert(not server.save({ change("Security", settings) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+    local server = new_server()
+    local settings = server.field("Security").value
+    for i = 1, 257 do settings.FaceIdMaskWhitelist[i] = { Model = "mp_m_freemode_01", Drawable = i, Texture = -1 } end
+    assert(not server.save({ change("Security", settings) }).success)
+    assert(server.database.writes == 0)
+end)
+
 test("service-line routing modes validate and roundtrip through SQL and server runtime", function()
     local server = new_server()
     use_company_validation(server)

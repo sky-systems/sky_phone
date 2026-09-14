@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePhoneStore } from '@/stores/phone'
 import { nuiCall } from '@/utils/nui'
+import { faceIdErrorKey } from '@/utils/face-id'
 
 vi.mock('@/utils/nui', () => ({
   nuiCall: vi.fn(),
@@ -11,6 +12,32 @@ vi.mock('@/utils/nui', () => ({
 const mockNuiCall = vi.mocked(nuiCall)
 
 describe('phone passcode store', () => {
+  it.each(['unlock', 'enroll'] as const)(
+    'shows a useful mask error for Face ID %s without changing security',
+    async (action) => {
+      const phone = usePhoneStore()
+      phone.security = {
+        enabled: true,
+        length: 4,
+        lockedUntil: 0,
+        faceIdEnabled: action === 'unlock',
+      }
+      const before = { ...phone.security }
+      mockNuiCall.mockResolvedValueOnce({
+        success: false,
+        error: 'face_id_masked',
+      })
+      const response =
+        action === 'unlock'
+          ? await phone.unlockWithFaceId()
+          : await phone.setFaceId(true, '1234')
+      expect(response.success).toBe(false)
+      expect(phone.security).toEqual(before)
+      expect(phone.t(faceIdErrorKey(response.error))).toBe(
+        'Remove your mask to use Face ID, or enter your passcode.',
+      )
+    },
+  )
   it('enrolls Face ID using the PIN and accepts only the returned server state', async () => {
     const phone = usePhoneStore()
     phone.security = { enabled: true, length: 4, lockedUntil: 0 }
