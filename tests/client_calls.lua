@@ -98,3 +98,41 @@ net_events["sky_phone:call:state"]({ id = "call-1", state = "ended" })
 assert(not SkyPhoneCalls.IsActive() and leave_count == 1, "ended call must clear state and leave voice")
 
 print("Client call runtime tests passed")
+
+-- Exercise animation priorities with the real event handlers, without native rendering.
+local animation_handlers = {}
+function AddEventHandler(name, callback) animation_handlers[name] = callback end
+function CreateThread() end
+function PlayerPedId() return 1 end
+function DoesEntityExist() return true end
+function IsEntityDead() return false end
+function IsPedRagdoll() return false end
+function IsPedFalling() return false end
+function IsPedClimbing() return false end
+function IsPedSwimming() return false end
+function IsPedSwimmingUnderWater() return false end
+function IsPedInParachuteFreeFall() return false end
+Config = { Animations = { Enabled = true } }
+dofile("sky_phone/source/client/animations.lua")
+local function upvalue(fn, key)
+    for i = 1, 50 do
+        local name, value = debug.getupvalue(fn, i)
+        if name == key then return value end
+    end
+    error("Missing animation upvalue " .. key)
+end
+local mode = upvalue(upvalue(animation_handlers["sky_phone:animation:call"], "reevaluate"), "derive_mode")
+local function call_animation(state, video)
+    animation_handlers["sky_phone:animation:call"]({ state = state, direction = "outgoing", video = video })
+end
+animation_handlers["sky_phone:animation:phone"](true)
+assert(mode() == "phone_read")
+call_animation("ringing", false); assert(mode() == "call")
+call_animation("ringing", true); assert(mode() == "phone_read", "Outgoing FaceTime must use the phone-open pose")
+call_animation("connected", true)
+animation_handlers["sky_phone:animation:camera"]({ active = true, front = true })
+assert(mode() == "phone_read", "Selfie camera events must not override the FaceTime pose")
+call_animation("connected", false); assert(mode() == "call", "Returning to audio restores the call pose")
+animation_handlers["sky_phone:animation:camera"]({ active = false })
+call_animation("completed", false); assert(mode() == "phone_read")
+print("FaceTime animation priority tests passed")

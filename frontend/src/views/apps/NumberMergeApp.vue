@@ -389,8 +389,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   cursor: pointer;
 }
 
-.number-merge-header .sky-button--glass { color: #784c3c; }
-.number-merge-toolbar .sky-button--glass { --sky-touch-target: 32px; width: 32px; height: 32px; color: #784c3c; }
+.number-merge-header .sky-button--glass { color: var(--sky-text); }
+.number-merge-toolbar .sky-button--glass { --sky-touch-target: 32px; width: 32px; height: 32px; color: var(--sky-text); }
 
 .number-merge-menu {
   height: calc(100% - 55px);

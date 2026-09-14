@@ -337,7 +337,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <SkyAppPage class="citywarn-app" accent="#dc2626" accent-soft="#fee2e2">
+  <SkyAppPage class="citywarn-app" :accent="phone.isDarkMode ? '#ff6961' : '#dc2626'" accent-soft="#fee2e2">
     <SkyNavbar
       v-if="selected"
       :title="t('details')"
@@ -1243,11 +1243,11 @@ onMounted(async () => {
 }
 .citywarn-card-top small {
   margin-top: 1px;
-  color: #9ca3af;
+  color: var(--sky-muted);
   font-size: 10px;
 }
 .citywarn-card-top > svg {
-  color: #9ca3af;
+  color: var(--sky-muted);
 }
 .citywarn-alert-card h3 {
   margin: var(--sky-space-2) 0 var(--sky-space-1);
@@ -1469,7 +1469,7 @@ onMounted(async () => {
   line-height: 1.4;
 }
 .citywarn-timeline small {
-  color: #9ca3af;
+  color: var(--sky-muted);
   font-size: 10px;
 }
 .citywarn-manage {
@@ -1672,7 +1672,7 @@ onMounted(async () => {
   flex-direction: column;
 }
 .citywarn-archive-card small {
-  color: #9ca3af;
+  color: var(--sky-muted);
   font-size: 9.5px;
   text-transform: uppercase;
 }
@@ -1759,7 +1759,7 @@ onMounted(async () => {
   text-align: center;
 }
 .citywarn-compose header small {
-  color: #9ca3af;
+  color: var(--sky-muted);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.6px;

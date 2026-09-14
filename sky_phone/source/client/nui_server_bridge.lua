@@ -39,7 +39,7 @@ local callback_groups = {
     ]],
     flare = [[bootstrap delete-profile save-profile set-discovery swipe rewind unmatch thread send]],
     fliptok = [[
-        register login logout bootstrap feed video discover music-metadata publish react follow
+        register login logout bootstrap feed video discover profiles music-metadata publish react follow
         comments comment comment-react view share profile connections update-profile activities
         mark-activities report admin-reports admin-resolve-report block delete
     ]],

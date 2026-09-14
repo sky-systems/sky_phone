@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import ProfileSuggestions from '@/components/ProfileSuggestions.vue'
+import LiveProfileStrip from '@/components/LiveProfileStrip.vue'
+import { useLiveProfiles } from '@/features/realtime/useLiveProfiles'
 import LiveBroadcast from '@/components/LiveBroadcast.vue'
 import LiveSetup from '@/components/LiveSetup.vue'
 import { useRealtimeStore } from '@/features/realtime/store'
@@ -88,6 +91,19 @@ type MediaSource = 'camera' | 'photos'
 
 const phone = usePhoneStore()
 const store = usePicstagramStore()
+const {
+  live: liveDirectory,
+  entries: liveEntries,
+  liveFor,
+  joinLive,
+} = useLiveProfiles(
+  'picstagram',
+  computed(() => store.authenticated),
+)
+function openAvatar(id: string | number): void {
+  if (!joinLive(id)) void openProfile(String(id))
+}
+
 const mediaPicker = useMessageMediaStore()
 const route = useRoute()
 const router = useRouter()
@@ -336,7 +352,13 @@ async function signOut(): Promise<void> {
 async function showTab(next: Tab): Promise<void> {
   tab.value = next
   selectedPost.value = null
-  if (next === 'explore' && !store.explore.length) await store.loadExplore()
+  if (next === 'explore') {
+    const [loaded] = await Promise.all([
+      store.loadExplore(),
+      store.search(search.value),
+    ])
+    if (!loaded) notify(errorMessage('default'))
+  }
   if (next === 'activity') await store.loadActivities()
   if (next === 'profile' && store.profile) {
     await store.loadProfile({ profileId: store.profile.id })
@@ -853,11 +875,7 @@ async function respondToFollowRequest(
 watch(search, (value) => {
   if (searchTimer !== null) window.clearTimeout(searchTimer)
   searchTimer = window.setTimeout(() => {
-    if (value.trim()) void store.search(value)
-    else {
-      store.searchPosts = []
-      store.searchProfiles = []
-    }
+    void store.search(value)
   }, 300)
 })
 
@@ -1009,9 +1027,14 @@ onBeforeUnmount(() => {
             <header class="ps-post-header">
               <button
                 class="ps-author"
-                @click="openProfile(selectedPost.profile_id)"
+                @click="openAvatar(selectedPost.profile_id)"
               >
-                <span class="ps-avatar ps-avatar--small">
+                <span
+                  class="ps-avatar ps-avatar--small"
+                  :class="{
+                    'realtime-live-avatar': liveFor(selectedPost.profile_id),
+                  }"
+                >
                   <img
                     v-if="selectedPost.avatar_url"
                     :src="selectedPost.avatar_url"
@@ -1174,7 +1197,6 @@ onBeforeUnmount(() => {
             /></SkyLink>
           </template>
           <template #right>
-            <LiveBroadcast app="picstagram" />
             <SkyLink
               component="button"
               icon-only
@@ -1188,6 +1210,7 @@ onBeforeUnmount(() => {
         </SkyNavbar>
         <SkyScrollArea with-tabbar class="ps-screen ps-feed">
           <div class="ps-stories" :aria-label="t('stories')">
+            <LiveProfileStrip :entries="liveEntries" @join="joinLive" />
             <button class="ps-story-add" @click="beginStoryCompose">
               <span class="ps-story-ring ps-story-ring--add"
                 ><span class="ps-avatar"
@@ -1204,11 +1227,17 @@ onBeforeUnmount(() => {
             <button
               v-for="group in storyGroups"
               :key="group.stories[0].profile_id"
-              @click="openStoryGroup(group.stories)"
+              @click="
+                joinLive(group.stories[0].profile_id) ||
+                openStoryGroup(group.stories)
+              "
             >
               <span
                 class="ps-story-ring"
-                :class="{ seen: group.stories.every((story) => story.seen) }"
+                :class="{
+                  seen: group.stories.every((story) => story.seen),
+                  'realtime-live-avatar': liveFor(group.stories[0].profile_id),
+                }"
                 ><span class="ps-avatar"
                   ><img
                     v-if="group.avatar"
@@ -1234,8 +1263,10 @@ onBeforeUnmount(() => {
             class="ps-post-card"
           >
             <header class="ps-post-header">
-              <button class="ps-author" @click="openProfile(post.profile_id)">
-                <span class="ps-avatar ps-avatar--small"
+              <button class="ps-author" @click="openAvatar(post.profile_id)">
+                <span
+                  class="ps-avatar ps-avatar--small"
+                  :class="{ 'realtime-live-avatar': liveFor(post.profile_id) }"
                   ><img
                     v-if="post.avatar_url"
                     :src="post.avatar_url"
@@ -1384,31 +1415,16 @@ onBeforeUnmount(() => {
           /></template>
         </SkyNavbar>
         <SkyScrollArea with-tabbar class="ps-screen ps-explore">
-          <div
-            v-if="search && store.searchProfiles.length"
-            class="ps-profile-results"
-          >
-            <button
-              v-for="profile in store.searchProfiles"
-              :key="profile.id"
-              @click="openProfile(profile)"
-            >
-              <span class="ps-avatar"
-                ><img
-                  v-if="profile.avatar_url"
-                  :src="profile.avatar_url"
-                  alt=""
-                /><template v-else>{{
-                  initials(profile.display_name)
-                }}</template></span
-              ><span
-                ><strong
-                  >{{ profile.display_name }}
-                  <Check v-if="profile.verified" class="ps-verified" /></strong
-                ><small>@{{ profile.handle }}</small></span
-              ><ChevronRight />
-            </button>
-          </div>
+          <ProfileSuggestions
+            :profiles="store.searchProfiles"
+            :search="search"
+            :loading="store.searchLoading"
+            :error="store.searchError"
+            :is-live="(id) => Boolean(liveFor(id))"
+            @profile="(id) => openProfile(String(id))"
+            @avatar="openAvatar"
+            @retry="store.search(search)"
+          />
           <div class="ps-grid">
             <button
               v-for="post in search ? store.searchPosts : store.explore"
@@ -1757,14 +1773,21 @@ onBeforeUnmount(() => {
           class="ps-screen ps-profile"
         >
           <section class="ps-profile-header">
-            <span class="ps-avatar ps-avatar--profile"
+            <SkyButton
+              clear
+              rounded
+              icon-only
+              class="ps-avatar ps-avatar--profile"
+              :class="{ 'realtime-live-avatar': liveFor(currentProfile.id) }"
+              :aria-label="currentProfile.display_name"
+              @click="joinLive(currentProfile.id)"
               ><img
                 v-if="currentProfile.avatar_url"
                 :src="currentProfile.avatar_url"
                 alt=""
               /><template v-else>{{
                 initials(currentProfile.display_name)
-              }}</template></span
+              }}</template></SkyButton
             >
             <div class="ps-profile-stats">
               <button>
@@ -2535,6 +2558,7 @@ onBeforeUnmount(() => {
       ></SkyDialog
     >
     <SkyNotification :opened="Boolean(feedback)" :text="feedback" />
+    <LiveBroadcast ref="liveDirectory" app="picstagram" hide-trigger />
   </SkyAppPage>
 </template>
 

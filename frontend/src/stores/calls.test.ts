@@ -40,6 +40,78 @@ describe('calls store', () => {
     vi.unstubAllGlobals()
   })
 
+  it.each([true, false])(
+    'answers a FaceTime invitation with explicit video=%s',
+    async (video) => {
+      const calls = useCallsStore()
+      const ringing: PhoneCall = {
+        id: 'video-call',
+        direction: 'incoming',
+        state: 'ringing',
+        otherNumber: '5550102',
+        startedAt: 1,
+        video: true,
+      }
+      calls.applyCallState(ringing)
+      const connected: PhoneCall = {
+        ...ringing,
+        state: 'connected',
+        video,
+        answeredAt: 2,
+      }
+      vi.mocked(nuiCall).mockResolvedValueOnce({
+        success: true,
+        data: connected,
+      })
+      await calls.answer(video)
+      expect(nuiCall).toHaveBeenLastCalledWith('calls:answer', {
+        id: 'video-call',
+        video,
+      })
+      expect(calls.activeCall).toEqual(connected)
+    },
+  )
+
+  it('does not revive a call that ended during the answer request', async () => {
+    const calls = useCallsStore()
+    calls.applyCallState({
+      id: 'video-call',
+      direction: 'incoming',
+      state: 'ringing',
+      otherNumber: '5550102',
+      startedAt: 1,
+      video: true,
+    })
+    vi.mocked(nuiCall).mockImplementationOnce(async () => {
+      calls.activeCall = null
+      return { success: true }
+    })
+    await calls.answer(true)
+    expect(calls.activeCall).toBeNull()
+  })
+
+  it('does not overwrite a newer authoritative video state with a late answer response', async () => {
+    const calls = useCallsStore()
+    const call: PhoneCall = {
+      id: 'video-call',
+      direction: 'incoming',
+      state: 'ringing',
+      otherNumber: '5550102',
+      startedAt: 1,
+      video: true,
+    }
+    calls.applyCallState(call)
+    vi.mocked(nuiCall).mockImplementationOnce(async () => {
+      calls.applyCallState({ ...call, state: 'connected', video: false })
+      return {
+        success: true,
+        data: { ...call, state: 'connected', video: true },
+      }
+    })
+    await calls.answer(true)
+    expect(calls.activeCall?.video).toBe(false)
+  })
+
   it('rings for incoming calls and stops when connected', () => {
     const stop = vi.fn()
     vi.mocked(playPhoneTone).mockReturnValueOnce(stop)

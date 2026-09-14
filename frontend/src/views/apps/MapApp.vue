@@ -913,7 +913,7 @@ onBeforeUnmount(() => {
 .map-app {
   position: relative;
   overflow: hidden;
-  background: #111827;
+  background: var(--sky-bg);
 }
 
 .map-viewport {

@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "format": "prettier --write src/ testserver/ build.cjs",
     "test": "vitest run && pnpm test:browser-mocks",
-    "test:browser-mocks": "node testserver/smoke.cjs"
+    "test:browser-mocks": "node testserver/smoke.cjs",
+    "test:themes": "playwright test --config theme-tests/playwright.config.mjs"
   },
   "pnpm": {
     "overrides": {
@@ -38,6 +39,7 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@tailwindcss/vite": "^4.0.0",
     "@tsconfig/node22": "^22.0.2",
     "@types/node": "^22.15.32",

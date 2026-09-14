@@ -92,7 +92,7 @@ async function start(): Promise<void> {
   gap: var(--sky-space-4);
 }
 .live-setup__icon {
-  color: var(--sky-color-primary);
+  color: var(--sky-app-accent);
 }
 .live-setup p {
   margin: 0;

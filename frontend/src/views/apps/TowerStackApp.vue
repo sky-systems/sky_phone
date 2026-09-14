@@ -327,7 +327,7 @@ onBeforeUnmount(() => {
 .tower-header span { display: block; color: #c1b8f1; font-size: 10px; font-weight: 850; letter-spacing: 1.1px; text-transform: uppercase; }
 .tower-header h1 { margin: 1px 0 0; font-size: 27px; line-height: 1; letter-spacing: -0.8px; }
 .tower-header button:not(.sky-button--glass), .tower-toolbar button:not(.sky-button--glass) { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid #ffffff14; border-radius: 12px; color: #f2edff; background: #ffffff0d; }
-.tower-header .sky-button--glass, .tower-toolbar .sky-button--glass { color: #f2edff; }
+.tower-header .sky-button--glass, .tower-toolbar .sky-button--glass { color: var(--sky-text); }
 .tower-menu { height: calc(100% - 50px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; text-align: center; }
 .tower-menu__preview { position: relative; flex: 0 0 124px; width: 158px; height: 124px; }
 .tower-menu__preview i { position: absolute; right: 12px; bottom: calc((var(--preview-index) - 1) * 15px); left: 23px; height: 21px; border-radius: 6px; background: hsl(calc(var(--preview-index) * 49deg + 5deg) 82% 62%); box-shadow: inset 0 3px 0 #ffffff35, 0 5px 11px #08091c5c; transform: perspective(200px) rotateX(5deg); }

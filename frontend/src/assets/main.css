@@ -1,6 +1,11 @@
 @import 'tailwindcss';
 @import 'konsta/vue/theme.css';
 
+/* Browser fixtures and reports are not production utility-class sources. */
+@source not '../../theme-tests';
+@source not '../../theme-test-results';
+@source not '../../playwright-report';
+
 .sim-picker-backdrop {
   position: fixed;
   z-index: 1000;
@@ -3869,7 +3874,7 @@ button {
 }
 
 .banking-section-title button {
-  color: #7ca8ff;
+  color: var(--sky-app-accent);
   font-size: 10px;
 }
 
@@ -3887,7 +3892,7 @@ button {
 
 .banking-transaction-list b {
   flex: 0 0 auto;
-  color: #f2a0a8;
+  color: var(--sky-danger);
   font-size: 11px;
   font-weight: 620;
 }
@@ -4106,7 +4111,7 @@ button {
 .banking-transaction-detail__amount {
   display: block;
   margin: 8px 0 18px;
-  color: #f2a0a8;
+  color: var(--sky-danger);
   font-size: 30px;
   font-weight: 650;
   letter-spacing: -0.04em;
@@ -4171,7 +4176,7 @@ button {
 
 .phone-app--light .banking-action--primary,
 .phone-app--light .banking-action--primary .banking-action__icon {
-  color: #ffffff;
+  color: var(--sky-app-accent);
 }
 .weather-scroll {
   z-index: 1;
@@ -6999,9 +7004,7 @@ button {
 .phone-app.dark .messages-media-picker__gifs button {
   background: #2c2c2e;
 }
-.phone-app.dark
-  .messages-media-picker__gifs--masonry
-  .messages-gif-result {
+.phone-app.dark .messages-media-picker__gifs--masonry .messages-gif-result {
   border-color: rgb(255 255 255 / 10%);
   background: var(--sky-surface-muted);
 }

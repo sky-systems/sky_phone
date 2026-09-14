@@ -349,9 +349,8 @@ const activeAppId = computed(() =>
   typeof route.params.appId === 'string' ? route.params.appId : '',
 )
 const WHITE_STATUS_BAR_APP_IDS = new Set([
-  'calculator',
   'camera',
-  'fliptok',
+  'map',
   'neon-drop',
   'sky-flappy',
   'snake',
@@ -2009,6 +2008,7 @@ onBeforeUnmount(() => {
                       (isDevelopment &&
                         route.name === 'development-realtime' &&
                         route.params.scene === 'call') ||
+                      phone.appStatusBarLight === true ||
                       WHITE_STATUS_BAR_APP_IDS.has(activeAppId) ||
                       (activeAppId === 'phone' && calls.activeCall !== null),
                     'phone-app--status-dark':

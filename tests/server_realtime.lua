@@ -62,8 +62,10 @@ local function join(src,id)
     success(invoke("join",src,{id=id})); return success(invoke("ready",src,{id=id}))
 end
 local id=create("picstagram")
-assert(#success(invoke("list",2,{app="picstagram"}))==1)
+local live_entries = success(invoke("list",2,{app="picstagram"}))
+assert(#live_entries == 1 and live_entries[1].profileId == "1", "Live avatars need the public profile identity")
 blocked[3]=true
+assert(#success(invoke("list",3,{app="picstagram"}))==0, "Blocked streams must never produce live avatar links")
 assert(not invoke("join",3,{id=id}).success)
 assert(not invoke("chat",3,{id=id,text="forged"}).success)
 local unready=success(invoke("join",2,{id=id}))

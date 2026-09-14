@@ -1550,6 +1550,14 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     then
         return { success = false, error = "call_not_found" }
     end
+    if data.video ~= nil and type(data.video) ~= "boolean" then
+        return { success = false, error = "invalid_request" }
+    end
+    if data.video == true and (not call.video or call.payphone
+        or not Config.Realtime or not Config.Realtime.Enabled or not Config.Realtime.VideoCalls)
+    then
+        return { success = false, error = "feature_disabled" }
+    end
     -- Claim synchronously: framework, inventory, voice and SQL calls can yield.
     call.answering_source = source
     local target = call.ringing_targets and call.ringing_targets[source]
@@ -1617,6 +1625,8 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     call.voice_started = true
     call.speakers = {}
     call.muted = {}
+    -- Answering with audio explicitly declines the initial camera invitation.
+    call.video = call.video == true and data.video == true
     call.answered_at = os.time()
     call.channel = next_voice_channel
     next_voice_channel = next_voice_channel + 1
@@ -1675,7 +1685,7 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     send_state(call, call.caller_source, "connected", call.channel)
     send_state(call, call.callee_source, "connected", call.channel)
     log_call(call, "answered", "connected", source)
-    return { success = true }
+    return { success = true, data = call_payload(call, source, "connected", call.channel) }
 end)
 
 function SkyPhoneCalls.StopVideo(id)

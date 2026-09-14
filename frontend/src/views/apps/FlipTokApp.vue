@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import ProfileSuggestions from '@/components/ProfileSuggestions.vue'
+import LiveProfileStrip from '@/components/LiveProfileStrip.vue'
+import { useLiveProfiles } from '@/features/realtime/useLiveProfiles'
 import LiveBroadcast from '@/components/LiveBroadcast.vue'
 import LiveSetup from '@/components/LiveSetup.vue'
 import { useRealtimeStore } from '@/features/realtime/store'
@@ -101,6 +104,19 @@ type ProfileMediaContext = {
 
 const phone = usePhoneStore()
 const store = useFlipTokStore()
+const {
+  live: liveDirectory,
+  entries: liveEntries,
+  liveFor,
+  joinLive,
+} = useLiveProfiles(
+  'fliptok',
+  computed(() => store.authenticated),
+)
+function openAvatar(id: string | number): void {
+  if (!joinLive(id)) void openProfile(Number(id))
+}
+
 const messageMedia = useMessageMediaStore()
 const route = useRoute()
 const router = useRouter()
@@ -128,6 +144,17 @@ const composeOpen = ref(false)
 const liveCompose = ref(false)
 const realtime = useRealtimeStore()
 const profileEditOpen = ref(false)
+watch(
+  () =>
+    store.authenticated &&
+    tab.value === 'feed' &&
+    !composeOpen.value &&
+    !profileEditOpen.value,
+  (videoVisible) => {
+    phone.appStatusBarLight = videoVisible
+  },
+  { immediate: true },
+)
 const musicSheetOpen = ref(false)
 const reportSheetOpen = ref(false)
 const connectionsOpen = ref(false)
@@ -1592,8 +1619,7 @@ watch(tab, async (value) => {
   pauseFlipTokYoutube()
   if (value === 'activity' && !(await store.loadActivities()))
     notify(t('errors.default'))
-  if (value === 'discover' && store.searchResults.length === 0)
-    await runSearch()
+  if (value === 'discover') await runSearch()
   if (value === 'feed') {
     await nextTick()
     observeVideos()
@@ -1749,6 +1775,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  phone.appStatusBarLight = null
   removePhoneOutputVolumeListener?.()
   observer?.disconnect()
   if (videoClickTimer !== null) window.clearTimeout(videoClickTimer)
@@ -1898,7 +1925,6 @@ onBeforeUnmount(() => {
 
     <template v-else-if="tab === 'feed'">
       <header class="feed-header">
-        <LiveBroadcast app="fliptok" />
         <button
           :class="{ active: store.mode === 'following' }"
           @click="changeMode('following')"
@@ -2056,8 +2082,13 @@ onBeforeUnmount(() => {
             <div class="video-profile-action">
               <button
                 class="avatar"
-                :aria-label="video.display_name"
-                @click="openProfile(video.profile_id)"
+                :class="{ 'realtime-live-avatar': liveFor(video.profile_id) }"
+                :aria-label="
+                  liveFor(video.profile_id)
+                    ? phone.t('Realtime.joinLive', { name: video.display_name })
+                    : video.display_name
+                "
+                @click="openAvatar(video.profile_id)"
               >
                 <img v-if="video.avatar_url" :src="video.avatar_url" alt="" />
                 <template v-else>{{ initials(video.display_name) }}</template>
@@ -2147,6 +2178,17 @@ onBeforeUnmount(() => {
         </template>
       </SkyNavbar>
       <SkyScrollArea padded with-tabbar class="light-screen discover-screen">
+        <LiveProfileStrip :entries="liveEntries" @join="joinLive" />
+        <ProfileSuggestions
+          :profiles="store.searchProfiles"
+          :search="search"
+          :loading="store.searchLoading"
+          :error="store.searchError"
+          :is-live="(id) => Boolean(liveFor(id))"
+          @profile="(id) => openProfile(Number(id))"
+          @avatar="openAvatar"
+          @retry="runSearch"
+        />
         <div class="trend-pills">
           <SkyChip
             v-for="trend in discoveryTags"
@@ -2247,7 +2289,15 @@ onBeforeUnmount(() => {
         with-tabbar
         class="light-screen profile-screen"
       >
-        <div class="profile-avatar">
+        <SkyButton
+          clear
+          rounded
+          icon-only
+          class="profile-avatar"
+          :class="{ 'realtime-live-avatar': liveFor(currentProfile.id) }"
+          :aria-label="currentProfile.display_name"
+          @click="joinLive(currentProfile.id)"
+        >
           <img
             v-if="currentProfile.avatar_url"
             :src="currentProfile.avatar_url"
@@ -2256,7 +2306,7 @@ onBeforeUnmount(() => {
           <template v-else>{{
             initials(currentProfile.display_name)
           }}</template>
-        </div>
+        </SkyButton>
         <h1>
           {{ currentProfile.display_name }}
           <Check v-if="currentProfile.verified" class="verified" />
@@ -3412,6 +3462,7 @@ onBeforeUnmount(() => {
       :text="feedback"
       @click="feedback = ''"
     />
+    <LiveBroadcast ref="liveDirectory" app="fliptok" hide-trigger />
   </SkyAppPage>
 </template>
 

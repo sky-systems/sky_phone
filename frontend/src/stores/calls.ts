@@ -155,15 +155,26 @@ export const useCallsStore = defineStore('calls', () => {
     return nuiCall('calls:video', { id: activeCall.value.id, action })
   }
 
-  async function answer(): Promise<NuiResponse> {
-    if (!activeCall.value) return { success: false, error: 'call_not_found' }
-    const response = await nuiCall('calls:answer', { id: activeCall.value.id })
-    if (response.success && activeCall.value) {
-      activeCall.value = {
-        ...activeCall.value,
-        answeredAt: activeCall.value.answeredAt ?? Date.now(),
-        state: 'connected',
-      }
+  async function answer(video = false): Promise<NuiResponse> {
+    const call = activeCall.value
+    if (!call || call.state !== 'ringing' || call.direction !== 'incoming') {
+      return { success: false, error: 'call_not_found' }
+    }
+    const response = await nuiCall<PhoneCall>('calls:answer', {
+      id: call.id,
+      video,
+    })
+    // A late response must not revive a hung-up call or overwrite a newer state.
+    if (response.success && activeCall.value === call) {
+      activeCall.value =
+        response.data?.id === call.id
+          ? response.data
+          : {
+              ...call,
+              answeredAt: call.answeredAt ?? Date.now(),
+              state: 'connected',
+              video: call.video === true && video,
+            }
     }
     return response
   }

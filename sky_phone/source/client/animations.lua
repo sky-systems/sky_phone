@@ -9,6 +9,7 @@ local TRANSITION_UPPER_BODY_FLAGS = 48
 local animation_state = {
     call_direction = nil,
     call_state = nil,
+    call_video = false,
     camera_active = false,
     camera_front = false,
     camera_landscape = false,
@@ -85,6 +86,11 @@ end
 local function derive_mode()
     if not Config.Animations.Enabled then
         return MODE_HIDDEN
+    end
+    -- FaceTime holds the phone in front of the player, just like opening it.
+    if animation_state.call_video and (animation_state.call_state == "connected"
+        or animation_state.call_state == "ringing") then
+        return MODE_PHONE_READ
     end
     if animation_state.call_state == "connected" then
         return MODE_CALL
@@ -393,6 +399,7 @@ end)
 local function reset_animation_state()
     animation_state.phone_open = false
     animation_state.call_state = nil
+    animation_state.call_video = false
     animation_state.call_direction = nil
     animation_state.camera_active = false
     animation_state.camera_front = false
@@ -432,6 +439,7 @@ AddEventHandler("sky_phone:animation:call", function(data)
     end
     animation_state.call_state = data.state
     animation_state.call_direction = data.direction
+    animation_state.call_video = data.video == true
     reevaluate(false)
 end)
 

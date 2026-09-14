@@ -168,6 +168,7 @@ end
 
 SkyPhoneRealtime.Apps.fliptok = {
     profile = profile_for_session,
+    publicProfile = load_profile,
     canView = function(viewer, profile_id)
         return load_profile(profile_id, viewer.id) ~= nil and not are_profiles_blocked(viewer.id, profile_id)
     end,
@@ -468,6 +469,34 @@ Bridge.Callbacks.Register("sky_phone:fliptok:video", function(source, data)
     return rows[1]
         and { success = true, data = rows[1] }
         or { success = false, error = "video_not_found" }
+end)
+
+Bridge.Callbacks.Register("sky_phone:fliptok:profiles", function(source, data)
+    local viewer, error_response = require_profile(source)
+    if not viewer then return error_response end
+    if not SkyPhone.AllowOperation(source, "fliptok:profiles", 40, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local search = trim(type(data) == "table" and data.search or nil) or ""
+    if not valid_text(search, 0, 50) then return { success = false, error = "invalid_request" } end
+    local pattern = "%" .. search:lower():gsub("^@", "") .. "%"
+    local rows = Bridge.Database.Query([[
+        SELECT p.`id`, p.`handle`, p.`display_name`, p.`bio`, p.`avatar_media_id`, p.`account_type`, p.`verified`,
+            avatar.`url` AS `avatar_url`,
+            EXISTS(SELECT 1 FROM `sky_phone_fliptok_follows` f WHERE f.`follower_id` = ? AND f.`following_id` = p.`id`) AS `is_following`,
+            (SELECT COUNT(*) FROM `sky_phone_fliptok_follows` f WHERE f.`following_id` = p.`id`) AS `followers`,
+            (SELECT COUNT(*) FROM `sky_phone_fliptok_follows` f WHERE f.`follower_id` = p.`id`) AS `following`,
+            (SELECT COUNT(*) FROM `sky_phone_fliptok_videos` v WHERE v.`profile_id` = p.`id` AND v.`status` = 'published') AS `video_count`
+        FROM `sky_phone_fliptok_profiles` p
+        LEFT JOIN `sky_phone_media` avatar ON avatar.`id` = p.`avatar_media_id`
+        WHERE (LOWER(p.`handle`) LIKE ? OR LOWER(p.`display_name`) LIKE ?)
+            AND NOT EXISTS(SELECT 1 FROM `sky_phone_fliptok_blocks` b
+                WHERE (b.`blocker_id` = ? AND b.`blocked_id` = p.`id`)
+                    OR (b.`blocked_id` = ? AND b.`blocker_id` = p.`id`))
+        ORDER BY p.`id` = ? ASC, p.`verified` DESC, `followers` DESC, p.`handle` LIMIT 20
+    ]], { viewer.id, pattern, pattern, viewer.id, viewer.id, viewer.id })
+    for _, profile in ipairs(rows) do hydrate_profile(profile, viewer.id) end
+    return { success = true, data = rows }
 end)
 
 Bridge.Callbacks.Register("sky_phone:fliptok:discover", function(source, data)

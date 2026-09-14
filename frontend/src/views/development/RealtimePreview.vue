@@ -25,7 +25,14 @@ const view = computed(() =>
     ? String(route.query.view)
     : 'host',
 )
+const callView = computed(() => String(route.query.view || 'connected'))
 const streams: MediaStream[] = []
+const originalAnswer = calls.answer,
+  originalVideoAction = calls.videoAction,
+  originalHangup = calls.hangup,
+  originalDecline = calls.decline,
+  originalSpeaker = calls.setSpeaker,
+  originalMute = calls.setMuted
 const originalChat = realtime.chat,
   originalStop = realtime.stop,
   originalFlip = realtime.flip
@@ -70,6 +77,7 @@ function makeStream(local: boolean): MediaStream {
   return stream
 }
 async function show(): Promise<void> {
+  await nextTick()
   streams
     .splice(0)
     .forEach((stream) => stream.getTracks().forEach((track) => track.stop()))
@@ -138,19 +146,27 @@ async function show(): Promise<void> {
       },
     ],
   }
-  if (scene.value === 'call')
+  if (scene.value === 'call') {
+    const ringing = ['incoming', 'outgoing'].includes(callView.value)
     calls.activeCall = {
       id: 'preview-call',
       otherNumber: '5550142',
-      direction: 'outgoing',
-      state: 'connected',
+      direction: callView.value === 'outgoing' ? 'outgoing' : 'incoming',
+      state: ringing ? 'ringing' : 'connected',
       startedAt: Date.now() - 83000,
       answeredAt: Date.now() - 83000,
-      video: true,
-      muteSupported: true,
-      speakerSupported: true,
+      video: !['request', 'audio'].includes(callView.value),
+      videoIncoming: callView.value === 'request',
+      videoRequested: callView.value === 'request',
+      muteSupported: callView.value !== 'pma',
+      speakerSupported: callView.value !== 'pma',
     }
-  else if (view.value === 'entry') {
+    if (ringing || !calls.activeCall.video) {
+      realtime.room = null
+      realtime.streams = new Map()
+      realtime.localStream = null
+    }
+  } else if (view.value === 'entry') {
     realtime.room = null
     realtime.streams = new Map()
     realtime.localStream = null
@@ -187,9 +203,10 @@ realtime.stop = () => {
 realtime.flip = async () => {
   realtime.front = !realtime.front
 }
-realtime.list = async () => [
+realtime.list = async (app) => [
   {
     id: 'preview',
+    profileId: app === 'picstagram' ? 'pic-profile-2' : '2',
     title: 'Sonnenuntergang in Vespucci',
     hostName: 'Luna Walker',
     viewers: 42,
@@ -214,7 +231,40 @@ realtime.watchLive = async () => {
     query: { view: 'viewer' },
   })
 }
-watch([scene, view], () => void show())
+calls.answer = async (video = false) => {
+  await router.replace({
+    path: '/development/realtime/call',
+    query: { view: video ? 'connected' : 'audio' },
+  })
+  return { success: true }
+}
+calls.videoAction = async (action) => {
+  await router.replace({
+    path: '/development/realtime/call',
+    query: {
+      view:
+        action === 'accept'
+          ? 'connected'
+          : action === 'request'
+            ? 'request'
+            : 'audio',
+    },
+  })
+  return { success: true }
+}
+calls.hangup = calls.decline = async () => {
+  realtime.stop()
+  return true
+}
+calls.setSpeaker = async (enabled) => {
+  if (calls.activeCall) calls.activeCall.speakerEnabled = enabled
+  return { success: true, data: { speakerEnabled: enabled } }
+}
+calls.setMuted = async (enabled) => {
+  if (calls.activeCall) calls.activeCall.muted = enabled
+  return { success: true, data: { muted: enabled } }
+}
+watch([scene, view, callView], () => void show())
 onMounted(() => void show())
 onBeforeUnmount(() => {
   cancelAnimationFrame(animation)
@@ -230,6 +280,12 @@ onBeforeUnmount(() => {
   realtime.startLive = originalStart
   realtime.watchLive = originalWatch
   realtime.refreshConfig = originalConfig
+  calls.answer = originalAnswer
+  calls.videoAction = originalVideoAction
+  calls.hangup = originalHangup
+  calls.decline = originalDecline
+  calls.setSpeaker = originalSpeaker
+  calls.setMuted = originalMute
 })
 </script>
 <template>
@@ -252,7 +308,36 @@ onBeforeUnmount(() => {
                 : 'FlipTok'
           }}</SkyButton
         >
-        <div v-if="scene !== 'call'" class="realtime-preview__roles">
+        <div v-if="scene === 'call'" class="realtime-preview__roles">
+          <SkyButton
+            v-for="option in [
+              'incoming',
+              'outgoing',
+              'request',
+              'connected',
+              'pma',
+            ]"
+            :key="option"
+            clear
+            :aria-pressed="callView === option"
+            @click="
+              router.replace({
+                path: '/development/realtime/call',
+                query: { view: option },
+              })
+            "
+            >{{
+              {
+                incoming: 'Eingehend',
+                outgoing: 'Ausgehend',
+                request: 'Videoanfrage',
+                connected: 'Verbunden',
+                pma: 'PMA',
+              }[option]
+            }}</SkyButton
+          >
+        </div>
+        <div v-else class="realtime-preview__roles">
           <SkyButton
             v-for="option in ['entry', 'host', 'viewer']"
             :key="option"
@@ -310,6 +395,7 @@ onBeforeUnmount(() => {
 }
 .realtime-preview__roles {
   display: flex;
+  flex-wrap: wrap;
   width: 100%;
 }
 .realtime-preview__roles .sky-button[aria-pressed='true'] {

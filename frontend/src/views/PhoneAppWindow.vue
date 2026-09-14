@@ -39,6 +39,7 @@ const launchStyle = computed(() => {
   <div
     v-if="app && !app.adminOnly"
     class="app-window"
+    :data-app-id="app.id"
     :class="{
       'app-window--camera-landscape':
         app.id === 'camera' && phone.cameraLandscape,
@@ -51,7 +52,7 @@ const launchStyle = computed(() => {
       :key="getCustomAppFrameKey(app)"
       :app="app"
     />
-    <Suspense v-else>
+    <Suspense v-else :key="app.id">
       <component :is="builtinAppComponent" :key="shareLaunch" />
       <template #fallback>
         <div class="app-loading">{{ phone.t('Common.loading') }}</div>

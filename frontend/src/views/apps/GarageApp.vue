@@ -1216,4 +1216,7 @@ onBeforeUnmount(() => {
   background: #3d2d17;
   color: #ffd37a;
 }
+.garage-vehicle__visual > i {
+  color: #17211b;
+}
 </style>

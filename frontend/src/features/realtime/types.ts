@@ -39,6 +39,8 @@ export type Room = {
   app?: LiveApp
   title?: string
   description?: string
+  profileId?: string
+  hostAvatar?: string | null
   hostName?: string
   messages?: LiveMessage[]
   self: number
@@ -51,6 +53,8 @@ export type JoinResult = { room: Room; config: RealtimeConfig }
 export type LiveEntry = {
   id: string
   title: string
+  profileId?: string
+  hostAvatar?: string | null
   hostName: string
   viewers: number
 }

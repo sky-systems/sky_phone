@@ -417,3 +417,27 @@ test("automatic unregistered numbers can receive both routing modes when SIM car
         for source = 1, 4 do assert(not state.active(source), routing) end
     end
 end)
+
+-- Camera consent is chosen atomically while answering the initial invitation.
+for _, video in ipairs({ true, false }) do
+    local f = fixture()
+    f.env.Config.Realtime = { Enabled = true, VideoCalls = true }
+    local result = f.callbacks["sky_phone:calls:dial"](1, { phoneNumber = "911", video = true })
+    assert(result.success)
+    local answer = f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id, video = video })
+    assert(answer.success and answer.data.state == "connected")
+    assert(answer.data.video == video, "Answer must respect the callee's explicit camera choice")
+    assert(f.env.SkyPhoneCalls.GetForSource(1).video == video, "Caller must receive the chosen media mode")
+end
+local f = fixture()
+f.env.Config.Realtime = { Enabled = true, VideoCalls = true }
+local result = f.callbacks["sky_phone:calls:dial"](1, { phoneNumber = "911" })
+assert(not f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id, video = true }).success,
+    "Audio invitations cannot enable cameras through an unsolicited video answer")
+assert(not f.callbacks["sky_phone:calls:answer"](1, { id = result.data.id, video = false }).success,
+    "Callers cannot accept their own invitation")
+assert(not f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id, video = "true" }).success,
+    "Video consent must be a boolean")
+assert(f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id }).success,
+    "Existing audio-only integrations can still answer without a video field")
+print("Direct FaceTime answer tests passed")

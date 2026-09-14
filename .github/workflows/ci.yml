@@ -53,6 +53,8 @@ jobs:
           lua5.4 tests/server_realtime_cloudflare.lua
           lua5.4 tests/client_realtime.lua
           lua5.4 tests/server_easyshare.lua
+          lua5.4 tests/server_social_discovery.lua
+          lua5.4 tests/client_calls.lua
 
       - name: Test media import URL probes and validation
         run: lua5.4 tests/media_import.lua
@@ -129,6 +131,22 @@ jobs:
 
       - name: Test frontend
         run: pnpm test
+
+      - name: Install theme test browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Test all app themes in the browser
+        run: pnpm test:themes
+
+      - name: Upload theme audit reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-theme-audit
+          path: |
+            frontend/theme-test-results
+            frontend/playwright-report
+          retention-days: 7
 
       - name: Build deployable NUI
         run: pnpm build-only

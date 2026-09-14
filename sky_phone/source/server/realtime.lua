@@ -67,7 +67,7 @@ local function snapshot(room, source)
         end
     end
     table.sort(peers, function(a, b) return a.id < b.id end)
-    return { id = room.id, kind = room.kind, app = room.app, title = room.title, description = room.description, hostName = room.hostName,
+    return { id = room.id, kind = room.kind, app = room.app, title = room.title, description = room.description, hostName = room.hostName, profileId = tostring(room.profileId or ""), hostAvatar = room.hostAvatar,
         role = member.role, self = source, peers = peers, viewers = viewers, transport = room.transport,
         messages = member.role ~= "nearby" and room.messages or {} }
 end
@@ -166,7 +166,10 @@ local function new_room(source, data)
     local title_length, description_length = utf8.len(title), utf8.len(description)
     if #title > 480 or not title_length or title_length > 120 or title_length == 0
         or #description > 4000 or not description_length or description_length > 1000 then return nil end
+    local adapter = SkyPhoneRealtime.Apps[data.app]
+    local public_profile = adapter.publicProfile and adapter.publicProfile(profile.id, profile.id) or profile
     local room = { id = rows[1].id, kind = "live", app = data.app, profileId = profile.id,
+        hostAvatar = public_profile and public_profile.avatar_url,
         hostName = profile.display_name or profile.username, title = title, description = description, messages = {}, messageSequence = 0, host = source, members = { [source] = new_member("host") },
         created = os.time(), transport = Config.Realtime.Transport }
     rooms[room.id] = room
@@ -194,7 +197,7 @@ Bridge.Database.AfterMigration("sky_phone", function()
             if room.kind == "live" and room.app == data.app and room.members[room.host] and room.members[room.host].ready and can_view(source, room) then
                 local viewers = 0
                 for _, member in pairs(room.members) do if member.role == "viewer" and member.ready then viewers = viewers + 1 end end
-                entries[#entries + 1] = { id = room.id, title = room.title, hostName = room.hostName, viewers = viewers }
+                entries[#entries + 1] = { id = room.id, title = room.title, hostName = room.hostName, profileId = tostring(room.profileId), hostAvatar = room.hostAvatar, viewers = viewers }
             end
         end
         return { success = true, data = entries }

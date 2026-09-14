@@ -151,6 +151,7 @@ end
 
 SkyPhoneRealtime.Apps.picstagram = {
     profile = profile_for_session,
+    publicProfile = load_profile,
     canView = function(viewer, profile_id)
         local profile = load_profile(profile_id, viewer.id)
         return profile ~= nil and not profile.locked
@@ -532,8 +533,8 @@ Bridge.Callbacks.Register("sky_phone:picstagram:search", function(source, data)
     if not profile then
         return error_response
     end
-    local search = trim(type(data) == "table" and data.search or nil)
-    if not search or not valid_text(search, 1, 80) then
+    local search = trim(type(data) == "table" and data.search or nil) or ""
+    if not valid_text(search, 0, 80) then
         return { success = false, error = "invalid_search" }
     end
     local pattern = "%" .. search:lower():gsub("^[@#]", "") .. "%"
@@ -555,8 +556,8 @@ Bridge.Callbacks.Register("sky_phone:picstagram:search", function(source, data)
             AND NOT EXISTS(SELECT 1 FROM `sky_phone_picstagram_blocks` block
                 WHERE (block.`blocker_id` = ? AND block.`blocked_id` = candidate.`id`)
                     OR (block.`blocked_id` = ? AND block.`blocker_id` = candidate.`id`))
-        ORDER BY candidate.`verified` DESC, candidate.`handle` LIMIT 20
-    ]], { profile.id, pattern, pattern, profile.id, profile.id })
+        ORDER BY candidate.`id` = ? ASC, candidate.`verified` DESC, `followers` DESC, candidate.`handle` LIMIT 20
+    ]], { profile.id, pattern, pattern, profile.id, profile.id, profile.id })
     for index = 1, #profiles do
         hydrate_profile(profiles[index], profile.id)
     end

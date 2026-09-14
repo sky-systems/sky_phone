@@ -97,6 +97,18 @@ describe('FlipTok verification updates', () => {
     vi.mocked(nuiCall).mockReset()
   })
 
+  it('discovers profiles even when there are no published videos', async () => {
+    vi.mocked(nuiCall)
+      .mockResolvedValueOnce({ success: true, data: [] })
+      .mockResolvedValueOnce({ success: true, data: [profile] })
+    const store = useFlipTokStore()
+    await store.discover('')
+    expect(nuiCall).toHaveBeenCalledWith('fliptok:profiles', { search: '' })
+    expect(store.searchProfiles).toEqual([profile])
+    expect(store.searchResults).toEqual([])
+    expect(store.searchError).toBe(false)
+  })
+
   it('updates the badge everywhere the profile is already visible', () => {
     const store = useFlipTokStore()
     store.profile = { ...profile }

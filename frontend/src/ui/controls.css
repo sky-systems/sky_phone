@@ -1426,8 +1426,8 @@ label.sky-list-item__row {
 }
 
 .sky-field__info {
-  color: inherit;
-  opacity: 0.5;
+  color: var(--sky-muted);
+  opacity: 1;
 }
 
 .sky-field__error,
@@ -1508,7 +1508,7 @@ label.sky-list-item__row {
 
 .sky-searchbar__input::placeholder {
   color: var(--sky-muted, rgba(0, 0, 0, 0.55));
-  opacity: 0.55;
+  opacity: 1;
 }
 
 .sky-searchbar__suffix {
@@ -2146,7 +2146,7 @@ label.sky-list-item__row {
 .sky-segmented:not(.sky-segmented--navigation):not(.sky-segmented--navbar)
   .sky-segmented-button--active {
   background: var(--sky-app-accent, #007aff);
-  color: #ffffff;
+  color: var(--sky-segmented-active-text, #ffffff);
 }
 
 .sky-glass.sky-segmented--navigation {
@@ -2197,7 +2197,7 @@ label.sky-list-item__row {
 
 .sky-segmented--navbar .sky-segmented-button--active {
   background: transparent;
-  color: #000000;
+  color: var(--sky-text);
   box-shadow: none;
 }
 
@@ -2215,7 +2215,7 @@ label.sky-list-item__row {
 .sky-ui-provider--dark .sky-segmented--navbar .sky-segmented__highlight,
 .sky-app--dark .sky-segmented--navbar .sky-segmented__highlight,
 .sky-app-page--dark .sky-segmented--navbar .sky-segmented__highlight {
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--sky-segmented-strong-highlight);
 }
 
 .sky-segmented--navigation .sky-segmented-button {
@@ -2311,7 +2311,7 @@ label.sky-list-item__row {
   )
   .sky-segmented-button--active {
   background: transparent;
-  color: #000000;
+  color: var(--sky-text);
   box-shadow: none;
 }
 

@@ -427,7 +427,7 @@ onBeforeUnmount(() => {
 }
 .neon-header .sky-button--glass,
 .neon-toolbar .sky-button--glass {
-  color: #fff;
+  color: var(--sky-text);
 }
 .neon-menu {
   height: calc(100% - 54px);
