@@ -24,6 +24,7 @@ XML = ROOT / 'source/xml'
 for p in (STREAM, TEX, XML, ROOT / 'previews'): p.mkdir(parents=True, exist_ok=True)
 W, H, D = .078, .1634, .00875
 SCREEN_W, SCREEN_H, SCREEN_Y = .0736, .1589, -.00449
+DUI_Y = -.0055  # Overlay clears the outer glass; keep shared/phone_prop.lua aligned.
 PARTS = []
 
 def select(obj):
@@ -308,7 +309,7 @@ def main():
     source=(REPO/'frontend/src/config/appearance.ts').read_text(encoding='utf-8')
     colors=dict(re.findall(r"(\w+): '(#[0-9a-f]{6})'",source))
     colors['rgb']='#bbbbbb';colors['burgundy']='#713442'
-    roots=[];models=[];report={'branding':'iFruit','dimensions_m':[W,D,H],'screen':{'width':SCREEN_W,'height':SCREEN_H,'y':SCREEN_Y-.00007,'radius':.0081},'variants':{}}
+    roots=[];models=[];report={'branding':'iFruit','dimensions_m':[W,D,H],'screen':{'width':SCREEN_W,'height':SCREEN_H,'y':DUI_Y,'radius':.0081},'variants':{}}
     base=None;base_mats=None
     for name,color in colors.items():
         rgb=tuple(int(color[i:i+2],16) for i in (1,3,5))

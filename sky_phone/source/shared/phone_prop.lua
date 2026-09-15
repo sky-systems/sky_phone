@@ -13,7 +13,8 @@ SkyPhoneProp = {
     MaxDisplays = 12,
     Width = 360,
     Height = 780,
-    Screen = { width = 0.0736, height = 0.1589, y = -0.00456, radius = 0.0081 },
+    -- The outer glass/camera reaches Y=-0.00471; keep the overlay 0.79 mm in front.
+    Screen = { width = 0.0736, height = 0.1589, y = -0.0055, radius = 0.0081 },
 }
 for frame in pairs(SkyPhoneProp.Frames) do
     SkyPhoneProp.Models[joaat(frame == "black" and "sky_phone_prop" or "sky_phone_prop_" .. frame)] = true

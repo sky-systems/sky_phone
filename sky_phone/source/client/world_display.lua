@@ -33,7 +33,7 @@ local function eligible(player, net)
         or GetEntityAttachedTo(entity) ~= ped then return nil end
     local coords = GetEntityCoords(PlayerPedId())
     if #(GetEntityCoords(ped) - coords) > SkyPhoneProp.Range then return nil end
-    return entity
+    return entity, ped
 end
 
 local function receive(player, generation, net, sequence, jpeg)
@@ -157,29 +157,40 @@ end)
 
 CreateThread(function()
     while true do
-        local drew = false
+        local active = false
         for player, display in pairs(displays) do
-            local entity = display.ready and eligible(player, display.net)
-            if entity and IsEntityOnScreen(entity) then
-                local center = GetOffsetFromEntityInWorldCoords(entity, 0.0, screen.y, 0.0)
-                local front = GetOffsetFromEntityInWorldCoords(entity, 0.0, screen.y - 1.0, 0.0) - center
-                local view = GetFinalRenderedCamCoord() - center
-                if front.x * view.x + front.y * view.y + front.z * view.z > 0
-                    and HasEntityClearLosToEntity(PlayerPedId(), entity, 17) then
-                    local points = {}
-                    for i, p in ipairs(boundary) do points[i] = GetOffsetFromEntityInWorldCoords(entity, p.x, screen.y, p.z) end
-                    for i, a in ipairs(boundary) do
-                        local j = i % #boundary + 1
-                        local b, p, q = boundary[j], points[i], points[j]
-                        DrawTexturedPoly(center.x, center.y, center.z, p.x, p.y, p.z, q.x, q.y, q.z,
-                            255, 255, 255, 255, display.txd, "screen",
-                            0.5, 0.5, 1.0, a.u, a.v, 1.0, b.u, b.v, 1.0)
+            local entity, ped
+            if display.ready then entity, ped = eligible(player, display.net) end
+            if entity then
+                active = true
+                -- Refresh the prop from the current hand pose before sampling it.
+                -- Otherwise sprinting can leave the overlay at the previous attachment pose.
+                ProcessEntityAttachments(ped)
+                if IsEntityOnScreen(entity) then
+                    -- Sample one transform for the whole polygon, after attachments update.
+                    local forward, right, up, position = GetEntityMatrix(entity)
+                    local center = position + forward * screen.y
+                    local view = GetFinalRenderedCamCoord() - center
+                    if forward.x * view.x + forward.y * view.y + forward.z * view.z < 0 then
+                        -- The textured polygons are depth-tested by GTA. A separate LOS test
+                        -- from the player's body can hide a screen visible to the camera.
+                        local points = {}
+                        for i, p in ipairs(boundary) do
+                            points[i] = center + right * p.x + up * p.z
+                        end
+                        for i, a in ipairs(boundary) do
+                            local j = i % #boundary + 1
+                            local b, p, q = boundary[j], points[i], points[j]
+                            DrawTexturedPoly(center.x, center.y, center.z, p.x, p.y, p.z, q.x, q.y, q.z,
+                                255, 255, 255, 255, display.txd, "screen",
+                                0.5, 0.5, 1.0, a.u, a.v, 1.0, b.u, b.v, 1.0)
+                        end
                     end
-                    drew = true
                 end
             end
         end
-        Wait(drew and 0 or 100)
+        -- A culled frame must not pause a nearby active screen for 100 ms.
+        Wait(active and 0 or 100)
     end
 end)
 

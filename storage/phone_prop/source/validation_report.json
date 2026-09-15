@@ -8,7 +8,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_blue.ydr": {
     "bytes": 1618636,
@@ -19,7 +20,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_burgundy.ydr": {
     "bytes": 1619368,
@@ -30,7 +32,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_cyan.ydr": {
     "bytes": 1618377,
@@ -41,7 +44,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_gold.ydr": {
     "bytes": 1617926,
@@ -52,7 +56,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_green.ydr": {
     "bytes": 1619394,
@@ -63,7 +68,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_lavender.ydr": {
     "bytes": 1618174,
@@ -74,7 +80,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_lime.ydr": {
     "bytes": 1620345,
@@ -85,7 +92,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_orange.ydr": {
     "bytes": 1618150,
@@ -96,7 +104,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_pink.ydr": {
     "bytes": 1618923,
@@ -107,7 +116,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_purple.ydr": {
     "bytes": 1618582,
@@ -118,7 +128,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_red.ydr": {
     "bytes": 1618537,
@@ -129,7 +140,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_rgb.ydr": {
     "bytes": 2229281,
@@ -140,7 +152,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_teal.ydr": {
     "bytes": 1618465,
@@ -151,7 +164,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_white.ydr": {
     "bytes": 1618684,
@@ -162,7 +176,8 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   },
   "sky_phone_prop_yellow.ydr": {
     "bytes": 1619352,
@@ -173,6 +188,7 @@
       "VERYLOW": 774
     },
     "textures": 23,
-    "native_roundtrip": "passed"
+    "native_roundtrip": "passed",
+    "dui_clearance_mm": 0.79
   }
 }
