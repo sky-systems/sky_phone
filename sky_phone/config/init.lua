@@ -3,6 +3,7 @@ Locales = Locales or {}
 SkyPhoneLocales = SkyPhoneLocales or {}
 
 local resolved_locales = {}
+local locale_aliases = { zh = "cn", cs = "cz", sr = "rs", sv = "se" }
 
 local function clone_locale(value)
     if type(value) ~= "table" then
@@ -29,6 +30,7 @@ end
 function SkyPhoneLocales.Resolve(requested_locale)
     local normalized = type(requested_locale) == "string" and requested_locale:lower():gsub("_", "-") or "en"
     local base = normalized:match("^([^-]+)") or "en"
+    base = locale_aliases[base] or base
     local locale_name = Locales[normalized] and normalized or (Locales[base] and base or "en")
     local selected = Locales[locale_name] or Locales.en or {}
     local english = Locales.en or {}
