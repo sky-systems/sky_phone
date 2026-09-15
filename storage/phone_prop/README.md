@@ -35,7 +35,7 @@ Each player has an independent DUI texture, drawn on the rounded screen with dep
 - At most 12 simultaneous DUI instances per client. Allocation is first available; additional displays stay black until capacity frees up.
 - Closed, deleted, departed, restricted or stale devices stop streaming; browsers and local display instances are released.
 - No audio, account store or raw HTML is sent to observers. Pixels can contain anything visibly displayed on the player's in-game phone.
-- JPEG type, size and dimensions are checked before display. Spectator HTML permits only bundled script/style and data images.
+- JPEG type, size and dimensions are checked before display. Spectator HTML permits only bundled script/style and blocks image URLs. Validated JPEG bytes are decoded into a bitmap and painted on a canvas; received strings never become DOM URLs or HTML. Decoded dimensions, frame order and expiry are checked before drawing.
 
 The capture is a low-rate visual mirror, not a 60 FPS video stream. Cross-origin iframes are omitted; remote media without canvas/CORS permission may appear blank or cause that capture to fail. Camera and video behavior must be checked with the actual FiveM CEF runtime. The plain spectator page has no NUI callbacks or phone account context.
 

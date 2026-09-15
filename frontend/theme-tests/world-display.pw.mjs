@@ -40,24 +40,30 @@ test('captures the actual phone and isolates spectator pixels', async ({
     (jpeg) => window.postMessage({ type: 'frame', sequence: 1, jpeg }, '*'),
     frame.jpeg,
   )
-  await expect
-    .poll(() => first.locator('#screen').evaluate((img) => img.naturalWidth))
-    .toBe(360)
-  await expect
-    .poll(() => first.locator('#screen').evaluate((img) => img.naturalHeight))
-    .toBe(780)
-  await expect(second.locator('#screen')).not.toHaveAttribute('src')
+  const pixel = (target) =>
+    target
+      .locator('#screen')
+      .evaluate((canvas) => [
+        ...canvas.getContext('2d').getImageData(180, 390, 1, 1).data,
+      ])
+  await expect.poll(async () => (await pixel(first))[3]).toBe(255)
+  expect(
+    await first
+      .locator('#screen')
+      .evaluate((canvas) => [canvas.width, canvas.height]),
+  ).toEqual([360, 780])
+  expect(await pixel(second)).toEqual([0, 0, 0, 0])
+  const displayed = await pixel(first)
   await first.evaluate(() =>
     window.postMessage(
       { type: 'frame', sequence: 2, jpeg: 'https://example.com/steal' },
       '*',
     ),
   )
-  await expect(first.locator('#screen')).toHaveAttribute('src', frame.jpeg)
+  expect(await pixel(first)).toEqual(displayed)
+  await expect(first.locator('#screen')).not.toHaveAttribute('src')
   await first.screenshot({ path: testInfo.outputPath('spectator.png') })
-  await expect(first.locator('#screen')).not.toHaveAttribute('src', {
-    timeout: 5000,
-  })
+  await expect.poll(() => pixel(first), { timeout: 5000 }).toEqual([0, 0, 0, 0])
 
   await page.evaluate(() => {
     window.postMessage({ type: 'phone:world-display', token: false }, '*')
@@ -68,6 +74,60 @@ test('captures the actual phone and isolates spectator pixels', async ({
   expect(frames.length).toBe(stopped)
   await first.close()
   await second.close()
+})
+
+test('spectator rejects URL and executable payloads without navigation or requests', async ({
+  page,
+}) => {
+  await page.goto('/display.html')
+  const requests = [],
+    errors = []
+  page.on('request', (request) => requests.push(request.url()))
+  page.on('pageerror', (error) => errors.push(error.message))
+  const originalUrl = page.url()
+  await page.evaluate(() => {
+    const payloads = [
+      'javascript:window.displayInjected=true',
+      'https://example.com/frame.jpg',
+      '//example.com/frame.jpg',
+      'data:text/html,<script>window.displayInjected=true</script>',
+      'data:image/svg+xml;base64,' +
+        btoa(
+          '<svg xmlns="http://www.w3.org/2000/svg" onload="window.displayInjected=true"/>',
+        ),
+      'data:image/jpeg;base64,' +
+        btoa('<html><script>window.displayInjected=true</script></html>'),
+    ]
+    for (const jpeg of payloads)
+      window.postMessage({ type: 'frame', sequence: 99, jpeg }, '*')
+    const source = document.createElement('canvas')
+    source.width = 360
+    source.height = 780
+    const context = source.getContext('2d')
+    context.fillStyle = '#00ff00'
+    context.fillRect(0, 0, 360, 780)
+    // Rejected payloads must not advance the sequence watermark.
+    window.postMessage(
+      { type: 'frame', sequence: 1, jpeg: source.toDataURL('image/jpeg') },
+      '*',
+    )
+  })
+  await expect
+    .poll(() =>
+      page
+        .locator('#screen')
+        .evaluate((canvas) => [
+          ...canvas.getContext('2d').getImageData(180, 390, 1, 1).data,
+        ]),
+    )
+    .toEqual([0, 255, 1, 255])
+  expect(await page.evaluate(() => Boolean(window.displayInjected))).toBe(false)
+  expect(page.url()).toBe(originalUrl)
+  expect(requests).toEqual([])
+  expect(errors).toEqual([])
+  await expect(
+    page.locator('[src]:not(script), iframe, object, embed'),
+  ).toHaveCount(0)
 })
 
 test('preserves the scrolled region without moving the live phone DOM', async ({

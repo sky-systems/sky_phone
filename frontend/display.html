@@ -4,13 +4,13 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; base-uri 'none'; form-action 'none'; frame-src 'none'"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sky Phone Display</title>
   </head>
   <body>
-    <img id="screen" alt="" />
+    <canvas id="screen" aria-hidden="true"></canvas>
     <script type="module" src="/src/display.ts"></script>
   </body>
 </html>
