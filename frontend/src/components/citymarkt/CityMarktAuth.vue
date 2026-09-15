@@ -26,6 +26,7 @@ const phone = usePhoneStore()
 <template>
   <AppProfileAuth
     class="citymarkt-auth"
+    :style="{ '--auth-accent': phone.isDarkMode ? 'var(--yellow)' : '#866600' }"
     :avatar-url="avatarUrl"
     :body="
       phone.t(
@@ -93,6 +94,7 @@ const phone = usePhoneStore()
 <style scoped>
 .citymarkt-auth {
   --auth-accent: var(--yellow);
+  --sky-segmented-active-text: #171816;
   --sky-app-accent: var(--yellow);
 }
 .citymarkt-auth :deep(.app-profile-auth__card) {
@@ -133,6 +135,7 @@ const phone = usePhoneStore()
 }
 .citymarkt-auth :deep(.app-profile-auth__submit) {
   color: #171816 !important;
+  background: var(--yellow) !important;
 }
 .citymarkt-auth :deep(.app-profile-auth__fields) {
   overflow: visible;

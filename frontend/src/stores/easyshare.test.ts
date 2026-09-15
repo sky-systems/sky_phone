@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useEasyShareStore } from '@/stores/easyshare'
 import type { EasySharePayload, EasyShareTransfer } from '@/types/easyshare'
-import { nuiCall } from '@/utils/nui'
+import { nuiCall, type NuiResponse } from '@/utils/nui'
 
 vi.mock('@/utils/nui', () => ({ nuiCall: vi.fn() }))
 
@@ -29,6 +29,35 @@ describe('easyshare store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     mockNuiCall.mockReset()
+  })
+
+  it('does not restore waiting status when bootstrap races a completion event', async () => {
+    let finish!: (value: NuiResponse) => void
+    mockNuiCall.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    const store = useEasyShareStore()
+    store.applyEvent({ transfer: incoming })
+    const loading = store.bootstrap()
+    store.applyEvent({
+      transfer: { ...incoming, status: 'completed', progress: 100 },
+    })
+    finish({
+      success: true,
+      data: {
+        targets: [],
+        history: [incoming],
+        pending: [incoming],
+        visibility: 'everyone',
+      },
+    })
+    await loading
+    expect(store.history[0].status).toBe('completed')
+    expect(store.activeTransfer?.status).toBe('completed')
+    expect(store.pending).toEqual([])
   })
 
   it('opens with the selected share payload', () => {

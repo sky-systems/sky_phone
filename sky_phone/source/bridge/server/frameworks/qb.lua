@@ -8,6 +8,11 @@ local function get_player(source)
     return QBCore.Functions.GetPlayer(tonumber(source))
 end
 
+function Bridge.Framework.GetStatusData(source)
+    local player = get_player(source)
+    return player and player.PlayerData and player.PlayerData.metadata or {}
+end
+
 function Bridge.Framework.GetPlayers()
     local players = {}
     for player_source in pairs(QBCore.Functions.GetQBPlayers()) do

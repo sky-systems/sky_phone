@@ -277,7 +277,7 @@ onBeforeUnmount(() => {
     class="banking-app pb-safe-24"
     :label="phone.t('Apps.banking.name')"
     :dark="phone.isDarkMode"
-    accent="#2d76ff"
+    :accent="phone.isDarkMode ? '#7ca8ff' : '#2d76ff'"
     accent-soft="rgba(45, 118, 255, 0.18)"
   >
     <div class="banking-app__aurora" aria-hidden="true"></div>

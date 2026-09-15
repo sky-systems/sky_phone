@@ -65,7 +65,7 @@ describe('SkySegmented navigation', () => {
       /\.sky-segmented--strong:not\(\.sky-segmented--navigation\):not\([\s\S]*?\.sky-segmented__highlight\s*\{[^}]*border-radius:\s*inherit/,
     )
     expect(controls).toMatch(
-      /\.sky-segmented--strong:not\(\.sky-segmented--navigation\):not\([\s\S]*?\.sky-segmented-button--active\s*\{[^}]*background:\s*transparent;[^}]*color:\s*#000000;[^}]*box-shadow:\s*none/,
+      /\.sky-segmented--strong:not\(\.sky-segmented--navigation\):not\([\s\S]*?\.sky-segmented-button--active\s*\{[^}]*background:\s*transparent;[^}]*color:\s*var\(--sky-text\);[^}]*box-shadow:\s*none/,
     )
   })
 
@@ -207,13 +207,13 @@ describe('SkySegmented navigation', () => {
       /\.sky-segmented--navbar \.sky-segmented__highlight\s*\{[^}]*top:\s*5px[^}]*bottom:\s*5px[^}]*background:\s*#ffffff/s,
     )
     expect(controls).toMatch(
-      /\.sky-app-page--dark \.sky-segmented--navbar \.sky-segmented__highlight\s*\{[^}]*background:\s*rgba\(255, 255, 255, 0\.75\)/s,
+      /\.sky-app-page--dark \.sky-segmented--navbar \.sky-segmented__highlight\s*\{[^}]*background:\s*var\(--sky-segmented-strong-highlight\)/s,
     )
     expect(controls).toMatch(
       /\.sky-segmented--navbar\.sky-segmented--strong\s*\.sky-segmented-button:not\(\.sky-segmented-button--active\)\s*\{[^}]*color:\s*inherit;/s,
     )
     expect(controls).toMatch(
-      /\.sky-segmented--navbar \.sky-segmented-button--active\s*\{[^}]*color:\s*#000000;/s,
+      /\.sky-segmented--navbar \.sky-segmented-button--active\s*\{[^}]*color:\s*var\(--sky-text\);/s,
     )
   })
 

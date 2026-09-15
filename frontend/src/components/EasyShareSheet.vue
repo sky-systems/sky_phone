@@ -50,6 +50,12 @@ const easyShare = useEasyShareStore()
 const flare = useFlareStore()
 const router = useRouter()
 const feedback = ref('')
+const transferFeedback = computed(() =>
+  easyShare.activeTransfer?.direction === 'outgoing' &&
+  easyShare.activeTransfer.status === 'pending'
+    ? label('requestSent')
+    : '',
+)
 watch(
   () => easyShare.opened,
   () => {
@@ -249,8 +255,8 @@ function saveAsNote(): void {
 }
 
 async function requestTransfer(targetId: number): Promise<void> {
-  const response = await easyShare.request(targetId)
-  feedback.value = response.success ? label('requestSent') : ''
+  feedback.value = ''
+  await easyShare.request(targetId)
 }
 
 async function respond(
@@ -528,11 +534,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
         </section>
 
         <p
-          v-if="errorFeedback || feedback"
+          v-if="errorFeedback || feedback || transferFeedback"
           class="easyshare-feedback"
           role="status"
         >
-          {{ errorFeedback || feedback }}
+          {{ errorFeedback || feedback || transferFeedback }}
         </p>
       </div>
     </SkySheet>

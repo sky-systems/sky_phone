@@ -29,6 +29,11 @@ export default defineConfig({
     },
   },
   server: {
+    // Browser traces contain HTML snapshots; do not hot-reload the app when
+    // Playwright writes reports or traces during a theme test.
+    watch: {
+      ignored: ['**/theme-test-results/**', '**/playwright-report/**'],
+    },
     fs: {
       allow: [fileURLToPath(new URL('.', import.meta.url))],
       strict: false,

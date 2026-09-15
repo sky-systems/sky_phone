@@ -1,3 +1,4 @@
+SkyPhoneRealtime = SkyPhoneRealtime or { Apps = {} }
 Bridge.Database.AfterMigration("sky_phone", function()
 local account_types = { person = true, business = true, organization = true, media = true, event = true }
 local visibilities = { public = true, followers = true, private = true }
@@ -165,6 +166,14 @@ local function load_profile(profile_id, viewer_id)
     return rows[1] and hydrate_profile(rows[1], viewer_id) or nil
 end
 
+SkyPhoneRealtime.Apps.fliptok = {
+    profile = profile_for_session,
+    publicProfile = load_profile,
+    canView = function(viewer, profile_id)
+        return load_profile(profile_id, viewer.id) ~= nil and not are_profiles_blocked(viewer.id, profile_id)
+    end,
+}
+
 local function load_accessible_video(video_id, viewer_id)
     if type(video_id) ~= "string" or video_id == "" or #video_id > 64 then return nil end
     local rows = Bridge.Database.Query([[SELECT v.`profile_id`, v.`comments_enabled`
@@ -280,7 +289,7 @@ local function truncate_discord_text(value, maximum_characters)
     local length = utf8.len(value)
     if not length or length <= maximum_characters then return value end
     local boundary = utf8.offset(value, maximum_characters + 1)
-    return boundary and value:sub(1, boundary - 1) .. "…" or value
+    return boundary and value:sub(1, boundary - 1) .. "â€¦" or value
 end
 
 local function list_videos(viewer_id, where_clause, values, limit, offset, ranking)
@@ -460,6 +469,34 @@ Bridge.Callbacks.Register("sky_phone:fliptok:video", function(source, data)
     return rows[1]
         and { success = true, data = rows[1] }
         or { success = false, error = "video_not_found" }
+end)
+
+Bridge.Callbacks.Register("sky_phone:fliptok:profiles", function(source, data)
+    local viewer, error_response = require_profile(source)
+    if not viewer then return error_response end
+    if not SkyPhone.AllowOperation(source, "fliptok:profiles", 40, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    local search = trim(type(data) == "table" and data.search or nil) or ""
+    if not valid_text(search, 0, 50) then return { success = false, error = "invalid_request" } end
+    local pattern = "%" .. search:lower():gsub("^@", "") .. "%"
+    local rows = Bridge.Database.Query([[
+        SELECT p.`id`, p.`handle`, p.`display_name`, p.`bio`, p.`avatar_media_id`, p.`account_type`, p.`verified`,
+            avatar.`url` AS `avatar_url`,
+            EXISTS(SELECT 1 FROM `sky_phone_fliptok_follows` f WHERE f.`follower_id` = ? AND f.`following_id` = p.`id`) AS `is_following`,
+            (SELECT COUNT(*) FROM `sky_phone_fliptok_follows` f WHERE f.`following_id` = p.`id`) AS `followers`,
+            (SELECT COUNT(*) FROM `sky_phone_fliptok_follows` f WHERE f.`follower_id` = p.`id`) AS `following`,
+            (SELECT COUNT(*) FROM `sky_phone_fliptok_videos` v WHERE v.`profile_id` = p.`id` AND v.`status` = 'published') AS `video_count`
+        FROM `sky_phone_fliptok_profiles` p
+        LEFT JOIN `sky_phone_media` avatar ON avatar.`id` = p.`avatar_media_id`
+        WHERE (LOWER(p.`handle`) LIKE ? OR LOWER(p.`display_name`) LIKE ?)
+            AND NOT EXISTS(SELECT 1 FROM `sky_phone_fliptok_blocks` b
+                WHERE (b.`blocker_id` = ? AND b.`blocked_id` = p.`id`)
+                    OR (b.`blocked_id` = ? AND b.`blocker_id` = p.`id`))
+        ORDER BY p.`id` = ? ASC, p.`verified` DESC, `followers` DESC, p.`handle` LIMIT 20
+    ]], { viewer.id, pattern, pattern, viewer.id, viewer.id, viewer.id })
+    for _, profile in ipairs(rows) do hydrate_profile(profile, viewer.id) end
+    return { success = true, data = rows }
 end)
 
 Bridge.Callbacks.Register("sky_phone:fliptok:discover", function(source, data)
@@ -872,7 +909,7 @@ Bridge.Callbacks.Register("sky_phone:fliptok:report", function(source, data)
     end
     local video = videos[1]
     local payload = {
-        username = "Sky Phone · FlipTok Reports",
+        username = "Sky Phone Â· FlipTok Reports",
         allowed_mentions = { parse = {} },
         embeds = {{
             title = "New FlipTok report",
@@ -884,7 +921,7 @@ Bridge.Callbacks.Register("sky_phone:fliptok:report", function(source, data)
                 { name = "Video", value = tostring(data.id), inline = true },
                 { name = "Creator", value = ("@%s (%s)"):format(video.handle, video.display_name), inline = false },
                 { name = "Reporter", value = ("@%s (%s)"):format(profile.handle, profile.display_name), inline = false },
-                { name = "Caption", value = video.caption ~= "" and truncate_discord_text(video.caption, 240) or "—", inline = false },
+                { name = "Caption", value = video.caption ~= "" and truncate_discord_text(video.caption, 240) or "â€”", inline = false },
             },
             footer = { text = "sky_phone FlipTok" },
         }},

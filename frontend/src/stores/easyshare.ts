@@ -90,8 +90,11 @@ export const useEasyShareStore = defineStore('easyshare', () => {
         : (response.error ?? 'request_failed')
     if (!response.success || !response.data) return false
     targets.value = response.data.targets
-    history.value = response.data.history
-    pending.value = response.data.pending
+    for (const transfer of [
+      ...response.data.history,
+      ...response.data.pending,
+    ].reverse())
+      applyTransfer(transfer)
     visibility.value = response.data.visibility
     return true
   }

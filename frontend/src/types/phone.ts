@@ -49,6 +49,10 @@ export type CallState =
   | 'sim_removed'
 
 export type PhoneCall = {
+  payphone?: boolean
+  video?: boolean
+  videoRequested?: boolean
+  videoIncoming?: boolean
   answeredAt?: number
   channel?: number
   device?: { imei: string; name: string }

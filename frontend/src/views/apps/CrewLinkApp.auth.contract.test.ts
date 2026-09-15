@@ -58,14 +58,12 @@ describe('CrewLink authentication fields', () => {
       '.crewlink-auth :deep(.app-profile-auth__mode-button--active)',
     )
     expect(crewLinkSource).toContain(
-      '.app-profile-auth__mode--register::before',
+      'background: var(--sky-app-accent-shade) !important;',
     )
     expect(authSource).toContain(
       `'app-profile-auth__mode--register': mode === 'register'`,
     )
-    expect(crewLinkSource).toContain(
-      'transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);',
-    )
+    expect(crewLinkSource).toContain('color: var(--sky-text);')
   })
 
   it('centres the ping count inside its navigation badge', () => {

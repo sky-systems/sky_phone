@@ -37,7 +37,9 @@ describe('Clock app controls', () => {
   })
 
   it('uses the orange clock accent and state-specific circular actions', () => {
-    expect(clockView).toContain('accent="#ff9f0a"')
+    expect(clockView).toContain(
+      ":accent=\"phone.isDarkMode ? '#ff9f0a' : '#9b5800'\"",
+    )
     expect(clockView).toContain('clock-action-button--start')
     expect(clockView).toContain('clock-action-button--stop')
     expect(clockView).toContain('<Play')

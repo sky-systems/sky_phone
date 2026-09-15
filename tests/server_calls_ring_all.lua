@@ -92,7 +92,8 @@ local function fixture(routing)
     env.Bridge.Calls.SupportsSpeaker = function() return false end
     env.Bridge.Calls.SupportsMute = function() return false end
     env.Bridge.Calls.IsAvailable = function() return true end
-    function env.Bridge.Calls.Start(id, sources)
+    function env.Bridge.Calls.Start(id, sources, channel)
+        assert(type(channel) == "number" and channel > 0, "Reserve a numeric PMA channel before provider startup")
         state.voice_starts[#state.voice_starts + 1] = { id = id, sources = sources }
         hook("voice")
         return not state.fail_voice, "yaca"
@@ -415,5 +416,93 @@ test("automatic unregistered numbers can receive both routing modes when SIM car
         assert(state.action("answer", 2, call.id).success, routing)
         assert(state.action("hangup", 1, call.id).success)
         for source = 1, 4 do assert(not state.active(source), routing) end
+    end
+end)
+
+-- Camera consent is chosen atomically while answering the initial invitation.
+for _, video in ipairs({ true, false }) do
+    local f = fixture()
+    f.env.Config.Realtime = { Enabled = true, VideoCalls = true }
+    local result = f.callbacks["sky_phone:calls:dial"](1, { phoneNumber = "911", video = true })
+    assert(result.success)
+    local answer = f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id, video = video })
+    assert(answer.success and answer.data.state == "connected")
+    assert(answer.data.video == video, "Answer must respect the callee's explicit camera choice")
+    assert(f.env.SkyPhoneCalls.GetForSource(1).video == video, "Caller must receive the chosen media mode")
+end
+local f = fixture()
+f.env.Config.Realtime = { Enabled = true, VideoCalls = true }
+local result = f.callbacks["sky_phone:calls:dial"](1, { phoneNumber = "911" })
+assert(not f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id, video = true }).success,
+    "Audio invitations cannot enable cameras through an unsolicited video answer")
+assert(not f.callbacks["sky_phone:calls:answer"](1, { id = result.data.id, video = false }).success,
+    "Callers cannot accept their own invitation")
+assert(not f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id, video = "true" }).success,
+    "Video consent must be a boolean")
+assert(f.callbacks["sky_phone:calls:answer"](2, { id = result.data.id }).success,
+    "Existing audio-only integrations can still answer without a video field")
+print("Direct FaceTime answer tests passed")
+
+for _, accepted_video in ipairs({ true, false }) do
+    local f = fixture()
+    f.env.Config.Realtime = { Enabled = true, VideoCalls = true }
+    local response = f.callbacks["sky_phone:calls:dial"](1, { phoneNumber = "5550002", video = true })
+    assert(response.success, response.error)
+    assert(response.data.video, "Direct contact FaceTime must preserve the video flag")
+    local incoming
+    for _, event in ipairs(f.events) do
+        if event.name == "sky_phone:call:incoming" and event.source == 2 then incoming = event.payload end
+    end
+    assert(incoming and incoming.video, "The actual incoming network event must carry the video invitation")
+    assert(f.env.SkyPhoneCalls.GetForSource(2).video, "Direct recipient must see a video invitation")
+    local answer = f.callbacks["sky_phone:calls:answer"](2, { id = response.data.id, video = accepted_video })
+    assert(answer.success, answer.error)
+    assert(answer.data.video == accepted_video)
+    assert(f.env.SkyPhoneCalls.GetForSource(1).video == accepted_video)
+end
+print("PASS direct FaceTime: video invitation and explicit video/audio answers")
+
+local company_fixture = fixture()
+company_fixture.env.SkyPhoneCompanies.CanPlaceCompanyCall = function() return true end
+local company_result = company_fixture.env.SkyPhoneCalls.StartCompanyCall(1, "police", "5550002")
+assert(company_result.success and company_result.data.state == "ringing" and company_result.data.video == false,
+    "Company calls without a UI request payload must remain valid audio calls")
+print("PASS outbound company calls: no undefined video-request payload")
+
+test("restrictions reject callers and direct callees, clear active calls and preserve other ring-all targets", function()
+    local state = fixture()
+    local blocked = { [2] = "player_cuffed" }
+    state.env.Bridge.PlayerState = { GetBlockReason = function(src) return blocked[src] end }
+    local denied = state.callbacks["sky_phone:calls:dial"](2, { phoneNumber = "5550001" })
+    assert(not denied.success and denied.error == "player_cuffed")
+    local unavailable = state.dial(1, "5550002")
+    assert(unavailable.state == "unavailable" and state.event_count("sky_phone:call:incoming", 2) == 0)
+    local call = state.dial()
+    assert(not state.active(2) and state.active(3) and state.active(4))
+    blocked[3] = "player_incapacitated"
+    state.handlers["sky_phone:player:restricted"](3)
+    assert(not state.active(3) and state.active(4) and state.active(1))
+    assert(not state.action("answer", 3, call.id).success)
+    assert(state.action("answer", 4, call.id).success)
+    blocked[4] = "player_cuffed"
+    state.tick()
+    assert(not state.active(4) and not state.active(1) and #state.voice_stops == 1)
+end)
+
+test("becoming incapacitated while accepting cannot attach a late voice connection", function()
+    for _, phase in ipairs({ "permission", "inventory", "voice", "transaction" }) do
+        local state = fixture()
+        local blocked = {}
+        state.env.Bridge.PlayerState = { GetBlockReason = function(src) return blocked[src] end }
+        local call = state.dial()
+        state.hooks[phase] = function() state.hooks[phase] = nil; coroutine.yield() end
+        local result
+        local answer = coroutine.create(function() result = state.action("answer", 3, call.id) end)
+        assert(coroutine.resume(answer))
+        blocked[3] = "player_incapacitated"
+        state.handlers["sky_phone:player:restricted"](3)
+        local ok, err = coroutine.resume(answer); assert(ok, err)
+        assert(not result.success, phase)
+        if phase == "voice" or phase == "transaction" then assert(#state.voice_stops >= 1, phase) end
     end
 end)
