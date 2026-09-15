@@ -25,6 +25,7 @@ local state = {
 local block_game = false
 local block_look = false
 local game_input = false
+local control_thread_active = false
 
 local function refresh_focus_configuration()
     local hold_to_look_config = Config.Phone.HoldToLook
@@ -85,6 +86,35 @@ function SkyPhoneFocus.ApplyGameInputControls(block_look)
         end
     end
     DisablePlayerFiring(PlayerId(), true)
+end
+
+local function ensure_control_thread()
+    if control_thread_active or not (game_input or block_game) then
+        return
+    end
+
+    control_thread_active = true
+    CreateThread(function()
+        while game_input or block_game do
+            -- The camera owns its passthrough claim; reapplying the phone claim
+            -- here would reset it and emit the same focus event every frame.
+            local look_passthrough = game_input
+                and not state.camera_active
+                and not state.cursor_disabled
+                and SkyPhoneFocus.IsHoldToLookPressed()
+            if look_passthrough ~= state.look_passthrough then
+                state.look_passthrough = look_passthrough
+                SkyPhoneFocus.Reapply()
+            end
+            if block_game then
+                SkyPhoneFocus.ApplyFocusedControls()
+            else
+                SkyPhoneFocus.ApplyGameInputControls(block_look)
+            end
+            Wait(0)
+        end
+        control_thread_active = false
+    end)
 end
 
 function SkyPhoneFocus.Resolve(state)
@@ -153,6 +183,7 @@ function SkyPhoneFocus.Reapply()
         focused = focus.focused,
         gameInput = focus.game_input,
     })
+    ensure_control_thread()
 end
 
 function SkyPhoneFocus.BeginNuiHydration()
@@ -244,28 +275,6 @@ function SkyPhoneFocus.Reset()
     SetNuiFocusKeepInput(false)
     SetNuiFocus(false, false)
 end
-
-CreateThread(function()
-    while true do
-        if game_input or block_game then
-            local look_passthrough = game_input
-                and not state.cursor_disabled
-                and SkyPhoneFocus.IsHoldToLookPressed()
-            if look_passthrough ~= state.look_passthrough then
-                state.look_passthrough = look_passthrough
-                SkyPhoneFocus.Reapply()
-            end
-            if block_game then
-                SkyPhoneFocus.ApplyFocusedControls()
-            else
-                SkyPhoneFocus.ApplyGameInputControls(block_look)
-            end
-            Wait(0)
-        else
-            Wait(250)
-        end
-    end
-end)
 
 AddEventHandler("sky_phone:client:setSuspended", function(suspended)
     state.activity_suspended = suspended == true
