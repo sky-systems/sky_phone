@@ -566,7 +566,9 @@ Locales["es"] = {
                     RadiusEnabled = "Mostrar radio",
                     Radius = "Radio (metros)",
                 },
+                phoneWorldDisplayLabel = "Duplicar pantalla a jugadores cercanos (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Desactivado por defecto. Duplica la pantalla del teléfono sobre el modelo para jugadores a menos de 3 metros en el mismo routing bucket. Al desactivarlo se detienen inmediatamente la captura, la transmisión de imágenes y los navegadores DUI. Los modelos y colores del marco funcionan de forma independiente.",
                     companyCallRouting = "round_robin: llamar a los empleados disponibles uno por uno. ring_all: llamar a todos los empleados disponibles a la vez; el primero en responder recibe la llamada. Requiere disponibilidad para llamadas y MinimumGrade; se omiten los teléfonos ocupados o inaccesibles.",
                     companyCallAttempts = "Número máximo de intentos de round_robin, incluido el primer empleado (1-20). Se ignora en ring_all.",
                     companyCallRingSeconds = "Tiempo de llamada en segundos (1-120) por intento de round_robin o para todo el grupo de ring_all.",

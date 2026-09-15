@@ -566,7 +566,9 @@ Locales["rs"] = {
                     RadiusEnabled = "Прикажи радијус",
                     Radius = "Радијус (метра)",
                 },
+                phoneWorldDisplayLabel = "Preslikavanje ekrana u blizini (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Podrazumevano isključeno. Preslikava ekran telefona na model za igrače u krugu od 3 metra u istom routing bucket-u. Isključivanje odmah zaustavlja snimanje, prenos slika i DUI pregledače. Modeli telefona i boje okvira rade nezavisno.",
                     companyCallRouting = "round_robin: једно по једно позива доступне запослене. ring_all: истовремено позива све доступне запослене; први који одговара добија позив. Потребна је доступност за позив и MinimumGrade; заузети или недостижни телефони се прескачу.",
                     companyCallAttempts = "Максималан укупан број покушаја за round_robin, укључујући првог запосленог (1-20). Игнорише се за ring_all.",
                     companyCallRingSeconds = "Време звона у секундама (1-120) по round_robin покушају или за целу ring_all групу.",

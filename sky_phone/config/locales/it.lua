@@ -566,7 +566,9 @@ Locales["it"] = {
                     RadiusEnabled = "Mostra raggio",
                     Radius = "Raggio (metri)",
                 },
+                phoneWorldDisplayLabel = "Duplicazione schermo nelle vicinanze (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Disattivata per impostazione predefinita. Duplica lo schermo del telefono sul modello per i giocatori entro 3 metri nello stesso routing bucket. La disattivazione interrompe subito acquisizione, trasmissione delle immagini e browser DUI. Modelli del telefono e colori della cornice funzionano indipendentemente.",
                     companyCallRouting = "round_robin: chiama i dipendenti disponibili uno alla volta. ring_all: chiama tutti i dipendenti disponibili contemporaneamente; il primo che risponde riceve la chiamata. Richiede disponibilità alla chiamata e MinimumGrade; i telefoni occupati o irraggiungibili vengono saltati.",
                     companyCallAttempts = "Numero massimo di tentativi totali per round_robin, incluso il primo dipendente (1-20). Ignorato da ring_all.",
                     companyCallRingSeconds = "Tempo di suoneria in secondi (1-120) per ogni tentativo round_robin o per l'intero gruppo ring_all.",

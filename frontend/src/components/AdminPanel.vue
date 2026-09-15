@@ -435,6 +435,10 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
     [
+      'Animations.WorldDisplayEnabled',
+      t('configurator.phoneWorldDisplayLabel'),
+    ],
+    [
       'Realtime.NearbyMaxSpeakers',
       phone.t('Realtime.settings.NearbyMaxSpeakers'),
     ],

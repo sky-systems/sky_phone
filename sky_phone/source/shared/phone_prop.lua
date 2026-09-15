@@ -21,6 +21,11 @@ for frame in pairs(SkyPhoneProp.Frames) do
 end
 SkyPhoneProp.Models[joaat("sky_phone_prop_burgundy")] = true
 
+function SkyPhoneProp.DisplayEnabled()
+    return type(Config) == "table" and type(Config.Animations) == "table"
+        and Config.Animations.WorldDisplayEnabled == true
+end
+
 function SkyPhoneProp.Model(frame, configured)
     if not SkyPhoneProp.Models[joaat(configured)] then return configured end
     if configured == "sky_phone_prop_burgundy" then return configured end

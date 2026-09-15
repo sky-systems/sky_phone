@@ -566,7 +566,9 @@ Locales["en"] = {
                     RadiusEnabled = "Show radius",
                     Radius = "Radius (metres)",
                 },
+                phoneWorldDisplayLabel = "Nearby screen mirroring (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Off by default. Mirrors the phone screen onto the prop for players within 3 meters in the same routing bucket. Disabling immediately stops capture, image transmission and DUI browsers. Phone props and frame colors work independently.",
                     companyCallRouting = "round_robin: ring available employees one at a time. ring_all: ring all available employees together; the first to answer gets the call. Requires call availability and MinimumGrade; busy or unreachable phones are skipped.",
                     companyCallAttempts = "Maximum total attempts for round_robin, including the first employee (1-20). Ignored by ring_all.",
                     companyCallRingSeconds = "Ring time in seconds (1-120) per round_robin attempt or for the entire ring_all group.",

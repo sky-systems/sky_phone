@@ -28,6 +28,7 @@ local function stop(source)
 end
 
 RegisterNetEvent("sky_phone:display:begin", function(net)
+    if not SkyPhoneProp.DisplayEnabled() then return end
     local player = source
     local now = GetGameTimer()
     if attempts[player] and now - attempts[player] < 900 then return end
@@ -50,6 +51,7 @@ end)
 
 RegisterNetEvent("sky_phone:display:frame", function(token, sequence, jpeg)
     local player = source
+    if not SkyPhoneProp.DisplayEnabled() then stop(player); return end
     local session, now = sessions[player], GetGameTimer()
     if not session or token ~= session.token then return end
     if type(sequence) ~= "number" or sequence % 1 ~= 0 or sequence <= session.sequence or sequence > 2147483647 then return end
@@ -81,7 +83,7 @@ CreateThread(function()
         Wait(1000)
         local now = GetGameTimer()
         for player, session in pairs(sessions) do
-            if now - session.last > 5000 or not valid_prop(player, session.net)
+            if not SkyPhoneProp.DisplayEnabled() or now - session.last > 5000 or not valid_prop(player, session.net)
                 or not SkyPhone or not SkyPhone.RequireDeviceSession(player) then
                 stop(player)
             else
@@ -94,6 +96,11 @@ CreateThread(function()
             end
         end
     end
+end)
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    if SkyPhoneProp.DisplayEnabled() then return end
+    for player in pairs(sessions) do stop(player) end
 end)
 
 AddEventHandler("playerDropped", function()

@@ -9,6 +9,11 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains the optional default-off nearby phone screen', () => {
+    expect(
+      configuratorDescriptionKey('Animations.WorldDisplayEnabled', false),
+    ).toBe('phoneWorldDisplay')
+  })
   it('explains model-specific Face ID masks and texture wildcards', () => {
     expect(configuratorDescriptionKey('Security.FaceIdMaskWhitelist', [])).toBe(
       'faceIdMaskWhitelist',

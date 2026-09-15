@@ -566,7 +566,9 @@ Locales["se"] = {
                     RadiusEnabled = "Visa radie",
                     Radius = "Radie (meter)",
                 },
+                phoneWorldDisplayLabel = "Skärmspegling för spelare i närheten (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Avstängd som standard. Speglar telefonskärmen på modellen för spelare inom 3 meter i samma routing bucket. Avstängning stoppar omedelbart inspelning, bildöverföring och DUI-webbläsare. Telefonmodeller och ramfärger fungerar oberoende.",
                     companyCallRouting = "round_robin: ringa tillgängliga anställda en i taget. ring_all: ringa alla tillgängliga anställda samtidigt; den som svarar först får samtalet. Kräver samtalstillgänglighet och MinimumGrade; upptagna eller oanträffbara telefoner hoppas över.",
                     companyCallAttempts = "Maximalt antal totala försök för round_robin, inklusive den första anställningen (1-20). Ignoreras av ring_all.",
                     companyCallRingSeconds = "Ringtid i sekunder (1-120) per försök med round_robin eller för hela gruppen med ring_all.",

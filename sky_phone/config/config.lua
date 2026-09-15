@@ -332,6 +332,8 @@ Config.Radio = {
 
 Config.Animations = {
     Enabled = true,
+    -- Optional nearby screen mirroring; props and frame colors work without it.
+    WorldDisplayEnabled = false,
     PropModel = "sky_phone_prop",
     PropBone = 28422,
     LoadTimeoutMs = 5000,

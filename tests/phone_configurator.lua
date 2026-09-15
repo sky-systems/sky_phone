@@ -621,6 +621,51 @@ test("existing SQL rows receive default-on restrictions without resetting other 
 end)
 
 
+test("nearby phone displays default off and roundtrip through SQL and live clients", function()
+    local server = new_server()
+    local field = server.field("Animations")
+    assert(field.value.WorldDisplayEnabled == false)
+    assert(field.structure.fields.WorldDisplayEnabled.valueType == "boolean")
+    assert(server.env.ConfigDefaults.Animations.WorldDisplayEnabled == false)
+    local client = new_client(server)
+    assert(client.config.Animations.WorldDisplayEnabled == false)
+    for _, enabled in ipairs({ true, false }) do
+        local settings = server.field("Animations").value
+        settings.WorldDisplayEnabled = enabled
+        local result = server.save({ change("Animations", settings) })
+        assert(result.success, tostring(result.error))
+        assert(server.env.Config.Animations.WorldDisplayEnabled == enabled)
+        assert(server.updates[#server.updates].config.Animations.WorldDisplayEnabled == enabled)
+        client.sync(server.broadcasts[#server.broadcasts])
+        assert(client.config.Animations.WorldDisplayEnabled == enabled)
+        local restarted = new_server(server.database)
+        assert(new_client(restarted).config.Animations.WorldDisplayEnabled == enabled)
+        assert(restarted.env.Config.Animations.PropModel == "sky_phone_prop")
+    end
+    local writes, broadcasts = server.database.writes, #server.broadcasts
+    for _, invalid in ipairs({ "true", "false", 0, 1, {} }) do
+        local settings = server.field("Animations").value
+        settings.WorldDisplayEnabled = invalid
+        assert(not server.save({ change("Animations", settings) }).success)
+    end
+    assert(server.database.writes == writes and #server.broadcasts == broadcasts)
+    assert(server.env.Config.Animations.WorldDisplayEnabled == false)
+end)
+
+test("existing SQL rows acquire disabled displays without resetting prop settings", function()
+    local initial = new_server()
+    local stored = initial.database.payloads[tonumber(initial.database.row.config_payload)]
+    stored.Animations.WorldDisplayEnabled = nil
+    stored.Animations.PropModel = "sky_phone_prop_burgundy"
+    stored.Animations.Transforms.Portrait.position.x = 0.012
+    local restarted = new_server(initial.database)
+    local client = new_client(restarted)
+    assert(restarted.env.Config.Animations.WorldDisplayEnabled == false)
+    assert(client.config.Animations.WorldDisplayEnabled == false)
+    assert(client.config.Animations.PropModel == "sky_phone_prop_burgundy")
+    assert(client.config.Animations.Transforms.Portrait.position.x == 0.012)
+end)
+
 test("new phone prop defaults and custom overrides roundtrip through the Configurator", function()
     local server = new_server()
     local settings = server.field("Animations").value

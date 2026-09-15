@@ -566,7 +566,9 @@ Locales["cz"] = {
                     RadiusEnabled = "Zobrazit poloměr",
                     Radius = "Poloměr (metry)",
                 },
+                phoneWorldDisplayLabel = "Zrcadlení obrazovky v okolí (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Ve výchozím stavu vypnuto. Zrcadlí obrazovku telefonu na model pro hráče do 3 metrů ve stejném routing bucketu. Vypnutí okamžitě zastaví snímání, přenos obrázků a prohlížeče DUI. Modely telefonů a barvy rámečků fungují nezávisle.",
                     companyCallRouting = "round_robin: vyzvánět dostupným zaměstnancům postupně po jednom. ring_all: vyzvánět všem dostupným zaměstnancům současně; hovor získá ten, kdo jej přijme jako první. Vyžaduje dostupnost pro hovory a MinimumGrade; zaneprázdněné nebo nedostupné telefony se přeskočí.",
                     companyCallAttempts = "Maximální celkový počet pokusů pro round_robin, včetně prvního zaměstnance (1-20). Ignorováno u ring_all.",
                     companyCallRingSeconds = "Doba vyzvánění v sekundách (1-120) na jeden pokus round_robin nebo pro celou skupinu ring_all.",

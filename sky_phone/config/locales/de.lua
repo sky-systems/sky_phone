@@ -566,7 +566,9 @@ Locales["de"] = {
                     RadiusEnabled = "Radius anzeigen",
                     Radius = "Radius (Meter)",
                 },
+                phoneWorldDisplayLabel = "Bildschirmspiegelung in der Nähe (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Standardmäßig aus. Spiegelt den Handybildschirm auf das Prop für Spieler im Umkreis von 3 Metern im gleichen Routing-Bucket. Deaktivieren stoppt sofort Aufnahme, Bildübertragung und DUI-Browser. Handy-Props und Rahmenfarben funktionieren unabhängig davon.",
                     companyCallRouting = "round_robin: anrufbereite Mitarbeiter nacheinander anrufen. ring_all: alle anrufbereiten Mitarbeiter gleichzeitig anrufen; wer zuerst abnimmt, bekommt den Anruf. Anrufbereitschaft und MinimumGrade sind erforderlich; besetzte oder unerreichbare Telefone werden übersprungen.",
                     companyCallAttempts = "Maximale Gesamtzahl der Anwahlversuche bei round_robin, einschließlich des ersten Mitarbeiters (1-20). Wird bei ring_all ignoriert.",
                     companyCallRingSeconds = "Klingelzeit in Sekunden (1-120) pro round_robin-Versuch oder für die gesamte ring_all-Gruppe.",

@@ -1,5 +1,7 @@
 local events, callbacks, threads, duis, deleted, draws = {}, {}, {}, {}, {}, {}
 local clock, next_dui = 1000, 0
+local nui, sent, selected_frame = {}, {}, nil
+local phone_open, own_prop = false, nil
 local polygons, pending_poses, poses, refreshed, matrix_reads = {}, {}, {}, {}, {}
 local on_screen, camera = true, nil
 local position = { [1] = 0, [2] = 1, [3] = 2 }
@@ -14,7 +16,8 @@ GetCurrentResourceName = function() return 'sky_phone' end
 PlayerId, PlayerPedId = function() return 1 end, function() return 1 end
 GetPlayerServerId, GetPlayerFromServerId, GetPlayerPed = function(p) return p end, function(p) return p end, function(p) return p end
 GetGameTimer = function() return clock end
-NetworkDoesEntityExistWithNetworkId = function(net) return net == 102 or net == 103 end
+NetworkDoesEntityExistWithNetworkId = function(net) return net == 101 or net == 102 or net == 103 end
+ObjToNet = function(prop) return prop end
 NetToObj = function(net) return net end
 GetEntityModel = function() return 'sky_phone_prop' end
 GetEntityAttachedTo = function(net) return net - 100 end
@@ -51,7 +54,9 @@ GetDuiHandle = function(dui) return 'dui_'..dui end
 CreateRuntimeTxd = function(name) return name end
 CreateRuntimeTextureFromDuiHandle = function(txd,txn,handle) assert(txn=='screen' and handle:match('dui_'));return txd end
 SendDuiMessage = function() end
-SendNUIMessage, TriggerServerEvent, TriggerLatentServerEvent = function() end, function() end, function() end
+SendNUIMessage = function(message) nui[#nui+1]=message end
+TriggerServerEvent = function(...) sent[#sent+1]={...} end
+TriggerLatentServerEvent = function(...) sent[#sent+1]={...} end
 DrawTexturedPoly = function(...)
     local a={...}
     for i=1,13 do assert(type(a[i])=='number','OAL receives scalar coordinates/colors') end
@@ -60,11 +65,25 @@ DrawTexturedPoly = function(...)
 end
 json = {encode=function() return '{}' end}
 Bridge = {Debug=function() end}
-SkyPhoneClient = {GetState=function() return {open=false} end}
-SkyPhoneAnimations = {GetProp=function() end,SetFrame=function() end}
+SkyPhoneClient = {GetState=function() return {open=phone_open} end}
+SkyPhoneAnimations = {GetProp=function() return own_prop end,SetFrame=function(frame) selected_frame=frame end}
 dofile('sky_phone/source/shared/phone_prop.lua')
 dofile('sky_phone/source/client/world_display.lua')
 local frame=events['sky_phone:display:frame']
+phone_open, own_prop = true, 101
+assert(coroutine.resume(threads[1]))
+assert(coroutine.resume(threads[1]))
+frame(2,1,102,1,'disabled pixels')
+events['sky_phone:display:permit'](1,101)
+assert(next_dui==0 and #sent==0 and nui[#nui].token==false, 'No DUI or capture requests with missing configuration')
+Config={Animations={WorldDisplayEnabled=false}}
+assert(coroutine.resume(threads[1]))
+frame(2,1,102,1,'disabled pixels')
+assert(next_dui==0 and #sent==0, 'Disabled displays stay inactive with an open phone prop')
+callbacks['worldDisplay:color']({frame='gold'},function(r) assert(r.success) end)
+assert(selected_frame=='gold', 'Frame colors remain usable while DUI is off')
+phone_open, own_prop = false, nil
+Config.Animations.WorldDisplayEnabled=true
 frame(2,1,102,1,'pixels')
 frame(3,2,103,1,'other pixels')
 assert(next_dui==2,'Two phones allocate two browsers')
@@ -127,4 +146,37 @@ local replies=0
 callbacks['worldDisplay:frame']({},function(r) assert(not r.success);replies=replies+1 end)
 callbacks['worldDisplay:color']({frame='invalid'},function(r) assert(not r.success);replies=replies+1 end)
 assert(replies==2,'Rejected NUI callbacks always respond')
-print('PASS: independent DUI textures, OAL scalars, stale frame rejection, current attachment transforms, glass clearance, culling recovery and idle cleanup')
+-- Disable both the local publisher and spectator browsers without waiting for a polling tick.
+position[2],position[3]=1,2
+phone_open,own_prop,clock=true,101,2000
+assert(coroutine.resume(threads[1]))
+assert(sent[#sent][1]=='sky_phone:display:begin' and sent[#sent][2]==101)
+events['sky_phone:display:permit'](10,101)
+assert(nui[#nui].token==10)
+frame(1,10,101,1,'local pixels')
+frame(2,11,102,1,'nearby pixels')
+frame(3,12,103,1,'another screen')
+assert(next_dui==6)
+Config.Animations.WorldDisplayEnabled=false
+events['sky_phone:configurator:updated']()
+assert(next(duis)==nil and #deleted==6, 'Disabling destroys every local and spectator browser immediately')
+assert(nui[#nui].token==false and sent[#sent][1]=='sky_phone:display:end')
+local before=#sent
+frame(2,11,102,2,'late pixels')
+events['sky_phone:display:permit'](10,101)
+callbacks['worldDisplay:frame']({token=10,sequence=2,jpeg='pixels'},function(r) assert(not r.success) end)
+assert(coroutine.resume(threads[1]))
+assert(next_dui==6 and #sent==before and nui[#nui].token==false, 'Late frames and permits cannot reactivate disabled displays')
+polygons={}
+local disabled_ok,disabled_wait=coroutine.resume(threads[2])
+assert(disabled_ok and disabled_wait==100 and #polygons==0)
+Config.Animations.WorldDisplayEnabled=true
+events['sky_phone:configurator:updated']()
+clock=3000
+assert(coroutine.resume(threads[1]))
+assert(sent[#sent][1]=='sky_phone:display:begin', 'Re-enabling requests a session for the still-open phone')
+events['sky_phone:display:permit'](13,101)
+assert(nui[#nui].token==13)
+frame(2,14,102,1,'resumed pixels')
+assert(next_dui==7, 'Spectator browsers can resume after re-enabling')
+print('PASS: default-off capture and DUI gating, independent colors, immediate disable/re-enable, current transforms and idle cleanup')

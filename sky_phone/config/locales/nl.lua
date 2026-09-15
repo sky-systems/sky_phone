@@ -566,7 +566,9 @@ Locales["nl"] = {
                     RadiusEnabled = "Straal tonen",
                     Radius = "Straal (meters)",
                 },
+                phoneWorldDisplayLabel = "Schermspiegeling voor spelers dichtbij (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Standaard uitgeschakeld. Spiegelt het telefoonscherm op het model voor spelers binnen 3 meter in dezelfde routing bucket. Uitschakelen stopt direct de opname, beeldoverdracht en DUI-browsers. Telefoonmodellen en framekleuren werken onafhankelijk.",
                     companyCallRouting = "round_robin: bel alle beschikbare medewerkers één voor één. ring_all: bel alle beschikbare medewerkers tegelijk; degene die als eerste opneemt, krijgt het gesprek. Vereist oproepbeschikbaarheid en MinimumGrade; bezette of onbereikbare telefoons worden overgeslagen.",
                     companyCallAttempts = "Maximaal totaal aantal pogingen voor round_robin, inclusief de eerste werknemer (1-20). Wordt genegeerd door ring_all.",
                     companyCallRingSeconds = "Beltijd in seconden (1-120) per poging in de modus round_robin of voor de hele groep in de modus ring_all.",

@@ -25,6 +25,8 @@ The separate black OLED mesh has UVs from 0 to 1. Front is -Y, top is +Z, origin
 
 ## Nearby screen behavior
 
+DUI mirroring is optional and **disabled by default**, including existing SQL configurations without this setting. Enable `Animations` → `WorldDisplayEnabled` (Nearby screen mirroring / DUI) in the Phone Configurator and save. With file-based configuration enabled, use `Config.Animations.WorldDisplayEnabled = true`. The server enforces this switch. Saving `false` immediately stops capture and transmission and destroys every local DUI browser; enabling it again resumes eligible open phones. The physical phone prop, frame colors and animations work while mirroring is off, with a blank screen.
+
 Each player has an independent DUI texture, drawn on the rounded screen with depth and facing checks. The overlay sits at local Y=-0.0055, 0.79 mm in front of the outer glass/camera geometry. The renderer refreshes the hand attachments and reads one current prop matrix per frame, keeping all polygon vertices in the same pose during movement. A temporary off-screen/back-facing frame does not put an active display into the idle polling interval. No global texture replacement is used. Only the main phone screen is captured; neither the desktop nor the game framebuffer is captured.
 
 - 360 × 780 JPEG, up to 2 updates per second, at most 64 KB per image.

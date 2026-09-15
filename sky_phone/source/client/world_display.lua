@@ -26,6 +26,7 @@ local function destroy(player)
 end
 
 local function eligible(player, net)
+    if not SkyPhoneProp.DisplayEnabled() then return nil end
     local index = GetPlayerFromServerId(player)
     if index == -1 or not NetworkDoesEntityExistWithNetworkId(net) then return nil end
     local entity, ped = NetToObj(net), GetPlayerPed(index)
@@ -75,13 +76,14 @@ RegisterNetEvent("sky_phone:display:stop", function(player, generation, sequence
     end
 end)
 RegisterNetEvent("sky_phone:display:permit", function(next_token, net)
+    if not SkyPhoneProp.DisplayEnabled() then next_token = nil end
     if next_token and net ~= net_id then return end
     token = next_token
     SendNUIMessage({ type = "phone:world-display", token = token or false })
 end)
 
 RegisterNUICallback("worldDisplay:frame", function(data, cb)
-    if type(data) ~= "table" or not token or data.token ~= token
+    if not SkyPhoneProp.DisplayEnabled() or type(data) ~= "table" or not token or data.token ~= token
         or type(data.sequence) ~= "number" or type(data.jpeg) ~= "string"
         or not SkyPhoneProp.ValidFrame(data.jpeg) then
         cb({ success = false, error = "display_inactive" })
@@ -117,7 +119,8 @@ CreateThread(function()
         Wait(250)
         local prop = SkyPhoneAnimations.GetProp()
         local open = SkyPhoneClient and SkyPhoneClient.GetState().open
-        if not open or not prop or not DoesEntityExist(prop) or not SkyPhoneProp.Models[GetEntityModel(prop)] then
+        if not SkyPhoneProp.DisplayEnabled() or not open or not prop
+            or not DoesEntityExist(prop) or not SkyPhoneProp.Models[GetEntityModel(prop)] then
             if net_id then end_capture() end
         else
             local net = ObjToNet(prop)
@@ -192,6 +195,12 @@ CreateThread(function()
         -- A culled frame must not pause a nearby active screen for 100 ms.
         Wait(active and 0 or 100)
     end
+end)
+
+AddEventHandler("sky_phone:configurator:updated", function()
+    if SkyPhoneProp.DisplayEnabled() then return end
+    end_capture()
+    for player in pairs(displays) do destroy(player) end
 end)
 
 AddEventHandler("sky_phone:animation:reset", end_capture)

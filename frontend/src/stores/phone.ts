@@ -1098,6 +1098,8 @@ const adminPanelFallbackLocales = {
         'Maximum total attempts for round_robin, including the first employee (1-20). Ignored by ring_all.',
       companyCallRingSeconds:
         'Ring time in seconds (1-120) per round_robin attempt or for the entire ring_all group.',
+      phoneWorldDisplay:
+        'Off by default. Mirrors the phone screen onto the prop for players within 3 meters in the same routing bucket. Disabling immediately stops capture, image transmission and DUI browsers. Phone props and frame colors work independently.',
       featureToggle: 'Turns {name} on or off.',
       boolean: 'Controls whether {name} is allowed.',
       number:
@@ -1189,6 +1191,7 @@ const adminPanelFallbackLocales = {
       videoBitrate:
         'Video recording bitrate in kilobits per second. Example: 1500 = 1.5 Mbit/s. Higher values increase quality and upload size.',
     },
+    phoneWorldDisplayLabel: 'Nearby screen mirroring (DUI)',
     table: {
       list: 'List',
       table: 'Key table',

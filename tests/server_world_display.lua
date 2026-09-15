@@ -53,6 +53,15 @@ assert(not SkyPhoneProp.ValidFrame(jpeg .. string.rep('A',64000)))
 assert(SkyPhoneProp.Model('red','sky_phone_prop') == 'sky_phone_prop_red')
 assert(SkyPhoneProp.Model('red','custom_phone') == 'custom_phone')
 
+-- Missing and non-boolean settings must never grant capture permission.
+for _, config in ipairs({ {}, { Animations = {} }, { Animations = { WorldDisplayEnabled = false } },
+    { Animations = { WorldDisplayEnabled = "true" } } }) do
+    Config = config
+    invoke('begin', 101)
+    invoke('frame', 1, 1, jpeg)
+    assert(#sent == 0, 'Disabled or missing configuration cannot authorize a display')
+end
+Config = { Animations = { WorldDisplayEnabled = true } }
 inventory = false
 invoke('begin', 101)
 assert(#sent == 0, 'No streaming without a device session')
@@ -100,4 +109,29 @@ inventory = false
 clock = 6400
 invoke('frame', new_token, 1, jpeg)
 assert(frame_count() == 4, 'Inventory loss revokes publishing')
-print('PASS: world display ownership, palette, JPEG bounds, routing buckets, proximity, rate limits and lifecycle')
+inventory, clock = true, 7400
+invoke('begin', 101)
+local active_token = sent[#sent][3]
+invoke('frame', active_token, 1, jpeg)
+assert(frame_count() == 5)
+local before = #sent
+Config.Animations.WorldDisplayEnabled = false
+handlers['sky_phone:configurator:serverUpdated']()
+assert(#sent == before + 2, 'Disabling immediately stops the spectator and revokes the publisher')
+assert(sent[#sent-1][1] == 'sky_phone:display:stop' and sent[#sent-1][2] == 5)
+assert(sent[#sent][1] == 'sky_phone:display:permit' and sent[#sent][3] == nil)
+clock = 8400
+before = #sent
+invoke('begin', 101)
+invoke('frame', active_token, 2, jpeg)
+assert(#sent == before, 'Disabled publishers cannot start or send delayed frames')
+Config.Animations.WorldDisplayEnabled = true
+handlers['sky_phone:configurator:serverUpdated']()
+invoke('begin', 101)
+local resumed_token = sent[#sent][3]
+assert(resumed_token > active_token, 'Re-enabling grants a fresh generation')
+invoke('frame', active_token, 3, jpeg)
+assert(frame_count() == 5, 'Old session stays invalid after re-enabling')
+invoke('frame', resumed_token, 1, jpeg)
+assert(frame_count() == 6, 'New session can publish after re-enabling')
+print('PASS: world display default-off gating, live disable/re-enable, ownership, palette, JPEG bounds, proximity and lifecycle')

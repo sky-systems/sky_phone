@@ -566,7 +566,9 @@ Locales["pt"] = {
                     RadiusEnabled = "Mostrar raio",
                     Radius = "Raio (metros)",
                 },
+                phoneWorldDisplayLabel = "Espelhamento do ecrã nas proximidades (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Desativado por predefinição. Espelha o ecrã do telefone no modelo para jogadores num raio de 3 metros no mesmo routing bucket. A desativação para imediatamente a captura, a transmissão de imagens e os navegadores DUI. Os modelos de telefone e as cores da moldura funcionam de forma independente.",
                     companyCallRouting = "round_robin: ligar para funcionários disponíveis um por um. ring_all: ligar para todos os funcionários disponíveis simultaneamente; o primeiro a atender recebe a chamada. Requer disponibilidade de chamada e MinimumGrade; telefones ocupados ou inacessíveis serão pulados.",
                     companyCallAttempts = "Número máximo de tentativas totais para round_robin, incluindo o primeiro funcionário (1-20). Ignorado por ring_all.",
                     companyCallRingSeconds = "Tempo de toque em segundos (1-120) por tentativa de round_robin ou para todo o grupo ring_all.",
