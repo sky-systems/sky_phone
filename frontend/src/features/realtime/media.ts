@@ -91,15 +91,15 @@ export class LiveMedia {
     }
     if (this.disposed || role === 'nearby') return
     this.video = true
-    const active = await nuiCall('camera:setActive', { active: true })
+    const active = await nuiCall('camera:setActive', {
+      active: true,
+      front: true,
+    })
     if (!active.success) throw new Error(active.error || 'camera_unavailable')
     if (this.disposed) {
       await nuiCall('camera:setActive', { active: false })
       return
     }
-    const facing = await nuiCall('camera:setFacing', { front: true })
-    if (this.disposed) return
-    if (!facing.success) throw new Error(facing.error || 'camera_unavailable')
     this.view = createGameView(this.canvas, { preserveDrawingBuffer: true })
     this.view.resize(
       Math.round((config.edge * 3) / 4),

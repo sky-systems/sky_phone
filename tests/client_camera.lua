@@ -14,6 +14,7 @@ local disabled_control_normals = {}
 local triggered_events = {}
 local thread_stop = {}
 local locally_hidden = {}
+local view_modes = {}
 function SetEntityLocallyInvisible(entity) locally_hidden[entity] = true end
 
 SkyPhoneFocus = {
@@ -70,7 +71,7 @@ function GetFollowPedCamViewMode() return 1 end
 function GetFollowVehicleCamViewMode() return 2 end
 function IsRadarHidden() return false end
 function DisplayRadar() end
-function SetFollowPedCamViewMode() end
+function SetFollowPedCamViewMode(mode) view_modes[#view_modes+1] = mode end
 function SetFollowVehicleCamViewMode() end
 function IsPedInAnyVehicle() return false end
 function DisableControlAction(group, control, disabled)
@@ -327,8 +328,14 @@ TriggerEvent("sky_phone:animation:phone", true)
 TriggerEvent("sky_phone:animation:call", { state = "connected", direction = "outgoing", video = true })
 frames(4)
 assert(played_clip == "cellphone_text_read_base", "FaceTime must preserve the requested phone-open base pose")
-assert(response_from("camera:setActive", { active = true }).success)
-assert(response_from("camera:setFacing", { front = true }).success)
+view_modes = {}
+assert(response_from("camera:setActive", { active = true, front = true }).success)
+assert(SkyPhoneCamera.GetState().selfie and scripted_camera_rendering,
+    "FaceTime must open the selfie lens in the same callback as camera activation")
+assert(triggered_events[#triggered_events].data.front, "The first camera pose must already be the selfie pose")
+for _,mode in ipairs(view_modes) do
+    assert(mode~=4, "Selfie startup must never enter first person and realign the ped to gameplay camera yaw")
+end
 TriggerEvent("sky_phone:client:cameraFocusApplied", { active = true, cursor = false, focused = true, gameInput = true })
 frames(4)
 local initial_hand = assert_hand_follows_selfie()
@@ -373,7 +380,8 @@ frames(2)
 assert(hand_targets[4] and played_clip == "selfie", "Rear video must retain the camera grip and follow camera aim")
 assert(locally_hidden[7] and locally_hidden[99], "Rear footage must hide the local player's body and phone for this frame")
 assert(prop_exists, "The phone must remain attached and networked for other players")
-assert(response_from("camera:setFacing", { front = true }).success)
+assert(response_from("camera:setActive", { active = true, front = true }).success)
+assert(SkyPhoneCamera.GetState().selfie, "Atomic activation must also switch an already open rear camera")
 frames(2)
 assert_hand_follows_selfie()
 assert(response_from("camera:setFacing", { front = false }).success)
@@ -384,6 +392,18 @@ frames(2)
 assert(not next(hand_targets) and not arm_enabled, "Closing video must release the arm while the call remains active")
 assert(not next(locally_hidden), "Closing capture must restore visibility without modifying network visibility")
 assert(played_clip == "cellphone_text_read_base", "Closing capture must restore the normal phone hold")
+view_modes = {}
+SkyPhoneCamera.EnableWalkable(true)
+frames(4)
+for _,mode in ipairs(view_modes) do
+    assert(mode~=4, "Walkable selfie startup must also avoid first-person alignment")
+end
+assert_hand_follows_selfie()
+SkyPhoneCamera.DisableWalkable()
+frames(2)
+assert(not response_from("camera:setActive", { active = true, front = "true" }).success,
+    "The optional initial-facing field must be a boolean")
+assert(not SkyPhoneCamera.GetState().active, "Malformed facing must not activate capture")
 TriggerEvent("sky_phone:animation:reset")
 frames(2)
 assert(not prop_exists and not next(hand_targets), "Reset must release the phone prop and arm tracking")

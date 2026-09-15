@@ -291,14 +291,19 @@ AddEventHandler("sky_phone:client:cameraFocusApplied", function(data)
     end
 end)
 
-local function set_camera_active(active)
+local set_front_camera
+
+local function set_camera_active(active, initial_front)
     if camera_state.active == active then
+        if active and initial_front ~= nil then set_front_camera(initial_front) end
         return
     end
     camera_state.active = active
     TriggerEvent("sky_phone:client:cameraActiveChanged", active)
     if active then
-        camera_state.front_camera = false
+        -- Select the initial lens before applying any native view mode. Opening
+        -- rear first would briefly enter first person before the selfie callback.
+        camera_state.front_camera = initial_front == true
         camera_state.front_camera_pitch = 0.0
         camera_state.front_camera_yaw = 0.0
         camera_state.front_camera_render_yaw = 0.0
@@ -312,6 +317,7 @@ local function set_camera_active(active)
         camera_state.previous_vehicle_view = GetFollowVehicleCamViewMode()
         DisplayRadar(false)
         set_camera_focus(true)
+        if camera_state.front_camera then apply_front_camera(PlayerPedId()) end
         apply_camera_view()
         TriggerEvent("sky_phone:animation:camera", {
             active = true,
@@ -364,7 +370,7 @@ local function set_camera_active(active)
     })
 end
 
-local function set_front_camera(active)
+set_front_camera = function(active)
     if camera_state.front_camera == active then
         return
     end
@@ -404,9 +410,8 @@ local function set_camera_landscape(active)
 end
 
 local function enable_walkable_camera(selfie_mode)
-    set_camera_active(true)
+    set_camera_active(true, selfie_mode == true)
     camera_state.walkable = true
-    set_front_camera(selfie_mode == true)
     set_camera_focus(false)
 end
 
@@ -440,14 +445,14 @@ SkyPhoneCamera.SetSelfie = set_front_camera
 SkyPhoneCamera.ToggleFrozen = toggle_camera_frozen
 
 RegisterNUICallback("camera:setActive", function(data, cb)
-    if type(data) ~= "table" then
+    if type(data) ~= "table" or (data.front ~= nil and type(data.front) ~= "boolean") then
         cb({ success = false, error = "invalid_request" })
         return
     end
     if data.active == true then
         camera_state.walkable = false
     end
-    set_camera_active(data.active == true)
+    set_camera_active(data.active == true, data.front)
     cb({ success = true })
 end)
 
