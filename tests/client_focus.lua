@@ -8,6 +8,7 @@ local nui_keep_input = nil
 local pressed_controls = {}
 local disabled_pressed_controls = {}
 local triggered_events = {}
+local control_threads = {}
 
 Config = {
     Phone = {
@@ -19,6 +20,11 @@ Bridge = { Debug = function() end }
 
 function CreateThread(callback)
     assert(type(callback) == "function", "focus runtime must register its control thread")
+    control_threads[#control_threads + 1] = coroutine.create(callback)
+end
+
+function Wait(delay)
+    return coroutine.yield(delay)
 end
 
 function AddEventHandler(event_name, callback)
@@ -70,6 +76,7 @@ function DisablePlayerFiring(player, disabled)
 end
 
 dofile("sky_phone/source/client/focus.lua")
+assert(#control_threads == 0, "closed phone focus must not start an idle polling thread")
 
 assert(not SkyPhoneFocus.IsHoldToLookPressed(), "HoldToLook must be idle until its configured control is held")
 pressed_controls[19] = true
@@ -393,5 +400,59 @@ assert(not nui_focus.focused, "CEF hydration must discard browser-owned notifica
 
 SkyPhoneFocus.Reset()
 assert(not nui_focus.focused and not nui_focus.cursor and not nui_keep_input, "focus reset must release NUI input")
+
+local function frame()
+    local active = 0
+    for _, thread in ipairs(control_threads) do
+        if coroutine.status(thread) ~= "dead" then
+            local ok, delay = coroutine.resume(thread)
+            assert(ok, delay)
+            if coroutine.status(thread) ~= "dead" then
+                assert(delay == 0, "active input filtering must still run on every frame")
+                active = active + 1
+            end
+        end
+    end
+    return active
+end
+
+assert(frame() == 0, "reset must terminate pending focus workers")
+SkyPhoneFocus.SetPhone(true)
+SkyPhoneFocus.Reapply()
+assert(frame() == 1, "opening and repeated focus claims must share one control worker")
+disabled_controls = {}
+assert(frame() == 1 and disabled_controls[24], "attacks must remain blocked on every active frame")
+pressed_controls[19] = true
+frame()
+assert(not nui_focus.cursor, "HoldToLook must release the cursor immediately")
+local event_count = #triggered_events
+frame()
+assert(#triggered_events == event_count, "holding the same key must not reapply unchanged phone focus")
+pressed_controls[19] = false
+frame()
+assert(nui_focus.cursor, "releasing HoldToLook must restore the cursor")
+
+event_handlers["sky_phone:client:setCameraFocus"]({ active = true, nuiFocused = false })
+pressed_controls[19] = true
+event_count = #triggered_events
+for _ = 1, 5 do frame() end
+assert(#triggered_events == event_count, "camera passthrough must not reapply phone focus every frame")
+assert(nui_focus.focused and not nui_focus.cursor and nui_keep_input, "camera focus must remain owned by the camera")
+pressed_controls[19] = false
+event_handlers["sky_phone:client:setCameraFocus"]({ active = false, nuiFocused = true })
+
+SkyPhoneFocus.SetPhone(false)
+SkyPhoneFocus.SetPhone(true)
+assert(frame() == 1, "closing and reopening before the next frame must not duplicate control workers")
+SkyPhoneFocus.SetPhone(false)
+assert(frame() == 0, "closing the phone must terminate its control worker")
+SkyPhoneFocus.SetCall(true)
+assert(frame() == 1, "incoming call focus must wake control filtering from idle")
+SkyPhoneFocus.SetCall(false)
+assert(frame() == 0, "releasing the last focus claim must return to zero workers")
+SkyPhoneFocus.SetAdminPanel(true)
+assert(frame() == 1, "the configurator must also start input filtering from idle")
+SkyPhoneFocus.Reset()
+assert(frame() == 0, "resource cleanup must stop active input filtering")
 
 print("Client focus tests passed")

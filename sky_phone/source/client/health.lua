@@ -30,32 +30,31 @@ CreateThread(function()
         local ped = PlayerPedId()
         if DoesEntityExist(ped) then
             local coords = GetEntityCoords(ped)
-            local is_moving_on_foot = IsPedOnFoot(ped)
-                and not IsPedDeadOrDying(ped, true)
-                and not IsPedFalling(ped)
-                and not IsPedRagdoll(ped)
-                and (IsPedWalking(ped) or IsPedRunning(ped) or IsPedSprinting(ped))
-
-            if last_coords and is_moving_on_foot then
+            if last_coords then
                 local delta_x = coords.x - last_coords.x
                 local delta_y = coords.y - last_coords.y
                 local distance = math.sqrt(delta_x * delta_x + delta_y * delta_y)
                 local maximum_sample_distance = Config.Health.MaximumSpeedMetersPerSecond
                     * Config.Health.SampleIntervalMs / 1000.0
-                if distance >= 0.04 and distance <= maximum_sample_distance then
-                    local stride_length = 0.75
-                    if IsPedSprinting(ped) then
-                        stride_length = 1.15
-                    elseif IsPedRunning(ped) then
-                        stride_length = 1.0
-                    end
+                -- A stationary sample or teleport cannot contribute activity.
+                if distance >= 0.04 and distance <= maximum_sample_distance
+                    and IsPedOnFoot(ped)
+                    and not IsPedDeadOrDying(ped, true)
+                    and not IsPedFalling(ped)
+                    and not IsPedRagdoll(ped)
+                then
+                    local sprinting = IsPedSprinting(ped)
+                    local running = not sprinting and IsPedRunning(ped)
+                    if sprinting or running or IsPedWalking(ped) then
+                        local stride_length = sprinting and 1.15 or (running and 1.0 or 0.75)
 
-                    pending_distance = pending_distance + distance
-                    pending_active_seconds = pending_active_seconds + Config.Health.SampleIntervalMs / 1000.0
-                    step_progress = step_progress + distance
-                    while step_progress >= stride_length do
-                        step_progress = step_progress - stride_length
-                        pending_steps = pending_steps + 1
+                        pending_distance = pending_distance + distance
+                        pending_active_seconds = pending_active_seconds + Config.Health.SampleIntervalMs / 1000.0
+                        step_progress = step_progress + distance
+                        while step_progress >= stride_length do
+                            step_progress = step_progress - stride_length
+                            pending_steps = pending_steps + 1
+                        end
                     end
                 end
             end
