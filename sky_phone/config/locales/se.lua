@@ -568,7 +568,9 @@ Locales["se"] = {
                     RadiusEnabled = "Visa radie",
                     Radius = "Radie (meter)",
                 },
+                vehicleKeySystemLabel = "System för fordonsnycklar",
                 descriptions = {
+                    vehicleKeySystem = "auto identifierar en aktiv nyckelresurs; none stänger av nyckelutdelningen. Välj en leverantör om flera system körs. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: ringa tillgängliga anställda en i taget. ring_all: ringa alla tillgängliga anställda samtidigt; den som svarar först får samtalet. Kräver samtalstillgänglighet och MinimumGrade; upptagna eller oanträffbara telefoner hoppas över.",
                     companyCallAttempts = "Maximalt antal totala försök för round_robin, inklusive den första anställningen (1-20). Ignoreras av ring_all.",
                     companyCallRingSeconds = "Ringtid i sekunder (1-120) per försök med round_robin eller för hela gruppen med ring_all.",

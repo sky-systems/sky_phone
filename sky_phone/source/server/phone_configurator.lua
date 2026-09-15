@@ -1544,6 +1544,20 @@ for key, value in pairs(ConfigDefaults) do
 end
 default_media = serialize_value(ConfigDefaults.Media)
 
+-- Clients can request their runtime config while the first database query yields.
+local runtime_ready = promise.new()
+Bridge.Callbacks.Register("sky_phone:configurator:runtime", function()
+    Citizen.Await(runtime_ready)
+    return {
+        success = true,
+        data = {
+            config = configurator_enabled and client_payload() or {},
+            enabled = configurator_enabled,
+            revision = revision,
+        },
+    }
+end)
+
 Bridge.Database.Migrate("sky_phone_configurator", { SkyPhoneConfiguratorSchema })
 Bridge.Database.Query(([[
     INSERT IGNORE INTO `%s` (`id`, `config_payload`, `media_payload`, `revision`)
@@ -1610,6 +1624,9 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     end
 
     local candidate_config = deserialize_value(next_config)
+    if not Bridge.VehicleKeys.IsSupported(candidate_config.Garage.VehicleKeySystem) then
+        return { success = false, error = "invalid_value" }
+    end
     local citywarn = candidate_config.CityWarn
     local blip = citywarn and citywarn.Blip
     local function integer_between(value, minimum, maximum)
@@ -1753,16 +1770,7 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     return { success = true, data = SkyPhoneConfigurator.GetAdminData() }
 end
 
-Bridge.Callbacks.Register("sky_phone:configurator:runtime", function()
-    return {
-        success = true,
-        data = {
-            config = configurator_enabled and client_payload() or {},
-            enabled = configurator_enabled,
-            revision = revision,
-        },
-    }
-end)
+runtime_ready:resolve(true)
 
 Bridge.Debug(
     "info",

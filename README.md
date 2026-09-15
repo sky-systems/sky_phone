@@ -656,6 +656,8 @@ The migration command is server-console only.
 
 ### Garage
 
+Set `Config.Garage.VehicleKeySystem` (default: `auto`) to give vehicle keys after a valet delivery. The same setting is available under Garage in the Phone Configurator. See [vehicle key integration](VEHICLEKEYS.md) for supported providers and the client/server bridge files.
+
 Select the provider under `Config.Garage.System`. Vehicle images use the configured CDN template with an icon fallback when no image is available.
 
 For MSK Garage, select `msk` (or use `auto`) and start `msk_garage` before `sky_phone`.

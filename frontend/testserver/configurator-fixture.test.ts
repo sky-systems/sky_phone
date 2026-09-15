@@ -41,6 +41,21 @@ const configSource = readFileSync(
   'utf8',
 )
 
+describe('Garage vehicle key configuration', () => {
+  it('exposes automatic key detection as an editable string', () => {
+    const field = loadConfiguratorSections()
+      .flatMap((section) => section.fields)
+      .find((entry) => entry.path === 'Garage')
+    expect(
+      (field?.value as { VehicleKeySystem: string }).VehicleKeySystem,
+    ).toBe('auto')
+    expect(field?.structure?.fields?.VehicleKeySystem).toEqual({
+      kind: 'value',
+      valueType: 'string',
+    })
+  })
+})
+
 describe('Face ID mask configuration', () => {
   it('provides a typed empty list so admins can add their first mask exception', () => {
     const field = loadConfiguratorSections()

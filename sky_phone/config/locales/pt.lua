@@ -568,7 +568,9 @@ Locales["pt"] = {
                     RadiusEnabled = "Mostrar raio",
                     Radius = "Raio (metros)",
                 },
+                vehicleKeySystemLabel = "Sistema de chaves de veículos",
                 descriptions = {
+                    vehicleKeySystem = "auto deteta um recurso de chaves ativo; none desativa a entrega de chaves. Seleciona um fornecedor se houver vários sistemas ativos. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: ligar para funcionários disponíveis um por um. ring_all: ligar para todos os funcionários disponíveis simultaneamente; o primeiro a atender recebe a chamada. Requer disponibilidade de chamada e MinimumGrade; telefones ocupados ou inacessíveis serão pulados.",
                     companyCallAttempts = "Número máximo de tentativas totais para round_robin, incluindo o primeiro funcionário (1-20). Ignorado por ring_all.",
                     companyCallRingSeconds = "Tempo de toque em segundos (1-120) por tentativa de round_robin ou para todo o grupo ring_all.",

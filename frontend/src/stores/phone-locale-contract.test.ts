@@ -150,6 +150,17 @@ describe('phone locale contract', () => {
     },
   )
 
+  it('exposes vehicle key labels and help under the Phonepanel configurator', () => {
+    for (const values of localeValues.values()) {
+      expect(
+        values.has('Nui.AdminPanel.configurator.vehicleKeySystemLabel'),
+      ).toBe(true)
+      expect(
+        values.get('Nui.AdminPanel.configurator.descriptions.vehicleKeySystem'),
+      ).toContain('auto')
+    }
+  })
+
   it('keeps every bundled frontend fallback in en.lua', () => {
     const missing = [...collectDefaultLocalePaths(phoneStoreSource)].filter(
       (path) => !englishPaths.has(`Nui.${path}`),
