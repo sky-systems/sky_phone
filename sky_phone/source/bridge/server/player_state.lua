@@ -9,9 +9,7 @@ function Bridge.PlayerState.Get(player_source)
     local ped = GetPlayerPed(player_source)
     status.dead = status.dead or flags.dead or report.dead == true
         or (ped ~= nil and ped ~= 0 and GetEntityHealth(ped) <= 0)
-        or Bridge.PlayerState.Export("sky_ambulancejob", "isDead", player_source) == true
     status.cuffed = status.cuffed or flags.cuffed or report.cuffed == true
-        or Bridge.PlayerState.Export("sky_policejob", "isPlayerCuffed", player_source) == true
     return status
 end
 
@@ -37,7 +35,7 @@ function Bridge.PlayerState.Check(player_source)
 end
 
 -- Legacy ESX police/death state is client-owned. A report can only restrict its
--- sender; false never overrides server exports, metadata or replicated state.
+-- sender; false never overrides server metadata, replicated state or ped health.
 RegisterNetEvent("sky_phone:player:status", function(data)
     local player_source = source
     if type(data) ~= "table" or type(data.dead) ~= "boolean" or type(data.cuffed) ~= "boolean" then return end

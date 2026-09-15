@@ -49,7 +49,7 @@ Config.Command = "phone"
 
 Config.Phone = {
     -- Applies to phone use, ringing/active calls (including video), streams and radio.
-    -- Optional Sky ambulance/police exports and ESX/Qbox/QBCore status are detected automatically.
+    -- Sky ambulance/police state bags and ESX/Qbox/QBCore status are detected automatically (no Sky job exports).
     BlockWhenDead = true, -- includes unconscious/laststand; false permits phone/voice use while downed
     BlockWhenCuffed = true, -- false permits phone/voice use while handcuffed
     Item = "phone",

@@ -2,15 +2,16 @@ local esx_dead = false
 local last_status, last_reason
 
 function Bridge.PlayerState.Get()
-    local status = Bridge.PlayerState.FromData(LocalPlayer.state)
+    local bag = LocalPlayer.state
+    local status = Bridge.PlayerState.FromData(bag)
     local flags = Bridge.PlayerState.FromData(Bridge.Framework.GetStatusData())
     local ped = PlayerPedId()
+    -- A published Sky medical state (including false on revive) supersedes the
+    -- legacy ESX death-event latch, which may never receive a matching spawn event.
     local legacy_esx_dead = esx_dead and Bridge.Framework.GetName() == "esx"
-        and GetResourceState("sky_ambulancejob") ~= "started"
+        and bag.skyAmbulanceDead == nil
     status.dead = status.dead or flags.dead or legacy_esx_dead or IsEntityDead(ped)
-        or Bridge.PlayerState.Export("sky_ambulancejob", "isDead") == true
     status.cuffed = status.cuffed or flags.cuffed or IsPedCuffed(ped)
-        or Bridge.PlayerState.Export("sky_policejob", "isPlayerCuffed") == true
     return status
 end
 
@@ -42,7 +43,6 @@ AddEventHandler("esx:onPlayerSpawn", function() esx_dead = false; refresh() end)
 AddEventHandler("playerSpawned", function() esx_dead = false; refresh(true) end)
 RegisterNetEvent("esx:playerLoaded", function() esx_dead = false; refresh(true) end)
 RegisterNetEvent("QBCore:Player:SetPlayerData", function() SetTimeout(0, function() refresh() end) end)
-AddEventHandler("sky_ambulancejob:deathStateChanged", function() refresh() end)
 AddEventHandler("sky_phone:configurator:updated", function() last_reason = nil; refresh(true) end)
 
 -- No per-frame scan or inventory work. Native cuffs also catch legacy ESX's
