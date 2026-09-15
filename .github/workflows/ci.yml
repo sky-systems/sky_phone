@@ -80,6 +80,13 @@ jobs:
           lua5.4 tests/server_callback_startup.lua
           lua5.4 tests/client_phone_lifecycle.lua
 
+      - name: Test client idle workers and active phone controls
+        run: |
+          lua5.4 tests/client_focus.lua
+          lua5.4 tests/client_camera.lua
+          lua5.4 tests/client_health.lua
+          lua5.4 tests/client_payphones.lua
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
