@@ -1,0 +1,246 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<CMapTypes>
+  <archetypes>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop</name>
+      <textureDictionary>sky_phone_prop</textureDictionary>
+      <physicsDictionary>sky_phone_prop</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_blue</name>
+      <textureDictionary>sky_phone_prop_blue</textureDictionary>
+      <physicsDictionary>sky_phone_prop_blue</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_blue</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_green</name>
+      <textureDictionary>sky_phone_prop_green</textureDictionary>
+      <physicsDictionary>sky_phone_prop_green</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_green</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_lavender</name>
+      <textureDictionary>sky_phone_prop_lavender</textureDictionary>
+      <physicsDictionary>sky_phone_prop_lavender</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_lavender</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_red</name>
+      <textureDictionary>sky_phone_prop_red</textureDictionary>
+      <physicsDictionary>sky_phone_prop_red</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_red</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_white</name>
+      <textureDictionary>sky_phone_prop_white</textureDictionary>
+      <physicsDictionary>sky_phone_prop_white</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_white</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_orange</name>
+      <textureDictionary>sky_phone_prop_orange</textureDictionary>
+      <physicsDictionary>sky_phone_prop_orange</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_orange</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_yellow</name>
+      <textureDictionary>sky_phone_prop_yellow</textureDictionary>
+      <physicsDictionary>sky_phone_prop_yellow</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_yellow</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_lime</name>
+      <textureDictionary>sky_phone_prop_lime</textureDictionary>
+      <physicsDictionary>sky_phone_prop_lime</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_lime</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_teal</name>
+      <textureDictionary>sky_phone_prop_teal</textureDictionary>
+      <physicsDictionary>sky_phone_prop_teal</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_teal</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_cyan</name>
+      <textureDictionary>sky_phone_prop_cyan</textureDictionary>
+      <physicsDictionary>sky_phone_prop_cyan</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_cyan</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_purple</name>
+      <textureDictionary>sky_phone_prop_purple</textureDictionary>
+      <physicsDictionary>sky_phone_prop_purple</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_purple</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_pink</name>
+      <textureDictionary>sky_phone_prop_pink</textureDictionary>
+      <physicsDictionary>sky_phone_prop_pink</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_pink</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_gold</name>
+      <textureDictionary>sky_phone_prop_gold</textureDictionary>
+      <physicsDictionary>sky_phone_prop_gold</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_gold</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_rgb</name>
+      <textureDictionary>sky_phone_prop_rgb</textureDictionary>
+      <physicsDictionary>sky_phone_prop_rgb</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_rgb</assetName>
+    </Item>
+    <Item type="CBaseArchetypeDef">
+      <lodDist value="45" />
+      <flags value="12583168" />
+      <specialAttribute value="0" />
+      <bbMin x="-0.03935" y="-0.00471" z="-0.0818" />
+      <bbMax x="0.03935" y="0.01019" z="0.0817" />
+      <bsCentre x="0.0" y="0.00274" z="-5.0000846e-05" />
+      <bsRadius value="0.09103289" />
+      <hdTextureDist value="8" />
+      <name>sky_phone_prop_burgundy</name>
+      <textureDictionary>sky_phone_prop_burgundy</textureDictionary>
+      <physicsDictionary>sky_phone_prop_burgundy</physicsDictionary>
+      <assetType>ASSET_TYPE_DRAWABLE</assetType>
+      <assetName>sky_phone_prop_burgundy</assetName>
+    </Item>
+  </archetypes>
+  <name>sky_phone_prop</name>
+</CMapTypes>

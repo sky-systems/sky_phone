@@ -1,0 +1,178 @@
+{
+  "sky_phone_prop.ydr": {
+    "bytes": 1618633,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_blue.ydr": {
+    "bytes": 1618636,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_burgundy.ydr": {
+    "bytes": 1619368,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_cyan.ydr": {
+    "bytes": 1618377,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_gold.ydr": {
+    "bytes": 1617926,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_green.ydr": {
+    "bytes": 1619394,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_lavender.ydr": {
+    "bytes": 1618174,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_lime.ydr": {
+    "bytes": 1620345,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_orange.ydr": {
+    "bytes": 1618150,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_pink.ydr": {
+    "bytes": 1618923,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_purple.ydr": {
+    "bytes": 1618582,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_red.ydr": {
+    "bytes": 1618537,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_rgb.ydr": {
+    "bytes": 2229281,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_teal.ydr": {
+    "bytes": 1618465,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_white.ydr": {
+    "bytes": 1618684,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  },
+  "sky_phone_prop_yellow.ydr": {
+    "bytes": 1619352,
+    "triangles": {
+      "HIGH": 22164,
+      "MEDIUM": 9307,
+      "LOW": 3101,
+      "VERYLOW": 774
+    },
+    "textures": 23,
+    "native_roundtrip": "passed"
+  }
+}

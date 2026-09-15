@@ -332,7 +332,7 @@ Config.Radio = {
 
 Config.Animations = {
     Enabled = true,
-    PropModel = "prop_npc_phone_02",
+    PropModel = "sky_phone_prop",
     PropBone = 28422,
     LoadTimeoutMs = 5000,
     ContextPollMs = 250,

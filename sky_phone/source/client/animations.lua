@@ -24,6 +24,7 @@ local animation_state = {
 }
 
 local reevaluate
+local current_frame = "black"
 
 local function load_model(model_hash)
     RequestModel(model_hash)
@@ -199,7 +200,7 @@ local function ensure_phone_prop(ped, revision)
         delete_phone_prop()
     end
 
-    local model_hash = joaat(Config.Animations.PropModel)
+    local model_hash = joaat(SkyPhoneProp.Model(current_frame, Config.Animations.PropModel))
     if not load_model(model_hash) then
         return false
     end
@@ -425,6 +426,19 @@ reevaluate = function(force)
     CreateThread(function()
         apply_mode(previous_mode, mode, revision)
     end)
+end
+
+function SkyPhoneAnimations.GetProp()
+    return animation_state.prop
+end
+
+function SkyPhoneAnimations.SetFrame(frame)
+    if frame == current_frame or not SkyPhoneProp.Frames[frame] then return end
+    current_frame = frame
+    if not SkyPhoneProp.Models[joaat(Config.Animations.PropModel)] then return end
+    animation_state.revision = animation_state.revision + 1
+    cleanup_phone()
+    reevaluate(true)
 end
 
 AddEventHandler("sky_phone:configurator:updated", function()

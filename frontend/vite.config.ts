@@ -15,6 +15,10 @@ export default defineConfig({
     outDir: 'dist',
     target: 'chrome103',
     rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        display: fileURLToPath(new URL('./display.html', import.meta.url)),
+      },
       output: {
         assetFileNames: 'assets/sky-[name]-[hash].[ext]',
         chunkFileNames: 'assets/sky-[name]-[hash].js',

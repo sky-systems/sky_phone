@@ -598,6 +598,22 @@ test("existing SQL rows receive default-on restrictions without resetting other 
     assert(restarted.env.Config.Radio.RequirePhoneItem and restarted.env.Config.Phone.AllowMovement == false)
 end)
 
+
+test("new phone prop defaults and custom overrides roundtrip through the Configurator", function()
+    local server = new_server()
+    local settings = server.field("Animations").value
+    assert(settings.PropModel == "sky_phone_prop")
+    settings.PropModel = "sky_phone_prop_burgundy"
+    local result = server.save({ change("Animations", settings) })
+    assert(result.success, tostring(result.error))
+    local restarted = new_server(server.database)
+    assert(new_client(restarted).config.Animations.PropModel == "sky_phone_prop_burgundy")
+    settings = restarted.field("Animations").value
+    settings.PropModel = "custom_existing_phone"
+    assert(restarted.save({ change("Animations", settings) }).success)
+    assert(new_server(restarted.database).env.Config.Animations.PropModel == "custom_existing_phone")
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")

@@ -1,0 +1,176 @@
+{
+  "branding": "iFruit",
+  "dimensions_m": [
+    0.078,
+    0.00875,
+    0.1634
+  ],
+  "screen": {
+    "width": 0.0736,
+    "height": 0.1589,
+    "y": -0.00456,
+    "radius": 0.0081
+  },
+  "variants": {
+    "sky_phone_prop": {
+      "color": "#3a3a3c",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618633
+    },
+    "sky_phone_prop_blue": {
+      "color": "#7294c2",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618636
+    },
+    "sky_phone_prop_green": {
+      "color": "#889b6e",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1619394
+    },
+    "sky_phone_prop_lavender": {
+      "color": "#aaa1c8",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618174
+    },
+    "sky_phone_prop_red": {
+      "color": "#d93f45",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618537
+    },
+    "sky_phone_prop_white": {
+      "color": "#f2f2f2",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618684
+    },
+    "sky_phone_prop_orange": {
+      "color": "#e68a3f",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618150
+    },
+    "sky_phone_prop_yellow": {
+      "color": "#e5d134",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1619352
+    },
+    "sky_phone_prop_lime": {
+      "color": "#75d13d",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1620345
+    },
+    "sky_phone_prop_teal": {
+      "color": "#36a992",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618465
+    },
+    "sky_phone_prop_cyan": {
+      "color": "#35bfe3",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618377
+    },
+    "sky_phone_prop_purple": {
+      "color": "#8251df",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618582
+    },
+    "sky_phone_prop_pink": {
+      "color": "#db82b0",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1618923
+    },
+    "sky_phone_prop_gold": {
+      "color": "#d4aa45",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1617926
+    },
+    "sky_phone_prop_rgb": {
+      "color": "#bbbbbb",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 2229281
+    },
+    "sky_phone_prop_burgundy": {
+      "color": "#713442",
+      "triangles": [
+        22164,
+        9307,
+        3101,
+        774
+      ],
+      "bytes": 1619368
+    }
+  }
+}

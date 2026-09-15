@@ -19,6 +19,7 @@ shared_scripts {
     'source/bridge/shared.lua',
     'source/shared/player_state.lua',
     'source/shared/imei.lua',
+    'source/shared/phone_prop.lua',
     'source/shared/sim_number.lua',
     'source/shared/custom_apps.lua',
     'source/bridge/phones/shared.lua',
@@ -40,6 +41,7 @@ client_scripts {
     'source/bridge/client/housing/*.lua',
     'source/bridge/client/calls.lua',
     'source/client/animations.lua',
+    'source/client/world_display.lua',
     'source/client/focus.lua',
     'source/client/calls.lua',
     'source/client/sim.lua',
@@ -115,6 +117,7 @@ server_scripts {
     'source/server/phone_accounts.lua',
     'source/server/phone_persistence.lua',
     'source/server/phone.lua',
+    'source/server/world_display.lua',
     'source/server/device_directory.lua',
     'source/server/db_migrate.lua',
     'source/server/logging_settings.lua',
@@ -171,6 +174,7 @@ server_scripts {
 
 files {
     'source/html/index.html',
+    'source/html/display.html',
     'source/html/assets/**',
     'source/html/img/**',
     'source/html/sounds/**',
@@ -180,3 +184,5 @@ files {
 ui_page 'source/html/index.html'
 
 dependency 'oxmysql'
+
+data_file 'DLC_ITYP_REQUEST' 'stream/phone_prop/sky_phone_prop.ytyp'
