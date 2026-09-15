@@ -423,6 +423,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
+    ['Garage.VehicleKeySystem', t('configurator.vehicleKeySystemLabel')],
     [
       'Security.FaceIdMaskWhitelist',
       t('configurator.faceIdMaskWhitelistLabel'),

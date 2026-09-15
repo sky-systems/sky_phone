@@ -562,7 +562,9 @@ Locales["en"] = {
                     RadiusEnabled = "Show radius",
                     Radius = "Radius (metres)",
                 },
+                vehicleKeySystemLabel = "Vehicle key system",
                 descriptions = {
+                    vehicleKeySystem = "auto detects a running key resource; none disables key delivery. Select a provider explicitly if several are running. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: ring available employees one at a time. ring_all: ring all available employees together; the first to answer gets the call. Requires call availability and MinimumGrade; busy or unreachable phones are skipped.",
                     companyCallAttempts = "Maximum total attempts for round_robin, including the first employee (1-20). Ignored by ring_all.",
                     companyCallRingSeconds = "Ring time in seconds (1-120) per round_robin attempt or for the entire ring_all group.",

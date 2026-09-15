@@ -78,6 +78,7 @@ local function new_server(database, configure_defaults, defer_initialization)
         assert(name == "sky_phone:configurator:sync" and target == -1)
         broadcasts[#broadcasts + 1] = copy(payload)
     end
+    load_script("source/bridge/server/vehiclekeys.lua", environment)
     local initialization = coroutine.create(function()
         load_script("source/server/phone_configurator.lua", environment)
     end)
@@ -297,6 +298,24 @@ test("MSK garage selection survives SQL reload and reaches connected phones", fu
     local restarted = new_server(server.database)
     assert(restarted.field("Garage").value.System == "msk")
     assert(new_client(restarted).config.Garage.System == "msk")
+end)
+
+test("vehicle key system is validated, persisted and sent to phones", function()
+    local server = new_server()
+    local client = new_client(server)
+    local garage = server.field("Garage").value
+    assert(garage.VehicleKeySystem == "auto")
+    assert(server.field("Garage").structure.fields.VehicleKeySystem.valueType == "string")
+    for _, name in ipairs({ "none", "qb", "qbox", "kiminaze", "msk", "jota", "custom_client", "custom_server", "auto" }) do
+        garage.VehicleKeySystem = name
+        assert(server.save({ change("Garage", garage) }).success)
+        client.sync(server.broadcasts[#server.broadcasts])
+        assert(client.config.Garage.VehicleKeySystem == name)
+        assert(new_server(server.database).env.Config.Garage.VehicleKeySystem == name)
+    end
+    garage.VehicleKeySystem = "unknown_keys"
+    assert(server.save({ change("Garage", garage) }).error == "invalid_value")
+    assert(server.env.Config.Garage.VehicleKeySystem == "auto")
 end)
 
 test("false scalar settings save together with other panel changes and survive reload", function()

@@ -562,7 +562,9 @@ Locales["rs"] = {
                     RadiusEnabled = "Прикажи радијус",
                     Radius = "Радијус (метра)",
                 },
+                vehicleKeySystemLabel = "Sistem ključeva vozila",
                 descriptions = {
+                    vehicleKeySystem = "auto prepoznaje aktivan resurs za ključeve; none isključuje dodelu ključeva. Izaberi dobavljača ako je aktivno više sistema. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: једно по једно позива доступне запослене. ring_all: истовремено позива све доступне запослене; први који одговара добија позив. Потребна је доступност за позив и MinimumGrade; заузети или недостижни телефони се прескачу.",
                     companyCallAttempts = "Максималан укупан број покушаја за round_robin, укључујући првог запосленог (1-20). Игнорише се за ring_all.",
                     companyCallRingSeconds = "Време звона у секундама (1-120) по round_robin покушају или за целу ring_all групу.",

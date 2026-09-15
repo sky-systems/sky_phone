@@ -1590,6 +1590,9 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     end
 
     local candidate_config = deserialize_value(next_config)
+    if not Bridge.VehicleKeys.IsSupported(candidate_config.Garage.VehicleKeySystem) then
+        return { success = false, error = "invalid_value" }
+    end
     local citywarn = candidate_config.CityWarn
     local blip = citywarn and citywarn.Blip
     local function integer_between(value, minimum, maximum)
