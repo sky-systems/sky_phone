@@ -1051,6 +1051,12 @@ const adminPanelFallbackLocales = {
       },
     },
     citywarnCategoryColors: 'Category colors',
+    citywarnPublisherLabels: {
+      MinimumGrade: 'Minimum job grade',
+      MaximumSeverity: 'Highest warning level',
+      CityWide: 'Allow city-wide warnings',
+      Categories: 'Allowed categories',
+    },
     citywarnBlipLabels: {
       Sprite: 'Sprite',
       Display: 'Map display',
@@ -1062,6 +1068,18 @@ const adminPanelFallbackLocales = {
       Radius: 'Radius (metres)',
     },
     descriptions: {
+      citywarnPublishers:
+        'Choose which jobs may publish CityWarn warnings. Enter the internal job name, for example mechanic, and click Add job. Set its permissions, then save with the green check.',
+      citywarnPublisher:
+        'Permissions for the job {name}. This job must already exist on your server. If RequireDuty is enabled, employees must be on duty to publish.',
+      citywarnPublisherMinimumGrade:
+        'Lowest job grade allowed to publish. 0 allows every grade; 2 allows grade 2 and above. Enter the grade number, not its name.',
+      citywarnPublisherMaximumSeverity:
+        'Highest level this job may publish: information (notice), warning (warning), danger (danger) or extreme (extreme danger). Lower levels are also allowed.',
+      citywarnPublisherCityWide:
+        'On: this job may warn the whole city. Off: warnings must target a limited area on the map.',
+      citywarnPublisherCategories:
+        'Add one category per row: public_safety (public safety), police (police), fire (fire), medical (medical), infrastructure (infrastructure) or evacuation (evacuation). Use these exact codes. An empty list allows no warnings.',
       faceIdMaskWhitelist:
         'Exceptions for masks on ped component 1, up to 256 entries. No mask (drawable 0) is always allowed. Each exception applies only to the specified ped model.',
       faceIdMaskModel:

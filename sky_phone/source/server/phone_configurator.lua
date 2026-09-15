@@ -299,7 +299,7 @@ local function merge_values(defaults, saved, path, excluded_paths)
         end
         return companies
     end
-    if radio_job_entry_default(path) ~= nil then
+    if path == "CityWarn.Publishers" or radio_job_entry_default(path) ~= nil then
         return copy_value(saved)
     end
     if defaults.__skyType == "map" and not saved.__skyType then
@@ -685,6 +685,37 @@ end
 
 local function build_structure(value, scope, path)
     local value_type = type(value)
+    if scope == "config" and path == "CityWarn.Publishers" and value_type == "table" then
+        local template = {
+            kind = "table",
+            fields = {
+                MinimumGrade = { kind = "value", valueType = "number" },
+                MaximumSeverity = { kind = "value", valueType = "string" },
+                CityWide = { kind = "value", valueType = "boolean" },
+                Categories = {
+                    kind = "list",
+                    items = {},
+                    template = { kind = "value", valueType = "string" },
+                },
+            },
+        }
+        local fields = {}
+        for key in pairs(value) do
+            fields[key] = copy_value(template)
+        end
+        return {
+            kind = "table",
+            fields = fields,
+            mutableKeys = true,
+            template = template,
+            entryDefault = {
+                MinimumGrade = 2,
+                MaximumSeverity = "information",
+                CityWide = false,
+                Categories = { "public_safety" },
+            },
+        }
+    end
     if scope == "config" and path == "Phone.Keybind" then
         return { kind = "optionalString" }
     end
@@ -1637,6 +1668,30 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     for category in pairs(citywarn.CategoryColors) do
         if ConfigDefaults.CityWarn.CategoryColors[category] == nil then
             return { success = false, error = "invalid_value" }
+        end
+    end
+    local severity_rank = { information = 1, warning = 2, danger = 3, extreme = 4 }
+    if type(citywarn.Publishers) ~= "table" then
+        return { success = false, error = "invalid_value" }
+    end
+    for job, publisher in pairs(citywarn.Publishers) do
+        if type(job) ~= "string" or #job > 64 or not job:match("^[a-z0-9_-]+$")
+            or type(publisher) ~= "table"
+            or type(publisher.MinimumGrade) ~= "number" or publisher.MinimumGrade < 0
+            or publisher.MinimumGrade % 1 ~= 0
+            or not severity_rank[publisher.MaximumSeverity]
+            or type(publisher.CityWide) ~= "boolean"
+            or type(publisher.Categories) ~= "table"
+            or (next(publisher.Categories) and not is_sequence(publisher.Categories))
+        then
+            return { success = false, error = "invalid_value" }
+        end
+        local seen = {}
+        for _, category in ipairs(publisher.Categories) do
+            if not ConfigDefaults.CityWarn.CategoryColors[category] or seen[category] then
+                return { success = false, error = "invalid_value" }
+            end
+            seen[category] = true
         end
     end
     local companies_valid, validation_error = SkyPhoneCompanies.ValidateConfiguration(candidate_config)

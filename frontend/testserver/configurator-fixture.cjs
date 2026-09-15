@@ -552,6 +552,35 @@ function companyDefinitionEntryDefault(definitions) {
 }
 
 function buildStructure(value, scope, path) {
+  if (scope === 'config' && path === 'CityWarn.Publishers') {
+    const template = {
+      kind: 'table',
+      fields: {
+        MinimumGrade: { kind: 'value', valueType: 'number' },
+        MaximumSeverity: { kind: 'value', valueType: 'string' },
+        CityWide: { kind: 'value', valueType: 'boolean' },
+        Categories: {
+          kind: 'list',
+          items: [],
+          template: { kind: 'value', valueType: 'string' },
+        },
+      },
+    }
+    return {
+      kind: 'table',
+      fields: Object.fromEntries(
+        Object.keys(value).map((key) => [key, template]),
+      ),
+      mutableKeys: true,
+      template,
+      entryDefault: {
+        MinimumGrade: 2,
+        MaximumSeverity: 'information',
+        CityWide: false,
+        Categories: ['public_safety'],
+      },
+    }
+  }
   if (scope === 'config' && path === 'Phone.Keybind') {
     return { kind: 'optionalString' }
   }
