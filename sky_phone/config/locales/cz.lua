@@ -562,7 +562,9 @@ Locales["cz"] = {
                     RadiusEnabled = "Zobrazit poloměr",
                     Radius = "Poloměr (metry)",
                 },
+                vehicleKeySystemLabel = "Systém klíčů vozidel",
                 descriptions = {
+                    vehicleKeySystem = "auto rozpozná spuštěný systém klíčů; none vypne předávání klíčů. Pokud běží více systémů, vyber konkrétního poskytovatele. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: vyzvánět dostupným zaměstnancům postupně po jednom. ring_all: vyzvánět všem dostupným zaměstnancům současně; hovor získá ten, kdo jej přijme jako první. Vyžaduje dostupnost pro hovory a MinimumGrade; zaneprázdněné nebo nedostupné telefony se přeskočí.",
                     companyCallAttempts = "Maximální celkový počet pokusů pro round_robin, včetně prvního zaměstnance (1-20). Ignorováno u ring_all.",
                     companyCallRingSeconds = "Doba vyzvánění v sekundách (1-120) na jeden pokus round_robin nebo pro celou skupinu ring_all.",

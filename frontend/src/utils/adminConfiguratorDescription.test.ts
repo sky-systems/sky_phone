@@ -9,6 +9,11 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains automatic vehicle key detection in Garage', () => {
+    expect(configuratorDescriptionKey('Garage.VehicleKeySystem', 'auto')).toBe(
+      'vehicleKeySystem',
+    )
+  })
   it('explains model-specific Face ID masks and texture wildcards', () => {
     expect(configuratorDescriptionKey('Security.FaceIdMaskWhitelist', [])).toBe(
       'faceIdMaskWhitelist',

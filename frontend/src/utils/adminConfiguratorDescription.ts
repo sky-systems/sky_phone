@@ -127,6 +127,7 @@ export function configuratorDescriptionKey(
   if (/^CityWarn\.CategoryColors(?:\.[^.]+)?$/.test(path))
     return 'citywarnCategoryColor'
   if (path === 'Garage.System') return 'garageSystem'
+  if (path === 'Garage.VehicleKeySystem') return 'vehicleKeySystem'
   if (/^Companies\.Definitions\.[^.]+\.ServiceLine\.Routing$/.test(path))
     return 'companyCallRouting'
   if (path === 'Companies.CallRouting.MaxAttempts') return 'companyCallAttempts'

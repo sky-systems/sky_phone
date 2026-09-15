@@ -562,7 +562,9 @@ Locales["ar"] = {
                     RadiusEnabled = "إظهار النطاق",
                     Radius = "النطاق (بالمتر)",
                 },
+                vehicleKeySystemLabel = "نظام مفاتيح المركبات",
                 descriptions = {
+                    vehicleKeySystem = "يكتشف auto مورد المفاتيح النشط؛ ويعطّل none تسليم المفاتيح. اختر مزوّداً محدداً عند تشغيل عدة أنظمة. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: اتصل بالموظفين المتاحين واحدًا تلو الآخر. ring_all: اتصل بجميع الموظفين المتاحين معًا؛ أول من يجيب سيتلقى المكالمة. يتطلب توفر الاتصال والحد الأدنى للرتبة (MinimumGrade)؛ سيتم تخطي الهواتف المشغولة أو التي لا يمكن الوصول إليها.",
                     companyCallAttempts = "الحد الأقصى لإجمالي محاولات round_robin، بما في ذلك الموظف الأول (1-20). يتم تجاهله بواسطة ring_all.",
                     companyCallRingSeconds = "وقت الرنين بالثواني (1-120) لكل محاولة round_robin أو للمجموعة الكاملة ring_all.",
