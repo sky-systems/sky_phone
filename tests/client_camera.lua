@@ -1,6 +1,7 @@
 local callbacks = {}
 local camera_coord = nil
 local camera_target = nil
+local camera_fov = nil
 local camera_created = false
 local camera_destroyed = false
 local scripted_camera_rendering = false
@@ -107,7 +108,7 @@ function DoesCamExist(handle)
     return camera_created and not camera_destroyed and handle == 73
 end
 
-function SetCamFov() end
+function SetCamFov(_, fov) camera_fov = fov end
 function SetCamActive() end
 
 function RenderScriptCams(active)
@@ -146,7 +147,7 @@ assert(response_from("camera:setFacing", { front = true }).success)
 assert(camera_created and scripted_camera_rendering, "selfie mode must render a scripted camera")
 assert(camera_coord and camera_target, "selfie mode must position and aim the camera")
 assert(close_enough(camera_coord.x, 10.0))
-assert(close_enough(camera_coord.y, 21.05))
+assert(close_enough(camera_coord.y, 20.40))
 assert(close_enough(camera_coord.z, 2.75))
 assert(close_enough(camera_target.x, 10.0))
 assert(close_enough(camera_target.y, 20.0))
@@ -175,7 +176,7 @@ end
 local camera_ok, camera_error = pcall(threads[1])
 assert(not camera_ok and camera_error == thread_stop, "selfie camera must render one controlled frame")
 assert(not close_enough(camera_coord.x, 10.0), "horizontal look input must orbit the selfie camera around the player")
-assert(camera_coord.y < 21.05, "selfie orbit must retain its configured distance from the player")
+assert(camera_coord.y < 20.40, "selfie orbit must retain its configured distance from the player")
 disabled_pressed_controls[22] = false
 disabled_control_normals[1] = 0.0
 
@@ -227,7 +228,6 @@ local ragdoll = false
 local played_clip = nil
 local hand_targets = {}
 local arm_enabled = false
-local head_enabled = false
 Bridge = { Debug = function(_, message) error(message) end }
 Config = { Animations = {
     Enabled = true, PropModel = "prop_npc_phone_02", PropBone = 28422,
@@ -275,21 +275,17 @@ function SetPedCanArmIk(ped, enabled)
     assert(ped == 7 and enabled)
     arm_enabled = true
 end
-function SetPedCanHeadIk(ped, enabled)
-    assert(ped == 7 and enabled)
-    head_enabled = true
+function SetPedCanHeadIk()
+    error("Selfie tracking must leave the head orientation to the camera-hold animation")
 end
 function SetIkTarget(_, part, _, _, x, y, z)
-    if part == 1 then
-        assert(head_enabled, "Selfie head tracking must enable head IK")
-    else
-        assert(arm_enabled, "A moving camera must enable arm IK before submitting the hand target")
-        hand_targets[part] = vector3(x, y, z)
-    end
+    assert(part == 3 or part == 4, "Head IK must not feed back into the head-anchored selfie camera")
+    assert(arm_enabled, "A moving camera must enable arm IK before submitting the hand target")
+    hand_targets[part] = vector3(x, y, z)
 end
 
 local function frame()
-    hand_targets, arm_enabled, head_enabled = {}, false, false
+    hand_targets, arm_enabled = {}, false
     local count = #threads
     for i = 1, count do
         if coroutine.status(threads[i]) ~= "dead" then
@@ -308,6 +304,17 @@ local function assert_hand_follows_selfie()
     local expected = GetPedBoneCoords() + direction * (0.52 / length) - vector3(0, 0, 0.14)
     assert(close_enough(hand.x, expected.x) and close_enough(hand.y, expected.y)
         and close_enough(hand.z, expected.z), "The hand must track the rendered camera, including its orbit smoothing")
+    local head = GetPedBoneCoords()
+    local view_direction = (camera_target - camera_coord) * (1 / length)
+    local camera_to_hand = hand - camera_coord
+    local hand_depth = camera_to_hand.x * view_direction.x + camera_to_hand.y * view_direction.y
+        + camera_to_hand.z * view_direction.z
+    assert(hand_depth < -0.015, "The holding hand must be behind the selfie lens, not between lens and face")
+    local radius = math.sqrt((camera_coord.x - head.x) ^ 2 + (camera_coord.y - head.y) ^ 2)
+    local yaw = math.deg(math.atan(-(camera_coord.x - head.x), camera_coord.y - head.y))
+    local pitch = math.deg(math.atan(camera_coord.z - head.z - 0.05, radius))
+    assert(math.abs(yaw) <= 45.001 and math.abs(pitch) <= 20.001,
+        "Selfie orbit must stay within the holding arm's working range")
     return hand
 end
 
@@ -322,7 +329,11 @@ assert(response_from("camera:setFacing", { front = true }).success)
 TriggerEvent("sky_phone:client:cameraFocusApplied", { active = true, cursor = false, focused = true, gameInput = true })
 frames(4)
 local initial_hand = assert_hand_follows_selfie()
-assert(played_clip == "cellphone_text_read_base", "Camera tracking must overlay the phone pose")
+local half_frame = 0.40 * math.tan(math.rad(camera_fov / 2))
+local previous_half_frame = 1.05 * math.tan(math.rad(32 / 2))
+assert(math.abs(half_frame - previous_half_frame) < 0.02,
+    "Moving the lens to the held phone must preserve portrait framing with a wider FOV")
+assert(played_clip == "selfie", "Active FaceTime must use the upright camera grip instead of the reading loop")
 
 disabled_control_normals[1], disabled_control_normals[2] = 0.5, -0.5
 frames(8)
@@ -338,6 +349,16 @@ disabled_control_normals[1], disabled_control_normals[2] = 0, 0
 frame()
 assert_hand_follows_selfie() -- Native targets expire after one update, even with no new mouse input.
 
+-- Hold look input against all orbit limits and check lens/hand separation there too.
+for _, input in ipairs({ { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } }) do
+    disabled_control_normals[1], disabled_control_normals[2] = input[1], input[2]
+    for _ = 1, 100 do
+        frame()
+        assert_hand_follows_selfie()
+    end
+end
+disabled_control_normals[1], disabled_control_normals[2] = 0, 0
+
 ragdoll = true
 frame()
 assert(not next(hand_targets) and not arm_enabled, "Unavailable peds must not receive camera arm overrides")
@@ -346,10 +367,11 @@ frames(4)
 assert_hand_follows_selfie()
 assert(response_from("camera:setFacing", { front = false }).success)
 frames(2)
-assert(hand_targets[4] and not head_enabled, "Rear video must follow camera aim without selfie head tracking")
+assert(hand_targets[4] and played_clip == "selfie", "Rear video must retain the camera grip and follow camera aim")
 assert(response_from("camera:setActive", { active = false }).success)
 frames(2)
 assert(not next(hand_targets) and not arm_enabled, "Closing video must release the arm while the call remains active")
+assert(played_clip == "cellphone_text_read_base", "Closing capture must restore the normal phone hold")
 TriggerEvent("sky_phone:animation:reset")
 frames(2)
 assert(not prop_exists and not next(hand_targets), "Reset must release the phone prop and arm tracking")

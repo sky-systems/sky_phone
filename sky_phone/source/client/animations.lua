@@ -93,10 +93,9 @@ function SkyPhoneAnimations.AimCamera(camera_position, target_position, front)
     SetPedCanArmIk(ped, true)
     SetIkTarget(ped, left and 3 or 4, 0, -1, hand.x, hand.y, hand.z - 0.14,
         IK_ARM_TARGET_HAND_BONE, 0, 150)
-    if front then
-        SetPedCanHeadIk(ped, true)
-        SetIkTarget(ped, 1, 0, -1, camera_position.x, camera_position.y, camera_position.z, 0, 0, 150)
-    end
+    -- Keep the head and wrist orientation from the camera-hold animation. Driving
+    -- the head toward a nearby moving camera fights that pose and feeds back into
+    -- the head-anchored camera position on the next frame.
 end
 
 local function get_phone_dictionary(ped)
@@ -115,9 +114,13 @@ local function derive_mode()
     if not Config.Animations.Enabled then
         return MODE_HIDDEN
     end
-    -- FaceTime holds the phone in front of the player, just like opening it.
+    -- Keep the normal phone-opening transition, then use the upright camera grip
+    -- while transmitting video. The reading loop bends the head and wrist down.
     if animation_state.call_video and (animation_state.call_state == "connected"
         or animation_state.call_state == "ringing") then
+        if animation_state.camera_active then
+            return animation_state.camera_front and MODE_CAMERA_SELFIE or MODE_CAMERA_REAR
+        end
         return MODE_PHONE_READ
     end
     if animation_state.call_state == "connected" then

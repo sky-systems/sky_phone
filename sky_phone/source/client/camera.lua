@@ -5,12 +5,14 @@ local maximum_zoom = 3.0
 local mouse_wheel_zoom_step = 0.08
 local first_person_view_mode = 4
 local front_camera_view_mode = 0
-local front_camera_fov = 32.0
-local front_camera_distance = 1.05
+-- Render from the face-facing side of the held phone, not from behind the arm.
+-- The wider lens keeps the portrait framing at this shorter, arm-length distance.
+local front_camera_fov = 74.0
+local front_camera_distance = 0.40
 local front_camera_height = 0.05
 local front_camera_target_height = 0.03
-local front_camera_horizontal_limit = 75.0
-local front_camera_vertical_limit = 35.0
+local front_camera_horizontal_limit = 45.0
+local front_camera_vertical_limit = 20.0
 local front_camera_rotate_speed = 5.0
 local camera_passthrough_control = 22 -- INPUT_JUMP (Space by default)
 local blocked_camera_controls = {

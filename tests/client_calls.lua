@@ -132,7 +132,11 @@ call_animation("ringing", false); assert(mode() == "call")
 call_animation("ringing", true); assert(mode() == "phone_read", "Outgoing FaceTime must use the phone-open pose")
 call_animation("connected", true)
 animation_handlers["sky_phone:animation:camera"]({ active = true, front = true })
-assert(mode() == "phone_read", "Selfie camera events must not override the FaceTime pose")
+assert(mode() == "camera_selfie", "Active FaceTime must use the camera grip, not the downward reading pose")
+animation_handlers["sky_phone:animation:camera"]({ active = true, front = false })
+assert(mode() == "camera_rear", "Facing changes must preserve the camera grip")
+animation_handlers["sky_phone:animation:camera"]({ active = false })
+assert(mode() == "phone_read", "Disabling video capture must restore the normal phone hold")
 call_animation("connected", false); assert(mode() == "call", "Returning to audio restores the call pose")
 animation_handlers["sky_phone:animation:camera"]({ active = false })
 call_animation("completed", false); assert(mode() == "phone_read")
@@ -152,25 +156,21 @@ function SetPedCanArmIk(ped, enabled)
     assert(ped == 1 and enabled)
     ik_enabled.arm = enabled
 end
-function SetPedCanHeadIk(ped, enabled)
-    assert(ped == 1 and enabled)
-    ik_enabled.head = enabled
+function SetPedCanHeadIk()
+    error("Camera tracking must not override the head pose")
 end
 function SetIkTarget(ped, part, entity, bone, x, y, z, flags, blend_in, blend_out)
     assert(ped == 1 and entity == 0 and bone == -1)
     assert(blend_in == 0 and blend_out == 150, "Camera IK must follow the current frame without a second blend-in")
-    if part == 1 then
-        assert(ik_enabled.head and flags == 0, "Head IK must be enabled and use head-compatible flags")
-    else
-        assert(ik_enabled.arm and flags == 1, "Hand IK must not depend on the phone clip's IK allow-tags")
-    end
+    assert(part == 3 or part == 4, "Camera tracking must only steer the holding arm")
+    assert(ik_enabled.arm and flags == 1, "Hand IK must not depend on the phone clip's IK allow-tags")
     assert(type(x) == "number" and type(y) == "number" and type(z) == "number")
     ik[part] = { x=x, y=y, z=z }
 end
 animation_state.ped, animation_state.prop, animation_state.camera_active = 1, 1, true
 Config.Animations.PropBone = 28422
 SkyPhoneAnimations.AimCamera(vec(0, 1, 1.7), vec(0, 0, 1.7), true)
-assert(ik[4] and ik[1] and math.abs(ik[4].y - 0.52) < 0.001)
+assert(ik[4] and not ik[1] and math.abs(ik[4].y - 0.52) < 0.001)
 SkyPhoneAnimations.AimCamera(vec(1, 0, 1.7), vec(0, 0, 1.7), true)
 assert(ik[4].x > 0.5 and ik[4].y == 0, "Hand must follow camera direction instead of holding a static pose")
 Config.Animations.PropBone = 18905
