@@ -271,7 +271,8 @@ state.ready(2)
 state.ready(8, "mechanic", true)
 state.ready(9, "mechanic", true)
 local env = state.env
-local airplane, rings, saved_statuses = {}, {}, {}
+local airplane, rings, saved_statuses, blocked = {}, {}, {}, {}
+env.Bridge.PlayerState = { GetBlockReason = function(player) return blocked[player] end }
 env.calls, env.active_by_source, env.active_by_sim, env.dialing_by_sim = {}, {}, {}, {}
 env.dial_locks = {}
 env.SkyPhoneCompanies.IsServiceNumber = function() return false end
@@ -292,6 +293,7 @@ env.ring_callee = function(call) rings[#rings + 1] = call.callee_source end
 env.schedule_no_answer = function() end
 local routing = assert(load(
     "local reroute_company_call\n"
+        .. block("local function player_blocked(", "AddEventHandler(", calls_source)
         .. block("local function log_call(", "local function send_state(", calls_source)
         .. block("local function company_call_target(", "local function ring_callee(", calls_source)
         .. block("reroute_company_call = function(", "handle_no_answer = function(", calls_source)
@@ -309,6 +311,30 @@ assert(target.source == 1 or target.source == 2, "Unreachable dispatchers must f
 env.dialing_by_sim[target.sim_id] = nil
 env.active_by_source[8] = nil
 airplane["device-9"] = nil
+
+for _, reason in ipairs({ "player_dead", "player_cuffed" }) do
+    blocked[8] = reason
+    target = assert(routing.target("mechanic", 99, "caller-sim"))
+    assert(target.source == 9, "Restricted dispatchers must be skipped without bypassing an eligible dispatcher")
+    env.dialing_by_sim[target.sim_id] = nil
+
+    blocked[9] = reason
+    target = assert(routing.target("mechanic", 99, "caller-sim"))
+    assert(target.source == 1 or target.source == 2,
+        "Restricted dispatchers must fall through to eligible ordinary employees")
+    env.dialing_by_sim[target.sim_id] = nil
+
+    blocked[1], blocked[2] = reason, reason
+    local unavailable, routing_error = routing.target("mechanic", 99, "caller-sim")
+    assert(not unavailable and routing_error == "unavailable",
+        "A company with only restricted recipients must be unavailable")
+    assert(next(env.dialing_by_sim) == nil, "Restricted recipients must not retain dialing reservations")
+    blocked[1], blocked[2], blocked[8], blocked[9] = nil, nil, nil, nil
+
+    target = assert(routing.target("mechanic", 99, "caller-sim"))
+    assert(target.source == 8 or target.source == 9, "Cleared restrictions must restore dispatcher priority")
+    env.dialing_by_sim[target.sim_id] = nil
+end
 
 target = assert(routing.target("mechanic", 99, "caller-sim"))
 local call = {
@@ -334,4 +360,4 @@ assert(call.company_attempts_remaining == 0 and #rings == 2)
 assert(not routing.reroute(call, "missed") and #rings == 2,
     "Dispatch priority must preserve the configured total attempt limit")
 
-print("companies_call_availability_spec: PASS (authority, priority, rotation, cleanup, busy/unreachable fallback and rerouting)")
+print("companies_call_availability_spec: PASS (authority, priority, rotation, cleanup, busy/unreachable/restricted fallback and rerouting)")
