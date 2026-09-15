@@ -38,6 +38,60 @@ describe('radio store', () => {
     mockNuiCall.mockReset()
   })
 
+  it('keeps a forced background disconnect after a late connect or get response', async () => {
+    for (const action of ['connect', 'load'] as const) {
+      let finish!: (value: { success: true; data: RadioData }) => void
+      mockNuiCall.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve
+          }),
+      )
+      const radio = useRadioStore()
+      const pending =
+        action === 'connect' ? radio.connect(150, 160) : radio.load()
+      radio.forceDisconnect('phone_not_owned')
+      finish({
+        success: true,
+        data: {
+          ...radioData,
+          connected: true,
+          frequency: 150,
+          secondaryFrequency: 160,
+        },
+      })
+      await pending
+      expect(radio.data.connected).toBe(false)
+      expect(radio.data.frequency).toBe(0)
+      expect(radio.data.secondaryFrequency).toBe(0)
+      expect(radio.isLoading).toBe(false)
+      expect(radio.error).toBe('phone_not_owned')
+    }
+  })
+
+  it('does not restore speaker state when its reply arrives after forced leave', async () => {
+    let finish!: (value: {
+      success: true
+      data: { speakerEnabled: boolean }
+    }) => void
+    mockNuiCall.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    const radio = useRadioStore()
+    radio.data.connected = true
+    radio.data.speakerSupported = true
+    const pending = radio.setSpeaker(true)
+    radio.forceDisconnect('player_cuffed')
+    finish({ success: true, data: { speakerEnabled: true } })
+    await pending
+    expect(radio.data.connected).toBe(false)
+    expect(radio.data.speakerEnabled).toBe(false)
+    expect(radio.speakerPending).toBe(false)
+  })
+
   it('hydrates the complete server-authoritative radio state', async () => {
     mockNuiCall.mockResolvedValueOnce({ data: radioData, success: true })
     const radio = useRadioStore()

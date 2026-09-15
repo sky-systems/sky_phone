@@ -1399,7 +1399,9 @@ onBeforeUnmount(() => {
             <Mail :size="38" />
             <h2>
               {{
-                phone.t(mail.search ? 'Apps.mail.noResults' : 'Apps.mail.noMail')
+                phone.t(
+                  mail.search ? 'Apps.mail.noResults' : 'Apps.mail.noMail',
+                )
               }}
             </h2>
             <p>
@@ -2111,7 +2113,7 @@ button {
   width: auto;
   min-width: var(--sky-touch-target);
   padding: 0 var(--sky-space-3);
-  color: #fff;
+  color: var(--sky-text);
   font-size: 15px;
 }
 
@@ -2378,7 +2380,8 @@ button {
   padding: 0 var(--sky-space-4);
 }
 
-.mail-mailbox-create__form :deep(.mail-mailbox-create__name .sky-field__control) {
+.mail-mailbox-create__form
+  :deep(.mail-mailbox-create__name .sky-field__control) {
   min-height: 52px;
   margin: 0;
   color: var(--sky-text);
@@ -2390,7 +2393,8 @@ button {
   font-size: 15px;
 }
 
-.mail-mailbox-create__form :deep(.mail-mailbox-create__name .sky-field__input::placeholder) {
+.mail-mailbox-create__form
+  :deep(.mail-mailbox-create__name .sky-field__input::placeholder) {
   color: var(--mail-muted);
   opacity: 1;
 }
@@ -2445,15 +2449,13 @@ button {
   opacity: 0.4;
 }
 
-.mail-list-navbar
-  .mail-navbar__actions
-  :deep(.mail-navbar__select.sky-link) {
+.mail-list-navbar .mail-navbar__actions :deep(.mail-navbar__select.sky-link) {
   width: auto;
   height: var(--sky-touch-target);
   min-width: 0;
   min-height: var(--sky-touch-target);
   padding: 0 var(--sky-space-3);
-  color: #fff;
+  color: var(--sky-text);
   font-size: 15px;
 }
 
@@ -2695,7 +2697,7 @@ button {
 .mail-folders-toolbar :deep(.sky-fab) {
   flex: none;
   border: 1px solid var(--sky-hairline);
-  color: #fff;
+  color: var(--sky-text);
 }
 
 .mail-folders-toolbar :deep(.sky-fab--with-text) {
@@ -2715,12 +2717,12 @@ button {
   min-height: var(--sky-touch-target);
   justify-content: flex-start;
   gap: var(--sky-space-3);
-  color: #fff;
+  color: var(--sky-text);
   text-align: left;
 }
 
 .mail-dialog :deep(.sky-dialog-button) {
-  color: #fff;
+  color: var(--sky-text);
 }
 
 .mail-list-toolbar :deep(.sky-toolbar__inner) {
@@ -2866,11 +2868,11 @@ button {
 }
 
 .mail-navbar :deep(.sky-link) {
-  color: #fff;
+  color: var(--sky-text);
 }
 
 .mail-navbar :deep(.sky-navbar-back-link) {
-  color: #fff;
+  color: var(--sky-text);
 }
 
 .mail-navbar :deep(.sky-link:disabled) {
@@ -3184,7 +3186,7 @@ button {
 
 .mail-auth__field input::placeholder {
   color: var(--mail-muted);
-  opacity: 0.72;
+  opacity: 1;
 }
 
 .mail-auth__field small {

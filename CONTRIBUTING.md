@@ -79,6 +79,8 @@ Every pull request also receives an automated CodeQL scan and dependency review.
 
 Lua, config, manifest, locale, SQL, and native changes must also be tested in a restarted FiveM resource with experimental OAL enabled. Pass native coordinates as separate numeric arguments and verify native signatures against authoritative documentation.
 
+UI changes must also pass `pnpm test:themes` from `frontend` after installing Chromium with `pnpm exec playwright install chromium`. This automatically checks every registered app in both appearance modes. See [the theme test guide](frontend/theme-tests/README.md) for reports, image-area review, and adding deeper form/dialog scenarios.
+
 ## Review and merge
 
 A pull request is ready when the repository policy, frontend, CodeQL, dependency review, and pull-request policy checks pass; review conversations are resolved; the latest push is approved by someone other than its author; and migrations or operational steps are explicit. Automated findings complement rather than replace the human maintainer review. Anyone may open a pull request, but only collaborators with the built-in GitHub `Maintain` role may merge into `dev`. Maintainers must merge through a pull request; the ruleset does not permit direct pushes to `dev`. The default ruleset allows merge, squash, and rebase so maintainers can preserve meaningful merge history when needed.

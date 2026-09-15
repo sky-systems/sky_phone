@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "format": "prettier --write src/ testserver/ build.cjs",
     "test": "vitest run && pnpm test:browser-mocks",
-    "test:browser-mocks": "node testserver/smoke.cjs"
+    "test:browser-mocks": "node testserver/smoke.cjs",
+    "test:themes": "playwright test --config theme-tests/playwright.config.mjs"
   },
   "pnpm": {
     "overrides": {
@@ -31,6 +32,7 @@
     "emoji-picker-element-data": "^1.8.0",
     "fix-webm-duration": "^1.0.6",
     "framework7-icons": "^5.0.5",
+    "html-to-image": "1.11.13",
     "konsta": "~5.2.0",
     "lucide-vue-next": "^0.525.0",
     "pinia": "^3.0.3",
@@ -38,6 +40,7 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@tailwindcss/vite": "^4.0.0",
     "@tsconfig/node22": "^22.0.2",
     "@types/node": "^22.15.32",

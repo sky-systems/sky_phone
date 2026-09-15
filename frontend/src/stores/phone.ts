@@ -1098,6 +1098,8 @@ const adminPanelFallbackLocales = {
         'Maximum total attempts for round_robin, including the first employee (1-20). Ignored by ring_all.',
       companyCallRingSeconds:
         'Ring time in seconds (1-120) per round_robin attempt or for the entire ring_all group.',
+      phoneWorldDisplay:
+        'Off by default. Mirrors the phone screen onto the prop for players within 3 meters in the same routing bucket. Disabling immediately stops capture, image transmission and DUI browsers. Phone props and frame colors work independently.',
       featureToggle: 'Turns {name} on or off.',
       boolean: 'Controls whether {name} is allowed.',
       number:
@@ -1189,6 +1191,7 @@ const adminPanelFallbackLocales = {
       videoBitrate:
         'Video recording bitrate in kilobits per second. Example: 1500 = 1.5 Mbit/s. Higher values increase quality and upload size.',
     },
+    phoneWorldDisplayLabel: 'Nearby screen mirroring (DUI)',
     table: {
       list: 'List',
       table: 'Key table',
@@ -1466,6 +1469,132 @@ const adminPanelFallbackLocales = {
 }
 
 const defaultLocales: LocaleTree = {
+  Realtime: {
+    description: 'Stream description',
+    descriptionPlaceholder: 'Tell viewers what your stream is about…',
+    startViaPlus: 'To go live, tap + and choose Go Live.',
+
+    messageLimit: 'Up to 300 characters.',
+    viewers: 'viewers',
+    errors: {
+      viewer_limit: 'This live has reached its viewer limit.',
+      feature_disabled: 'Video and live are disabled.',
+      session_timeout: 'The connection timed out.',
+      default:
+        'Video could not connect. Check camera/microphone access and the server configuration.',
+      ended: 'This broadcast has ended.',
+      cloudflare_failed: 'Cloudflare could not establish the connection.',
+      not_authorized: 'This session is unavailable or you do not have access.',
+      rate_limited: 'Please wait before trying again.',
+      cloudflare_not_configured:
+        'Cloudflare credentials are missing in the phone configuration.',
+      invalid_message: 'Enter a comment with 1–300 characters.',
+      configuration_changed: 'The configuration changed. Please reconnect.',
+    },
+    noLive: 'No live broadcasts yet.',
+    flip: 'Switch camera',
+    help: {
+      NearbyMaxSpeakers:
+        'Maximum nearby contributors per live, 0–16. Default: 8. Their audio is mixed at the broadcaster.',
+      ForceRelay:
+        'Use only relayed connections for P2P. Requires TURN enabled and valid credentials. SFU connections use Cloudflare directly.',
+      Transport:
+        'Default: p2p, without Cloudflare or credentials. Enable optional Cloudflare SFU or TURN only for connection problems, larger audiences, or by choice. P2P uploads once per viewer; TURN works independently.',
+      MaxVideoEdge: 'Portrait video height, 240–1080 pixels. Default: 720.',
+      Enabled: 'Enable video calls and social livestreams.',
+      VideoBitrateKbps:
+        'Video upload limit per connection, 100–5000 kbit/s. Default: 1200. P2P multiplies upload by viewer count.',
+      FrameRate: 'Video frame rate, 5–30 FPS. Default: 24.',
+      MaxBroadcasts: 'Server-wide livestream limit, 1–32. Default: 8.',
+      RealtimeSecrets:
+        'SQL mode: manage credentials here. File mode: use the non-replicated server.cfg convars documented in config.lua. Never paste secrets into config.lua or use setr/sets.',
+      Realtime:
+        'Choose P2P or Cloudflare SFU and optionally TURN. Changing these settings ends active video sessions.',
+      VideoCalls:
+        'Use the existing contact video and FaceTime buttons. Call audio stays with the configured voice provider.',
+      TurnEnabled:
+        'Generate temporary ICE credentials on the server. Create a TURN key at Cloudflare dashboard > Realtime > TURN. Set Token ID and API Token under credentials. https://developers.cloudflare.com/realtime/turn/generate-credentials/',
+      ApiToken:
+        'Copy API Token generated with the TURN key above. Stored only on the server; clients receive expiring ICE credentials.',
+      MaxViewers:
+        'Maximum simultaneous viewers per livestream, 1–128. Default: 32. Use low limits with P2P.',
+      FlipTok: 'Enable livestreams, viewer counts and livechat in FlipTok.',
+      MaxDurationMinutes:
+        'Maximum video session duration, 1–240 minutes. Default: 120.',
+      AppId:
+        'Cloudflare dashboard > Realtime > SFU > Create application. Copy App ID. https://developers.cloudflare.com/realtime/sfu/https-api/',
+      Picstagram:
+        'Enable livestreams, viewer counts and livechat in Picstagram. Private profiles keep their follower restrictions.',
+      TurnKeyId:
+        'Cloudflare dashboard > Realtime > TURN > Create TURN key. Copy Token ID (the TURN key ID). https://developers.cloudflare.com/realtime/turn/',
+      AppSecret:
+        'Copy the App Secret from the same Realtime SFU application. Stored server-side; masked on reload. This is the SFU app secret, not a global account API key.',
+      NearbyDistance:
+        'Maximum nearby voice distance, 1–30 m. Limited further by the speaker’s current voice range and routing bucket.',
+      NearbyAudio:
+        'Mix nearby players’ NUI microphones using voice-provider talk/mute/range state. SaltyChat needs RequestTalkStates enabled. Browser microphone permission is required on each participating client.',
+    },
+    connecting: 'Connecting video…',
+    settings: {
+      NearbyMaxSpeakers: 'Nearby microphones per live',
+      ForceRelay: 'Require TURN relay for P2P',
+      Transport: 'Media transport',
+      MaxVideoEdge: 'Video height (pixels)',
+      Enabled: 'Video and live enabled',
+      VideoBitrateKbps: 'Video bitrate (kbit/s)',
+      FrameRate: 'Frames per second',
+      MaxBroadcasts: 'Simultaneous broadcasts',
+      VideoCalls: 'Phone video calls',
+      TurnEnabled: 'Cloudflare TURN',
+      ApiToken: 'Cloudflare TURN API Token',
+      MaxViewers: 'Viewers per live',
+      FlipTok: 'FlipTok live',
+      MaxDurationMinutes: 'Maximum duration (minutes)',
+      AppId: 'Cloudflare SFU App ID',
+      Picstagram: 'Picstagram live',
+      TurnKeyId: 'Cloudflare TURN Token ID',
+      AppSecret: 'Cloudflare SFU App Secret',
+      NearbyDistance: 'Nearby distance (metres)',
+      NearbyAudio: 'Nearby voices',
+    },
+    videoWaiting: 'Waiting for video acceptance…',
+    settingsGroup: 'Video calls and live',
+    title: 'Live title',
+    chatEmpty: 'Say hello in the livechat.',
+    accept: 'Accept',
+    unmute: 'Unmute microphone',
+    credentialsGroup: 'Cloudflare credentials',
+    message: 'Comment…',
+    send: 'Send',
+    mute: 'Mute microphone',
+    host: 'Host',
+    leave: 'Leave',
+    videoCall: 'Video call',
+    answerAudio: 'Answer with audio',
+    keepAudio: 'Keep audio',
+    incomingVideo: 'Incoming FaceTime',
+    faceTimeVideo: 'FaceTime Video',
+    videoConsent: 'Your camera turns on when you accept FaceTime.',
+    endVideo: 'Continue with audio',
+    yourCamera: 'Your camera',
+    waitingCamera: 'Waiting for the other camera…',
+    joinLive: 'Join {name} live',
+    people: 'People',
+    suggestedPeople: 'People to discover',
+    retryPeople: 'Could not load people. Try again',
+    noPeopleFound: 'No people match your search.',
+    noPeopleYet: 'New profiles will appear here.',
+    onAir: 'You are live',
+    videoRequest: 'Switch to a video call?',
+    endLive: 'End live',
+    chat: 'Livechat',
+    contributing: 'Microphone contributing to a nearby livestream',
+    live: 'LIVE',
+    microphoneHelp:
+      'Your microphone is used while you speak. Nearby voices may be included when enabled by the server.',
+    goLive: 'Go live',
+    decline: 'Decline',
+  },
   FaceId: {
     title: 'Face ID',
     setupBody:
@@ -1502,6 +1631,7 @@ const defaultLocales: LocaleTree = {
     citywarn: citywarnFallbackLocales,
     crypto: cryptoFallbackLocales,
     easyShare: {
+      open: 'Open',
       name: 'EasyShare',
       incoming: 'Incoming Share',
       recentChats: 'Contacts and Chats',
@@ -6003,6 +6133,7 @@ function getByPath(source: LocaleTree, path: string): unknown {
 export const usePhoneStore = defineStore('phone', {
   state: () => ({
     cameraLandscape: false,
+    appStatusBarLight: null as boolean | null,
     currentPage: 1,
     customTones: cloneJsonData(EMPTY_CUSTOM_PHONE_TONES),
     customTonesLoaded: false,

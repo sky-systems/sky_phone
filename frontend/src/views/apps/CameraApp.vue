@@ -461,6 +461,7 @@ onBeforeUnmount(() => {
 <template>
   <sky-app-page
     class="camera-page"
+    data-theme-policy="scene"
     :class="{ 'camera-page--landscape': phone.cameraLandscape }"
     :aria-label="phone.t('Apps.camera.name')"
     dark

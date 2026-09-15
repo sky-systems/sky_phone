@@ -9,6 +9,11 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains the optional default-off nearby phone screen', () => {
+    expect(
+      configuratorDescriptionKey('Animations.WorldDisplayEnabled', false),
+    ).toBe('phoneWorldDisplay')
+  })
   it('explains model-specific Face ID masks and texture wildcards', () => {
     expect(configuratorDescriptionKey('Security.FaceIdMaskWhitelist', [])).toBe(
       'faceIdMaskWhitelist',
@@ -162,4 +167,25 @@ describe('admin configurator descriptions', () => {
       'External Ping Resources',
     )
   })
+})
+
+it('explains the integrated voice controls alongside the provider and speaker switch', () => {
+  expect(configuratorDescriptionKey('Calls.VoiceProvider', 'pma')).toBe(
+    'callsVoiceProvider',
+  )
+  expect(configuratorDescriptionKey('Speaker.Enabled', true)).toBe(
+    'phoneSpeaker',
+  )
+})
+
+it('explains the independent default-on player and radio restrictions', () => {
+  expect(configuratorDescriptionKey('Phone.BlockWhenDead', true)).toBe(
+    'phoneBlockWhenDead',
+  )
+  expect(configuratorDescriptionKey('Phone.BlockWhenCuffed', true)).toBe(
+    'phoneBlockWhenCuffed',
+  )
+  expect(configuratorDescriptionKey('Radio.RequirePhoneItem', true)).toBe(
+    'radioRequirePhoneItem',
+  )
 })

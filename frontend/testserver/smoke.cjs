@@ -65,6 +65,8 @@ const browserDataRequests = [
   ['picstagram:bootstrap', {}],
   ['picstagram:feed', { limit: 20 }],
   ['picstagram:explore', { limit: 20 }],
+  ['picstagram:search', { search: '' }],
+  ['fliptok:profiles', { search: '' }],
   ['picstagram:saved', {}],
   ['picstagram:stories', {}],
   ['picstagram:activities', {}],

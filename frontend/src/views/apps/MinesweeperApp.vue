@@ -453,8 +453,8 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 10px rgb(23 73 75 / 8%);
 }
 
-.minesweeper-header .sky-button--glass { color: #246871; }
-.minesweeper-toolbar .sky-button--glass { --sky-touch-target: 32px; width: 32px; height: 32px; color: #246871; }
+.minesweeper-header .sky-button--glass { color: var(--sky-text); }
+.minesweeper-toolbar .sky-button--glass { --sky-touch-target: 32px; width: 32px; height: 32px; color: var(--sky-text); }
 
 .minesweeper-menu {
   height: calc(100% - 55px);

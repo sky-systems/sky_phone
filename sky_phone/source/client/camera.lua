@@ -5,12 +5,14 @@ local maximum_zoom = 3.0
 local mouse_wheel_zoom_step = 0.08
 local first_person_view_mode = 4
 local front_camera_view_mode = 0
-local front_camera_fov = 32.0
-local front_camera_distance = 1.05
+-- Render from the face-facing side of the held phone, not from behind the arm.
+-- The wider lens keeps the portrait framing at this shorter, arm-length distance.
+local front_camera_fov = 74.0
+local front_camera_distance = 0.40
 local front_camera_height = 0.05
 local front_camera_target_height = 0.03
-local front_camera_horizontal_limit = 75.0
-local front_camera_vertical_limit = 35.0
+local front_camera_horizontal_limit = 45.0
+local front_camera_vertical_limit = 20.0
 local front_camera_rotate_speed = 5.0
 local camera_passthrough_control = 22 -- INPUT_JUMP (Space by default)
 local blocked_camera_controls = {
@@ -51,6 +53,8 @@ local camera_state = {
     front_camera_handle = nil,
     front_camera_pitch = 0.0,
     front_camera_yaw = 0.0,
+    front_camera_render_pitch = 0.0,
+    front_camera_render_yaw = 0.0,
     game_input = false,
     landscape = false,
     locked = false,
@@ -95,8 +99,8 @@ end
 local function get_front_camera_transform(ped)
     local head_position = GetPedBoneCoords(ped, 31086, 0.0, 0.0, 0.0)
     local forward = GetEntityForwardVector(ped)
-    local yaw = math.rad(camera_state.front_camera_yaw)
-    local pitch = math.rad(camera_state.front_camera_pitch)
+    local yaw = math.rad(camera_state.front_camera_render_yaw)
+    local pitch = math.rad(camera_state.front_camera_render_pitch)
     local orbit_direction = vector3(
         (forward.x * math.cos(yaw)) - (forward.y * math.sin(yaw)),
         (forward.x * math.sin(yaw)) + (forward.y * math.cos(yaw)),
@@ -136,7 +140,13 @@ local function apply_front_camera(ped)
         RenderScriptCams(true, false, 0, true, true)
     end
 
+    local blend = 1.0 - math.exp(-12.0 * math.min(GetFrameTime(), 0.1))
+    camera_state.front_camera_render_yaw = camera_state.front_camera_render_yaw
+        + (camera_state.front_camera_yaw - camera_state.front_camera_render_yaw) * blend
+    camera_state.front_camera_render_pitch = camera_state.front_camera_render_pitch
+        + (camera_state.front_camera_pitch - camera_state.front_camera_render_pitch) * blend
     local camera_position, target_position = get_front_camera_transform(ped)
+    if SkyPhoneAnimations then SkyPhoneAnimations.AimCamera(camera_position, target_position, true) end
     SetCamCoord(
         camera_state.front_camera_handle,
         camera_position.x,
@@ -281,16 +291,23 @@ AddEventHandler("sky_phone:client:cameraFocusApplied", function(data)
     end
 end)
 
-local function set_camera_active(active)
+local set_front_camera
+
+local function set_camera_active(active, initial_front)
     if camera_state.active == active then
+        if active and initial_front ~= nil then set_front_camera(initial_front) end
         return
     end
     camera_state.active = active
     TriggerEvent("sky_phone:client:cameraActiveChanged", active)
     if active then
-        camera_state.front_camera = false
+        -- Select the initial lens before applying any native view mode. Opening
+        -- rear first would briefly enter first person before the selfie callback.
+        camera_state.front_camera = initial_front == true
         camera_state.front_camera_pitch = 0.0
         camera_state.front_camera_yaw = 0.0
+        camera_state.front_camera_render_yaw = 0.0
+        camera_state.front_camera_render_pitch = 0.0
         camera_state.landscape = false
         camera_state.locked = false
         camera_state.zoom = 1.0
@@ -300,6 +317,7 @@ local function set_camera_active(active)
         camera_state.previous_vehicle_view = GetFollowVehicleCamViewMode()
         DisplayRadar(false)
         set_camera_focus(true)
+        if camera_state.front_camera then apply_front_camera(PlayerPedId()) end
         apply_camera_view()
         TriggerEvent("sky_phone:animation:camera", {
             active = true,
@@ -315,6 +333,14 @@ local function set_camera_active(active)
                 HideHudAndRadarThisFrame()
                 if camera_state.front_camera then
                     apply_front_camera(PlayerPedId())
+                else
+                    -- First-person footage must not film our own camera-holding
+                    -- body. This native affects only this client and this frame.
+                    SetEntityLocallyInvisible(PlayerPedId())
+                    if SkyPhoneAnimations then
+                        local position = GetGameplayCamCoord()
+                        SkyPhoneAnimations.AimCamera(position, position + rotation_to_direction(GetGameplayCamRot(2)), false)
+                    end
                 end
                 apply_camera_view()
                 Wait(0)
@@ -327,6 +353,8 @@ local function set_camera_active(active)
     camera_state.front_camera = false
     camera_state.front_camera_pitch = 0.0
     camera_state.front_camera_yaw = 0.0
+    camera_state.front_camera_render_yaw = 0.0
+    camera_state.front_camera_render_pitch = 0.0
     camera_state.game_input = false
     camera_state.landscape = false
     camera_state.locked = false
@@ -342,7 +370,7 @@ local function set_camera_active(active)
     })
 end
 
-local function set_front_camera(active)
+set_front_camera = function(active)
     if camera_state.front_camera == active then
         return
     end
@@ -353,6 +381,8 @@ local function set_front_camera(active)
     if active then
         camera_state.front_camera_pitch = 0.0
         camera_state.front_camera_yaw = 0.0
+        camera_state.front_camera_render_yaw = 0.0
+        camera_state.front_camera_render_pitch = 0.0
         apply_front_camera(PlayerPedId())
     else
         clear_front_camera()
@@ -380,9 +410,8 @@ local function set_camera_landscape(active)
 end
 
 local function enable_walkable_camera(selfie_mode)
-    set_camera_active(true)
+    set_camera_active(true, selfie_mode == true)
     camera_state.walkable = true
-    set_front_camera(selfie_mode == true)
     set_camera_focus(false)
 end
 
@@ -416,14 +445,14 @@ SkyPhoneCamera.SetSelfie = set_front_camera
 SkyPhoneCamera.ToggleFrozen = toggle_camera_frozen
 
 RegisterNUICallback("camera:setActive", function(data, cb)
-    if type(data) ~= "table" then
+    if type(data) ~= "table" or (data.front ~= nil and type(data.front) ~= "boolean") then
         cb({ success = false, error = "invalid_request" })
         return
     end
     if data.active == true then
         camera_state.walkable = false
     end
-    set_camera_active(data.active == true)
+    set_camera_active(data.active == true, data.front)
     cb({ success = true })
 end)
 

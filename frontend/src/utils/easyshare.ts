@@ -51,8 +51,62 @@ export function easyShareRoute(payload: EasySharePayload): {
     easyShareKind: payload.kind,
     easyShareLink: payload.link ?? '',
   }
+  if (
+    !payload.meta?.received &&
+    ((payload.kind === 'profile' &&
+      ['flare', 'crewlink'].includes(payload.appId)) ||
+      ['note', 'text', 'document', 'photo', 'video', 'media'].includes(
+        payload.kind,
+      ))
+  ) {
+    query.sharedContent = JSON.stringify({
+      title: payload.title,
+      body: payload.copyText,
+      imageUrl: payload.imageUrl,
+      kind: payload.kind,
+      items:
+        payload.kind === 'media'
+          ? payload.meta?.items
+          : ['photo', 'video'].includes(payload.kind)
+            ? [
+                {
+                  url: payload.meta?.url ?? payload.imageUrl,
+                  mediaType: payload.kind,
+                },
+              ]
+            : [],
+    })
+  }
+  if (payload.appId === 'music' && payload.meta?.songs) {
+    query.sharedMusic = JSON.stringify({
+      title: payload.title,
+      songs: payload.meta.songs,
+    })
+  }
+  if (
+    payload.kind === 'location' &&
+    typeof payload.meta?.x === 'number' &&
+    typeof payload.meta?.y === 'number'
+  ) {
+    query.sharedLocation = JSON.stringify({
+      x: payload.meta.x,
+      y: payload.meta.y,
+      z: payload.meta.z ?? 0,
+      label: payload.title,
+    })
+  }
+  if (payload.kind === 'contact') {
+    const number = payload.meta?.phoneNumber ?? payload.subtitle
+    if (typeof number === 'string' && /^[+\d\s()-]+$/.test(number)) {
+      query.sharedContactNumber = number.replace(/[^+\d]/g, '')
+    }
+  }
   if (schemeApp === 'citymarkt' && match?.[2] === 'listing' && match[3]) {
-    query.listingId = decodeURIComponent(match[3])
+    try {
+      query.listingId = decodeURIComponent(match[3])
+    } catch {
+      query.listingId = match[3]
+    }
   }
   return {
     path,
@@ -119,5 +173,7 @@ export async function openEasySharePayload(
   router: Router,
   payload: EasySharePayload,
 ): Promise<void> {
-  await router.push(easyShareRoute(payload))
+  const target = easyShareRoute(payload)
+  target.query.easyShareLaunch = crypto.randomUUID()
+  await router.push(target)
 }

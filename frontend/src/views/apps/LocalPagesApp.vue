@@ -1514,6 +1514,7 @@ onMounted(async () => {
 
 <style scoped>
 .pages {
+  --pages-avatar-ink: #20231f;
   --yellow: #ffd63e;
   --ink: #15191d;
   --panel: #20262c;
@@ -1530,6 +1531,7 @@ onMounted(async () => {
 }
 .pages--light {
   --yellow: #8a6500;
+  --pages-avatar-ink: #fff;
   --panel: #f0f0eb;
   --muted: #737a7d;
   background: #fbfbf6;
@@ -1677,7 +1679,7 @@ onMounted(async () => {
   display: grid;
   place-items: center;
   background: var(--yellow);
-  color: #20231f;
+  color: var(--pages-avatar-ink, #20231f);
   font-size: 13px;
   font-weight: 900;
 }
@@ -2996,6 +2998,7 @@ onMounted(async () => {
   box-shadow: var(--shadow-ios-light-glass);
 }
 .pages__auth {
+  --sky-segmented-active-text: var(--pages-avatar-ink);
   padding: 2px 1px 18px;
 }
 .pages__auth-head {
