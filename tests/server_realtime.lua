@@ -29,14 +29,25 @@ local env = setmetatable({ Config = {}, IsDuplicityVersion = function() return t
     Wait = function() coroutine.yield() end,
 }, { __index = _G })
 assert(loadfile("sky_phone/config/config.lua", "t", env))()
-env.Bridge = { Callbacks = { Register = function(name,fn) callbacks[name]=fn end }, Database = {
-    AfterMigration = function(_,fn) fn() end,
+env.Bridge = { Debug = function() end, Callbacks = { Register = function(name,fn) callbacks[name]=fn end }, Database = {
     Query = function() sequence=sequence+1; return {{ id="live-"..sequence }} end,
 } }
 local call = { id="test-call", state="connected", video=true, caller={source=1}, callee={source=2} }
 env.SkyPhoneCalls = { GetForSource = function(src) return (src==1 or src==2) and call or nil end,
     StopVideo = function() call.video=false end }
-env.SkyPhone = { AllowOperation = function() return true end, RequireSession = function(src) return profiles[src] end }
+-- Exercise the actual deferred migration lifecycle; an eagerly mocked SkyPhone
+-- hides voice events that arrive before the phone module exists or is ready.
+assert(loadfile("sky_phone/source/bridge/server/migrations.lua", "t", env))()
+local rate_allowed, rate_requests = true, {}
+env.Bridge.Database.AfterMigration("sky_phone", function()
+    env.SkyPhone = {}
+    coroutine.yield("phone_initializing")
+    env.SkyPhone.AllowOperation = function(src, operation, maximum, window)
+        rate_requests[#rate_requests + 1] = { src=src, operation=operation, maximum=maximum, window=window }
+        return rate_allowed
+    end
+    env.SkyPhone.RequireSession = function(src) return profiles[src] end
+end)
 env.SkyPhoneRealtimeCloudflare = { Ice = function() return {{ urls="stun:test" }} end,
     Sfu = function(session,op,payload)
         requests[#requests+1]={session=session,op=op,payload=payload}
@@ -61,7 +72,34 @@ end
 local function join(src,id)
     success(invoke("join",src,{id=id})); return success(invoke("ready",src,{id=id}))
 end
+env.source=5
+for _=1,3 do
+    handlers["sky_phone:realtime:voice"]({enabled=true,range=10})
+    tick()
+end
+assert(env.SkyPhone==nil and #rate_requests==0 and not next(callbacks),
+    "Voice heartbeats must wait while the database migration is pending")
+local initialization=coroutine.create(function() env.Bridge.Database.CompleteMigration("sky_phone") end)
+local ok, status=coroutine.resume(initialization)
+assert(ok and status=="phone_initializing")
+handlers["sky_phone:realtime:voice"]({enabled=true,range=10})
+assert(#rate_requests==0 and not next(callbacks), "A partially initialized phone must not receive realtime operations")
+assert(coroutine.resume(initialization))
+assert(coroutine.status(initialization)=="dead")
+assert(success(invoke("config",1,{})).enabled, "Realtime callbacks must become available after phone initialization")
+rate_allowed=false
+assert(invoke("create",1,{kind="live",app="picstagram",title="Limited"}).error=="rate_limited")
+handlers["sky_phone:realtime:voice"]({enabled=true,range=10})
+local voice_request=rate_requests[#rate_requests]
+assert(voice_request.src==5 and voice_request.operation=="realtime_voice"
+    and voice_request.maximum==90 and voice_request.window==60, "Voice must retain the shared rate limit after startup")
+rate_allowed=true
 local id=create("picstagram")
+tick()
+for _,event in ipairs(events) do
+    assert(event.name~="sky_phone:realtime:nearby", "Early or rate-limited voice reports must not be retained")
+end
+print("PASS realtime startup: delayed migration, partial phone initialization, recovery and rate limits")
 local live_entries = success(invoke("list",2,{app="picstagram"}))
 assert(#live_entries == 1 and live_entries[1].profileId == "1", "Live avatars need the public profile identity")
 blocked[3]=true

@@ -2,10 +2,14 @@ SkyPhoneRealtime = SkyPhoneRealtime or { Apps = {} }
 local rooms, voice_states = {}, {}
 local member_locks = {}
 local cf = SkyPhoneRealtimeCloudflare
+local phone
 local function failure(err) return { success = false, error = err or "request_failed" } end
 local function valid_id(id) return type(id) == "string" and #id > 0 and #id <= 80 and id:match("^[%w:_-]+$") end
 local function allowed(source, operation, limit)
-    return SkyPhone.AllowOperation(source, "realtime_" .. operation, limit, 60)
+    -- Voice heartbeats arrive before database/module initialization completes.
+    -- Bind the phone service after migration; discard these early reports.
+    if not phone then return false end
+    return phone.AllowOperation(source, "realtime_" .. operation, limit, 60)
 end
 local function own_profile(source, app)
     local adapter = SkyPhoneRealtime.Apps[app]
@@ -187,6 +191,10 @@ local function new_room(source, data)
 end
 
 Bridge.Database.AfterMigration("sky_phone", function()
+    assert(type(SkyPhone) == "table" and type(SkyPhone.AllowOperation) == "function"
+        and type(SkyPhone.RequireSession) == "function",
+        "[sky_phone] Realtime initialization requires the phone session and rate-limit services.")
+    phone = SkyPhone
     local function register(name, limit, handler)
         Bridge.Callbacks.Register("sky_phone:realtime:" .. name, function(source, data)
             if type(data) ~= "table" then return failure("invalid_request") end
@@ -196,7 +204,7 @@ Bridge.Database.AfterMigration("sky_phone", function()
         end)
     end
     register("config", 30, function(source)
-        local session, err = SkyPhone.RequireSession(source)
+        local session, err = phone.RequireSession(source)
         if not session then return err end
         return { success = true, data = public_config() }
     end)
