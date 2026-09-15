@@ -75,6 +75,12 @@ end
 SkyPhoneAnimations = {}
 
 function SkyPhoneAnimations.AimCamera(camera_position, target_position, front)
+    -- Keep the networked phone in the hand while excluding it from our own
+    -- rear-camera footage. Visibility returns automatically next frame.
+    if animation_state.camera_active and not front and animation_state.prop
+        and DoesEntityExist(animation_state.prop) then
+        SetEntityLocallyInvisible(animation_state.prop)
+    end
     local ped = animation_state.ped
     if not animation_state.camera_active or not Config.Animations.Enabled
         or not ped or not animation_state.prop or not can_animate(ped)

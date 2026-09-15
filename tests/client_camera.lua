@@ -13,6 +13,8 @@ local disabled_pressed_controls = {}
 local disabled_control_normals = {}
 local triggered_events = {}
 local thread_stop = {}
+local locally_hidden = {}
+function SetEntityLocallyInvisible(entity) locally_hidden[entity] = true end
 
 SkyPhoneFocus = {
     IsHoldToLookPressed = function()
@@ -285,7 +287,7 @@ function SetIkTarget(_, part, _, _, x, y, z)
 end
 
 local function frame()
-    hand_targets, arm_enabled = {}, false
+    hand_targets, arm_enabled, locally_hidden = {}, false, {}
     local count = #threads
     for i = 1, count do
         if coroutine.status(threads[i]) ~= "dead" then
@@ -298,6 +300,7 @@ local function frames(count)
     for _ = 1, count do frame() end
 end
 local function assert_hand_follows_selfie()
+    assert(not next(locally_hidden), "Selfie must show the player and phone again on the next frame")
     local hand = assert(hand_targets[4], "An active FaceTime camera must update the holding arm every frame")
     local direction = camera_coord - camera_target
     local length = math.sqrt(direction.x ^ 2 + direction.y ^ 2 + direction.z ^ 2)
@@ -368,9 +371,18 @@ assert_hand_follows_selfie()
 assert(response_from("camera:setFacing", { front = false }).success)
 frames(2)
 assert(hand_targets[4] and played_clip == "selfie", "Rear video must retain the camera grip and follow camera aim")
+assert(locally_hidden[7] and locally_hidden[99], "Rear footage must hide the local player's body and phone for this frame")
+assert(prop_exists, "The phone must remain attached and networked for other players")
+assert(response_from("camera:setFacing", { front = true }).success)
+frames(2)
+assert_hand_follows_selfie()
+assert(response_from("camera:setFacing", { front = false }).success)
+frames(2)
+assert(locally_hidden[7] and locally_hidden[99], "Repeated camera flips must keep rear footage clear")
 assert(response_from("camera:setActive", { active = false }).success)
 frames(2)
 assert(not next(hand_targets) and not arm_enabled, "Closing video must release the arm while the call remains active")
+assert(not next(locally_hidden), "Closing capture must restore visibility without modifying network visibility")
 assert(played_clip == "cellphone_text_read_base", "Closing capture must restore the normal phone hold")
 TriggerEvent("sky_phone:animation:reset")
 frames(2)

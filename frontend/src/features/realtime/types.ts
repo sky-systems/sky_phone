@@ -34,6 +34,7 @@ export type LiveMessage = {
   at: number
 }
 export type Room = {
+  revision?: number
   id: string
   kind: 'call' | 'live'
   app?: LiveApp

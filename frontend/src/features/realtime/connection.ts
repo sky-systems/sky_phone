@@ -46,6 +46,7 @@ export class LiveConnection {
   private subscriptions = new Map<number, string[]>()
   private streams = new Map<number, MediaStream>()
   private latest: Room
+  private pendingSignals: { from: number; signal: Signal }[] = []
   constructor(
     private room: Room,
     private config: RealtimeConfig,
@@ -95,7 +96,8 @@ export class LiveConnection {
     })
     await sender.setParameters(parameters)
   }
-  async start(): Promise<void> {
+  async start(room: Room = this.latest): Promise<void> {
+    this.room = this.latest = room
     if (this.room.transport === 'cloudflare') {
       this.sfu = this.rtc()
       this.sfu.ontrack = (event) => {
@@ -162,6 +164,12 @@ export class LiveConnection {
           await this.send(peer.id, remote.connection.localDescription!.toJSON())
         }
       }
+      const pending = this.pendingSignals.splice(0)
+      for (const entry of pending) {
+        const peer = room.peers.find((peer) => peer.id === entry.from)
+        if (peer) await this.applySignal(peer, entry.signal)
+        else this.pendingSignals.push(entry)
+      }
     })
   }
   private createPeer(peer: Peer): Remote {
@@ -221,39 +229,50 @@ export class LiveConnection {
   }
   signal(from: number, signal: Signal): Promise<void> {
     return this.serial(async () => {
-      const peer = this.latest.peers.find((entry) => entry.id === from)
-      if (!peer || this.room.transport !== 'p2p') return
-      const remote = this.createPeer(peer)
-      if (signal.type === 'candidate') {
-        if (remote.connection.remoteDescription)
-          await remote.connection.addIceCandidate(signal.candidate)
-        else remote.candidates.push(signal.candidate)
+      if (this.room.transport !== 'p2p') return
+      const peer = this.room.peers.find((entry) => entry.id === from)
+      if (!peer) {
+        // The server authorizes signals, but its peer update can arrive later.
+        // Wait for the roster so media directions still come from room roles.
+        if (this.pendingSignals.length >= 128)
+          throw new Error('connection_failed')
+        this.pendingSignals.push({ from, signal })
         return
       }
-      await remote.connection.setRemoteDescription(signal)
-      for (const candidate of remote.candidates.splice(0))
-        await remote.connection.addIceCandidate(candidate)
-      if (signal.type === 'offer') {
-        for (const transceiver of remote.connection.getTransceivers()) {
-          const kind = transceiver.receiver.track.kind as 'audio' | 'video'
-          transceiver.direction = directions(this.room, peer, kind)
-          const track = this.stream
-            .getTracks()
-            .find((entry) => entry.kind === kind)
-          if (track && transceiver.direction.startsWith('send')) {
-            await transceiver.sender.replaceTrack(track)
-            transceiver.sender.setStreams(this.stream)
-          }
-        }
-        await remote.connection.setLocalDescription(
-          await remote.connection.createAnswer(),
-        )
-        await this.send(from, remote.connection.localDescription!.toJSON())
-      }
-      await Promise.all(
-        remote.connection.getSenders().map((sender) => this.limit(sender)),
-      )
+      await this.applySignal(peer, signal)
     })
+  }
+  private async applySignal(peer: Peer, signal: Signal): Promise<void> {
+    const remote = this.createPeer(peer)
+    if (signal.type === 'candidate') {
+      if (remote.connection.remoteDescription)
+        await remote.connection.addIceCandidate(signal.candidate)
+      else remote.candidates.push(signal.candidate)
+      return
+    }
+    await remote.connection.setRemoteDescription(signal)
+    for (const candidate of remote.candidates.splice(0))
+      await remote.connection.addIceCandidate(candidate)
+    if (signal.type === 'offer') {
+      for (const transceiver of remote.connection.getTransceivers()) {
+        const kind = transceiver.receiver.track.kind as 'audio' | 'video'
+        transceiver.direction = directions(this.room, peer, kind)
+        const track = this.stream
+          .getTracks()
+          .find((entry) => entry.kind === kind)
+        if (track && transceiver.direction.startsWith('send')) {
+          await transceiver.sender.replaceTrack(track)
+          transceiver.sender.setStreams(this.stream)
+        }
+      }
+      await remote.connection.setLocalDescription(
+        await remote.connection.createAnswer(),
+      )
+      await this.send(peer.id, remote.connection.localDescription!.toJSON())
+    }
+    await Promise.all(
+      remote.connection.getSenders().map((sender) => this.limit(sender)),
+    )
   }
   private async updateSfu(room: Room): Promise<void> {
     const connection = this.sfu
@@ -293,6 +312,7 @@ export class LiveConnection {
   }
   close(): void {
     this.closed = true
+    this.pendingSignals = []
     this.peers.forEach((peer) => peer.connection.close())
     this.peers.clear()
     this.sfu?.close()

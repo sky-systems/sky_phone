@@ -68,17 +68,25 @@ local function snapshot(room, source)
         end
     end
     table.sort(peers, function(a, b) return a.id < b.id end)
-    return { id = room.id, kind = room.kind, app = room.app, title = room.title, description = room.description, hostName = room.hostName, profileId = tostring(room.profileId or ""), hostAvatar = room.hostAvatar,
+    local data = { id = room.id, kind = room.kind, app = room.app, title = room.title, description = room.description, hostName = room.hostName, profileId = tostring(room.profileId or ""), hostAvatar = room.hostAvatar,
         role = member.role, self = source, peers = peers, viewers = viewers, transport = room.transport,
         messages = member.role ~= "nearby" and room.messages or {} }
+    -- Callback replies and room events can reach NUI in a different order. Only
+    -- advance the member's revision when its public snapshot actually changes.
+    local encoded = json.encode(data)
+    if member.lastSnapshot ~= encoded then
+        member.lastSnapshot = encoded
+        member.revision = (member.revision or 0) + 1
+    end
+    data.revision = member.revision
+    return data
 end
 local function broadcast(room)
     for source, member in pairs(room.members) do
         if member.ready then
             local data = snapshot(room, source)
-            local encoded = json.encode(data)
-            if member.lastSnapshot ~= encoded then
-                member.lastSnapshot = encoded
+            if member.broadcastRevision ~= data.revision then
+                member.broadcastRevision = data.revision
                 TriggerClientEvent("sky_phone:realtime:room", source, data)
             end
         end

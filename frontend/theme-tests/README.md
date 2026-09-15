@@ -23,6 +23,8 @@ Account scenarios additionally cover login and registration (empty, filled and r
 
 Additional browser scenarios cover Feather's profile and editor, both social discovery views, live avatar entry, empty and filled live forms, host/viewer counters and chat, host-composer geometry above the real app navigation/home indicator, direct video/audio answering, and audio-button state/color with integrated PMA and SaltyChat controls. These use the production Vue components with development media fixtures, not a real FiveM/voice-provider connection.
 
+The FaceTime regression in `realtime.pw.mjs` additionally connects two native browser WebRTC peers with canvas video tracks. It deliberately delivers the offer before the receiving peer roster and requires decoded video in both directions. Only signaling is simulated; gameplay capture, arm animation and camera framing still require an in-game test.
+
 ## Review and extend
 
 Reports and screenshots are written to `theme-test-results` and `playwright-report` (gitignored). Open the report with `pnpm exec playwright show-report`. CI attaches the reports when the Frontend job fails. Review skipped image/gradient areas in the screenshots. Fix colors with semantic Sky tokens; do not add an app-wide exclusion to hide a failure.

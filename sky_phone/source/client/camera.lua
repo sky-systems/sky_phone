@@ -327,9 +327,14 @@ local function set_camera_active(active)
                 HideHudAndRadarThisFrame()
                 if camera_state.front_camera then
                     apply_front_camera(PlayerPedId())
-                elseif SkyPhoneAnimations then
-                    local position = GetGameplayCamCoord()
-                    SkyPhoneAnimations.AimCamera(position, position + rotation_to_direction(GetGameplayCamRot(2)), false)
+                else
+                    -- First-person footage must not film our own camera-holding
+                    -- body. This native affects only this client and this frame.
+                    SetEntityLocallyInvisible(PlayerPedId())
+                    if SkyPhoneAnimations then
+                        local position = GetGameplayCamCoord()
+                        SkyPhoneAnimations.AimCamera(position, position + rotation_to_direction(GetGameplayCamRot(2)), false)
+                    end
                 end
                 apply_camera_view()
                 Wait(0)

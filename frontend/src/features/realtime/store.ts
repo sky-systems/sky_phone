@@ -127,7 +127,7 @@ export const useRealtimeStore = defineStore('realtime', () => {
       if (!sessions.has(initial.id)) return
       if (!ready.success || !ready.data) throw new Error(ready.error || 'ended')
       updateRoom(ready.data)
-      await connection.start()
+      await connection.start(session.room)
       if (!sessions.has(initial.id)) return
       session.ready = true
       await connection.update(session.room)
@@ -151,6 +151,8 @@ export const useRealtimeStore = defineStore('realtime', () => {
   function updateRoom(next: Room): void {
     const session = sessions.get(next.id)
     if (!session) return
+    // A ready/heartbeat reply may predate a room event already received by NUI.
+    if ((next.revision ?? 0) < (session.room.revision ?? 0)) return
     session.room = next
     if (room.value?.id === next.id) room.value = next
     for (const peer of next.peers)
