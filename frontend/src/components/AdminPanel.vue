@@ -451,6 +451,12 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
       `CrewLink.QuickPing.${key}`,
       t(`configurator.crewlinkQuickPingLabels.${key}`),
     ]),
+    ...['MinimumGrade', 'MaximumSeverity', 'CityWide', 'Categories'].map(
+      (key) => [
+        `CityWarn.Publishers.*.${key}`,
+        t(`configurator.citywarnPublisherLabels.${key}`),
+      ],
+    ),
     ['CityWarn.CategoryColors', t('configurator.citywarnCategoryColors')],
     ...Object.keys(DEFAULT_CITYWARN_COLORS).map((category) => [
       `CityWarn.CategoryColors.${category}`,

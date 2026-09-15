@@ -124,6 +124,11 @@ export function configuratorDescriptionKey(
     /^CityWarn\.Blip\.(Sprite|Display|ShortRange|CategoryId|CategoryName|GroupByCategory|RadiusEnabled|Radius)$/,
   )
   if (citywarnBlip) return `citywarnBlip${citywarnBlip[1]}`
+  if (path === 'CityWarn.Publishers') return 'citywarnPublishers'
+  const citywarnPublisher = path.match(
+    /^CityWarn\.Publishers\.[^.]+(?:\.(MinimumGrade|MaximumSeverity|CityWide|Categories)(?:\[\d+\]|\.\d+)?)?$/,
+  )
+  if (citywarnPublisher) return `citywarnPublisher${citywarnPublisher[1] ?? ''}`
   if (/^CityWarn\.CategoryColors(?:\.[^.]+)?$/.test(path))
     return 'citywarnCategoryColor'
   if (path === 'Garage.System') return 'garageSystem'
@@ -165,8 +170,10 @@ export function describeConfiguratorValue(
   structure?: AdminConfiguratorStructure,
   label?: string,
 ): string {
-  return translate(
-    `configurator.descriptions.${configuratorDescriptionKey(path, value, structure)}`,
-    { name: label?.trim() || configuratorPathName(path) },
-  )
+  const key = configuratorDescriptionKey(path, value, structure)
+  const name =
+    key === 'citywarnPublisher'
+      ? path.slice('CityWarn.Publishers.'.length)
+      : label?.trim() || configuratorPathName(path)
+  return translate(`configurator.descriptions.${key}`, { name })
 }

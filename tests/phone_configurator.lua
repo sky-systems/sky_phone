@@ -413,6 +413,101 @@ test("stale revisions cannot overwrite saved settings", function()
     assert(server.env.Config.Companies.Enabled == true)
 end)
 
+test("CityWarn publishers and categories can be added, changed, removed and restored from SQL", function()
+    local server = new_server()
+    local field = server.field("CityWarn")
+    local schema = field.structure.fields.Publishers
+    assert(schema.kind == "table" and schema.mutableKeys)
+    assert(schema.template.fields.MinimumGrade.valueType == "number")
+    assert(schema.template.fields.Categories.kind == "list")
+    assert(#schema.template.fields.Categories.items == 0, "categories must not be locked to the defaults")
+    assert(schema.template.fields.Categories.template.valueType == "string")
+    local settings = field.value
+    settings.Publishers.mechanic = copy(schema.entryDefault)
+    settings.Publishers.mechanic.Categories = { "infrastructure" }
+    settings.Publishers.mechanic.MinimumGrade = 0
+    settings.Publishers.police.Categories = { "police" }
+    settings.Publishers.fire = nil
+    assert(server.save({ change("CityWarn", settings) }).success)
+    assert(server.env.Config.CityWarn.Publishers.mechanic.MaximumSeverity == "information")
+    assert(server.updates[1].config.CityWarn.Publishers.mechanic.MinimumGrade == 0)
+    assert(server.runtime().config.CityWarn.Publishers == nil, "publisher policy stays server-owned")
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.CityWarn.Publishers.fire == nil, "removed jobs must not return")
+    assert(#restarted.env.Config.CityWarn.Publishers.police.Categories == 1)
+    assert(restarted.env.Config.CityWarn.Publishers.police.Categories[1] == "police")
+    settings = restarted.field("CityWarn").value
+    settings.Publishers.mechanic.MaximumSeverity = "danger"
+    settings.Publishers.mechanic.CityWide = true
+    settings.Publishers.mechanic.Categories = { "infrastructure", "evacuation" }
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    restarted = new_server(server.database)
+    assert(restarted.env.Config.CityWarn.Publishers.mechanic.CityWide)
+    assert(restarted.env.Config.CityWarn.Publishers.mechanic.Categories[2] == "evacuation")
+    settings = restarted.field("CityWarn").value
+    settings.Publishers.mechanic.Categories = {}
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    restarted = new_server(server.database)
+    assert(next(restarted.env.Config.CityWarn.Publishers.mechanic.Categories) == nil)
+    settings = restarted.field("CityWarn").value
+    settings.Publishers = {}
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    restarted = new_server(server.database)
+    assert(next(restarted.env.Config.CityWarn.Publishers) == nil)
+    settings = restarted.field("CityWarn").value
+    settings.Publishers.mechanic = copy(restarted.field("CityWarn").structure.fields.Publishers.entryDefault)
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    assert(new_server(server.database).env.Config.CityWarn.Publishers.mechanic.Categories[1] == "public_safety")
+end)
+
+test("an empty file-based publisher list still has a complete creation schema", function()
+    local server = new_server(nil, function(defaults) defaults.CityWarn.Publishers = {} end)
+    local field = server.field("CityWarn")
+    local schema = field.structure.fields.Publishers
+    assert(schema.mutableKeys and schema.template.fields.CityWide.valueType == "boolean")
+    assert(next(schema.fields) == nil)
+    field.value.Publishers.mechanic = copy(schema.entryDefault)
+    assert(server.save({ change("CityWarn", field.value) }).success)
+    assert(new_server(server.database).env.Config.CityWarn.Publishers.mechanic.MinimumGrade == 2)
+end)
+
+test("invalid publisher permissions reject the whole save before SQL or runtime updates", function()
+    local invalid = {
+        function(p) p.MinimumGrade = -1 end,
+        function(p) p.MinimumGrade = 1.5 end,
+        function(p) p.MinimumGrade = math.huge end,
+        function(p) p.MinimumGrade = "2" end,
+        function(p) p.MaximumSeverity = "urgent" end,
+        function(p) p.MaximumSeverity = "" end,
+        function(p) p.CityWide = "true" end,
+        function(p) p.Categories = { "unknown" } end,
+        function(p) p.Categories = { "police", "police" } end,
+        function(p) p.Categories = { [2] = "police" } end,
+        function(p) p.Categories = { police = true } end,
+        function(p) p.Categories = { false } end,
+        function(p) p.Categories = nil end,
+        function(p) p.Unexpected = true end,
+    }
+    for _, mutate in ipairs(invalid) do
+        for _, job in ipairs({ "mechanic", "police" }) do
+            local server = new_server()
+            local field = server.field("CityWarn")
+            field.value.Publishers[job] = copy(field.structure.fields.Publishers.entryDefault)
+            mutate(field.value.Publishers[job])
+            assert(not server.save({ change("CityWarn", field.value), change("Companies.Enabled", false) }).success)
+            assert(server.database.writes == 0 and #server.broadcasts == 0 and #server.updates == 0)
+            assert(server.env.Config.Companies.Enabled == true)
+        end
+    end
+    for _, job in ipairs({ "bad job", "bad.job", "", string.rep("a", 65), "__skyType" }) do
+        local server = new_server()
+        local field = server.field("CityWarn")
+        field.value.Publishers[job] = copy(field.structure.fields.Publishers.entryDefault)
+        assert(not server.save({ change("CityWarn", field.value) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+end)
+
 test("CityWarn presentation roundtrips through SQL and reaches connected and new clients", function()
     local server = new_server()
     local defaults = server.field("CityWarn").value
