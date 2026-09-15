@@ -299,7 +299,10 @@ local function merge_values(defaults, saved, path, excluded_paths)
         end
         return companies
     end
-    if path == "CityWarn.Publishers" or radio_job_entry_default(path) ~= nil then
+    if path == "CityWarn.Publishers" then
+        return copy_value(saved)
+    end
+    if radio_job_entry_default(path) ~= nil then
         return copy_value(saved)
     end
     if defaults.__skyType == "map" and not saved.__skyType then
