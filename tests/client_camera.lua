@@ -208,3 +208,149 @@ assert(not closed_state.walkable, "walkable camera must report disabled")
 assert(not closed_state.active, "walkable camera disable must close the camera")
 
 print("Client camera tests passed")
+
+-- Run the real camera and animation handlers together. Native spies validate the
+-- submitted pose; only a FiveM session can validate the engine's rendered bones.
+threads = {}
+function CreateThread(callback)
+    threads[#threads + 1] = coroutine.create(callback)
+end
+function Wait() coroutine.yield() end
+local record_event = TriggerEvent
+function TriggerEvent(name, data)
+    record_event(name, data)
+    if event_handlers[name] then event_handlers[name](data) end
+end
+
+local prop_exists = false
+local ragdoll = false
+local played_clip = nil
+local hand_targets = {}
+local arm_enabled = false
+local head_enabled = false
+Bridge = { Debug = function(_, message) error(message) end }
+Config = { Animations = {
+    Enabled = true, PropModel = "prop_npc_phone_02", PropBone = 28422,
+    LoadTimeoutMs = 5000, ContextPollMs = 250,
+    Dictionaries = { OnFoot = "cellphone@", Camera = "cellphone@self" },
+    Clips = {
+        TextIn = "cellphone_text_in", TextRead = "cellphone_text_read_base",
+        TextOut = "cellphone_text_out", CallListen = "cellphone_call_listen_base",
+        TextToCall = "cellphone_text_to_call", CallToText = "cellphone_call_to_text",
+        CallOut = "cellphone_call_out", Camera = "selfie",
+    },
+    Transforms = { Portrait = { position = vector3(0, 0, 0), rotation = vector3(0, 0, 0) } },
+} }
+function DoesEntityExist(entity) return entity == 7 or (entity == 99 and prop_exists) end
+function IsEntityDead() return false end
+function IsPedRagdoll() return ragdoll end
+function IsPedFalling() return false end
+function IsPedClimbing() return false end
+function IsPedSwimming() return false end
+function IsPedSwimmingUnderWater() return false end
+function IsPedInParachuteFreeFall() return false end
+function joaat(value) return value end
+function RequestModel() end
+function HasModelLoaded() return true end
+function SetModelAsNoLongerNeeded() end
+function GetGameTimer() return 0 end
+function CreateObject() prop_exists = true; return 99 end
+function SetEntityCollision() end
+function GetPedBoneIndex(_, bone) return bone end
+function AttachEntityToEntity(prop, ped, bone)
+    assert(prop == 99 and ped == 7 and bone == Config.Animations.PropBone,
+        "The phone must remain attached to the configured hand")
+end
+function RequestAnimDict() end
+function HasAnimDictLoaded() return true end
+function GetAnimDuration() return 0.5 end
+function TaskPlayAnim(_, _, clip) played_clip = clip end
+function StopAnimTask() played_clip = nil end
+function DetachEntity() end
+function SetEntityAsMissionEntity() end
+function DeleteEntity() prop_exists = false end
+function GetGameplayCamCoord() return vector3(10, 20, 2.7) end
+function GetGameplayCamRot() return vector3(15, 0, 30) end
+function SetPedCanArmIk(ped, enabled)
+    assert(ped == 7 and enabled)
+    arm_enabled = true
+end
+function SetPedCanHeadIk(ped, enabled)
+    assert(ped == 7 and enabled)
+    head_enabled = true
+end
+function SetIkTarget(_, part, _, _, x, y, z)
+    if part == 1 then
+        assert(head_enabled, "Selfie head tracking must enable head IK")
+    else
+        assert(arm_enabled, "A moving camera must enable arm IK before submitting the hand target")
+        hand_targets[part] = vector3(x, y, z)
+    end
+end
+
+local function frame()
+    hand_targets, arm_enabled, head_enabled = {}, false, false
+    local count = #threads
+    for i = 1, count do
+        if coroutine.status(threads[i]) ~= "dead" then
+            local ok, err = coroutine.resume(threads[i])
+            assert(ok, err)
+        end
+    end
+end
+local function frames(count)
+    for _ = 1, count do frame() end
+end
+local function assert_hand_follows_selfie()
+    local hand = assert(hand_targets[4], "An active FaceTime camera must update the holding arm every frame")
+    local direction = camera_coord - camera_target
+    local length = math.sqrt(direction.x ^ 2 + direction.y ^ 2 + direction.z ^ 2)
+    local expected = GetPedBoneCoords() + direction * (0.52 / length) - vector3(0, 0, 0.14)
+    assert(close_enough(hand.x, expected.x) and close_enough(hand.y, expected.y)
+        and close_enough(hand.z, expected.z), "The hand must track the rendered camera, including its orbit smoothing")
+    return hand
+end
+
+dofile("sky_phone/source/client/animations.lua")
+dofile("sky_phone/source/client/camera.lua")
+TriggerEvent("sky_phone:animation:phone", true)
+TriggerEvent("sky_phone:animation:call", { state = "connected", direction = "outgoing", video = true })
+frames(4)
+assert(played_clip == "cellphone_text_read_base", "FaceTime must preserve the requested phone-open base pose")
+assert(response_from("camera:setActive", { active = true }).success)
+assert(response_from("camera:setFacing", { front = true }).success)
+TriggerEvent("sky_phone:client:cameraFocusApplied", { active = true, cursor = false, focused = true, gameInput = true })
+frames(4)
+local initial_hand = assert_hand_follows_selfie()
+assert(played_clip == "cellphone_text_read_base", "Camera tracking must overlay the phone pose")
+
+disabled_control_normals[1], disabled_control_normals[2] = 0.5, -0.5
+frames(8)
+local raised_hand = assert_hand_follows_selfie()
+assert(raised_hand.x > initial_hand.x and raised_hand.z > initial_hand.z,
+    "Turning and raising the camera must also move the holding arm horizontally and vertically")
+disabled_control_normals[1], disabled_control_normals[2] = -0.5, 0.5
+frames(16)
+local lowered_hand = assert_hand_follows_selfie()
+assert(lowered_hand.x < raised_hand.x and lowered_hand.z < raised_hand.z,
+    "The arm must follow both directions, not remain at the previous camera target")
+disabled_control_normals[1], disabled_control_normals[2] = 0, 0
+frame()
+assert_hand_follows_selfie() -- Native targets expire after one update, even with no new mouse input.
+
+ragdoll = true
+frame()
+assert(not next(hand_targets) and not arm_enabled, "Unavailable peds must not receive camera arm overrides")
+ragdoll = false
+frames(4)
+assert_hand_follows_selfie()
+assert(response_from("camera:setFacing", { front = false }).success)
+frames(2)
+assert(hand_targets[4] and not head_enabled, "Rear video must follow camera aim without selfie head tracking")
+assert(response_from("camera:setActive", { active = false }).success)
+frames(2)
+assert(not next(hand_targets) and not arm_enabled, "Closing video must release the arm while the call remains active")
+TriggerEvent("sky_phone:animation:reset")
+frames(2)
+assert(not prop_exists and not next(hand_targets), "Reset must release the phone prop and arm tracking")
+print("PASS FaceTime camera/animation integration: base pose, both axes, continuous targets, facing and cleanup")

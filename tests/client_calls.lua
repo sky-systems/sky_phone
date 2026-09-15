@@ -147,8 +147,23 @@ vector.__sub = function(a, b) return setmetatable({ x = a.x - b.x, y = a.y - b.y
 vector.__mul = function(a, scale) return setmetatable({ x = a.x * scale, y = a.y * scale, z = a.z * scale }, vector) end
 local function vec(x,y,z) return setmetatable({ x=x, y=y, z=z },vector) end
 function GetPedBoneCoords() return vec(0, 0, 1.7) end
-function SetIkTarget(ped, part, entity, bone, x, y, z, flags)
-    assert(ped == 1 and entity == 0 and bone == -1 and flags == 16)
+local ik_enabled = {}
+function SetPedCanArmIk(ped, enabled)
+    assert(ped == 1 and enabled)
+    ik_enabled.arm = enabled
+end
+function SetPedCanHeadIk(ped, enabled)
+    assert(ped == 1 and enabled)
+    ik_enabled.head = enabled
+end
+function SetIkTarget(ped, part, entity, bone, x, y, z, flags, blend_in, blend_out)
+    assert(ped == 1 and entity == 0 and bone == -1)
+    assert(blend_in == 0 and blend_out == 150, "Camera IK must follow the current frame without a second blend-in")
+    if part == 1 then
+        assert(ik_enabled.head and flags == 0, "Head IK must be enabled and use head-compatible flags")
+    else
+        assert(ik_enabled.arm and flags == 1, "Hand IK must not depend on the phone clip's IK allow-tags")
+    end
     assert(type(x) == "number" and type(y) == "number" and type(z) == "number")
     ik[part] = { x=x, y=y, z=z }
 end
@@ -158,8 +173,12 @@ SkyPhoneAnimations.AimCamera(vec(0, 1, 1.7), vec(0, 0, 1.7), true)
 assert(ik[4] and ik[1] and math.abs(ik[4].y - 0.52) < 0.001)
 SkyPhoneAnimations.AimCamera(vec(1, 0, 1.7), vec(0, 0, 1.7), true)
 assert(ik[4].x > 0.5 and ik[4].y == 0, "Hand must follow camera direction instead of holding a static pose")
-animation_state.camera_active = false
+Config.Animations.PropBone = 18905
 ik = {}
+SkyPhoneAnimations.AimCamera(vec(-1, 0, 2.2), vec(0, 0, 1.7), true)
+assert(ik[3] and not ik[4] and ik[3].z > 1.56, "Custom left-hand props must use the left arm and follow vertical look")
+animation_state.camera_active = false
+ik, ik_enabled = {}, {}
 SkyPhoneAnimations.AimCamera(vec(1, 0, 1.7), vec(0, 0, 1.7), true)
-assert(not next(ik), "Camera IK must stop immediately when the camera closes")
+assert(not next(ik) and not next(ik_enabled), "Camera IK must stop immediately when the camera closes")
 print("PASS camera arm IK: camera direction, bounded reach and cleanup")

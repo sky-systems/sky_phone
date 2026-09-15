@@ -5,6 +5,7 @@ local MODE_CAMERA_REAR = "camera_rear"
 local MODE_CAMERA_SELFIE = "camera_selfie"
 local LOOPED_UPPER_BODY_FLAGS = 49
 local TRANSITION_UPPER_BODY_FLAGS = 48
+local IK_ARM_TARGET_HAND_BONE = 1
 
 local animation_state = {
     call_direction = nil,
@@ -86,10 +87,15 @@ function SkyPhoneAnimations.AimCamera(camera_position, target_position, front)
     local reach = front and 0.52 or 0.40
     local hand = head + direction * (reach / length)
     local left = Config.Animations.PropBone == 60309 or Config.Animations.PropBone == 18905
-    -- ITF_IK_TAG_MODE_ALLOW lets the arm follow the camera over the base animation.
-    SetIkTarget(ped, left and 3 or 4, 0, -1, hand.x, hand.y, hand.z - 0.14, 16, 150, 150)
+    -- Target the hand directly, without requiring IK allow-tags in the phone animation.
+    -- AimCamera runs each camera frame; the camera already smooths its orbit, so do not
+    -- add another blend-in delay between the rendered camera and the holding arm.
+    SetPedCanArmIk(ped, true)
+    SetIkTarget(ped, left and 3 or 4, 0, -1, hand.x, hand.y, hand.z - 0.14,
+        IK_ARM_TARGET_HAND_BONE, 0, 150)
     if front then
-        SetIkTarget(ped, 1, 0, -1, camera_position.x, camera_position.y, camera_position.z, 16, 150, 150)
+        SetPedCanHeadIk(ped, true)
+        SetIkTarget(ped, 1, 0, -1, camera_position.x, camera_position.y, camera_position.z, 0, 0, 150)
     end
 end
 
