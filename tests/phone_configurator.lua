@@ -9,7 +9,7 @@ local function load_script(path, environment)
     assert(loadfile("sky_phone/" .. path, "t", environment))()
 end
 
-local function new_server(database, configure_defaults)
+local function new_server(database, configure_defaults, defer_initialization)
     database = database or { payloads = {}, writes = 0 }
     local callbacks, broadcasts, updates = {}, {}, {}
     local noop = function() end
@@ -18,6 +18,13 @@ local function new_server(database, configure_defaults)
         IsDuplicityVersion = function() return true end,
         vector3 = function(x, y, z) return { __skyType = "vector3", x = x, y = y, z = z } end,
         print = noop,
+        promise = { new = function()
+            return { resolve = function(self) self.resolved = true end }
+        end },
+        Citizen = { Await = function(pending)
+            if not pending.resolved then coroutine.yield("awaiting_runtime") end
+            assert(pending.resolved, "runtime must be initialized before answering")
+        end },
     }, { __index = _G })
     load_script("config/config.lua", environment)
     load_script("config/media.lua", environment)
@@ -37,7 +44,9 @@ local function new_server(database, configure_defaults)
         Debug = noop,
         Callbacks = { Register = function(name, callback) callbacks[name] = callback end },
         Database = {
-            Migrate = noop,
+            Migrate = function()
+                if defer_initialization then coroutine.yield("awaiting_database") end
+            end,
             AfterMigration = noop,
             Query = function(sql, parameters)
                 if sql:find("INSERT IGNORE", 1, true) then
@@ -69,7 +78,12 @@ local function new_server(database, configure_defaults)
         assert(name == "sky_phone:configurator:sync" and target == -1)
         broadcasts[#broadcasts + 1] = copy(payload)
     end
-    load_script("source/server/phone_configurator.lua", environment)
+    local initialization = coroutine.create(function()
+        load_script("source/server/phone_configurator.lua", environment)
+    end)
+    local started, state = coroutine.resume(initialization)
+    assert(started, state)
+    if defer_initialization then assert(state == "awaiting_database") end
 
     local server = {
         env = environment, database = database, broadcasts = broadcasts, updates = updates,
@@ -89,6 +103,11 @@ local function new_server(database, configure_defaults)
     end
     function server.runtime()
         return callbacks["sky_phone:configurator:runtime"]().data
+    end
+    function server.finish_initialization()
+        local success, reason = coroutine.resume(initialization)
+        assert(success, reason)
+        assert(coroutine.status(initialization) == "dead")
     end
     return server
 end
@@ -137,6 +156,30 @@ local function test(name, callback)
         print("FAIL " .. name .. ": " .. tostring(message))
     end
 end
+
+test("early runtime requests wait for the stored configuration during resource startup", function()
+    local server = new_server(nil, nil, true)
+    local responses, requests = {}, {}
+    for index = 1, 2 do
+        requests[index] = coroutine.create(function()
+            responses[index] = server.runtime()
+        end)
+        local success, state = coroutine.resume(requests[index])
+        assert(success, state)
+        assert(state == "awaiting_runtime", "the callback must be registered before database initialization")
+        assert(responses[index] == nil, "early requests must not receive defaults or incomplete configuration")
+    end
+    assert(server.database.row == nil)
+    server.finish_initialization()
+    for index, request in ipairs(requests) do
+        local success, reason = coroutine.resume(request)
+        assert(success, reason)
+        assert(coroutine.status(request) == "dead")
+        assert(responses[index].enabled and type(responses[index].config.Phone) == "table")
+        assert(responses[index].revision == server.database.row.revision)
+    end
+    assert(server.runtime().revision == server.database.row.revision)
+end)
 
 test("Face ID mask whitelist can be created, edited and cleared through SQL and live clients", function()
     local server = new_server()
