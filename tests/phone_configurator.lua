@@ -11,7 +11,7 @@ end
 
 local function new_server(database, configure_defaults)
     database = database or { payloads = {}, writes = 0 }
-    local callbacks, broadcasts, updates = {}, {}, {}
+    local callbacks, broadcasts, updates, migrations = {}, {}, {}, {}
     local noop = function() end
     local environment = setmetatable({
         Config = {},
@@ -38,8 +38,27 @@ local function new_server(database, configure_defaults)
         Callbacks = { Register = function(name, callback) callbacks[name] = callback end },
         Database = {
             Migrate = noop,
-            AfterMigration = noop,
+            AfterMigration = function(_, callback) migrations[#migrations + 1] = callback end,
+            Transaction = function(statements)
+                if database.fail_migration then return false end
+                database.migrations = database.migrations or {}
+                for _, statement in ipairs(statements) do
+                    if statement.query:find("UPDATE", 1, true) then
+                        assert(statement.params[2] == 1)
+                        database.row.config_payload = statement.params[1]
+                        database.row.revision = database.row.revision + 1
+                        database.writes = database.writes + 1
+                    else
+                        assert(statement.query:find("sky_phone_migrations", 1, true))
+                        database.migrations[statement.params[1]] = true
+                    end
+                end
+                return true
+            end,
             Query = function(sql, parameters)
+                if sql:find("sky_phone_migrations", 1, true) then
+                    return database.migrations and database.migrations[parameters[1]] and { { 1 } } or {}
+                end
                 if sql:find("INSERT IGNORE", 1, true) then
                     database.row = database.row or {
                         config_payload = parameters[2], media_payload = parameters[3], revision = 1,
@@ -74,6 +93,9 @@ local function new_server(database, configure_defaults)
     local server = {
         env = environment, database = database, broadcasts = broadcasts, updates = updates,
     }
+    function server.run_migrations()
+        for _, callback in ipairs(migrations) do callback() end
+    end
     function server.field(path, scope)
         for _, section in ipairs(environment.SkyPhoneConfigurator.GetAdminData().sections) do
             for _, field in ipairs(section.fields) do
@@ -612,6 +634,77 @@ test("new phone prop defaults and custom overrides roundtrip through the Configu
     settings.PropModel = "custom_existing_phone"
     assert(restarted.save({ change("Animations", settings) }).success)
     assert(new_server(restarted.database).env.Config.Animations.PropModel == "custom_existing_phone")
+end)
+
+test("legacy SQL phone prop upgrades once and reaches existing clients without resetting settings", function()
+    local initial = new_server()
+    local stored = initial.database.payloads[tonumber(initial.database.row.config_payload)]
+    stored.Animations.PropModel = "prop_npc_phone_02"
+    stored.Animations.Transforms.Portrait.position.x = 0.012
+    stored.Phone.AllowMovement = false
+    local server = new_server(initial.database)
+    local client = new_client(server)
+    assert(client.config.Animations.PropModel == "prop_npc_phone_02")
+    local before_revision = server.database.row.revision
+    server.run_migrations()
+    assert(server.database.writes == 1)
+    assert(server.database.row.revision == before_revision + 1)
+    assert(server.env.Config.Animations.PropModel == "sky_phone_prop")
+    assert(server.field("Animations").value.PropModel == "sky_phone_prop")
+    client.sync(server.broadcasts[#server.broadcasts])
+    assert(client.config.Animations.PropModel == "sky_phone_prop")
+    assert(client.config.Animations.Transforms.Portrait.position.x == 0.012)
+    assert(client.config.Phone.AllowMovement == false)
+    local restarted = new_server(server.database)
+    restarted.run_migrations()
+    assert(restarted.database.writes == 1)
+    assert(new_client(restarted).config.Animations.PropModel == "sky_phone_prop")
+    -- A later explicit admin choice remains authoritative after this one-time upgrade.
+    local settings = restarted.field("Animations").value
+    settings.PropModel = "prop_npc_phone_02"
+    assert(restarted.save({ change("Animations", settings) }).success)
+    local restored = new_server(restarted.database)
+    restored.run_migrations()
+    assert(restored.env.Config.Animations.PropModel == "prop_npc_phone_02")
+end)
+
+test("phone prop migration preserves custom choices and missing settings use the new default", function()
+    for _, model in ipairs({ "custom_existing_phone", "sky_phone_prop_burgundy", "sky_phone_prop" }) do
+        local server = new_server()
+        local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+        stored.Animations.PropModel = model
+        server = new_server(server.database)
+        server.run_migrations()
+        assert(server.env.Config.Animations.PropModel == model)
+        assert(server.database.writes == 0)
+    end
+    local server = new_server()
+    server.database.payloads[tonumber(server.database.row.config_payload)].Animations = nil
+    server = new_server(server.database)
+    server.run_migrations()
+    assert(server.env.Config.Animations.PropModel == "sky_phone_prop")
+    assert(server.database.writes == 0)
+end)
+
+test("failed legacy prop migration keeps persisted and runtime configuration unchanged and retries", function()
+    local initial = new_server()
+    initial.run_migrations()
+    local database = initial.database
+    database.migrations["sky-phone:configurator:phone-prop:v1"] = nil
+    database.payloads[tonumber(database.row.config_payload)].Animations.PropModel = "prop_npc_phone_02"
+    local server = new_server(database)
+    local old_revision = database.row.revision
+    database.fail_migration = true
+    local ok, err = pcall(server.run_migrations)
+    assert(not ok and tostring(err):find("legacy phone prop", 1, true))
+    assert(database.row.revision == old_revision and database.writes == 0)
+    assert(server.env.Config.Animations.PropModel == "prop_npc_phone_02")
+    assert(database.payloads[tonumber(database.row.config_payload)].Animations.PropModel == "prop_npc_phone_02")
+    assert(not database.migrations["sky-phone:configurator:phone-prop:v1"])
+    assert(#server.broadcasts == 0)
+    database.fail_migration = false
+    server.run_migrations()
+    assert(server.env.Config.Animations.PropModel == "sky_phone_prop" and database.writes == 1)
 end)
 
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))

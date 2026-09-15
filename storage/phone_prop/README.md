@@ -19,7 +19,7 @@ All 15 existing frame IDs are supported: black, blue, green, lavender, red, whit
 
 ## Installation and existing servers
 
-Deploy the built `sky_phone` resource and restart it. Fresh defaults use `Animations.PropModel = "sky_phone_prop"`. On servers with saved Phone Configurator settings, choose that value under **Animations → PropModel** and save; existing saved overrides remain authoritative. Other custom prop models remain supported and keep their original behavior. Frame color changes replace the networked prop using the existing attachment/animation lifecycle.
+Deploy the built `sky_phone` resource and restart it. Fresh defaults use `Animations.PropModel = "sky_phone_prop"`. Existing SQL Phone Configurator settings that still select the previous shipped `prop_npc_phone_02` default are upgraded once to `sky_phone_prop` on resource startup. The migration persists the choice, advances the configuration revision and synchronizes clients, while preserving custom models, hand transforms and unrelated settings. Later explicit administrator choices remain authoritative. For file-based configuration, set `Config.Animations.PropModel` in `config/config.lua` to `sky_phone_prop`. Other custom prop models remain supported and keep their original behavior. Frame color changes replace the networked prop using the existing attachment/animation lifecycle.
 
 The separate black OLED mesh has UVs from 0 to 1. Front is -Y, top is +Z, origin is at chassis center. Display dimensions and local offset are shared in `source/shared/phone_prop.lua`. The existing portrait/landscape attachment transforms are reused and must be checked on the server's ped models/animations.
 
