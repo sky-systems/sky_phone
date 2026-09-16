@@ -117,6 +117,7 @@ const currentWallpaperStyle = computed(() => ({
 const showDevelopmentSkip = import.meta.env.DEV
 
 function moveTo(nextStep: number): void {
+  if (setupCompleteBusy.value) return
   direction.value = nextStep < step.value ? 'back' : 'forward'
   step.value = Math.min(PHONE_SETUP_LAST_STEP, Math.max(0, nextStep))
   if (step.value < 4) {
@@ -129,7 +130,8 @@ function moveTo(nextStep: number): void {
   phone.setSetupStep(step.value)
 }
 
-function continueSetup(): void {
+async function continueSetup(): Promise<void> {
+  if (setupCompleteBusy.value) return
   if (step.value === 7) {
     phone.setAllAppNotifications(
       notificationsEnabled.value,
@@ -137,8 +139,7 @@ function continueSetup(): void {
     )
   }
   if (step.value === 8) {
-    for (const appId of selectedApps.value) appStore.claimApp(appId)
-    void finish()
+    await finish()
     return
   }
   moveTo(step.value + 1)
@@ -159,6 +160,7 @@ function chooseWallpaper(wallpaper: Exclude<WallpaperId, 'custom'>): void {
 }
 
 function toggleApp(appId: BuiltinPhoneAppId): void {
+  if (setupCompleteBusy.value) return
   selectedApps.value = selectedApps.value.includes(appId)
     ? selectedApps.value.filter((id) => id !== appId)
     : [...selectedApps.value, appId]
@@ -270,13 +272,24 @@ async function finish(): Promise<void> {
   if (setupCompleteBusy.value) return
   setupCompleteBusy.value = true
   setupCompleteError.value = ''
-  const completed = await phone.completeSetup()
-  setupCompleteBusy.value = false
-  if (!completed) {
-    setupCompleteError.value = phone.t('Setup.ready.saveFailed')
-    return
+  try {
+    if (step.value === 8) {
+      for (const appId of selectedApps.value) {
+        if (!(await appStore.claimApp(appId))) {
+          setupCompleteError.value = phone.t('Setup.ready.saveFailed')
+          return
+        }
+      }
+    }
+    const completed = await phone.completeSetup()
+    if (!completed) {
+      setupCompleteError.value = phone.t('Setup.ready.saveFailed')
+      return
+    }
+    emit('complete')
+  } finally {
+    setupCompleteBusy.value = false
   }
-  emit('complete')
 }
 
 function skipSetupForDevelopment(): void {
@@ -314,6 +327,7 @@ function skipSetupForDevelopment(): void {
         type="button"
         class="setup-assistant__back"
         :aria-label="phone.t('Common.back')"
+        :disabled="setupCompleteBusy"
         @click="moveTo(step - 1)"
       >
         <ChevronLeft :size="23" :stroke-width="2.2" />
@@ -857,6 +871,7 @@ function skipSetupForDevelopment(): void {
               :class="{
                 selected: selectedApps.includes(app.id as BuiltinPhoneAppId),
               }"
+              :disabled="setupCompleteBusy"
               @click="toggleApp(app.id as BuiltinPhoneAppId)"
             >
               <img :src="app.iconImage" alt="" />
@@ -873,11 +888,29 @@ function skipSetupForDevelopment(): void {
               /></i>
             </button>
           </div>
-          <SkyButton class="setup-assistant__primary" @click="continueSetup">{{
-            phone.t('Setup.apps.install', {
-              count: String(selectedApps.length),
-            })
-          }}</SkyButton>
+          <SkyButton
+            class="setup-assistant__primary"
+            :disabled="setupCompleteBusy"
+            @click="continueSetup"
+          >
+            <SkySpinner
+              v-if="setupCompleteBusy"
+              :label="phone.t('Setup.ready.saving')"
+              :size="18"
+            />
+            <span v-else>{{
+              phone.t('Setup.apps.install', {
+                count: String(selectedApps.length),
+              })
+            }}</span>
+          </SkyButton>
+          <p
+            v-if="setupCompleteError"
+            class="setup-assistant__error"
+            role="alert"
+          >
+            {{ setupCompleteError }}
+          </p>
         </template>
 
         <template v-else>

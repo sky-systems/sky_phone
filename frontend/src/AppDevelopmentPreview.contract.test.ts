@@ -22,8 +22,8 @@ describe('browser development preview contract', () => {
 
   it('starts unlocked while preserving an explicit lock screen preview', () => {
     expect(source).toContain("developmentParameters.has('lockScreenPreview')")
-    expect(source).toContain(
-      'developmentLockScreenPreview ||\n        (!isDevelopment && phone.security.enabled)',
+    expect(source).toMatch(
+      /developmentLockScreenPreview\s*\|\|\s*\(!isDevelopment && phone\.security\.enabled\)/,
     )
     expect(source).toContain("developmentParameters.has('setupPreview')")
   })
