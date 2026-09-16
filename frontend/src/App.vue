@@ -404,6 +404,7 @@ const simPicker = ref<SimPickerPayload | null>(null)
 const setupRequired = computed(
   () =>
     phone.isOpen &&
+    !isLocked.value &&
     !(isDevelopment && setupDevelopmentSkipped.value) &&
     (!phone.preferences.settings.setupCompleted ||
       (isDevelopment &&
@@ -644,12 +645,12 @@ async function bootstrapUnlockedPhoneData(): Promise<void> {
 }
 
 function loadUnlockedPhoneData(): void {
-  if (unlockedServicesLoaded.value) return
+  if (unlockedServicesLoaded.value || setupRequired.value) return
   unlockedServicesLoaded.value = true
 
   const startBootstrap = () => {
     unlockedServicesIdle = undefined
-    if (!phone.isOpen || isLocked.value) {
+    if (!phone.isOpen || isLocked.value || setupRequired.value) {
       unlockedServicesLoaded.value = false
       return
     }
@@ -1753,10 +1754,8 @@ watch(
       }
       return
     }
-    isLocked.value = setupRequired.value
-      ? false
-      : developmentLockScreenPreview ||
-        (!isDevelopment && phone.security.enabled)
+    isLocked.value =
+      developmentLockScreenPreview || (!isDevelopment && phone.security.enabled)
     passcodeRequired.value = isLocked.value && phone.security.enabled
     unlockedServicesLoaded.value = false
     controlCenterOpened.value = false
