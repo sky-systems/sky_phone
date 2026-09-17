@@ -12,10 +12,9 @@ local front_camera_target_height = 0.03
 local front_camera_horizontal_limit = 75.0
 local front_camera_vertical_limit = 35.0
 local front_camera_rotate_speed = 5.0
-local camera_passthrough_control = 22 -- INPUT_JUMP (Space by default)
 local blocked_camera_controls = {
     0, -- INPUT_NEXT_CAMERA
-    camera_passthrough_control,
+    22, -- INPUT_JUMP (Space is handled by the focused NUI)
     24, -- INPUT_ATTACK
     25, -- INPUT_AIM
     37, -- INPUT_SELECT_WEAPON
@@ -54,6 +53,8 @@ local camera_state = {
     game_input = false,
     landscape = false,
     locked = false,
+    nui_look_held = false,
+    applied_looking = false,
     applied_nui_focus = true,
     nui_focused = true,
     previous_ped_view = nil,
@@ -215,6 +216,17 @@ local function set_camera_zoom(zoom)
     return true
 end
 
+local function update_camera_input_focus()
+    if not camera_state.active or camera_state.walkable then
+        return
+    end
+    local look_held = camera_state.nui_look_held or SkyPhoneFocus.IsHoldToLookPressed()
+    local should_focus = camera_state.locked or not look_held
+    if camera_state.nui_focused ~= should_focus then
+        set_camera_focus(should_focus)
+    end
+end
+
 local function watch_camera_controls()
     if camera_state.focus_watcher then
         return
@@ -223,14 +235,7 @@ local function watch_camera_controls()
     CreateThread(function()
         while camera_state.active do
             apply_camera_controls()
-            if not camera_state.walkable then
-                local passthrough_pressed = SkyPhoneFocus.IsHoldToLookPressed()
-                    or IsDisabledControlPressed(0, camera_passthrough_control)
-                local should_focus = camera_state.locked or not passthrough_pressed
-                if camera_state.nui_focused ~= should_focus then
-                    set_camera_focus(should_focus)
-                end
-            end
+            update_camera_input_focus()
             if camera_state.game_input then
                 if camera_state.front_camera and not camera_state.locked then
                     update_front_camera_orbit()
@@ -272,9 +277,11 @@ AddEventHandler("sky_phone:client:cameraFocusApplied", function(data)
         return
     end
     camera_state.game_input = data.gameInput
-    if camera_state.applied_nui_focus ~= data.focused then
+    local looking = data.active and data.gameInput and not data.cursor
+    if camera_state.applied_nui_focus ~= data.focused or camera_state.applied_looking ~= looking then
         camera_state.applied_nui_focus = data.focused
-        SendNUIMessage({ type = "camera:focus", data = { focused = data.focused } })
+        camera_state.applied_looking = looking
+        SendNUIMessage({ type = "camera:focus", data = { focused = data.focused, looking = looking } })
     end
     if data.active then
         watch_camera_controls()
@@ -293,6 +300,7 @@ local function set_camera_active(active)
         camera_state.front_camera_yaw = 0.0
         camera_state.landscape = false
         camera_state.locked = false
+        camera_state.nui_look_held = false
         camera_state.zoom = 1.0
         clear_front_camera()
         camera_state.previous_ped_view = GetFollowPedCamViewMode()
@@ -330,6 +338,7 @@ local function set_camera_active(active)
     camera_state.game_input = false
     camera_state.landscape = false
     camera_state.locked = false
+    camera_state.nui_look_held = false
     camera_state.walkable = false
     clear_front_camera()
     restore_camera_view()
@@ -396,6 +405,7 @@ end
 
 local function toggle_camera_frozen()
     camera_state.locked = not camera_state.locked
+    update_camera_input_focus()
 end
 
 local function get_camera_state()
@@ -428,12 +438,13 @@ RegisterNUICallback("camera:setActive", function(data, cb)
 end)
 
 RegisterNUICallback("camera:setFocus", function(data, cb)
-    if type(data) ~= "table" then
+    if type(data) ~= "table" or type(data.focused) ~= "boolean" then
         cb({ success = false, error = "invalid_request" })
         return
     end
-    if camera_state.active then
-        set_camera_focus(data.focused == true)
+    if camera_state.active and not camera_state.walkable then
+        camera_state.nui_look_held = not data.focused
+        update_camera_input_focus()
     end
     cb({ success = true })
 end)
@@ -444,9 +455,7 @@ RegisterNUICallback("camera:setLocked", function(data, cb)
         return
     end
     camera_state.locked = data.locked == true
-    if camera_state.locked and not camera_state.walkable then
-        set_camera_focus(true)
-    end
+    update_camera_input_focus()
     cb({ success = true })
 end)
 

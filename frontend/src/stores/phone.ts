@@ -4867,6 +4867,8 @@ const defaultLocales: LocaleTree = {
       lockCamera: 'Lock camera movement',
       unlockCamera: 'Unlock camera movement',
       lookKey: 'Look',
+      spaceKey: 'Space',
+      holdKey: 'hold',
       uploading: '{count} uploading',
       saving: 'Saving video...',
       openGallery: 'Open Photos',
