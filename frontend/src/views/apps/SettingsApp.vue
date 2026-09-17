@@ -12,6 +12,7 @@ import {
   PanelsTopLeft,
   Moon,
   Plane,
+  Phone,
   RotateCcw,
   Settings,
   ShieldCheck,
@@ -109,6 +110,7 @@ type SettingsView =
   | 'notifications'
   | 'notification-detail'
   | 'sounds'
+  | 'callSettings'
   | 'connectivity'
   | 'focus'
   | 'general'
@@ -155,6 +157,7 @@ const accountPassword = ref('')
 const accountConfirm = ref('')
 const accountSubmitting = ref(false)
 const accountToast = ref('')
+const callSettingsBusy = ref(false)
 const passcodeBusy = ref(false)
 const passcodeCurrent = ref('')
 const passcodeError = ref('')
@@ -241,6 +244,12 @@ const toggleRows = [
   },
 ]
 const serviceRows = [
+  {
+    key: 'callSettings',
+    view: 'callSettings' as const,
+    icon: Phone,
+    iconColor: '#34c759',
+  },
   {
     key: 'notifications',
     view: 'notifications' as const,
@@ -484,6 +493,18 @@ function scrollPageToTop(): void {
 
 function setRootSetting(key: RootToggleKey, value: boolean): void {
   phone.setPreference(key, value)
+}
+
+async function setHideCallerId(value: boolean): Promise<void> {
+  if (callSettingsBusy.value) return
+  callSettingsBusy.value = true
+  try {
+    if (!(await phone.setHideCallerId(value))) {
+      accountToast.value = phone.t('Apps.phone.errors.request_failed')
+    }
+  } finally {
+    callSettingsBusy.value = false
+  }
 }
 
 function resetPasscodeInput(): void {
@@ -1355,6 +1376,21 @@ onBeforeUnmount(() => {
             "
             :title="sound.label"
             @activate="selectNotificationSound(sound.id)"
+          />
+        </SkySettingsGroup>
+      </template>
+
+      <template v-else-if="activeView === 'callSettings'">
+        <SkySettingsGroup
+          :aria-label="phone.t('Apps.settings.callSettings')"
+          :footer="phone.t('Apps.settings.hideCallerIdDescription')"
+        >
+          <SkySettingsRow
+            kind="toggle"
+            :disabled="callSettingsBusy"
+            :model-value="phone.preferences.settings.hideCallerId"
+            :title="phone.t('Apps.settings.hideCallerId')"
+            @update:model-value="setHideCallerId"
           />
         </SkySettingsGroup>
       </template>

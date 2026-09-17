@@ -292,6 +292,7 @@ env.ring_callee = function(call) rings[#rings + 1] = call.callee_source end
 env.schedule_no_answer = function() end
 local routing = assert(load(
     "local reroute_company_call\n"
+        .. block("local function visible_caller_number(", "local function add_call_entry(", calls_source)
         .. block("local function log_call(", "local function send_state(", calls_source)
         .. block("local function company_call_target(", "local function ring_callee(", calls_source)
         .. block("reroute_company_call = function(", "handle_no_answer = function(", calls_source)

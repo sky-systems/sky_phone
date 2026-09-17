@@ -46,6 +46,42 @@ describe('phone device persistence scope', () => {
     vi.unstubAllGlobals()
   })
 
+  it('persists caller ID privacy and restores it when the phone is reopened', async () => {
+    const phone = usePhoneStore()
+    openPhone('111', 'session-a', 0)
+    mockNuiCall.mockResolvedValueOnce({ success: true, data: { revision: 1 } })
+    expect(await phone.setHideCallerId(true)).toBe(true)
+    const payload = mockNuiCall.mock.calls.at(-1)?.[1]?.payload
+    expect(payload).toMatchObject({
+      version: 1,
+      settings: { hideCallerId: true },
+    })
+
+    phone.open({
+      device: {
+        data: { settings: { payload, revision: 1 } },
+        imei: '111',
+        name: 'Phone',
+        sim: null,
+      },
+      token: 'session-b',
+    })
+    expect(phone.preferences.settings.hideCallerId).toBe(true)
+    mockNuiCall.mockResolvedValueOnce({ success: true, data: { revision: 2 } })
+    expect(await phone.setHideCallerId(false)).toBe(true)
+    expect(phone.preferences.settings.hideCallerId).toBe(false)
+  })
+
+  it('restores the previous caller ID setting when saving fails', async () => {
+    const phone = usePhoneStore()
+    openPhone('111', 'session-a', 0)
+    mockNuiCall.mockResolvedValueOnce({ success: false, error: 'conflict' })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(await phone.setHideCallerId(true)).toBe(false)
+    expect(phone.preferences.settings.hideCallerId).toBe(false)
+    log.mockRestore()
+  })
+
   it('does not apply a late save response to a newer device session', async () => {
     const stale = deferredResponse<{ revision: number }>()
     mockNuiCall.mockReturnValueOnce(stale.promise)

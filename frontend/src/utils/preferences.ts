@@ -81,6 +81,7 @@ export type PhonePreferencesV1 = {
     focusMode: boolean
     frame: PhoneFrameId
     graphicsMode: GraphicsMode
+    hideCallerId: boolean
     lockWallpaper: WallpaperId
     lockWallpaperImageUrl: string | null
     notificationSound: NotificationSoundId
@@ -158,6 +159,7 @@ export const DEFAULT_PHONE_PREFERENCES: PhonePreferencesV1 = {
     focusMode: false,
     frame: 'black',
     graphicsMode: 'ultimate',
+    hideCallerId: false,
     lockWallpaper: 'midnight',
     lockWallpaperImageUrl: null,
     notificationSound: 'chime',
@@ -355,6 +357,7 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
           defaults.cellularEnabled,
         ),
         focusMode: readBoolean(settings.focusMode, defaults.focusMode),
+        hideCallerId: readBoolean(settings.hideCallerId, defaults.hideCallerId),
         frame: readChoice(settings.frame, PHONE_FRAME_IDS, defaults.frame),
         graphicsMode: readChoice(
           settings.graphicsMode,
