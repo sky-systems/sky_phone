@@ -3425,6 +3425,7 @@ const defaultLocales: LocaleTree = {
       searchRecents: 'Search Calls',
       contactDetails: 'Contact Details',
       unknownCaller: 'Unknown Caller',
+      anonymousCaller: 'Anonymous',
       callHistory: 'Call History',
       noCallHistory: 'No calls with this number yet.',
       noContacts: 'No Contacts',
@@ -5468,6 +5469,10 @@ const defaultLocales: LocaleTree = {
       accountPurchasesValue: 'Available',
       notifications: 'Notifications',
       sounds: 'Sounds & Haptics',
+      callSettings: 'Call Settings',
+      hideCallerId: 'Hide Caller ID',
+      hideCallerIdDescription:
+        'Show Anonymous instead of your number when you call someone.',
       general: 'General Settings',
       security: 'Passcode & Security',
       appearance: 'Appearance',
@@ -6232,6 +6237,22 @@ export const usePhoneStore = defineStore('phone', {
         key === 'phoneScale' ? clampPhoneScale(Number(value)) : value
       ) as PhonePreferencesV1['settings'][K]
       this.saveDeviceNamespace('settings', this.preferences)
+    },
+    async setHideCallerId(hidden: boolean): Promise<boolean> {
+      const previous = this.preferences.settings.hideCallerId
+      const session = this.persistenceSession
+      const generation = this.persistenceGeneration
+      this.preferences.settings.hideCallerId = hidden
+      const saved = await this.saveDeviceNamespace('settings', this.preferences)
+      if (
+        !saved &&
+        this.persistenceSession === session &&
+        this.persistenceGeneration === generation &&
+        this.preferences.settings.hideCallerId === hidden
+      ) {
+        this.preferences.settings.hideCallerId = previous
+      }
+      return saved
     },
     setAlertVolumes(value: number): void {
       const volume = Math.min(100, Math.max(0, Math.round(value)))

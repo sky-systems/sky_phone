@@ -49,6 +49,7 @@ export type CallState =
   | 'sim_removed'
 
 export type PhoneCall = {
+  anonymous?: boolean
   answeredAt?: number
   channel?: number
   device?: { imei: string; name: string }

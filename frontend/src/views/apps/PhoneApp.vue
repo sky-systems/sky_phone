@@ -258,6 +258,7 @@ function eventValue(event: Event): string {
 }
 
 function contactNameFor(number: string): string {
+  if (!number) return phone.t('Apps.phone.anonymousCaller')
   return contactsByNumber.value.get(number)?.name ?? formatPhoneNumber(number)
 }
 
@@ -301,6 +302,7 @@ function removeContactPhoto(): void {
 }
 
 function openRecentDetail(number: string): void {
+  if (!number) return
   viewingOwnCard.value = false
   selectedNumber.value = number
   error.value = ''
@@ -506,7 +508,7 @@ function updateCallElapsed(): void {
 
 function openCallContact(): void {
   const call = calls.activeCall
-  if (!call) return
+  if (!call?.otherNumber) return
   callMoreOpened.value = false
   openContact(activeCallContact.value ?? undefined, call.otherNumber)
 }
@@ -554,6 +556,7 @@ async function removeActiveCallerContact(): Promise<void> {
 }
 
 function confirmBlockNumber(number: string): void {
+  if (!number) return
   callMoreOpened.value = false
   blockTargetNumber.value = number
   blockDialogOpened.value = true
@@ -817,6 +820,7 @@ onBeforeUnmount(() => {
               <sky-button
                 glass
                 class="phone-call-more__item phone-call-more__contact-card"
+                :disabled="!calls.activeCall.otherNumber"
                 @click="openCallContact"
               >
                 <span class="phone-call-more__avatar">
@@ -837,6 +841,7 @@ onBeforeUnmount(() => {
               <sky-button
                 glass
                 class="phone-call-more__item"
+                :disabled="!calls.activeCall.otherNumber"
                 @click="messageActiveCaller"
               >
                 <MessageCircle />
@@ -856,6 +861,7 @@ onBeforeUnmount(() => {
               <sky-button
                 glass
                 class="phone-call-more__item phone-call-more__item--danger"
+                :disabled="!calls.activeCall.otherNumber"
                 @click="confirmBlockNumber(calls.activeCall.otherNumber)"
               >
                 <PhoneOff />
@@ -1271,6 +1277,7 @@ onBeforeUnmount(() => {
                 <button
                   class="phone-recent-call"
                   type="button"
+                  :disabled="!recent.other_number"
                   @click="startCall(recent.other_number)"
                 >
                   <span
@@ -1300,6 +1307,7 @@ onBeforeUnmount(() => {
                   component="button"
                   class="phone-recent-info"
                   type="button"
+                  :disabled="!recent.other_number"
                   :aria-label="phone.t('Apps.phone.contactDetails')"
                   @click="openRecentDetail(recent.other_number)"
                 >
