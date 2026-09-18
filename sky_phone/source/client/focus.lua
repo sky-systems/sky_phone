@@ -2,6 +2,15 @@ SkyPhoneFocus = {}
 
 local blocked_phone_controls = { 24, 140, 141, 142, 199, 200, 257, 263, 264 }
 local blocked_phone_look_controls = { 1, 2, 3, 4, 5, 6 }
+local blocked_phone_radio_controls = {
+    81, -- INPUT_VEH_NEXT_RADIO
+    82, -- INPUT_VEH_PREV_RADIO
+    83, -- INPUT_VEH_NEXT_RADIO_TRACK
+    84, -- INPUT_VEH_PREV_RADIO_TRACK
+    85, -- INPUT_VEH_RADIO_WHEEL
+    332, -- INPUT_RADIO_WHEEL_UD
+    333, -- INPUT_RADIO_WHEEL_LR
+}
 local focused_control_groups = { 0, 1, 2 }
 local hold_to_look_enabled = false
 local hold_to_look_control
@@ -82,6 +91,10 @@ function SkyPhoneFocus.ApplyGameInputControls(block_look)
     end
     if block_look then
         for _, control in ipairs(blocked_phone_look_controls) do
+            DisableControlAction(0, control, true)
+        end
+        -- Keep driving available without letting NUI scrolling change the radio.
+        for _, control in ipairs(blocked_phone_radio_controls) do
             DisableControlAction(0, control, true)
         end
     end

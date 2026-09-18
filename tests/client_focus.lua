@@ -9,6 +9,17 @@ local pressed_controls = {}
 local disabled_pressed_controls = {}
 local triggered_events = {}
 local control_threads = {}
+local radio_controls = { 81, 82, 83, 84, 85, 332, 333 }
+local driving_controls = { 59, 60, 63, 64, 71, 72, 76 }
+
+local function assert_phone_radio_controls_blocked()
+    for _, control in ipairs(radio_controls) do
+        assert(disabled_controls[control], ("phone scrolling must block radio control %d"):format(control))
+    end
+    for _, control in ipairs(driving_controls) do
+        assert(not disabled_controls[control], ("phone scrolling must preserve driving control %d"):format(control))
+    end
+end
 
 Config = {
     Phone = {
@@ -259,6 +270,7 @@ assert(firing_disabled, "focused phone cursor must block attacks while typing")
 all_controls_disabled = {}
 firing_disabled = false
 SkyPhoneFocus.ApplyGameInputControls(true)
+assert_phone_radio_controls_blocked()
 for _, control in ipairs({ 24, 140, 141, 142, 199, 200, 257, 263, 264 }) do
     assert(disabled_controls[control], ("phone control %d must remain disabled"):format(control))
 end
@@ -273,6 +285,9 @@ assert(firing_disabled, "player attacks must remain disabled while the phone is 
 disabled_controls = {}
 firing_disabled = false
 SkyPhoneFocus.ApplyGameInputControls(false)
+for _, control in ipairs(radio_controls) do
+    assert(not disabled_controls[control], ("cursor-free passthrough must preserve radio control %d"):format(control))
+end
 assert(not disabled_controls[1] and not disabled_controls[2], "camera passthrough must preserve camera look")
 for _, control in ipairs({ 30, 31, 32, 33, 34, 35 }) do
     assert(not disabled_controls[control], ("camera passthrough must preserve movement control %d"):format(control))
@@ -422,15 +437,25 @@ SkyPhoneFocus.Reapply()
 assert(frame() == 1, "opening and repeated focus claims must share one control worker")
 disabled_controls = {}
 assert(frame() == 1 and disabled_controls[24], "attacks must remain blocked on every active frame")
+assert_phone_radio_controls_blocked()
+disabled_controls = {}
+assert(frame() == 1, "phone scrolling must keep one input worker")
+assert_phone_radio_controls_blocked()
 pressed_controls[19] = true
+disabled_controls = {}
 frame()
 assert(not nui_focus.cursor, "HoldToLook must release the cursor immediately")
+for _, control in ipairs(radio_controls) do
+    assert(not disabled_controls[control], ("HoldToLook must release radio control %d with the cursor"):format(control))
+end
 local event_count = #triggered_events
 frame()
 assert(#triggered_events == event_count, "holding the same key must not reapply unchanged phone focus")
 pressed_controls[19] = false
+disabled_controls = {}
 frame()
 assert(nui_focus.cursor, "releasing HoldToLook must restore the cursor")
+assert_phone_radio_controls_blocked()
 
 event_handlers["sky_phone:client:setCameraFocus"]({ active = true, nuiFocused = false })
 pressed_controls[19] = true
@@ -445,7 +470,9 @@ SkyPhoneFocus.SetPhone(false)
 SkyPhoneFocus.SetPhone(true)
 assert(frame() == 1, "closing and reopening before the next frame must not duplicate control workers")
 SkyPhoneFocus.SetPhone(false)
+disabled_controls = {}
 assert(frame() == 0, "closing the phone must terminate its control worker")
+assert(next(disabled_controls) == nil, "closing the phone must release radio and driving controls")
 SkyPhoneFocus.SetCall(true)
 assert(frame() == 1, "incoming call focus must wake control filtering from idle")
 SkyPhoneFocus.SetCall(false)

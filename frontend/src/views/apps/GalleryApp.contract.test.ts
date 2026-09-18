@@ -121,7 +121,7 @@ describe('GalleryApp import action', () => {
       /\.gallery-selection-action\s*\{[^}]*width:\s*48px;[^}]*flex:\s*0 0 48px;/s,
     )
     expect(source).toMatch(
-      /\.gallery-selection-action :deep\(\.sky-button\)\s*\{[^}]*color:\s*#fff;/s,
+      /\.gallery-selection-action :deep\(\.sky-button\)\s*\{[^}]*color:\s*var\(--sky-text\);/s,
     )
     expect(source).toContain("kind: 'media'")
     expect(source).toContain("nuiCall('gallery:delete-many'")
