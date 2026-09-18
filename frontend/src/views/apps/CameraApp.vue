@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SkyFab, SkyAppPage } from '@/ui'
+import { SkyAppPage, SkyButton, SkyFab, SkyGlass } from '@/ui'
 import {
   ArrowLeft,
   Images,
@@ -28,6 +28,7 @@ import { SkySegmented, SkySegmentedButton } from '@/ui'
 import { createGameView, type GameView } from '@/utils/gameView'
 import { formatRecordingDuration, mediaErrorKey } from '@/utils/media'
 import { nuiCall } from '@/utils/nui'
+import { isTextInputElement } from '@/utils/textInputFocus'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 
 type CaptureItem = {
@@ -56,7 +57,7 @@ const microphoneEnabled = ref(true)
 const frontCamera = ref(false)
 const shutterActive = ref(false)
 const cameraLocked = ref(false)
-const movementEnabled = ref(false)
+const cameraLooking = ref(false)
 const recording = ref(false)
 const savingVideo = ref(false)
 const recordingStartedAt = ref(0)
@@ -73,11 +74,22 @@ let recordingTimer: number | undefined
 let gameView: GameView | null = null
 let renderFrameId: number | undefined
 let resizeObserver: ResizeObserver | null = null
+let spaceHeld = false
 
 const pendingCount = computed(
   () =>
     captures.value.filter((capture) => capture.status === 'uploading').length,
 )
+
+function zoomPresetIsActive(zoom: (typeof zoomLevels)[number]): boolean {
+  return Math.abs(selectedZoom.value - zoom) < 0.03
+}
+
+function zoomPresetLabel(zoom: (typeof zoomLevels)[number]): string {
+  if (zoomPresetIsActive(zoom)) return `${zoom}x`
+  return zoom === 0.5 ? '.5' : `${zoom}`
+}
+
 function correlationId(): string {
   return `${Date.now()}-${crypto.randomUUID()}`
 }
@@ -134,10 +146,30 @@ async function requestPhoto(): Promise<void> {
     window.setTimeout(() => void completeDevelopmentCapture(id, 'photo'), 700)
     return
   }
-  await nuiCall('media:requestUpload', {
+  console.info('[Sky Phone Media] Camera requested a photo upload.', {
+    correlationId: id,
+  })
+  const response = await nuiCall('media:requestUpload', {
     correlationId: id,
     mediaType: 'photo',
   })
+  if (!response.success) {
+    console.error('[Sky Phone Media] Photo upload request was rejected.', {
+      correlationId: id,
+      error: response.error,
+    })
+    window.postMessage(
+      {
+        data: {
+          correlationId: id,
+          error: response.error ?? 'request_failed',
+          success: false,
+        },
+        type: 'media:uploadResult',
+      },
+      '*',
+    )
+  }
 }
 
 function startRecording(): void {
@@ -218,11 +250,39 @@ async function toggleFacing(): Promise<void> {
 
 async function toggleCameraLock(): Promise<void> {
   cameraLocked.value = !cameraLocked.value
-  if (cameraLocked.value && movementEnabled.value) {
-    movementEnabled.value = false
-    await nuiCall('camera:setFocus', { focused: true })
-  }
+  if (cameraLocked.value) releaseCameraLook()
   await nuiCall('camera:setLocked', { locked: cameraLocked.value })
+}
+
+function onCameraKeydown(event: KeyboardEvent): void {
+  if (
+    event.code !== 'Space' ||
+    (event.target instanceof HTMLElement && isTextInputElement(event.target))
+  )
+    return
+  // Space belongs to looking, even when a camera button still has DOM focus.
+  event.preventDefault()
+  if (event.repeat || spaceHeld || cameraLocked.value) return
+  spaceHeld = true
+  if (isDevelopment) cameraLooking.value = true
+  void nuiCall('camera:setFocus', { focused: false })
+}
+
+function releaseCameraLook(): void {
+  if (!spaceHeld) return
+  spaceHeld = false
+  if (isDevelopment) cameraLooking.value = false
+  void nuiCall('camera:setFocus', { focused: true })
+}
+
+function onCameraKeyup(event: KeyboardEvent): void {
+  if (event.code !== 'Space') return
+  if (
+    spaceHeld ||
+    !(event.target instanceof HTMLElement && isTextInputElement(event.target))
+  )
+    event.preventDefault()
+  releaseCameraLook()
 }
 
 function toggleOrientation(): void {
@@ -320,33 +380,15 @@ function updateRecordingTimer(): void {
   elapsed.value = formatRecordingDuration(Date.now() - recordingStartedAt.value)
 }
 
-function onKeydown(event: KeyboardEvent): void {
-  if (
-    event.code !== 'Space' ||
-    event.repeat ||
-    cameraLocked.value ||
-    movementEnabled.value
-  )
-    return
-  event.preventDefault()
-  movementEnabled.value = true
-  void nuiCall('camera:setFocus', { focused: false })
-}
-
-function onKeyup(event: KeyboardEvent): void {
-  if (event.code !== 'Space' || !movementEnabled.value) return
-  event.preventDefault()
-  movementEnabled.value = false
-  void nuiCall('camera:setFocus', { focused: true })
-}
-
 function onMessage(event: MessageEvent): void {
   if (!isTrustedRootMessageSource(event.source, window)) return
   const message = event.data as {
     data?: Record<string, unknown>
     type?: string
   }
-  if (message.type === 'camera:zoom') {
+  if (message.type === 'camera:focus') {
+    cameraLooking.value = message.data?.looking === true
+  } else if (message.type === 'camera:zoom') {
     const zoom = Number(message.data?.zoom)
     if (Number.isFinite(zoom) && zoom >= minimumZoom && zoom <= maximumZoom) {
       selectedZoom.value = zoom
@@ -374,6 +416,11 @@ function onMessage(event: MessageEvent): void {
   } else if (message.type === 'media:uploadResult') {
     const result = message.data as UploadResult
     if (!result?.correlationId) return
+    console.info('[Sky Phone Media] Camera received an upload result.', {
+      correlationId: result.correlationId,
+      error: result.error,
+      success: result.success,
+    })
     savingVideo.value = false
     if (result.success && result.media) {
       latestMedia.value = result.media
@@ -417,17 +464,16 @@ onMounted(() => {
     { data: { zoom: selectedZoom.value }, type: 'camera:zoom' },
     '*',
   )
-  window.addEventListener('keydown', onKeydown)
-  window.addEventListener('keyup', onKeyup)
   window.addEventListener('message', onMessage)
+  window.addEventListener('keydown', onCameraKeydown, true)
+  window.addEventListener('keyup', onCameraKeyup, true)
+  window.addEventListener('blur', releaseCameraLook)
   void nuiCall('camera:setActive', { active: true })
-  void nuiCall<MediaConfig>('media:config').then(
-    (response) => {
-      if (response.success && response.data?.videoBitrateKbps) {
-        videoBitrateKbps.value = response.data.videoBitrateKbps
-      }
-    },
-  )
+  void nuiCall<MediaConfig>('media:config').then((response) => {
+    if (response.success && response.data?.videoBitrateKbps) {
+      videoBitrateKbps.value = response.data.videoBitrateKbps
+    }
+  })
   void loadLatest()
   startGameView()
 })
@@ -436,13 +482,11 @@ onBeforeUnmount(() => {
   if (shutterTimer !== undefined) window.clearTimeout(shutterTimer)
   if (noticeTimer !== undefined) window.clearTimeout(noticeTimer)
   if (recordingTimer !== undefined) window.clearInterval(recordingTimer)
-  window.removeEventListener('keydown', onKeydown)
-  window.removeEventListener('keyup', onKeyup)
   window.removeEventListener('message', onMessage)
-  if (movementEnabled.value) {
-    movementEnabled.value = false
-    void nuiCall('camera:setFocus', { focused: true })
-  }
+  window.removeEventListener('keydown', onCameraKeydown, true)
+  window.removeEventListener('keyup', onCameraKeyup, true)
+  window.removeEventListener('blur', releaseCameraLook)
+  releaseCameraLook()
   if (renderFrameId !== undefined) window.cancelAnimationFrame(renderFrameId)
   resizeObserver?.disconnect()
   gameView?.dispose()
@@ -463,6 +507,7 @@ onBeforeUnmount(() => {
     class="camera-page"
     :class="{ 'camera-page--landscape': phone.cameraLandscape }"
     :aria-label="phone.t('Apps.camera.name')"
+    dark
   >
     <div class="camera-viewport" @wheel.prevent.stop="zoomWithWheel">
       <canvas
@@ -486,22 +531,24 @@ onBeforeUnmount(() => {
 
     <header class="camera-topbar">
       <div class="camera-topbar-actions">
-        <button
+        <sky-fab
           v-if="requestedMessageMedia"
-          class="camera-picker-back"
+          component="button"
+          class="camera-control camera-picker-back"
           type="button"
+          variant="glass"
           :aria-label="phone.t('Common.back')"
           @click="cancelMediaSelection"
         >
-          <ArrowLeft :size="20" />
-        </button>
+          <template #icon><ArrowLeft :size="20" /></template>
+        </sky-fab>
         <sky-fab
           v-else
           component="button"
           type="button"
           class="camera-control"
           :class="{ 'camera-control--flash-active': flashEnabled }"
-          variant="neutral"
+          variant="glass"
           :aria-label="phone.t('Apps.camera.flash')"
           @click="toggleFlash"
         >
@@ -516,7 +563,7 @@ onBeforeUnmount(() => {
           type="button"
           class="camera-control"
           :class="{ 'camera-control--danger': !microphoneEnabled }"
-          variant="neutral"
+          variant="glass"
           :disabled="recording || savingVideo"
           :aria-label="
             phone.t(
@@ -534,19 +581,21 @@ onBeforeUnmount(() => {
           </template>
         </sky-fab>
       </div>
-      <span
-        v-if="noticeText"
-        class="camera-focus-pill camera-focus-pill--notice"
-      >
+      <span v-if="noticeText" class="camera-notice-text">
         {{ noticeText }}
       </span>
       <span v-else-if="pendingCount" class="camera-upload-pill">
         {{ phone.t('Apps.camera.uploading', { count: String(pendingCount) }) }}
       </span>
-      <button
+      <SkyButton
         v-else
-        class="camera-focus-pill camera-lock-control"
-        :class="{ 'camera-lock-control--active': cameraLocked }"
+        inline
+        variant="plain"
+        class="camera-lock-control"
+        :class="{
+          'camera-lock-control--active': cameraLocked,
+          'camera-lock-control--looking': cameraLooking,
+        }"
         type="button"
         :aria-label="
           phone.t(
@@ -560,13 +609,27 @@ onBeforeUnmount(() => {
       >
         <LockKeyhole v-if="cameraLocked" :size="12" />
         <LockOpen v-else :size="12" />
-        <kbd>{{ phone.t('Apps.camera.spaceKey') }}</kbd>
-      </button>
+        <span class="camera-look-copy">
+          <span class="camera-look-label">
+            {{
+              phone.t(
+                cameraLocked
+                  ? 'Apps.camera.unlockCamera'
+                  : 'Apps.camera.lookKey',
+              )
+            }}
+          </span>
+          <span v-if="!cameraLocked" class="camera-look-shortcut">
+            <kbd>{{ phone.t('Apps.camera.spaceKey') }}</kbd>
+            {{ phone.t('Apps.camera.holdKey') }}
+          </span>
+        </span>
+      </SkyButton>
       <sky-fab
         component="button"
         type="button"
         class="camera-control"
-        variant="neutral"
+        variant="glass"
         :disabled="recording || savingVideo"
         :aria-label="
           phone.t(
@@ -588,24 +651,27 @@ onBeforeUnmount(() => {
 
     <div class="camera-zoom-control">
       <div class="camera-zoom-row">
-        <button
+        <SkyButton
           v-for="zoom in zoomLevels"
           :key="zoom"
+          rounded
+          variant="plain"
           class="camera-zoom-pill"
-          :class="{ active: Math.abs(selectedZoom - zoom) < 0.03 }"
+          :class="{ active: zoomPresetIsActive(zoom) }"
           type="button"
           :aria-label="phone.t('Apps.camera.zoom', { zoom: `${zoom}x` })"
-          :aria-pressed="Math.abs(selectedZoom - zoom) < 0.03"
+          :aria-pressed="zoomPresetIsActive(zoom)"
           @click="setZoom(zoom)"
         >
-          {{ zoom }}x
-        </button>
+          {{ zoomPresetLabel(zoom) }}
+        </SkyButton>
       </div>
     </div>
 
     <footer class="camera-controls">
       <div class="camera-capture-row">
-        <button
+        <sky-glass
+          component="button"
           class="camera-latest"
           type="button"
           :aria-label="phone.t('Apps.camera.openGallery')"
@@ -625,7 +691,7 @@ onBeforeUnmount(() => {
           />
           <Video v-else-if="latestMedia" :size="22" />
           <Images v-else :size="22" />
-        </button>
+        </sky-glass>
 
         <button
           class="camera-shutter"
@@ -650,7 +716,7 @@ onBeforeUnmount(() => {
           component="button"
           type="button"
           class="camera-control camera-selfie"
-          variant="neutral"
+          variant="glass"
           :aria-label="phone.t('Apps.camera.flip')"
           @click="toggleFacing"
         >
@@ -688,10 +754,15 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .camera-page {
+  --sky-bg: #000;
+  --sky-text: #fff;
   position: relative;
   overflow: clip;
-  background: #000;
-  color: #fff;
+  background: var(--sky-bg);
+  color: var(--sky-text);
+}
+.camera-page--landscape {
+  --sky-bg: rgba(0, 0, 0, 0.42);
 }
 .camera-viewport {
   position: absolute;
@@ -703,11 +774,11 @@ onBeforeUnmount(() => {
   transform: translateY(-50%);
 }
 .camera-page--landscape .camera-viewport {
-  top: 46%;
+  top: 50%;
   left: 50%;
-  width: calc(100% * 16 / 9);
+  width: calc(100% * var(--phone-screen-portrait-ratio));
   height: auto;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--phone-screen-portrait-ratio);
   transform: translate(-50%, -50%) rotate(90deg);
 }
 .camera-game-view,
@@ -765,6 +836,16 @@ onBeforeUnmount(() => {
   pointer-events: none;
   background: linear-gradient(#0008, transparent 22%);
 }
+.camera-page--landscape .camera-shade {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.42) 0 18%,
+      transparent 18% 75%,
+      rgba(0, 0, 0, 0.42) 75% 100%
+    ),
+    linear-gradient(#0008, transparent 22%);
+}
 .camera-flash {
   z-index: 8;
   pointer-events: none;
@@ -791,16 +872,14 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
 }
-.camera-topbar-spacer {
-  min-width: 0;
-}
 .camera-topbar .camera-control {
   width: 44px;
   height: 44px;
 }
 .camera-control {
-  --sky-glass-solid: rgb(28 28 30 / 80%);
-  color: rgb(255 255 255 / 86%);
+  --sky-glass: rgb(28 28 30 / 58%);
+  --sky-hairline: rgb(255 255 255 / 16%);
+  color: rgb(255 255 255 / 92%) !important;
 }
 .camera-control--flash-active {
   color: #ffd60a !important;
@@ -811,13 +890,6 @@ onBeforeUnmount(() => {
 .camera-picker-back {
   width: 44px;
   height: 44px;
-  border: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: #1c1c1ecc;
-  color: #fff;
-  backdrop-filter: blur(16px);
 }
 .camera-control svg {
   width: 21px;
@@ -831,38 +903,59 @@ onBeforeUnmount(() => {
 .camera-page--landscape .camera-latest svg {
   transform: rotate(90deg);
 }
-.camera-focus-pill,
 .camera-upload-pill {
-  min-width: 0;
   padding: 7px 10px;
-  overflow: hidden;
   border-radius: 999px;
   background: #0006;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.camera-notice-text,
+.camera-upload-pill {
+  min-width: 0;
+  color: #ffd60a;
+  overflow: hidden;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-.camera-upload-pill {
-  color: #ffd60a;
-}
-.camera-focus-pill--notice {
-  color: #ffd60a;
 }
 .camera-lock-control {
-  min-height: 44px;
-  border: 0;
+  justify-self: center;
+  width: auto;
+  max-width: 100%;
+  min-width: var(--sky-touch-target);
+  height: var(--sky-touch-target);
+  min-height: var(--sky-touch-target);
+  padding: 0 var(--sky-space-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  color: #fff;
+  gap: var(--sky-space-2);
+  color: var(--sky-text);
+  font-size: 11px;
   cursor: pointer;
 }
-.camera-lock-control--active {
-  color: #ffd60a;
+.camera-lock-control > svg {
+  flex-shrink: 0;
+}
+.camera-look-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sky-space-1);
+  min-width: 0;
+}
+.camera-look-label {
+  line-height: 1.2;
+  text-align: center;
+}
+.camera-look-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sky-space-1);
+  font-size: 10px;
+  opacity: 0.72;
 }
 .camera-lock-control kbd {
   padding: 1px 5px;
@@ -875,6 +968,12 @@ onBeforeUnmount(() => {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+.camera-lock-control--looking .camera-look-shortcut {
+  opacity: 1;
+}
+.camera-lock-control--looking kbd {
+  background: rgb(255 255 255 / 24%);
 }
 .camera-record-status {
   position: absolute;
@@ -900,31 +999,27 @@ onBeforeUnmount(() => {
 .camera-zoom-control {
   position: absolute;
   z-index: 4;
-  bottom: 196px;
+  bottom: 216px;
   left: 50%;
-  width: 140px;
-  padding: 4px 6px;
-  border-radius: 999px;
-  background: rgb(18 18 20 / 72%);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  width: auto;
   transform: translateX(-50%);
 }
 .camera-zoom-row {
   display: flex;
   justify-content: space-between;
-  gap: 6px;
+  gap: 10px;
 }
 .camera-zoom-pill {
-  width: 30px;
-  height: 26px;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
   padding: 0;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
+  border: 0;
   color: #fff;
-  font-size: 10px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
   text-align: center;
   transition:
     background-color 0.2s ease,
@@ -932,11 +1027,20 @@ onBeforeUnmount(() => {
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
+.camera-zoom-pill::before {
+  width: var(--sky-touch-target, 44px);
+  inset-block: -4px;
+}
 .camera-zoom-pill.active {
-  border-color: transparent;
-  background: rgb(44 44 46 / 88%);
-  box-shadow: 0 8px 16px rgb(0 0 0 / 30%);
   color: #ffd60a;
+  background: rgba(28, 28, 30, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.camera-zoom-pill:active:not(:disabled) {
+  background: rgba(28, 28, 30, 0.42);
+}
+.camera-zoom-pill.active:active:not(:disabled) {
+  background: rgba(28, 28, 30, 0.86);
 }
 .camera-controls {
   position: absolute;
@@ -956,15 +1060,17 @@ onBeforeUnmount(() => {
   padding: 0 24px 32px;
 }
 .camera-latest {
+  --sky-glass: rgb(28 28 30 / 58%);
+  --sky-hairline: rgb(255 255 255 / 16%);
   width: 44px;
   height: 44px;
   overflow: hidden;
-  border: 0;
   border-radius: 50%;
-  background: #111b;
+  background: var(--sky-glass);
   color: #fff;
   display: grid;
   place-items: center;
+  box-shadow: var(--sky-shadow-glass);
 }
 .camera-selfie {
   justify-self: end;

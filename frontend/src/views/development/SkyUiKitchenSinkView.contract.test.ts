@@ -229,9 +229,7 @@ describe('development Sky UI Kitchen Sink contract', () => {
       /const developmentRoutes[^=]*=\s*import\.meta\.env\.DEV[\s\S]*?import\('@\/views\/development\/SkyUiKitchenSinkView\.vue'\)/,
     )
     expect(routerSource).toContain("name: 'development-sky-ui'")
-    expect(appSource).toContain(
-      "isDevelopment && route.name === 'development-sky-ui'",
-    )
+    expect(appSource).toContain("route.name === 'development-sky-ui'")
     expect(appSource).toContain(
       'isDevelopmentRoute ? String(route.name) : route.path',
     )

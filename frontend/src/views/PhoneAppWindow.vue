@@ -28,9 +28,13 @@ const launchStyle = computed(() => {
 
 <template>
   <div
-    v-if="app"
+    v-if="app && !app.adminOnly"
     class="app-window"
-    :class="{ 'app-window--citywarn': app.id === 'citywarn' }"
+    :class="{
+      'app-window--camera-landscape':
+        app.id === 'camera' && phone.cameraLandscape,
+      'app-window--citywarn': app.id === 'citywarn',
+    }"
     :style="launchStyle"
   >
     <CustomAppFrame

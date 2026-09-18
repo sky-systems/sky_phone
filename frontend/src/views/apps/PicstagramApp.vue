@@ -1062,14 +1062,20 @@ onBeforeUnmount(() => {
                     selectedPost.media.length
                   }}</span
                 >
-                <button
+                <SkyButton
+                  glass
+                  icon-only
+                  rounded
                   class="ps-carousel-button ps-carousel-button--left"
                   :disabled="(carouselIndexes[selectedPost.id] ?? 0) === 0"
                   @click="moveCarousel(selectedPost, -1)"
                 >
                   <ChevronLeft />
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  glass
+                  icon-only
+                  rounded
                   class="ps-carousel-button ps-carousel-button--right"
                   :disabled="
                     (carouselIndexes[selectedPost.id] ?? 0) ===
@@ -1078,7 +1084,7 @@ onBeforeUnmount(() => {
                   @click="moveCarousel(selectedPost, 1)"
                 >
                   <ChevronRight />
-                </button>
+                </SkyButton>
                 <div class="ps-dots">
                   <span
                     v-for="(_, index) in selectedPost.media"
@@ -1271,14 +1277,20 @@ onBeforeUnmount(() => {
                     post.media.length
                   }}</span
                 >
-                <button
+                <SkyButton
+                  glass
+                  icon-only
+                  rounded
                   class="ps-carousel-button ps-carousel-button--left"
                   :disabled="(carouselIndexes[post.id] ?? 0) === 0"
                   @click="moveCarousel(post, -1)"
                 >
                   <ChevronLeft />
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  glass
+                  icon-only
+                  rounded
                   class="ps-carousel-button ps-carousel-button--right"
                   :disabled="
                     (carouselIndexes[post.id] ?? 0) === post.media.length - 1
@@ -1286,7 +1298,7 @@ onBeforeUnmount(() => {
                   @click="moveCarousel(post, 1)"
                 >
                   <ChevronRight />
-                </button>
+                </SkyButton>
                 <div class="ps-dots">
                   <span
                     v-for="(_, index) in post.media"
@@ -1487,22 +1499,28 @@ onBeforeUnmount(() => {
                 </button>
               </div>
               <template v-if="selectedMedia.length > 1">
-                <button
+                <SkyButton
+                  glass
+                  icon-only
+                  rounded
                   class="ps-selection-arrow ps-selection-arrow--left"
                   :aria-label="t('previousPhoto')"
                   :disabled="composePreviewIndex === 0"
                   @click="moveComposePreview(-1)"
                 >
                   <ChevronLeft />
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  glass
+                  icon-only
+                  rounded
                   class="ps-selection-arrow ps-selection-arrow--right"
                   :aria-label="t('nextPhoto')"
                   :disabled="composePreviewIndex === selectedMedia.length - 1"
                   @click="moveComposePreview(1)"
                 >
                   <ChevronRight />
-                </button>
+                </SkyButton>
                 <span class="ps-selection-counter">
                   {{ composePreviewIndex + 1 }}/{{ selectedMedia.length }}
                 </span>
@@ -2858,12 +2876,11 @@ button {
   top: 50%;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.58);
   color: white;
   transform: translateY(-50%);
 }
@@ -3191,12 +3208,11 @@ button {
   top: 50%;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
   padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.62);
   color: white;
   transform: translateY(-50%);
 }

@@ -2195,7 +2195,7 @@ onMounted(async () => {
   overflow: hidden;
   background: #151613;
   color: #f8f8f4;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--sky-font-family);
 }
 .citymarkt--light {
   --ink: #fff;

@@ -4,6 +4,9 @@
 
 <h1 align="center">Sky Phone: Free FiveM Phone Script</h1>
 
+For server-only Discord webhooks, Phonepanel editing, app coverage and the
+optional avatar URL, see [Discord logging](LOGGING.md).
+
 <p align="center">
   <strong>The complete, free FiveM phone for ESX, QBCore, and Qbox.</strong><br>
   A premium-grade smartphone experience with 41 built-in apps, LB Phone migration, and first-class custom app support.
@@ -134,7 +137,7 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
   - `hex_4_inventory`
   - Native ESX inventory
 
-`mf-inventory` and `smx-inventory` are supported with ESX. The native ESX and HEX adapters use count-based items and therefore require unique phones and physical SIM cards to be disabled.
+`mf-inventory` and `smx-inventory` are supported with ESX. The native ESX and HEX adapters use count-based items, so Sky Phone automatically disables unique phones and physical SIM cards while either adapter is active.
 
 ### Voice
 
@@ -196,6 +199,7 @@ The files contain clearly separated sections for:
 | Section | Purpose |
 | --- | --- |
 | `Config.Bridge` | Framework, inventory, language, callback timeout, and debug mode |
+| `Config.CommandPermissions` | Fixed groups for the admin panel, test data, verification commands, and social moderation |
 | `Config.Phone` | Phone item, movement, unique-device mode, and development command |
 | `Config.Sim` | Physical or virtual SIM behavior and number formatting |
 | `Config.Calls` / `Config.Radio` | Voice providers, call behavior, radio limits, and permissions |
@@ -210,6 +214,18 @@ The files contain clearly separated sections for:
 | `Config.WeazelNews` | Editorial jobs, categories, and article limits |
 
 Restart `sky_phone` after changing Lua configuration.
+
+When `Config.PhoneConfigurator.Enabled` is enabled, the generated `source/shared/config_default.lua`
+provides the shipped SQL baseline. The frontend build recreates it from `config.lua` and the
+server-only `media.lua`; do not edit the generated snapshot directly.
+
+`Config.PhoneConfigurator` and `Config.CommandPermissions` remain file-owned and are omitted from
+the generated default snapshot. Permissions are not displayed in the Phone Configurator and stay
+authoritative while SQL configuration is enabled. Their stable keys do not change when a command is
+renamed in the panel. ESX and QBCore use their framework permissions. Qbox checks the configured ACE
+objects first and then its framework groups, so the standard `permissions.cfg` mapping from
+`group.admin` to the `admin` ACE works with the shipped `phonepanel` permission list. Restart
+`sky_phone` after changing fixed permissions.
 
 ### Language
 
@@ -312,7 +328,7 @@ Do not configure an LB Phone client event or client export. Sky Phone registers 
 
 The server registers `Config.Phone.Item` as usable for every supported inventory adapter: `ox`, `qb`, `lj`, `qs`, `codem`, `core`, `mf`, `smx`, `hex`, and `esx`. Resource startup fails visibly if the selected adapter cannot complete that registration.
 
-The `hex` and `esx` adapters use ESX's count-based item API. They require both `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` because this API cannot persist per-item phone or physical SIM metadata. `auto` selects `hex` when `hex_4_inventory` is started and otherwise falls back to `esx` on an ESX server when no metadata-capable inventory is detected.
+The `hex` and `esx` adapters use ESX's count-based item API, which cannot persist per-item phone or physical SIM metadata. Sky Phone automatically forces `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` while either adapter is active. `auto` selects `hex` when `hex_4_inventory` is started and otherwise falls back to `esx` on an ESX server when no metadata-capable inventory is detected.
 
 ### QBCore-style item tables
 
@@ -523,6 +539,18 @@ The migration command is server-console only.
 
 Select the provider under `Config.Garage.System`. Vehicle images use the configured CDN template with an icon fallback when no image is available.
 
+For MSK Garage, select `msk` (or use `auto`) and start `msk_garage` before `sky_phone`.
+With the Phone Configurator enabled, set `Garage.System` to `msk` in `/phonepanel` instead.
+Automatic detection checks `jg-advancedgarages` before `msk_garage`; select `msk` explicitly if both run.
+The adapter uses MSK's standard framework vehicle schema: ESX `owned_vehicles` / `stored`,
+or QBCore and Qbox `player_vehicles` / `state` (MSK 5.6+). It reads the garage ID,
+custom vehicle name, properties and fuel, and changes only the parked flag for valet orders.
+MSK treats unparked vehicles as impound candidates; the phone shows them as out and only
+delivers parked, personally owned vehicles. Cancelled or failed deliveries restore the parked flag.
+With `msk_fuel`, valet preserves liters; the fuel percentage is available when that resource
+configures a tank capacity for the model. Otherwise the percentage is shown as unavailable.
+See the [MSK database contract](https://docu.msk-scripts.de/docs/msk_garage/database/).
+
 ### Housing
 
 Select `rtx`, `quasar`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, or `qbx_properties` under `Config.Housing.System`. Automatic mode uses `Config.Housing.AutoPriority` and keeps the existing `esx_property` and `qbx_properties` defaults ahead of newly supported providers. Select a provider explicitly when multiple housing resources are running. Each bridge exposes only the capabilities supported by the documented provider API.
@@ -530,6 +558,19 @@ Select `rtx`, `quasar`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, or `qbx_prop
 ### Companies
 
 Company jobs, public profiles, service numbers, services, permissions, locations, and default availability are configured under `Config.Companies.Definitions`.
+
+Company names are limited to 32 Unicode characters in Lua and the Phone Configurator; Discover
+wraps names instead of truncating them. Shorten any existing longer names before restarting.
+Set each definition's `CoverUrl` to an HTTPS image URL in the configuration or Phone Configurator
+(an empty value hides the cover). Set `LogoUrl` to the company logo HTTPS URL in the same definition. Both images are
+admin-managed; job members cannot change them through Companies. Previously uploaded job
+logos and covers are no longer used automatically.
+
+Opening hours use 24-hour `HH:MM` input. `ServiceLine.CanMessage` enables company SMS and defaults
+to `true` for new companies and the shipped service lines. On the first restart after this update,
+the Phone Configurator enables SMS once for the stored `ambulance`, `fire`, `mechanic`, and `taxi`
+definitions; later admin changes are preserved. App requests still require the company and the
+selected public service to accept requests, plus a registered SIM.
 
 ### Weazel News
 
@@ -559,6 +600,8 @@ Its native custom app surface includes client and server exports for app registr
 The resource provides the compatibility aliases `lb-phone`, `17mov_Phone`, `high-phone`, `qs-smartphone`, and `yseries`.
 
 That means servers can replace LB Phone without giving up supported custom apps, while developers can build directly against Sky Phone for deeper lifecycle, permission, and storage integration.
+
+Start Sky Phone before the custom app resources and do not start the original phone resource for an alias at the same time. For example, an unchanged app using `exports["lb-phone"]:AddCustomApp(...)` must run with `sky_phone`, not with the original `lb-phone`, as the active provider. Two active providers expose the same FiveM export event and can send registrations to the wrong phone.
 
 ## Frontend development
 
@@ -590,6 +633,22 @@ pnpm build
 ```
 
 ## Troubleshooting
+
+### CityWarn map blips
+
+Active CityWarn warnings with coordinates appear on the GTA map and minimap for
+all players, including with the phone closed. Radius warnings include a translucent
+area; district warnings with coordinates use a point marker. City-wide warnings
+and districts without coordinates remain available in the phone app without an
+invented map location. The existing in-app map and its personal filters still work;
+those filters do not hide the public GTA warning blips.
+
+Publishing or updating a warning triggers a server sync. Resolving it removes its
+blips immediately, and expiration removes them locally even if a server request
+times out. Joining or restarting the resource restores active warnings, with a
+30-second reconciliation for missed events and a 5-second retry after failures.
+Disabling `Config.CityWarn.Enabled` through the Phone Configurator or stopping the
+resource removes the blips. No additional configuration or SQL migration is needed.
 
 ### The phone item does nothing
 

@@ -3,6 +3,9 @@ const { randomUUID } = require('node:crypto')
 const cors = require('cors')
 const express = require('express')
 
+const { loadConfiguratorSections } = require('./configurator-fixture.cjs')
+const { getWebhooks, saveWebhooks } = require('./webhooks-fixture.cjs')
+
 const app = express()
 const port = Number(process.argv[2]) || 3001
 
@@ -23,6 +26,7 @@ const lifecycleEndpoints = new Set([
   'notification:focus',
   'sim:picker-close',
   'ui:input-focus',
+  'ui:live-activity',
   'ui:opened',
   'ui:ready',
 ])
@@ -1975,7 +1979,7 @@ const contacts = [
   },
   {
     canCall: true,
-    canMessage: false,
+    canMessage: true,
     companyId: 'police',
     avatar_url: 'https://picsum.photos/seed/companies-police-logo/180/180',
     id: 'company:police',
@@ -2206,12 +2210,12 @@ const attachmentAssets = {
   video: new Set(['city-loop', 'ocean-loop', 'sunset-loop']),
 }
 const gifMocks = [
-  ['ICOgUNjpvO0PC', 'Cat reaction'],
-  ['MDJ9IbxxvDUQM', 'Happy dog'],
-  ['l0HlPystfePnAI3G8', 'Celebrate'],
-  ['26ufdipQqU2lhNA4g', 'Wow'],
-  ['3o7abKhOpu0NwenH3O', 'Perfect'],
-  ['xT0xeJpnrWC4XWblEk', 'Party'],
+  ['JIX9t2j0ZTN9S', 'Cat reaction', 200, 200],
+  ['MDJ9IbxxvDUQM', 'Happy dog', 200, 112],
+  ['l0HlPystfePnAI3G8', 'Celebrate', 200, 200],
+  ['26ufdipQqU2lhNA4g', 'Wow', 200, 200],
+  ['3o7abKhOpu0NwenH3O', 'Perfect', 200, 112],
+  ['xT0xeJpnrWC4XWblEk', 'Party', 200, 132],
   ['111ebonMs90YLu', 'Thumbs up'],
   ['5GoVLqeAOo6PK', 'Excited'],
   ['TdfyKrN7HGTIY', 'Happy dance'],
@@ -2964,7 +2968,7 @@ const deviceData = {
   alarms: {
     payload: [
       {
-        enabled: true,
+        enabled: false,
         id: 'demo-weekday-alarm',
         lastTriggeredMinute: null,
         note: 'Morning patrol',
@@ -2973,7 +2977,7 @@ const deviceData = {
         weekdays: [1, 2, 3, 4, 5],
       },
       {
-        enabled: true,
+        enabled: false,
         id: 'demo-garage-alarm',
         lastTriggeredMinute: null,
         note: 'Garage appointment',
@@ -3107,6 +3111,7 @@ const deviceData = {
   },
 }
 let mockPasscode = ''
+let mockFaceIdOwner = null
 let mockSecurity = { enabled: false, length: null, lockedUntil: 0 }
 let mockSim = {
   id: 'development-sim',
@@ -4886,9 +4891,10 @@ const companyCategories = [
   { id: 'gastronomy', name: 'Food & Drink' },
 ]
 let companyCallAvailable = false
+let companyCallDispatcher = false
 const companyProfiles = [
   {
-    acceptsRequests: false,
+    acceptsRequests: true,
     announcement: {
       body: 'Community traffic unit active around Legion Square.',
       expiresAt: isoTime(6 * 60 * 60 * 1000),
@@ -4897,7 +4903,7 @@ const companyProfiles = [
     availability: 'available',
     availabilityUpdatedAt: isoTime(-12 * 60 * 1000),
     canCall: true,
-    canMessage: false,
+    canMessage: true,
     categoryId: 'public_services',
     categoryName: 'Public Services',
     coverUrl: 'https://picsum.photos/seed/companies-police-cover/900/360',
@@ -4912,28 +4918,20 @@ const companyProfiles = [
       label: 'Mission Row Police Station',
     },
     logoUrl: 'https://picsum.photos/seed/companies-police-logo/180/180',
-    name: 'Los Santos Police',
+    name: 'Los Santos Police Department',
     phoneNumber: '911',
     revision: 3,
     services: [
       {
-        acceptsRequests: false,
+        acceptsRequests: true,
         active: true,
-        description: 'Immediate police response through the service line.',
-        id: 'emergency-response',
+        description: 'Request non-emergency police assistance.',
+        id: 'police-assistance',
         priceText: null,
-        title: 'Emergency Response',
-      },
-      {
-        acceptsRequests: false,
-        active: true,
-        description: 'General information and non-emergency assistance.',
-        id: 'public-assistance',
-        priceText: null,
-        title: 'Public Assistance',
+        title: 'Police Assistance',
       },
     ],
-    serviceSummary: 'Emergency response and public assistance',
+    serviceSummary: 'Non-emergency police assistance',
     verified: true,
   },
   {
@@ -4942,7 +4940,7 @@ const companyProfiles = [
     availability: 'busy',
     availabilityUpdatedAt: isoTime(-22 * 60 * 1000),
     canCall: true,
-    canMessage: false,
+    canMessage: true,
     categoryId: 'medical',
     categoryName: 'Medical',
     coverUrl: 'https://picsum.photos/seed/companies-ems-cover/900/360',
@@ -5302,6 +5300,7 @@ function companyWorkContext(testScenario = '') {
     return {
       authorized: false,
       callAvailable: false,
+      callDispatcher: false,
       company: null,
       metrics: { assigned: 0, completedToday: 0, new: 0, waiting: 0 },
       ownRequests: [],
@@ -5328,6 +5327,7 @@ function companyWorkContext(testScenario = '') {
   return {
     authorized: true,
     callAvailable: companyCallAvailable,
+    callDispatcher: companyCallAvailable && companyCallDispatcher,
     company: companyProfiles.find((company) => company.id === 'bennys'),
     metrics: {
       assigned: open.filter((request) => request.assignedLabel).length,
@@ -5360,17 +5360,570 @@ function companyWorkContext(testScenario = '') {
   }
 }
 
+const adminMockApps = {
+  claimed: ['citymarkt', 'darkchat', 'feather', 'local-pages'],
+  revision: 3,
+  uninstalled: ['crypto', 'skyride'],
+}
+
+const adminMockDevices = {
+  1: { account: true, number: '555-0101', security: true },
+  2: { account: true, number: '555-0102', security: true },
+}
+
+function adminMockPlayerDetail(source = 1) {
+  const primary = source === 1
+  const deviceState = adminMockDevices[source] ?? adminMockDevices[1]
+  return {
+    birthdate: primary ? '1994-04-16' : '1998-11-03',
+    devices: [
+      {
+        account: deviceState.account
+          ? {
+              email: primary ? 'demo@ifruit.com' : 'jordan@ifruit.com',
+              id: primary ? 1 : 2,
+              passwordAvailable: true,
+            }
+          : null,
+        apps: { ...adminMockApps },
+        createdAt: '2026-08-15 18:42:00',
+        imei: primary ? '356938035643809' : '356938035643810',
+        name: primary ? 'Personal iFruit Phone' : 'Service iFruit Phone',
+        number: deviceState.number,
+        security: {
+          enabled: deviceState.security,
+          failedAttempts: 0,
+          length: deviceState.security ? 6 : null,
+          lockedUntil: 0,
+        },
+        simRegistered: true,
+        simType: 'standard',
+        updatedAt: '2026-08-20 19:04:00',
+      },
+    ],
+    firstName: primary ? 'Alex' : 'Jordan',
+    identifier: primary ? 'char1:demo' : 'char1:jordan',
+    job: {
+      grade: primary ? 4 : 1,
+      gradeLabel: primary ? 'Chief' : 'Officer',
+      label: 'Los Santos Police Department',
+      name: 'police',
+      onDuty: true,
+    },
+    lastName: primary ? 'Morgan' : 'Blake',
+    money: {
+      bank: primary ? 182450 : 28450,
+      cash: primary ? 2740 : 950,
+      currency: '$',
+    },
+    name: primary ? 'Alex Morgan' : 'Jordan Blake',
+    serverName: primary ? 'Skyline' : 'JordanB',
+    source,
+  }
+}
+
+function adminMockBootstrap() {
+  return {
+    audit: [
+      {
+        action: 'grant_app',
+        actorName: 'Skyline',
+        createdAt: '2026-08-20 19:04:00',
+        details: { appId: 'darkchat' },
+        deviceImei: '356938035643810',
+        id: 1,
+        targetIdentifier: 'char1:jordan',
+        targetSource: 2,
+      },
+    ],
+    disabledApps: [],
+    players: [1, 2].map((source) => {
+      const player = adminMockPlayerDetail(source)
+      return {
+        deviceCount: player.devices.length,
+        grade: player.job.grade,
+        identifier: player.identifier,
+        job: player.job.name,
+        name: player.name,
+        onDuty: player.job.onDuty,
+        phoneNumber: player.devices[0]?.number ?? null,
+        serverName: player.serverName,
+        source,
+      }
+    }),
+    stats: {
+      accounts: 24,
+      activeDevices: 19,
+      auditEntries: 37,
+      auditToday: 4,
+      callsToday: 18,
+      devices: 31,
+      linkedDevices: 22,
+      messagesToday: 146,
+      online: 2,
+      simDevices: 27,
+    },
+  }
+}
+
+const adminMockConfiguratorBase = {
+  enabled: true,
+  revision: 4,
+  sections: [
+    {
+      id: 'config:Bridge',
+      label: 'Bridge',
+      scope: 'config',
+      fields: [
+        {
+          label: 'Framework',
+          path: 'Bridge.Framework',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'auto',
+        },
+        {
+          label: 'Inventory',
+          path: 'Bridge.Inventory',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'auto',
+        },
+        {
+          label: 'Locale',
+          path: 'Bridge.Locale',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'de',
+        },
+        {
+          label: 'Callback Timeout',
+          path: 'Bridge.CallbackTimeout',
+          scope: 'config',
+          sensitive: false,
+          type: 'number',
+          value: 15000,
+        },
+        {
+          label: 'Debug',
+          path: 'Bridge.Debug',
+          scope: 'config',
+          sensitive: false,
+          type: 'boolean',
+          value: false,
+        },
+      ],
+    },
+    {
+      id: 'config:Phone',
+      label: 'Phone',
+      scope: 'config',
+      fields: [
+        {
+          label: 'Item',
+          path: 'Phone.Item',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'phone',
+        },
+        {
+          label: 'Unique',
+          path: 'Phone.Unique',
+          scope: 'config',
+          sensitive: false,
+          type: 'boolean',
+          value: true,
+        },
+        {
+          label: 'Keybind',
+          path: 'Phone.Keybind',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'F1',
+        },
+        {
+          label: 'Device Name',
+          path: 'Phone.DeviceName',
+          scope: 'config',
+          sensitive: false,
+          type: 'string',
+          value: 'iFruit Phone',
+        },
+      ],
+    },
+    {
+      id: 'config:Companies',
+      label: 'Companies',
+      scope: 'config',
+      fields: [
+        {
+          label: 'Enabled',
+          path: 'Companies.Enabled',
+          scope: 'config',
+          sensitive: false,
+          type: 'boolean',
+          value: true,
+        },
+        {
+          label: 'Categories',
+          path: 'Companies.Categories',
+          scope: 'config',
+          sensitive: false,
+          type: 'json',
+          value: ['public_services', 'vehicles', 'transport'],
+        },
+      ],
+    },
+    {
+      id: 'media:FiveManage',
+      label: 'Five Manage',
+      scope: 'media',
+      fields: [
+        {
+          configured: true,
+          label: 'Api Key',
+          path: 'FiveManage.ApiKey',
+          scope: 'media',
+          sensitive: true,
+          type: 'string',
+          value: '',
+        },
+        {
+          label: 'Base Url',
+          path: 'FiveManage.BaseUrl',
+          scope: 'media',
+          sensitive: false,
+          type: 'string',
+          value: 'https://api.fivemanage.com/api/v3/file',
+        },
+        {
+          label: 'Upload Timeout Ms',
+          path: 'FiveManage.UploadTimeoutMs',
+          scope: 'media',
+          sensitive: false,
+          type: 'number',
+          value: 25000,
+        },
+      ],
+    },
+    {
+      id: 'media:Import',
+      label: 'Import',
+      scope: 'media',
+      fields: [
+        {
+          label: 'Enabled',
+          path: 'Import.Enabled',
+          scope: 'media',
+          sensitive: false,
+          type: 'boolean',
+          value: true,
+        },
+        {
+          label: 'Websites',
+          path: 'Import.Websites',
+          scope: 'media',
+          sensitive: false,
+          type: 'json',
+          value: [
+            {
+              Adapter: 'fivemanage',
+              Enabled: true,
+              Id: 'fivemanage',
+              Label: 'FiveManage',
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  updatedAt: '2026-08-20 20:15:00',
+  updatedBy: 'Alex Morgan',
+}
+
+const adminMockConfigurator = {
+  ...adminMockConfiguratorBase,
+  sections: loadConfiguratorSections(),
+}
+
+const adminMockCustomTones = []
+const adminMockToneUploads = new Map()
+
+function adminCustomToneList() {
+  return adminMockCustomTones.map(({ payload: _payload, ...tone }) => tone)
+}
+
 app.post('/api/:endpoint', async (request, response, next) => {
   const endpoint = request.params.endpoint
   const loggedBody = { ...request.body }
+  if (endpoint === 'admin:save-webhooks') {
+    loggedBody.changes = '<redacted webhook changes>'
+  }
   if (typeof loggedBody.password === 'string')
     loggedBody.password = '<redacted>'
+  if (
+    endpoint === 'admin:save-configurator' &&
+    Array.isArray(loggedBody.changes)
+  ) {
+    loggedBody.changes = loggedBody.changes.map((change) => ({
+      ...change,
+      value: /api.?key|pepper|secret|token|password/i.test(
+        String(change.path ?? ''),
+      )
+        ? '<redacted>'
+        : change.value,
+    }))
+  }
   if (endpoint === 'memos:devCapture') {
     loggedBody.audioDataUrl = `<${String(request.body.audioDataUrl ?? '').length} characters>`
   }
-  console.log(`[NUI] ${endpoint}`, loggedBody)
+  if (endpoint === 'admin:tone-upload-chunk') {
+    loggedBody.chunk = `<${String(request.body.chunk ?? '').length} characters>`
+  }
+  console.log('[NUI]', endpoint, loggedBody)
   if (endpoint === 'music:bootstrap') {
     response.json({ success: true, data: musicBootstrap() })
+    return
+  }
+  if (endpoint === 'admin:bootstrap') {
+    response.json({ success: true, data: adminMockBootstrap() })
+    return
+  }
+  if (endpoint === 'admin:configurator') {
+    response.json({ success: true, data: adminMockConfigurator })
+    return
+  }
+  if (endpoint === 'admin:webhooks') {
+    response.json({ success: true, data: getWebhooks() })
+    return
+  }
+  if (endpoint === 'admin:save-webhooks') {
+    response.json(saveWebhooks(request.body))
+    return
+  }
+  if (endpoint === 'admin:tones') {
+    response.json({ success: true, data: adminCustomToneList() })
+    return
+  }
+  if (endpoint === 'admin:tone-upload-start') {
+    const uploadId = randomUUID()
+    adminMockToneUploads.set(uploadId, {
+      chunks: [],
+      durationMs: Number(request.body.durationMs) || 1000,
+      label: String(request.body.label ?? 'Custom tone'),
+      mimeType: String(request.body.mimeType ?? 'audio/mpeg'),
+      toneType:
+        request.body.toneType === 'notification' ? 'notification' : 'ringtone',
+    })
+    response.json({ success: true, data: { uploadId } })
+    return
+  }
+  if (endpoint === 'admin:tone-upload-chunk') {
+    const upload = adminMockToneUploads.get(request.body.uploadId)
+    if (!upload) {
+      response.json({ success: false, error: 'invalid_upload' })
+      return
+    }
+    upload.chunks.push(String(request.body.chunk ?? ''))
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'admin:tone-upload-finish') {
+    const upload = adminMockToneUploads.get(request.body.uploadId)
+    if (!upload) {
+      response.json({ success: false, error: 'invalid_upload' })
+      return
+    }
+    adminMockToneUploads.delete(request.body.uploadId)
+    const payload = upload.chunks.join('')
+    adminMockCustomTones.push({
+      byteSize: Buffer.from(payload, 'base64').byteLength,
+      createdAt: new Date().toISOString(),
+      createdBy: 'Development Admin',
+      durationMs: upload.durationMs,
+      id: randomUUID(),
+      label: upload.label,
+      mimeType: upload.mimeType,
+      payload,
+      source: 'database',
+      toneType: upload.toneType,
+    })
+    response.json({ success: true, data: adminCustomToneList() })
+    return
+  }
+  if (endpoint === 'admin:tone-upload-cancel') {
+    adminMockToneUploads.delete(request.body.uploadId)
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'admin:delete-tone') {
+    const index = adminMockCustomTones.findIndex(
+      (tone) => tone.id === request.body.id,
+    )
+    if (index >= 0) adminMockCustomTones.splice(index, 1)
+    response.json({ success: true, data: adminCustomToneList() })
+    return
+  }
+  if (endpoint === 'tones:audio') {
+    const tone = adminMockCustomTones.find(
+      (candidate) => candidate.id === request.body.id,
+    )
+    if (!tone) {
+      response.json({ success: false, error: 'tone_not_found' })
+      return
+    }
+    response.json({
+      success: true,
+      data: {
+        id: tone.id,
+        mimeType: tone.mimeType,
+        payload: tone.payload,
+      },
+    })
+    return
+  }
+  if (endpoint === 'admin:save-configurator') {
+    const changes = Array.isArray(request.body.changes)
+      ? request.body.changes
+      : []
+    for (const change of changes) {
+      for (const section of adminMockConfigurator.sections) {
+        const field = section.fields.find(
+          (candidate) =>
+            candidate.scope === change.scope && candidate.path === change.path,
+        )
+        if (!field) continue
+        if (field.sensitive)
+          field.configured = String(change.value ?? '') !== ''
+        else field.value = change.value
+      }
+    }
+    adminMockConfigurator.revision += 1
+    adminMockConfigurator.updatedAt = new Date().toISOString()
+    response.json({ success: true, data: adminMockConfigurator })
+    return
+  }
+  if (endpoint === 'admin:player') {
+    response.json({
+      success: true,
+      data: adminMockPlayerDetail(Number(request.body.source) || 1),
+    })
+    return
+  }
+  if (endpoint === 'admin:save-apps') {
+    const changes = Array.isArray(request.body.changes)
+      ? request.body.changes
+      : []
+    for (const change of changes) {
+      const appId = String(change.appId ?? '')
+      const installed = change.installed === true
+      adminMockApps.claimed = adminMockApps.claimed.filter((id) => id !== appId)
+      adminMockApps.uninstalled = adminMockApps.uninstalled.filter(
+        (id) => id !== appId,
+      )
+      if (installed) adminMockApps.claimed.push(appId)
+      else adminMockApps.uninstalled.push(appId)
+    }
+    adminMockApps.revision += 1
+    response.json({
+      success: true,
+      data: adminMockPlayerDetail(Number(request.body.source) || 1),
+    })
+    return
+  }
+  if (endpoint === 'admin:close') {
+    response.json({ success: true })
+    return
+  }
+  if (endpoint === 'admin:reveal-password') {
+    response.json({
+      success: true,
+      data: { email: 'demo@ifruit.com', password: 'mock-only-password' },
+    })
+    return
+  }
+  if (endpoint === 'admin:activity') {
+    if (request.body.kind === 'messages') {
+      response.json({
+        success: true,
+        data: {
+          kind: 'messages',
+          entries: [
+            {
+              body: 'Meet at Mission Row in ten minutes.',
+              createdAt: '2026-08-20 19:03:00',
+              direction: 'outgoing',
+              id: 'admin-message-1',
+              messageType: 'text',
+              otherNumber: '555-0144',
+              readAt: '2026-08-20 19:03:30',
+            },
+            {
+              body: 'Copy, I am on my way.',
+              createdAt: '2026-08-20 18:58:00',
+              direction: 'incoming',
+              id: 'admin-message-2',
+              messageType: 'text',
+              otherNumber: '555-0199',
+              readAt: null,
+            },
+          ],
+        },
+      })
+      return
+    }
+    response.json({
+      success: true,
+      data: {
+        kind: 'calls',
+        entries: [
+          {
+            answeredAt: '2026-08-20 18:49:05',
+            direction: 'incoming',
+            durationSeconds: 184,
+            endedAt: '2026-08-20 18:52:09',
+            id: 'admin-call-1',
+            otherNumber: '555-0177',
+            startedAt: '2026-08-20 18:49:00',
+            status: 'completed',
+          },
+          {
+            answeredAt: null,
+            direction: 'outgoing',
+            durationSeconds: 0,
+            endedAt: '2026-08-20 17:13:18',
+            id: 'admin-call-2',
+            otherNumber: '555-0112',
+            startedAt: '2026-08-20 17:13:00',
+            status: 'missed',
+          },
+        ],
+      },
+    })
+    return
+  }
+  if (endpoint === 'admin:reset-passcode') {
+    const source = Number(request.body.source) || 1
+    adminMockDevices[source].security = false
+    response.json({ success: true, data: adminMockPlayerDetail(source) })
+    return
+  }
+  if (endpoint === 'admin:change-number') {
+    const source = Number(request.body.source) || 1
+    adminMockDevices[source].number = String(request.body.phoneNumber ?? '')
+    response.json({ success: true, data: adminMockPlayerDetail(source) })
+    return
+  }
+  if (endpoint === 'admin:factory-reset') {
+    const source = Number(request.body.source) || 1
+    adminMockDevices[source].account = false
+    adminMockDevices[source].security = false
+    response.json({ success: true, data: adminMockPlayerDetail(source) })
     return
   }
   if (endpoint === 'music:add-youtube') {
@@ -6310,7 +6863,17 @@ let cityWarnAlerts = [
 
 function cityWarnBootstrap(testScenario) {
   const readonly = testScenario === 'citywarn-readonly'
+  const settings = adminMockConfigurator.sections
+    .flatMap((section) => section.fields)
+    .find(
+      (field) => field.scope === 'config' && field.path === 'CityWarn',
+    )?.value
   return {
+    categoryColors: settings?.CategoryColors,
+    mapBlip: {
+      radiusEnabled: settings?.Blip?.RadiusEnabled !== false,
+      radius: settings?.Blip?.Radius ?? 100,
+    },
     active: cityWarnAlerts.filter(
       (alert) => alert.status === 'active' && alert.expiresAt > Date.now(),
     ),
@@ -6968,6 +7531,15 @@ app.post('/api/:endpoint', (request, response) => {
       company.availabilityUpdatedAt = new Date().toISOString()
     }
     if (endpoint === 'companies:update-profile') {
+      if (
+        request.body.coverMediaId != null ||
+        request.body.coverUrl != null ||
+        request.body.logoMediaId != null ||
+        request.body.logoUrl != null
+      ) {
+        response.json({ success: false, error: 'invalid_profile' })
+        return
+      }
       company.acceptsRequests = request.body.acceptsRequests === true
       company.description = String(request.body.description ?? '')
       company.location = {
@@ -6980,14 +7552,6 @@ app.post('/api/:endpoint', (request, response) => {
         district: String(request.body.district ?? ''),
         label: String(request.body.locationLabel ?? ''),
       }
-      const logo = mockMedia.find(
-        (item) => item.id === Number(request.body.logoMediaId),
-      )
-      const cover = mockMedia.find(
-        (item) => item.id === Number(request.body.coverMediaId),
-      )
-      if (logo) company.logoUrl = logo.url
-      if (cover) company.coverUrl = cover.url
     }
     if (endpoint === 'companies:update-hours') {
       company.hours = Array.isArray(request.body.hours)
@@ -7027,7 +7591,25 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'companies:set-call-availability') {
+    const { available, dispatcher } = request.body
+    if (
+      typeof available !== 'boolean' ||
+      (dispatcher !== undefined && typeof dispatcher !== 'boolean') ||
+      (dispatcher === true && !available)
+    ) {
+      response.json({ success: false, error: 'invalid_request' })
+      return
+    }
+    const context = companyWorkContext(testScenario)
+    if (
+      available &&
+      (!context.authorized || !context.permissions.canTakeCalls)
+    ) {
+      response.json({ success: false, error: 'not_authorized' })
+      return
+    }
     companyCallAvailable = request.body.available === true
+    companyCallDispatcher = companyCallAvailable && dispatcher === true
     response.json({
       success: true,
       data: { context: companyWorkContext(testScenario) },
@@ -11384,13 +11966,13 @@ app.post('/api/:endpoint', (request, response) => {
     const pageSize = 6
     const results = gifMocks
       .slice(offset, offset + pageSize)
-      .map(([id, title]) => ({
-        height: 200,
+      .map(([id, title, width, height]) => ({
+        height: height ?? 200,
         id,
         previewUrl: `https://media.giphy.com/media/${id}/200w.gif`,
         title,
         url: `https://media.giphy.com/media/${id}/giphy.gif`,
-        width: 200,
+        width: width ?? 200,
       }))
     response.json({
       success: true,
@@ -12116,6 +12698,50 @@ app.post('/api/:endpoint', (request, response) => {
     response.json({ success: true, data: { revision } })
     return
   }
+  if (endpoint === 'security:face-id-unlock') {
+    const character =
+      request.body._testScenario === 'face-id-other-character'
+        ? 'other-character'
+        : 'phone-owner'
+    response.json(
+      !mockSecurity.faceIdEnabled
+        ? { success: false, error: 'face_id_not_enabled' }
+        : mockFaceIdOwner !== character
+          ? { success: false, error: 'face_id_not_recognized' }
+          : request.body._testScenario === 'face-id-masked'
+            ? { success: false, error: 'face_id_masked' }
+            : { success: true, data: { security: mockSecurity } },
+    )
+    return
+  }
+  if (endpoint === 'security:set-face-id') {
+    if (typeof request.body.enabled !== 'boolean') {
+      response.json({ success: false, error: 'invalid_request' })
+      return
+    }
+    if (!mockSecurity.enabled || request.body.passcode !== mockPasscode) {
+      response.json({
+        success: false,
+        error: mockSecurity.enabled ? 'invalid_passcode' : 'passcode_not_set',
+      })
+      return
+    }
+    if (
+      request.body.enabled &&
+      request.body._testScenario === 'face-id-masked'
+    ) {
+      response.json({ success: false, error: 'face_id_masked' })
+      return
+    }
+    mockFaceIdOwner = request.body.enabled
+      ? request.body._testScenario === 'face-id-other-character'
+        ? 'other-character'
+        : 'phone-owner'
+      : null
+    mockSecurity = { ...mockSecurity, faceIdEnabled: request.body.enabled }
+    response.json({ success: true, data: { security: mockSecurity } })
+    return
+  }
   if (endpoint === 'security:unlock') {
     response.json(
       !mockSecurity.enabled || request.body.passcode === mockPasscode
@@ -12141,6 +12767,7 @@ app.post('/api/:endpoint', (request, response) => {
     }
     mockPasscode = String(request.body.newPasscode)
     mockSecurity = {
+      ...mockSecurity,
       enabled: true,
       length: mockPasscode.length,
       lockedUntil: 0,

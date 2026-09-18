@@ -81,6 +81,7 @@ describe('AppStoreApp Sky navigation contract', () => {
     expect(source).toContain('@click="profileOpened = true"')
     expect(source).toContain('const installedApps = computed')
     expect(source).toContain('return !appStore.isInstalled(app.id)')
+    expect(source).toContain('if (!appStore.isAvailable(app.id)) return false')
     expect(source).toContain(
       'class="store-account__apps phone-effect--expensive-shadow"',
     )
@@ -100,6 +101,10 @@ describe('AppStoreApp Sky navigation contract', () => {
     expect(source).toContain(
       'appStore.uninstallApp(uninstallCandidate.value.id)',
     )
+    expect(source).toContain('@click.stop="requestUninstall(app)"')
+    expect(source).toContain('if (!appStore.uninstallApp(')
+    expect(source).toContain('Apps.appStore.account.uninstallFailed')
+    expect(source).toContain('role="alert"')
     expect(source).toContain('v-if="isPhoneAppRemovable(app)"')
     expect(source).toContain(':opened="Boolean(uninstallCandidate)"')
     expect(source).toContain('class="store-account__grabber"')

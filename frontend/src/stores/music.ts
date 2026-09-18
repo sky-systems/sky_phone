@@ -7,6 +7,11 @@ import type {
   MusicTrack,
 } from '@/types/music'
 import { nuiCall } from '@/utils/nui'
+import {
+  getPhoneOutputVolume,
+  registerPhoneMediaElement,
+  subscribePhoneOutputVolume,
+} from '@/utils/phoneAudio'
 
 export type YouTubePlayer = {
   destroy: () => void
@@ -48,7 +53,7 @@ declare global {
   }
 }
 
-const audio = new Audio()
+const audio = registerPhoneMediaElement(new Audio())
 audio.preload = 'auto'
 const YOUTUBE_API_TIMEOUT_MS = 12000
 let audioBound = false
@@ -58,6 +63,11 @@ let playbackGeneration = 0
 let youtubeApiPromise: Promise<YouTubeApi> | null = null
 let youtubePlayer: YouTubePlayer | null = null
 let youtubeProgressTimer: number | null = null
+
+subscribePhoneOutputVolume((volume) => {
+  const localVolume = useMusicStore().volume
+  youtubePlayer?.setVolume(localVolume * volume * 100)
+})
 
 export function musicTrackKey(
   track: Pick<MusicTrack, 'id' | 'source'>,
@@ -276,7 +286,7 @@ async function loadYouTubeTrack(videoId: string): Promise<void> {
   const api = await loadYouTubeApi()
   const store = useMusicStore()
   if (youtubePlayer) {
-    youtubePlayer.setVolume(store.volume * 100)
+    youtubePlayer.setVolume(store.volume * getPhoneOutputVolume() * 100)
     youtubePlayer.loadVideoById(videoId)
     youtubePlayer.playVideo()
     startYoutubeProgress()
@@ -319,7 +329,9 @@ async function loadYouTubeTrack(videoId: string): Promise<void> {
         },
         onReady: (event) => {
           youtubePlayer = event.target
-          event.target.setVolume(useMusicStore().volume * 100)
+          event.target.setVolume(
+            useMusicStore().volume * getPhoneOutputVolume() * 100,
+          )
           event.target.playVideo()
           startYoutubeProgress()
           resolve()
@@ -554,7 +566,7 @@ export const useMusicStore = defineStore('music', {
     setVolume(value: number): void {
       this.volume = Math.max(0, Math.min(1, value))
       audio.volume = this.volume
-      youtubePlayer?.setVolume(this.volume * 100)
+      youtubePlayer?.setVolume(this.volume * getPhoneOutputVolume() * 100)
     },
     stop(): void {
       stopActiveMedia()

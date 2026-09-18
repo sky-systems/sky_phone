@@ -8,12 +8,22 @@ local offer_responses = { accepted = true, rejected = true }
 local public_statuses = { active = true, reserved = true }
 local seller_statuses = { active = true, reserved = true, sold = true, removed = true }
 
-for _, category in ipairs(Config.Marketplace.Categories) do
-    categories[category] = true
+local function refresh_runtime_configuration()
+    categories = {}
+    districts = {}
+    for _, category in ipairs(Config.Marketplace.Categories) do
+        categories[category] = true
+    end
+    for _, district in ipairs(Config.Marketplace.Districts) do
+        districts[district] = true
+    end
 end
-for _, district in ipairs(Config.Marketplace.Districts) do
-    districts[district] = true
-end
+
+refresh_runtime_configuration()
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    refresh_runtime_configuration()
+end)
 
 local function trim(value)
     if type(value) ~= "string" then

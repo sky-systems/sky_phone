@@ -15,6 +15,7 @@ local supported_systems = {
     ["ds-servercreator"] = true,
     hex = true,
     jg = true,
+    msk = true,
     my = true,
     okok = true,
     op = true,
@@ -66,6 +67,14 @@ local function normalized_health(value, maximum)
 end
 
 local function vehicle_status(row, location, garage_system)
+    if garage_system == "msk" then
+        -- MSK owns only the framework's parked flag. Other garage columns may be stale.
+        local stored = row.state
+        if Bridge.Framework.GetName() == "esx" then
+            stored = row.stored
+        end
+        return truthy_database_value(stored) and "garaged" or "out"
+    end
     local state = tonumber(row.state)
     local location_key = string.lower(tostring(location or ""))
     if truthy_database_value(row.impound)
@@ -91,22 +100,28 @@ end
 
 local function vehicle_kind(value)
     local kind = string.lower(tostring(value or ""))
-    if kind == "boat" then
+    if kind == "boat" or kind == "submarine" or kind == "submarinecar" then
         return "boat"
     end
-    if kind == "plane" or kind == "air" or kind == "airplane" then
+    if kind == "plane" or kind == "air" or kind == "airplane" or kind == "aircraft" then
         return "plane"
     end
     if kind == "heli" or kind == "helicopter" then
         return "helicopter"
     end
-    if kind == "bike" or kind == "bicycle" or kind == "motorcycle" then
+    if kind == "bike" or kind == "bicycle" or kind == "motorcycle" or kind == "motorbike" then
         return "bike"
     end
     return "car"
 end
 
-local function vehicle_properties(row)
+local function vehicle_properties(row, garage_system)
+    if garage_system == "msk" then
+        if Bridge.Framework.GetName() == "esx" then
+            return decode_object(row.vehicle)
+        end
+        return decode_object(row.mods)
+    end
     local properties = decode_object(first_value(row.mods, row.vehicle_data, row.properties))
     local vehicle_object = decode_object(row.vehicle)
     if next(vehicle_object) ~= nil then
@@ -144,7 +159,7 @@ local function vehicle_image_url(model)
 end
 
 local function vehicle_dto(row, garage_system)
-    local mods = vehicle_properties(row)
+    local mods = vehicle_properties(row, garage_system)
     local vehicle_value = row.vehicle
 
     local model = first_value(row.model, row.hash, mods.model, mods.hash)
@@ -153,26 +168,52 @@ local function vehicle_dto(row, garage_system)
     elseif type(vehicle_value) == "number" then
         model = first_value(model, vehicle_value)
     end
+    if garage_system == "msk" then
+        if Bridge.Framework.GetName() == "esx" then
+            model = first_value(mods.model, mods.hash)
+        else
+            model = first_value(row.hash, mods.model, mods.hash, row.vehicle)
+        end
+    end
     local numeric_model = tonumber(model)
     if numeric_model then
         model = numeric_model
     end
 
     local location = first_value(row.garage_id, row.parking, row.garage, row.parked_at)
+    local nickname = row.nickname
+    local engine = first_value(row.engine, mods.engineHealth, mods.engine)
+    local body = first_value(row.body, mods.bodyHealth, mods.body)
+    local fuel = normalized_health(first_value(row.fuel, mods.fuelLevel, mods.fuel), 100)
+    local msk_fuel
+    local kind = first_value(row.garage_type, row.type, mods.type)
+    if garage_system == "msk" then
+        kind = first_value(row.type, mods.type)
+        location = row.garage
+        nickname = row.name
+        engine = first_value(mods.engineHealth, mods.engine, row.engine)
+        body = first_value(mods.bodyHealth, mods.body, row.body)
+        if GetResourceState("msk_fuel") == "started" then
+            -- Liters need a model-specific capacity before they can be shown as a percentage.
+            msk_fuel = tonumber(first_value(row.fuel, mods.fuelLevel, mods.fuel))
+            fuel = nil
+        end
+    end
     local plate = tostring(first_value(row.plate, mods.plate) or ""):match("^%s*(.-)%s*$")
     return {
         id = tostring(first_value(row.id, row.vin, plate)),
         plate = plate,
         vin = tostring(row.vin or ""),
-        nickname = tostring(row.nickname or ""),
+        nickname = tostring(nickname or ""),
         model = model,
         imageUrl = vehicle_image_url(model),
-        kind = vehicle_kind(first_value(row.garage_type, row.type, mods.type)),
+        kind = vehicle_kind(kind),
         status = vehicle_status(row, location, garage_system),
         location = tostring(location or ""),
-        fuel = normalized_health(first_value(row.fuel, mods.fuelLevel, mods.fuel), 100),
-        engine = normalized_health(first_value(row.engine, mods.engineHealth, mods.engine), 1000),
-        body = normalized_health(first_value(row.body, mods.bodyHealth, mods.body), 1000),
+        fuel = fuel,
+        mskFuel = msk_fuel,
+        engine = normalized_health(engine, 1000),
+        body = normalized_health(body, 1000),
     }
 end
 
@@ -197,6 +238,9 @@ local function storage_config()
     end
     if system == "auto" and GetResourceState("jg-advancedgarages") == "started" then
         system = "jg"
+    end
+    if system == "auto" and GetResourceState("msk_garage") == "started" then
+        system = "msk"
     end
     if Bridge.Framework.GetName() == "esx" then
         return "owned_vehicles", "owner", system == "auto" and "esx" or system
@@ -227,7 +271,11 @@ local function owned_vehicle_row(identifier, plate)
     return rows[1], table_name, owner_column, garage_system
 end
 
-local function status_snapshot(row)
+local function status_snapshot(row, garage_system, table_name)
+    if garage_system == "msk" then
+        local column = table_name == "owned_vehicles" and "stored" or "state"
+        return { [column] = row[column] }
+    end
     local snapshot = {}
     for _, column in ipairs({ "stored", "state", "in_garage", "parked" }) do
         if row[column] ~= nil then
@@ -238,6 +286,23 @@ local function status_snapshot(row)
 end
 
 local function write_vehicle_status(order, restore)
+    if order.garage_system == "msk" then
+        local column, original_value = next(order.status)
+        if not column then
+            return false
+        end
+        local result = Bridge.Database.Query(
+            ("UPDATE `%s` SET `%s` = ? WHERE `%s` = ? AND TRIM(plate) = ? AND `%s` = ?")
+                :format(order.table_name, column, order.owner_column, column),
+            { restore and original_value or 0, order.identifier, order.plate, restore and 0 or original_value }
+        )
+        if type(result) ~= "table" or tonumber(result.affectedRows) ~= 1 then
+            Bridge.Debug("error", "[sky_phone] MSK valet order '%s' could not %s its vehicle status.",
+                tostring(order.id), restore and "restore" or "reserve")
+            return false, "vehicle_not_garaged"
+        end
+        return true
+    end
     local assignments = {}
     local parameters = {}
     for column, original_value in pairs(order.status) do
@@ -322,18 +387,26 @@ Bridge.Callbacks.Register("sky_phone:garage:valet-request", function(source, dat
     if balance < price then
         return { success = false, error = "insufficient_funds" }
     end
+    local key_provider = Bridge.VehicleKeys.ResolveProvider()
+    if not key_provider then
+        return { success = false, error = "garage_unavailable" }
+    end
     local order = {
+        key_provider = key_provider,
+        model = tonumber(vehicle.model) or (type(vehicle.model) == "string" and joaat(vehicle.model)),
         cost = price,
         expires_at = now + valet.TimeoutSeconds,
         identifier = identifier,
+        garage_system = garage_system,
         id = ("%s:%s:%s"):format(source, now, math.random(100000, 999999)),
         owner_column = owner_column,
         plate = plate,
-        status = status_snapshot(row),
+        status = status_snapshot(row, garage_system, table_name),
         table_name = table_name,
     }
-    if not write_vehicle_status(order, false) then
-        return { success = false, error = "valet_status_unsupported" }
+    local reserved, status_error = write_vehicle_status(order, false)
+    if not reserved then
+        return { success = false, error = status_error or "valet_status_unsupported" }
     end
     if price > 0 and not Bridge.Framework.RemoveMoney(source, valet.Account, price) then
         write_vehicle_status(order, true)
@@ -350,11 +423,12 @@ Bridge.Callbacks.Register("sky_phone:garage:valet-request", function(source, dat
             vehicle = {
                 body = vehicle.body,
                 engine = vehicle.engine,
-                fuel = vehicle.fuel,
+                fuel = vehicle.mskFuel or vehicle.fuel,
+                garageSystem = garage_system,
                 kind = vehicle.kind,
                 model = vehicle.model,
                 plate = vehicle.plate,
-                properties = vehicle_properties(row),
+                properties = vehicle_properties(row, garage_system),
             },
         },
     }
@@ -362,7 +436,7 @@ end)
 
 Bridge.Callbacks.Register("sky_phone:garage:valet-cancel", function(source, data)
     local order = active_valets[source]
-    if not order or type(data) ~= "table" or data.orderId ~= order.id then
+    if not order or order.completing or type(data) ~= "table" or data.orderId ~= order.id then
         return { success = false, error = "valet_not_found" }
     end
     cancel_valet(source, order)
@@ -371,22 +445,38 @@ end)
 
 Bridge.Callbacks.Register("sky_phone:garage:valet-complete", function(source, data)
     local order = active_valets[source]
-    if not order or type(data) ~= "table" or data.orderId ~= order.id then
+    if not order or order.completing or type(data) ~= "table" or data.orderId ~= order.id then
         return { success = false, error = "valet_not_found" }
     end
 
-    local network_id = tonumber(data.networkId)
-    if not network_id or network_id <= 0 or network_id ~= math.floor(network_id) then
-        return { success = false, error = "valet_vehicle_unverified" }
-    end
-    local entity = NetworkGetEntityFromNetworkId(network_id)
-    if entity == 0 or not DoesEntityExist(entity) or tonumber(NetworkGetEntityOwner(entity)) ~= source then
+    if order.expires_at <= os.time() or Bridge.Framework.GetIdentifier(source) ~= order.identifier then
         return { success = false, error = "valet_vehicle_unverified" }
     end
 
+    local network_id = tonumber(data.networkId)
+    if not network_id or network_id <= 0 or network_id == math.huge or network_id ~= math.floor(network_id) then
+        return { success = false, error = "valet_vehicle_unverified" }
+    end
+    local entity = NetworkGetEntityFromNetworkId(network_id)
+    if entity == 0 or not DoesEntityExist(entity) or tonumber(NetworkGetEntityOwner(entity)) ~= source
+        or GetEntityType(entity) ~= 2
+        or normalized_plate(GetVehicleNumberPlateText(entity)) ~= order.plate
+        or not order.model or GetEntityModel(entity) % 4294967296 ~= order.model % 4294967296 then
+        return { success = false, error = "valet_vehicle_unverified" }
+    end
+
+    order.completing = true
+    local keys_given, client_keys = Bridge.VehicleKeys.GiveKeys(source, entity, order.plate, order.key_provider)
+    order.completing = nil
+    if active_valets[source] ~= order then
+        return { success = false, error = "valet_not_found" }
+    end
+    if not keys_given then
+        return { success = false, error = "valet_completion_failed" }
+    end
     active_valets[source] = nil
     valet_cooldowns[source] = os.time() + Config.Garage.Valet.CooldownSeconds
-    return { success = true }
+    return { success = true, data = { vehicleKeys = client_keys } }
 end)
 
 AddEventHandler("playerDropped", function()
@@ -412,7 +502,7 @@ CreateThread(function()
         Wait(5000)
         local now = os.time()
         for source, order in pairs(active_valets) do
-            if order.expires_at <= now then
+            if not order.completing and order.expires_at <= now then
                 cancel_valet(source, order)
                 TriggerClientEvent("sky_phone:garage:valet-aborted", source, "valet_timeout")
             end

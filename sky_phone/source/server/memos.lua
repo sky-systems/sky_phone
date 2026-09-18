@@ -51,6 +51,23 @@ local function session_owner(source)
     }
 end
 
+local function device_owner(source, imei)
+    if not SkyPhoneImei.IsValid(imei) then
+        return nil, { success = false, error = "invalid_request" }
+    end
+    if not SkyPhone.FindDeviceSlots(source, imei)[1] then
+        return nil, { success = false, error = "owner_changed" }
+    end
+    local device = SkyPhone.LoadDevice(imei)
+    if not device then
+        return nil, { success = false, error = "device_not_found" }
+    end
+    return {
+        account_id = device.account_id and tonumber(device.account_id) or nil,
+        imei = imei,
+    }
+end
+
 local function owner_condition(owner, alias)
     local prefix = alias and ("`%s`."):format(alias) or ""
     if owner.account_id then
@@ -153,6 +170,7 @@ local function validate_upload(data)
     local title_length = title and utf8.len(title) or nil
     local note_length = note and utf8.len(note) or nil
     local duration_ms = tonumber(data.durationMs)
+    local size_bytes = tonumber(data.sizeBytes)
     local normalized_mime = allowed_audio_mimes[data.mimeType]
     local waveform = normalize_waveform(data.waveform)
     if not title_length or title_length < 1 or title_length > Config.Memos.TitleMaxLength
@@ -160,6 +178,8 @@ local function validate_upload(data)
         or not duration_ms or duration_ms ~= duration_ms
         or duration_ms == math.huge or duration_ms == -math.huge
         or duration_ms < 300 or duration_ms > Config.Memos.MaximumDurationMs
+        or not size_bytes or size_bytes ~= math.floor(size_bytes)
+        or size_bytes < 1 or size_bytes > Config.Memos.MaximumBytes
         or not normalized_mime or not waveform or type(data.pinned) ~= "boolean"
     then
         return nil
@@ -171,6 +191,7 @@ local function validate_upload(data)
         mime_type = normalized_mime,
         note = note,
         pinned = data.pinned,
+        size_bytes = size_bytes,
         title = title,
         waveform = waveform,
     }
@@ -317,7 +338,7 @@ RegisterNetEvent("sky_phone:memos:request-upload", function(data)
         upload_result(src, type(data) == "table" and data.correlationId or nil, false, "invalid_memo")
         return
     end
-    local owner, error_response = session_owner(src)
+    local owner, error_response = device_owner(src, data.deviceImei)
     if not owner then
         upload_result(src, memo.correlation_id, false, error_response.error)
         return
@@ -356,20 +377,18 @@ RegisterNetEvent("sky_phone:memos:request-upload", function(data)
         upload_result(src, memo.correlation_id, false, presigned_error)
         return
     end
-    local ids = Bridge.Database.Query("SELECT UUID() AS `request_id`, UUID() AS `capture_token`", {})
+    local ids = Bridge.Database.Query("SELECT UUID() AS `request_id`", {})
     local request_id = ids[1] and ids[1].request_id
-    local capture_token = ids[1] and ids[1].capture_token
-    if type(request_id) ~= "string" or type(capture_token) ~= "string" then
-        error("[sky_phone] Database did not generate a voice memo upload token.")
+    if type(request_id) ~= "string" then
+        error("[sky_phone] Database did not generate a voice memo upload request ID.")
     end
     pending_uploads[request_id] = {
-        capture_token = capture_token,
         media_type = "audio",
         mime_type = memo.mime_type,
         memo = memo,
         owner = owner,
         owner_key = pending_owner_key,
-        purpose = "memo",
+        size_bytes = memo.size_bytes,
         source = src,
     }
     SetTimeout(Config.Memos.UploadSessionTimeoutMs, function()
@@ -378,7 +397,6 @@ RegisterNetEvent("sky_phone:memos:request-upload", function(data)
     TriggerClientEvent("sky_phone:memos:upload-ready", src, {
         requestId = request_id,
         correlationId = memo.correlation_id,
-        captureToken = capture_token,
         presignedUrl = presigned_url,
         uploadTimeoutMs = Config.Media.FiveManage.UploadTimeoutMs,
     })
@@ -392,17 +410,25 @@ RegisterNetEvent("sky_phone:memos:complete-upload", function(data)
         return
     end
     state.completing = true
-    local owner, error_response = session_owner(src)
+    local owner, error_response = device_owner(src, state.owner.imei)
     if not owner or owner.imei ~= state.owner.imei or owner.account_id ~= state.owner.account_id then
         pending_uploads[request_id] = nil
-        local rejected, _, trusted_remote = SkyPhoneMedia.VerifyRemoteUpload(state, data.remoteId, data.url)
+        local rejected, _, trusted_remote = SkyPhoneMedia.VerifyRemoteUpload(
+            state,
+            data.remoteId,
+            data.url
+        )
         if rejected or trusted_remote then
             discard_verified_upload(data.remoteId)
         end
         upload_result(src, state.memo.correlation_id, false, error_response and error_response.error or "owner_changed")
         return
     end
-    local verified, verify_error, trusted_remote = SkyPhoneMedia.VerifyRemoteUpload(state, data.remoteId, data.url)
+    local verified, verify_error, trusted_remote = SkyPhoneMedia.VerifyRemoteUpload(
+        state,
+        data.remoteId,
+        data.url
+    )
     if not verified then
         pending_uploads[request_id] = nil
         if trusted_remote then
@@ -492,6 +518,7 @@ RegisterNetEvent("sky_phone:memos:complete-upload", function(data)
         error(("[sky_phone] Created voice memo %s could not be hydrated."):format(memo_id))
     end
     upload_result(src, state.memo.correlation_id, true, nil, created)
+    if SkyPhoneLog then SkyPhoneLog.Record("Memos", "memos:created", "created", src, created) end
 end)
 
 RegisterNetEvent("sky_phone:memos:cancel-upload", function(data)

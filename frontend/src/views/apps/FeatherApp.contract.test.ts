@@ -26,6 +26,12 @@ describe('FeatherApp Sky UI contract', () => {
     expect(source).toContain('with-tabbar')
   })
 
+  it('uses shared liquid glass for the floating compose action', () => {
+    expect(source).toMatch(
+      /<SkyFab[\s\S]*?class="feather-compose-fab"[\s\S]*?variant="glass"/,
+    )
+  })
+
   it('gives likes and bookmarks a reduced-motion-safe pulse animation', () => {
     expect(postCard).toContain(
       "const reactionPulse = ref<'like' | 'bookmark' | null>(null)",
@@ -143,7 +149,9 @@ describe('FeatherApp Sky UI contract', () => {
   })
 
   it('keeps profile suggestion content styles off the follow button', () => {
-    expect(source).toContain('class="feather-profile-suggestion__profile"')
+    expect(source).toContain(
+      'class="feather-profile-suggestion__profile"',
+    )
     expect(source).toMatch(
       /\.feather-app\.feather-app--active \.feather-profile-suggestion__profile\s*\{[^}]*width:\s*100%/s,
     )
@@ -193,9 +201,7 @@ describe('FeatherApp Sky UI contract', () => {
     expect(source).toContain('<SkyScrollRail')
     expect(source).toContain('class="feather-profile-suggestions__rail"')
     expect(source).toContain(':label="t(\'people\')"')
-    expect(source).toContain(
-      'class="feather-profile-suggestion__profile"',
-    )
+    expect(source).toContain('class="feather-profile-suggestion__profile"')
     expect(source).toMatch(
       /\.feather-app\.feather-app--active \.feather-profile-suggestion__profile\s*\{[^}]*width:\s*100%/s,
     )

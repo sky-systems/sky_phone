@@ -2,6 +2,7 @@
 import { kApp } from 'konsta/vue'
 import {
   computed,
+  defineAsyncComponent,
   onBeforeUnmount,
   onMounted,
   ref,
@@ -11,6 +12,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 
 import { SkyProvider } from '@/ui'
+import AdminPanel from '@/components/AdminPanel.vue'
 import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
 import PhoneControlCenter from '@/components/PhoneControlCenter.vue'
 import PhoneDynamicIsland from '@/components/PhoneDynamicIsland.vue'
@@ -18,6 +20,8 @@ import PhoneMediaCapture from '@/components/PhoneMediaCapture.vue'
 import PhoneMemoRecorder from '@/components/PhoneMemoRecorder.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhonePasscode from '@/components/PhonePasscode.vue'
+import PhoneFaceId from '@/components/PhoneFaceId.vue'
+import { faceIdErrorKey } from '@/utils/face-id'
 import PhoneSetupAssistant from '@/components/PhoneSetupAssistant.vue'
 import PhoneNotifications from '@/components/PhoneNotifications.vue'
 import NotificationPhonePreview from '@/components/NotificationPhonePreview.vue'
@@ -52,11 +56,12 @@ import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAppCatalogStore } from '@/stores/app-catalog'
 import { useAppStoreStore } from '@/stores/app-store'
 import { useWidgetsStore } from '@/stores/widgets'
-import { isPhoneAppId } from '@/config/apps'
+import { isPhoneAppId, PHONE_APPS } from '@/config/apps'
 import { useNotesStore } from '@/stores/notes'
 import { useMemosStore } from '@/stores/memos'
 import { useWeatherStore } from '@/stores/weather'
 import { useEasyShareStore } from '@/stores/easyshare'
+import { useRadioStore } from '@/stores/radio'
 import {
   useNotificationsStore,
   type PhoneNotification,
@@ -70,19 +75,32 @@ import type {
   CompanyChangedPayload,
   CompanyUnreadCounts,
 } from '@/types/companies'
-import type { PhoneCall } from '@/types/phone'
+import type { PhoneCall, PhoneNumberFormat } from '@/types/phone'
+import type { DynamicIslandActivity } from '@/types/dynamicIsland'
 import type { EasyShareEvent } from '@/types/easyshare'
 import type { CryptoMarketChangedData } from '@/types/crypto'
 import type { CityWarnEventData } from '@/types/citywarn'
 import { nuiCall } from '@/utils/nui'
+import {
+  installPhoneAudioController,
+  setPhoneOutputVolume,
+} from '@/utils/phoneAudio'
 import { formatTimer } from '@/utils/clock'
 import { parsePhonePreferences } from '@/utils/preferences'
 import { getHairlinePixelStyle } from '@/utils/rendering'
 import { isTextInputElement } from '@/utils/textInputFocus'
+import { configurePhoneNumberFormat } from '@/utils/phone'
+import { consumeEscape } from '@/utils/keyboard'
+import type { CustomPhoneToneCatalog } from '@/utils/customTones'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 import SpringboardView from '@/views/SpringboardView.vue'
 
+const PhoneCallScreen = defineAsyncComponent(
+  () => import('@/views/apps/PhoneApp.vue'),
+)
+
 type AppMessage = {
+  openHome?: boolean
   type?: string
   data?:
     | CalendarReminderData
@@ -109,7 +127,14 @@ type AppMessage = {
     | PhoneOpenPayload
     | CustomAppCatalogEventData
     | CustomAppEventData
+    | NavigationEventData
+    | AdminPanelOpenPayload
+    | CustomPhoneToneCatalog
 }
+
+type AdminPanelOpenPayload = Required<
+  Pick<PhoneOpenPayload, 'fallbackLocales' | 'lang' | 'locales'>
+>
 
 type CustomAppCatalogEventData = {
   apps?: unknown
@@ -121,9 +146,14 @@ type CustomAppEventData = {
   payload?: unknown
 }
 
+type NavigationEventData = {
+  appId?: unknown
+}
+
 type SimPickerPayload = {
   choices: SimPhoneChoice[]
   number: string
+  phoneNumberFormat?: PhoneNumberFormat
 }
 
 type NotificationEventData = Omit<PhoneNotificationInput, 'device'> & {
@@ -334,6 +364,7 @@ const notes = useNotesStore()
 const memos = useMemosStore()
 const weather = useWeatherStore()
 const easyShare = useEasyShareStore()
+const radio = useRadioStore()
 const notifications = useNotificationsStore()
 const route = useRoute()
 const router = useRouter()
@@ -357,16 +388,28 @@ const DARK_STATUS_BAR_APP_IDS = new Set([
   'minesweeper',
   'number-merge',
 ])
+const isDynamicIslandGalleryRoute = computed(
+  () => isDevelopment && route.name === 'development-dynamic-islands',
+)
 const isDevelopmentRoute = computed(
-  () => isDevelopment && route.name === 'development-sky-ui',
+  () =>
+    isDevelopment &&
+    (route.name === 'development-sky-ui' || isDynamicIslandGalleryRoute.value),
 )
 const appTransitionName = computed(() =>
   route.query.transition === 'app-switch' ? 'app-switch' : 'app-window',
 )
 const isLocked = ref(false)
+const adminPanelOpen = ref(
+  isDevelopment && developmentParameters.has('adminPanel'),
+)
 const springboardEditing = ref(false)
 const isUnlocking = ref(false)
 const passcodeBusy = ref(false)
+const faceIdVisible = ref(false)
+const faceIdBusy = ref(false)
+const faceIdError = ref('')
+let faceIdRequest = 0
 const passcodeError = ref('')
 const passcodeResetKey = ref(0)
 const passcodeRetrySeconds = ref(0)
@@ -378,17 +421,25 @@ const setupPreviewDismissed = ref(false)
 const setupDevelopmentSkipped = ref(false)
 const setupAppearanceSelected = ref(false)
 const pendingUnlockRoute = ref<string | null>(null)
+const openHomeRequested = ref(false)
 const unlockedServicesLoaded = ref(false)
 const controlCenterOpened = ref(false)
 const activitySuspended = ref(false)
+const dynamicIslandExpanded = ref(false)
+const dynamicIslandActivity = ref<DynamicIslandActivity | null>(null)
 const simPicker = ref<SimPickerPayload | null>(null)
 const setupRequired = computed(
   () =>
+    phone.isOpen &&
+    !isLocked.value &&
     !(isDevelopment && setupDevelopmentSkipped.value) &&
     (!phone.preferences.settings.setupCompleted ||
       (isDevelopment &&
         developmentParameters.has('setupPreview') &&
         !setupPreviewDismissed.value)),
+)
+const lockedCallVisible = computed(
+  () => phone.isOpen && isLocked.value && calls.activeCall !== null,
 )
 const displayedDarkMode = computed(
   () =>
@@ -454,6 +505,12 @@ const phoneResolutionStyle = computed<CSSProperties>(() => ({
 }))
 const phoneStageStyle = computed<CSSProperties>(() => ({
   ...phoneResolutionStyle.value,
+  '--phone-live-activity-peek-height':
+    dynamicIslandActivity.value === 'music'
+      ? '190px'
+      : dynamicIslandActivity.value === 'recording'
+        ? '132px'
+        : '112px',
   visibility: activitySuspended.value ? 'hidden' : 'visible',
 }))
 const phoneDisplayStyle = computed<CSSProperties>(() => ({
@@ -471,6 +528,7 @@ let unlockTimer: number | undefined
 let passcodeLockTimer: number | undefined
 let hardwareVolumeHudTimer: number | undefined
 let unlockedServicesIdle: number | undefined
+let removePhoneAudioController: (() => void) | undefined
 let phoneClosePending = false
 let simPickerClosePending = false
 
@@ -490,6 +548,7 @@ function getViewportScale(): number {
 }
 
 function hydratePhone(payload: PhoneOpenPayload): void {
+  configurePhoneNumberFormat(payload.phoneNumberFormat)
   if (payload.device?.imei) {
     companies.bindDeviceScope(
       payload.device.imei,
@@ -517,8 +576,34 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   clock.hydrate(payload.device?.data.alarms?.payload)
   games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
-  appStore.hydrate(payload.device?.data.apps?.payload)
+  appStore.hydrate(payload.device?.data.apps?.payload, payload.disabledApps)
   widgets.hydrate(payload.device?.data.widgets?.payload)
+
+  const currentAppId = route.params.appId
+  if (
+    typeof currentAppId === 'string' &&
+    isPhoneAppId(currentAppId) &&
+    !appStore.isInstalled(currentAppId)
+  ) {
+    void router.push('/')
+  }
+}
+
+function getInstalledNavigationAppIds(): string[] {
+  const installedAppIds: string[] = []
+  for (const app of PHONE_APPS) {
+    if (isPhoneAppId(app.id) && appStore.isInstalled(app.id)) {
+      installedAppIds.push(app.id)
+    }
+  }
+  return installedAppIds
+}
+
+function syncNavigationState(): ReturnType<typeof nuiCall> {
+  return nuiCall('navigation:state', {
+    currentApp: activeAppId.value || null,
+    installedApps: getInstalledNavigationAppIds(),
+  })
 }
 
 function cancelUnlockedPhoneDataLoad(): void {
@@ -617,12 +702,12 @@ async function bootstrapUnlockedPhoneData(): Promise<void> {
 }
 
 function loadUnlockedPhoneData(): void {
-  if (unlockedServicesLoaded.value) return
+  if (unlockedServicesLoaded.value || setupRequired.value) return
   unlockedServicesLoaded.value = true
 
   const startBootstrap = () => {
     unlockedServicesIdle = undefined
-    if (!phone.isOpen || isLocked.value) {
+    if (!phone.isOpen || isLocked.value || setupRequired.value) {
       unlockedServicesLoaded.value = false
       return
     }
@@ -639,6 +724,8 @@ function loadUnlockedPhoneData(): void {
 }
 
 function completePhoneSetup(): void {
+  const requestedRoute = pendingUnlockRoute.value
+  pendingUnlockRoute.value = null
   setupPreviewDismissed.value = true
   setupAppearanceSelected.value = false
   isLocked.value = false
@@ -646,7 +733,7 @@ function completePhoneSetup(): void {
   passcodeVisible.value = false
   passcodeRequired.value = false
   controlCenterOpened.value = false
-  void router.replace('/')
+  void router.replace(requestedRoute ?? '/')
   loadUnlockedPhoneData()
 }
 
@@ -743,7 +830,17 @@ function skyPicNotificationRoute(data: SkyPicNotificationData): string {
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (!isTrustedRootMessageSource(event.source, window)) return
 
-  if (event.data?.type === 'custom-apps:catalog') {
+  if (event.data?.type === 'admin:open') {
+    const data = event.data.data as AdminPanelOpenPayload | undefined
+    if (data?.lang && data.locales && data.fallbackLocales) {
+      phone.setLocale(data.lang, data.locales, data.fallbackLocales)
+    }
+    adminPanelOpen.value = true
+  } else if (event.data?.type === 'admin:close') {
+    adminPanelOpen.value = false
+  } else if (event.data?.type === 'phone:tones') {
+    phone.setCustomTones(event.data.data)
+  } else if (event.data?.type === 'custom-apps:catalog') {
     appCatalog.replaceCatalog(event.data.data)
     const catalogPayload = event.data.data as
       | { apps?: unknown; debug?: unknown }
@@ -781,11 +878,41 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     if (typeof data?.appId === 'string' && route.params.appId === data.appId) {
       void router.push('/')
     }
+  } else if (event.data?.type === 'navigation:open-app') {
+    const data = event.data.data as NavigationEventData | undefined
+    if (
+      typeof data?.appId === 'string' &&
+      isPhoneAppId(data.appId) &&
+      appStore.isInstalled(data.appId)
+    ) {
+      const requestedRoute = `/apps/${data.appId}`
+      if (setupRequired.value || isLocked.value) {
+        pendingUnlockRoute.value = requestedRoute
+      } else {
+        void router.push(requestedRoute)
+      }
+    } else {
+      console.error('[Navigation] Ignored an unavailable app target.')
+    }
+  } else if (event.data?.type === 'navigation:close-app') {
+    const data = event.data.data as NavigationEventData | undefined
+    const currentApp = route.params.appId
+    if (data?.appId === undefined || currentApp === data.appId) {
+      void router.push('/')
+    }
+  } else if (event.data?.type === 'compat:open-messages') {
+    const data = event.data.data as MessagesEventData | undefined
+    if (typeof data?.phoneNumber === 'string') {
+      void messages.openThread(data.phoneNumber).then((opened) => {
+        if (opened) void router.push('/apps/messages')
+      })
+    }
   } else if (event.data?.type === 'app:open') {
+    openHomeRequested.value = event.data.openHome === true
     hydratePhone(event.data.data as PhoneOpenPayload)
-    void nuiCall('ui:opened')
+    void syncNavigationState().then(() => nuiCall('ui:opened'))
   } else if (event.data?.type === 'device:updated') {
-    hydratePhone(event.data.data as PhoneOpenPayload)
+    if (phone.isOpen) hydratePhone(event.data.data as PhoneOpenPayload)
   } else if (event.data?.type === 'app:close') {
     activitySuspended.value = false
     phone.endDeviceSession()
@@ -882,7 +1009,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     notifications.show(notification)
   } else if (event.data?.type === 'citywarn:changed' && event.data.data) {
     const data = event.data.data as CityWarnEventData
-    if (data.alert) citywarn.applyEvent(data)
+    citywarn.applyEvent(data)
     if (phone.isOpen && citywarn.initialized) void citywarn.refresh()
 
     const alert = data.alert
@@ -1263,7 +1390,9 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       loadUnlockedPhoneData()
     }
   } else if (event.data?.type === 'sim:picker' && event.data.data) {
-    simPicker.value = event.data.data as unknown as SimPickerPayload
+    const payload = event.data.data as unknown as SimPickerPayload
+    configurePhoneNumberFormat(payload.phoneNumberFormat)
+    simPicker.value = payload
   } else if (event.data?.type === 'sim:picker-close') {
     simPicker.value = null
   }
@@ -1318,20 +1447,17 @@ async function closePhone(): Promise<void> {
 function onKeydown(event: KeyboardEvent): void {
   if (event.key !== 'Escape') return
   if (simPicker.value) {
-    event.preventDefault()
+    if (!consumeEscape(event)) return
     void closeSimPicker()
     return
   }
 
-  queueMicrotask(() => {
-    if (event.defaultPrevented || !phone.isOpen || activitySuspended.value)
-      return
-    if (controlCenterOpened.value) {
-      controlCenterOpened.value = false
-      return
-    }
-    void closePhone()
-  })
+  if (!phone.isOpen || activitySuspended.value || !consumeEscape(event)) return
+  if (controlCenterOpened.value) {
+    controlCenterOpened.value = false
+    return
+  }
+  void closePhone()
 }
 
 function onSystemColorSchemeChange(event: MediaQueryListEvent): void {
@@ -1376,11 +1502,47 @@ function finishUnlock(): void {
 function unlockPhone(): void {
   if (!isLocked.value) return
   if (phone.security.enabled && passcodeRequired.value) {
+    if (phone.security.faceIdEnabled) {
+      void submitUnlockFaceId()
+      return
+    }
     passcodeError.value = ''
     passcodeVisible.value = true
     return
   }
   finishUnlock()
+}
+
+function useUnlockPin(): void {
+  faceIdRequest += 1
+  faceIdVisible.value = false
+  faceIdBusy.value = false
+  passcodeError.value = ''
+  passcodeVisible.value = true
+}
+
+async function submitUnlockFaceId(): Promise<void> {
+  if (faceIdBusy.value) return
+  const request = ++faceIdRequest
+  const token = phone.deviceSessionToken
+  faceIdVisible.value = true
+  faceIdBusy.value = true
+  faceIdError.value = ''
+  const response = await phone.unlockWithFaceId()
+  if (
+    request !== faceIdRequest ||
+    token !== phone.deviceSessionToken ||
+    !phone.isOpen ||
+    !isLocked.value
+  )
+    return
+  faceIdBusy.value = false
+  if (response.success) {
+    faceIdVisible.value = false
+    finishUnlock()
+    return
+  }
+  faceIdError.value = phone.t(faceIdErrorKey(response.error))
 }
 
 function openLockScreenNotification(notification: PhoneNotification): void {
@@ -1538,6 +1700,7 @@ function onFocusOut(event: FocusEvent): void {
 }
 
 onMounted(() => {
+  removePhoneAudioController = installPhoneAudioController()
   document.addEventListener('focusin', onFocusIn)
   document.addEventListener('focusout', onFocusOut)
   window.addEventListener('message', onMessage)
@@ -1634,6 +1797,18 @@ watch(
 )
 
 watch(
+  () => ({
+    appIds: getInstalledNavigationAppIds(),
+    currentApp: activeAppId.value,
+    open: phone.isOpen,
+  }),
+  () => {
+    if (phone.isOpen && appStore.hydrated) void syncNavigationState()
+  },
+  { deep: true },
+)
+
+watch(
   () => notifications.requiresAttention,
   (requiresAttention) => {
     void nuiCall('notification:focus', { active: requiresAttention })
@@ -1641,8 +1816,28 @@ watch(
 )
 
 watch(
+  () => Boolean(dynamicIslandActivity.value || calls.activeCall),
+  (active) => {
+    void nuiCall('ui:live-activity', { active })
+  },
+  { immediate: true },
+)
+
+watch(
+  hardwareAlertVolume,
+  (volume) => {
+    setPhoneOutputVolume(volume / 100)
+    if (radio.data.connected) void radio.setVolume(volume)
+  },
+  { immediate: true },
+)
+
+watch(
   () => phone.isOpen,
   (isOpen) => {
+    faceIdRequest += 1
+    faceIdVisible.value = false
+    faceIdBusy.value = false
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
     if (!isOpen) {
       updateTextInputFocus(false)
@@ -1671,9 +1866,8 @@ watch(
       }
       return
     }
-    isLocked.value = setupRequired.value
-      ? false
-      : !isDevelopment || developmentLockScreenPreview
+    isLocked.value =
+      developmentLockScreenPreview || (!isDevelopment && phone.security.enabled)
     passcodeRequired.value = isLocked.value && phone.security.enabled
     unlockedServicesLoaded.value = false
     controlCenterOpened.value = false
@@ -1691,8 +1885,18 @@ watch(
       startPasscodeLock(passcodeRetrySeconds.value)
     }
     phone.setLaunchOrigin(null)
-    if (isLocked.value || setupRequired.value) void router.replace('/')
-    else loadUnlockedPhoneData()
+    if (setupRequired.value) {
+      void router.replace('/')
+    } else if (openHomeRequested.value) {
+      openHomeRequested.value = false
+      if (isLocked.value) pendingUnlockRoute.value = '/'
+      else {
+        void router.replace('/')
+        loadUnlockedPhoneData()
+      }
+    } else if (!isLocked.value) {
+      loadUnlockedPhoneData()
+    }
   },
 )
 
@@ -1717,6 +1921,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  removePhoneAudioController?.()
   updateTextInputFocus(false)
   cancelUnlockedPhoneDataLoad()
   weather.stop()
@@ -1739,6 +1944,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <SkyProvider
+    v-if="adminPanelOpen"
+    dark
+    :safe-areas="false"
+    accent="#74d66f"
+    accent-soft="rgba(116, 214, 111, 0.14)"
+  >
+    <AdminPanel @close="adminPanelOpen = false" />
+  </SkyProvider>
   <PhoneMediaCapture />
   <PhoneMemoRecorder />
   <RadioHud />
@@ -1755,12 +1969,15 @@ onBeforeUnmount(() => {
         phone.isOpen ||
         notifications.current ||
         calls.activeCall ||
+        dynamicIslandActivity ||
         notifications.devicePreviews.length
       "
       class="phone-stage"
       :class="{
         'phone-stage--browser-preview': isBrowserPreview,
         'phone-stage--landscape': phone.cameraLandscape,
+        'phone-stage--live-activity':
+          !phone.isOpen && Boolean(dynamicIslandActivity || calls.activeCall),
         'phone-stage--peek': notifications.isPeeking,
       }"
       :style="phoneStageStyle"
@@ -1780,14 +1997,25 @@ onBeforeUnmount(() => {
           @open="openNotificationPreview"
         />
         <div
-          v-if="phone.isOpen || notifications.current || calls.activeCall"
+          v-if="
+            phone.isOpen ||
+            notifications.current ||
+            calls.activeCall ||
+            dynamicIslandActivity
+          "
           class="phone-resolution-wrapper phone-resolution-wrapper--primary"
         >
+          <div
+            id="phone-home-drag-portal"
+            class="phone-home-drag-portal"
+            aria-hidden="true"
+          ></div>
           <div class="phone-resolution-canvas phone-resolution-canvas--primary">
             <section
               class="phone-device"
               :class="{
                 'phone-app--light': !displayedDarkMode,
+                'phone-device--island-expanded': dynamicIslandExpanded,
                 [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
               }"
               :aria-label="phone.t('Common.phone')"
@@ -1837,6 +2065,8 @@ onBeforeUnmount(() => {
                 class="phone-screen"
                 :class="{
                   'phone-screen--app': isAppRoute || isDevelopmentRoute,
+                  'phone-screen--camera-landscape':
+                    activeAppId === 'camera' && phone.cameraLandscape,
                   'phone-app--light': !displayedDarkMode,
                   [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
                 }"
@@ -1883,8 +2113,11 @@ onBeforeUnmount(() => {
                     'phone-app--light': !displayedDarkMode,
                     'phone-app--messages': route.params.appId === 'messages',
                     'phone-app--status-light':
-                      WHITE_STATUS_BAR_APP_IDS.has(activeAppId),
+                      lockedCallVisible ||
+                      WHITE_STATUS_BAR_APP_IDS.has(activeAppId) ||
+                      (activeAppId === 'phone' && calls.activeCall !== null),
                     'phone-app--status-dark':
+                      !lockedCallVisible &&
                       DARK_STATUS_BAR_APP_IDS.has(activeAppId),
                     'phone-app--setup': setupRequired,
                     [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
@@ -1892,21 +2125,25 @@ onBeforeUnmount(() => {
                   }"
                 >
                   <PhoneStatusBar
-                    v-if="!isLocked && !(isHomeRoute && springboardEditing)"
+                    v-if="
+                      (lockedCallVisible && !passcodeVisible) ||
+                      (!isLocked && !(isHomeRoute && springboardEditing))
+                    "
                     :control-center-opened="controlCenterOpened"
-                    :interactive="!setupRequired"
-                    :lockable="!setupRequired"
+                    :interactive="!setupRequired && !isLocked"
+                    :lockable="!setupRequired && !isLocked"
                     @control-center="toggleControlCenter"
                     @lock="lockPhone"
                   />
-                  <PhoneDynamicIsland v-if="!setupRequired" />
                   <SpringboardView
                     v-if="!isDevelopmentRoute && !setupRequired"
+                    :inert="isLocked"
                     @edit-mode-change="springboardEditing = $event"
                   />
                   <SkyProvider
                     class="phone-app-theme"
                     :dark="displayedDarkMode"
+                    :inert="isLocked"
                     safe-areas
                   >
                     <RouterView v-slot="{ Component }">
@@ -1931,7 +2168,7 @@ onBeforeUnmount(() => {
                   />
                   <Transition name="lock-screen" @after-leave="completeUnlock">
                     <PhoneLockScreen
-                      v-if="isLocked && !setupRequired"
+                      v-if="isLocked && !lockedCallVisible && !setupRequired"
                       :notifications="notifications.lockScreenNotifications"
                       @camera="unlockCamera"
                       @clear-notifications="notifications.clearLockScreen"
@@ -1940,6 +2177,23 @@ onBeforeUnmount(() => {
                       "
                       @open-notification="openLockScreenNotification"
                       @unlock="unlockPhone"
+                    />
+                  </Transition>
+                  <SkyProvider
+                    v-if="lockedCallVisible && !setupRequired"
+                    class="phone-app-theme"
+                    :inert="passcodeVisible || faceIdVisible"
+                    dark
+                  >
+                    <PhoneCallScreen locked @unlock="unlockPhone" />
+                  </SkyProvider>
+                  <Transition name="lock-screen">
+                    <PhoneFaceId
+                      v-if="isLocked && faceIdVisible && !setupRequired"
+                      :busy="faceIdBusy"
+                      :error="faceIdError"
+                      @retry="submitUnlockFaceId"
+                      @passcode="useUnlockPin"
                     />
                   </Transition>
                   <Transition name="lock-screen">
@@ -1984,6 +2238,12 @@ onBeforeUnmount(() => {
                 alt=""
                 aria-hidden="true"
                 draggable="false"
+              />
+              <PhoneDynamicIsland
+                v-if="!setupRequired && !isDynamicIslandGalleryRoute"
+                :call-screen-visible="lockedCallVisible"
+                @expanded-change="dynamicIslandExpanded = $event"
+                @live-activity-change="dynamicIslandActivity = $event"
               />
             </section>
           </div>

@@ -1,9 +1,5 @@
 local function api_key(website)
-    local configured_key = website.ApiKey or Config.Media.FiveManage.ApiKey
-    if type(configured_key) ~= "string" then
-        return ""
-    end
-    return configured_key:match("^%s*(.-)%s*$")
+    return SkyPhoneMediaProviderConfig.FiveManageApiKey(website.ApiKey)
 end
 
 local function provider_error(response, not_found_error)
@@ -103,63 +99,6 @@ local function resolve_file(website, external_id)
     return normalize_file(file)
 end
 
-local function probe_public_url(website, url)
-    local timeout = tonumber(website.RequestTimeoutMs or Config.Media.FiveManage.RequestTimeoutMs) or 10000
-    local response = SkyPhoneMediaImport.HttpRequest(url, {}, timeout, "HEAD")
-    local content_type = SkyPhoneMediaImport.ResponseHeader(response.headers, "content-type")
-    local content_length = tonumber(SkyPhoneMediaImport.ResponseHeader(response.headers, "content-length"))
-
-    if response.status == 0 or (response.status >= 200 and response.status < 300
-        and (not content_type or not content_length or content_length <= 0))
-    then
-        Bridge.Debug(
-            "debug",
-            "[sky_phone] FiveManage HEAD probe did not provide usable metadata; trying a one-byte range request."
-        )
-        response = SkyPhoneMediaImport.HttpRequest(url, { ["Range"] = "bytes=0-0" }, timeout)
-        content_type = SkyPhoneMediaImport.ResponseHeader(response.headers, "content-type")
-        local content_range = SkyPhoneMediaImport.ResponseHeader(response.headers, "content-range")
-        content_length = type(content_range) == "string" and tonumber(content_range:match("/(%d+)$"))
-            or tonumber(SkyPhoneMediaImport.ResponseHeader(response.headers, "content-length"))
-    end
-
-    if response.status == 0 then
-        return nil, "import_source_unavailable"
-    end
-    if response.status < 200 or response.status >= 300 then
-        Bridge.Debug(
-            "warn",
-            "[sky_phone] FiveManage public URL probe returned HTTP %s.",
-            tostring(response.status),
-            { always = true }
-        )
-        return nil, "import_url_unavailable"
-    end
-
-    local normalized_type = media_type(content_type)
-    if not normalized_type then
-        return nil, "import_media_not_allowed"
-    end
-    if not content_length or content_length <= 0 or content_length ~= math.floor(content_length) then
-        return nil, "import_size_unavailable"
-    end
-
-    local url_path = url:match("^https://[^/]+(/[^?#]*)") or ""
-    local external_id = ("url:%08x%08x"):format(
-        joaat(url) & 0xffffffff,
-        joaat("sky_phone:" .. url) & 0xffffffff
-    )
-    return {
-        externalId = external_id,
-        filename = url_path:match("/([^/]+)$") or external_id,
-        mediaType = normalized_type,
-        mimeType = type(content_type) == "string"
-            and content_type:lower():match("^%s*([^;%s]+)") or nil,
-        size = content_length,
-        url = url,
-    }
-end
-
 SkyPhoneMediaImport.RegisterAdapter("fivemanage", {
     Validate = function(website)
         local url = tostring(website.BaseUrl or Config.Media.FiveManage.BaseUrl):gsub("/+$", "")
@@ -235,6 +174,6 @@ SkyPhoneMediaImport.RegisterAdapter("fivemanage", {
                 tostring(resolve_error)
             )
         end
-        return probe_public_url(website, url)
+        return SkyPhoneMediaImport.ProbePublicUrl(website, url)
     end,
 })

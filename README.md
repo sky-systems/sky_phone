@@ -29,7 +29,7 @@
 <p align="center">
   <a href="https://www.sky-systems.net/shop/phone#live-demo"><strong>Live demo</strong></a>
   &nbsp;&bull;&nbsp;
-  <a href="https://github.com/sky-systems/sky_phone"><strong>Download for free</strong></a>
+  <a href="https://github.com/sky-systems/sky_phone/releases/latest"><strong>Download for free</strong></a>
   &nbsp;&bull;&nbsp;
   <a href="https://discord.gg/sky-systems"><strong>Discord support</strong></a>
 </p>
@@ -44,7 +44,7 @@ Sky Phone is a **free and open-source FiveM phone script** built to give serious
 
 This is not a cut-down free alternative. Sky Phone includes the core experience server owners and players expect from a leading paid FiveM phone, plus full source access, no purchase price, no feature paywalls, and no forced ecosystem lock-in.
 
-The production frontend is included, so a normal server installation does not require Node.js or pnpm.
+The production frontend is included in the published release package, so a normal server installation does not require Node.js or pnpm. GitHub's automatically generated source archives do not contain that build.
 
 ## Why Sky Phone stands out
 
@@ -69,8 +69,10 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | **Social** | Picstagram, FlipTok, Feather, Flare, and CrewLink |
 | **City & business** | Banking, Billing, Companies, CityMarkt, Local Pages, Garage, Housing, Maps, SkyRide, Weazel News, CityWarn, Crypto, and Health |
 | **Media & productivity** | Camera, Photos, Music, Calendar, Clock, Notes, Voice Memos, Calculator, and Weather |
-| **Games** | Snake, Memory, Number Merge, Minesweeper, Tower Stack, Sky Flappy, and Neon Drop |
-| **Phone system** | App Store, Settings, lock screen, setup assistant, notifications, widgets, folders, passcodes, multiple wallpapers, and light/dark appearance |
+| **Games** | Snake with levels, changing fruit and skins; Memory, Number Merge, Minesweeper, Tower Stack, Sky Flappy, and Neon Drop |
+| **Phone system** | App Store, Settings, lock screen, setup assistant, notifications, widgets, folders, passcodes, optional Face ID, multiple wallpapers, and light/dark appearance |
+
+Snake advances one level every 10 points, cycles through six food appearances, and changes between four skins every 30 points. The selected game speed stays unchanged. Restarting a round resets the level and skin; the high score remains saved. Artwork prompts and the existing visual reference are recorded in [the Snake asset directory](frontend/src/assets/img/games/snake/PROMPTS.md).
 
 ## Built for players, owners, and developers
 
@@ -86,10 +88,10 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | Layer | Supported options |
 | --- | --- |
 | **Frameworks** | ESX Legacy, QBCore, Qbox |
-| **Inventories** | ox_inventory, qb-inventory, lj-inventory, qs-inventory, codem-inventory, core_inventory, mf-inventory, smx-inventory, hex_4_inventory, and native ESX inventory |
+| **Inventories** | ak47_inventory, codem-inventory, core_inventory, jaksam_inventory, jpr-inventory, lj-inventory, mf-inventory, one_inventory, origen_inventory, ox_inventory, ps-inventory, qb-inventory, qs-inventory, smx-inventory, tgiann-inventory, hex_4_inventory, and native ESX inventory |
 | **Calls** | YACA, PMA Voice, SaltyChat |
 | **Radio** | YACA, PMA Voice, SaltyChat |
-| **Housing** | RTX Housing, Quasar Housing, VMS Housing, RX Housing, NoLag Properties, SN Properties, ESX Property, qbx_properties |
+| **Housing** | RTX Housing, Quasar Housing, TGIANN House, VMS Housing, RX Housing, NoLag Properties, SN Properties, ESX Property, qbx_properties |
 | **Garages** | Built-in/custom data and a broad set of popular garage providers configured through the bridge |
 | **Custom app contracts** | Sky Phone, LB Phone, 17Movement, High Phone, Quasar Smartphone, YSeries |
 | **Languages** | English, German |
@@ -121,20 +123,33 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | **Framework** | ESX Legacy (`es_extended`), QBCore (`qb-core`), or Qbox (`qbx_core`) |
 | **Inventory** | Choose one supported adapter from the table below |
 
-| Inventory | Metadata support | Unique Phones | Notes |
+| Inventory (configuration value) | Metadata support | Unique Phones | Notes |
 | --- | --- | --- | --- |
-| `ox_inventory` | Yes | Yes | Full per-item phone and physical SIM metadata |
-| `qb-inventory` | Yes | Yes | Uses item `info` metadata |
-| `lj-inventory` | Yes | Yes | QBCore inventory with item `info` metadata |
-| `qs-inventory` | Yes | Yes | Full per-slot metadata |
-| `codem-inventory` | Yes | Yes | Full per-slot metadata |
-| `core_inventory` | Yes | Yes | Full per-slot metadata |
-| `mf-inventory` | Yes | Yes | Supported with ESX |
-| `smx-inventory` | Yes | Yes | Supported with ESX through the player metadata bridge |
-| `hex_4_inventory` | **No metadata support** | **No, Unique Phones are not possible** | ESX only; set `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` |
-| Native ESX inventory | **No metadata support** | **No, Unique Phones are not possible** | Count-based items; set `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` |
+| `jaksam_inventory` (`jaksam`) | Yes | Yes | Direct per-slot metadata; usable items are registered through jaksam_inventory |
+| `qs-inventory` (`qs`) | Yes | Yes | Full per-slot metadata |
+| `ps-inventory` (`ps`) | Yes | Yes | QBCore only; uses item `info` metadata |
+| `codem-inventory` (`codem`) | Yes | Yes | Full per-slot metadata |
+| `tgiann-inventory` (`tgiann`) | Yes | Yes | Per-slot metadata; item definitions must enable `hasMetadata` |
+| `core_inventory` (`core`) | Yes | Yes | Full per-slot metadata |
+| `jpr-inventory` (`jpr`) | Yes | Yes | QBCore only; uses item `info` metadata |
+| `origen_inventory` (`origen`) | Yes | Yes | Full per-slot metadata |
+| `ak47_inventory` (`ak47`) | Yes | Yes | Uses per-slot item `info` metadata |
+| `one_inventory` (`one`) | Yes | Yes | Full per-slot metadata |
+| `ox_inventory` (`ox`) | Yes | Yes | Full per-item phone and physical SIM metadata |
+| `mf-inventory` (`mf`) | Yes | Yes | ESX only |
+| `smx-inventory` (`smx`) | Yes | Yes | ESX only; one metadata record per configured item name through the player metadata bridge |
+| `lj-inventory` (`lj`) | Yes | Yes | QBCore inventory with item `info` metadata |
+| `qb-inventory` (`qb`) | Yes | Yes | Uses item `info` metadata |
+| `hex_4_inventory` (`hex`) | **No metadata support** | **No, Unique Phones are not possible** | ESX only; Sky Phone automatically disables unique phones and physical SIM cards |
+| Native ESX inventory (`esx`) | **No metadata support** | **No, Unique Phones are not possible** | Count-based items; Sky Phone automatically disables unique phones and physical SIM cards |
 
-`hex_4_inventory` and native ESX inventory cannot persist per-item metadata. Unique Phones and physical SIM cards are therefore unavailable with these adapters.
+`hex_4_inventory` and native ESX inventory cannot persist per-item metadata. Sky Phone therefore forces `Config.Phone.Unique` and `Config.Sim.Enabled` to `false` at runtime whenever either adapter is active.
+
+`Config.Bridge.Inventory = "auto"` detects framework-compatible adapters in the table order. This deliberately matches the Sky inventory priority so a dedicated inventory is selected before a compatibility resource it may run beside. You may configure either the short value shown in parentheses or the exact resource name.
+
+The adapters shared with `sky_base` are implemented locally inside Sky Phone. Installing or starting `sky_base` is not required; Sky Phone remains a standalone resource.
+
+For configuration parity with `sky_base`, `qb-inv` is accepted as an alias for `qb`, while `qbox` selects the Qbox-native `ox_inventory` adapter.
 
 ### Voice
 
@@ -160,8 +175,8 @@ Start the selected voice resource before Sky Phone.
 
 ## Quick installation
 
-1. Copy the resource into your FiveM resources directory.
-2. Keep the resource folder name `sky_phone`.
+1. Download and extract the latest published [Sky Phone release](https://github.com/sky-systems/sky_phone/releases/latest). Do not use GitHub's automatically generated "Source code" archives for a server installation because they do not contain the built frontend.
+2. Copy the included resource into your FiveM resources directory and keep its folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
 4. Review `sky_phone/config/config.lua` and `sky_phone/config/media.lua`.
 5. Add the required inventory items.
@@ -182,6 +197,13 @@ Replace the example framework, inventory, and voice resources with the providers
 
 Sky Phone creates and upgrades its database tables automatically. A manual SQL import is normally not required.
 
+### How players open the phone
+
+- Give the player the item configured in `Config.Phone.Item` (default: `phone`).
+- Players can use that inventory item or press the configured keybind (default: `F1`).
+- The keybind still verifies server-side that the player owns a configured phone item; it does not bypass inventory ownership.
+- A SIM card is **not required to open or use the phone itself**. With `Config.Sim.Enabled = true`, only cellular features such as calls and messages require an inserted SIM.
+
 ## Configuration
 
 Customer settings are organized in:
@@ -196,6 +218,7 @@ The files contain clearly separated sections for:
 | Section | Purpose |
 | --- | --- |
 | `Config.Bridge` | Framework, inventory, language, callback timeout, and debug mode |
+| `Config.CommandPermissions` | Fixed groups for the admin panel, test data, verification commands, and social moderation |
 | `Config.Phone` | Phone item, movement, unique-device mode, and development command |
 | `Config.Sim` | Physical or virtual SIM behavior and number formatting |
 | `Config.Calls` / `Config.Radio` | Voice providers, call behavior, radio limits, and permissions |
@@ -210,6 +233,44 @@ The files contain clearly separated sections for:
 | `Config.WeazelNews` | Editorial jobs, categories, and article limits |
 
 Restart `sky_phone` after changing Lua configuration.
+
+### In-game phone configurator
+
+Set the switch at the beginning of `config/config.lua` to use SQL-backed configuration:
+
+```lua
+Config.PhoneConfigurator = {
+    Enabled = true,
+}
+```
+
+When enabled, the generated `source/shared/config_default.lua` is the shipped first-run baseline.
+The frontend build recreates this file from `config.lua` and the server-only `media.lua`; do not edit
+the generated snapshot directly. Sky Phone creates the `sky_phone_configurator` table automatically,
+loads its saved values before framework and phone
+modules initialize, and exposes the editor through `/phonepanel`. Nothing autosaves: stage changes
+in the Phone Configurator tool and press the green check. Saving verifies both SQL payloads and then
+applies the new server, client, media, app, item, command, provider, animation, and UI values through
+Sky Phone's internal runtime refresh. It does not execute a resource restart command.
+
+Every configurable `Config.*` value from `config.lua`, including server-only sections, and every
+value from `Config.Media` is discovered automatically. The bootstrap switch and
+`Config.CommandPermissions` intentionally remain file-owned: the switch decides whether SQL
+configuration is loaded, while permissions must remain authoritative outside the panel. The fixed
+permission table is never displayed or overwritten by the Phone Configurator, and its stable keys do
+not change when their commands are renamed in the panel. Lists, nested objects, vectors,
+and numeric-keyed Lua tables use structured editors instead of raw JSON. Shipped schema rows stay
+editable but cannot be renamed, converted, or removed. Every list and table still accepts any number
+of additional rows; administrator-added rows remain removable. Company job keys are intentionally
+fully removable because `Config.Companies.Definitions` is a freely managed job collection.
+
+ESX and QBCore use the groups listed in `Config.CommandPermissions`. Qbox checks the configured ACE
+objects first and then its framework groups. The standard Qbox `permissions.cfg` grants the `admin`
+ACE to `group.admin`, so an identifier assigned to `group.admin` can open `/phonepanel` with the
+shipped `phonepanel` permission list. Restart `sky_phone` after changing fixed permissions.
+
+Media API keys and server peppers are never returned in plaintext to the NUI. Existing secrets are
+shown only as configured and are replaced only when an administrator enters a new value.
 
 ### Language
 
@@ -255,6 +316,8 @@ server console reports whether the installed version is current and shows the re
 update is available. A failed GitHub request is reported but does not prevent the phone from starting.
 
 ## Security values
+
+Face ID is optional during device setup and can be enabled or disabled later under **Settings → Passcode & Security**. A device passcode is required as a fallback, and changing Face ID requires that passcode. The server binds Face ID to the character identifier returned by the framework at enrollment and checks it against the current holder of that physical phone. No camera or biometric data is collected. Changing the SIM or Sky Cloud account does not transfer the enrollment; removing the passcode, an admin passcode reset, or a factory reset clears it. The nullable enrollment column is added automatically by the runtime migration.
 
 Sky Phone ships with stable generated defaults in `Config.Server`:
 
@@ -315,9 +378,9 @@ Default entries for unique phones with physical SIM cards:
 
 Do not configure an LB Phone client event or client export. Sky Phone registers the usable items through its server-side inventory adapter.
 
-The server registers `Config.Phone.Item` as usable for every supported inventory adapter: `ox`, `qb`, `lj`, `qs`, `codem`, `core`, `mf`, `smx`, `hex`, and `esx`. Resource startup fails visibly if the selected adapter cannot complete that registration.
+The server registers `Config.Phone.Item` as usable for every supported inventory adapter: `ak47`, `codem`, `core`, `jaksam`, `jpr`, `lj`, `mf`, `one`, `origen`, `ox`, `ps`, `qb`, `qs`, `smx`, `tgiann`, `hex`, and `esx`. Resource startup fails visibly if the selected adapter or its resource is unavailable.
 
-The `hex` and `esx` adapters use ESX's count-based item API. They require both `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` because this API cannot persist per-item phone or physical SIM metadata. `auto` selects `hex` when `hex_4_inventory` is started and otherwise falls back to `esx` on an ESX server when no metadata-capable inventory is detected.
+The `hex` and `esx` adapters use ESX's count-based item API, which cannot persist per-item phone or physical SIM metadata. Sky Phone automatically forces `Config.Phone.Unique = false` and `Config.Sim.Enabled = false` while either adapter is active. `auto` selects `hex` when `hex_4_inventory` is started and otherwise falls back to `esx` on an ESX server when no metadata-capable inventory is detected.
 
 ### QBCore-style item tables
 
@@ -325,6 +388,67 @@ The `hex` and `esx` adapters use ESX's count-based item API. They require both `
 - Set `useable = true` and `shouldClose = true`.
 - Physical SIM items must always be unique.
 - SIM items are not required when `Config.Sim.Enabled = false`.
+
+Example for `qb-inventory`, `lj-inventory`, `ps-inventory`, and `jpr-inventory`:
+
+```lua
+phone = {
+    name = "phone",
+    label = "iFruit Phone",
+    weight = 200,
+    type = "item",
+    image = "phone.png",
+    unique = true,
+    useable = true,
+    shouldClose = true,
+    description = "A personal mobile phone",
+},
+
+sky_phone_sim_registered = {
+    name = "sky_phone_sim_registered",
+    label = "Registered SIM",
+    weight = 5,
+    type = "item",
+    image = "sky_phone_sim_registered.png",
+    unique = true,
+    useable = true,
+    shouldClose = true,
+},
+
+sky_phone_sim_anonymous = {
+    name = "sky_phone_sim_anonymous",
+    label = "Anonymous SIM",
+    weight = 5,
+    type = "item",
+    image = "sky_phone_sim_anonymous.png",
+    unique = true,
+    useable = true,
+    shouldClose = true,
+},
+```
+
+For `tgiann-inventory`, set `hasMetadata = true`, `useable = true`, and `shouldClose = true` on all three item definitions. Follow the inventory's own item schema for the remaining adapters; the required behavior is always the same: a unique phone or physical SIM must occupy its own slot and its metadata table must survive moving, dropping, storing, and trading the item.
+
+### Unique Phones and metadata
+
+Sky Phone owns the metadata values and writes them server-side. Do not pre-generate IMEIs or phone numbers in item definitions:
+
+| Item | Metadata written by Sky Phone |
+| --- | --- |
+| Phone | `imei`; when a SIM is inserted, also `sim_id`, `phone_number`, and `formatted_number` |
+| Physical SIM | `sim_metadata_version`, `sim_id`, `phone_number`, `formatted_number`, `sim_type`, and registration details where applicable |
+
+When a metadata-capable phone item is used for the first time, Sky Phone reserves an IMEI and writes it back to that exact slot. Existing metadata is preserved. The adapter then reads the slot again and rejects the operation if the inventory did not persist the requested values.
+
+For reliable Unique Phones:
+
+- Set `Config.Phone.Unique = true`.
+- Make the phone item non-stackable/unique. Every phone slot must contain exactly one item.
+- If `Config.Sim.Enabled = true`, make both physical SIM items non-stackable/unique and metadata-capable too.
+- Do not use inventory conversion, admin, crafting, or shop scripts that strip item metadata. Copying an item with its metadata also copies its IMEI; duplicated IMEIs are reported in the server console.
+- When changing inventory systems, migrate the complete item metadata table. Without the old `imei`, the next use creates a new device identity and does not automatically attach the old handset data.
+
+With `Config.Phone.Unique = false`, the handset identity is stored once per framework character instead of on each phone item. The phone item may stack. Physical SIMs still require per-item metadata, so `Config.Sim.Enabled` must be `false` on `hex` and native `esx`.
 
 ## Phone and SIM modes
 
@@ -344,7 +468,7 @@ With unique phones, using an inventory item selects that exact handset whenever 
 
 | SIM mode | Behavior |
 | --- | --- |
-| `Enabled = true` | A registered or anonymous physical SIM item is required for cellular service. |
+| `Enabled = true` | The phone opens with or without a SIM. A registered or anonymous physical SIM item is required only for cellular service such as calls and messages. |
 | `Enabled = false` | Sky Phone creates a persistent automatic number for devices without a SIM. Physical SIM items are not required. |
 
 When changing these modes on an existing production server, restart the resource and test with a copy of the database first. The first phone used after switching to non-unique mode may adopt an existing valid IMEI so its local data is preserved.
@@ -455,6 +579,12 @@ Automatic selection checks YACA, PMA Voice, and SaltyChat. Restricted frequency 
 
 Radio display-name permissions are configured in `Config.Radio.DisplayName.AllowedJobs`.
 
+## Discord logging
+
+Configure separate app/action webhooks and an optional avatar URL in the
+server-only `config/WebHooks.lua` or through **Phonepanel > Webhooks**. See the
+[logging setup and coverage](sky_phone/LOGGING.md), including prepared SkyPic support.
+
 ## Payphones
 
 Sky Phone automatically detects nearby world props listed in `Config.Payphones.Props`; GTA V payphones do not need configured coordinates. Pricing, payment account, prop models, and validation distances are configured under `Config.Payphones`.
@@ -526,15 +656,70 @@ The migration command is server-console only.
 
 ### Garage
 
+Set `Config.Garage.VehicleKeySystem` (default: `auto`) to give vehicle keys after a valet delivery. The same setting is available under Garage in the Phone Configurator. See [vehicle key integration](VEHICLEKEYS.md) for supported providers and the client/server bridge files.
+
 Select the provider under `Config.Garage.System`. Vehicle images use the configured CDN template with an icon fallback when no image is available.
+
+For MSK Garage, select `msk` (or use `auto`) and start `msk_garage` before `sky_phone`.
+With the Phone Configurator enabled, set `Garage.System` to `msk` in `/phonepanel` instead.
+Automatic detection checks `jg-advancedgarages` before `msk_garage`; select `msk` explicitly if both run.
+The adapter uses MSK's standard framework vehicle schema: ESX `owned_vehicles` / `stored`,
+or QBCore and Qbox `player_vehicles` / `state` (MSK 5.6+). It reads the garage ID,
+custom vehicle name, properties and fuel, and changes only the parked flag for valet orders.
+MSK treats unparked vehicles as impound candidates; the phone shows them as out and only
+delivers parked, personally owned vehicles. Cancelled or failed deliveries restore the parked flag.
+With `msk_fuel`, valet preserves liters; the fuel percentage is available when that resource
+configures a tank capacity for the model. Otherwise the percentage is shown as unavailable.
+See the [MSK database contract](https://docu.msk-scripts.de/docs/msk_garage/database/).
 
 ### Housing
 
-Select `rtx`, `quasar`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, or `qbx_properties` under `Config.Housing.System`. Automatic mode uses `Config.Housing.AutoPriority` and keeps the existing `esx_property` and `qbx_properties` defaults ahead of newly supported providers. Select a provider explicitly when multiple housing resources are running. Each bridge exposes only the capabilities supported by the documented provider API.
+Select `rtx`, `quasar`, `tgiann`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, or `qbx_properties` under `Config.Housing.System`. Automatic mode uses `Config.Housing.AutoPriority` and keeps the existing `esx_property` and `qbx_properties` defaults ahead of newly supported providers. Select a provider explicitly when multiple housing resources are running. Each bridge exposes only the capabilities supported by the documented provider API. The TGIANN bridge expects `tgiann-core` to start before `tgiann-house`, lists server-authorized owner properties, and supports entrance waypoints; TGIANN does not publish stable external contracts for keyholders, lock controls, CCTV, or live garage status.
 
 ### Companies
 
-Company jobs, public profiles, service numbers, services, permissions, locations, and default availability are configured under `Config.Companies.Definitions`.
+Company jobs, public profiles, service numbers, services, permissions, locations, and default
+availability are configured under `Config.Companies.Definitions`. Definitions are not limited to the
+shipped jobs: add any number of company IDs in the in-game configurator and fill the freely
+configurable `Job` value in the automatically generated full company template. Existing job keys can
+also be removed; the remaining Companies settings stay available as normal individual fields.
+
+Company names are limited to 32 Unicode characters in Lua and the Phone Configurator; Discover
+wraps names instead of truncating them. Shorten any existing longer names before restarting.
+Set each definition's `CoverUrl` to an HTTPS image URL in the configuration or Phone Configurator
+(an empty value hides the cover). Set `LogoUrl` to the company logo HTTPS URL in the same definition. Both images are
+admin-managed; job members cannot change them through Companies. Previously uploaded job
+logos and covers are no longer used automatically.
+
+Changes to `Description`, `District`, `LocationLabel`, and `Address` in the Phone Configurator
+also update existing company profiles. Each profile stores the last applied configuration so
+manager edits survive unrelated panel saves and resource restarts; changing a field in the panel
+overrides that field only. On the first restart after this update, the automatic schema migration
+adds `config_profile` and replaces remaining stock profile texts with the configured values.
+Existing custom texts are preserved during this initial reconciliation.
+
+Opening hours use 24-hour `HH:MM` input. `ServiceLine.CanMessage` enables company SMS and defaults
+to `true` for new companies and the shipped service lines. On the first restart after this update,
+the Phone Configurator enables SMS once for the stored `ambulance`, `fire`, `mechanic`, and `taxi`
+definitions; later admin changes are preserved. App requests still require the company and the
+selected public service to accept requests. A registered SIM is required when `Config.Sim.Enabled`
+is enabled; with SIM cards disabled, the phone's automatic number can use company services.
+
+In **Companies → Work**, employees allowed to take company calls can enable **Take dispatch duty**
+(German: **Leitstelle übernehmen**). This also enables their call availability on the active phone.
+With `ServiceLine.Routing = "round_robin"`, incoming calls try available dispatchers first, rotating between them, then other
+available employees. Busy or unreachable phones are skipped; declined or unanswered calls move to
+the next eligible recipient within `Config.Companies.CallRouting.MaxAttempts` and `RingSeconds`.
+The existing `ServiceLine.CanCall` and `ServiceLine.MinimumGrade` settings control access to both
+ordinary calls and dispatch duty. Turning off dispatch duty keeps ordinary call availability active;
+turning off company calls, disconnecting, or losing eligibility also removes dispatch priority.
+Closing the phone keeps call readiness active. Dispatch duty is session state and must be enabled
+again after reconnecting or restarting the resource; no database or configuration migration is needed.
+
+With `ServiceLine.Routing = "ring_all"`, every eligible available employee rings, including dispatchers.
+The first accepted answer connects and the other phones stop ringing. `RingSeconds` applies to the
+whole group; `MaxAttempts` applies only to round robin. Ring-all calls do not advance either
+dispatcher or ordinary employee round-robin positions.
 
 ### Weazel News
 
@@ -553,6 +738,8 @@ Unlisted jobs can read news but cannot manage articles.
 
 Sky Phone is not limited to the apps that ship with it. Other resources can register installable custom apps, publish them through the App Store, exchange messages with their NUI, send notifications, and use server-controlled permissions and storage.
 
+For the complete first-party export, ownership, readiness, and iframe protocol contract, see the [Creator API](CREATOR_API.md).
+
 Its native custom app surface includes client and server exports for app registration, lifecycle control, messaging, notifications, capability discovery, and policy management. Sky Phone also normalizes supported custom-app contracts from:
 
 - LB Phone
@@ -564,6 +751,8 @@ Its native custom app surface includes client and server exports for app registr
 The resource provides the compatibility aliases `lb-phone`, `17mov_Phone`, `high-phone`, `qs-smartphone`, and `yseries`.
 
 That means servers can replace LB Phone without giving up supported custom apps, while developers can build directly against Sky Phone for deeper lifecycle, permission, and storage integration.
+
+Start Sky Phone before the custom app resources and do not start the original phone resource for an alias at the same time. For example, an unchanged app using `exports["lb-phone"]:AddCustomApp(...)` must run with `sky_phone`, not with the original `lb-phone`, as the active provider. Two active providers expose the same FiveM export event and can send registrations to the wrong phone.
 
 ## Frontend development
 
@@ -603,11 +792,19 @@ pnpm build
 
 ### The phone item does nothing
 
+- A warning that the inventory returned no configured phone item means an item definition, `Config.Phone.Item`, inventory selection, or player ownership problem. It is not caused by a missing SIM card.
 - Confirm the framework and inventory are supported and started first.
 - Confirm the item name matches `Config.Phone.Item`.
 - Confirm the item is usable.
 - In unique mode, confirm the phone is non-stackable.
 - Check the server console for inventory adapter warnings.
+
+### The resource starts but the phone UI is missing
+
+- On startup, the server console prints `SKY PHONE UI BUILD IS MISSING OR INCOMPLETE`, lists the missing or invalid packaged files, and shows repository-native build commands.
+- Install the latest published release package rather than GitHub's automatically generated source archive.
+- Confirm `sky_phone/source/html/index.html`, `assets`, `img`, and `sounds` exist.
+- Developers working from source must run the frontend production build before starting the resource.
 
 ### Calls connect without audio
 

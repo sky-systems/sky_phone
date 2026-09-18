@@ -15,7 +15,7 @@ const appSource = readFileSync(
   'utf8',
 )
 const clientSource = readFileSync(
-  new URL('../../../../sky_phone/source/client/main.lua', import.meta.url),
+  new URL('../../../../sky_phone/source/client/nui_events.lua', import.meta.url),
   'utf8',
 )
 const serverSource = readFileSync(
@@ -69,7 +69,10 @@ describe('Banking app Sky UI migration', () => {
     expect(serverSource).toContain('kind = "transfer_in"')
     expect(serverSource).toContain('currency = Config.Banking.Currency')
     expect(clientSource).toContain(
-      'SendNUIMessage({ type = "banking:changed", data = data })',
+      '["sky_phone:banking:changed"] = "banking:changed"',
+    )
+    expect(clientSource).toContain(
+      'SendNUIMessage({ type = nui_type, data = data })',
     )
     expect(appSource).toContain("data?.kind === 'transfer_in'")
     expect(appSource).toContain("appId: 'banking'")

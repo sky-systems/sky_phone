@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const source = readFileSync(new URL('./FlareApp.vue', import.meta.url), 'utf8')
 const clientSource = readFileSync(
-  new URL('../../../../sky_phone/source/client/main.lua', import.meta.url),
+  new URL('../../../../sky_phone/source/client/nui_server_bridge.lua', import.meta.url),
   'utf8',
 )
 const serverSource = readFileSync(
@@ -210,7 +210,7 @@ describe('FlareApp profile editing contract', () => {
   })
 
   it('deletes all account-owned Flare data in one server transaction', () => {
-    expect(clientSource).toContain('"flare:delete-profile"')
+    expect(clientSource).toMatch(/flare\s*=\s*\[\[[^\]]*delete-profile/)
     expect(serverSource).toContain(
       'Bridge.Callbacks.Register("sky_phone:flare:delete-profile"',
     )

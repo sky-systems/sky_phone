@@ -15,6 +15,27 @@ describe('phone locale fallback', () => {
     vi.unstubAllGlobals()
   })
 
+  it.each([
+    ['cn', 'zh-CN'],
+    ['cz', 'cs-CZ'],
+    ['rs', 'sr-Cyrl-RS'],
+    ['se', 'sv-SE'],
+    ['de', 'de'],
+  ])('formats %s using the correct browser language', (code, expected) => {
+    const phone = usePhoneStore()
+    const copy = { caption: 'Localized caption' }
+    phone.open({ lang: code, locales: copy })
+    expect(phone.lang).toBe(expected)
+    expect(phone.t('caption')).toBe(copy.caption)
+    expect(new Intl.DateTimeFormat(phone.lang).resolvedOptions().locale).toBe(
+      expected,
+    )
+
+    phone.setLocale(code, copy, {})
+    expect(phone.lang).toBe(expected)
+    expect(phone.t('caption')).toBe(copy.caption)
+  })
+
   it('keeps CityMarkt profile copy translated with a partial server locale', () => {
     const phone = usePhoneStore()
     phone.open({ locales: { Apps: { citymarkt: { name: 'CityMarkt' } } } })
@@ -459,5 +480,26 @@ describe('phone locale fallback', () => {
     expect(phone.t('Common.save')).toBe('Speichern')
     expect(phone.t('Common.cancel')).toBe('Cancel from en.lua')
     expect(phone.t('Common.close')).toBe('Close')
+  })
+
+  it('keeps call and camera controls readable with older client locales', () => {
+    const phone = usePhoneStore()
+    phone.open({
+      locales: {
+        Apps: { camera: { name: 'Kamera' }, phone: { name: 'Telefon' } },
+        HardwareButtons: { lock: 'Handy sperren' },
+      },
+      fallbackLocales: {
+        Apps: { camera: { name: 'Camera' }, phone: { name: 'Phone' } },
+      },
+    })
+
+    expect(phone.t('HardwareButtons.unlock')).toBe('Unlock phone')
+    expect(phone.t('Apps.phone.returnToCall')).toBe('Return to Call')
+    expect(phone.t('Apps.camera.lockCamera')).toBe('Lock camera movement')
+    expect(phone.t('Apps.camera.unlockCamera')).toBe('Unlock camera movement')
+    expect(phone.t('Apps.camera.lookKey')).toBe('Look')
+    expect(phone.t('Apps.camera.name')).toBe('Kamera')
+    expect(phone.t('Apps.phone.name')).toBe('Telefon')
   })
 })

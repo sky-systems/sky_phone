@@ -10,13 +10,36 @@
     Keep option names unchanged. Restart sky_phone after editing this file.
 ]]
 
+-- CONFIG_DEFAULT_EXCLUDE_START
+-- When enabled, the active configuration is loaded from SQL and managed through
+-- /phonepanel. Frontend builds snapshot the shipped defaults from config.lua and
+-- media.lua into source/shared/config_default.lua.
+Config.PhoneConfigurator = {
+    Enabled = true,
+}
+
+-- Fixed server permissions. These values remain authoritative even while the
+-- Phone Configurator is enabled and are intentionally not shown in its panel.
+-- Group names use the active framework's permissions. On Qbox they also match
+-- ACE objects such as "admin" from the standard permissions.cfg.
+Config.CommandPermissions = {
+    phonepanel = { "god", "superadmin", "admin" },
+    phonetestdata = { "god", "superadmin", "admin" },
+    fliptokverify = { "god", "superadmin", "admin" },
+    picstagramverify = { "god", "superadmin", "admin" },
+    picstagramadmin = { "god", "superadmin", "admin" },
+}
+-- CONFIG_DEFAULT_EXCLUDE_END
+
 -- =============================================================================
 -- Core, framework and device
 -- =============================================================================
 
 Config.Bridge = {
     Framework = "auto", -- auto, esx, qbox, qb
-    Inventory = "auto", -- auto, ox, qb, lj, qs, codem, core, mf, smx, hex, esx
+    -- auto, ak47, codem, core, jaksam, jpr, lj, mf, one, origen, ox, ps, qb, qs, smx, tgiann, hex, esx
+    -- Compatibility aliases: qb-inv -> qb, qbox -> ox
+    Inventory = "auto",
     Locale = "en",
     CallbackTimeout = 15000,
     Debug = false, -- true: show debug/info output; warnings and errors are always shown
@@ -26,25 +49,102 @@ Config.Command = "phone"
 
 Config.Phone = {
     Item = "phone",
-    Unique = true, -- true: data follows each phone item; false: one persistent phone per character; hex/esx require false
+    Unique = true, -- true: data follows each phone item; false: one persistent phone per character; forced false for metadata-free inventories
     Keybind = "F1", -- false disables the configurable phone key mapping
+    OpenRequestsPerMinute = 20,
     AllowMovement = true, -- true: game input stays active while the mobile phone is open
+    HoldToLook = {
+        Enabled = true, -- hold the configured control to hide the cursor and look around; independent of AllowMovement
+        Control = 19, -- INPUT_CHARACTER_WHEEL (Left Alt by default)
+    },
     DevelopmentCommand = true,
     DeviceName = "iFruit Phone",
+}
+
+-- CONFIG_DEFAULT_EXCLUDE_START
+-- Local custom sounds remain file-based even when the Phone Configurator is
+-- enabled. Copy each audio file into config/custom_tones, add one entry below,
+-- and restart sky_phone. Files are read and served by sky_phone itself; no URL
+-- or external website is required. Supported: mp3, ogg, wav, webm.
+-- Limits per file: 2 MB and 250-30000 ms. Id values must be unique and use
+-- only lowercase letters, numbers, underscores, or hyphens.
+Config.CustomTones = {
+    Ringtones = {
+        -- {
+        --     Id = "dispatch_call",
+        --     Label = "Dispatch Call",
+        --     File = "config/custom_tones/dispatch_call.ogg",
+        --     DurationMs = 8500,
+        -- },
+    },
+    NotificationSounds = {
+        -- {
+        --     Id = "dispatch_ping",
+        --     Label = "Dispatch Ping",
+        --     File = "config/custom_tones/dispatch_ping.ogg",
+        --     DurationMs = 900,
+        -- },
+    },
+}
+-- CONFIG_DEFAULT_EXCLUDE_END
+
+-- Server-wide availability for bundled apps. Set an entry to false to hide it
+-- from every phone, the App Store and per-device app management.
+Config.Apps = {
+    ["app-store"] = true,
+    banking = true,
+    billing = true,
+    calculator = true,
+    calendar = true,
+    camera = true,
+    citymarkt = true,
+    citywarn = true,
+    clock = true,
+    companies = true,
+    crewlink = true,
+    crypto = true,
+    darkchat = true,
+    feather = true,
+    flare = true,
+    fliptok = true,
+    garage = true,
+    health = true,
+    house = true,
+    ["local-pages"] = true,
+    mail = true,
+    map = true,
+    memory = true,
+    memos = true,
+    messages = true,
+    minesweeper = true,
+    music = true,
+    ["neon-drop"] = true,
+    notes = true,
+    ["number-merge"] = true,
+    phone = true,
+    photos = true,
+    picstagram = true,
+    radio = true,
+    settings = true,
+    ["sky-flappy"] = true,
+    skyride = true,
+    snake = true,
+    ["tower-stack"] = true,
+    weather = true,
+    ["weazel-news"] = true,
 }
 
 Config.TestData = {
     Enabled = false, -- development/test servers only; keep disabled in production
     Command = "phonetestdata",
     AdminOnly = false, -- enable only on development servers; every run is scoped to the executing player's phone
-    AdminGroups = { "admin", "superadmin" },
 }
 
 Config.CustomApps = {
     Enabled = true,
     BundledApps = true,
     ExternalApps = true,
-    Debug = true, -- detailed client traces for exports, registration, catalog sync and lifecycle events
+    Debug = false, -- detailed client traces for exports, registration, catalog sync and lifecycle events
     ReadyTimeoutMs = 8000,
     MaximumMessageBytes = 65536,
     MaximumStorageBytesPerApp = 262144,
@@ -52,9 +152,6 @@ Config.CustomApps = {
     MaximumStorageKeyLength = 64, -- Bridge v1 ceiling; lower values tighten the server policy.
     MaximumStorageKeysPerApp = 128,
     StorageRequestsPerMinute = 120,
-    AllowRemoteOrigins = {
-        -- ["https://apps.example.com"] = true,
-    },
     TrustedAdapters = {},
 }
 
@@ -62,15 +159,32 @@ Config.Security = {
     MaximumAttempts = 5,
     LockSeconds = 30,
     AttemptsPerMinute = 12,
+    -- Face ID rejects masks on ped component 1 (drawable 0 means no mask).
+    -- Exceptions are model-specific; Texture = -1 allows every texture of that mask.
+    FaceIdMaskWhitelist = {
+        -- { Model = "mp_m_freemode_01", Drawable = 12, Texture = -1 },
+    },
+}
+
+Config.AdminPanel = {
+    Enabled = true,
+    Command = "phonepanel",
+    MaximumPlayers = 128,
+    ReadRequestsPerMinute = 60,
+    ActionRequestsPerMinute = 30,
+    CredentialRevealsPerMinute = 6,
+    AuditLimit = 40,
+    ActivityLimit = 40,
 }
 
 Config.Sim = {
-    Enabled = true, -- false: devices receive a persistent random number automatically; hex/esx require false
+    -- With SIM cards disabled, company calls and service requests use the automatic phone number too.
+    Enabled = true, -- false: devices receive a persistent random number automatically; forced false for metadata-free inventories
     RegisteredItem = "sky_phone_sim_registered",
     AnonymousItem = "sky_phone_sim_anonymous",
-    NumberLength = 10,
-    NumberPrefix = "",
-    NumberGroups = { 3, 3, 4 },
+    NumberLength = 10, -- total number of digits, including NumberPrefix
+    NumberPrefix = "", -- digits only; use "555", not "555-"
+    NumberGroups = { 3, 3, 4 }, -- display groups separated by spaces
 }
 
 -- =============================================================================
@@ -82,7 +196,7 @@ Config.Speaker = {
 }
 
 Config.Calls = {
-    VoiceProvider = "pma", -- yaca (alias: yaca-voice), pma (alias: pma-voice), saltychat (alias: salty)
+    VoiceProvider = "pma", -- auto, yaca (alias: yaca-voice), pma (alias: pma-voice), saltychat (alias: salty)
     RingSeconds = 30,
     ContactNameMaxLength = 80,
     ContactNotesMaxLength = 500,
@@ -135,8 +249,9 @@ Config.Radio = {
     AutoRejoin = false,
     DisplayName = {
         Enabled = true,
+        AllowEveryone = false, -- true allows every job; false uses AllowedJobs and its minimum grades
         MaxLength = 32,
-        AllowedJobs = { -- Job name = minimum grade. Unlisted jobs cannot set a radio display name.
+        AllowedJobs = { -- Job name = minimum grade. Used when AllowEveryone is false.
             police = 0,
             sheriff = 0,
             fib = 0,
@@ -267,6 +382,7 @@ Config.DarkChat = {
     VoiceMaxBase64Length = 360000,
     VoiceWaveformSamples = 48,
     CleanupIntervalSeconds = 30,
+    CleanupBatchSize = 250,
     AllowedDisappearTimers = {
         [0] = true,
         [-1] = true, -- after reading
@@ -330,7 +446,8 @@ Config.Billing = {
 }
 
 Config.Garage = {
-    System = "auto", -- auto, custom, esx, qb, qbox, ak47, bp, cd, codem, ds-servercreator, hex, jg, my, okok, op, quasar, rx, vms, ws, zyke_garages
+    VehicleKeySystem = "auto", -- auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc (alias: jota), kiminaze, ic3d, zyke_garages, custom_client, custom_server
+    System = "auto", -- auto, custom, esx, qb, qbox, ak47, bp, cd, codem, ds-servercreator, hex, jg, msk, my, okok, op, quasar, rx, vms, ws, zyke_garages
     MaximumVehicles = 250,
     RequestsPerMinute = 30,
     VehicleImages = {
@@ -368,8 +485,8 @@ Config.Garage = {
 }
 
 Config.Housing = {
-    System = "auto", -- auto, rtx, quasar, vms, rx, nolag, sn, esx_property, qbx_properties
-    AutoPriority = { "esx_property", "qbx_properties", "rtx", "quasar", "vms", "rx", "nolag", "sn" },
+    System = "auto", -- auto, rtx, quasar, tgiann, vms, rx, nolag, sn, esx_property, qbx_properties
+    AutoPriority = { "esx_property", "qbx_properties", "rtx", "quasar", "tgiann", "vms", "rx", "nolag", "sn" },
     MaximumProperties = 50,
     OverviewRequestsPerMinute = 30,
     ActionsPerMinute = 12,
@@ -464,7 +581,6 @@ Config.FlipTok = {
     MaxPostMedia = 10,
     MusicTracks = {},
     VerifyCommand = "fliptokverify",
-    AdminGroups = { "admin" },
     ReportWebhookConvar = "sky_phone_fliptok_report_webhook",
 }
 
@@ -486,7 +602,6 @@ Config.Picstagram = {
     ReportDetailsMaxLength = 500,
     ReportReasons = { "spam", "harassment", "dangerous", "illegal", "other" },
     VerifyCommand = "picstagramverify",
-    AdminGroups = { "admin" },
 }
 
 Config.SkyPic = {
@@ -569,6 +684,19 @@ Config.MapMarkers = {
 }
 
 Config.CrewLink = {
+    PingCooldownSeconds = 5, -- shared by app and keybind pings per profile; 0 disables the cooldown
+    Blip = {
+        Enabled = true,
+        Sprite = 126,
+        PingSprite = 280,
+        CategoryId = 13, -- named custom category; keep distinct from other resources
+        CategoryName = "CrewLink",
+        Scale = 0.8,
+    },
+    QuickPing = {
+        Enabled = true,
+        DefaultKey = "NUMPAD5", -- players can override this in FiveM key bindings
+    },
     UsernameMinLength = 3,
     UsernameMaxLength = 20,
     PasswordMinLength = 8,
@@ -1069,6 +1197,75 @@ Config.Crypto = {
     },
 }
 
+-- -------------------------------------------------------------------------
+-- CityWarn population warnings
+-- -------------------------------------------------------------------------
+
+Config.CityWarn = {
+    Enabled = true,
+    -- #RRGGBB colors shared by GTA blips, radius areas and the CityWarn app.
+    CategoryColors = {
+        public_safety = "#d97706",
+        police = "#2563eb",
+        fire = "#dc2626",
+        medical = "#059669",
+        infrastructure = "#7c3aed",
+        evacuation = "#0891b2",
+    },
+    Blip = {
+        Sprite = 161, -- GTA signal blip; sprite 10 is a screen-sized radius outline
+        Display = 2, -- 2: main map and minimap, 3/4: main map, 5/9: minimap, 0/1/7: hidden
+        ShortRange = true, -- true: show on the minimap only when nearby
+        CategoryId = 12, -- custom named category ID (12-133)
+        CategoryName = "CityWarn", -- map legend category label
+        GroupByCategory = false, -- true: show the category name in the legend instead of individual short titles
+        RadiusEnabled = true, -- show the same fixed area in GTA and CityWarn; no separate GTA legend entry
+        Radius = 100.0, -- shared GTA/CityWarn map radius in metres, independent of the warning's notification area
+    },
+    PageSize = 30,
+    MaximumActiveAlerts = 20,
+    TitleMaxLength = 120,
+    BodyMaxLength = 2000,
+    InstructionsMaxLength = 2000,
+    UpdateMaxLength = 2000,
+    AreaLabelMaxLength = 120,
+    MinimumRadius = 100,
+    MaximumRadius = 10000,
+    DefaultDurationMinutes = 60,
+    MaximumDurationMinutes = 1440,
+    RequireDuty = true,
+    RateLimits = {
+        Read = 180,
+        Write = 20,
+    },
+    Publishers = {
+        police = {
+            MinimumGrade = 2,
+            MaximumSeverity = "extreme",
+            CityWide = true,
+            Categories = { "public_safety", "police", "infrastructure", "evacuation" },
+        },
+        fire = {
+            MinimumGrade = 2,
+            MaximumSeverity = "extreme",
+            CityWide = true,
+            Categories = { "public_safety", "fire", "infrastructure", "evacuation" },
+        },
+        ambulance = {
+            MinimumGrade = 2,
+            MaximumSeverity = "danger",
+            CityWide = false,
+            Categories = { "public_safety", "medical", "evacuation" },
+        },
+        government = {
+            MinimumGrade = 2,
+            MaximumSeverity = "extreme",
+            CityWide = true,
+            Categories = { "public_safety", "police", "fire", "medical", "infrastructure", "evacuation" },
+        },
+    },
+}
+
 -- =============================================================================
 -- Server-only configuration
 -- =============================================================================
@@ -1121,8 +1318,14 @@ if IsDuplicityVersion() then
             CallAvailability = 30,
         },
         CallRouting = {
-            MaxAttempts = 3,
-            RingSeconds = 10,
+            -- Choose the routing mode per company in Definitions.<company>.ServiceLine.Routing:
+            -- "round_robin": ring one available employee at a time, rotating the starting employee.
+            -- "ring_all" (simultaneous ring): ring all available employees together;
+            -- the first to answer gets the call and ringing stops for everyone else.
+            -- Both modes require enabled call availability, MinimumGrade and an eligible phone/SIM.
+            -- Busy/unreachable employees are skipped. Declining ring_all only stops that employee's ring.
+            MaxAttempts = 3, -- round_robin only: maximum total attempts, including the first employee (1-20).
+            RingSeconds = 10, -- 1-120 seconds per round_robin attempt or for the entire ring_all group.
         },
         Categories = {
             "public_services",
@@ -1151,10 +1354,12 @@ if IsDuplicityVersion() then
                 Emergency = true,
                 Verified = true,
                 Icon = "shield",
+                -- Admin-owned cover; empty hides the cover. Company names are limited to 32 characters.
+                CoverUrl = "",
                 LogoUrl = "https://picsum.photos/seed/companies-police-logo/180/180",
                 Description = "Public safety, emergency response, and police services.",
                 DefaultAvailability = "closed",
-                AcceptsRequests = false,
+                AcceptsRequests = true,
                 District = "Mission Row",
                 LocationLabel = "Mission Row Police Station",
                 Address = "Mission Row Police Station",
@@ -1163,8 +1368,8 @@ if IsDuplicityVersion() then
                     Number = "911",
                     AutoContact = true,
                     CanCall = true,
-                    CanMessage = false,
-                    Routing = "round_robin",
+                    CanMessage = true,
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {
@@ -1176,7 +1381,15 @@ if IsDuplicityVersion() then
                     Services = 3,
                     Announcement = 3,
                 },
-                Services = {},
+                Services = {
+                    {
+                        Id = "police-assistance",
+                        Title = "Police assistance",
+                        Description = "Request non-emergency police assistance.",
+                        Price = "",
+                        RequestsEnabled = true,
+                    },
+                },
             },
             ambulance = {
                 Job = "ambulance",
@@ -1186,6 +1399,8 @@ if IsDuplicityVersion() then
                 Emergency = true,
                 Verified = true,
                 Icon = "medical",
+                -- Admin-owned cover; empty hides the cover. Company names are limited to 32 characters.
+                CoverUrl = "",
                 LogoUrl = "https://picsum.photos/seed/companies-ems-logo/180/180",
                 Description = "Emergency medical response and patient care.",
                 DefaultAvailability = "closed",
@@ -1198,8 +1413,8 @@ if IsDuplicityVersion() then
                     Number = "912",
                     AutoContact = true,
                     CanCall = true,
-                    CanMessage = false,
-                    Routing = "round_robin",
+                    CanMessage = true,
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {
@@ -1221,6 +1436,8 @@ if IsDuplicityVersion() then
                 Emergency = true,
                 Verified = true,
                 Icon = "flame",
+                -- Admin-owned cover; empty hides the cover. Company names are limited to 32 characters.
+                CoverUrl = "",
                 LogoUrl = "https://picsum.photos/seed/companies-fire-logo/180/180",
                 Description = "Fire response, rescue, and public safety services.",
                 DefaultAvailability = "closed",
@@ -1233,8 +1450,8 @@ if IsDuplicityVersion() then
                     Number = "913",
                     AutoContact = true,
                     CanCall = true,
-                    CanMessage = false,
-                    Routing = "round_robin",
+                    CanMessage = true,
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {
@@ -1256,6 +1473,8 @@ if IsDuplicityVersion() then
                 Emergency = false,
                 Verified = true,
                 Icon = "wrench",
+                -- Admin-owned cover; empty hides the cover. Company names are limited to 32 characters.
+                CoverUrl = "",
                 LogoUrl = "https://picsum.photos/seed/companies-mechanic-logo/180/180",
                 Description = "Vehicle diagnostics, repairs, and roadside assistance.",
                 DefaultAvailability = "closed",
@@ -1268,8 +1487,8 @@ if IsDuplicityVersion() then
                     Number = "5550101000",
                     AutoContact = true,
                     CanCall = true,
-                    CanMessage = false,
-                    Routing = "round_robin",
+                    CanMessage = true,
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {
@@ -1306,6 +1525,8 @@ if IsDuplicityVersion() then
                 Emergency = false,
                 Verified = true,
                 Icon = "car",
+                -- Admin-owned cover; empty hides the cover. Company names are limited to 32 characters.
+                CoverUrl = "",
                 LogoUrl = "https://picsum.photos/seed/companies-taxi-logo/180/180",
                 Description = "Staffed taxi rides throughout Los Santos and Blaine County.",
                 DefaultAvailability = "closed",
@@ -1318,8 +1539,8 @@ if IsDuplicityVersion() then
                     Number = "5550102000",
                     AutoContact = true,
                     CanCall = true,
-                    CanMessage = false,
-                    Routing = "round_robin",
+                    CanMessage = true,
+                    Routing = "round_robin", -- "round_robin" or "ring_all"; see Companies.CallRouting above.
                     MinimumGrade = 0,
                 },
                 Permissions = {
@@ -1400,56 +1621,6 @@ if IsDuplicityVersion() then
         AllowedJobs = {
             weazel = 0,
             reporter = 0,
-        },
-    }
-
-    -- -------------------------------------------------------------------------
-    -- CityWarn population warnings
-    -- -------------------------------------------------------------------------
-
-    Config.CityWarn = {
-        Enabled = true,
-        PageSize = 30,
-        MaximumActiveAlerts = 20,
-        TitleMaxLength = 120,
-        BodyMaxLength = 2000,
-        InstructionsMaxLength = 2000,
-        UpdateMaxLength = 2000,
-        AreaLabelMaxLength = 120,
-        MinimumRadius = 100,
-        MaximumRadius = 10000,
-        DefaultDurationMinutes = 60,
-        MaximumDurationMinutes = 1440,
-        RequireDuty = true,
-        RateLimits = {
-            Read = 180,
-            Write = 20,
-        },
-        Publishers = {
-            police = {
-                MinimumGrade = 2,
-                MaximumSeverity = "extreme",
-                CityWide = true,
-                Categories = { "public_safety", "police", "infrastructure", "evacuation" },
-            },
-            fire = {
-                MinimumGrade = 2,
-                MaximumSeverity = "extreme",
-                CityWide = true,
-                Categories = { "public_safety", "fire", "infrastructure", "evacuation" },
-            },
-            ambulance = {
-                MinimumGrade = 2,
-                MaximumSeverity = "danger",
-                CityWide = false,
-                Categories = { "public_safety", "medical", "evacuation" },
-            },
-            government = {
-                MinimumGrade = 2,
-                MaximumSeverity = "extreme",
-                CityWide = true,
-                Categories = { "public_safety", "police", "fire", "medical", "infrastructure", "evacuation" },
-            },
         },
     }
 

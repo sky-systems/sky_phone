@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import payphoneFrame from '@/assets/img/payphone/american-payphone-frame.png'
 import { nuiCall } from '@/utils/nui'
+import { registerPhoneMediaElement } from '@/utils/phoneAudio'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 
 type PayphoneState =
@@ -70,7 +71,9 @@ const buttonSounds: HTMLAudioElement[] = []
 function prepareButtonSounds(): void {
   if (buttonSounds.length) return
   for (let index = 0; index < 4; index += 1) {
-    const sound = new Audio(`${import.meta.env.BASE_URL}sounds/button.mp3`)
+    const sound = registerPhoneMediaElement(
+      new Audio(`${import.meta.env.BASE_URL}sounds/button.mp3`),
+    )
     sound.preload = 'auto'
     sound.volume = 0.55
     buttonSounds.push(sound)
@@ -399,7 +402,7 @@ onBeforeUnmount(() => {
     rgb(30 38 42 / 35%),
     rgb(0 0 0 / 84%) 72%
   );
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: var(--sky-font-family);
   pointer-events: auto;
   user-select: none;
 }

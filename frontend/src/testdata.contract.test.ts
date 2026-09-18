@@ -16,10 +16,15 @@ describe('test data seeding contracts', () => {
     )
   })
 
-  it('returns before registering the test-data command when disabled', () => {
-    expect(
-      testData.indexOf('if not Config.TestData.Enabled then'),
-    ).toBeLessThan(testData.indexOf('RegisterCommand(Config.TestData.Command'))
+  it('refreshes the test-data command when its runtime configuration changes', () => {
+    expect(testData).toContain('local function refresh_test_data_command()')
+    expect(testData).toContain(
+      'active_test_data_command = Config.TestData.Enabled and Config.TestData.Command or nil',
+    )
+    expect(testData).toContain(
+      'AddEventHandler("sky_phone:configurator:serverUpdated", refresh_test_data_command)',
+    )
+    expect(testData).not.toContain('RegisterCommand(Config.TestData.Command')
   })
 
   it('moves an existing player SIM before attaching it to the selected phone', () => {

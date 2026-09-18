@@ -108,20 +108,6 @@ for index = 1, #server_callbacks do
     end)
 end
 
-RegisterNUICallback("skyride:get-player-coords", function(_, cb)
-    local coords = GetEntityCoords(PlayerPedId())
-    cb({
-        success = true,
-        data = {
-            coords = {
-                x = coords.x,
-                y = coords.y,
-                z = coords.z,
-            },
-        },
-    })
-end)
-
 RegisterNetEvent("sky_phone:skyride:changed", function(data)
     normalize_state(data)
     SendNUIMessage({ type = "skyride:changed", data = data })

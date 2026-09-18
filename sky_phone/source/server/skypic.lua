@@ -3,13 +3,19 @@ local settings = Config.SkyPic or {}
 local json_null = type(json) == "table" and json.null or nil
 local spotlight_report_reasons = {}
 
-for _, reason in ipairs(settings.SpotlightReportReasons or {
-    "spam", "harassment", "dangerous", "illegal", "other",
-}) do
-    if type(reason) == "string" then
-        spotlight_report_reasons[reason] = true
+local function refresh_report_reasons()
+    spotlight_report_reasons = {}
+    for _, reason in ipairs(settings.SpotlightReportReasons or {
+        "spam", "harassment", "dangerous", "illegal", "other",
+    }) do
+        if type(reason) == "string" then
+            spotlight_report_reasons[reason] = true
+        end
     end
 end
+
+refresh_report_reasons()
+AddEventHandler("sky_phone:configurator:serverUpdated", refresh_report_reasons)
 
 local function nullable(value)
     if value == nil then

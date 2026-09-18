@@ -7,6 +7,7 @@ import {
   Gauge,
   LockKeyhole,
   Palette,
+  ScanFace,
   ShieldCheck,
   Signal,
   Smartphone,
@@ -16,6 +17,7 @@ import {
 import { computed, ref } from 'vue'
 
 import PhonePasscode from '@/components/PhonePasscode.vue'
+import { faceIdErrorKey } from '@/utils/face-id'
 import { getPhoneApp, getPhoneAppLabel } from '@/config/apps'
 import { useAccountStore } from '@/stores/account'
 import { useAppStoreStore } from '@/stores/app-store'
@@ -54,23 +56,38 @@ const password = ref('')
 const passwordConfirm = ref('')
 const accountBusy = ref(false)
 const accountError = ref('')
-const passcodeStage = ref<'create' | 'confirm' | null>(null)
+const passcodeStage = ref<'create' | 'confirm' | 'face-id' | null>(null)
+const passcodeBusy = ref(false)
+const showFaceIdSetup = ref(false)
 const passcodeFirst = ref('')
 const passcodeResetKey = ref(0)
 const passcodeError = ref('')
 const passcodeLength = ref<4 | 6>(phone.security.length === 4 ? 4 : 6)
 const notificationsEnabled = ref(true)
 const notificationSounds = ref(true)
-const selectedApps = ref<BuiltinPhoneAppId[]>(['banking', 'garage', 'skyride'])
+const selectedApps = ref<BuiltinPhoneAppId[]>(
+  (['banking', 'garage', 'skyride'] as const).filter((id) =>
+    appStore.isAvailable(id),
+  ),
+)
 const setupCompleteBusy = ref(false)
 const setupCompleteError = ref('')
 
-const setupApps = (
-  ['banking', 'garage', 'skyride', 'citymarkt', 'picstagram', 'snake'] as const
-).flatMap((id) => {
-  const app = getPhoneApp(id)
-  return app ? [app] : []
-})
+const setupApps = computed(() =>
+  (
+    [
+      'banking',
+      'garage',
+      'skyride',
+      'citymarkt',
+      'picstagram',
+      'snake',
+    ] as const
+  ).flatMap((id) => {
+    const app = getPhoneApp(id)
+    return app && appStore.isAvailable(id) ? [app] : []
+  }),
+)
 const wallpaperChoices = WALLPAPER_IDS
 const progress = computed(() => `${((step.value + 1) / 10) * 100}%`)
 const displayName = computed(() => {
@@ -100,6 +117,7 @@ const currentWallpaperStyle = computed(() => ({
 const showDevelopmentSkip = import.meta.env.DEV
 
 function moveTo(nextStep: number): void {
+  if (setupCompleteBusy.value) return
   direction.value = nextStep < step.value ? 'back' : 'forward'
   step.value = Math.min(PHONE_SETUP_LAST_STEP, Math.max(0, nextStep))
   if (step.value < 4) {
@@ -112,7 +130,8 @@ function moveTo(nextStep: number): void {
   phone.setSetupStep(step.value)
 }
 
-function continueSetup(): void {
+async function continueSetup(): Promise<void> {
+  if (setupCompleteBusy.value) return
   if (step.value === 7) {
     phone.setAllAppNotifications(
       notificationsEnabled.value,
@@ -120,8 +139,7 @@ function continueSetup(): void {
     )
   }
   if (step.value === 8) {
-    for (const appId of selectedApps.value) appStore.claimApp(appId)
-    void finish()
+    await finish()
     return
   }
   moveTo(step.value + 1)
@@ -142,6 +160,7 @@ function chooseWallpaper(wallpaper: Exclude<WallpaperId, 'custom'>): void {
 }
 
 function toggleApp(appId: BuiltinPhoneAppId): void {
+  if (setupCompleteBusy.value) return
   selectedApps.value = selectedApps.value.includes(appId)
     ? selectedApps.value.filter((id) => id !== appId)
     : [...selectedApps.value, appId]
@@ -193,7 +212,21 @@ function updateAccountName(event: Event): void {
   email.value = localPart
 }
 
-function submitPasscode(passcode: string): void {
+async function submitPasscode(passcode: string): Promise<void> {
+  if (passcodeBusy.value) return
+  if (passcodeStage.value === 'face-id') {
+    passcodeBusy.value = true
+    const response = await phone.setFaceId(true, passcode)
+    passcodeBusy.value = false
+    if (!response.success) {
+      passcodeError.value = phone.t(faceIdErrorKey(response.error))
+      passcodeResetKey.value += 1
+      return
+    }
+    passcodeStage.value = null
+    continueSetup()
+    return
+  }
   if (passcodeStage.value === 'create') {
     passcodeFirst.value = passcode
     passcodeStage.value = 'confirm'
@@ -207,16 +240,25 @@ function submitPasscode(passcode: string): void {
     passcodeResetKey.value += 1
     return
   }
-  void phone.setPasscode(passcode).then((response) => {
-    if (!response.success) {
-      passcodeError.value = phone.t('Setup.security.failed')
-      passcodeStage.value = 'create'
-      passcodeResetKey.value += 1
-      return
-    }
-    passcodeStage.value = null
-    continueSetup()
-  })
+  passcodeBusy.value = true
+  const response = await phone.setPasscode(passcode)
+  passcodeBusy.value = false
+  if (!response.success) {
+    passcodeError.value = phone.t('Setup.security.failed')
+    passcodeStage.value = 'create'
+    passcodeResetKey.value += 1
+    return
+  }
+  passcodeStage.value = null
+  passcodeFirst.value = ''
+  showFaceIdSetup.value = true
+}
+
+function beginFaceIdSetup(): void {
+  passcodeError.value = ''
+  passcodeResetKey.value += 1
+  passcodeLength.value = phone.security.length ?? passcodeLength.value
+  passcodeStage.value = phone.security.enabled ? 'face-id' : 'create'
 }
 
 function choosePasscodeLength(length: 4 | 6): void {
@@ -230,13 +272,24 @@ async function finish(): Promise<void> {
   if (setupCompleteBusy.value) return
   setupCompleteBusy.value = true
   setupCompleteError.value = ''
-  const completed = await phone.completeSetup()
-  setupCompleteBusy.value = false
-  if (!completed) {
-    setupCompleteError.value = phone.t('Setup.ready.saveFailed')
-    return
+  try {
+    if (step.value === 8) {
+      for (const appId of selectedApps.value) {
+        if (!(await appStore.claimApp(appId))) {
+          setupCompleteError.value = phone.t('Setup.ready.saveFailed')
+          return
+        }
+      }
+    }
+    const completed = await phone.completeSetup()
+    if (!completed) {
+      setupCompleteError.value = phone.t('Setup.ready.saveFailed')
+      return
+    }
+    emit('complete')
+  } finally {
+    setupCompleteBusy.value = false
   }
-  emit('complete')
 }
 
 function skipSetupForDevelopment(): void {
@@ -274,6 +327,7 @@ function skipSetupForDevelopment(): void {
         type="button"
         class="setup-assistant__back"
         :aria-label="phone.t('Common.back')"
+        :disabled="setupCompleteBusy"
         @click="moveTo(step - 1)"
       >
         <ChevronLeft :size="23" :stroke-width="2.2" />
@@ -515,6 +569,56 @@ function skipSetupForDevelopment(): void {
           </div>
         </template>
 
+        <template
+          v-else-if="step === 3 && (showFaceIdSetup || phone.security.enabled)"
+        >
+          <div class="setup-assistant__icon setup-assistant__icon--security">
+            <ScanFace :size="46" :stroke-width="1.6" />
+          </div>
+          <p class="setup-assistant__eyebrow">
+            {{ phone.t('Setup.security.eyebrow') }}
+          </p>
+          <h1>{{ phone.t('FaceId.title') }}</h1>
+          <p class="setup-assistant__lead">{{ phone.t('FaceId.setupBody') }}</p>
+          <div class="setup-assistant__notice">
+            <ShieldCheck :size="19" />
+            <p>
+              {{
+                phone.t(
+                  phone.security.enabled
+                    ? 'FaceId.pinFallback'
+                    : 'FaceId.requiresPin',
+                )
+              }}
+            </p>
+          </div>
+          <SkyButton
+            class="setup-assistant__primary"
+            @click="
+              phone.security.faceIdEnabled
+                ? continueSetup()
+                : beginFaceIdSetup()
+            "
+          >
+            {{
+              phone.t(
+                phone.security.faceIdEnabled
+                  ? 'Common.continue'
+                  : phone.security.enabled
+                    ? 'FaceId.enable'
+                    : 'Setup.security.create',
+              )
+            }}
+          </SkyButton>
+          <button
+            type="button"
+            class="setup-assistant__later"
+            @click="continueSetup"
+          >
+            {{ phone.t('Setup.setUpLater') }}
+          </button>
+        </template>
+
         <template v-else-if="step === 3">
           <div class="setup-assistant__icon setup-assistant__icon--security">
             <LockKeyhole :size="43" />
@@ -575,7 +679,7 @@ function skipSetupForDevelopment(): void {
           <button
             type="button"
             class="setup-assistant__later"
-            @click="continueSetup"
+            @click="showFaceIdSetup = true"
           >
             {{ phone.t('Setup.setUpLater') }}
           </button>
@@ -767,6 +871,7 @@ function skipSetupForDevelopment(): void {
               :class="{
                 selected: selectedApps.includes(app.id as BuiltinPhoneAppId),
               }"
+              :disabled="setupCompleteBusy"
               @click="toggleApp(app.id as BuiltinPhoneAppId)"
             >
               <img :src="app.iconImage" alt="" />
@@ -783,11 +888,29 @@ function skipSetupForDevelopment(): void {
               /></i>
             </button>
           </div>
-          <SkyButton class="setup-assistant__primary" @click="continueSetup">{{
-            phone.t('Setup.apps.install', {
-              count: String(selectedApps.length),
-            })
-          }}</SkyButton>
+          <SkyButton
+            class="setup-assistant__primary"
+            :disabled="setupCompleteBusy"
+            @click="continueSetup"
+          >
+            <SkySpinner
+              v-if="setupCompleteBusy"
+              :label="phone.t('Setup.ready.saving')"
+              :size="18"
+            />
+            <span v-else>{{
+              phone.t('Setup.apps.install', {
+                count: String(selectedApps.length),
+              })
+            }}</span>
+          </SkyButton>
+          <p
+            v-if="setupCompleteError"
+            class="setup-assistant__error"
+            role="alert"
+          >
+            {{ setupCompleteError }}
+          </p>
         </template>
 
         <template v-else>
@@ -859,22 +982,27 @@ function skipSetupForDevelopment(): void {
 
     <PhonePasscode
       v-if="passcodeStage"
+      :busy="passcodeBusy"
       :length="passcodeLength"
       :reset-key="passcodeResetKey"
       :error="passcodeError"
       :title="
         phone.t(
-          passcodeStage === 'create'
-            ? 'Setup.security.enter'
-            : 'Setup.security.confirm',
+          passcodeStage === 'face-id'
+            ? 'Apps.settings.passcode.enterCurrent'
+            : passcodeStage === 'create'
+              ? 'Setup.security.enter'
+              : 'Setup.security.confirm',
         )
       "
       :subtitle="
-        phone.t(
-          passcodeLength === 4
-            ? 'Setup.security.fourDigitHint'
-            : 'Setup.security.sixDigitHint',
-        )
+        passcodeStage === 'face-id'
+          ? phone.t('FaceId.pinFallback')
+          : phone.t(
+              passcodeLength === 4
+                ? 'Setup.security.fourDigitHint'
+                : 'Setup.security.sixDigitHint',
+            )
       "
       @cancel="passcodeStage = null"
       @complete="submitPasscode"

@@ -10,6 +10,7 @@ const {
 } = require('./index.cjs')
 
 const browserDataRequests = [
+  ['admin:webhooks', {}],
   ['development:bootstrap', {}],
   ['account:devices', {}],
   ['banking:overview', {}],
@@ -208,6 +209,7 @@ function verifyBrowserTestData(dataByEndpoint) {
   expectItems(cityWarn.active, 'active CityWarn alerts', 2)
   expectItems(cityWarn.archive, 'CityWarn alert history')
   assert.equal(cityWarn.context.canPublish, true)
+  assert.deepEqual(cityWarn.mapBlip, { radiusEnabled: true, radius: 100 })
   assert.deepEqual(
     cityWarn.active.map((alert) => alert.title),
     ['Police operation in Mission Row', 'Water supply disruption'],
@@ -1260,6 +1262,83 @@ async function verifySkyPicActions(baseUrl) {
 async function verifyStatefulActions(baseUrl) {
   await verifySkyPicActions(baseUrl)
 
+  assert.equal(
+    (
+      await post(baseUrl, 'security:set-face-id', {
+        enabled: true,
+        passcode: '1234',
+      })
+    ).error,
+    'passcode_not_set',
+  )
+  await expectSuccess(baseUrl, 'security:set-passcode', { passcode: '1234' })
+  assert.equal(
+    (
+      await post(baseUrl, 'security:set-face-id', {
+        enabled: true,
+        passcode: '0000',
+      })
+    ).error,
+    'invalid_passcode',
+  )
+  const faceId = await expectSuccess(
+    baseUrl,
+    'security:set-face-id',
+    { enabled: true, passcode: '1234' },
+    true,
+  )
+  assert.equal(faceId.security.faceIdEnabled, true)
+  for (const endpoint of ['security:face-id-unlock', 'security:set-face-id']) {
+    assert.equal(
+      (
+        await post(baseUrl, endpoint, {
+          _testScenario: 'face-id-masked',
+          enabled: true,
+          passcode: '1234',
+        })
+      ).error,
+      'face_id_masked',
+    )
+  }
+  await expectSuccess(baseUrl, 'security:unlock', {
+    _testScenario: 'face-id-masked',
+    passcode: '1234',
+  })
+  await expectSuccess(baseUrl, 'security:face-id-unlock')
+  assert.equal(
+    (
+      await post(baseUrl, 'security:face-id-unlock', {
+        _testScenario: 'face-id-other-character',
+        ownerIdentifier: 'phone-owner',
+      })
+    ).error,
+    'face_id_not_recognized',
+  )
+  await expectSuccess(baseUrl, 'security:change-passcode', {
+    currentPasscode: '1234',
+    newPasscode: '123456',
+  })
+  await expectSuccess(baseUrl, 'security:face-id-unlock')
+  await expectSuccess(baseUrl, 'security:set-face-id', {
+    enabled: false,
+    passcode: '123456',
+    _testScenario: 'face-id-masked',
+  })
+  assert.equal(
+    (await post(baseUrl, 'security:face-id-unlock')).error,
+    'face_id_not_enabled',
+  )
+  await expectSuccess(baseUrl, 'security:set-face-id', {
+    enabled: true,
+    passcode: '123456',
+  })
+  await expectSuccess(baseUrl, 'security:disable-passcode', {
+    passcode: '123456',
+  })
+  assert.equal(
+    (await post(baseUrl, 'security:face-id-unlock')).error,
+    'face_id_not_enabled',
+  )
   const cryptoBeforeTransfer = await expectSuccess(
     baseUrl,
     'crypto:bootstrap',
@@ -1293,6 +1372,35 @@ async function verifyStatefulActions(baseUrl) {
     cryptoAfterTransfer.activity[0].counterpartyKey,
     'VX-DEAD-BEEF-C0DE-2026',
   )
+
+  const dispatchDuty = await expectSuccess(
+    baseUrl,
+    'companies:set-call-availability',
+    { available: true, dispatcher: true },
+    true,
+  )
+  assert.equal(dispatchDuty.context.callAvailable, true)
+  assert.equal(dispatchDuty.context.callDispatcher, true)
+  const regularDuty = await expectSuccess(
+    baseUrl,
+    'companies:set-call-availability',
+    { available: true, dispatcher: false },
+    true,
+  )
+  assert.equal(regularDuty.context.callAvailable, true)
+  assert.equal(regularDuty.context.callDispatcher, false)
+  await expectSuccess(baseUrl, 'companies:set-call-availability', {
+    available: true,
+    dispatcher: true,
+  })
+  const offDuty = await expectSuccess(
+    baseUrl,
+    'companies:set-call-availability',
+    { available: false },
+    true,
+  )
+  assert.equal(offDuty.context.callAvailable, false)
+  assert.equal(offDuty.context.callDispatcher, false)
 
   const companyCall = await expectSuccess(
     baseUrl,
@@ -2141,6 +2249,41 @@ async function main() {
       )
     }
     verifyBrowserTestData(dataByEndpoint)
+    const webhookSettings = dataByEndpoint.get('admin:webhooks')
+    assert(
+      webhookSettings.endpoints.some(
+        (row) => row.path === 'Actions.skypic:send-snap',
+      ),
+    )
+    const webhookSaved = await expectSuccess(
+      baseUrl,
+      'admin:save-webhooks',
+      {
+        revision: webhookSettings.revision,
+        changes: [
+          {
+            path: 'Calls',
+            mode: 'custom',
+            url: 'https://discord.com/api/webhooks/123/SMOKE_TEST_ONLY',
+          },
+          { path: 'AvatarUrl', value: 'https://example.invalid/avatar.png' },
+        ],
+      },
+      true,
+    )
+    assert.equal(
+      webhookSaved.settings.AvatarUrl,
+      'https://example.invalid/avatar.png',
+    )
+    assert(
+      webhookSaved.endpoints.find((row) => row.path === 'Calls').configured,
+    )
+    assert(!JSON.stringify(webhookSaved).includes('SMOKE_TEST_ONLY'))
+    const webhookConflict = await post(baseUrl, 'admin:save-webhooks', {
+      revision: webhookSettings.revision,
+      changes: [{ path: 'Calls', mode: 'disabled' }],
+    })
+    assert.equal(webhookConflict.error, 'revision_conflict')
 
     await verifyStatefulActions(baseUrl)
 
@@ -2158,6 +2301,7 @@ async function main() {
       'notification:focus',
       'sim:picker-close',
       'ui:input-focus',
+      'ui:live-activity',
       'ui:opened',
       'ui:ready',
     ]
@@ -2177,6 +2321,18 @@ async function main() {
       false,
       'factory reset did not restore a browser-testable setup state',
     )
+
+    const loggedRequests = []
+    const originalConsoleLog = console.log
+    try {
+      console.log = (...values) => loggedRequests.push(values)
+      await post(baseUrl, '%25s', { marker: 'format-string' })
+    } finally {
+      console.log = originalConsoleLog
+    }
+    assert.deepEqual(loggedRequests, [
+      ['[NUI]', '%s', { marker: 'format-string' }],
+    ])
 
     const unknown = await post(baseUrl, 'development:missing-mock', {})
     assert.deepEqual(unknown, {

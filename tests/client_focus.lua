@@ -1,6 +1,72 @@
 local disabled_controls = {}
 local all_controls_disabled = {}
 local firing_disabled = false
+local event_handlers = {}
+local nui_callbacks = {}
+local nui_focus = nil
+local nui_keep_input = nil
+local pressed_controls = {}
+local disabled_pressed_controls = {}
+local triggered_events = {}
+local control_threads = {}
+local radio_controls = { 81, 82, 83, 84, 85, 332, 333 }
+local driving_controls = { 59, 60, 63, 64, 71, 72, 76 }
+
+local function assert_phone_radio_controls_blocked()
+    for _, control in ipairs(radio_controls) do
+        assert(disabled_controls[control], ("phone scrolling must block radio control %d"):format(control))
+    end
+    for _, control in ipairs(driving_controls) do
+        assert(not disabled_controls[control], ("phone scrolling must preserve driving control %d"):format(control))
+    end
+end
+
+Config = {
+    Phone = {
+        AllowMovement = true,
+        HoldToLook = { Enabled = true, Control = 19 },
+    },
+}
+Bridge = { Debug = function() end }
+
+function CreateThread(callback)
+    assert(type(callback) == "function", "focus runtime must register its control thread")
+    control_threads[#control_threads + 1] = coroutine.create(callback)
+end
+
+function Wait(delay)
+    return coroutine.yield(delay)
+end
+
+function AddEventHandler(event_name, callback)
+    event_handlers[event_name] = callback
+end
+
+function RegisterNUICallback(callback_name, callback)
+    nui_callbacks[callback_name] = callback
+end
+
+function SetNuiFocus(focused, cursor)
+    nui_focus = { focused = focused, cursor = cursor }
+end
+
+function SetNuiFocusKeepInput(keep_input)
+    nui_keep_input = keep_input
+end
+
+function TriggerEvent(name, data)
+    triggered_events[#triggered_events + 1] = { name = name, data = data }
+end
+
+function IsControlPressed(group, control)
+    assert(group == 0, "HoldToLook must read the primary input group")
+    return pressed_controls[control] == true
+end
+
+function IsDisabledControlPressed(group, control)
+    assert(group == 0, "HoldToLook must read disabled controls from the primary input group")
+    return disabled_pressed_controls[control] == true
+end
 
 function DisableControlAction(group, control, disabled)
     assert(group == 0 and disabled, "phone controls must be disabled in the primary input group")
@@ -21,6 +87,26 @@ function DisablePlayerFiring(player, disabled)
 end
 
 dofile("sky_phone/source/client/focus.lua")
+assert(#control_threads == 0, "closed phone focus must not start an idle polling thread")
+
+assert(not SkyPhoneFocus.IsHoldToLookPressed(), "HoldToLook must be idle until its configured control is held")
+pressed_controls[19] = true
+assert(SkyPhoneFocus.IsHoldToLookPressed(), "HoldToLook must read its configured active control")
+pressed_controls[19] = false
+Config.Phone.HoldToLook.Control = 38
+event_handlers["sky_phone:configurator:updated"]()
+disabled_pressed_controls[38] = true
+assert(
+    SkyPhoneFocus.IsHoldToLookPressed(),
+    "HoldToLook must read its configured control while NUI focus has disabled GTA input"
+)
+disabled_pressed_controls[38] = false
+Config.Phone.HoldToLook.Enabled = false
+event_handlers["sky_phone:configurator:updated"]()
+assert(not SkyPhoneFocus.IsHoldToLookPressed(), "disabled HoldToLook must reject every control state")
+Config.Phone.HoldToLook.Enabled = true
+Config.Phone.HoldToLook.Control = 19
+event_handlers["sky_phone:configurator:updated"]()
 
 local function resolve(overrides)
     local state = {
@@ -29,7 +115,10 @@ local function resolve(overrides)
         call_focus = false,
         camera_active = false,
         camera_nui_focused = true,
+        cursor_disabled = false,
+        external_game_input = nil,
         is_open = false,
+        look_passthrough = false,
         notification_focus = false,
         payphone_focus = false,
         sim_picker_open = false,
@@ -84,10 +173,92 @@ local typing_phone = resolve({
 assert(
     typing_phone.cursor
         and typing_phone.focused
-        and typing_phone.keep_input
-        and typing_phone.game_input
+        and not typing_phone.keep_input
+        and not typing_phone.game_input
         and typing_phone.block_game,
-    "a focused phone text input must block GTA controls without hiding the NUI cursor"
+    "a focused phone text input must stop game-input passthrough and retain the NUI cursor"
+)
+
+local external_movement_phone = resolve({
+    external_game_input = true,
+    is_open = true,
+})
+assert(
+    external_movement_phone.cursor
+        and external_movement_phone.focused
+        and external_movement_phone.keep_input
+        and external_movement_phone.game_input
+        and not external_movement_phone.block_game,
+    "an external input claim must preserve movement while the app cursor is active"
+)
+
+local external_movement_typing_phone = resolve({
+    external_game_input = true,
+    is_open = true,
+    text_input_focused = true,
+})
+assert(
+    external_movement_typing_phone.cursor
+        and external_movement_typing_phone.focused
+        and not external_movement_typing_phone.keep_input
+        and not external_movement_typing_phone.game_input
+        and external_movement_typing_phone.block_game,
+    "a focused text input must override an external movement claim"
+)
+
+local external_typing_phone = resolve({
+    allow_movement = true,
+    external_game_input = false,
+    is_open = true,
+})
+assert(
+    external_typing_phone.cursor
+        and external_typing_phone.focused
+        and not external_typing_phone.keep_input
+        and not external_typing_phone.game_input
+        and external_typing_phone.block_game,
+    "an external typing claim must block GTA input"
+)
+
+local movable_cursor_disabled_phone = resolve({
+    allow_movement = true,
+    cursor_disabled = true,
+    is_open = true,
+})
+assert(
+    not movable_cursor_disabled_phone.cursor
+        and movable_cursor_disabled_phone.focused
+        and movable_cursor_disabled_phone.keep_input
+        and movable_cursor_disabled_phone.game_input
+        and not movable_cursor_disabled_phone.block_game
+        and not movable_cursor_disabled_phone.block_look,
+    "LB noFocus must preserve movement and camera look without retaining the NUI cursor"
+)
+
+local movable_look_passthrough_phone = resolve({
+    allow_movement = true,
+    is_open = true,
+    look_passthrough = true,
+})
+assert(
+    not movable_look_passthrough_phone.cursor
+        and movable_look_passthrough_phone.focused
+        and movable_look_passthrough_phone.keep_input
+        and movable_look_passthrough_phone.game_input
+        and not movable_look_passthrough_phone.block_game
+        and not movable_look_passthrough_phone.block_look,
+    "HoldToLook must temporarily release the NUI cursor without disabling configured movement"
+)
+
+local stationary_cursor_disabled_phone = resolve({
+    cursor_disabled = true,
+    is_open = true,
+})
+assert(
+    not stationary_cursor_disabled_phone.cursor
+        and stationary_cursor_disabled_phone.focused
+        and not stationary_cursor_disabled_phone.keep_input,
+    "LB noFocus must hide the cursor even when phone movement is disabled"
 )
 
 SkyPhoneFocus.ApplyFocusedControls()
@@ -99,7 +270,8 @@ assert(firing_disabled, "focused phone cursor must block attacks while typing")
 all_controls_disabled = {}
 firing_disabled = false
 SkyPhoneFocus.ApplyGameInputControls(true)
-for _, control in ipairs({ 24, 140, 141, 142, 257, 263, 264 }) do
+assert_phone_radio_controls_blocked()
+for _, control in ipairs({ 24, 140, 141, 142, 199, 200, 257, 263, 264 }) do
     assert(disabled_controls[control], ("phone control %d must remain disabled"):format(control))
 end
 assert(not disabled_controls[19], "Alt must remain available while no phone text input is focused")
@@ -113,7 +285,13 @@ assert(firing_disabled, "player attacks must remain disabled while the phone is 
 disabled_controls = {}
 firing_disabled = false
 SkyPhoneFocus.ApplyGameInputControls(false)
+for _, control in ipairs(radio_controls) do
+    assert(not disabled_controls[control], ("cursor-free passthrough must preserve radio control %d"):format(control))
+end
 assert(not disabled_controls[1] and not disabled_controls[2], "camera passthrough must preserve camera look")
+for _, control in ipairs({ 30, 31, 32, 33, 34, 35 }) do
+    assert(not disabled_controls[control], ("camera passthrough must preserve movement control %d"):format(control))
+end
 assert(firing_disabled, "player attacks must remain disabled during camera passthrough")
 
 local movable_notification = resolve({ allow_movement = true, notification_focus = true })
@@ -145,10 +323,27 @@ local focused_camera = resolve({
 assert(
     focused_camera.cursor
         and focused_camera.focused
-        and not focused_camera.keep_input
+        and focused_camera.keep_input
         and not focused_camera.game_input,
-    "focused camera must override movement configuration until Space enables passthrough"
+    "focused camera must forward readable input while blocking game actions until passthrough is held"
 )
+
+event_handlers["sky_phone:client:setCameraFocus"]({ active = true, nuiFocused = true })
+local focused_camera_event = triggered_events[#triggered_events]
+assert(
+    nui_focus.focused and nui_focus.cursor and nui_keep_input
+        and focused_camera_event.name == "sky_phone:client:cameraFocusApplied"
+        and not focused_camera_event.data.gameInput,
+    "focused camera must keep controls readable without reporting movement passthrough"
+)
+event_handlers["sky_phone:client:setCameraFocus"]({ active = true, nuiFocused = false })
+local passthrough_camera_event = triggered_events[#triggered_events]
+assert(
+    nui_focus.focused and not nui_focus.cursor and nui_keep_input
+        and passthrough_camera_event.data.gameInput,
+    "camera passthrough must apply keyboard focus without a cursor and keep GTA input enabled"
+)
+event_handlers["sky_phone:client:setCameraFocus"]({ active = false, nuiFocused = true })
 
 local camera_interrupted_by_call = resolve({
     call_focus = true,
@@ -181,5 +376,110 @@ assert(payphone_closed_behind_phone.focused, "releasing payphone focus must not 
 
 local suspended = resolve({ activity_suspended = true, call_focus = true, is_open = true })
 assert(not suspended.focused and not suspended.keep_input, "suspended activities must mask every focus claim")
+
+SkyPhoneFocus.SetPhone(true, true)
+assert(
+    nui_focus.focused and not nui_focus.cursor and nui_keep_input,
+    "runtime phone focus must preserve the no-focus opening contract"
+)
+
+SkyPhoneFocus.SetPhone(false)
+SkyPhoneFocus.SetPhone(true)
+assert(nui_focus.cursor, "closing the phone must clear the previous no-focus claim")
+SkyPhoneFocus.SetTextInputFocused(true)
+assert(not nui_keep_input, "runtime text focus must stop game-input passthrough")
+SkyPhoneFocus.SetTextInputFocused(false)
+assert(nui_keep_input, "leaving a text input must restore configured phone movement")
+
+local external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", true)
+assert(external_success and external_error == nil and nui_keep_input, "external movement claim must apply")
+external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", false)
+assert(external_success and external_error == nil and not nui_keep_input, "external typing claim must apply")
+event_handlers["onClientResourceStop"]("custom_app")
+assert(nui_keep_input, "resource stop must restore configured phone movement")
+
+SkyPhoneFocus.SetPhone(false)
+external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", true)
+assert(not external_success and external_error == "phone_closed", "closed phones must reject external focus claims")
+
+local notification_result
+SkyPhoneFocus.SetPhone(false)
+nui_callbacks["notification:focus"]({ active = true }, function(result)
+    notification_result = result
+end)
+assert(notification_result.success and nui_focus.focused, "notification focus must be applied through the focus owner")
+
+SkyPhoneFocus.BeginNuiHydration()
+SkyPhoneFocus.Reapply()
+assert(not nui_focus.focused, "CEF hydration must discard browser-owned notification focus")
+
+SkyPhoneFocus.Reset()
+assert(not nui_focus.focused and not nui_focus.cursor and not nui_keep_input, "focus reset must release NUI input")
+
+local function frame()
+    local active = 0
+    for _, thread in ipairs(control_threads) do
+        if coroutine.status(thread) ~= "dead" then
+            local ok, delay = coroutine.resume(thread)
+            assert(ok, delay)
+            if coroutine.status(thread) ~= "dead" then
+                assert(delay == 0, "active input filtering must still run on every frame")
+                active = active + 1
+            end
+        end
+    end
+    return active
+end
+
+assert(frame() == 0, "reset must terminate pending focus workers")
+SkyPhoneFocus.SetPhone(true)
+SkyPhoneFocus.Reapply()
+assert(frame() == 1, "opening and repeated focus claims must share one control worker")
+disabled_controls = {}
+assert(frame() == 1 and disabled_controls[24], "attacks must remain blocked on every active frame")
+assert_phone_radio_controls_blocked()
+disabled_controls = {}
+assert(frame() == 1, "phone scrolling must keep one input worker")
+assert_phone_radio_controls_blocked()
+pressed_controls[19] = true
+disabled_controls = {}
+frame()
+assert(not nui_focus.cursor, "HoldToLook must release the cursor immediately")
+for _, control in ipairs(radio_controls) do
+    assert(not disabled_controls[control], ("HoldToLook must release radio control %d with the cursor"):format(control))
+end
+local event_count = #triggered_events
+frame()
+assert(#triggered_events == event_count, "holding the same key must not reapply unchanged phone focus")
+pressed_controls[19] = false
+disabled_controls = {}
+frame()
+assert(nui_focus.cursor, "releasing HoldToLook must restore the cursor")
+assert_phone_radio_controls_blocked()
+
+event_handlers["sky_phone:client:setCameraFocus"]({ active = true, nuiFocused = false })
+pressed_controls[19] = true
+event_count = #triggered_events
+for _ = 1, 5 do frame() end
+assert(#triggered_events == event_count, "camera passthrough must not reapply phone focus every frame")
+assert(nui_focus.focused and not nui_focus.cursor and nui_keep_input, "camera focus must remain owned by the camera")
+pressed_controls[19] = false
+event_handlers["sky_phone:client:setCameraFocus"]({ active = false, nuiFocused = true })
+
+SkyPhoneFocus.SetPhone(false)
+SkyPhoneFocus.SetPhone(true)
+assert(frame() == 1, "closing and reopening before the next frame must not duplicate control workers")
+SkyPhoneFocus.SetPhone(false)
+disabled_controls = {}
+assert(frame() == 0, "closing the phone must terminate its control worker")
+assert(next(disabled_controls) == nil, "closing the phone must release radio and driving controls")
+SkyPhoneFocus.SetCall(true)
+assert(frame() == 1, "incoming call focus must wake control filtering from idle")
+SkyPhoneFocus.SetCall(false)
+assert(frame() == 0, "releasing the last focus claim must return to zero workers")
+SkyPhoneFocus.SetAdminPanel(true)
+assert(frame() == 1, "the configurator must also start input filtering from idle")
+SkyPhoneFocus.Reset()
+assert(frame() == 0, "resource cleanup must stop active input filtering")
 
 print("Client focus tests passed")

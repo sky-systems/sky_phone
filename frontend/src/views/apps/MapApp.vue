@@ -46,6 +46,7 @@ import { usePhoneStore } from '@/stores/phone'
 import type { MapMarker, MapMarkerColor } from '@/types/map'
 import { handleEnterAction } from '@/utils/keyboard'
 import { nuiCall, type NuiResponse } from '@/utils/nui'
+import { readPhoneViewportGeometry } from '@/utils/phoneViewportGeometry'
 
 type MapStyle = 'default' | 'satellite' | 'atlas' | 'roads'
 
@@ -267,8 +268,15 @@ function cancelMarkerPlacement(): void {
 
 function openMarkerEditor(): void {
   const viewportElement = viewportRef.value
-  const viewport = viewportElement?.getBoundingClientRect()
-  const canvas = canvasRef.value?.getBoundingClientRect()
+  const canvasElement = canvasRef.value
+  const geometry = readPhoneViewportGeometry(viewportElement)
+  const viewport = viewportElement
+    ? (geometry?.rect(viewportElement) ??
+      viewportElement.getBoundingClientRect())
+    : null
+  const canvas = canvasElement
+    ? (geometry?.rect(canvasElement) ?? canvasElement.getBoundingClientRect())
+    : null
   if (
     !viewportElement ||
     !viewport ||
@@ -398,8 +406,11 @@ function normalizeViewport(
 
 function viewportPoint(point: MapPoint): MapPoint | null {
   const viewport = viewportRef.value
-  const bounds = viewport?.getBoundingClientRect()
-  if (!viewport || !bounds || bounds.width <= 0 || bounds.height <= 0) {
+  if (!viewport) return null
+  const bounds =
+    readPhoneViewportGeometry(viewport)?.rect(viewport) ??
+    viewport.getBoundingClientRect()
+  if (bounds.width <= 0 || bounds.height <= 0) {
     return null
   }
 
@@ -457,8 +468,11 @@ function onPointerMove(event: PointerEvent): void {
   pointerMoveFrame = requestAnimationFrame(() => {
     pointerMoveFrame = undefined
     const viewportElement = viewportRef.value
-    const viewport = viewportElement?.getBoundingClientRect()
-    if (!viewportElement || !viewport) return
+    if (!viewportElement) return
+    const viewport =
+      readPhoneViewportGeometry(viewportElement)?.rect(viewportElement) ??
+      viewportElement.getBoundingClientRect()
+    if (viewport.width <= 0 || viewport.height <= 0) return
     const renderedScaleX = viewport.width / viewportElement.clientWidth
     const renderedScaleY = viewport.height / viewportElement.clientHeight
     const metrics = viewportMetrics()
@@ -667,7 +681,7 @@ onBeforeUnmount(() => {
         component="button"
         type="button"
         class="map-control map-control--share"
-        variant="primary"
+        variant="glass"
         :aria-label="phone.t('Apps.easyShare.name')"
         @click="shareCurrentLocation"
       >
@@ -679,7 +693,7 @@ onBeforeUnmount(() => {
         component="button"
         type="button"
         class="map-control"
-        variant="neutral"
+        variant="glass"
         :aria-label="`${phone.t('Apps.map.switchStyle')}: ${phone.t(`Apps.map.styles.${mapStyle}`)}`"
         @click="cycleMapStyle"
       >
@@ -691,7 +705,7 @@ onBeforeUnmount(() => {
         component="button"
         type="button"
         class="map-control map-control--marker"
-        variant="neutral"
+        variant="glass"
         :disabled="placingMarker"
         :aria-label="phone.t('Apps.map.addMarker')"
         @click="startMarkerPlacement"
@@ -704,7 +718,7 @@ onBeforeUnmount(() => {
         component="button"
         type="button"
         class="map-control map-control--location"
-        variant="neutral"
+        variant="glass"
         :disabled="locating"
         :aria-label="phone.t('Apps.map.currentLocation')"
         @click="loadCurrentLocation(true)"
@@ -1015,14 +1029,16 @@ onBeforeUnmount(() => {
 }
 
 .map-control {
-  --sky-glass-solid: rgb(247 247 248 / 92%);
+  --sky-glass: rgb(247 247 248 / 72%);
+  --sky-hairline: rgb(0 0 0 / 16%);
   color: #151515;
 }
 .map-control--share {
-  color: #fff;
+  color: #007aff;
 }
 .sky-app-page--dark .map-control {
-  --sky-glass-solid: rgb(44 44 46 / 88%);
+  --sky-glass: rgb(44 44 46 / 62%);
+  --sky-hairline: rgb(255 255 255 / 16%);
   color: #fff;
 }
 

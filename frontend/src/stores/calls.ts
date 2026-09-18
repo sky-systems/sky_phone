@@ -1,17 +1,22 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { onScopeDispose, ref, watch } from 'vue'
 
 import { usePhoneStore } from '@/stores/phone'
 import type { PhoneCall, PhoneContact, RecentCall } from '@/types/phone'
 import { nuiCall, type NuiResponse } from '@/utils/nui'
-import type { RingtoneId } from '@/utils/preferences'
+import { findCustomPhoneTone, playCustomPhoneTone } from '@/utils/customTones'
 import {
+  isBuiltInRingtoneId,
+  type BuiltInRingtoneId,
+} from '@/utils/preferences'
+import {
+  playPhoneMediaTone,
   playPhoneTone,
   playPhoneVibration,
   type PhoneToneId,
 } from '@/utils/tones'
 
-const RINGTONE_TONES: Record<RingtoneId, PhoneToneId> = {
+const RINGTONE_TONES: Record<BuiltInRingtoneId, PhoneToneId> = {
   horizon: 'aurora',
   pulse: 'signal',
   skyline: 'apex',
@@ -22,7 +27,80 @@ export const useCallsStore = defineStore('calls', () => {
   const activeCall = ref<PhoneCall | null>(null)
   const contacts = ref<PhoneContact[]>([])
   const recents = ref<RecentCall[]>([])
-  let stopRingtone: (() => void) | null = null
+  let lastEndedCallId: string | undefined
+  let stopEndTone: (() => void) | undefined
+
+  function stopCallEndTone(): void {
+    stopEndTone?.()
+    stopEndTone = undefined
+  }
+
+  onScopeDispose(stopCallEndTone)
+
+  function playSelectedRingtone(volume: number): () => void {
+    const selected = phone.preferences.settings.ringtone
+    const customTone = findCustomPhoneTone(
+      phone.customTones.ringtones,
+      selected,
+    )
+    if (customTone) return playCustomPhoneTone(customTone, volume, true)
+
+    return playPhoneTone(
+      isBuiltInRingtoneId(selected) ? RINGTONE_TONES[selected] : 'apex',
+      volume,
+      true,
+    )
+  }
+
+  watch(
+    [
+      () => activeCall.value?.id,
+      () => activeCall.value?.direction,
+      () => activeCall.value?.state,
+    ],
+    ([id, direction, state], [previousId, , previousState], onCleanup) => {
+      if (state !== 'ringing' && state !== 'connected') {
+        const endedId =
+          id ??
+          (previousState === 'ringing' || previousState === 'connected'
+            ? previousId
+            : undefined)
+        if (endedId && endedId !== lastEndedCallId) {
+          lastEndedCallId = endedId
+          stopCallEndTone()
+          // Keep the one-shot tone alive when a terminal state is cleared.
+          stopEndTone = playPhoneMediaTone(
+            `${import.meta.env.BASE_URL}sounds/endcall.mp3`,
+            100,
+            false,
+          )
+        }
+        return
+      }
+      stopCallEndTone()
+      if (state === 'connected') return
+      if (direction === 'outgoing') {
+        onCleanup(
+          playPhoneMediaTone(
+            `${import.meta.env.BASE_URL}sounds/calling.mp3`,
+            100,
+            true,
+          ),
+        )
+        return
+      }
+      const alertsMuted =
+        phone.preferences.settings.notificationVolume === 0 &&
+        phone.preferences.settings.ringtoneVolume === 0
+      onCleanup(
+        alertsMuted
+          ? playPhoneVibration('call', true)
+          : playSelectedRingtone(phone.preferences.settings.ringtoneVolume),
+      )
+    },
+    // Stop ringing before playing the end tone, including local hangup.
+    { flush: 'sync' },
+  )
 
   async function bootstrap(): Promise<void> {
     await Promise.all([loadContacts(), loadRecents()])
@@ -59,6 +137,8 @@ export const useCallsStore = defineStore('calls', () => {
   }
 
   async function dial(phoneNumber: string): Promise<NuiResponse<PhoneCall>> {
+    if (!phoneNumber) return { success: false, error: 'invalid_number' }
+    await phone.flushDevicePersistence()
     const response = await nuiCall<PhoneCall>('calls:dial', { phoneNumber })
     if (response.success && response.data) applyCallState(response.data)
     return response
@@ -164,21 +244,7 @@ export const useCallsStore = defineStore('calls', () => {
   }
 
   function applyCallState(call: PhoneCall): void {
-    stopRingtone?.()
-    stopRingtone = null
     activeCall.value = call
-    if (call.direction === 'incoming' && call.state === 'ringing') {
-      const alertsMuted =
-        phone.preferences.settings.notificationVolume === 0 &&
-        phone.preferences.settings.ringtoneVolume === 0
-      stopRingtone = alertsMuted
-        ? playPhoneVibration('call', true)
-        : playPhoneTone(
-            RINGTONE_TONES[phone.preferences.settings.ringtone],
-            phone.preferences.settings.ringtoneVolume,
-            true,
-          )
-    }
     if (!['ringing', 'connected'].includes(call.state)) {
       window.setTimeout(() => {
         if (activeCall.value?.id === call.id) activeCall.value = null

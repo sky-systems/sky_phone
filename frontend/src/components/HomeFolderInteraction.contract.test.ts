@@ -26,6 +26,10 @@ const mainCss = readFileSync(
   new URL('../assets/main.css', import.meta.url),
   'utf8',
 )
+const openedFolderAppBlocks =
+  overlaySource.match(/<AppIcon\b[\s\S]*?\/>/g) ?? []
+const homeFolderIconBlocks =
+  springboardSource.match(/<HomeFolderIcon\b[\s\S]*?\/>/g) ?? []
 
 describe('Home folder interaction contract', () => {
   it('opens folders from edit mode and starts dragging only after movement', () => {
@@ -36,7 +40,7 @@ describe('Home folder interaction contract', () => {
     expect(iconSource).not.toContain('props.editMode || suppressClick.value')
   })
 
-  it('keeps folder app dragging aligned at every phone scale', () => {
+  it('keeps whole-folder dragging aligned at every phone scale', () => {
     expect(dragSource).toContain("'.springboard-page, .home-folder-panel'")
     expect(dragSource).toContain('viewportWidth: bounds.width')
     expect(dragSource).not.toContain("getPropertyValue('zoom')")
@@ -45,6 +49,60 @@ describe('Home folder interaction contract', () => {
     expect(springboardSource).not.toContain(
       '(event.currentTarget as HTMLElement | null)?.closest',
     )
+  })
+
+  it('routes whole folders from both the grid and dock through the shared drag portal', () => {
+    expect(homeFolderIconBlocks).toHaveLength(2)
+    for (const area of ['grid', 'dock'] as const) {
+      const block = homeFolderIconBlocks.find((candidate) =>
+        candidate.includes(`data-home-area="${area}"`),
+      )
+
+      expect(block).toBeDefined()
+      expect(block).toContain(':external-drag-visual="homeDragVisualActive"')
+      expect(block).toContain('@dragcancel="stopHomeDrag"')
+      expect(block).toContain('@dragend="finishHomeDrag"')
+      expect(block).toContain('@dragmove="moveHomeDrag"')
+      expect(block).toContain(`@dragstart="startHomeDrag('${area}',`)
+    }
+  })
+
+  it('uses the external viewport visual for apps dragged from an opened folder', () => {
+    expect(openedFolderAppBlocks).toHaveLength(1)
+    expect(overlaySource).toMatch(/externalDragVisual\??:\s*boolean/)
+    expect(openedFolderAppBlocks[0]).toContain(
+      ':external-drag-visual="externalDragVisual"',
+    )
+    expect(appIconSource).toContain('externalDragVisual?: boolean')
+    expect(appIconSource).toContain('app-icon-item--drag-source')
+  })
+
+  it('forwards opened-folder pointer start, move, and cancellation to the parent session', () => {
+    expect(overlaySource).toMatch(
+      /function startFolderAppDrag\(index: number, event: PointerEvent\)/,
+    )
+    expect(overlaySource).toContain("emit('dragstart', index, event)")
+    expect(overlaySource).toContain("emit('dragmove', event)")
+    expect(overlaySource).toContain("emit('dragcancel')")
+    expect(openedFolderAppBlocks[0]).toContain(
+      '@dragstart="startFolderAppDrag(entry.index, $event)"',
+    )
+    expect(openedFolderAppBlocks[0]).toContain('@dragmove="moveFolderAppDrag"')
+    expect(openedFolderAppBlocks[0]).toContain(
+      '@dragcancel="stopFolderAppDrag"',
+    )
+  })
+
+  it('hit-tests the opened folder panel and app targets in normalized viewport coordinates', () => {
+    expect(overlaySource).toContain('readPhoneViewportGeometry')
+    expect(overlaySource).toContain('phoneViewportRectContainsPoint')
+    expect(overlaySource).toContain('folderDragViewportRect(panel)')
+    expect(overlaySource).toContain('folderDragViewportRect(element)')
+    expect(overlaySource).toMatch(/geometry\?\.rect\(element\)/)
+    expect(overlaySource).not.toContain(
+      'panelElement.value?.getBoundingClientRect()',
+    )
+    expect(overlaySource).not.toContain('document.elementsFromPoint')
   })
 
   it('edits the folder name inline with Sky UI controls', () => {
@@ -63,8 +121,9 @@ describe('Home folder interaction contract', () => {
     expect(springboardSource).toContain(
       '@drag-outside-change="folderDraggingOutside = $event"',
     )
+    expect(overlaySource).toContain('if (draggingIndex.value === null) return')
     expect(overlaySource).toContain(
-      'if (draggingIndex.value === null || draggingOutside.value) return',
+      'if (!draggingOutside.value && !isPointerInsidePanel(event))',
     )
     expect(overlaySource).toContain(
       'draggingOutside.value || !isPointerInsidePanel(event)',

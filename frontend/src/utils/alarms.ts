@@ -29,7 +29,7 @@ export type AlarmDraft = Pick<Alarm, 'note' | 'sound' | 'time' | 'weekdays'>
 
 export const DEFAULT_ALARMS: Alarm[] = [
   {
-    enabled: true,
+    enabled: false,
     id: 'weekday',
     lastTriggeredMinute: null,
     note: '',

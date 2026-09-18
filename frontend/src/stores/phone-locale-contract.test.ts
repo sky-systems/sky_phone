@@ -3,126 +3,36 @@ import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
-
-type LuaToken = {
-  kind: string
-  value: string
-}
+import { collectLuaLocaleValues } from '../testing/lua-locale'
 
 const frontendSourceDirectory = fileURLToPath(new URL('../', import.meta.url))
-const englishLocaleSource = readFileSync(
-  new URL('../../../sky_phone/config/locales/en.lua', import.meta.url),
-  'utf8',
+const localeDirectory = fileURLToPath(
+  new URL('../../../sky_phone/config/locales/', import.meta.url),
 )
-const germanLocaleSource = readFileSync(
-  new URL('../../../sky_phone/config/locales/de.lua', import.meta.url),
-  'utf8',
+const localeSources = new Map(
+  readdirSync(localeDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.lua'))
+    .map((entry) => [
+      entry.name.replace(/\.lua$/, ''),
+      readFileSync(join(localeDirectory, entry.name), 'utf8'),
+    ]),
 )
+const englishLocaleSource = localeSources.get('en')
+const germanLocaleSource = localeSources.get('de')
+if (!englishLocaleSource || !germanLocaleSource) {
+  throw new Error('The bundled English and German phone locales are required.')
+}
 const phoneStoreSource = readFileSync(
   new URL('./phone.ts', import.meta.url),
   'utf8',
 )
 
-function tokenizeLua(source: string): LuaToken[] {
-  const tokens: LuaToken[] = []
-  let index = 0
-  while (index < source.length) {
-    const character = source[index]
-    if (/\s/.test(character)) {
-      index += 1
-      continue
-    }
-    if (source.startsWith('--', index)) {
-      const nextLine = source.indexOf('\n', index)
-      if (nextLine < 0) break
-      index = nextLine
-      continue
-    }
-    if ('{}[]=,;'.includes(character)) {
-      tokens.push({ kind: character, value: character })
-      index += 1
-      continue
-    }
-    if (character === '"' || character === "'") {
-      const quote = character
-      let value = ''
-      index += 1
-      while (index < source.length && source[index] !== quote) {
-        if (source[index] === '\\' && index + 1 < source.length) {
-          value += source[index + 1]
-          index += 2
-        } else {
-          value += source[index]
-          index += 1
-        }
-      }
-      tokens.push({ kind: 'string', value })
-      index += 1
-      continue
-    }
-    const match = source
-      .slice(index)
-      .match(/^[A-Za-z_][A-Za-z0-9_]*|^-?\d+(?:\.\d+)?/)
-    if (match) {
-      tokens.push({ kind: 'word', value: match[0] })
-      index += match[0].length
-      continue
-    }
-    index += 1
-  }
-  return tokens
-}
-
-function collectLuaLocaleValues(source: string): Map<string, string> {
-  const tokens = tokenizeLua(source)
-  let position =
-    tokens.findIndex(
-      (token, index) => token.kind === '=' && tokens[index + 1]?.kind === '{',
-    ) + 1
-  const values = new Map<string, string>()
-
-  function parseValue(path: string[]): void {
-    if (tokens[position]?.kind === '{') {
-      parseTable(path)
-      return
-    }
-    if (path.length) values.set(path.join('.'), tokens[position]?.value ?? '')
-    position += 1
-  }
-
-  function parseTable(path: string[]): void {
-    position += 1
-    while (position < tokens.length && tokens[position].kind !== '}') {
-      let key: string | null = null
-      if (
-        tokens[position].kind === 'word' &&
-        tokens[position + 1]?.kind === '='
-      ) {
-        key = tokens[position].value
-        position += 2
-      } else if (
-        tokens[position].kind === '[' &&
-        tokens[position + 1]?.kind === 'string' &&
-        tokens[position + 2]?.kind === ']' &&
-        tokens[position + 3]?.kind === '='
-      ) {
-        key = tokens[position + 1].value
-        position += 4
-      }
-      parseValue(key === null ? [] : [...path, key])
-      while (tokens[position]?.kind === ',' || tokens[position]?.kind === ';') {
-        position += 1
-      }
-    }
-    position += 1
-  }
-
-  parseTable([])
-  return values
-}
-
 function collectPlaceholders(value: string): string[] {
-  return [...new Set(value.match(/\{[A-Za-z0-9_]+\}/g) ?? [])].sort()
+  return (value.match(/\{[A-Za-z0-9_]+\}/g) ?? []).sort()
+}
+
+function collectNumberTokens(value: string): string[] {
+  return value.match(/\d+/g) ?? []
 }
 
 function collectDefaultLocalePaths(source: string): Set<string> {
@@ -200,9 +110,56 @@ function collectFrontendFiles(directory: string): string[] {
 }
 
 describe('phone locale contract', () => {
-  const englishValues = collectLuaLocaleValues(englishLocaleSource)
-  const germanValues = collectLuaLocaleValues(germanLocaleSource)
+  const localeValues = new Map(
+    [...localeSources].map(([locale, source]) => [
+      locale,
+      collectLuaLocaleValues(source),
+    ]),
+  )
+  const englishValues = localeValues.get('en')!
+  const germanValues = localeValues.get('de')!
+  const translatedLocaleValues = [...localeValues].filter(
+    ([locale]) => locale !== 'en',
+  )
   const englishPaths = new Set(englishValues.keys())
+
+  it('bundles all fifteen supported languages', () => {
+    expect([...localeSources.keys()].sort()).toEqual([
+      'ar',
+      'cn',
+      'cz',
+      'de',
+      'en',
+      'es',
+      'fi',
+      'fr',
+      'it',
+      'nl',
+      'pl',
+      'pt',
+      'rs',
+      'ru',
+      'se',
+    ])
+  })
+
+  it.each([...localeSources])(
+    'registers the %s locale under its file name',
+    (locale, source) => {
+      expect(source.match(/^Locales\["([^"]+)"\]/)?.[1]).toBe(locale)
+    },
+  )
+
+  it('exposes vehicle key labels and help under the Phonepanel configurator', () => {
+    for (const values of localeValues.values()) {
+      expect(
+        values.has('Nui.AdminPanel.configurator.vehicleKeySystemLabel'),
+      ).toBe(true)
+      expect(
+        values.get('Nui.AdminPanel.configurator.descriptions.vehicleKeySystem'),
+      ).toContain('auto')
+    }
+  })
 
   it('keeps every bundled frontend fallback in en.lua', () => {
     const missing = [...collectDefaultLocalePaths(phoneStoreSource)].filter(
@@ -248,26 +205,100 @@ describe('phone locale contract', () => {
     }
   })
 
-  it('keeps German structurally aligned with English', () => {
-    const germanPaths = new Set(germanValues.keys())
+  it.each(translatedLocaleValues)(
+    'keeps %s structurally aligned with English',
+    (_locale, values) => {
+      expect([...values.keys()].sort()).toEqual([...englishPaths].sort())
+    },
+  )
 
-    expect([...germanPaths].sort()).toEqual([...englishPaths].sort())
-  })
+  it.each(translatedLocaleValues)(
+    'keeps %s interpolation placeholders aligned with English',
+    (_locale, values) => {
+      const mismatches = [...englishValues].flatMap(([path, englishValue]) => {
+        const translatedValue = values.get(path)
+        return translatedValue !== undefined &&
+          JSON.stringify(collectPlaceholders(translatedValue)) !==
+            JSON.stringify(collectPlaceholders(englishValue))
+          ? [
+              `${path}: ${collectPlaceholders(englishValue).join(', ')} != ${collectPlaceholders(translatedValue).join(', ')}`,
+            ]
+          : []
+      })
 
-  it('keeps German interpolation placeholders aligned with English', () => {
-    const mismatches = [...englishValues].flatMap(([path, englishValue]) => {
-      const germanValue = germanValues.get(path)
-      return germanValue !== undefined &&
-        JSON.stringify(collectPlaceholders(germanValue)) !==
-          JSON.stringify(collectPlaceholders(englishValue))
-        ? [
-            `${path}: ${collectPlaceholders(englishValue).join(', ')} != ${collectPlaceholders(germanValue).join(', ')}`,
-          ]
-        : []
-    })
+      expect(mismatches).toEqual([])
+    },
+  )
 
-    expect(mismatches).toEqual([])
-  })
+  it.each(translatedLocaleValues)(
+    'keeps %s numeric source values intact',
+    (_locale, values) => {
+      const mismatches = [...englishValues].flatMap(([path, englishValue]) => {
+        const expected = collectNumberTokens(englishValue)
+        if (!expected.length) return []
+
+        const remaining = collectNumberTokens(values.get(path) ?? '')
+        for (const token of expected) {
+          const index = remaining.indexOf(token)
+          if (index >= 0) remaining.splice(index, 1)
+          else return [`${path}: missing numeric token ${token}`]
+        }
+        return []
+      })
+
+      expect(mismatches).toEqual([])
+    },
+  )
+
+  it.each([...localeValues])(
+    'explains CityWarn permissions in %s without corrupting codes or text',
+    (locale, values) => {
+      const prefix = 'Nui.AdminPanel.configurator.'
+      for (const key of [
+        'citywarnPublishers',
+        'citywarnPublisher',
+        'citywarnPublisherMinimumGrade',
+        'citywarnPublisherMaximumSeverity',
+        'citywarnPublisherCityWide',
+        'citywarnPublisherCategories',
+      ]) {
+        const text = values.get(`${prefix}descriptions.${key}`)
+        expect(text, `${locale}: ${key}`).toBeTruthy()
+        expect(text).not.toMatch(/\uFFFD|Ã.|Â.|â€|Ð.|Ñ./)
+        if (locale !== 'en')
+          expect(text).not.toBe(
+            englishValues.get(`${prefix}descriptions.${key}`),
+          )
+      }
+      for (const key of [
+        'MinimumGrade',
+        'MaximumSeverity',
+        'CityWide',
+        'Categories',
+      ]) {
+        expect(
+          values.get(`${prefix}citywarnPublisherLabels.${key}`),
+        ).toBeTruthy()
+      }
+      for (const code of ['information', 'warning', 'danger', 'extreme']) {
+        expect(
+          values.get(`${prefix}descriptions.citywarnPublisherMaximumSeverity`),
+        ).toContain(code)
+      }
+      for (const code of [
+        'public_safety',
+        'police',
+        'fire',
+        'medical',
+        'infrastructure',
+        'evacuation',
+      ]) {
+        expect(
+          values.get(`${prefix}descriptions.citywarnPublisherCategories`),
+        ).toContain(code)
+      }
+    },
+  )
 
   it('keeps standard app names German and custom game names unchanged', () => {
     const standardAppNames = {

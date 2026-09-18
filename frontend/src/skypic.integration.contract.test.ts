@@ -8,7 +8,11 @@ const read = (path: string) =>
 const app = read('./App.vue')
 const appAuth = read('./stores/app-auth.ts')
 const appIcon = read('./components/AppIcon.vue')
-const client = read('../../sky_phone/source/client/main.lua')
+const client = read('../../sky_phone/source/client/nui_server_bridge.lua')
+const clientNotifications = read(
+  '../../sky_phone/source/client/notifications.lua',
+)
+const clientEvents = read('../../sky_phone/source/client/nui_events.lua')
 const easyShare = read('../../sky_phone/source/server/easyshare.lua')
 const manifest = read('../../sky_phone/fxmanifest.lua')
 const mockServer = read('../testserver/index.cjs')
@@ -61,10 +65,13 @@ function typeBlock(name: string): string {
 
 describe('SkyPic cross-runtime integration contract', () => {
   it('bridges every canonical callback through client, server, and browser mock', () => {
+    const bridgedCallbacks = client
+      .match(/skypic\s*=\s*\[\[([\s\S]*?)\]\]/)?.[1]
+      .trim()
+      .split(/\s+/)
+      .map((endpoint) => `skypic:${endpoint}`)
+    expect(bridgedCallbacks).toEqual(callbacks)
     for (const callback of callbacks) {
-      expect(client, `missing client callback ${callback}`).toContain(
-        `"${callback}"`,
-      )
       expect(server, `missing server callback ${callback}`).toContain(
         `"sky_phone:${callback}"`,
       )
@@ -84,21 +91,18 @@ describe('SkyPic cross-runtime integration contract', () => {
   })
 
   it('routes localized device-aware notifications and refreshes live state', () => {
-    expect(client).toContain(
+    expect(clientNotifications).toContain(
       'RegisterNetEvent("sky_phone:skypic:new", function(data)',
     )
-    expect(client).toContain('locale.Nui.Apps.skypic')
-    expect(client).toContain(
+    expect(clientNotifications).toContain('app_locales.skypic')
+    expect(clientNotifications).toContain(
       'notification_text:gsub("{actor}", tostring(data.actor or ""))',
     )
-    expect(client).toContain(
+    expect(clientNotifications).toContain(
       'SendNUIMessage({ type = "skypic:new", data = data })',
     )
-    expect(client).toContain(
-      'RegisterNetEvent("sky_phone:skypic:changed", function(data)',
-    )
-    expect(client).toContain(
-      'SendNUIMessage({ type = "skypic:changed", data = data })',
+    expect(clientEvents).toContain(
+      '["sky_phone:skypic:changed"] = "skypic:changed"',
     )
     expect(server).toContain(
       'notify_profile(friendship.peer_id, profile, story_id and "story_reply" or "message", nil)',

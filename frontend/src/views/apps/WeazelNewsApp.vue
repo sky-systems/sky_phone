@@ -1193,7 +1193,7 @@ onBeforeUnmount(() => {
             <sky-button
               icon-only
               rounded
-              tonal
+              glass
               class="weazel-detail-gallery-control is-previous"
               :aria-label="t('accessibility.previousPhoto')"
               @click="showPreviousDetailImage"
@@ -1203,7 +1203,7 @@ onBeforeUnmount(() => {
             <sky-button
               icon-only
               rounded
-              tonal
+              glass
               class="weazel-detail-gallery-control is-next"
               :aria-label="t('accessibility.nextPhoto')"
               @click="showNextDetailImage"
@@ -2112,7 +2112,6 @@ onBeforeUnmount(() => {
   min-width: var(--sky-touch-target) !important;
   min-height: var(--sky-touch-target) !important;
   transform: translateY(-50%);
-  background: rgb(0 0 0 / 58%) !important;
   color: #fff !important;
 }
 

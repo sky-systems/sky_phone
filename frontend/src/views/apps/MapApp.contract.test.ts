@@ -15,6 +15,17 @@ describe('MapApp interaction contract', () => {
     expect(source).not.toContain('<EasyShareSheet')
   })
 
+  it('uses translucent liquid glass for every floating map control', () => {
+    const controlsStart = source.indexOf('class="map-controls"')
+    const controlsEnd = source.indexOf('</nav>', controlsStart)
+    const controls = source.slice(controlsStart, controlsEnd)
+
+    expect(controls.match(/variant="glass"/g)).toHaveLength(4)
+    expect(controls).not.toContain('variant="neutral"')
+    expect(controls).not.toContain('variant="primary"')
+    expect(source).toContain('--sky-glass: rgb(247 247 248 / 72%);')
+  })
+
   it('keeps zoom and panning inside scale-aware map bounds', () => {
     expect(source).toContain('minimumCoverZoom(metrics, baseMinZoom)')
     expect(source).toContain('clampMapPan(nextPan, nextZoom, metrics)')

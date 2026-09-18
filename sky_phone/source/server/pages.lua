@@ -1,8 +1,23 @@
 Bridge.Database.AfterMigration("sky_phone", function()
 local categories = {}
 local districts = {}
-for _, value in ipairs(Config.LocalPages.Categories) do categories[value] = true end
-for _, value in ipairs(Config.Marketplace.Districts) do districts[value] = true end
+
+local function refresh_runtime_configuration()
+    categories = {}
+    districts = {}
+    for _, value in ipairs(Config.LocalPages.Categories) do
+        categories[value] = true
+    end
+    for _, value in ipairs(Config.Marketplace.Districts) do
+        districts[value] = true
+    end
+end
+
+refresh_runtime_configuration()
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    refresh_runtime_configuration()
+end)
 
 local function trim(value)
     if type(value) ~= "string" then return nil end

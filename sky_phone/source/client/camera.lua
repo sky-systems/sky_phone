@@ -1,3 +1,5 @@
+SkyPhoneCamera = {}
+
 local minimum_zoom = 0.5
 local maximum_zoom = 3.0
 local mouse_wheel_zoom_step = 0.08
@@ -7,9 +9,12 @@ local front_camera_fov = 32.0
 local front_camera_distance = 1.05
 local front_camera_height = 0.05
 local front_camera_target_height = 0.03
+local front_camera_horizontal_limit = 75.0
+local front_camera_vertical_limit = 35.0
+local front_camera_rotate_speed = 5.0
 local blocked_camera_controls = {
     0, -- INPUT_NEXT_CAMERA
-    22, -- INPUT_JUMP
+    22, -- INPUT_JUMP (Space is handled by the focused NUI)
     24, -- INPUT_ATTACK
     25, -- INPUT_AIM
     37, -- INPUT_SELECT_WEAPON
@@ -43,14 +48,19 @@ local camera_state = {
     focus_watcher = false,
     front_camera = false,
     front_camera_handle = nil,
+    front_camera_pitch = 0.0,
+    front_camera_yaw = 0.0,
     game_input = false,
     landscape = false,
     locked = false,
+    nui_look_held = false,
+    applied_looking = false,
     applied_nui_focus = true,
     nui_focused = true,
     previous_ped_view = nil,
     previous_radar_hidden = nil,
     previous_vehicle_view = nil,
+    walkable = false,
     zoom = 1.0,
 }
 
@@ -86,18 +96,37 @@ end
 local function get_front_camera_transform(ped)
     local head_position = GetPedBoneCoords(ped, 31086, 0.0, 0.0, 0.0)
     local forward = GetEntityForwardVector(ped)
-    local forward_vector = vector3(forward.x, forward.y, forward.z)
-    local camera_offset = forward_vector * front_camera_distance
-    local camera_position = head_position + camera_offset + vector3(0.0, 0.0, front_camera_height)
-    local to_camera = camera_position - head_position
-    local dot = (to_camera.x * forward_vector.x)
-        + (to_camera.y * forward_vector.y)
-        + (to_camera.z * forward_vector.z)
-    if dot < 0.0 then
-        camera_position = head_position - camera_offset + vector3(0.0, 0.0, front_camera_height)
-    end
+    local yaw = math.rad(camera_state.front_camera_yaw)
+    local pitch = math.rad(camera_state.front_camera_pitch)
+    local orbit_direction = vector3(
+        (forward.x * math.cos(yaw)) - (forward.y * math.sin(yaw)),
+        (forward.x * math.sin(yaw)) + (forward.y * math.cos(yaw)),
+        0.0
+    )
+    local camera_position = head_position
+        + (orbit_direction * (math.cos(pitch) * front_camera_distance))
+        + vector3(0.0, 0.0, front_camera_height + (math.sin(pitch) * front_camera_distance))
     local target_position = head_position + vector3(0.0, 0.0, front_camera_target_height)
     return camera_position, target_position
+end
+
+local function update_front_camera_orbit()
+    local horizontal_input = GetDisabledControlNormal(0, 1)
+    local vertical_input = GetDisabledControlNormal(0, 2)
+    camera_state.front_camera_yaw = math.max(
+        -front_camera_horizontal_limit,
+        math.min(
+            front_camera_horizontal_limit,
+            camera_state.front_camera_yaw - (horizontal_input * front_camera_rotate_speed)
+        )
+    )
+    camera_state.front_camera_pitch = math.max(
+        -front_camera_vertical_limit,
+        math.min(
+            front_camera_vertical_limit,
+            camera_state.front_camera_pitch - (vertical_input * front_camera_rotate_speed)
+        )
+    )
 end
 
 local function apply_front_camera(ped)
@@ -187,6 +216,17 @@ local function set_camera_zoom(zoom)
     return true
 end
 
+local function update_camera_input_focus()
+    if not camera_state.active or camera_state.walkable then
+        return
+    end
+    local look_held = camera_state.nui_look_held or SkyPhoneFocus.IsHoldToLookPressed()
+    local should_focus = camera_state.locked or not look_held
+    if camera_state.nui_focused ~= should_focus then
+        set_camera_focus(should_focus)
+    end
+end
+
 local function watch_camera_controls()
     if camera_state.focus_watcher then
         return
@@ -195,7 +235,11 @@ local function watch_camera_controls()
     CreateThread(function()
         while camera_state.active do
             apply_camera_controls()
+            update_camera_input_focus()
             if camera_state.game_input then
+                if camera_state.front_camera and not camera_state.locked then
+                    update_front_camera_orbit()
+                end
                 if
                     IsDisabledControlJustPressed(0, 241)
                     or IsDisabledControlJustPressed(0, 261)
@@ -210,9 +254,6 @@ local function watch_camera_controls()
                     set_camera_zoom(
                         math.max(minimum_zoom, camera_state.zoom - mouse_wheel_zoom_step)
                     )
-                end
-                if IsDisabledControlJustReleased(0, 22) then
-                    set_camera_focus(true)
                 end
             end
             Wait(0)
@@ -236,11 +277,13 @@ AddEventHandler("sky_phone:client:cameraFocusApplied", function(data)
         return
     end
     camera_state.game_input = data.gameInput
-    if camera_state.applied_nui_focus ~= data.focused then
+    local looking = data.active and data.gameInput and not data.cursor
+    if camera_state.applied_nui_focus ~= data.focused or camera_state.applied_looking ~= looking then
         camera_state.applied_nui_focus = data.focused
-        SendNUIMessage({ type = "camera:focus", data = { focused = data.focused } })
+        camera_state.applied_looking = looking
+        SendNUIMessage({ type = "camera:focus", data = { focused = data.focused, looking = looking } })
     end
-    if data.active and data.gameInput then
+    if data.active then
         watch_camera_controls()
     end
 end)
@@ -250,10 +293,14 @@ local function set_camera_active(active)
         return
     end
     camera_state.active = active
+    TriggerEvent("sky_phone:client:cameraActiveChanged", active)
     if active then
         camera_state.front_camera = false
+        camera_state.front_camera_pitch = 0.0
+        camera_state.front_camera_yaw = 0.0
         camera_state.landscape = false
         camera_state.locked = false
+        camera_state.nui_look_held = false
         camera_state.zoom = 1.0
         clear_front_camera()
         camera_state.previous_ped_view = GetFollowPedCamViewMode()
@@ -286,9 +333,13 @@ local function set_camera_active(active)
     end
     set_flash_enabled(false)
     camera_state.front_camera = false
+    camera_state.front_camera_pitch = 0.0
+    camera_state.front_camera_yaw = 0.0
     camera_state.game_input = false
     camera_state.landscape = false
     camera_state.locked = false
+    camera_state.nui_look_held = false
+    camera_state.walkable = false
     clear_front_camera()
     restore_camera_view()
     camera_state.nui_focused = true
@@ -309,6 +360,8 @@ local function set_front_camera(active)
         return
     end
     if active then
+        camera_state.front_camera_pitch = 0.0
+        camera_state.front_camera_yaw = 0.0
         apply_front_camera(PlayerPedId())
     else
         clear_front_camera()
@@ -335,22 +388,63 @@ local function set_camera_landscape(active)
     end
 end
 
+local function enable_walkable_camera(selfie_mode)
+    set_camera_active(true)
+    camera_state.walkable = true
+    set_front_camera(selfie_mode == true)
+    set_camera_focus(false)
+end
+
+local function disable_walkable_camera()
+    if not camera_state.walkable then
+        return
+    end
+
+    set_camera_active(false)
+end
+
+local function toggle_camera_frozen()
+    camera_state.locked = not camera_state.locked
+    update_camera_input_focus()
+end
+
+local function get_camera_state()
+    return {
+        active = camera_state.active,
+        flashEnabled = camera_state.flash_enabled,
+        frozen = camera_state.locked,
+        selfie = camera_state.front_camera,
+        walkable = camera_state.walkable and camera_state.active,
+    }
+end
+
+SkyPhoneCamera.DisableWalkable = disable_walkable_camera
+SkyPhoneCamera.EnableWalkable = enable_walkable_camera
+SkyPhoneCamera.GetState = get_camera_state
+SkyPhoneCamera.SetFlashlight = set_flash_enabled
+SkyPhoneCamera.SetSelfie = set_front_camera
+SkyPhoneCamera.ToggleFrozen = toggle_camera_frozen
+
 RegisterNUICallback("camera:setActive", function(data, cb)
     if type(data) ~= "table" then
         cb({ success = false, error = "invalid_request" })
         return
+    end
+    if data.active == true then
+        camera_state.walkable = false
     end
     set_camera_active(data.active == true)
     cb({ success = true })
 end)
 
 RegisterNUICallback("camera:setFocus", function(data, cb)
-    if type(data) ~= "table" then
+    if type(data) ~= "table" or type(data.focused) ~= "boolean" then
         cb({ success = false, error = "invalid_request" })
         return
     end
-    if camera_state.active then
-        set_camera_focus(data.focused == true)
+    if camera_state.active and not camera_state.walkable then
+        camera_state.nui_look_held = not data.focused
+        update_camera_input_focus()
     end
     cb({ success = true })
 end)
@@ -361,6 +455,7 @@ RegisterNUICallback("camera:setLocked", function(data, cb)
         return
     end
     camera_state.locked = data.locked == true
+    update_camera_input_focus()
     cb({ success = true })
 end)
 
@@ -404,6 +499,13 @@ RegisterNUICallback("media:requestUpload", function(data, cb)
         cb({ success = false, error = "invalid_request" })
         return
     end
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] NUI requested an upload (correlation=%s, type=%s).",
+        tostring(data.correlationId),
+        tostring(data.mediaType),
+        { notice = true }
+    )
     TriggerServerEvent("sky_phone:media:request-upload", data)
     cb({ success = true })
 end)
@@ -413,6 +515,15 @@ RegisterNUICallback("media:completeUpload", function(data, cb)
         cb({ success = false, error = "invalid_request" })
         return
     end
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] NUI completed the provider upload (correlation=%s, remote-id=%s, url=%s, original-url=%s).",
+        tostring(data.correlationId),
+        type(data.remoteId) == "string" and "present" or "missing",
+        type(data.url) == "string" and "present" or "missing",
+        type(data.originalUrl) == "string" and "present" or "missing",
+        { notice = true }
+    )
     TriggerServerEvent("sky_phone:media:complete-upload", data)
     cb({ success = true })
 end)
@@ -431,6 +542,16 @@ RegisterNUICallback("media:failUpload", function(data, cb)
         cb({ success = false, error = "invalid_request" })
         return
     end
+    local debug_message = tostring(data.debugMessage or "unknown"):gsub("[\r\n]", " "):sub(1, 240)
+    Bridge.Debug(
+        "error",
+        "[sky_phone][media-debug] NUI reported an upload failure (correlation=%s, error=%s, stage=%s, status=%s, detail=%s).",
+        tostring(data.correlationId),
+        tostring(data.error),
+        tostring(data.debugStage),
+        tostring(data.debugStatus),
+        debug_message
+    )
     TriggerServerEvent("sky_phone:media:fail-upload", data)
     cb({ success = true })
 end)
@@ -490,10 +611,26 @@ RegisterNUICallback("memos:failUpload", function(data, cb)
 end)
 
 RegisterNetEvent("sky_phone:media:upload-ready", function(data)
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Client received upload-ready (correlation=%s, type=%s, presigned-url=%s).",
+        tostring(type(data) == "table" and data.correlationId),
+        tostring(type(data) == "table" and data.mediaType),
+        type(data) == "table" and type(data.presignedUrl) == "string" and "present" or "missing",
+        { notice = true }
+    )
     SendNUIMessage({ type = "media:uploadReady", data = data })
 end)
 
 RegisterNetEvent("sky_phone:media:upload-result", function(data)
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Client received upload-result (correlation=%s, success=%s, error=%s).",
+        tostring(type(data) == "table" and data.correlationId),
+        tostring(type(data) == "table" and data.success),
+        tostring(type(data) == "table" and data.error),
+        { notice = true }
+    )
     SendNUIMessage({ type = "media:uploadResult", data = data })
 end)
 

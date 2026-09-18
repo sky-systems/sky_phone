@@ -1,5 +1,12 @@
+Bridge.Callbacks.RegisterDeferred("sky_phone:crewlink:world")
+Bridge.Callbacks.RegisterDeferred("sky_phone:crewlink:quick-ping")
+
 Bridge.Database.AfterMigration("sky_phone", function()
 local password_pepper = tostring(Config.Server.CrewLinkPasswordPepper or "")
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    password_pepper = tostring(Config.Server.CrewLinkPasswordPepper or "")
+end)
+
 local role_levels = {
     guest = 1,
     member = 2,
@@ -32,6 +39,8 @@ local live_sources_cache = {
     expires_at = 0,
     sources = {},
 }
+local last_ping_at = {}
+local pending_pings = {}
 
 if password_pepper == "" then
     Bridge.Debug(
@@ -46,6 +55,10 @@ local function affected_rows(result)
         return result
     end
     return type(result) == "table" and tonumber(result.affectedRows) or 0
+end
+
+local function database_boolean(value)
+    return value == true or tonumber(value) == 1
 end
 
 local function trim(value)
@@ -94,16 +107,12 @@ local function profile_dto(row)
         avatarMediaId = row.avatar_media_id and tonumber(row.avatar_media_id) or nil,
         avatarUrl = row.avatar_url,
         activeGroupId = row.active_group_id,
-        mapVisible = tonumber(row.map_visible) == 1,
-        overheadVisible = tonumber(row.overhead_visible) == 1,
+        mapVisible = database_boolean(row.map_visible),
+        overheadVisible = database_boolean(row.overhead_visible),
     }
 end
 
-local function profile_for_session(source)
-    local session, error_response = SkyPhone.RequireSession(source)
-    if not session then
-        return nil, error_response
-    end
+local function profile_for_device(imei)
     local rows = Bridge.Database.Query([[
         SELECT p.`id`, p.`account_id`, p.`username`, p.`avatar_media_id`, p.`active_group_id`,
             p.`map_visible`, p.`overhead_visible`, avatar.`url` AS `avatar_url`
@@ -112,12 +121,35 @@ local function profile_for_session(source)
         LEFT JOIN `sky_phone_media` avatar ON avatar.`id` = p.`avatar_media_id`
         WHERE crew_session.`device_imei` = ?
         LIMIT 1
-    ]], { session.imei })
+    ]], { imei })
     if not rows[1] then
         return nil, { success = false, error = "not_authenticated" }
     end
     rows[1].account_id = tonumber(rows[1].account_id)
     return rows[1]
+end
+
+local function profile_for_session(source)
+    local session, error_response = SkyPhone.RequireSession(source)
+    if not session then return nil, error_response end
+    return profile_for_device(session.imei)
+end
+
+-- Inventory ownership and the persisted CrewLink login remain authoritative
+-- when the NUI device session has been closed.
+local function background_profile(source)
+    if not SkyPhone.IsAppEnabled("crewlink") then
+        return nil, { success = false, error = "disabled" }
+    end
+    local device = SkyPhoneDeviceDirectory.GetOnlineBySource(source)
+    if not device or not device.accountId then
+        return nil, { success = false, error = "not_authenticated" }
+    end
+    local profile, error_response = profile_for_device(device.imei)
+    if profile and profile.account_id ~= device.accountId then
+        return nil, { success = false, error = "not_authenticated" }
+    end
+    return profile, error_response
 end
 
 local function require_profile(source)
@@ -158,8 +190,8 @@ local function member_dtos(group_id)
     ]], { group_id })
     for _, row in ipairs(rows) do
         row.account_id = tonumber(row.account_id)
-        row.mapVisible = tonumber(row.map_visible) == 1
-        row.overheadVisible = tonumber(row.overhead_visible) == 1
+        row.mapVisible = database_boolean(row.map_visible)
+        row.overheadVisible = database_boolean(row.overhead_visible)
         row.avatarUrl = row.avatar_url
         row.map_visible = nil
         row.overhead_visible = nil
@@ -178,8 +210,8 @@ local function group_dto(row, profile_id)
         colour = row.colour,
         role = role,
         inviteCode = role_levels[role] >= role_levels.coordinator and row.invite_code or nil,
-        allowMemberPings = tonumber(row.allow_member_pings) == 1,
-        overheadAllowed = tonumber(row.overhead_allowed) == 1,
+        allowMemberPings = database_boolean(row.allow_member_pings),
+        overheadAllowed = database_boolean(row.overhead_allowed),
         memberCount = tonumber(row.member_count) or group_count(row.id or row.group_id),
         isOwner = row.owner_profile_id == profile_id,
     }
@@ -272,9 +304,9 @@ local function live_sources_by_account()
     local live = {}
     for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
         local source = tonumber(player_source) or player_source
-        local account = SkyPhone.RequireAccount(source)
-        if account and not live[account.id] then
-            live[account.id] = source
+        local profile = background_profile(source)
+        if profile and not live[profile.account_id] then
+            live[profile.account_id] = { source = source, profileId = profile.id, groupId = profile.active_group_id }
         end
     end
     live_sources_cache.expires_at = now + 1
@@ -282,17 +314,24 @@ local function live_sources_by_account()
     return live
 end
 
-local function live_group(group_id)
+local function live_group(group_id, viewer_source)
     local members = member_dtos(group_id)
     local live_sources = live_sources_by_account()
     for _, member in ipairs(members) do
-        local source = live_sources[member.account_id]
+        local presence = live_sources[member.account_id]
+        local source = presence and presence.profileId == member.id and presence.groupId == group_id
+            and presence.source or nil
+        if source and viewer_source and GetPlayerRoutingBucket(source) ~= GetPlayerRoutingBucket(viewer_source) then
+            source = nil
+        end
         member.online = source ~= nil
         member.source = source
         if source and member.mapVisible then
             local ped = GetPlayerPed(source)
-            local coords = GetEntityCoords(ped)
-            member.coords = { x = coords.x, y = coords.y, z = coords.z }
+            if ped ~= 0 then
+                local coords = GetEntityCoords(ped)
+                member.coords = { x = coords.x, y = coords.y, z = coords.z }
+            end
         end
         member.account_id = nil
     end
@@ -332,19 +371,20 @@ local function notify_group(group_id, kind, actor, extra)
 end
 
 local function refresh_group(group_id)
+    live_sources_cache.expires_at = 0
     for _, account_id in ipairs(group_account_ids(group_id)) do
         SkyPhone.NotifyAccount(account_id, "sky_phone:crewlink:changed", { groupId = group_id })
     end
 end
 
-local function bootstrap(profile)
+local function bootstrap(profile, source)
     local groups = list_groups(profile)
     local active_group = nil
     if profile.active_group_id then
         local active_membership = membership(profile.id, profile.active_group_id)
         if active_membership then
             active_group = group_dto(active_membership, profile.id)
-            active_group.members = live_group(profile.active_group_id)
+            active_group.members = live_group(profile.active_group_id, source)
             active_group.pings = active_pings(profile.active_group_id)
         end
     end
@@ -430,7 +470,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:bootstrap", function(source)
             data = { authenticated = false, profile = nil, groups = {}, invitations = {} },
         }
     end
-    local data = bootstrap(profile)
+    local data = bootstrap(profile, source)
     data.authenticated = true
     return { success = true, data = data }
 end)
@@ -512,7 +552,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:register", function(source, data)
         return { success = false, error = "request_failed" }
     end
     local profile = require_profile(source)
-    local response = bootstrap(profile)
+    local response = bootstrap(profile, source)
     response.authenticated = true
     return { success = true, data = response }
 end)
@@ -544,7 +584,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:login", function(source, data)
             `updated_at` = CURRENT_TIMESTAMP
     ]], { account.imei, profiles[1].id })
     local profile = require_profile(source)
-    local response = bootstrap(profile)
+    local response = bootstrap(profile, source)
     response.authenticated = true
     return { success = true, data = response }
 end)
@@ -600,7 +640,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:update-profile", function(source, 
         refresh_group(profile.active_group_id)
     end
     local updated = require_profile(source)
-    return { success = true, data = bootstrap(updated) }
+    return { success = true, data = bootstrap(updated, source) }
 end)
 
 Bridge.Callbacks.Register("sky_phone:crewlink:create-group", function(source, data)
@@ -644,7 +684,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:create-group", function(source, da
     TriggerEvent("sky_phone:crewlink:memberJoined", group_id, profile.id)
     TriggerEvent("sky_phone:crewlink:activeChanged", profile.id, group_id)
     local updated = require_profile(source)
-    return { success = true, data = bootstrap(updated) }
+    return { success = true, data = bootstrap(updated, source) }
 end)
 
 Bridge.Callbacks.Register("sky_phone:crewlink:update-group", function(source, data)
@@ -724,7 +764,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:set-active", function(source, data
     )
     TriggerEvent("sky_phone:crewlink:activeChanged", profile.id, data.groupId)
     local updated = require_profile(source)
-    return { success = true, data = bootstrap(updated) }
+    return { success = true, data = bootstrap(updated, source) }
 end)
 
 Bridge.Callbacks.Register("sky_phone:crewlink:join-code", function(source, data)
@@ -774,7 +814,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:join-code", function(source, data)
     refresh_group(group.id)
     TriggerEvent("sky_phone:crewlink:memberJoined", group.id, profile.id)
     local updated = require_profile(source)
-    return { success = true, data = bootstrap(updated) }
+    return { success = true, data = bootstrap(updated, source) }
 end)
 
 Bridge.Callbacks.Register("sky_phone:crewlink:rotate-code", function(source, data)
@@ -958,7 +998,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:respond-invite", function(source, 
     refresh_group(invitation.group_id)
     TriggerEvent("sky_phone:crewlink:memberJoined", invitation.group_id, profile.id)
     local updated = require_profile(source)
-    return { success = true, data = bootstrap(updated) }
+    return { success = true, data = bootstrap(updated, source) }
 end)
 
 Bridge.Callbacks.Register("sky_phone:crewlink:update-member", function(source, data)
@@ -1103,7 +1143,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:leave", function(source, data)
     TriggerEvent("sky_phone:crewlink:memberLeft", data.groupId, profile.id)
     refresh_group(data.groupId)
     local updated = require_profile(source)
-    return { success = true, data = bootstrap(updated) }
+    return { success = true, data = bootstrap(updated, source) }
 end)
 
 local function create_ping(group_id, creator_profile_id, source_resource, data)
@@ -1157,32 +1197,46 @@ local function create_ping(group_id, creator_profile_id, source_resource, data)
     return ping
 end
 
-Bridge.Callbacks.Register("sky_phone:crewlink:create-ping", function(source, data)
+local function send_ping(source, data, background)
     if not allow(source, "ping") then
         return { success = false, error = "rate_limited" }
     end
-    local profile, error_response = require_profile(source)
+    local profile, error_response = (background and background_profile or require_profile)(source)
     if not profile then
         return error_response
     end
     local group_id = profile.active_group_id
     local member = group_id and membership(profile.id, group_id) or nil
-    if not member or (role_levels[member.role] < role_levels.moderator and tonumber(member.allow_member_pings) ~= 1) then
+    if not member or (role_levels[member.role] < role_levels.moderator and not database_boolean(member.allow_member_pings)) then
         return { success = false, error = "forbidden" }
     end
     local ping_data = data or {}
     if data and data.useCurrent then
-        local coords = GetEntityCoords(GetPlayerPed(source))
+        local ped = GetPlayerPed(source)
+        if ped == 0 then return { success = false, error = "invalid_ping" } end
+        local coords = GetEntityCoords(ped)
         ping_data = {
             type = data.type,
             label = data.label,
             coords = { x = coords.x, y = coords.y, z = coords.z },
         }
     end
-    local ping, error_code = create_ping(group_id, profile.id, nil, ping_data)
+    local last_sent = last_ping_at[profile.id]
+    if pending_pings[profile.id]
+        or (last_sent and ((GetGameTimer() - last_sent) & 0xffffffff) < (Config.CrewLink.PingCooldownSeconds or 5) * 1000)
+    then
+        return { success = false, error = "ping_cooldown" }
+    end
+    -- Reserve before database calls yield, so simultaneous app/keybind requests
+    -- cannot pass the cooldown together. Rejected creations do not start it.
+    pending_pings[profile.id] = true
+    local success, ping, error_code = pcall(create_ping, group_id, profile.id, nil, ping_data)
+    pending_pings[profile.id] = nil
+    if not success then error(ping) end
     if not ping then
         return { success = false, error = error_code }
     end
+    last_ping_at[profile.id] = GetGameTimer()
     notify_group(group_id, "ping", profile.username, {
         groupName = member.group_name,
         pingType = ping.type,
@@ -1190,6 +1244,18 @@ Bridge.Callbacks.Register("sky_phone:crewlink:create-ping", function(source, dat
     })
     refresh_group(group_id)
     return { success = true, data = ping }
+end
+
+Bridge.Callbacks.Register("sky_phone:crewlink:create-ping", function(source, data)
+    return send_ping(source, data, false)
+end)
+
+Bridge.Callbacks.Register("sky_phone:crewlink:quick-ping", function(source)
+    if not Config.CrewLink.QuickPing.Enabled then
+        return { success = false, error = "quick_ping_disabled" }
+    end
+    local locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale).Nui.Apps.crewlink
+    return send_ping(source, { type = "meeting", label = locale.quickPingLabel, useCurrent = true }, true)
 end)
 
 Bridge.Callbacks.Register("sky_phone:crewlink:remove-ping", function(source, data)
@@ -1222,7 +1288,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:remove-ping", function(source, dat
     return { success = true }
 end)
 
-Bridge.Callbacks.Register("sky_phone:crewlink:live", function(source)
+local function live_snapshot(source, background)
     if not SkyPhone.AllowOperation(
         source,
         "crewlink:live",
@@ -1231,7 +1297,7 @@ Bridge.Callbacks.Register("sky_phone:crewlink:live", function(source)
     ) then
         return { success = false, error = "rate_limited" }
     end
-    local profile, error_response = require_profile(source)
+    local profile, error_response = (background and background_profile or require_profile)(source)
     if not profile then
         return error_response
     end
@@ -1242,10 +1308,10 @@ Bridge.Callbacks.Register("sky_phone:crewlink:live", function(source)
     if not active_membership then
         return { success = true, data = { members = {}, overheadMembers = {}, pings = {} } }
     end
-    local members = live_group(profile.active_group_id)
+    local members = live_group(profile.active_group_id, source)
     local overhead_members = {}
-    if tonumber(profile.overhead_visible) == 1
-        and tonumber(active_membership.overhead_allowed) == 1
+    if database_boolean(profile.overhead_visible)
+        and database_boolean(active_membership.overhead_allowed)
     then
         for _, member in ipairs(members) do
             if member.source and member.source ~= source and member.overheadVisible then
@@ -1261,11 +1327,27 @@ Bridge.Callbacks.Register("sky_phone:crewlink:live", function(source)
     return {
         success = true,
         data = {
+            groupId = profile.active_group_id,
+            colour = active_membership.colour,
+            serverTime = os.time() * 1000,
             members = members,
             overheadMembers = overhead_members,
             pings = active_pings(profile.active_group_id),
         },
     }
+end
+
+Bridge.Callbacks.Register("sky_phone:crewlink:live", function(source)
+    return live_snapshot(source, false)
+end)
+
+Bridge.Callbacks.Register("sky_phone:crewlink:world", function(source)
+    return live_snapshot(source, true)
+end)
+
+AddEventHandler("playerDropped", function()
+    live_sources_cache.expires_at = 0
+    live_sources_cache.sources = {}
 end)
 
 exports("GetCrewLinkActiveGroup", function(source)
@@ -1318,6 +1400,10 @@ exports("CreateCrewLinkPing", function(group_id, data)
     end
     local ping, error_code = create_ping(group_id, nil, invoking_resource, data)
     if ping then
+        if SkyPhoneLog then
+            SkyPhoneLog.Record("CrewLink", "crewlink:external-ping-created", "created", nil,
+                { groupId = group_id, ping = ping, resource = invoking_resource })
+        end
         notify_group(group_id, "ping", invoking_resource, {
             groupName = groups[1].name,
             pingType = ping.type,
@@ -1342,6 +1428,10 @@ exports("RemoveCrewLinkPing", function(group_id, ping_id)
     end
     TriggerEvent("sky_phone:crewlink:pingRemoved", group_id, ping_id)
     refresh_group(group_id)
+    if SkyPhoneLog then
+        SkyPhoneLog.Record("CrewLink", "crewlink:external-ping-removed", "deleted", nil,
+            { groupId = group_id, pingId = ping_id, resource = invoking_resource })
+    end
     return true
 end)
 end)

@@ -1,3 +1,5 @@
+import { getPhoneOutputVolume } from '@/utils/phoneAudio'
+
 export type NeonDropSound =
   | 'clear'
   | 'drop'
@@ -48,7 +50,10 @@ function playSequence(sound: NeonDropSound): void {
     oscillator.type = type
     oscillator.frequency.setValueAtTime(frequency, start + delay)
     gain.gain.setValueAtTime(0.0001, start + delay)
-    gain.gain.exponentialRampToValueAtTime(0.12, start + delay + 0.008)
+    gain.gain.exponentialRampToValueAtTime(
+      Math.max(0.0001, 0.12 * getPhoneOutputVolume()),
+      start + delay + 0.008,
+    )
     gain.gain.exponentialRampToValueAtTime(0.0001, start + delay + duration)
     oscillator.connect(gain)
     gain.connect(context.destination)

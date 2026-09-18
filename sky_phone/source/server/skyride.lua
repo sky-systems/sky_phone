@@ -11,20 +11,30 @@ local online_drivers = {}
 local operation_locks = {}
 local services = {}
 
-if Config.SkyRide.DistanceUnit ~= "kilometer" and Config.SkyRide.DistanceUnit ~= "mile" then
-    error(("[sky_phone] Invalid SkyRide distance unit '%s'."):format(tostring(Config.SkyRide.DistanceUnit)))
+local function refresh_runtime_configuration()
+    if Config.SkyRide.DistanceUnit ~= "kilometer" and Config.SkyRide.DistanceUnit ~= "mile" then
+        error(("[sky_phone] Invalid SkyRide distance unit '%s'."):format(tostring(Config.SkyRide.DistanceUnit)))
+    end
+
+    local next_services = {}
+    for index = 1, #Config.SkyRide.Services do
+        local service = Config.SkyRide.Services[index]
+        if service.Id ~= "taxi" and service.Id ~= "comfort" and service.Id ~= "xl" and service.Id ~= "premium" then
+            error(("[sky_phone] Invalid SkyRide service class '%s'."):format(tostring(service.Id)))
+        end
+        if next_services[service.Id] then
+            error(("[sky_phone] Duplicate SkyRide service class '%s'."):format(service.Id))
+        end
+        next_services[service.Id] = service
+    end
+    services = next_services
 end
 
-for index = 1, #Config.SkyRide.Services do
-    local service = Config.SkyRide.Services[index]
-    if service.Id ~= "taxi" and service.Id ~= "comfort" and service.Id ~= "xl" and service.Id ~= "premium" then
-        error(("[sky_phone] Invalid SkyRide service class '%s'."):format(tostring(service.Id)))
-    end
-    if services[service.Id] then
-        error(("[sky_phone] Duplicate SkyRide service class '%s'."):format(service.Id))
-    end
-    services[service.Id] = service
-end
+refresh_runtime_configuration()
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    refresh_runtime_configuration()
+end)
 
 local ride_select = [[
     SELECT r.*,
@@ -1826,16 +1836,21 @@ CreateThread(function()
     while true do
         local recovery_success, recovery_rows = pcall(
             Bridge.Database.Query,
-            ride_select .. (([[
-                WHERE r.`refund_status` IN ('pending','completed')
-                    AND (
-                        r.`status` = 'cancelled'
-                        OR (
-                            r.`status` = 'payment_pending'
-                            AND r.`updated_at` <= DATE_SUB(
-                                CURRENT_TIMESTAMP,
-                                INTERVAL %d SECOND
-                            )
+            (([[
+                SELECT r.`id`, r.`status`, r.`refund_status`, r.`price`,
+                    passenger.`owner_identifier` AS `passenger_identifier`
+                FROM `sky_phone_skyride_rides` r
+                INNER JOIN `sky_phone_skyride_profiles` passenger
+                    ON passenger.`id` = r.`passenger_profile_id`
+                WHERE (
+                        r.`refund_status` = 'pending'
+                        AND r.`status` = 'cancelled'
+                    ) OR (
+                        r.`refund_status` IN ('pending','completed')
+                        AND r.`status` = 'payment_pending'
+                        AND r.`updated_at` <= DATE_SUB(
+                            CURRENT_TIMESTAMP,
+                            INTERVAL %d SECOND
                         )
                     )
                 ORDER BY r.`updated_at` ASC

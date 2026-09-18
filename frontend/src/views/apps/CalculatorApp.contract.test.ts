@@ -52,7 +52,8 @@ describe('CalculatorApp layout contract', () => {
     )
     expect(source).toContain('calculator-history__nav-button--edit')
     expect(source).toContain('calculator-history__nav-button--close')
-    expect(source).toContain('background: rgb(255 255 255 / 9%);')
+    expect(source.match(/<SkyButton\s+glass/g)).toHaveLength(2)
+    expect(source).toContain('--sky-glass: rgb(44 44 46 / 62%);')
     expect(source).toContain('-webkit-backdrop-filter: none;')
     expect(source).toContain('backdrop-filter: none;')
     expect(source).toContain('min-width: 106px;')
@@ -62,7 +63,7 @@ describe('CalculatorApp layout contract', () => {
     expect(source).toContain('place-items: center;')
     expect(source).toContain('padding: 0;')
     expect(source).toMatch(
-      /\.calculator-history__nav-button:hover:not\(:disabled\)[^}]*background: rgb\(255 255 255 \/ 15%\);[^}]*transform: none;[^}]*filter: none;/s,
+      /\.calculator-history__nav-button:hover:not\(:disabled\)[^}]*transform: none;[^}]*filter: brightness\(1\.08\);/s,
     )
     expect(source).not.toContain('class="calculator-history__edit"')
     expect(source).not.toContain('class="calculator-history__close"')

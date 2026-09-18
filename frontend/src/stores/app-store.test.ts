@@ -64,6 +64,63 @@ describe('app store', () => {
     expect(apps.isInstalled('snake')).toBe(false)
     expect(apps.isInstalled('health')).toBe(true)
     expect(apps.isInstalled('citywarn')).toBe(true)
+    expect(apps.homeLayout.dock).toEqual([
+      'phone',
+      'messages',
+      'camera',
+      'clock',
+    ])
+    for (const dockAppId of ['phone', 'messages', 'camera', 'clock']) {
+      expect(apps.homeLayout.grid).not.toContain(dockAppId)
+    }
+  })
+
+  it('removes server-disabled apps without forgetting device claims', () => {
+    const apps = useAppStoreStore()
+
+    apps.hydrate({ claimedApps: ['weather', 'snake'] }, ['weather'])
+
+    expect(apps.isAvailable('weather')).toBe(false)
+    expect(apps.isInstalled('weather')).toBe(false)
+    expect(apps.homeLayout.grid).not.toContain('weather')
+    expect(apps.claimedApps).toContain('weather')
+    expect(apps.isInstalled('snake')).toBe(true)
+
+    apps.hydrate({ claimedApps: apps.claimedApps }, [])
+    expect(apps.isInstalled('weather')).toBe(true)
+  })
+
+  it('drops the retired admin app from persisted phone layouts', () => {
+    const apps = useAppStoreStore()
+
+    apps.hydrate({ claimedApps: ['admin'] })
+    expect(apps.homeLayout.grid).not.toContain('admin')
+  })
+
+  it('migrates current layouts so dock apps are not repeated in the grid', () => {
+    const apps = useAppStoreStore()
+
+    apps.hydrate({
+      homeLayout: {
+        dock: ['phone', 'messages', 'camera', 'clock'],
+        grid: ['phone', 'messages', 'calculator', 'camera', 'clock'],
+        hidden: [],
+        pageCount: 1,
+        version: HOME_LAYOUT_VERSION,
+      },
+    })
+
+    expect(apps.homeLayout.dock).toEqual([
+      'phone',
+      'messages',
+      'camera',
+      'clock',
+    ])
+    for (const dockAppId of ['phone', 'messages', 'camera', 'clock']) {
+      expect(apps.homeLayout.grid).not.toContain(dockAppId)
+    }
+    expect(apps.homeLayout.grid).toContain('calculator')
+    expect(mocks.phone.saveDeviceNamespace).toHaveBeenCalledTimes(1)
   })
 
   it('removes old automatic apps unless the player installed them', () => {
@@ -207,6 +264,23 @@ describe('app store', () => {
     expect(apps.homeLayout.hidden).not.toContain('snake')
   })
 
+  it('uninstalls claimed Banking and Picstagram apps from every app state', () => {
+    const apps = useAppStoreStore()
+    apps.hydrate({ claimedApps: ['banking', 'picstagram'] })
+    mocks.phone.saveDeviceNamespace.mockClear()
+
+    for (const appId of ['banking', 'picstagram'] as const) {
+      expect(apps.isInstalled(appId)).toBe(true)
+      expect(apps.uninstallApp(appId)).toBe(true)
+      expect(apps.isInstalled(appId)).toBe(false)
+      expect(apps.claimedApps).not.toContain(appId)
+      expect(apps.uninstalledApps).toContain(appId)
+      expect(apps.homeLayout.hidden).toContain(appId)
+    }
+
+    expect(mocks.phone.saveDeviceNamespace).toHaveBeenCalledTimes(2)
+  })
+
   it('hydrates persisted removals while rejecting protected and invalid ids', () => {
     const apps = useAppStoreStore()
 
@@ -320,7 +394,7 @@ describe('app store', () => {
     const apps = useAppStoreStore()
     apps.hydrate(null)
     mocks.phone.saveDeviceNamespace.mockClear()
-    const sourceIndex = apps.homeLayout.grid.indexOf('phone')
+    const sourceIndex = apps.homeLayout.grid.indexOf('calculator')
     expect(sourceIndex).toBeGreaterThanOrEqual(0)
 
     expect(
@@ -329,7 +403,7 @@ describe('app store', () => {
         HOME_GRID_PAGE_SIZE,
       ]),
     ).toBe(true)
-    expect(apps.homeLayout.grid[HOME_GRID_PAGE_SIZE]).toBe('phone')
+    expect(apps.homeLayout.grid[HOME_GRID_PAGE_SIZE]).toBe('calculator')
     expect(mocks.phone.saveDeviceNamespace).toHaveBeenCalledTimes(1)
   })
 
@@ -386,18 +460,18 @@ describe('app store', () => {
     mocks.phone.saveDeviceNamespace.mockClear()
 
     const notesIndex = apps.homeLayout.grid.indexOf('notes')
-    const clockIndex = apps.homeLayout.grid.indexOf('clock')
+    const settingsIndex = apps.homeLayout.grid.indexOf('settings')
     const folderId = apps.createHomeFolder(
       'grid',
       notesIndex,
       'grid',
-      clockIndex,
+      settingsIndex,
       'Utilities',
     )
 
     expect(folderId).toBeTruthy()
     expect(getHomeFolder(apps.homeLayout, folderId!)?.apps).toEqual([
-      'clock',
+      'settings',
       'notes',
     ])
     const mailIndex = apps.homeLayout.grid.indexOf('mail')
@@ -405,7 +479,7 @@ describe('app store', () => {
     apps.moveHomeFolderApp(folderId!, 2, 0)
     apps.renameHomeFolder(folderId!, 'Work')
     expect(getHomeFolder(apps.homeLayout, folderId!)).toMatchObject({
-      apps: ['mail', 'notes', 'clock'],
+      apps: ['mail', 'notes', 'settings'],
       name: 'Work',
     })
 
@@ -415,6 +489,41 @@ describe('app store', () => {
     )
     expect(apps.homeLayout.grid).toContain('mail')
     expect(mocks.phone.saveDeviceNamespace).toHaveBeenCalledTimes(5)
+  })
+
+  it('materializes a trailing page only for a successful folder extraction', () => {
+    const apps = useAppStoreStore()
+    apps.hydrate(null)
+
+    const notesIndex = apps.homeLayout.grid.indexOf('notes')
+    const settingsIndex = apps.homeLayout.grid.indexOf('settings')
+    const folderId = apps.createHomeFolder(
+      'grid',
+      notesIndex,
+      'grid',
+      settingsIndex,
+      'Utilities',
+    )
+    expect(folderId).toBeTruthy()
+
+    const originalPageCount = apps.homeLayout.pageCount
+    const targetPage = originalPageCount + 1
+    const targetIndex = originalPageCount * HOME_GRID_PAGE_SIZE
+    expect(apps.homeLayout.grid[targetIndex]).toBeUndefined()
+
+    expect(
+      apps.extractHomeFolderApp('missing-folder', 0, 'grid', targetIndex),
+    ).toBe(false)
+    expect(apps.homeLayout.pageCount).toBe(originalPageCount)
+    expect(apps.homeLayout.grid[targetIndex]).toBeUndefined()
+
+    mocks.phone.saveDeviceNamespace.mockClear()
+    expect(apps.extractHomeFolderApp(folderId!, 0, 'grid', targetIndex)).toBe(
+      true,
+    )
+    expect(apps.homeLayout.pageCount).toBe(targetPage)
+    expect(apps.homeLayout.grid[targetIndex]).toBe('settings')
+    expect(mocks.phone.saveDeviceNamespace).toHaveBeenCalledTimes(1)
   })
 
   it('does not commit an installation to a different phone', () => {

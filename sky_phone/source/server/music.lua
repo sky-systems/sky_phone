@@ -218,6 +218,10 @@ local function normalize_server_tracks()
         return
     end
 
+    server_tracks = {}
+    server_tracks_by_id = {}
+    configured_track_ids = {}
+
     for index, configured in ipairs(Config.Music.Tracks or {}) do
         local id = type(configured) == "table" and trim(configured.Id) or nil
         local title = type(configured) == "table" and trim(configured.Title) or nil
@@ -299,6 +303,8 @@ local function normalize_server_tracks()
 end
 
 normalize_server_tracks()
+
+AddEventHandler("sky_phone:configurator:serverUpdated", normalize_server_tracks)
 
 local function session_owner(source)
     local session, error_response = SkyPhone.RequireSession(source)

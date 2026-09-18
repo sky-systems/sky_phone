@@ -393,11 +393,15 @@ watch(
 .widget-picker-navbar :deep(.widget-picker-nav-button.sky-button) {
   min-height: var(--sky-touch-target);
   padding: 0 var(--sky-space-4);
-  border: 1px solid rgb(255 255 255 / 12%);
-  background: var(--sky-surface-variant);
+  border: 1px solid var(--sky-action-border);
+  background: var(--sky-action-surface);
   color: #fff;
   font-size: 15px;
   font-weight: 600;
+}
+
+.widget-picker-navbar :deep(.widget-picker-nav-button.sky-button:active) {
+  background: var(--sky-action-pressed);
 }
 
 .widget-picker-navbar :deep(.widget-picker-nav-button--icon.sky-button) {

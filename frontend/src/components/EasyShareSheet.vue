@@ -8,7 +8,7 @@ import {
   UserRound,
   X,
 } from 'lucide-vue-next'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getPhoneApp, getPhoneAppLabel } from '@/config/apps'
@@ -50,6 +50,20 @@ const easyShare = useEasyShareStore()
 const flare = useFlareStore()
 const router = useRouter()
 const feedback = ref('')
+watch(
+  () => easyShare.opened,
+  () => {
+    feedback.value = ''
+  },
+)
+const errorFeedback = computed(() => {
+  if (!easyShare.error) return ''
+  const key = `errors.${easyShare.error}`
+  const translated = label(key)
+  return translated === `Apps.easyShare.${key}`
+    ? label('errors.request_failed')
+    : translated
+})
 const dragOffset = ref(0)
 const dragging = ref(false)
 let dragPointerId: number | null = null
@@ -67,7 +81,7 @@ const sharePeople = computed(() => {
   }> = []
   const phoneNumbers = new Set<string>()
 
-  if (!appStore.homeLayout.hidden.includes('flare')) {
+  if (appStore.isInstalled('flare')) {
     for (const match of flare.matches) {
       people.push({
         avatar: match.profile.photoUrls[0],
@@ -102,7 +116,7 @@ const sharePeople = computed(() => {
     phoneNumbers.add(contact.phone_number)
   }
 
-  if (!appStore.homeLayout.hidden.includes('darkchat')) {
+  if (appStore.isInstalled('darkchat')) {
     for (const conversation of darkChat.conversations.slice(0, 8)) {
       people.push({
         kind: 'darkchat',
@@ -116,7 +130,7 @@ const sharePeople = computed(() => {
 })
 const shareApps = computed(() =>
   (easyShare.payload ? easyShareDestinationAppIds(easyShare.payload) : [])
-    .filter((id) => !appStore.homeLayout.hidden.includes(id))
+    .filter((id) => appStore.isInstalled(id))
     .flatMap((id) => {
       const app = getPhoneApp(id)
       return app ? [{ app, id }] : []
@@ -195,18 +209,21 @@ function endDrag(event: PointerEvent): void {
 }
 
 function shareToChat(kind: EasyShareChatApp, targetId: string): void {
+  if (!appStore.isInstalled(kind)) return
   if (!easyShare.prepareChatDraft(kind, targetId)) return
   close()
   void router.push(`/apps/${kind}`)
 }
 
 function openChatApp(kind: EasyShareChatApp): void {
+  if (!appStore.isInstalled(kind)) return
   if (!easyShare.prepareChatDraft(kind)) return
   close()
   void router.push(`/apps/${kind}`)
 }
 
 function openShareApp(appId: EasyShareDestinationApp): void {
+  if (!appStore.isInstalled(appId)) return
   if (appId === 'messages' || appId === 'darkchat' || appId === 'flare') {
     openChatApp(appId)
     return
@@ -233,24 +250,20 @@ function saveAsNote(): void {
 
 async function requestTransfer(targetId: number): Promise<void> {
   const response = await easyShare.request(targetId)
-  feedback.value = response.success
-    ? label('requestSent')
-    : label(`errors.${response.error ?? 'request_failed'}`)
+  feedback.value = response.success ? label('requestSent') : ''
 }
 
 async function respond(
   transfer: EasyShareTransfer,
   accepted: boolean,
 ): Promise<void> {
-  if (!(await easyShare.respond(transfer.id, accepted))) {
-    feedback.value = label('errors.request_failed')
-  }
+  feedback.value = ''
+  await easyShare.respond(transfer.id, accepted)
 }
 
 async function cancelTransfer(transfer: EasyShareTransfer): Promise<void> {
-  if (!(await easyShare.cancel(transfer.id))) {
-    feedback.value = label('errors.request_failed')
-  }
+  feedback.value = ''
+  await easyShare.cancel(transfer.id)
 }
 
 async function openTransfer(transfer: EasyShareTransfer): Promise<void> {
@@ -400,11 +413,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               <SkyButton
                 rounded
                 tonal
+                :disabled="Boolean(easyShare.pendingActionId)"
                 @click="respond(easyShare.incomingTransfer, false)"
                 ><X
               /></SkyButton>
               <SkyButton
                 rounded
+                :disabled="Boolean(easyShare.pendingActionId)"
                 @click="respond(easyShare.incomingTransfer, true)"
                 ><Check
               /></SkyButton>
@@ -429,16 +444,25 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               "
               clear
               rounded
+              :disabled="Boolean(easyShare.pendingActionId)"
               @click="cancelTransfer(easyShare.activeTransfer)"
               >{{ label('cancel') }}</SkyButton
             >
+            <SkyButton
+              v-else-if="easyShare.activeTransfer.status === 'completed'"
+              clear
+              rounded
+              @click="openTransfer(easyShare.activeTransfer)"
+            >
+              {{ label('open') }}
+            </SkyButton>
           </SkyGlass>
 
           <div v-if="easyShare.loading" class="easyshare-loading">
             <SkySpinner :label="label('name')" />
           </div>
           <SkyList
-            v-else-if="easyShare.targets.length"
+            v-else-if="easyShare.payload && easyShare.targets.length"
             inset
             strong
             class="easyshare-targets"
@@ -459,7 +483,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               <template #after><Share2 :size="18" /></template>
             </SkyListItem>
           </SkyList>
-          <p v-else class="easyshare-empty">{{ label('noNearby') }}</p>
+          <p
+            v-else-if="
+              !easyShare.incomingTransfer &&
+              !easyShare.activeTransfer &&
+              !errorFeedback
+            "
+            class="easyshare-empty"
+          >
+            {{ label(easyShare.payload ? 'noNearby' : 'readyToReceive') }}
+          </p>
         </section>
 
         <section v-else class="easyshare-detail">
@@ -494,7 +527,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
           </SkyList>
         </section>
 
-        <p v-if="feedback" class="easyshare-feedback">{{ feedback }}</p>
+        <p
+          v-if="errorFeedback || feedback"
+          class="easyshare-feedback"
+          role="status"
+        >
+          {{ errorFeedback || feedback }}
+        </p>
       </div>
     </SkySheet>
   </div>

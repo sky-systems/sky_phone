@@ -50,8 +50,14 @@ local function can_set_display_name(source)
     if type(config) ~= "table" or not config.Enabled then
         return false
     end
+    if config.AllowEveryone == true then
+        return true
+    end
 
     local job = Bridge.Framework.GetJob(source)
+    if type(job) ~= "table" or type(job.name) ~= "string" then
+        return false
+    end
     local minimum_grade = type(config.AllowedJobs) == "table" and tonumber(config.AllowedJobs[job.name]) or nil
     return minimum_grade ~= nil and (tonumber(job.grade) or 0) >= minimum_grade
 end

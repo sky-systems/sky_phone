@@ -140,4 +140,56 @@ describe('springboard widget drag', () => {
     expect(delta.x).toBeCloseTo(100)
     expect(delta.y).toBeCloseTo(200)
   })
+
+  it.each([
+    ['80% preview', 0.6624],
+    ['80% production clamp', 2 / 3],
+    ['100%', 0.828],
+    ['120%', 0.9936],
+  ])('keeps the rendered drag delta 1:1 at %s zoom', (_label, zoom) => {
+    const layoutWidth = 350
+    const layoutHeight = 808
+    const viewportLeft = 128.25
+    const viewportTop = 64.5
+    const viewportWidth = layoutWidth * zoom
+    const viewportHeight = layoutHeight * zoom
+    const pointerStart = {
+      x: viewportLeft + 48.5 * zoom,
+      y: viewportTop + 132.25 * zoom,
+    }
+    const viewportDelta = { x: 73.25, y: -41.75 }
+    const start = springboardViewportToLocal(
+      pointerStart.x,
+      pointerStart.y,
+      viewportLeft,
+      viewportTop,
+      viewportWidth,
+      viewportHeight,
+      layoutWidth,
+      layoutHeight,
+    )
+    const end = springboardViewportToLocal(
+      pointerStart.x + viewportDelta.x,
+      pointerStart.y + viewportDelta.y,
+      viewportLeft,
+      viewportTop,
+      viewportWidth,
+      viewportHeight,
+      layoutWidth,
+      layoutHeight,
+    )
+    const localDelta = springboardViewportDeltaToLocal(
+      viewportDelta.x,
+      viewportDelta.y,
+      viewportWidth,
+      viewportHeight,
+      layoutWidth,
+      layoutHeight,
+    )
+
+    expect((end.x - start.x) * zoom).toBeCloseTo(viewportDelta.x, 6)
+    expect((end.y - start.y) * zoom).toBeCloseTo(viewportDelta.y, 6)
+    expect(localDelta.x * zoom).toBeCloseTo(viewportDelta.x, 6)
+    expect(localDelta.y * zoom).toBeCloseTo(viewportDelta.y, 6)
+  })
 })

@@ -378,6 +378,7 @@ watch([() => calculator.display, expression], async () => {
         >
           <template #left>
             <SkyButton
+              glass
               class="calculator-history__nav-button calculator-history__nav-button--edit"
               inline
               rounded
@@ -397,6 +398,7 @@ watch([() => calculator.display, expression], async () => {
           </template>
           <template #right>
             <SkyButton
+              glass
               class="calculator-history__nav-button calculator-history__nav-button--close"
               icon-only
               rounded
@@ -721,16 +723,15 @@ watch([() => calculator.display, expression], async () => {
 }
 
 .calculator-history__navbar :deep(.calculator-history__nav-button) {
+  --sky-glass: rgb(44 44 46 / 62%);
+  --sky-hairline: rgb(255 255 255 / 14%);
   height: 44px;
   min-height: 44px;
-  background: rgb(255 255 255 / 9%);
   color: #fff;
-  box-shadow: none;
 }
 
 .calculator-history__navbar :deep(.calculator-history__nav-button:active) {
-  background: rgb(255 255 255 / 14%);
-  filter: none;
+  filter: brightness(0.94);
 }
 
 .calculator-history__navbar :deep(.calculator-history__nav-button--edit) {
@@ -757,9 +758,8 @@ watch([() => calculator.display, expression], async () => {
 @media (hover: hover) {
   .calculator-history__navbar
     :deep(.calculator-history__nav-button:hover:not(:disabled)) {
-    background: rgb(255 255 255 / 15%);
     transform: none;
-    filter: none;
+    filter: brightness(1.08);
   }
 }
 

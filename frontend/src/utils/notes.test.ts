@@ -47,4 +47,12 @@ describe('notes rich text', () => {
       'Briefing\nMeet outside.\n• Radio\n• Vest',
     )
   })
+
+  it('keeps encoded markup as literal preview text', () => {
+    const body = serializeRichNoteBody(
+      '<p>&lt;script&gt;literal&lt;/script&gt;</p>',
+    )
+
+    expect(noteBodyToPlainText(body)).toBe('<script>literal</script>')
+  })
 })

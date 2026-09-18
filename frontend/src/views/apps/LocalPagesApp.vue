@@ -1526,7 +1526,7 @@ onMounted(async () => {
   overflow: hidden;
   background: #12171b;
   color: #f7f7f2;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--sky-font-family);
 }
 .pages--light {
   --yellow: #8a6500;

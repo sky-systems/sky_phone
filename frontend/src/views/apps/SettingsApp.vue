@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { faceIdErrorKey } from '@/utils/face-id'
 import {
   BellRing,
   Bluetooth,
@@ -11,6 +12,7 @@ import {
   PanelsTopLeft,
   Moon,
   Plane,
+  Phone,
   RotateCcw,
   Settings,
   ShieldCheck,
@@ -96,6 +98,11 @@ import {
   type WallpaperTarget,
 } from '@/utils/preferences'
 
+type ToneChoice<T extends string> = {
+  id: T
+  label: string
+}
+
 type SettingsView =
   | 'root'
   | 'account'
@@ -103,6 +110,7 @@ type SettingsView =
   | 'notifications'
   | 'notification-detail'
   | 'sounds'
+  | 'callSettings'
   | 'connectivity'
   | 'focus'
   | 'general'
@@ -124,6 +132,8 @@ type PasscodeFlow =
   | 'change-new'
   | 'change-confirm'
   | 'disable'
+  | 'face-id-enable'
+  | 'face-id-disable'
   | null
 
 const FACTORY_RESET_DURATION_MS = 8_000
@@ -147,6 +157,7 @@ const accountPassword = ref('')
 const accountConfirm = ref('')
 const accountSubmitting = ref(false)
 const accountToast = ref('')
+const callSettingsBusy = ref(false)
 const passcodeBusy = ref(false)
 const passcodeCurrent = ref('')
 const passcodeError = ref('')
@@ -233,6 +244,12 @@ const toggleRows = [
   },
 ]
 const serviceRows = [
+  {
+    key: 'callSettings',
+    view: 'callSettings' as const,
+    icon: Phone,
+    iconColor: '#34c759',
+  },
   {
     key: 'notifications',
     view: 'notifications' as const,
@@ -423,7 +440,9 @@ const passcodeTitle = computed(() => {
   }
   if (
     passcodeFlow.value === 'change-current' ||
-    passcodeFlow.value === 'disable'
+    passcodeFlow.value === 'disable' ||
+    passcodeFlow.value === 'face-id-enable' ||
+    passcodeFlow.value === 'face-id-disable'
   ) {
     return phone.t('Apps.settings.passcode.enterCurrent')
   }
@@ -474,6 +493,18 @@ function scrollPageToTop(): void {
 
 function setRootSetting(key: RootToggleKey, value: boolean): void {
   phone.setPreference(key, value)
+}
+
+async function setHideCallerId(value: boolean): Promise<void> {
+  if (callSettingsBusy.value) return
+  callSettingsBusy.value = true
+  try {
+    if (!(await phone.setHideCallerId(value))) {
+      accountToast.value = phone.t('Apps.phone.errors.request_failed')
+    }
+  } finally {
+    callSettingsBusy.value = false
+  }
 }
 
 function resetPasscodeInput(): void {
@@ -557,14 +588,19 @@ async function submitSettingsPasscode(passcode: string): Promise<void> {
 
   passcodeBusy.value = true
   const response =
-    passcodeFlow.value === 'set-confirm'
-      ? await phone.setPasscode(passcode)
-      : passcodeFlow.value === 'change-confirm'
-        ? await phone.changePasscode(passcodeCurrent.value, passcode)
-        : await phone.disablePasscode(passcode)
+    passcodeFlow.value === 'face-id-enable' ||
+    passcodeFlow.value === 'face-id-disable'
+      ? await phone.setFaceId(passcodeFlow.value === 'face-id-enable', passcode)
+      : passcodeFlow.value === 'set-confirm'
+        ? await phone.setPasscode(passcode)
+        : passcodeFlow.value === 'change-confirm'
+          ? await phone.changePasscode(passcodeCurrent.value, passcode)
+          : await phone.disablePasscode(passcode)
   passcodeBusy.value = false
   if (!response.success) {
-    passcodeError.value = passcodeRequestError(response.error)
+    passcodeError.value = passcodeFlow.value?.startsWith('face-id-')
+      ? phone.t(faceIdErrorKey(response.error))
+      : passcodeRequestError(response.error)
     if (
       passcodeFlow.value === 'change-confirm' &&
       response.error === 'invalid_passcode'
@@ -578,9 +614,11 @@ async function submitSettingsPasscode(passcode: string): Promise<void> {
   }
 
   accountToast.value = phone.t(
-    passcodeFlow.value === 'disable'
-      ? 'Apps.settings.passcode.disabled'
-      : 'Apps.settings.passcode.saved',
+    passcodeFlow.value?.startsWith('face-id-')
+      ? 'FaceId.saved'
+      : passcodeFlow.value === 'disable'
+        ? 'Apps.settings.passcode.disabled'
+        : 'Apps.settings.passcode.saved',
   )
   cancelPasscodeFlow()
 }
@@ -617,6 +655,26 @@ function selectRingtone(ringtone: RingtoneId): void {
 function selectNotificationSound(sound: NotificationSoundId): void {
   phone.setPreference('notificationSound', sound)
 }
+
+const ringtoneChoices = computed<ToneChoice<RingtoneId>[]>(() => [
+  ...RINGTONE_IDS.map((id) => ({
+    id,
+    label: phone.t('Apps.settings.ringtones.' + id),
+  })),
+  ...phone.customTones.ringtones.map(({ id, label }) => ({ id, label })),
+])
+const notificationSoundChoices = computed<ToneChoice<NotificationSoundId>[]>(
+  () => [
+    ...NOTIFICATION_SOUND_IDS.map((id) => ({
+      id,
+      label: phone.t('Apps.settings.notificationSoundsList.' + id),
+    })),
+    ...phone.customTones.notificationSounds.map(({ id, label }) => ({
+      id,
+      label,
+    })),
+  ],
+)
 
 function updateAccountEmail(event: Event): void {
   const input = event.target as HTMLInputElement
@@ -1051,6 +1109,29 @@ onBeforeUnmount(() => {
       </template>
 
       <template v-else-if="activeView === 'security'">
+        <SkySettingsGroup :title="phone.t('FaceId.title')">
+          <SkySettingsRow
+            :key="passcodeFlow ?? 'face-id-idle'"
+            kind="toggle"
+            :title="phone.t('FaceId.unlock')"
+            :description="
+              phone.t(
+                phone.security.enabled
+                  ? 'FaceId.pinFallback'
+                  : 'FaceId.requiresPin',
+              )
+            "
+            :model-value="Boolean(phone.security.faceIdEnabled)"
+            :disabled="!phone.security.enabled || passcodeBusy"
+            @update:model-value="
+              (enabled) => {
+                passcodeLength = phone.security.length ?? 6
+                resetPasscodeInput()
+                passcodeFlow = enabled ? 'face-id-enable' : 'face-id-disable'
+              }
+            "
+          />
+        </SkySettingsGroup>
         <SkyBlock class="settings-copy">
           {{ phone.t('Apps.settings.passcode.description') }}
         </SkyBlock>
@@ -1276,23 +1357,40 @@ onBeforeUnmount(() => {
 
         <SkySettingsGroup :title="phone.t('Apps.settings.ringtone')">
           <SkySettingsRow
-            v-for="ringtone in RINGTONE_IDS"
-            :key="ringtone"
+            v-for="ringtone in ringtoneChoices"
+            :key="ringtone.id"
             kind="choice"
-            :selected="phone.preferences.settings.ringtone === ringtone"
-            :title="phone.t('Apps.settings.ringtones.' + ringtone)"
-            @activate="selectRingtone(ringtone)"
+            :selected="phone.preferences.settings.ringtone === ringtone.id"
+            :title="ringtone.label"
+            @activate="selectRingtone(ringtone.id)"
           />
         </SkySettingsGroup>
 
         <SkySettingsGroup :title="phone.t('Apps.settings.notificationSound')">
           <SkySettingsRow
-            v-for="sound in NOTIFICATION_SOUND_IDS"
-            :key="sound"
+            v-for="sound in notificationSoundChoices"
+            :key="sound.id"
             kind="choice"
-            :selected="phone.preferences.settings.notificationSound === sound"
-            :title="phone.t('Apps.settings.notificationSoundsList.' + sound)"
-            @activate="selectNotificationSound(sound)"
+            :selected="
+              phone.preferences.settings.notificationSound === sound.id
+            "
+            :title="sound.label"
+            @activate="selectNotificationSound(sound.id)"
+          />
+        </SkySettingsGroup>
+      </template>
+
+      <template v-else-if="activeView === 'callSettings'">
+        <SkySettingsGroup
+          :aria-label="phone.t('Apps.settings.callSettings')"
+          :footer="phone.t('Apps.settings.hideCallerIdDescription')"
+        >
+          <SkySettingsRow
+            kind="toggle"
+            :disabled="callSettingsBusy"
+            :model-value="phone.preferences.settings.hideCallerId"
+            :title="phone.t('Apps.settings.hideCallerId')"
+            @update:model-value="setHideCallerId"
           />
         </SkySettingsGroup>
       </template>

@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const client = readFileSync(
-  new URL('../../sky_phone/source/client/main.lua', import.meta.url),
+  new URL(
+    '../../sky_phone/source/client/nui_server_bridge.lua',
+    import.meta.url,
+  ),
   'utf8',
 ).replace(/\r\n/g, '\n')
 const companiesServer = readFileSync(
@@ -12,6 +15,10 @@ const companiesServer = readFileSync(
 ).replace(/\r\n/g, '\n')
 const callsServer = readFileSync(
   new URL('../../sky_phone/source/server/calls.lua', import.meta.url),
+  'utf8',
+).replace(/\r\n/g, '\n')
+const phoneServer = readFileSync(
+  new URL('../../sky_phone/source/server/phone.lua', import.meta.url),
   'utf8',
 ).replace(/\r\n/g, '\n')
 const companiesStore = readFileSync(
@@ -32,7 +39,7 @@ function sourceBlock(source: string, startMarker: string, endMarker: string) {
 
 describe('Companies outbound service-line call contract', () => {
   it('exposes the dedicated callback through the NUI client bridge', () => {
-    expect(client).toContain(`${quote}companies:dial-service-line${quote}`)
+    expect(client).toMatch(/companies\s*=\s*\[\[[^\]]*dial-service-line/)
   })
 
   it('accepts only a target number and derives the company from the live server member', () => {
@@ -83,5 +90,38 @@ describe('Companies outbound service-line call contract', () => {
     expect(startCompanyCall).toContain('caller_number = service_line.number')
     expect(startCompanyCall).not.toContain('data.companyId')
     expect(startCompanyCall).not.toContain('data.callerNumber')
+  })
+})
+
+describe('Companies background call availability contract', () => {
+  it('keeps call availability enabled after the phone UI closes', () => {
+    const closeDevice = sourceBlock(
+      phoneServer,
+      `Bridge.Callbacks.Register(${quote}sky_phone:device:close${quote}`,
+      `Bridge.Callbacks.Register(${quote}sky_phone:device:notification-open${quote}`,
+    )
+
+    expect(closeDevice).toContain('sessions[source] = nil')
+    expect(closeDevice).not.toContain(
+      'SkyPhoneCompanies.ClearCallAvailability(source)',
+    )
+  })
+
+  it('routes background calls only to an owned phone with the same registered SIM', () => {
+    const getCallTargets = sourceBlock(
+      companiesServer,
+      'function SkyPhoneCompanies.GetCallTargets(',
+      '\n\nlocal function profile_row(',
+    )
+
+    expect(getCallTargets).toContain('SkyPhone.LoadDevice(readiness.imei)')
+    expect(getCallTargets).toContain(
+      'SkyPhone.FindDeviceSlots(source, readiness.imei)',
+    )
+    expect(getCallTargets).toContain('device.sim_id == readiness.sim_id')
+    expect(getCallTargets).toContain(
+      'SkyPhoneCompanies.CanUseServiceDevice(device)',
+    )
+    expect(getCallTargets).not.toContain('current_device(source, true)')
   })
 })

@@ -1,3 +1,5 @@
+import { registerPhoneMediaElement } from '@/utils/phoneAudio'
+
 import flagUrl from '@/assets/audio/minesweeper/flag.wav?url'
 import clearUrl from '@/assets/audio/minesweeper/clear.wav?url'
 import mineUrl from '@/assets/audio/minesweeper/mine.wav?url'
@@ -28,7 +30,7 @@ function getPlayers(sound: MinesweeperSound): HTMLAudioElement[] {
   if (existing) return existing
 
   const players = Array.from({ length: 3 }, () => {
-    const player = new Audio(soundUrls[sound])
+    const player = registerPhoneMediaElement(new Audio(soundUrls[sound]))
     player.preload = 'auto'
     player.volume = 0.82
     return player

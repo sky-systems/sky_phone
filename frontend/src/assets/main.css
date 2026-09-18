@@ -211,9 +211,11 @@
   }
 }
 :root {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--sky-font-family);
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  font-optical-sizing: auto;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -234,7 +236,9 @@ body,
   user-select: none;
 }
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
 }
 button {
@@ -259,6 +263,20 @@ button {
   transform: translateY(calc(100% - 190px));
   transform-origin: right bottom;
 }
+
+.phone-stage--live-activity .phone-resolution-wrapper--primary .phone-device {
+  pointer-events: none;
+  transform: translateY(
+    calc(100% - var(--phone-live-activity-peek-height, 145px))
+  );
+  transform-origin: right bottom;
+}
+.phone-stage--live-activity
+  .phone-device
+  > :not(.phone-screen):not(.phone-device__frame):not(.phone-dynamic-island),
+.phone-stage--live-activity .phone-screen > * {
+  visibility: hidden;
+}
 .phone-lift-enter-active {
   transition: opacity 0.52s linear;
 }
@@ -279,6 +297,18 @@ button {
   position: relative;
   width: var(--phone-rendered-width, 390px);
   height: var(--phone-rendered-height, 844px);
+}
+
+.phone-home-drag-portal {
+  position: absolute;
+  z-index: 70;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.phone-home-drag-portal * {
+  pointer-events: none !important;
 }
 
 .phone-resolution-canvas {
@@ -350,9 +380,27 @@ button {
 .phone-hardware-button:disabled {
   cursor: default;
 }
-.phone-hardware-button:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: -6px;
+.phone-hardware-button:focus {
+  outline: none;
+}
+.phone-hardware-button:focus-visible::after {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 24px;
+  border-radius: 999px;
+  background: #0a84ff;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 90%);
+  content: '';
+  transform: translateY(-50%);
+}
+.phone-hardware-button--action:focus-visible::after,
+.phone-hardware-button--volume-up:focus-visible::after,
+.phone-hardware-button--volume-down:focus-visible::after {
+  right: 7px;
+}
+.phone-hardware-button--power:focus-visible::after {
+  left: 7px;
 }
 .phone-hardware-button--action {
   top: 176px;
@@ -384,7 +432,7 @@ button {
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 16%);
   border-radius: 15px;
-  color: #0a84ff;
+  color: #a9abb2;
   background: rgb(47 47 51 / 98%);
   box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
   pointer-events: none;
@@ -430,6 +478,8 @@ button {
   }
 }
 .phone-screen {
+  --phone-screen-radius: 40px;
+  --phone-screen-portrait-ratio: 2.30951;
   position: relative;
   container-type: size;
   margin: auto;
@@ -438,7 +488,14 @@ button {
   height: 98%;
   overflow: hidden;
   background: #08080a;
-  border-radius: 40px;
+  border-radius: var(--phone-screen-radius);
+  clip-path: inset(0 round var(--phone-screen-radius));
+}
+.phone-screen--camera-landscape {
+  background: transparent;
+}
+.phone-screen--camera-landscape .springboard {
+  visibility: hidden;
 }
 .phone-app {
   position: absolute !important;
@@ -672,6 +729,9 @@ button {
   transition: transform 280ms var(--sky-ease-out, ease-out);
   will-change: transform;
 }
+.phone-device--island-expanded .phone-notification {
+  top: 130px !important;
+}
 .phone-notification__icon {
   width: 38px;
   height: 38px;
@@ -795,78 +855,6 @@ button {
   cursor: pointer;
   pointer-events: auto;
 }
-.phone-dynamic-island {
-  position: absolute;
-  z-index: 98;
-  top: 12px;
-  left: 50%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 300px;
-  min-height: 72px;
-  padding: 10px 12px 10px 16px;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 28px;
-  color: #fff;
-  background: #050505;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
-  transform: translateX(-50%);
-}
-.phone-dynamic-island__caller {
-  min-width: 0;
-  flex: 1;
-}
-.phone-dynamic-island__caller span,
-.phone-dynamic-island__caller strong {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.phone-dynamic-island__caller span {
-  color: rgb(255 255 255 / 58%);
-  font-size: 11px;
-  line-height: 14px;
-}
-.phone-dynamic-island__caller strong {
-  margin-top: 2px;
-  font-size: 15px;
-  line-height: 18px;
-}
-.phone-dynamic-island__actions {
-  display: flex;
-  gap: 8px;
-}
-.phone-dynamic-island__actions .sky-button--icon-only {
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-}
-.phone-dynamic-island__actions svg {
-  width: 19px;
-  height: 19px;
-}
-.phone-dynamic-island__answer {
-  --sky-app-accent: #34c759;
-}
-.phone-dynamic-island-enter-active,
-.phone-dynamic-island-leave-active {
-  transition:
-    opacity 180ms ease,
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-.phone-dynamic-island-enter-from,
-.phone-dynamic-island-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) scale(0.86);
-}
-@media (prefers-reduced-motion: reduce) {
-  .phone-dynamic-island-enter-active,
-  .phone-dynamic-island-leave-active {
-    transition: none;
-  }
-}
 .phone-home-indicator {
   position: absolute;
   z-index: 90;
@@ -887,6 +875,14 @@ button {
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 1px 4px #0008;
+}
+.phone-home-indicator:focus {
+  outline: none;
+}
+.phone-home-indicator:focus-visible span {
+  box-shadow:
+    0 0 0 2px #0a84ff,
+    0 1px 4px #0008;
 }
 .phone-home-indicator--interactive {
   cursor: pointer;
@@ -1341,8 +1337,7 @@ button {
   overflow: hidden;
   background: #000;
   color: #f5f5f7;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  font-family: var(--sky-font-family);
 }
 .darkchat-page button,
 .darkchat-page input,
@@ -2677,8 +2672,30 @@ button {
 .springboard--widget-dragging .springboard-widget-page-scroll {
   overflow: visible;
 }
-.springboard--home-dragging .springboard-page--apps {
-  overflow: visible;
+.home-drag-layer {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+.home-drag-layer * {
+  pointer-events: none !important;
+}
+.home-drag-position {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+.home-drag-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  opacity: 1;
+  transition: none !important;
+  animation: none !important;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 .app-grid {
   display: grid;
@@ -2712,6 +2729,9 @@ button {
   opacity: 1;
   transition: transform var(--springboard-page-duration)
     var(--springboard-page-easing);
+}
+.app-icon-item--drag-source {
+  opacity: 0;
 }
 .app-icon-remove {
   position: absolute;
@@ -2838,7 +2858,6 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
 }
 .app-icon--calculator {
   background: linear-gradient(145deg, #76767b, #1b1b1d);
@@ -3254,6 +3273,9 @@ button {
   transform-origin: 0 0;
   backface-visibility: hidden;
   will-change: transform, border-radius, opacity;
+}
+.app-window--camera-landscape {
+  background: transparent;
 }
 .app-window--citywarn {
   backface-visibility: visible;
@@ -4178,8 +4200,8 @@ button {
   display: flex;
   align-items: center;
   flex-direction: column;
-  min-height: 218px;
-  padding: 1px 0 16px;
+  min-height: 206px;
+  padding: 1px 0 10px;
   text-align: center;
 }
 .weather-location {
@@ -4231,7 +4253,7 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sky-space-2);
-  margin-bottom: var(--sky-space-4);
+  margin-bottom: var(--sky-space-3);
 }
 .weather-detail-card,
 .weather-panel {
@@ -4242,18 +4264,21 @@ button {
     0 8px 22px rgba(5, 16, 32, 0.14);
   color: #fff;
 }
-.weather-detail-card {
+.weather-details > .weather-detail-card {
   display: grid;
   grid-template-columns: 21px 1fr;
-  gap: 4px 7px;
-  min-height: 94px;
+  grid-template-rows: auto auto;
+  align-content: center;
+  gap: 7px;
+  min-height: 76px;
   margin: 0;
-  padding: 14px;
+  padding: 11px 12px;
   border-radius: calc(var(--sky-radius-card) - 6px);
 }
 .weather-detail-card svg {
   grid-row: span 2;
-  margin-top: 2px;
+  align-self: center;
+  margin-top: 0;
   color: #b7d9ec;
 }
 .weather-detail-card:nth-child(1) svg {
@@ -4273,7 +4298,7 @@ button {
   text-transform: uppercase;
 }
 .weather-detail-card strong {
-  align-self: end;
+  align-self: auto;
   font-size: 18px;
   font-weight: 680;
   line-height: 1.1;
@@ -4281,7 +4306,7 @@ button {
 .weather-detail-card:nth-child(4) strong {
   color: var(--weather-accent-cyan);
 }
-.weather-panel {
+.weather-scroll > .weather-panel {
   margin: 0;
   overflow: hidden;
   border-radius: var(--sky-radius-card);
@@ -4315,10 +4340,11 @@ button {
   min-height: 108px;
   padding: 7px 2px 4px;
   border-left: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--sky-radius-control);
+  border-radius: 0;
 }
 .weather-hour:first-child {
   border-left: 0;
+  border-radius: var(--sky-radius-control);
   background: rgba(255, 255, 255, 0.07);
 }
 .weather-hour span {
@@ -6611,9 +6637,47 @@ button {
   display: block;
   object-fit: contain;
 }
+.messages-media-picker__gifs--masonry {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.messages-gif-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 8px;
+}
+.messages-gif-column {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.messages-media-picker__gifs--masonry .messages-gif-result {
+  width: 100%;
+  min-height: 0;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgb(60 60 67 / 10%);
+  border-radius: 12px;
+  background: var(--sky-surface-muted);
+  box-shadow: none;
+}
+.messages-media-picker__gifs--masonry .messages-gif-result img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
 .messages-media-picker__gifs .messages-gif-more {
+  width: 100%;
   min-height: 36px;
-  grid-column: 1 / -1;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   color: var(--ios-blue);
   font-size: 12px;
   font-weight: 650;
@@ -6934,6 +6998,12 @@ button {
 }
 .phone-app.dark .messages-media-picker__gifs button {
   background: #2c2c2e;
+}
+.phone-app.dark
+  .messages-media-picker__gifs--masonry
+  .messages-gif-result {
+  border-color: rgb(255 255 255 / 10%);
+  background: var(--sky-surface-muted);
 }
 .phone-app.dark .messages-media-picker__gifs .messages-gif-more,
 .phone-app.dark .messages-media-picker__gifs .messages-gif-error button {
@@ -7549,18 +7619,17 @@ button {
   min-height: var(--springboard-grid-row);
 }
 .app-icon-button {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  font-family: var(--sky-font-family);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
 .app-icon-label {
-  min-height: 15px;
-  font-size: 11.5px;
+  min-height: var(--sky-home-label-height);
+  font-size: var(--sky-home-label-font-size);
   font-weight: 500;
   letter-spacing: -0.15px;
-  line-height: 15px;
+  line-height: var(--sky-home-label-height);
   text-align: center;
 }
 .springboard-edit-add {

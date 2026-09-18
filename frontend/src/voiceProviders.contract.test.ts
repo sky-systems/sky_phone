@@ -18,8 +18,8 @@ const clientCalls = readFileSync(
   new URL('../../sky_phone/source/bridge/client/calls.lua', import.meta.url),
   'utf8',
 )
-const clientMain = readFileSync(
-  new URL('../../sky_phone/source/client/main.lua', import.meta.url),
+const clientNuiBridge = readFileSync(
+  new URL('../../sky_phone/source/client/nui_server_bridge.lua', import.meta.url),
   'utf8',
 )
 const phoneApp = readFileSync(
@@ -70,7 +70,7 @@ describe('voice provider contracts', () => {
     expect(serverCalls).toMatch(
       /call\.speakers\[source\] = data\.enabled\s+send_state\(call, source, "connected", call\.channel\)/,
     )
-    expect(clientMain).toContain('"calls:set-speaker"')
+    expect(clientNuiBridge).toMatch(/calls\s*=\s*\[\[[^\]]*set-speaker/)
     expect(clientCalls).toContain(
       'SaltyChat call membership is owned by the server bridge.',
     )
@@ -111,9 +111,38 @@ describe('voice provider contracts', () => {
     expect(serverCalls).toContain(
       'Bridge.Callbacks.Register("sky_phone:calls:set-muted"',
     )
-    expect(clientMain).toContain('"calls:set-muted"')
+    expect(clientNuiBridge).toMatch(/calls\s*=\s*\[\[[^\]]*set-muted/)
     expect(phoneApp).toContain('@click="toggleCallMute"')
     expect(phoneApp).not.toContain('callMuted = !callMuted')
+  })
+
+  it('keeps calls compatible with Yaca releases before the server status export', () => {
+    expect(serverVoice).toContain('is_missing_yaca_status_export')
+    expect(serverVoice).toContain('normalized:find("no such export", 1, true)')
+    expect(serverVoice).toContain('warned_about_legacy_yaca_status')
+    expect(serverVoice).toContain(
+      'using legacy compatibility because yaca-voice is started',
+    )
+    expect(serverVoice).toMatch(
+      /if is_missing_yaca_status_export\(enabled\) then[\s\S]*?return true/,
+    )
+    expect(serverVoice).toMatch(
+      /if success then\s+return enabled == true\s+end/,
+    )
+  })
+
+  it('supports explicit automatic call-provider discovery on client and server', () => {
+    expect(config).toContain(
+      'VoiceProvider = "pma", -- auto, yaca (alias: yaca-voice)',
+    )
+    expect(clientCalls).toContain('if configured == "auto" then')
+    expect(serverVoice).toContain('if configured == "auto" then')
+    expect(clientCalls).toContain(
+      'for _, candidate in ipairs({ "yaca", "pma", "saltychat" }) do',
+    )
+    expect(serverVoice).toContain(
+      'for _, candidate in ipairs({ "yaca", "pma", "saltychat" }) do',
+    )
   })
 
   it('passes Yaca radio volume arguments in the documented order', () => {

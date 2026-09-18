@@ -210,7 +210,7 @@ onBeforeUnmount(() => {
   z-index: 40;
   display: flex;
   pointer-events: none;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--sky-font-family);
 }
 
 .radio-hud[data-horizontal='left'] {

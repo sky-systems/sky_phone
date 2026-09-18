@@ -168,6 +168,7 @@
 
 .sky-navbar__title {
   min-width: 0;
+  max-width: 100%;
   margin: 0;
   padding: 0 var(--sky-space-1);
   overflow: hidden;
@@ -525,9 +526,8 @@
   height: var(--sky-widget-label-height);
   overflow: hidden;
   color: var(--sky-widget-label-color, #fff);
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-  font-size: 11.5px;
+  font-family: var(--sky-font-family);
+  font-size: var(--sky-home-label-font-size);
   font-weight: 500;
   letter-spacing: -0.15px;
   line-height: var(--sky-widget-label-height);

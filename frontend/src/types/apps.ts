@@ -69,6 +69,7 @@ export type AppLaunchOrigin = {
 }
 
 type PhoneAppDefinitionBase = {
+  adminOnly?: boolean
   category: PhoneAppCategory
   dockOrder: number | null
   gridOrder: number
@@ -160,9 +161,9 @@ export type SkyPhoneAppBridgeResponse = {
 export type SkyPhoneAppContextV1 = {
   appId: string
   capabilities: SkyPhoneAppCapability[]
-  colorScheme: 'dark' | 'light'
-  language: string
-  locale: Record<string, unknown>
+  colorScheme?: 'dark' | 'light'
+  language?: string
+  locale?: Record<string, unknown>
   phoneScale: number
   protocolVersion: 1
   safeArea: {

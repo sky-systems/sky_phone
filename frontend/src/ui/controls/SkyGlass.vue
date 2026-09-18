@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
+import { readPhoneViewportGeometry } from '@/utils/phoneViewportGeometry'
+
 defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
@@ -90,8 +92,10 @@ function updateHighlightPosition(event: PointerEvent): void {
   }
 
   const element = root.value
-  const bounds = element?.getBoundingClientRect()
-  if (!element || !bounds) return
+  if (!element) return
+  const bounds =
+    readPhoneViewportGeometry(element)?.rect(element) ??
+    element.getBoundingClientRect()
   const scaleX = bounds.width > 0 ? element.offsetWidth / bounds.width : 1
   const scaleY = bounds.height > 0 ? element.offsetHeight / bounds.height : 1
   const localX = (event.clientX - bounds.left) * scaleX
@@ -124,7 +128,11 @@ function handlePointerDown(event: PointerEvent): void {
   if (props.disabled || !props.highlight) return
 
   if (event.pointerType === 'touch' || event.pointerType === 'pen') {
-    const bounds = root.value?.getBoundingClientRect()
+    const element = root.value
+    const bounds = element
+      ? (readPhoneViewportGeometry(element)?.rect(element) ??
+        element.getBoundingClientRect())
+      : null
     touchScale.value =
       bounds && bounds.width <= 60 && bounds.height <= 60 ? '1.25' : '1.05'
     capturedPointerId.value = event.pointerId

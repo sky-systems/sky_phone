@@ -2,11 +2,34 @@ import { describe, expect, it } from 'vitest'
 import type { LaunchablePhoneAppId } from '@/types/apps'
 import {
   DEFAULT_PHONE_PREFERENCES,
+  PHONE_SCALE_STEP,
   PHONE_SETUP_LAST_STEP,
   parsePhonePreferences,
   WALLPAPER_IDS,
 } from './preferences'
 describe('preferences', () => {
+  it('keeps caller ID visible by default and restores only boolean privacy settings', () => {
+    expect(parsePhonePreferences(null).settings.hideCallerId).toBe(false)
+    for (const hideCallerId of [undefined, false, 'true', 1, null]) {
+      expect(
+        parsePhonePreferences(
+          JSON.stringify({ version: 1, settings: { hideCallerId } }),
+        ).settings.hideCallerId,
+      ).toBe(false)
+    }
+    const hidden = parsePhonePreferences(
+      JSON.stringify({ version: 1, settings: { hideCallerId: true } }),
+    )
+    expect(hidden.settings.hideCallerId).toBe(true)
+    expect(
+      parsePhonePreferences(JSON.stringify(hidden)).settings.hideCallerId,
+    ).toBe(true)
+  })
+
+  it('allows one-percent phone scale adjustments', () => {
+    expect(PHONE_SCALE_STEP).toBe(1)
+  })
+
   it('starts Setup Assistant for a phone without saved settings', () => {
     const value = parsePhonePreferences(null)
 
@@ -120,6 +143,38 @@ describe('preferences', () => {
     expect(value.settings.phoneScale).toBe(150)
     expect(value.settings.ringtoneVolume).toBe(100)
     expect(value.settings.screenBrightness).toBe(10)
+  })
+
+  it('preserves valid custom tone ids without persisting their URLs', () => {
+    const notificationId = 'custom:1fbd07b4-d231-4a76-b661-c9e5d0ab19a8'
+    const ringtoneId = 'custom:a1e8db72-bc56-41c8-84e2-521180e14db1'
+    const value = parsePhonePreferences(
+      JSON.stringify({
+        version: 1,
+        settings: {
+          notificationSound: notificationId,
+          ringtone: ringtoneId,
+        },
+      }),
+    )
+
+    expect(value.settings.notificationSound).toBe(notificationId)
+    expect(value.settings.ringtone).toBe(ringtoneId)
+  })
+
+  it('rejects malformed custom tone ids', () => {
+    const value = parsePhonePreferences(
+      JSON.stringify({
+        version: 1,
+        settings: {
+          notificationSound: 'custom:../unsafe',
+          ringtone: 'custom:',
+        },
+      }),
+    )
+
+    expect(value.settings.notificationSound).toBe('chime')
+    expect(value.settings.ringtone).toBe('skyline')
   })
 
   it('keeps the phone above the minimum usable scale', () => {

@@ -34,6 +34,11 @@ local function trim(value)
     return value:match("^%s*(.-)%s*$")
 end
 
+-- oxmysql can return TINYINT(1) columns as booleans or numeric values.
+local function database_boolean(value)
+    return value == true or tonumber(value) == 1
+end
+
 local function valid_text(value, maximum, allow_empty)
     local text = trim(value)
     if not text or text:find("%z") then
@@ -156,12 +161,18 @@ local function permission_grade(definition, permission)
     return grade and math.max(0, math.floor(grade)) or nil
 end
 
-local function validate_configuration()
-    if type(Config.Companies) ~= "table" or type(Config.Companies.Definitions) ~= "table" then
-        error("[sky_phone] Config.Companies.Definitions must be configured.")
+local function validate_configuration(configuration)
+    local company_config = configuration.Companies
+    local validated_definitions = {}
+    local validated_definition_ids = {}
+    local validated_definitions_by_job = {}
+    local validated_service_lines_by_number = {}
+
+    if type(company_config) ~= "table" or type(company_config.Definitions) ~= "table" then
+        return nil, "[sky_phone] Config.Companies.Definitions must be configured."
     end
-    if type(Config.Companies.Enabled) ~= "boolean" then
-        error("[sky_phone] Config.Companies.Enabled must be a boolean.")
+    if type(company_config.Enabled) ~= "boolean" then
+        return nil, "[sky_phone] Config.Companies.Enabled must be a boolean."
     end
     for _, field in ipairs({
         { "PageSize", 1000 },
@@ -184,26 +195,26 @@ local function validate_configuration()
         { "AnnouncementMaximumSeconds", 31536000 },
         { "RetentionDays", 36500 },
     }) do
-        if not valid_integer(Config.Companies[field[1]], 1, field[2]) then
-            error(("[sky_phone] Config.Companies.%s is outside its supported range."):format(field[1]))
+        if not valid_integer(company_config[field[1]], 1, field[2]) then
+            return nil, ("[sky_phone] Config.Companies.%s is outside its supported range."):format(field[1])
         end
     end
-    if Config.Companies.PageSize > Config.Companies.MaximumPageSize then
-        error("[sky_phone] Companies PageSize cannot exceed MaximumPageSize.")
+    if company_config.PageSize > company_config.MaximumPageSize then
+        return nil, "[sky_phone] Companies PageSize cannot exceed MaximumPageSize."
     end
-    if type(Config.Companies.RateLimits) ~= "table" then
-        error("[sky_phone] Config.Companies.RateLimits must be configured.")
+    if type(company_config.RateLimits) ~= "table" then
+        return nil, "[sky_phone] Config.Companies.RateLimits must be configured."
     end
     for _, name in ipairs({ "Read", "Search", "CreateRequest", "Message", "RequestAction", "Profile", "CallAvailability" }) do
-        if not valid_integer(Config.Companies.RateLimits[name], 1, 100000) then
-            error(("[sky_phone] Companies rate limit '%s' is invalid."):format(name))
+        if not valid_integer(company_config.RateLimits[name], 1, 100000) then
+            return nil, ("[sky_phone] Companies rate limit '%s' is invalid."):format(name)
         end
     end
-    if type(Config.Companies.CallRouting) ~= "table"
-        or not valid_integer(Config.Companies.CallRouting.MaxAttempts, 1, 20)
-        or not valid_integer(Config.Companies.CallRouting.RingSeconds, 1, 120)
+    if type(company_config.CallRouting) ~= "table"
+        or not valid_integer(company_config.CallRouting.MaxAttempts, 1, 20)
+        or not valid_integer(company_config.CallRouting.RingSeconds, 1, 120)
     then
-        error("[sky_phone] Config.Companies.CallRouting is invalid.")
+        return nil, "[sky_phone] Config.Companies.CallRouting is invalid."
     end
     local configured_statuses = {
         new = true,
@@ -213,75 +224,76 @@ local function validate_configuration()
         completed = true,
         cancelled = true,
     }
-    if type(Config.Companies.Statuses) ~= "table" then
-        error("[sky_phone] Config.Companies.Statuses must be configured.")
+    if type(company_config.Statuses) ~= "table" then
+        return nil, "[sky_phone] Config.Companies.Statuses must be configured."
     end
     for status in pairs(configured_statuses) do
-        if Config.Companies.Statuses[status] ~= true then
-            error(("[sky_phone] Companies status '%s' must be enabled."):format(status))
+        if company_config.Statuses[status] ~= true then
+            return nil, ("[sky_phone] Companies status '%s' must be enabled."):format(status)
         end
     end
-    for status, enabled in pairs(Config.Companies.Statuses) do
+    for status, enabled in pairs(company_config.Statuses) do
         if not configured_statuses[status] or enabled ~= true then
-            error(("[sky_phone] Companies status '%s' is unsupported."):format(tostring(status)))
+            return nil, ("[sky_phone] Companies status '%s' is unsupported."):format(tostring(status))
         end
     end
-    if type(Config.Companies.AvailabilityStatuses) ~= "table" then
-        error("[sky_phone] Config.Companies.AvailabilityStatuses must be configured.")
+    if type(company_config.AvailabilityStatuses) ~= "table" then
+        return nil, "[sky_phone] Config.Companies.AvailabilityStatuses must be configured."
     end
     local configured_availability = { available = true, busy = true, closed = true }
     for _, status in ipairs({ "available", "busy", "closed" }) do
-        if Config.Companies.AvailabilityStatuses[status] ~= true then
-            error(("[sky_phone] Companies availability status '%s' must be enabled."):format(status))
+        if company_config.AvailabilityStatuses[status] ~= true then
+            return nil, ("[sky_phone] Companies availability status '%s' must be enabled."):format(status)
         end
     end
-    for status, enabled in pairs(Config.Companies.AvailabilityStatuses) do
+    for status, enabled in pairs(company_config.AvailabilityStatuses) do
         if not configured_availability[status] or enabled ~= true then
-            error(("[sky_phone] Companies availability status '%s' is unsupported."):format(tostring(status)))
+            return nil, ("[sky_phone] Companies availability status '%s' is unsupported."):format(tostring(status))
         end
     end
-    if not valid_array(Config.Companies.Categories, 100) then
-        error("[sky_phone] Config.Companies.Categories must be a bounded array.")
+    if not valid_array(company_config.Categories, 100) then
+        return nil, "[sky_phone] Config.Companies.Categories must be a bounded array."
     end
     local category_ids = {}
     local configured_service_ids = {}
-    for _, category_id in ipairs(Config.Companies.Categories) do
+    for _, category_id in ipairs(company_config.Categories) do
         if type(category_id) ~= "string" or #category_id > 64
             or not category_id:match("^[a-z0-9_-]+$") or category_ids[category_id]
         then
-            error("[sky_phone] Companies contains an invalid category ID.")
+            return nil, "[sky_phone] Companies contains an invalid category ID."
         end
         category_ids[category_id] = true
     end
 
-    for company_id, definition in pairs(Config.Companies.Definitions) do
+    for company_id, definition in pairs(company_config.Definitions) do
         if type(company_id) ~= "string" or #company_id > 64 or not company_id:match("^[a-z0-9_-]+$")
             or type(definition) ~= "table"
             or type(definition.Job) ~= "string" or #definition.Job > 64
             or not definition.Job:match("^[%w_-]+$")
-            or not valid_text(definition.Name, 120, false)
+            or not valid_text(definition.Name, 32, false)
             or not category_ids[definition.Category]
         then
-            error(("[sky_phone] Company definition '%s' is invalid."):format(tostring(company_id)))
+            return nil, ("[sky_phone] Company definition '%s' is invalid."):format(tostring(company_id))
         end
-        local description = valid_text(definition.Description or "", Config.Companies.ProfileDescriptionMaxLength, true)
-        local district = valid_text(definition.District or "", Config.Companies.DistrictMaxLength, true)
+        local description = valid_text(definition.Description or "", company_config.ProfileDescriptionMaxLength, true)
+        local district = valid_text(definition.District or "", company_config.DistrictMaxLength, true)
         local location_label = valid_text(
             definition.LocationLabel or definition.Address or "",
-            Config.Companies.DistrictMaxLength,
+            company_config.DistrictMaxLength,
             true
         )
-        local address = valid_text(definition.Address or "", Config.Companies.AddressMaxLength, true)
+        local address = valid_text(definition.Address or "", company_config.AddressMaxLength, true)
         local logo_url = valid_text(definition.LogoUrl, 2048, false)
+        local cover_url = valid_text(definition.CoverUrl == nil and "" or definition.CoverUrl, 2048, true)
         if not description or not district or not location_label or not address
             or type(definition.Public) ~= "boolean" or type(definition.Emergency) ~= "boolean"
             or type(definition.Verified) ~= "boolean" or type(definition.AcceptsRequests) ~= "boolean"
-            or not Config.Companies.AvailabilityStatuses[definition.DefaultAvailability]
+            or not company_config.AvailabilityStatuses[definition.DefaultAvailability]
             or not valid_text(definition.Icon, 64, false)
             or not logo_url or not logo_url:match("^https://[^%s]+$")
-            or (definition.Emergency and definition.AcceptsRequests)
+            or not cover_url or (cover_url ~= "" and not cover_url:match("^https://[^%s]+$"))
         then
-            error(("[sky_phone] Company definition '%s' has invalid public profile defaults."):format(company_id))
+            return nil, ("[sky_phone] Company definition '%s' has invalid public profile defaults."):format(company_id)
         end
         definition.Name = trim(definition.Name)
         definition.Description = description
@@ -289,10 +301,11 @@ local function validate_configuration()
         definition.LocationLabel = location_label
         definition.Address = address
         definition.LogoUrl = logo_url
+        definition.CoverUrl = cover_url
         if definition.Location ~= nil then
             local location_type = type(definition.Location)
             if location_type ~= "table" and location_type ~= "vector3" then
-                error(("[sky_phone] Company definition '%s' has invalid location coordinates."):format(company_id))
+                return nil, ("[sky_phone] Company definition '%s' has invalid location coordinates."):format(company_id)
             end
             local x = tonumber(definition.Location.x)
             local y = tonumber(definition.Location.y)
@@ -300,46 +313,46 @@ local function validate_configuration()
             if not x or not y or not z or x ~= x or y ~= y or z ~= z
                 or math.abs(x) > 10000 or math.abs(y) > 10000 or math.abs(z) > 2000
             then
-                error(("[sky_phone] Company definition '%s' has invalid location coordinates."):format(company_id))
+                return nil, ("[sky_phone] Company definition '%s' has invalid location coordinates."):format(company_id)
             end
         end
-        if definitions_by_job[definition.Job] then
-            error(("[sky_phone] Framework job '%s' is assigned to more than one company."):format(definition.Job))
+        if validated_definitions_by_job[definition.Job] then
+            return nil, ("[sky_phone] Framework job '%s' is assigned to more than one company."):format(definition.Job)
         end
         local line = definition.ServiceLine
         if type(line) ~= "table" then
-            error(("[sky_phone] Company '%s' has no service line configuration."):format(company_id))
+            return nil, ("[sky_phone] Company '%s' has no service line configuration."):format(company_id)
         end
-        local number = SkyPhoneSimNumber.NormalizeService(line.Number, Config.Sim.NumberLength)
+        local number = SkyPhoneSimNumber.NormalizeService(line.Number, configuration.Sim.NumberLength)
         if not number then
-            error(("[sky_phone] Company '%s' has an invalid service number."):format(company_id))
+            return nil, ("[sky_phone] Company '%s' has an invalid service number."):format(company_id)
         end
-        if service_lines_by_number[number] then
-            error(("[sky_phone] Service number '%s' is assigned more than once."):format(number))
+        if validated_service_lines_by_number[number] then
+            return nil, ("[sky_phone] Service number '%s' is assigned more than once."):format(number)
         end
         if type(line.AutoContact) ~= "boolean" or type(line.CanCall) ~= "boolean"
             or type(line.CanMessage) ~= "boolean"
             or not valid_integer(line.MinimumGrade, 0, 10000)
         then
-            error(("[sky_phone] Company '%s' has invalid service line flags or grade."):format(company_id))
+            return nil, ("[sky_phone] Company '%s' has invalid service line flags or grade."):format(company_id)
         end
         if line.AutoContact and not definition.Public then
-            error(("[sky_phone] Private company '%s' cannot create a public system contact."):format(company_id))
+            return nil, ("[sky_phone] Private company '%s' cannot create a public system contact."):format(company_id)
         end
-        if line.Routing ~= "round_robin" then
-            error(("[sky_phone] Company '%s' uses unsupported call routing '%s'."):format(company_id, tostring(line.Routing)))
-        end
-        if line.CanMessage then
-            error(("[sky_phone] Company '%s' enables messaging without a virtual service-line message router."):format(company_id))
+        if line.Routing ~= "round_robin" and line.Routing ~= "ring_all" then
+            return nil, ("[sky_phone] Company '%s' uses unsupported call routing '%s'."):format(
+                company_id,
+                tostring(line.Routing)
+            )
         end
         line.Number = number
-        definitions[company_id] = definition
-        definition_ids[#definition_ids + 1] = company_id
-        definitions_by_job[definition.Job] = company_id
-        service_lines_by_number[number] = company_id
+        validated_definitions[company_id] = definition
+        validated_definition_ids[#validated_definition_ids + 1] = company_id
+        validated_definitions_by_job[definition.Job] = company_id
+        validated_service_lines_by_number[number] = company_id
         for _, permission in ipairs({ "WorkQueue", "Availability", "Assign", "Profile", "Hours", "Services", "Announcement" }) do
             if not definition.Permissions or not valid_integer(definition.Permissions[permission], 0, 10000) then
-                error(("[sky_phone] Company '%s' has no valid '%s' grade."):format(company_id, permission))
+                return nil, ("[sky_phone] Company '%s' has no valid '%s' grade."):format(company_id, permission)
             end
         end
         local default_services = definition.Services
@@ -347,40 +360,119 @@ local function validate_configuration()
             default_services = {}
             definition.Services = default_services
         end
-        if not valid_array(default_services, Config.Companies.MaximumServices) then
-            error(("[sky_phone] Company '%s' has an invalid default service list."):format(company_id))
+        if not valid_array(default_services, company_config.MaximumServices) then
+            return nil, ("[sky_phone] Company '%s' has an invalid default service list."):format(company_id)
         end
         for _, service in ipairs(default_services) do
             if type(service) ~= "table" then
-                error(("[sky_phone] Company '%s' has an invalid default service."):format(company_id))
+                return nil, ("[sky_phone] Company '%s' has an invalid default service."):format(company_id)
             end
-            local title = valid_text(service.Title, Config.Companies.ServiceTitleMaxLength, false)
+            local title = valid_text(service.Title, company_config.ServiceTitleMaxLength, false)
             local service_description = valid_text(
                 service.Description or "",
-                Config.Companies.ServiceDescriptionMaxLength,
+                company_config.ServiceDescriptionMaxLength,
                 true
             )
-            local price = valid_text(service.Price or "", Config.Companies.ServicePriceMaxLength, true)
+            local price = valid_text(service.Price or "", company_config.ServicePriceMaxLength, true)
             if not valid_service_id(service.Id) or not title or not service_description or not price
                 or type(service.RequestsEnabled) ~= "boolean"
             then
-                error(("[sky_phone] Company '%s' has an invalid default service."):format(company_id))
+                return nil, ("[sky_phone] Company '%s' has an invalid default service."):format(company_id)
             end
             service.Title = title
             service.Description = service_description
             service.Price = price
             if configured_service_ids[service.Id] then
-                error(("[sky_phone] Default company service ID '%s' is configured more than once."):format(service.Id))
+                return nil, ("[sky_phone] Default company service ID '%s' is configured more than once."):format(service.Id)
             end
             configured_service_ids[service.Id] = true
         end
     end
 
-    table.sort(definition_ids, function(left, right)
-        local left_name = definitions[left].Name:lower()
-        local right_name = definitions[right].Name:lower()
+    table.sort(validated_definition_ids, function(left, right)
+        local left_name = validated_definitions[left].Name:lower()
+        local right_name = validated_definitions[right].Name:lower()
         return left_name == right_name and left < right or left_name < right_name
     end)
+    return {
+        definition_ids = validated_definition_ids,
+        definitions = validated_definitions,
+        definitions_by_job = validated_definitions_by_job,
+        service_lines_by_number = validated_service_lines_by_number,
+    }
+end
+
+function SkyPhoneCompanies.ValidateConfiguration(configuration)
+    local validated, validation_error = validate_configuration(configuration)
+    if not validated then
+        return false, validation_error
+    end
+    return true
+end
+
+local function profile_configuration(definition)
+    return {
+        description = definition.Description or "",
+        district = definition.District or "",
+        location_label = definition.LocationLabel or definition.Address or "",
+        address = definition.Address or "",
+    }
+end
+
+local function sync_profile_configuration(company_id, definition)
+    local configured = profile_configuration(definition)
+    local defaults = ConfigDefaults.Companies.Definitions[company_id]
+    local legacy = defaults and profile_configuration(defaults) or {}
+    for _ = 1, 3 do
+        local rows = Bridge.Database.Query([[
+            SELECT `description`, `district`, `location_label`, `address`, `config_profile`, `revision`
+            FROM `sky_phone_company_profiles` WHERE `company_id` = ? LIMIT 1
+        ]], { company_id })
+        local row = rows[1]
+        if not row then
+            error(("[sky_phone] Missing company profile '%s' during configuration sync."):format(company_id))
+        end
+        local previous
+        if row.config_profile ~= nil then
+            local decoded, value = pcall(json.decode, row.config_profile)
+            if not decoded or type(value) ~= "table" then
+                error(("[sky_phone] Invalid configuration snapshot for company '%s'."):format(company_id))
+            end
+            previous = value
+        end
+        local set_parts, parameters = {}, {}
+        local configuration_changed = previous == nil
+        for _, field in ipairs({ "description", "district", "location_label", "address" }) do
+            if not previous or previous[field] ~= configured[field] then
+                configuration_changed = true
+                -- On upgrade, only replace recognizable stock values. Once a
+                -- snapshot exists, an explicit admin change wins for that field.
+                if (previous or row[field] == legacy[field]) and row[field] ~= configured[field] then
+                    set_parts[#set_parts + 1] = ("`%s` = ?"):format(field)
+                    parameters[#parameters + 1] = configured[field]
+                end
+            end
+        end
+        if not configuration_changed then
+            return
+        end
+        local profile_changed = #set_parts > 0
+        set_parts[#set_parts + 1] = "`config_profile` = ?"
+        parameters[#parameters + 1] = json.encode(configured)
+        set_parts[#set_parts + 1] = "`revision` = `revision` + 1"
+        set_parts[#set_parts + 1] = profile_changed and "`updated_at` = CURRENT_TIMESTAMP"
+            or "`updated_at` = `updated_at`"
+        parameters[#parameters + 1] = company_id
+        parameters[#parameters + 1] = tonumber(row.revision)
+        local result = Bridge.Database.Query(([[
+            UPDATE `sky_phone_company_profiles` SET %s WHERE `company_id` = ? AND `revision` = ?
+        ]]):format(table.concat(set_parts, ", ")), parameters)
+        local affected = type(result) == "table" and tonumber(result.affectedRows) or tonumber(result)
+        if affected == 1 then
+            return
+        end
+    end
+    error(("[sky_phone] Could not synchronize configuration for company '%s'."):format(company_id))
 end
 
 local function seed_companies()
@@ -440,6 +532,7 @@ local function seed_companies()
                 definition.AcceptsRequests and 1 or 0,
             })
         end
+        sync_profile_configuration(company_id, definition)
         for index, service in ipairs(definition.Services or {}) do
             Bridge.Database.Query([[
                 INSERT IGNORE INTO `sky_phone_company_services`
@@ -464,6 +557,48 @@ local function seed_companies()
         end
     end
 
+end
+
+local function migrate_requestable_emergency_companies()
+    local migration_name = "sky-phone:companies:requestable-emergency:v1"
+    local completed = Bridge.Database.Query(
+        "SELECT 1 FROM `sky_phone_migrations` WHERE `name` = ? LIMIT 1",
+        { migration_name }
+    )
+    if completed[1] then
+        return
+    end
+
+    local statements = {}
+    local migrated_companies = {}
+    for _, company_id in ipairs(definition_ids) do
+        local definition = definitions[company_id]
+        if definition.Emergency and definition.AcceptsRequests then
+            statements[#statements + 1] = {
+                query = [[
+                    UPDATE `sky_phone_company_profiles`
+                    SET `accepts_requests` = 1, `revision` = `revision` + 1
+                    WHERE `company_id` = ? AND `accepts_requests` = 0
+                ]],
+                params = { company_id },
+            }
+            migrated_companies[#migrated_companies + 1] = company_id
+        end
+    end
+    statements[#statements + 1] = {
+        query = [[
+            INSERT IGNORE INTO `sky_phone_migrations` (`name`, `source`, `stats`)
+            VALUES (?, ?, ?)
+        ]],
+        params = {
+            migration_name,
+            "sky-phone",
+            json.encode({ companies = migrated_companies }),
+        },
+    }
+    if not Bridge.Database.Transaction(statements) then
+        error("[sky_phone] Could not migrate requestable emergency company profiles.")
+    end
 end
 
 local function tombstone_removed_companies()
@@ -579,6 +714,12 @@ function SkyPhoneCompanies.ClearCallAvailability(source)
     call_availability[tonumber(source) or source] = nil
 end
 
+function SkyPhoneCompanies.CanUseServiceDevice(device)
+    return type(device) == "table" and type(device.sim_id) == "string" and device.sim_id ~= ""
+        and (Config.Sim.Enabled == false
+            or (device.sim_type == "registered" and device.registered_at ~= nil))
+end
+
 local function current_device(source, registered_required)
     local session, error_response = SkyPhone.RequireSession(source)
     if not session then
@@ -591,7 +732,7 @@ local function current_device(source, registered_required)
     if not device.sim_id then
         return nil, { success = false, error = "no_sim" }
     end
-    if registered_required and (device.sim_type ~= "registered" or not device.registered_at) then
+    if registered_required and not SkyPhoneCompanies.CanUseServiceDevice(device) then
         return nil, { success = false, error = "anonymous_sim" }
     end
     return device
@@ -668,29 +809,23 @@ function SkyPhoneCompanies.CanPlaceCompanyCall(source, company_id)
 end
 
 function SkyPhoneCompanies.GetCallTargets(company_id)
-    local targets = {}
+    local target_groups = { {}, {} }
     local definition = definitions[company_id]
     if not Config.Companies.Enabled or not definition or not definition.ServiceLine.CanCall then
-        return targets
-    end
-    local online = {}
-    for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
-        online[tonumber(player_source) or player_source] = true
+        return {}
     end
     for source, readiness in pairs(call_availability) do
-        local member = online[source] and call_member(source) or nil
-        local device = member and current_device(source, true) or nil
-        if not member or not device or member.company_id ~= readiness.company_id
-            or readiness.company_id ~= company_id or readiness.imei ~= device.imei
-            or readiness.sim_id ~= device.sim_id
-        then
-            if not member or not device or member.company_id ~= readiness.company_id
-                or readiness.imei ~= (device and device.imei)
-                or readiness.sim_id ~= (device and device.sim_id)
-            then
-                call_availability[source] = nil
-            end
-        else
+        local member = call_member(source)
+        local device = member and SkyPhone.LoadDevice(readiness.imei) or nil
+        local device_slots = device and SkyPhone.FindDeviceSlots(source, readiness.imei) or {}
+        local readiness_valid = member and device and device_slots[1]
+            and member.company_id == readiness.company_id
+            and device.sim_id == readiness.sim_id
+            and SkyPhoneCompanies.CanUseServiceDevice(device)
+        if not readiness_valid then
+            call_availability[source] = nil
+        elseif readiness.company_id == company_id then
+            local targets = target_groups[readiness.dispatcher == true and 1 or 2]
             targets[#targets + 1] = {
                 source = source,
                 simId = device.sim_id,
@@ -700,18 +835,27 @@ function SkyPhoneCompanies.GetCallTargets(company_id)
             }
         end
     end
-    table.sort(targets, function(left, right)
-        return left.source < right.source
-    end)
-    if #targets < 2 then
-        return targets
-    end
-    local start = (round_robin_positions[company_id] or 0) % #targets + 1
+    -- Dispatchers come first; only round-robin rotates within each priority group.
+    local ring_all = definition.ServiceLine.Routing == "ring_all"
+    local positions = round_robin_positions[company_id] or {}
     local ordered = {}
-    for offset = 0, #targets - 1 do
-        ordered[#ordered + 1] = targets[(start + offset - 1) % #targets + 1]
+    for group_index, targets in ipairs(target_groups) do
+        table.sort(targets, function(left, right)
+            return left.source < right.source
+        end)
+        if #targets > 0 then
+            local start = ring_all and 1 or (positions[group_index] or 0) % #targets + 1
+            for offset = 0, #targets - 1 do
+                ordered[#ordered + 1] = targets[(start + offset - 1) % #targets + 1]
+            end
+            if not ring_all then
+                positions[group_index] = start
+            end
+        end
     end
-    round_robin_positions[company_id] = start
+    if not ring_all then
+        round_robin_positions[company_id] = positions
+    end
     return ordered
 end
 
@@ -721,12 +865,9 @@ local function profile_row(company_id)
             p.`location_x`, p.`location_y`, p.`location_z`, p.`availability`,
             UNIX_TIMESTAMP(p.`availability_updated_at`) AS `availability_updated_at_unix`,
             UNIX_TIMESTAMP(p.`availability_expires_at`) AS `availability_expires_at_unix`,
-            p.`logo_media_id`, p.`cover_media_id`, p.`accepts_requests`, p.`revision`,
-            UNIX_TIMESTAMP(p.`updated_at`) AS `updated_at_unix`,
-            logo.`url` AS `logo_url`, cover.`url` AS `cover_url`
+            p.`accepts_requests`, p.`revision`,
+            UNIX_TIMESTAMP(p.`updated_at`) AS `updated_at_unix`
         FROM `sky_phone_company_profiles` p
-        LEFT JOIN `sky_phone_media` logo ON logo.`id` = p.`logo_media_id`
-        LEFT JOIN `sky_phone_media` cover ON cover.`id` = p.`cover_media_id`
         WHERE p.`company_id` = ?
         LIMIT 1
     ]], { company_id })
@@ -749,8 +890,8 @@ local function company_services(company_id, include_inactive)
             title = row.title,
             description = row.description,
             priceText = row.price_text ~= "" and row.price_text or nil,
-            acceptsRequests = tonumber(row.requests_enabled) == 1,
-            active = tonumber(row.active) == 1,
+            acceptsRequests = database_boolean(row.requests_enabled),
+            active = database_boolean(row.active),
         }
     end
     return services
@@ -767,7 +908,7 @@ local function company_hours(company_id)
     for _, row in ipairs(rows) do
         hours[#hours + 1] = {
             day = tonumber(row.weekday),
-            isClosed = tonumber(row.is_closed) == 1,
+            isClosed = database_boolean(row.is_closed),
             opensAt = row.opens_at,
             closesAt = row.closes_at,
         }
@@ -828,13 +969,13 @@ local function company_payload(company_id, include_inactive_services)
         availability = availability,
         availabilityUpdatedAt = iso_time(row.availability_updated_at_unix)
             or iso_time(row.updated_at_unix),
-        acceptsRequests = tonumber(row.accepts_requests) == 1 and not definition.Emergency,
+        acceptsRequests = database_boolean(row.accepts_requests),
         phoneNumber = line and line.Number or nil,
         canCall = line and line.CanCall == true or false,
         canMessage = line and line.CanMessage == true or false,
         location = location,
-        logoUrl = row.logo_url or definition.LogoUrl,
-        coverUrl = row.cover_url,
+        logoUrl = definition.LogoUrl,
+        coverUrl = definition.CoverUrl ~= "" and definition.CoverUrl or nil,
         serviceSummary = services[1] and services[1].title or "",
         announcement = current_announcement(company_id),
         services = services,
@@ -907,9 +1048,22 @@ local function cleanup_retained_data()
     end
 end
 
-validate_configuration()
-seed_companies()
-tombstone_removed_companies()
+local function refresh_runtime_configuration()
+    local validated, validation_error = validate_configuration(Config)
+    if not validated then
+        error(validation_error)
+    end
+    definitions = validated.definitions
+    definition_ids = validated.definition_ids
+    definitions_by_job = validated.definitions_by_job
+    service_lines_by_number = validated.service_lines_by_number
+    seed_companies()
+    migrate_requestable_emergency_companies()
+    tombstone_removed_companies()
+end
+
+refresh_runtime_configuration()
+
 cleanup_retained_data()
 
 CreateThread(function()
@@ -922,12 +1076,8 @@ end)
 CreateThread(function()
     while true do
         Wait(1000)
-        local online = {}
-        for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
-            online[tonumber(player_source) or player_source] = true
-        end
         for source, readiness in pairs(call_availability) do
-            local member = online[source] and call_member(source) or nil
+            local member = call_member(source)
             if not member or member.company_id ~= readiness.company_id
                 or member.definition.ServiceLine.CanCall ~= true
             then
@@ -1112,16 +1262,13 @@ end
 
 local function request_row(request_id)
     local rows = Bridge.Database.Query([[
-        SELECT r.`id`, r.`company_id`, r.`service_id`, r.`customer_sim_id`, r.`subject`, r.`description`,
+        SELECT r.`id`, r.`company_id`, r.`service_id`, r.`channel`, r.`customer_sim_id`, r.`subject`, r.`description`,
             r.`status`, r.`assigned_identifier`, r.`customer_unread`,
             r.`company_activity_revision`, r.`revision`,
             UNIX_TIMESTAMP(r.`created_at`) AS `created_at_unix`,
-            UNIX_TIMESTAMP(r.`updated_at`) AS `updated_at_unix`, service.`title` AS `service_title`,
-            logo.`url` AS `company_logo_url`
+            UNIX_TIMESTAMP(r.`updated_at`) AS `updated_at_unix`, service.`title` AS `service_title`
         FROM `sky_phone_company_requests` r
         LEFT JOIN `sky_phone_company_services` service ON service.`id` = r.`service_id`
-        LEFT JOIN `sky_phone_company_profiles` profile ON profile.`company_id` = r.`company_id`
-        LEFT JOIN `sky_phone_media` logo ON logo.`id` = profile.`logo_media_id`
         WHERE r.`id` = ?
         LIMIT 1
     ]], { request_id })
@@ -1150,7 +1297,7 @@ local function request_summary(row, audience, identifier)
         id = row.id,
         companyId = row.company_id,
         companyName = definition and definition.Name or row.company_id,
-        companyLogoUrl = row.company_logo_url,
+        companyLogoUrl = definition and definition.LogoUrl or nil,
         serviceId = row.service_id,
         serviceName = row.service_title,
         subject = row.subject,
@@ -1176,7 +1323,7 @@ local function request_access(source, request_id)
         return nil, { success = false, error = "request_failed" }
     end
     if device.sim_id and device.sim_id == row.customer_sim_id
-        and device.sim_type == "registered" and device.registered_at
+        and SkyPhoneCompanies.CanUseServiceDevice(device)
     then
         return { audience = "customer", row = row, device = device }
     end
@@ -1342,11 +1489,9 @@ local request_list_select = [[
         r.`assigned_identifier`, r.`customer_unread`, r.`company_activity_revision`, r.`revision`,
         UNIX_TIMESTAMP(r.`created_at`) AS `created_at_unix`,
         UNIX_TIMESTAMP(r.`updated_at`) AS `updated_at_unix`, service.`title` AS `service_title`,
-        logo.`url` AS `company_logo_url`, NULL AS `company_read_revision`
+        NULL AS `company_read_revision`
     FROM `sky_phone_company_requests` r
     LEFT JOIN `sky_phone_company_services` service ON service.`id` = r.`service_id`
-    LEFT JOIN `sky_phone_company_profiles` profile ON profile.`company_id` = r.`company_id`
-    LEFT JOIN `sky_phone_media` logo ON logo.`id` = profile.`logo_media_id`
 ]]
 
 local company_request_list_select = [[
@@ -1354,11 +1499,9 @@ local company_request_list_select = [[
         r.`assigned_identifier`, r.`customer_unread`, r.`company_activity_revision`, r.`revision`,
         UNIX_TIMESTAMP(r.`created_at`) AS `created_at_unix`,
         UNIX_TIMESTAMP(r.`updated_at`) AS `updated_at_unix`, service.`title` AS `service_title`,
-        logo.`url` AS `company_logo_url`, company_read.`read_revision` AS `company_read_revision`
+        company_read.`read_revision` AS `company_read_revision`
     FROM `sky_phone_company_requests` r
     LEFT JOIN `sky_phone_company_services` service ON service.`id` = r.`service_id`
-    LEFT JOIN `sky_phone_company_profiles` profile ON profile.`company_id` = r.`company_id`
-    LEFT JOIN `sky_phone_media` logo ON logo.`id` = profile.`logo_media_id`
     LEFT JOIN `sky_phone_company_request_reads` company_read
         ON company_read.`request_id` = r.`id` AND company_read.`reader_identifier` = ?
 ]]
@@ -1390,6 +1533,7 @@ local function work_context(source)
         return {
             authorized = false,
             callAvailable = false,
+            callDispatcher = false,
             company = nil,
             metrics = { assigned = 0, completedToday = 0, new = 0, waiting = 0 },
             ownRequests = {},
@@ -1446,12 +1590,14 @@ local function work_context(source)
     local manager = permissions.canAssign or permissions.canManageAnnouncement
         or permissions.canManageHours or permissions.canManageProfile or permissions.canManageServices
     local readiness = call_availability[source]
+    local call_available = permissions.canTakeCalls and readiness ~= nil
+        and readiness.company_id == member.company_id
     local company = company_payload(member.company_id, true)
     company.updatedAtUnix = nil
     return {
         authorized = true,
-        callAvailable = permissions.canTakeCalls and readiness ~= nil
-            and readiness.company_id == member.company_id,
+        callAvailable = call_available,
+        callDispatcher = call_available and readiness.dispatcher == true,
         company = company,
         metrics = {
             new = tonumber(metrics.new_count) or 0,
@@ -1570,6 +1716,13 @@ local function emit_public_change(company_id)
         })
     end
 end
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    refresh_runtime_configuration()
+    for _, company_id in ipairs(definition_ids) do
+        emit_public_change(company_id)
+    end
+end)
 
 local function emit_request_change(row, customer, company, excluded_source)
     local payload = {
@@ -1814,6 +1967,175 @@ local function notification_payload(kind, area, row)
     }
 end
 
+function SkyPhoneCompanies.RouteServiceLineMessage(source, data)
+    if not Config.Companies.Enabled or type(data) ~= "table"
+        or data.messageType ~= "text" or not valid_uuid(data.id)
+    then
+        return { success = false, error = "invalid_request" }
+    end
+    local device, device_error = current_device(source, false)
+    if not device then
+        return device_error
+    end
+    local service_line = SkyPhoneCompanies.GetServiceLine(data.phoneNumber)
+    if not service_line or not service_line.canMessage then
+        return { success = false, error = "messaging_unavailable" }
+    end
+    local body = valid_text(
+        data.body,
+        math.min(Config.Messages.BodyMaxLength, Config.Companies.MessageMaxLength),
+        false
+    )
+    if not body then
+        return { success = false, error = "invalid_message" }
+    end
+
+    local request_id = uuid()
+    local created_event_id = uuid()
+    local status_event_id = uuid()
+    local mutation_token = uuid()
+    local statements = {
+        {
+            query = "UPDATE `sky_phone_sims` SET `updated_at` = `updated_at` WHERE `id` = ?",
+            params = { device.sim_id },
+        },
+        {
+            query = [[
+                INSERT INTO `sky_phone_company_requests`
+                    (`id`, `company_id`, `channel`, `customer_sim_id`, `subject`, `description`,
+                        `company_activity_revision`)
+                SELECT ?, profile.`company_id`, 'service_line', sim.`id`, sim.`phone_number`, ?, 0
+                FROM `sky_phone_sims` sim
+                INNER JOIN `sky_phone_company_profiles` profile ON profile.`company_id` = ?
+                WHERE sim.`id` = ? AND NOT EXISTS (
+                    SELECT 1 FROM `sky_phone_company_requests` existing
+                    WHERE existing.`company_id` = profile.`company_id`
+                        AND existing.`customer_sim_id` = sim.`id`
+                        AND existing.`channel` = 'service_line'
+                        AND existing.`status` NOT IN ('completed', 'cancelled')
+                )
+            ]],
+            params = {
+                request_id,
+                body,
+                service_line.companyId,
+                device.sim_id,
+            },
+        },
+        {
+            query = [[
+                INSERT INTO `sky_phone_company_request_events`
+                    (`id`, `request_id`, `event_type`, `actor_type`, `to_status`, `detail`)
+                SELECT ?, `id`, 'created', 'customer', 'new', 'service_line'
+                FROM `sky_phone_company_requests` WHERE `id` = ?
+            ]],
+            params = { created_event_id, request_id },
+        },
+        {
+            query = [[
+                INSERT INTO `sky_phone_company_request_events`
+                    (`id`, `request_id`, `event_type`, `actor_type`, `from_status`, `to_status`, `detail`)
+                SELECT ?, `id`, 'status', 'customer', 'waiting_customer', 'in_progress', 'service_line_message'
+                FROM `sky_phone_company_requests`
+                WHERE `company_id` = ? AND `customer_sim_id` = ?
+                    AND `channel` = 'service_line' AND `status` = 'waiting_customer'
+                ORDER BY `updated_at` DESC, `id` DESC LIMIT 1
+            ]],
+            params = { status_event_id, service_line.companyId, device.sim_id },
+        },
+        {
+            query = [[
+                UPDATE `sky_phone_company_requests`
+                SET `status` = IF(`status` = 'waiting_customer', 'in_progress', `status`),
+                    `company_activity_revision` = `company_activity_revision` + 1,
+                    `revision` = `revision` + 1, `mutation_token` = ?
+                WHERE `company_id` = ? AND `customer_sim_id` = ?
+                    AND `channel` = 'service_line'
+                    AND `status` NOT IN ('completed', 'cancelled')
+                ORDER BY `updated_at` DESC, `id` DESC LIMIT 1
+            ]],
+            params = { mutation_token, service_line.companyId, device.sim_id },
+        },
+        {
+            query = [[
+                INSERT INTO `sky_phone_company_request_messages`
+                    (`id`, `request_id`, `sender_type`, `sender_sim_id`, `body`)
+                SELECT ?, `id`, 'customer', `customer_sim_id`, ?
+                FROM `sky_phone_company_requests`
+                WHERE `mutation_token` = ? LIMIT 1
+            ]],
+            params = { data.id, body, mutation_token },
+        },
+        {
+            query = [[
+                INSERT INTO `sky_phone_sms_messages`
+                    (`id`, `sender_sim_id`, `recipient_sim_id`, `sender_number`, `recipient_number`,
+                        `message_type`, `body`)
+                SELECT ?, sim.`id`, NULL, sim.`phone_number`, ?, 'text', ?
+                FROM `sky_phone_sims` sim
+                INNER JOIN `sky_phone_company_request_messages` message ON message.`id` = ?
+                WHERE sim.`id` = ?
+            ]],
+            params = {
+                data.id,
+                service_line.number,
+                body,
+                data.id,
+                device.sim_id,
+            },
+        },
+    }
+    if not Bridge.Database.Transaction(statements) then
+        return { success = false, error = "request_failed" }
+    end
+
+    local routed = Bridge.Database.Query([[
+        SELECT request.`id` AS `request_id`, created.`id` AS `created_event_id`
+        FROM `sky_phone_sms_messages` sms
+        INNER JOIN `sky_phone_company_request_messages` message ON message.`id` = sms.`id`
+        INNER JOIN `sky_phone_company_requests` request ON request.`id` = message.`request_id`
+        LEFT JOIN `sky_phone_company_request_events` created
+            ON created.`id` = ? AND created.`request_id` = request.`id`
+        WHERE sms.`id` = ? LIMIT 1
+    ]], { created_event_id, data.id })
+    if not routed[1] then
+        Bridge.Debug(
+            "error",
+            "[sky_phone] Service-line message %s committed without a complete route.",
+            tostring(data.id),
+            { always = true }
+        )
+        return { success = false, error = "request_failed" }
+    end
+    local row = request_row(routed[1].request_id)
+    if not row then
+        return { success = false, error = "request_failed" }
+    end
+
+    emit_request_change(row, true, true, source)
+    if routed[1].created_event_id then
+        notify_company(row.company_id, "sky_phone:companies:notification", notification_payload(
+            "newRequest",
+            "work",
+            row
+        ), source)
+    elseif row.assigned_identifier then
+        notify_identifier(
+            row.assigned_identifier,
+            row.company_id,
+            "sky_phone:companies:notification",
+            notification_payload("newMessage", "work", row)
+        )
+    end
+    return {
+        success = true,
+        data = {
+            messageId = data.id,
+            requestId = row.id,
+        },
+    }
+end
+
 Bridge.Callbacks.Register("sky_phone:companies:create-request", function(source, data)
     local allowed, rate_error = allow_mutation(source, "create_request", "CreateRequest")
     if not allowed then
@@ -1828,7 +2150,7 @@ Bridge.Callbacks.Register("sky_phone:companies:create-request", function(source,
     end
     local company_id = data.companyId
     local definition = type(company_id) == "string" and definitions[company_id] or nil
-    if not definition or not definition.Public or definition.Emergency then
+    if not definition or not definition.Public then
         return { success = false, error = "company_not_found" }
     end
     local subject = valid_text(data.subject, Config.Companies.SubjectMaxLength, false)
@@ -1840,7 +2162,7 @@ Bridge.Callbacks.Register("sky_phone:companies:create-request", function(source,
         "SELECT `accepts_requests` FROM `sky_phone_company_profiles` WHERE `company_id` = ? LIMIT 1",
         { company_id }
     )
-    if not profiles[1] or tonumber(profiles[1].accepts_requests) ~= 1 then
+    if not profiles[1] or not database_boolean(profiles[1].accepts_requests) then
         return { success = false, error = "invalid_service" }
     end
     local services = Bridge.Database.Query([[
@@ -2079,6 +2401,11 @@ Bridge.Callbacks.Register("sky_phone:companies:send-message", function(source, d
     then
         return { success = false, error = "invalid_status" }
     end
+    local service_line = access.row.channel == "service_line"
+        and SkyPhoneCompanies.GetServiceLineForCompany(access.row.company_id) or nil
+    if access.row.channel == "service_line" and (not service_line or not service_line.canMessage) then
+        return { success = false, error = "messaging_unavailable" }
+    end
     local message_id = uuid()
     local mutation_token = uuid()
     local new_status = access.audience == "customer" and access.row.status == "waiting_customer"
@@ -2118,6 +2445,37 @@ Bridge.Callbacks.Register("sky_phone:companies:send-message", function(source, d
             params = { message_id, access.member.identifier, body, request_id, revision + 1, mutation_token },
         }
     end
+    if service_line then
+        if access.audience == "customer" then
+            statements[#statements + 1] = {
+                query = [[
+                    INSERT INTO `sky_phone_sms_messages`
+                        (`id`, `sender_sim_id`, `recipient_sim_id`, `sender_number`, `recipient_number`,
+                            `message_type`, `body`)
+                    SELECT message.`id`, request.`customer_sim_id`, NULL, sim.`phone_number`, ?, 'text', message.`body`
+                    FROM `sky_phone_company_request_messages` message
+                    INNER JOIN `sky_phone_company_requests` request ON request.`id` = message.`request_id`
+                    INNER JOIN `sky_phone_sims` sim ON sim.`id` = request.`customer_sim_id`
+                    WHERE message.`id` = ? AND message.`sender_type` = 'customer'
+                ]],
+                params = { service_line.number, message_id },
+            }
+        else
+            statements[#statements + 1] = {
+                query = [[
+                    INSERT INTO `sky_phone_sms_messages`
+                        (`id`, `sender_sim_id`, `recipient_sim_id`, `sender_number`, `recipient_number`,
+                            `message_type`, `body`)
+                    SELECT message.`id`, NULL, request.`customer_sim_id`, ?, sim.`phone_number`, 'text', message.`body`
+                    FROM `sky_phone_company_request_messages` message
+                    INNER JOIN `sky_phone_company_requests` request ON request.`id` = message.`request_id`
+                    INNER JOIN `sky_phone_sims` sim ON sim.`id` = request.`customer_sim_id`
+                    WHERE message.`id` = ? AND message.`sender_type` = 'company'
+                ]],
+                params = { service_line.number, message_id },
+            }
+        end
+    end
     if new_status ~= access.row.status then
         statements[#statements + 1] = {
             query = [[
@@ -2132,16 +2490,32 @@ Bridge.Callbacks.Register("sky_phone:companies:send-message", function(source, d
     if not Bridge.Database.Transaction(statements) then
         return { success = false, error = "request_failed" }
     end
-    local inserted = Bridge.Database.Query(
-        "SELECT `id` FROM `sky_phone_company_request_messages` WHERE `id` = ? LIMIT 1",
-        { message_id }
-    )
+    local inserted = Bridge.Database.Query([[
+        SELECT message.`id`, sms.`id` AS `sms_id`
+        FROM `sky_phone_company_request_messages` message
+        LEFT JOIN `sky_phone_sms_messages` sms ON sms.`id` = message.`id`
+        WHERE message.`id` = ? LIMIT 1
+    ]], { message_id })
     if not inserted[1] then
         return { success = false, error = "revision_conflict" }
+    end
+    if service_line and not inserted[1].sms_id then
+        Bridge.Debug(
+            "error",
+            "[sky_phone] Company request message %s committed without its service-line SMS.",
+            tostring(message_id),
+            { always = true }
+        )
+        return { success = false, error = "request_failed" }
     end
     local row = request_row(request_id)
     emit_request_change(row, true, true, source)
     if access.audience == "customer" then
+        if service_line then
+            TriggerClientEvent("sky_phone:messages:changed", source, {
+                phoneNumber = service_line.number,
+            })
+        end
         local notification = notification_payload("newMessage", "work", row)
         if row.assigned_identifier then
             notify_identifier(
@@ -2151,6 +2525,12 @@ Bridge.Callbacks.Register("sky_phone:companies:send-message", function(source, d
                 notification
             )
         end
+    elseif service_line then
+        notify_sim(row.customer_sim_id, "sky_phone:messages:new", {
+            phoneNumber = service_line.number,
+            sender = service_line.name,
+            voice = false,
+        })
     else
         notify_sim(row.customer_sim_id, "sky_phone:companies:notification", notification_payload(
             "newMessage",
@@ -2598,14 +2978,6 @@ Bridge.Callbacks.Register("sky_phone:companies:update-availability", function(so
     return { success = true, data = company_mutation_payload(source, member.company_id) }
 end)
 
-local function media_id_for_profile(source, value)
-    local media_id = valid_integer(value, 1, 9007199254740991)
-    if not media_id or not SkyPhoneMedia.ResolveOwnedMedia(source, media_id, "photo") then
-        return nil
-    end
-    return media_id
-end
-
 Bridge.Callbacks.Register("sky_phone:companies:update-profile", function(source, data)
     local allowed, rate_error = allow_mutation(source, "update_profile", "Profile")
     if not allowed then
@@ -2625,7 +2997,8 @@ Bridge.Callbacks.Register("sky_phone:companies:update-profile", function(source,
     local address = valid_text(data.address, Config.Companies.AddressMaxLength, true)
     if not revision or not description or not district or not location_label or not address
         or type(data.acceptsRequests) ~= "boolean"
-        or (member.definition.Emergency and data.acceptsRequests)
+        or data.coverMediaId ~= nil or data.coverUrl ~= nil
+        or data.logoMediaId ~= nil or data.logoUrl ~= nil
     then
         return { success = false, error = "invalid_profile" }
     end
@@ -2661,19 +3034,6 @@ Bridge.Callbacks.Register("sky_phone:companies:update-profile", function(source,
         parameters[#parameters + 1] = x
         parameters[#parameters + 1] = y
         parameters[#parameters + 1] = z
-    end
-    for _, media_field in ipairs({
-        { input = "logoMediaId", column = "logo_media_id" },
-        { input = "coverMediaId", column = "cover_media_id" },
-    }) do
-        if data[media_field.input] ~= nil then
-            local media_id = media_id_for_profile(source, data[media_field.input])
-            if not media_id then
-                return { success = false, error = "invalid_media" }
-            end
-            set_parts[#set_parts + 1] = ("`%s` = ?"):format(media_field.column)
-            parameters[#parameters + 1] = media_id
-        end
     end
     local mutation_token = uuid()
     local audit_id = uuid()
@@ -3009,7 +3369,10 @@ Bridge.Callbacks.Register("sky_phone:companies:set-call-availability", function(
     if not allowed then
         return rate_error
     end
-    if type(data) ~= "table" or type(data.available) ~= "boolean" then
+    if type(data) ~= "table" or type(data.available) ~= "boolean"
+        or (data.dispatcher ~= nil and type(data.dispatcher) ~= "boolean")
+        or (data.dispatcher == true and not data.available)
+    then
         return { success = false, error = "invalid_request" }
     end
     if not data.available then
@@ -3028,6 +3391,7 @@ Bridge.Callbacks.Register("sky_phone:companies:set-call-availability", function(
         company_id = member.company_id,
         sim_id = device.sim_id,
         imei = device.imei,
+        dispatcher = data.dispatcher == true,
     }
     return { success = true, data = { context = work_context(source) } }
 end)

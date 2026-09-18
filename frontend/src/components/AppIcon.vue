@@ -31,11 +31,13 @@ const props = withDefaults(
     app: PhoneAppDefinition
     compact?: boolean
     editMode?: boolean
+    externalDragVisual?: boolean
     showLabel?: boolean
   }>(),
   {
     compact: false,
     editMode: false,
+    externalDragVisual: false,
     showLabel: true,
   },
 )
@@ -65,14 +67,14 @@ let dragStartPage = 0
 let dragPageWidth = 0
 let dragPageMetrics: SpringboardDragMetrics | null = null
 const dragStyle = computed(() =>
-  isDragging.value
+  isDragging.value && !props.externalDragVisual
     ? {
         transform: `translate3d(${springboardPageDragCompensation(dragStartPage, phone.currentPage, dragPageWidth)}px, 0, 0)`,
       }
     : undefined,
 )
 const dragPointerStyle = computed(() =>
-  isDragging.value
+  isDragging.value && !props.externalDragVisual
     ? {
         transform: `translate3d(${dragOffset.value.x}px, ${dragOffset.value.y}px, 0)`,
       }
@@ -303,6 +305,7 @@ onBeforeUnmount(() => {
     class="app-icon-item"
     :class="{
       'app-icon-item--compact': compact,
+      'app-icon-item--drag-source': isDragging && externalDragVisual,
       'app-icon-item--dragging': isDragging,
       'app-icon-item--editing': editMode,
     }"
@@ -328,7 +331,10 @@ onBeforeUnmount(() => {
           class="app-icon"
           :class="[
             app.iconClass,
-            { 'app-icon--image': !iconFailed && app.id !== 'calendar' },
+            {
+              'app-icon--image':
+                !iconFailed && Boolean(app.iconImage) && app.id !== 'calendar',
+            },
           ]"
           :style="iconStyle"
         >
@@ -337,7 +343,7 @@ onBeforeUnmount(() => {
             <b>{{ calendarDay }}</b>
           </span>
           <img
-            v-else-if="!iconFailed"
+            v-else-if="!iconFailed && app.iconImage"
             :src="app.iconImage"
             alt=""
             draggable="false"

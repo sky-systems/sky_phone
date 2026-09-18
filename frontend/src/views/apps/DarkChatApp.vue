@@ -427,6 +427,20 @@ function closeReport(): void {
 function requestStart(value = identifier.value): void {
   const clean = value.trim()
   if (!clean) return
+  const ownIdentifiers = [
+    darkchat.profile?.darkId,
+    darkchat.profile?.inviteCode,
+  ]
+  if (
+    ownIdentifiers.some(
+      (ownIdentifier) =>
+        ownIdentifier?.toLocaleLowerCase(phone.lang) ===
+        clean.toLocaleLowerCase(phone.lang),
+    )
+  ) {
+    showToast(errorText('self_chat'))
+    return
+  }
   pendingIdentifier.value = clean
   safetyOpen.value = true
 }
@@ -1262,6 +1276,13 @@ onBeforeUnmount(() => {
   padding-top: 2px;
 }
 
+.dc-new-chat-intro {
+  margin: 2px 2px 12px;
+  color: var(--dc-muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+
 .dc-recipient-field,
 .dc-new-chat-contacts {
   margin: 0 calc(var(--sky-page-gutter) * -1) 12px;
@@ -2071,6 +2092,7 @@ onBeforeUnmount(() => {
           </template>
         </SkyNavbar>
         <SkyScrollArea padded class="dc-new-chat-scroll">
+          <p class="dc-new-chat-intro">{{ t('newChatBody') }}</p>
           <SkyList class="dc-recipient-field" density="compact" flush>
             <SkyField
               :label="t('to')"

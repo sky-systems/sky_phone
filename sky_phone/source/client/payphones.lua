@@ -19,11 +19,22 @@ local visuals_ending = false
 local hangup_requested = false
 local remote_visuals = {}
 local custom_payphone_props = {}
+local remote_visual_thread_active = false
+local interaction_thread_active = false
+local call_thread_active = false
+local scan_thread_active = false
+local ensure_scan_thread
 
 local configured_models = {}
-for _, model_name in ipairs(Config.Payphones.Props or {}) do
-    configured_models[joaat(model_name)] = model_name
+
+local function refresh_configured_models()
+    configured_models = {}
+    for _, model_name in ipairs(Config.Payphones.Props or {}) do
+        configured_models[joaat(model_name)] = model_name
+    end
 end
+
+refresh_configured_models()
 
 local function valid_visual_number(value, maximum)
     local number = tonumber(value)
@@ -52,6 +63,45 @@ local function restore_remote_visual(id)
     SetEntityVisible(visual.hidden_entity, true, false)
 end
 
+local function ensure_remote_visual_thread()
+    if remote_visual_thread_active then
+        return
+    end
+    remote_visual_thread_active = true
+    CreateThread(function()
+        while next(remote_visuals) do
+            local player_coords = GetEntityCoords(PlayerPedId())
+            for _, visual in pairs(remote_visuals) do
+                if visual.hidden_entity and not DoesEntityExist(visual.hidden_entity) then
+                    visual.hidden_entity = nil
+                end
+                if #(player_coords - visual.coords) <= Config.Payphones.ScanDistance then
+                    if not visual.hidden_entity and HasModelLoaded(visual.model_hash) then
+                        local entity = GetClosestObjectOfType(
+                            visual.coords.x,
+                            visual.coords.y,
+                            visual.coords.z,
+                            1.0,
+                            visual.model_hash,
+                            false,
+                            false,
+                            false
+                        )
+                        if entity ~= 0 and DoesEntityExist(entity) then
+                            visual.hidden_entity = entity
+                        end
+                    end
+                    if visual.hidden_entity then
+                        SetEntityVisible(visual.hidden_entity, false, false)
+                    end
+                end
+            end
+            Wait(250)
+        end
+        remote_visual_thread_active = false
+    end)
+end
+
 RegisterNetEvent("sky_phone:payphone:visual:start", function(data)
     if type(data) ~= "table" or type(data.id) ~= "string" or type(data.model) ~= "string"
         or tonumber(data.callerSource) == GetPlayerServerId(PlayerId())
@@ -75,6 +125,7 @@ RegisterNetEvent("sky_phone:payphone:visual:start", function(data)
         model_hash = model_hash,
         hidden_entity = nil,
     }
+    ensure_remote_visual_thread()
 end)
 
 RegisterNetEvent("sky_phone:payphone:visual:stop", function(data)
@@ -155,6 +206,25 @@ local function spawn_custom_payphones()
 end
 
 CreateThread(spawn_custom_payphones)
+
+local function clear_custom_payphones()
+    for _, entity in ipairs(custom_payphone_props) do
+        if DoesEntityExist(entity) then
+            SetEntityAsMissionEntity(entity, true, true)
+            DeleteEntity(entity)
+        end
+    end
+    custom_payphone_props = {}
+end
+
+AddEventHandler("sky_phone:configurator:updated", function()
+    locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
+    refresh_configured_models()
+    clear_custom_payphones()
+    CreateThread(spawn_custom_payphones)
+    nearest_payphone = nil
+    ensure_scan_thread()
+end)
 
 local function load_animation(dictionary)
     if HasAnimDictLoaded(dictionary) then
@@ -471,6 +541,35 @@ local function call_help_message()
     return replace_placeholder(message, "number", active_call_number or "")
 end
 
+local function ensure_call_thread()
+    if call_thread_active or not active_call_id or not active_booth then
+        return
+    end
+    call_thread_active = true
+    CreateThread(function()
+        while active_call_id and active_booth do
+            local call_id = active_call_id
+            local booth = active_booth
+            keep_animation_ped_grounded()
+            Bridge.Framework.ShowHelpNotification(call_help_message(), "E")
+            if IsControlJustReleased(0, 38) and not hangup_requested then
+                hangup_requested = true
+                Bridge.Callbacks.Trigger("sky_phone:payphone:hangup", { id = call_id })
+            end
+
+            if active_call_id == call_id and active_booth == booth then
+                local distance = #(GetEntityCoords(PlayerPedId()) - booth.coords)
+                if distance > Config.Payphones.MaximumCallDistance and not hangup_requested then
+                    hangup_requested = true
+                    Bridge.Callbacks.Trigger("sky_phone:payphone:hangup", { id = call_id })
+                end
+            end
+            Wait(0)
+        end
+        call_thread_active = false
+    end)
+end
+
 local function apply_active_call_state(data)
     if active_call_id ~= data.id then
         hangup_requested = false
@@ -486,6 +585,7 @@ local function apply_active_call_state(data)
         active_call_elapsed_updated_at = 0
     end
     active_call_payload = data
+    ensure_call_thread()
 end
 
 local function clear_active_call_state()
@@ -596,120 +696,76 @@ AddEventHandler("sky_phone:client:nuiReady", function()
     end
 end)
 
-CreateThread(function()
-    while true do
-        if not Config.Payphones.Enabled or payphone_open or active_call_id or visuals_ending then
-            nearest_payphone = nil
-            Wait(Config.Payphones.ScanIntervalMs)
-        else
-            local ped_coords = GetEntityCoords(PlayerPedId())
-            local closest = nil
-            local closest_distance = Config.Payphones.ScanDistance + 0.01
-            for model_hash, model_name in pairs(configured_models) do
-                local entity = GetClosestObjectOfType(
-                    ped_coords.x,
-                    ped_coords.y,
-                    ped_coords.z,
-                    Config.Payphones.ScanDistance,
-                    model_hash,
-                    false,
-                    false,
-                    false
-                )
-                if entity ~= 0 and DoesEntityExist(entity) then
-                    local coords = GetEntityCoords(entity)
-                    local distance = #(ped_coords - coords)
-                    if distance < closest_distance then
-                        closest_distance = distance
-                        closest = { entity = entity, coords = coords, model = model_name, distance = distance }
-                    end
-                end
-            end
-            nearest_payphone = closest
-            Wait(Config.Payphones.ScanIntervalMs)
-        end
+local function ensure_interaction_thread()
+    if interaction_thread_active or not nearest_payphone
+        or nearest_payphone.distance > Config.Payphones.InteractionDistance
+    then
+        return
     end
-end)
-
-CreateThread(function()
-    while true do
-        if nearest_payphone and nearest_payphone.distance <= Config.Payphones.InteractionDistance and not IsNuiFocused() then
+    interaction_thread_active = true
+    CreateThread(function()
+        while Config.Payphones.Enabled and nearest_payphone
+            and nearest_payphone.distance <= Config.Payphones.InteractionDistance
+            and not payphone_open and not active_call_id and not visuals_ending
+            and not IsNuiFocused()
+        do
             Bridge.Framework.ShowHelpNotification(locale.Payphone.Interact, "E")
             if IsControlJustReleased(0, 38) then
                 open_payphone(nearest_payphone)
             end
             Wait(0)
-        else
-            Wait(250)
         end
-    end
-end)
+        interaction_thread_active = false
+    end)
+end
 
-CreateThread(function()
-    while true do
-        local has_visuals = next(remote_visuals) ~= nil
-        if has_visuals then
-            local player_coords = GetEntityCoords(PlayerPedId())
-            for _, visual in pairs(remote_visuals) do
-                if visual.hidden_entity and not DoesEntityExist(visual.hidden_entity) then
-                    visual.hidden_entity = nil
-                end
-                if #(player_coords - visual.coords) <= Config.Payphones.ScanDistance then
-                    if not visual.hidden_entity then
+ensure_scan_thread = function()
+    if scan_thread_active or not Config.Payphones.Enabled then
+        return
+    end
+    scan_thread_active = true
+    CreateThread(function()
+        while Config.Payphones.Enabled do
+            local closest = nil
+            if not payphone_open and not active_call_id and not visuals_ending and not IsNuiFocused() then
+                local ped_coords
+                local closest_distance = Config.Payphones.ScanDistance + 0.01
+                for model_hash, model_name in pairs(configured_models) do
+                    -- An unloaded archetype cannot have a streamed booth to use.
+                    -- Keep the scan cadence so newly streamed booths are still found.
+                    if HasModelLoaded(model_hash) then
+                        ped_coords = ped_coords or GetEntityCoords(PlayerPedId())
                         local entity = GetClosestObjectOfType(
-                            visual.coords.x,
-                            visual.coords.y,
-                            visual.coords.z,
-                            1.0,
-                            visual.model_hash,
+                            ped_coords.x,
+                            ped_coords.y,
+                            ped_coords.z,
+                            Config.Payphones.ScanDistance,
+                            model_hash,
                             false,
                             false,
                             false
                         )
                         if entity ~= 0 and DoesEntityExist(entity) then
-                            visual.hidden_entity = entity
+                            local coords = GetEntityCoords(entity)
+                            local distance = #(ped_coords - coords)
+                            if distance < closest_distance then
+                                closest_distance = distance
+                                closest = { entity = entity, coords = coords, model = model_name, distance = distance }
+                            end
                         end
                     end
-                    if visual.hidden_entity then
-                        SetEntityVisible(visual.hidden_entity, false, false)
-                    end
                 end
             end
-            Wait(250)
-        else
-            Wait(1000)
+            nearest_payphone = closest
+            ensure_interaction_thread()
+            Wait(Config.Payphones.ScanIntervalMs)
         end
-    end
-end)
+        nearest_payphone = nil
+        scan_thread_active = false
+    end)
+end
 
-CreateThread(function()
-    while true do
-        local call_id = active_call_id
-        local booth = active_booth
-        if call_id and booth then
-            keep_animation_ped_grounded()
-            Bridge.Framework.ShowHelpNotification(call_help_message(), "E")
-            if IsControlJustReleased(0, 38) and not hangup_requested then
-                hangup_requested = true
-                Bridge.Callbacks.Trigger("sky_phone:payphone:hangup", { id = call_id })
-            end
-
-            if active_call_id == call_id and active_booth == booth then
-                local distance = #(GetEntityCoords(PlayerPedId()) - booth.coords)
-                if distance > Config.Payphones.MaximumCallDistance and not hangup_requested then
-                    hangup_requested = true
-                    Bridge.Callbacks.Trigger("sky_phone:payphone:hangup", { id = call_id })
-                end
-            end
-            Wait(0)
-        elseif visuals_ending then
-            keep_animation_ped_grounded()
-            Wait(0)
-        else
-            Wait(250)
-        end
-    end
-end)
+ensure_scan_thread()
 
 AddEventHandler("onResourceStop", function(resource_name)
     if resource_name ~= GetCurrentResourceName() then
@@ -726,10 +782,5 @@ AddEventHandler("onResourceStop", function(resource_name)
     for _, id in ipairs(visual_ids) do
         restore_remote_visual(id)
     end
-    for _, entity in ipairs(custom_payphone_props) do
-        if DoesEntityExist(entity) then
-            SetEntityAsMissionEntity(entity, true, true)
-            DeleteEntity(entity)
-        end
-    end
+    clear_custom_payphones()
 end)

@@ -119,5 +119,5 @@ jobs:
               "${archive}.sha256" \
               --verify-tag \
               --generate-notes \
-              --title "Sky Phone $GITHUB_REF_NAME"
+              --title "$GITHUB_REF_NAME Beta"
           fi

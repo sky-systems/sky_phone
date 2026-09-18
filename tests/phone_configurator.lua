@@ -1,0 +1,718 @@
+local function copy(value)
+    if type(value) ~= "table" then return value end
+    local result = {}
+    for key, child in pairs(value) do result[key] = copy(child) end
+    return result
+end
+
+local function load_script(path, environment)
+    assert(loadfile("sky_phone/" .. path, "t", environment))()
+end
+
+local function new_server(database, configure_defaults, defer_initialization)
+    database = database or { payloads = {}, writes = 0 }
+    local callbacks, broadcasts, updates = {}, {}, {}
+    local noop = function() end
+    local environment = setmetatable({
+        Config = {},
+        IsDuplicityVersion = function() return true end,
+        vector3 = function(x, y, z) return { __skyType = "vector3", x = x, y = y, z = z } end,
+        print = noop,
+        promise = { new = function()
+            return { resolve = function(self) self.resolved = true end }
+        end },
+        Citizen = { Await = function(pending)
+            if not pending.resolved then coroutine.yield("awaiting_runtime") end
+            assert(pending.resolved, "runtime must be initialized before answering")
+        end },
+    }, { __index = _G })
+    load_script("config/config.lua", environment)
+    load_script("config/media.lua", environment)
+    load_script("source/shared/config_default.lua", environment)
+    if configure_defaults then configure_defaults(environment.ConfigDefaults) end
+
+    -- Snapshot encoded values so the SQL stub cannot share mutable runtime tables.
+    environment.json = {
+        encode = function(value)
+            local key = tostring(#database.payloads + 1)
+            database.payloads[tonumber(key)] = copy(value)
+            return key
+        end,
+        decode = function(key) return copy(assert(database.payloads[tonumber(key)])) end,
+    }
+    environment.Bridge = {
+        Debug = noop,
+        Callbacks = { Register = function(name, callback) callbacks[name] = callback end },
+        Database = {
+            Migrate = function()
+                if defer_initialization then coroutine.yield("awaiting_database") end
+            end,
+            AfterMigration = noop,
+            Query = function(sql, parameters)
+                if sql:find("INSERT IGNORE", 1, true) then
+                    database.row = database.row or {
+                        config_payload = parameters[2], media_payload = parameters[3], revision = 1,
+                    }
+                    return 0
+                end
+                if sql:find("UPDATE", 1, true) then
+                    assert(parameters[5] == 1 and parameters[6] == database.row.revision)
+                    database.writes = database.writes + 1
+                    database.row = {
+                        config_payload = parameters[1], media_payload = parameters[2],
+                        revision = database.row.revision + 1, updated_by_name = parameters[4],
+                    }
+                    return { affectedRows = 1 }
+                end
+                assert(sql:find("SELECT", 1, true), "unexpected SQL: " .. sql)
+                return { copy(database.row) }
+            end,
+        },
+    }
+    environment.SkyPhoneCompanies = { ValidateConfiguration = function() return true end }
+    environment.TriggerEvent = function(name, revision)
+        assert(name == "sky_phone:configurator:serverUpdated")
+        updates[#updates + 1] = { revision = revision, config = copy(environment.Config) }
+    end
+    environment.TriggerClientEvent = function(name, target, payload)
+        assert(name == "sky_phone:configurator:sync" and target == -1)
+        broadcasts[#broadcasts + 1] = copy(payload)
+    end
+    load_script("source/bridge/server/vehiclekeys.lua", environment)
+    local initialization = coroutine.create(function()
+        load_script("source/server/phone_configurator.lua", environment)
+    end)
+    local started, state = coroutine.resume(initialization)
+    assert(started, state)
+    if defer_initialization then assert(state == "awaiting_database") end
+
+    local server = {
+        env = environment, database = database, broadcasts = broadcasts, updates = updates,
+    }
+    function server.field(path, scope)
+        for _, section in ipairs(environment.SkyPhoneConfigurator.GetAdminData().sections) do
+            for _, field in ipairs(section.fields) do
+                if field.path == path and field.scope == (scope or "config") then return field end
+            end
+        end
+        error("missing configurator field: " .. path)
+    end
+    function server.save(changes, revision)
+        return environment.SkyPhoneConfigurator.Save(
+            revision or database.row.revision, changes, "test-admin", "Test Admin"
+        )
+    end
+    function server.runtime()
+        return callbacks["sky_phone:configurator:runtime"]().data
+    end
+    function server.finish_initialization()
+        local success, reason = coroutine.resume(initialization)
+        assert(success, reason)
+        assert(coroutine.status(initialization) == "dead")
+    end
+    return server
+end
+
+local function new_client(server)
+    local events, revisions = {}, {}
+    local environment = setmetatable({
+        Config = copy(server.env.ConfigDefaults),
+        Bridge = { Callbacks = { Trigger = function(name)
+            assert(name == "sky_phone:configurator:runtime")
+            return { success = true, data = server.runtime() }
+        end } },
+        RegisterNetEvent = function(name, callback) events[name] = callback end,
+        TriggerEvent = function(name, revision)
+            assert(name == "sky_phone:configurator:updated")
+            revisions[#revisions + 1] = revision
+        end,
+        vector3 = server.env.vector3,
+    }, { __index = _G })
+    load_script("source/client/phone_configurator.lua", environment)
+    return { config = environment.Config, sync = events["sky_phone:configurator:sync"], revisions = revisions }
+end
+
+local function change(path, value, scope)
+    return { scope = scope or "config", path = path, value = value }
+end
+
+local function use_company_validation(server)
+    -- Reuse the production validator without starting Companies persistence/background work.
+    local file = assert(io.open("sky_phone/source/server/companies.lua", "r"))
+    local source = file:read("*a"):gsub("\r\n", "\n")
+    file:close()
+    local finish = assert(source:find("local function profile_configuration(", 1, true))
+    local validation = source:sub(1, finish - 1):gsub('^Bridge.Database.AfterMigration%("sky_phone", function%(%)\n', '')
+    load_script("source/shared/sim_number.lua", server.env)
+    assert(load(validation, "@companies_validation", "t", server.env))()
+end
+
+local failures = 0
+local function test(name, callback)
+    local success, message = pcall(callback)
+    if success then
+        print("PASS " .. name)
+    else
+        failures = failures + 1
+        print("FAIL " .. name .. ": " .. tostring(message))
+    end
+end
+
+test("early runtime requests wait for the stored configuration during resource startup", function()
+    local server = new_server(nil, nil, true)
+    local responses, requests = {}, {}
+    for index = 1, 2 do
+        requests[index] = coroutine.create(function()
+            responses[index] = server.runtime()
+        end)
+        local success, state = coroutine.resume(requests[index])
+        assert(success, state)
+        assert(state == "awaiting_runtime", "the callback must be registered before database initialization")
+        assert(responses[index] == nil, "early requests must not receive defaults or incomplete configuration")
+    end
+    assert(server.database.row == nil)
+    server.finish_initialization()
+    for index, request in ipairs(requests) do
+        local success, reason = coroutine.resume(request)
+        assert(success, reason)
+        assert(coroutine.status(request) == "dead")
+        assert(responses[index].enabled and type(responses[index].config.Phone) == "table")
+        assert(responses[index].revision == server.database.row.revision)
+    end
+    assert(server.runtime().revision == server.database.row.revision)
+end)
+
+test("Face ID mask whitelist can be created, edited and cleared through SQL and live clients", function()
+    local server = new_server()
+    local client = new_client(server)
+    local field = server.field("Security")
+    local masks = field.structure.fields.FaceIdMaskWhitelist
+    assert(masks.kind == "list" and #masks.items == 0)
+    assert(masks.template.fields.Model.valueType == "string")
+    assert(masks.template.fields.Drawable.valueType == "number")
+    assert(masks.template.fields.Texture.valueType == "number")
+    assert(next(field.value.FaceIdMaskWhitelist) == nil)
+    local settings = field.value
+    settings.FaceIdMaskWhitelist = {
+        { Model = "mp_m_freemode_01", Drawable = 12, Texture = -1 },
+        { Model = "mp_f_freemode_01", Drawable = 14, Texture = 3 },
+    }
+    assert(server.save({ change("Security", settings) }).success)
+    client.sync(server.broadcasts[1])
+    assert(client.config.Security.FaceIdMaskWhitelist[1].Texture == -1)
+    assert(server.env.Config.Security.FaceIdMaskWhitelist[2].Drawable == 14)
+    local restarted = new_server(server.database)
+    assert(new_client(restarted).config.Security.FaceIdMaskWhitelist[2].Model == "mp_f_freemode_01")
+    settings = restarted.field("Security").value
+    settings.FaceIdMaskWhitelist[1].Texture = 2
+    table.remove(settings.FaceIdMaskWhitelist, 2)
+    assert(restarted.save({ change("Security", settings) }).success)
+    assert(#new_server(restarted.database).env.Config.Security.FaceIdMaskWhitelist == 1)
+    settings.FaceIdMaskWhitelist = {}
+    assert(restarted.save({ change("Security", settings) }).success)
+    assert(next(new_client(new_server(restarted.database)).config.Security.FaceIdMaskWhitelist) == nil)
+end)
+
+test("existing SQL configurations acquire the empty Face ID whitelist", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.Security.FaceIdMaskWhitelist = nil
+    assert(next(new_server(server.database).env.Config.Security.FaceIdMaskWhitelist) == nil)
+end)
+
+test("invalid Face ID mask rules reject the entire save without writes or broadcasts", function()
+    local invalid_rules = {
+        { Model = "", Drawable = 12, Texture = -1 },
+        { Model = "model with spaces", Drawable = 12, Texture = -1 },
+        { Model = string.rep("a", 65), Drawable = 12, Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = 0, Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = 1.5, Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = 65536, Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = "12", Texture = -1 },
+        { Model = "mp_m_freemode_01", Drawable = 12, Texture = -2 },
+        { Model = "mp_m_freemode_01", Drawable = 12, Texture = 65536 },
+        { Model = "mp_m_freemode_01", Drawable = 12 },
+        { Model = "mp_m_freemode_01", Drawable = 12, Texture = -1, Unknown = true },
+    }
+    for _, rule in ipairs(invalid_rules) do
+        local server = new_server()
+        local settings = server.field("Security").value
+        settings.FaceIdMaskWhitelist = { rule }
+        assert(not server.save({ change("Security", settings) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+    local server = new_server()
+    local settings = server.field("Security").value
+    for i = 1, 257 do settings.FaceIdMaskWhitelist[i] = { Model = "mp_m_freemode_01", Drawable = i, Texture = -1 } end
+    assert(not server.save({ change("Security", settings) }).success)
+    assert(server.database.writes == 0)
+end)
+
+test("service-line routing modes validate and roundtrip through SQL and server runtime", function()
+    local server = new_server()
+    use_company_validation(server)
+    local field = server.field("Companies.Definitions")
+    assert(field.structure.fields.police.fields.ServiceLine.fields.Routing.valueType == "string")
+    assert(field.value.police.ServiceLine.Routing == "round_robin", "preserve the existing default")
+    for _, mode in ipairs({ "ring_all", "round_robin" }) do
+        local definitions = server.field("Companies.Definitions").value
+        definitions.police.ServiceLine.Routing = mode
+        local result = server.save({ change("Companies.Definitions", definitions) })
+        assert(result.success, tostring(result.error))
+        assert(server.env.Config.Companies.Definitions.police.ServiceLine.Routing == mode)
+        assert(server.updates[#server.updates].config.Companies.Definitions.police.ServiceLine.Routing == mode)
+        assert(server.broadcasts[#server.broadcasts].config.Companies == nil, "routing stays server-owned")
+        local restarted = new_server(server.database)
+        assert(restarted.field("Companies.Definitions").value.police.ServiceLine.Routing == mode)
+        assert(restarted.env.Config.Companies.Definitions.police.ServiceLine.Routing == mode)
+    end
+end)
+
+test("unsupported service-line routing and invalid timing reject the entire Configurator save", function()
+    for _, invalid in ipairs({ "random", "", "RING_ALL", false, 12 }) do
+        local server = new_server()
+        use_company_validation(server)
+        local definitions = server.field("Companies.Definitions").value
+        definitions.police.ServiceLine.Routing = invalid
+        assert(not server.save({ change("Companies.Definitions", definitions) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+    for _, invalid in ipairs({ { "MaxAttempts", 0 }, { "MaxAttempts", 21 }, { "RingSeconds", 0 }, { "RingSeconds", 121 } }) do
+        local server = new_server()
+        use_company_validation(server)
+        assert(not server.save({ change("Companies.CallRouting." .. invalid[1], invalid[2]) }).success)
+        assert(server.database.writes == 0)
+    end
+end)
+
+test("MSK garage selection survives SQL reload and reaches connected phones", function()
+    local server = new_server()
+    local client = new_client(server)
+    local garage = server.field("Garage").value
+    assert(garage.System == "auto")
+    assert(server.field("Garage").structure.fields.System.valueType == "string")
+    garage.System = "msk"
+    assert(server.save({ change("Garage", garage) }).success)
+    client.sync(server.broadcasts[1])
+    assert(server.env.Config.Garage.System == "msk" and client.config.Garage.System == "msk")
+    local restarted = new_server(server.database)
+    assert(restarted.field("Garage").value.System == "msk")
+    assert(new_client(restarted).config.Garage.System == "msk")
+end)
+
+test("vehicle key system is validated, persisted and sent to phones", function()
+    local server = new_server()
+    local client = new_client(server)
+    local garage = server.field("Garage").value
+    assert(garage.VehicleKeySystem == "auto")
+    assert(server.field("Garage").structure.fields.VehicleKeySystem.valueType == "string")
+    for _, name in ipairs({ "none", "qb", "qbox", "kiminaze", "msk", "jota", "custom_client", "custom_server", "auto" }) do
+        garage.VehicleKeySystem = name
+        assert(server.save({ change("Garage", garage) }).success)
+        client.sync(server.broadcasts[#server.broadcasts])
+        assert(client.config.Garage.VehicleKeySystem == name)
+        assert(new_server(server.database).env.Config.Garage.VehicleKeySystem == name)
+    end
+    garage.VehicleKeySystem = "unknown_keys"
+    assert(server.save({ change("Garage", garage) }).error == "invalid_value")
+    assert(server.env.Config.Garage.VehicleKeySystem == "auto")
+end)
+
+test("false scalar settings save together with other panel changes and survive reload", function()
+    local server = new_server()
+    local apps = server.field("Apps").value
+    apps.feather = false
+    local result = server.save({ change("Companies.Enabled", false), change("Apps", apps) })
+    assert(result.success, "valid false rejected: " .. tostring(result.error))
+    assert(server.field("Companies.Enabled").value == false)
+    assert(server.env.Config.Companies.Enabled == false and server.env.Config.Apps.feather == false)
+    assert(server.updates[1].config.Companies.Enabled == false, "refresh must observe the saved value")
+    assert(#server.broadcasts == 1 and server.broadcasts[1].config.Apps.feather == false)
+    assert(server.database.writes == 1 and result.data.revision == 2)
+    local restarted = new_server(server.database)
+    assert(restarted.field("Companies.Enabled").value == false)
+    assert(restarted.env.Config.Apps.feather == false)
+    assert(restarted.save({ change("Companies.Enabled", true) }).success)
+    assert(restarted.env.Config.Companies.Enabled == true)
+end)
+
+test("disabled numeric map entries reach existing and newly connected phones", function()
+    local server = new_server()
+    local client = new_client(server)
+    local client_timers = client.config.DarkChat.AllowedDisappearTimers
+    local server_timers = server.env.Config.DarkChat.AllowedDisappearTimers
+    local darkchat = server.field("DarkChat").value
+    for _, entry in ipairs(darkchat.AllowedDisappearTimers.entries) do
+        if entry.key == 0 or entry.key == -1 then entry.value = false end
+    end
+    local result = server.save({ change("DarkChat", darkchat) })
+    assert(result.success, tostring(result.error))
+    assert(server_timers[0] == false and server_timers[-1] == false, "saved false restored to default")
+    assert(server_timers == server.env.Config.DarkChat.AllowedDisappearTimers)
+    client.sync(server.broadcasts[1])
+    assert(client_timers == client.config.DarkChat.AllowedDisappearTimers)
+    assert(client_timers[0] == false and client_timers[-1] == false and client_timers[60] == true)
+    assert(client.revisions[#client.revisions] == result.data.revision)
+    local restarted = new_server(server.database)
+    local reconnect = new_client(restarted)
+    assert(reconnect.config.DarkChat.AllowedDisappearTimers[0] == false)
+    assert(reconnect.config.DarkChat.AllowedDisappearTimers[-1] == false)
+end)
+
+test("boolean list entries survive save and default merging", function()
+    -- Synthetic collection exercises the generic list merge independently of map handling.
+    local function defaults(config) config.Phone.TestFlags = { true, true } end
+    local server = new_server(nil, defaults)
+    local phone = server.field("Phone").value
+    phone.TestFlags = { false, true, false }
+    local result = server.save({ change("Phone", phone) })
+    assert(result.success, tostring(result.error))
+    assert(server.env.Config.Phone.TestFlags[1] == false, "saved list flag restored to default")
+    local restarted = new_server(server.database, defaults)
+    local flags = new_client(restarted).config.Phone.TestFlags
+    assert(flags[1] == false and flags[2] == true and flags[3] == false)
+end)
+
+test("nested switches, optional false strings and media settings still roundtrip", function()
+    local server = new_server()
+    local phone = server.field("Phone").value
+    phone.Keybind = false
+    phone.DevelopmentCommand = false
+    local wallpaper = server.field("Wallpaper", "media").value
+    wallpaper.CustomUploadEnabled = false
+    local result = server.save({ change("Phone", phone), change("Wallpaper", wallpaper, "media") })
+    assert(result.success, tostring(result.error))
+    assert(server.env.Config.Phone.Keybind == false)
+    assert(server.env.Config.Media.Wallpaper.CustomUploadEnabled == false)
+    local restarted = new_server(server.database)
+    local client = new_client(restarted)
+    assert(client.config.Phone.Keybind == false and client.config.Phone.DevelopmentCommand == false)
+    assert(restarted.field("Wallpaper", "media").value.CustomUploadEnabled == false)
+    assert(server.broadcasts[1].config.Media == nil, "media credentials must remain server-owned")
+end)
+
+test("invalid boolean values reject the entire save without updating SQL or clients", function()
+    for _, invalid in ipairs({ "false", 0, {} }) do
+        local server = new_server()
+        local apps = server.field("Apps").value
+        apps.feather = false
+        local result = server.save({ change("Apps", apps), change("Companies.Enabled", invalid) })
+        assert(not result.success and result.error == "invalid_value")
+        assert(server.database.writes == 0 and server.database.row.revision == 1)
+        assert(server.env.Config.Apps.feather == true and server.env.Config.Companies.Enabled == true)
+        assert(#server.broadcasts == 0 and #server.updates == 0)
+    end
+end)
+
+test("stale revisions cannot overwrite saved settings", function()
+    local server = new_server()
+    assert(server.save({ change("Companies.Enabled", true) }).success)
+    local result = server.save({ change("Companies.Enabled", false) }, 1)
+    assert(not result.success and result.error == "revision_conflict")
+    assert(server.database.writes == 1 and #server.broadcasts == 1)
+    assert(server.env.Config.Companies.Enabled == true)
+end)
+
+test("CityWarn publishers and categories can be added, changed, removed and restored from SQL", function()
+    local server = new_server()
+    local field = server.field("CityWarn")
+    local schema = field.structure.fields.Publishers
+    assert(schema.kind == "table" and schema.mutableKeys)
+    assert(schema.template.fields.MinimumGrade.valueType == "number")
+    assert(schema.template.fields.Categories.kind == "list")
+    assert(#schema.template.fields.Categories.items == 0, "categories must not be locked to the defaults")
+    assert(schema.template.fields.Categories.template.valueType == "string")
+    local settings = field.value
+    settings.Publishers.mechanic = copy(schema.entryDefault)
+    settings.Publishers.mechanic.Categories = { "infrastructure" }
+    settings.Publishers.mechanic.MinimumGrade = 0
+    settings.Publishers.police.Categories = { "police" }
+    settings.Publishers.fire = nil
+    assert(server.save({ change("CityWarn", settings) }).success)
+    assert(server.env.Config.CityWarn.Publishers.mechanic.MaximumSeverity == "information")
+    assert(server.updates[1].config.CityWarn.Publishers.mechanic.MinimumGrade == 0)
+    assert(server.runtime().config.CityWarn.Publishers == nil, "publisher policy stays server-owned")
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.CityWarn.Publishers.fire == nil, "removed jobs must not return")
+    assert(#restarted.env.Config.CityWarn.Publishers.police.Categories == 1)
+    assert(restarted.env.Config.CityWarn.Publishers.police.Categories[1] == "police")
+    settings = restarted.field("CityWarn").value
+    settings.Publishers.mechanic.MaximumSeverity = "danger"
+    settings.Publishers.mechanic.CityWide = true
+    settings.Publishers.mechanic.Categories = { "infrastructure", "evacuation" }
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    restarted = new_server(server.database)
+    assert(restarted.env.Config.CityWarn.Publishers.mechanic.CityWide)
+    assert(restarted.env.Config.CityWarn.Publishers.mechanic.Categories[2] == "evacuation")
+    settings = restarted.field("CityWarn").value
+    settings.Publishers.mechanic.Categories = {}
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    restarted = new_server(server.database)
+    assert(next(restarted.env.Config.CityWarn.Publishers.mechanic.Categories) == nil)
+    settings = restarted.field("CityWarn").value
+    settings.Publishers = {}
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    restarted = new_server(server.database)
+    assert(next(restarted.env.Config.CityWarn.Publishers) == nil)
+    settings = restarted.field("CityWarn").value
+    settings.Publishers.mechanic = copy(restarted.field("CityWarn").structure.fields.Publishers.entryDefault)
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    assert(new_server(server.database).env.Config.CityWarn.Publishers.mechanic.Categories[1] == "public_safety")
+end)
+
+test("an empty file-based publisher list still has a complete creation schema", function()
+    local server = new_server(nil, function(defaults) defaults.CityWarn.Publishers = {} end)
+    local field = server.field("CityWarn")
+    local schema = field.structure.fields.Publishers
+    assert(schema.mutableKeys and schema.template.fields.CityWide.valueType == "boolean")
+    assert(next(schema.fields) == nil)
+    field.value.Publishers.mechanic = copy(schema.entryDefault)
+    assert(server.save({ change("CityWarn", field.value) }).success)
+    assert(new_server(server.database).env.Config.CityWarn.Publishers.mechanic.MinimumGrade == 2)
+end)
+
+test("invalid publisher permissions reject the whole save before SQL or runtime updates", function()
+    local invalid = {
+        function(p) p.MinimumGrade = -1 end,
+        function(p) p.MinimumGrade = 1.5 end,
+        function(p) p.MinimumGrade = math.huge end,
+        function(p) p.MinimumGrade = "2" end,
+        function(p) p.MaximumSeverity = "urgent" end,
+        function(p) p.MaximumSeverity = "" end,
+        function(p) p.CityWide = "true" end,
+        function(p) p.Categories = { "unknown" } end,
+        function(p) p.Categories = { "police", "police" } end,
+        function(p) p.Categories = { [2] = "police" } end,
+        function(p) p.Categories = { police = true } end,
+        function(p) p.Categories = { false } end,
+        function(p) p.Categories = nil end,
+        function(p) p.Unexpected = true end,
+    }
+    for _, mutate in ipairs(invalid) do
+        for _, job in ipairs({ "mechanic", "police" }) do
+            local server = new_server()
+            local field = server.field("CityWarn")
+            field.value.Publishers[job] = copy(field.structure.fields.Publishers.entryDefault)
+            mutate(field.value.Publishers[job])
+            assert(not server.save({ change("CityWarn", field.value), change("Companies.Enabled", false) }).success)
+            assert(server.database.writes == 0 and #server.broadcasts == 0 and #server.updates == 0)
+            assert(server.env.Config.Companies.Enabled == true)
+        end
+    end
+    for _, job in ipairs({ "bad job", "bad.job", "", string.rep("a", 65), "__skyType" }) do
+        local server = new_server()
+        local field = server.field("CityWarn")
+        field.value.Publishers[job] = copy(field.structure.fields.Publishers.entryDefault)
+        assert(not server.save({ change("CityWarn", field.value) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+end)
+
+test("CityWarn presentation roundtrips through SQL and reaches connected and new clients", function()
+    local server = new_server()
+    local defaults = server.field("CityWarn").value
+    assert(defaults.CategoryColors.police == "#2563eb")
+    local category_count = 0
+    for category in pairs(defaults.CategoryColors) do
+        category_count = category_count + 1
+        defaults.CategoryColors[category] = ("#12%04x"):format(category_count)
+    end
+    assert(category_count == 6)
+    assert(defaults.Blip.Sprite == 161 and defaults.Blip.CategoryName == "CityWarn")
+    assert(defaults.Blip.Display == 2 and defaults.Blip.ShortRange == true)
+    assert(defaults.Blip.GroupByCategory == false)
+    assert(defaults.Blip.RadiusEnabled == true and defaults.Blip.Radius == 100)
+    local client = new_client(server)
+    local settings = client.config.CityWarn.Blip
+    assert(client.config.CityWarn.Enabled and settings.Sprite == 161)
+    defaults.Blip = { Sprite = 375, Display = 0, ShortRange = true, CategoryId = 20,
+        CategoryName = "Public warnings", GroupByCategory = true, RadiusEnabled = false, Radius = 250.5 }
+    local result = server.save({ change("CityWarn", defaults) })
+    assert(result.success, tostring(result.error))
+    client.sync(server.broadcasts[1])
+    assert(client.config.CityWarn.Blip == settings, "live refresh must preserve the settings table")
+    for category, color in pairs(defaults.CategoryColors) do
+        assert(client.config.CityWarn.CategoryColors[category] == color)
+    end
+    assert(settings.Sprite == 375 and settings.Display == 0 and settings.ShortRange == true)
+    assert(settings.CategoryId == 20 and settings.CategoryName == "Public warnings")
+    assert(settings.GroupByCategory == true)
+    assert(settings.RadiusEnabled == false and settings.Radius == 250.5)
+    assert(server.runtime().config.CityWarn.Publishers == nil, "publisher policy remains server-owned")
+    local restarted = new_server(server.database)
+    local reconnect = new_client(restarted)
+    assert(reconnect.config.CityWarn.Blip.RadiusEnabled == false and reconnect.config.CityWarn.Blip.Display == 0)
+    assert(reconnect.config.CityWarn.Blip.GroupByCategory == true)
+    for category, color in pairs(defaults.CategoryColors) do
+        assert(reconnect.config.CityWarn.CategoryColors[category] == color, "saved category colors must survive restart")
+    end
+    defaults.Enabled = false
+    defaults.Blip.ShortRange = false
+    defaults.Blip.GroupByCategory = false
+    assert(restarted.save({ change("CityWarn", defaults) }).success)
+    reconnect.sync(restarted.broadcasts[1])
+    assert(reconnect.config.CityWarn.Enabled == false and reconnect.config.CityWarn.Blip.ShortRange == false)
+    assert(reconnect.config.CityWarn.Blip.GroupByCategory == false)
+end)
+
+test("existing CityWarn SQL rows receive new blip defaults without resetting saved policy", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.CityWarn.Blip = nil
+    stored.CityWarn.CategoryColors = nil
+    stored.CityWarn.Enabled = false
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.CityWarn.Enabled == false)
+    assert(restarted.env.Config.CityWarn.Blip.Sprite == 161)
+    assert(restarted.env.Config.CityWarn.Blip.RadiusEnabled == true)
+    assert(restarted.env.Config.CityWarn.CategoryColors.evacuation == "#0891b2")
+end)
+
+test("existing CityWarn sprites survive upgrades while short titles become the default", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.CityWarn.Blip.Sprite = 10
+    stored.CityWarn.Blip.GroupByCategory = nil
+    local restarted = new_server(server.database)
+    local settings = new_client(restarted).config.CityWarn.Blip
+    assert(settings.Sprite == 10 and settings.GroupByCategory == false)
+end)
+
+test("invalid CityWarn native settings are rejected before persistence or broadcast", function()
+    for _, invalid in ipairs({
+        { "Sprite", -1 }, { "Sprite", 1.5 }, { "Sprite", 65536 },
+        { "Display", 11 }, { "Display", 2.5 }, { "ShortRange", "false" },
+        { "GroupByCategory", "false" },
+        { "CategoryId", 11 }, { "CategoryId", 134 }, { "CategoryName", "   " },
+        { "CategoryName", "~r~Warnings" }, { "CategoryName", string.rep("x", 100) },
+        { "RadiusEnabled", 1 }, { "Radius", 0 }, { "Radius", 50001 },
+    }) do
+        local server = new_server()
+        local citywarn = server.field("CityWarn").value
+        citywarn.Blip[invalid[1]] = invalid[2]
+        local result = server.save({ change("CityWarn", citywarn) })
+        assert(not result.success and result.error == "invalid_value", invalid[1])
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+end)
+
+test("invalid CityWarn colors and unknown categories cannot be saved", function()
+    for _, value in ipairs({ "red", "#fff", "#12345678", "#12gg00", "", 3, false }) do
+        local server = new_server()
+        local citywarn = server.field("CityWarn").value
+        citywarn.CategoryColors.police = value
+        local result = server.save({ change("CityWarn", citywarn) })
+        assert(not result.success and result.error == "invalid_value")
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+    local server = new_server()
+    local citywarn = server.field("CityWarn").value
+    citywarn.CategoryColors.unknown = "#123456"
+    assert(not server.save({ change("CityWarn", citywarn) }).success)
+    citywarn.CategoryColors.unknown = nil
+    citywarn.CategoryColors.police = nil
+    assert(not server.save({ change("CityWarn", citywarn) }).success)
+end)
+
+test("CrewLink map and quick-ping settings roundtrip to closed phones and survive SQL reload", function()
+    local server = new_server()
+    local settings = server.field("CrewLink").value
+    assert(settings.Blip.Sprite == 126 and settings.Blip.PingSprite == 280)
+    assert(settings.Blip.CategoryName == "CrewLink" and settings.Blip.CategoryId == 13)
+    assert(settings.QuickPing.DefaultKey == "NUMPAD5" and settings.QuickPing.Enabled)
+    assert(settings.PingCooldownSeconds == 5)
+    local client = new_client(server)
+    settings.Blip.Sprite, settings.Blip.PingSprite = 1, 2
+    settings.Blip.CategoryId, settings.Blip.CategoryName, settings.Blip.Scale = 21, "Road crew", 1.2
+    settings.QuickPing.DefaultKey, settings.QuickPing.Enabled = "F6", false
+    settings.PingCooldownSeconds = 15
+    assert(server.save({ change("CrewLink", settings) }).success)
+    client.sync(server.broadcasts[1])
+    assert(client.config.CrewLink.Blip.Sprite == 1 and client.config.CrewLink.Blip.PingSprite == 2)
+    assert(client.config.CrewLink.Blip.CategoryName == "Road crew" and client.config.CrewLink.Blip.Scale == 1.2)
+    assert(client.config.CrewLink.QuickPing.DefaultKey == "F6" and not client.config.CrewLink.QuickPing.Enabled)
+    assert(server.env.Config.CrewLink.PingCooldownSeconds == 15 and client.config.CrewLink.PingCooldownSeconds == 15)
+    local restarted = new_server(server.database)
+    local reconnect = new_client(restarted)
+    assert(reconnect.config.CrewLink.Blip.CategoryId == 21)
+    assert(reconnect.config.CrewLink.QuickPing.DefaultKey == "F6")
+    assert(reconnect.config.CrewLink.PingCooldownSeconds == 15)
+    settings.Blip.Enabled = false
+    settings.PingCooldownSeconds = 0
+    assert(restarted.save({ change("CrewLink", settings) }).success)
+    reconnect.sync(restarted.broadcasts[1])
+    assert(not reconnect.config.CrewLink.Blip.Enabled)
+    assert(reconnect.config.CrewLink.PingCooldownSeconds == 0)
+    assert(new_server(restarted.database).env.Config.CrewLink.PingCooldownSeconds == 0,
+        "disabled cooldowns must survive SQL reload")
+end)
+
+test("existing CrewLink SQL settings receive map defaults without resetting privacy limits", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.CrewLink.Blip, stored.CrewLink.QuickPing = nil, nil
+    stored.CrewLink.PingCooldownSeconds = nil
+    stored.CrewLink.OverheadDistance = 15
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.CrewLink.Blip.Sprite == 126)
+    assert(restarted.env.Config.CrewLink.QuickPing.DefaultKey == "NUMPAD5")
+    assert(restarted.env.Config.CrewLink.OverheadDistance == 15)
+    assert(restarted.env.Config.CrewLink.PingCooldownSeconds == 5)
+end)
+
+test("invalid CrewLink native settings and key defaults cannot reach SQL or clients", function()
+    for _, cooldown in ipairs({ -1, 1.5, 3601, "5", false }) do
+        local server = new_server()
+        local settings = server.field("CrewLink").value
+        settings.PingCooldownSeconds = cooldown
+        assert(not server.save({ change("CrewLink", settings) }).success)
+        assert(#server.broadcasts == 0, "invalid cooldowns must not reach connected clients")
+    end
+    for _, invalid in ipairs({
+        { "Sprite", -1 }, { "Sprite", 1.5 }, { "PingSprite", 65536 },
+        { "CategoryId", 11 }, { "CategoryId", 134 },
+        { "CategoryName", "" }, { "CategoryName", "~r~crew" }, { "CategoryName", string.rep("a", 100) },
+        { "Scale", 0 }, { "Scale", 6 }, { "Enabled", "true" },
+    }) do
+        local server = new_server()
+        local settings = server.field("CrewLink").value
+        settings.Blip[invalid[1]] = invalid[2]
+        assert(not server.save({ change("CrewLink", settings) }).success)
+        assert(#server.broadcasts == 0)
+    end
+    for _, key in ipairs({ "", "a b", ";quit", string.rep("F", 33) }) do
+        local server = new_server()
+        local settings = server.field("CrewLink").value
+        settings.QuickPing.DefaultKey = key
+        assert(not server.save({ change("CrewLink", settings) }).success)
+        assert(#server.broadcasts == 0)
+    end
+end)
+
+
+test("SkyPic configuration preserves live references, syncs and survives SQL reload", function()
+    local server = new_server()
+    local field = server.field("SkyPic")
+    assert(field.structure.kind == "table" and not field.structure.mutableKeys)
+    assert(field.structure.fields.SpotlightReportReasons.kind == "list")
+    local runtime = server.env.Config.SkyPic
+    local settings = field.value
+    settings.MaximumSnapRecipients = 8
+    settings.AllowSponsoredSpotlights = false
+    settings.SpotlightReportReasons[2] = "custom_reason"
+    assert(server.save({ change("SkyPic", settings) }).success)
+    assert(server.env.Config.SkyPic == runtime and runtime.MaximumSnapRecipients == 8)
+    assert(not runtime.AllowSponsoredSpotlights and runtime.SpotlightReportReasons[2] == "custom_reason")
+    local client = new_client(server)
+    assert(client.config.SkyPic.MaximumSnapRecipients == 8)
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.SkyPic.MaximumSnapRecipients == 8)
+    assert(not restarted.env.Config.SkyPic.AllowSponsoredSpotlights)
+    assert(new_client(restarted).config.SkyPic.SpotlightReportReasons[2] == "custom_reason")
+    settings.MaximumSnapRecipients = "8"
+    assert(not restarted.save({ change("SkyPic", settings) }).success)
+end)
+
+assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
+
+dofile("tests/companies_profile_config_sync.lua")

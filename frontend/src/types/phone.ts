@@ -1,10 +1,16 @@
 export type SimType = 'registered' | 'anonymous'
 
+export type PhoneNumberFormat = {
+  groups: number[]
+  length: number
+}
+
 export type PhoneSim = {
   id: string
   number: string
   removable: boolean
   registered: boolean
+  servicesAllowed?: boolean
   type: SimType
 }
 
@@ -43,6 +49,7 @@ export type CallState =
   | 'sim_removed'
 
 export type PhoneCall = {
+  anonymous?: boolean
   answeredAt?: number
   channel?: number
   device?: { imei: string; name: string }

@@ -14,6 +14,12 @@ import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 
 type RecordingChunk = { blob: Blob; durationMs: number }
 type PendingVideo = { blob: Blob; fileName: string }
+type UploadFailureDebug = {
+  correlationId: string
+  message: string
+  stage: string
+  status?: number
+}
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const pendingVideos = new Map<string, PendingVideo>()
@@ -130,7 +136,10 @@ function cleanupRecording(): void {
       try {
         activeRecorder.stop()
       } catch (error) {
-        console.error('[Camera] Could not stop the failed media recorder.', error)
+        console.error(
+          '[Camera] Could not stop the failed media recorder.',
+          error,
+        )
       }
     }
   }
@@ -245,8 +254,7 @@ async function startRecording(data: Record<string, unknown>): Promise<void> {
   const activeRecorder = recorder
   removeRecorderErrorListener = bindMediaRecorderError(
     activeRecorder,
-    () =>
-      generation === recordingGeneration && recorder === activeRecorder,
+    () => generation === recordingGeneration && recorder === activeRecorder,
     (event) => {
       console.error('[Camera] Media recorder failed while recording.', event)
       cleanupRecording()
@@ -417,8 +425,32 @@ async function capturePhotoBlob(ready: UploadReady): Promise<Blob> {
   }
 }
 
-async function failUpload(requestId: string, error: string): Promise<void> {
-  await nuiCall('media:failUpload', { error, requestId })
+async function failUpload(
+  requestId: string,
+  error: string,
+  debug: UploadFailureDebug,
+): Promise<void> {
+  console.error('[Sky Phone Media] Upload failed.', {
+    correlationId: debug.correlationId,
+    detail: debug.message,
+    error,
+    stage: debug.stage,
+    status: debug.status,
+  })
+  const response = await nuiCall('media:failUpload', {
+    correlationId: debug.correlationId,
+    debugMessage: debug.message,
+    debugStage: debug.stage,
+    debugStatus: debug.status,
+    error,
+    requestId,
+  })
+  if (!response.success) {
+    console.error('[Sky Phone Media] Could not forward upload diagnostics.', {
+      correlationId: debug.correlationId,
+      error: response.error,
+    })
+  }
 }
 
 async function uploadReady(ready: UploadReady): Promise<void> {
@@ -435,49 +467,87 @@ async function uploadReady(ready: UploadReady): Promise<void> {
       blob = await capturePhotoBlob(ready)
       fileName = `camera-${ready.correlationId}.${ready.photo?.Encoding ?? 'jpg'}`
     }
-  } catch {
-    await failUpload(ready.requestId, 'capture_failed')
+  } catch (error) {
+    await failUpload(ready.requestId, 'capture_failed', {
+      correlationId: ready.correlationId,
+      message: error instanceof Error ? error.message : String(error),
+      stage: 'capture',
+    })
     return
   }
 
+  console.info('[Sky Phone Media] Capture prepared for upload.', {
+    bytes: blob.size,
+    correlationId: ready.correlationId,
+    mimeType: blob.type,
+    type: ready.mediaType,
+  })
+
   const form = new FormData()
   form.append('file', blob, fileName)
-  form.append(
-    'metadata',
-    JSON.stringify({ captureToken: ready.captureToken, source: 'sky_phone' }),
-  )
   const controller = new AbortController()
   const timeout = window.setTimeout(
     () => controller.abort(),
     ready.uploadTimeoutMs ?? 25000,
   )
+  let debugStage = 'provider_request'
+  let debugStatus: number | undefined
   try {
     const response = await fetch(ready.presignedUrl, {
       body: form,
       method: 'POST',
       signal: controller.signal,
     })
+    debugStatus = response.status
+    debugStage = 'provider_response'
+    console.info('[Sky Phone Media] FiveManage upload responded.', {
+      correlationId: ready.correlationId,
+      status: response.status,
+    })
     const text = await response.text()
     const body = JSON.parse(text) as {
       data?: { id?: string; url?: string }
+      error?: string
       id?: string
+      message?: string
       url?: string
     }
     const uploaded = body.data ?? body
     if (!response.ok || !uploaded.id || !uploaded.url) {
-      throw new Error('upload_failed')
+      throw new Error(
+        (typeof body.error === 'string' && body.error) ||
+          (typeof body.message === 'string' && body.message) ||
+          'upload_failed',
+      )
     }
-    await nuiCall('media:completeUpload', {
+    debugStage = 'completion_callback'
+    const completion = await nuiCall('media:completeUpload', {
+      correlationId: ready.correlationId,
       remoteId: uploaded.id,
       requestId: ready.requestId,
       url: uploaded.url,
     })
+    if (!completion.success) {
+      throw new Error(completion.error ?? 'completion_callback_failed')
+    }
+    console.info(
+      '[Sky Phone Media] Upload completion forwarded to the server.',
+      {
+        correlationId: ready.correlationId,
+      },
+    )
   } catch (error) {
     await failUpload(
       ready.requestId,
       error instanceof DOMException && error.name === 'AbortError'
         ? 'upload_timeout'
         : 'upload_failed',
+      {
+        correlationId: ready.correlationId,
+        message: error instanceof Error ? error.message : String(error),
+        stage: debugStage,
+        status: debugStatus,
+      },
     )
   } finally {
     window.clearTimeout(timeout)
@@ -523,7 +593,12 @@ function onMessage(event: MessageEvent): void {
       )
     }
   } else if (message.type === 'media:uploadReady') {
-    void uploadReady(message.data as UploadReady)
+    const ready = message.data as UploadReady
+    console.info('[Sky Phone Media] Upload-ready received.', {
+      correlationId: ready.correlationId,
+      type: ready.mediaType,
+    })
+    void uploadReady(ready)
   } else if (message.type === 'media:uploadResult') {
     const correlationId = String(message.data?.correlationId ?? '')
     if (correlationId) pendingVideos.delete(correlationId)

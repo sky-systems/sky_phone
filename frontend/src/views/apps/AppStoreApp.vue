@@ -63,6 +63,7 @@ const openedAt = new Date()
 const featuredSlide = ref(0)
 const profileOpened = ref(false)
 const uninstallCandidate = ref<LaunchablePhoneAppDefinition | null>(null)
+const uninstallError = ref('')
 const selectedApp = ref<LaunchablePhoneAppDefinition | null>(null)
 const storeScroll = ref<ComponentPublicInstance | null>(null)
 const featuredScroller = ref<HTMLElement | null>(null)
@@ -119,9 +120,10 @@ const downloadDateDescription = computed(() =>
 )
 const catalog = computed(() =>
   PHONE_APPS.filter((app): app is LaunchablePhoneAppDefinition => {
-    if (!isLaunchablePhoneApp(app) || app.id === 'app-store') {
+    if (!isLaunchablePhoneApp(app) || app.id === 'app-store' || app.adminOnly) {
       return false
     }
+    if (!appStore.isAvailable(app.id)) return false
 
     return !appStore.isInstalled(app.id)
   }).sort((a, b) => a.gridOrder - b.gridOrder),
@@ -129,7 +131,9 @@ const catalog = computed(() =>
 const installedApps = computed(() =>
   PHONE_APPS.filter(
     (app): app is LaunchablePhoneAppDefinition =>
-      isLaunchablePhoneApp(app) && appStore.isInstalled(app.id),
+      isLaunchablePhoneApp(app) &&
+      appStore.isAvailable(app.id) &&
+      appStore.isInstalled(app.id),
   ).sort((a, b) => a.gridOrder - b.gridOrder),
 )
 const installedGameCount = computed(
@@ -140,8 +144,10 @@ const dailyCandidates = computed(() =>
     PHONE_APPS.filter(
       (app): app is LaunchablePhoneAppDefinition =>
         isLaunchablePhoneApp(app) &&
+        !app.adminOnly &&
         !isExternalPhoneApp(app) &&
         app.id !== 'app-store' &&
+        appStore.isAvailable(app.id) &&
         !DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id) &&
         !appStore.isInstalled(app.id),
     ),
@@ -283,6 +289,16 @@ function closeProfile(): void {
   profileDragOffset.value = 0
 }
 
+function requestUninstall(app: LaunchablePhoneAppDefinition): void {
+  uninstallError.value = ''
+  uninstallCandidate.value = app
+}
+
+function closeUninstallDialog(): void {
+  uninstallError.value = ''
+  uninstallCandidate.value = null
+}
+
 function beginProfileDrag(event: PointerEvent): void {
   if (!profileOpened.value || event.button !== 0) return
   profileDragPointerId = event.pointerId
@@ -313,8 +329,11 @@ function endProfileDrag(event: PointerEvent): void {
 
 function confirmUninstall(): void {
   if (!uninstallCandidate.value) return
-  appStore.uninstallApp(uninstallCandidate.value.id)
-  uninstallCandidate.value = null
+  if (!appStore.uninstallApp(uninstallCandidate.value.id)) {
+    uninstallError.value = phone.t('Apps.appStore.account.uninstallFailed')
+    return
+  }
+  closeUninstallDialog()
 }
 
 function highlightStyle(index: number): Record<string, string> {
@@ -1102,7 +1121,7 @@ watch(
                   app: getPhoneAppLabel(app, phone.t),
                 })
               "
-              @click="uninstallCandidate = app"
+              @click.stop="requestUninstall(app)"
             >
               <Trash2 :size="17" :stroke-width="2" aria-hidden="true" />
             </button>
@@ -1114,8 +1133,8 @@ watch(
     <SkyDialog
       :opened="Boolean(uninstallCandidate)"
       role="alertdialog"
-      @backdropclick="uninstallCandidate = null"
-      @escape="uninstallCandidate = null"
+      @backdropclick="closeUninstallDialog"
+      @escape="closeUninstallDialog"
     >
       <template #title>
         {{ phone.t('Apps.appStore.account.uninstallTitle') }}
@@ -1127,8 +1146,15 @@ watch(
           })
         }}
       </p>
+      <p
+        v-if="uninstallError"
+        class="store-account__uninstall-error"
+        role="alert"
+      >
+        {{ uninstallError }}
+      </p>
       <template #buttons>
-        <SkyDialogButton @click="uninstallCandidate = null">
+        <SkyDialogButton @click="closeUninstallDialog">
           {{ phone.t('Common.cancel') }}
         </SkyDialogButton>
         <SkyDialogButton strong @click="confirmUninstall">
@@ -1469,6 +1495,11 @@ watch(
   border-radius: 50%;
   color: var(--sky-danger);
   background: var(--sky-danger-soft);
+}
+
+.store-account__uninstall-error {
+  color: var(--sky-danger);
+  font-size: 12px;
 }
 
 .store-scroll {

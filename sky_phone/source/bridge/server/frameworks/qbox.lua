@@ -24,6 +24,13 @@ function Bridge.Framework.HasAdminGroup(source, groups)
     if not player then
         return false
     end
+
+    for _, group in ipairs(groups) do
+        if IsPlayerAceAllowed(tostring(source), group) then
+            return true
+        end
+    end
+
     return exports.qbx_core:HasGroup(source, groups)
 end
 

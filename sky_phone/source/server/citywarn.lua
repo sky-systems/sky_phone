@@ -1,3 +1,5 @@
+Bridge.Callbacks.RegisterDeferred("sky_phone:citywarn:blips")
+
 Bridge.Database.AfterMigration("sky_phone", function()
 local config = Config.CityWarn
 
@@ -316,7 +318,7 @@ local function load_alert(id)
     return alert and attach_updates({ alert })[1] or nil
 end
 
-local function validate_area(data, access)
+local function validate_area(data, access, source)
     if type(data) ~= "table" or (data.type ~= "radius" and data.type ~= "district" and data.type ~= "city") then
         return nil
     end
@@ -338,6 +340,15 @@ local function validate_area(data, access)
         if not center_x or not center_y then
             return nil
         end
+    else
+        -- Older NUI versions omit the incident location for district/city alerts.
+        -- Preserve their affected area, but anchor new map blips at the publisher.
+        local ped = GetPlayerPed(source)
+        if not ped or ped == 0 then return nil end
+        local coords = GetEntityCoords(ped)
+        center_x = valid_number(coords.x, -10000, 10000)
+        center_y = valid_number(coords.y, -10000, 10000)
+        if not center_x or not center_y then return nil end
     end
     return {
         type = data.type,
@@ -348,7 +359,83 @@ local function validate_area(data, access)
     }
 end
 
+local blip_cache
+local blip_version = 0
+
+local function invalidate_blips()
+    blip_cache = nil
+    blip_version = blip_version + 1
+end
+
+local function map_blip_dto()
+    local settings = config.Blip or {}
+    local radius = settings.Radius
+    -- Match the native client's fallback for older or invalid file settings.
+    return {
+        radiusEnabled = settings.RadiusEnabled ~= false,
+        radius = type(radius) == "number" and radius == radius and radius >= 1 and radius <= 50000
+            and radius or 100.0,
+    }
+end
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    config = Config.CityWarn
+    invalidate_blips()
+    TriggerClientEvent("sky_phone:citywarn:changed", -1, {
+        categoryColors = config.CategoryColors,
+        mapBlip = map_blip_dto(),
+    })
+end)
+
+-- Population warnings are public, including while a phone is closed. This
+-- read-only endpoint deliberately does not require an open device session.
+Bridge.Callbacks.Register("sky_phone:citywarn:blips", function(source)
+    if not SkyPhone.AllowOperation(source, "citywarn_blips", 60, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    if not config.Enabled then
+        return { success = true, data = { alerts = {} } }
+    end
+
+    if not blip_cache or ((GetGameTimer() - blip_cache.created_at) & 0xffffffff) >= 5000 then
+        local version = blip_version
+        local started_at = GetGameTimer()
+        local rows = Bridge.Database.Query([[
+            SELECT `id`, `title`, `category`, `severity`, `area_type`, `center_x`, `center_y`, `radius`,
+                TIMESTAMPDIFF(SECOND, NOW(), `expires_at`) AS `remaining_seconds`
+            FROM `sky_phone_citywarn_alerts`
+            WHERE `status` = 'active' AND `expires_at` > NOW()
+                AND `center_x` IS NOT NULL AND `center_y` IS NOT NULL
+        ]], {})
+        -- A publication/resolution can complete while the database query yields.
+        if version ~= blip_version then
+            return { success = false, error = "revision_conflict" }
+        end
+        blip_cache = { created_at = started_at, rows = rows }
+    end
+
+    local age = (GetGameTimer() - blip_cache.created_at) & 0xffffffff
+    local alerts = {}
+    for _, row in ipairs(blip_cache.rows) do
+        local remaining_ms = (tonumber(row.remaining_seconds) or 0) * 1000 - age
+        if remaining_ms > 0 then
+            alerts[#alerts + 1] = {
+                id = row.id,
+                title = row.title,
+                category = row.category,
+                severity = row.severity,
+                x = tonumber(row.center_x),
+                y = tonumber(row.center_y),
+                radius = row.area_type == "radius" and tonumber(row.radius) or nil,
+                remainingMs = remaining_ms,
+            }
+        end
+    end
+    return { success = true, data = { alerts = alerts } }
+end)
+
 local function broadcast(kind, alert)
+    invalidate_blips()
     TriggerClientEvent("sky_phone:citywarn:changed", -1, {
         alert = alert,
         alertId = alert.id,
@@ -370,6 +457,8 @@ Bridge.Callbacks.Register("sky_phone:citywarn:bootstrap", function(source)
             active = query_alerts("active"),
             archive = query_alerts("archive"),
             context = context_dto(source),
+            categoryColors = config.CategoryColors,
+            mapBlip = map_blip_dto(),
             onlinePlayers = #Bridge.Framework.GetPlayers(),
         },
     }
@@ -389,7 +478,7 @@ Bridge.Callbacks.Register("sky_phone:citywarn:publish", function(source, data)
     local body = type(data) == "table" and valid_text(data.body, config.BodyMaxLength, false) or nil
     local instructions = type(data) == "table" and valid_text(data.instructions, config.InstructionsMaxLength, true) or nil
     local duration = type(data) == "table" and valid_integer(data.durationMinutes, 1, config.MaximumDurationMinutes) or nil
-    local area = type(data) == "table" and validate_area(data.area, access) or nil
+    local area = type(data) == "table" and validate_area(data.area, access, source) or nil
     if not actor or not title or not body or instructions == nil or not duration or not area
         or not access.allowed_lookup[data.category]
         or not severity_rank[data.severity]

@@ -24,4 +24,13 @@ describe('EasyShareSheet Sky UI contract', () => {
       /\.easyshare-history\s*\{[^}]*overflow:\s*hidden[^}]*background:\s*var\(--easyshare-list-surface\)/s,
     )
   })
+
+  it('only exposes and opens installed share destinations', () => {
+    expect(source).toContain("if (appStore.isInstalled('flare'))")
+    expect(source).toContain("if (appStore.isInstalled('darkchat'))")
+    expect(source).toContain('.filter((id) => appStore.isInstalled(id))')
+    expect(source).toContain('if (!appStore.isInstalled(kind)) return')
+    expect(source).toContain('if (!appStore.isInstalled(appId)) return')
+    expect(source).not.toContain('appStore.homeLayout.hidden.includes')
+  })
 })

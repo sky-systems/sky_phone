@@ -188,6 +188,7 @@ export type CompanyWorkPermissions = {
 export type CompanyWorkContext = {
   authorized: boolean
   callAvailable: boolean
+  callDispatcher: boolean
   company: Company | null
   metrics: CompanyWorkMetrics
   ownRequests: CompanyRequestSummary[]
@@ -235,10 +236,8 @@ export type UpdateCompanyProfile = {
   acceptsRequests: boolean
   address: string
   coords?: CompanyCoordinates
-  coverMediaId?: number
   description: string
   district: string
-  logoMediaId?: number
   locationLabel: string
   revision: number
 }

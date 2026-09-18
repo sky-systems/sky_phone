@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import {
-  ChevronLeft,
-  ChevronRight,
-  Share2,
-  Star,
-} from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Share2, Star } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 import { getPhoneAppLabel, isExternalPhoneApp } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
 import type { LaunchablePhoneAppDefinition } from '@/types/apps'
+import { SkyButton } from '@/ui'
 import { getAppStorePreviewImage } from '@/utils/appStorePreviewImages'
 import { getAppStorePreviewVisual } from '@/utils/appStorePreviews'
 
@@ -126,20 +122,28 @@ function updateActivePreview(): void {
 <template>
   <section class="store-detail" :style="detailStyle">
     <header class="store-detail__toolbar">
-      <button
+      <SkyButton
+        glass
+        icon-only
+        rounded
+        class="store-detail__toolbar-button"
         type="button"
         :aria-label="phone.t('Common.back')"
         @click="emit('back')"
       >
         <ChevronLeft :size="26" :stroke-width="2.2" aria-hidden="true" />
-      </button>
-      <button
+      </SkyButton>
+      <SkyButton
+        glass
+        icon-only
+        rounded
+        class="store-detail__toolbar-button"
         type="button"
         :aria-label="phone.t('Apps.appStore.details.share')"
         @click="emit('share')"
       >
         <Share2 :size="21" :stroke-width="2" aria-hidden="true" />
-      </button>
+      </SkyButton>
     </header>
 
     <section class="store-detail__hero">
@@ -212,22 +216,30 @@ function updateActivePreview(): void {
         <h2>{{ phone.t('Apps.appStore.details.preview') }}</h2>
         <div class="store-detail__preview-navigation">
           <span>{{ activePreviewIndex + 1 }} / {{ previewCount }}</span>
-          <button
+          <SkyButton
+            glass
+            icon-only
+            rounded
+            class="store-detail__preview-control"
             type="button"
             :aria-label="phone.t('Apps.appStore.details.previousPreview')"
             :disabled="activePreviewIndex === 0"
             @click="scrollToPreview(activePreviewIndex - 1)"
           >
             <ChevronLeft :size="17" :stroke-width="2.4" aria-hidden="true" />
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            glass
+            icon-only
+            rounded
+            class="store-detail__preview-control"
             type="button"
             :aria-label="phone.t('Apps.appStore.details.nextPreview')"
             :disabled="activePreviewIndex === previewCount - 1"
             @click="scrollToPreview(activePreviewIndex + 1)"
           >
             <ChevronRight :size="17" :stroke-width="2.4" aria-hidden="true" />
-          </button>
+          </SkyButton>
         </div>
       </header>
       <div
@@ -286,7 +298,7 @@ function updateActivePreview(): void {
   justify-content: space-between;
 }
 
-.store-detail__toolbar button {
+.store-detail__toolbar-button {
   width: var(--sky-touch-target);
   height: var(--sky-touch-target);
   display: grid;
@@ -294,7 +306,6 @@ function updateActivePreview(): void {
   border: 1px solid var(--sky-hairline);
   border-radius: 50%;
   color: var(--sky-text);
-  background: var(--sky-surface-variant);
   transition:
     background-color 100ms ease,
     border-color 100ms ease,
@@ -302,7 +313,7 @@ function updateActivePreview(): void {
     transform 100ms ease;
 }
 
-.store-detail__toolbar button:active {
+.store-detail__toolbar-button:active {
   transform: scale(0.94);
 }
 
@@ -481,27 +492,28 @@ function updateActivePreview(): void {
   text-align: center;
 }
 
-.store-detail__preview-navigation button {
-  width: 30px;
-  height: 30px;
+.store-detail__preview-control {
+  width: var(--sky-touch-target);
+  height: var(--sky-touch-target);
+  min-width: var(--sky-touch-target);
+  min-height: var(--sky-touch-target);
   display: grid;
   place-items: center;
   border: 1px solid var(--sky-hairline);
   border-radius: 50%;
   padding: 0;
   color: var(--sky-text);
-  background: var(--sky-surface-variant);
   transition:
     background-color 100ms ease,
     color 100ms ease,
     transform 100ms ease;
 }
 
-.store-detail__preview-navigation button:disabled {
+.store-detail__preview-control:disabled {
   opacity: 0.34;
 }
 
-.store-detail__preview-navigation button:active:not(:disabled) {
+.store-detail__preview-control:active:not(:disabled) {
   transform: scale(0.92);
 }
 
@@ -520,16 +532,14 @@ function updateActivePreview(): void {
 }
 
 @media (hover: hover) {
-  .store-detail__toolbar button:hover {
+  .store-detail__toolbar-button:hover {
     border-color: rgba(255, 255, 255, 0.16);
-    background: var(--sky-surface-tint);
     box-shadow: 0 7px 16px rgba(0, 0, 0, 0.18);
     transform: translateY(-1px);
   }
 
-  .store-detail__preview-navigation button:hover:not(:disabled) {
+  .store-detail__preview-control:hover:not(:disabled) {
     color: var(--sky-app-accent);
-    background: var(--sky-surface-tint);
     transform: translateY(-1px);
   }
 }

@@ -1,3 +1,5 @@
+import { registerPhoneMediaElement } from '@/utils/phoneAudio'
+
 import crashUrl from '@/assets/audio/sky-flappy/crash.wav?url'
 import flapUrl from '@/assets/audio/sky-flappy/flap.wav?url'
 import pointUrl from '@/assets/audio/sky-flappy/point.wav?url'
@@ -11,7 +13,7 @@ export function playSkyFlappySound(sound: SkyFlappySound, enabled: boolean): voi
   let players = pools.get(sound)
   if (!players) {
     players = Array.from({ length: 3 }, () => {
-      const player = new Audio(urls[sound])
+      const player = registerPhoneMediaElement(new Audio(urls[sound]))
       player.preload = 'auto'
       player.volume = 0.84
       return player

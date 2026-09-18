@@ -1246,7 +1246,7 @@ onBeforeUnmount(() => {
           v-if="editingMailboxes"
           component="button"
           type="button"
-          variant="neutral"
+          variant="glass"
           :text="phone.t('Apps.mail.newMailbox')"
           :aria-label="phone.t('Apps.mail.newMailbox')"
           @click="beginMailboxCreate"
@@ -1257,7 +1257,7 @@ onBeforeUnmount(() => {
           v-else
           component="button"
           type="button"
-          variant="neutral"
+          variant="glass"
           :aria-label="phone.t('Apps.mail.compose')"
           @click="beginCompose()"
         >
@@ -1426,7 +1426,7 @@ onBeforeUnmount(() => {
           component="button"
           type="button"
           class="mail-filter-fab mail-filter-fab--active"
-          variant="neutral"
+          variant="glass"
           :disabled="!canFilterFolder"
           :aria-label="filterButtonLabel"
           :aria-pressed="true"
@@ -1448,7 +1448,7 @@ onBeforeUnmount(() => {
           component="button"
           type="button"
           class="mail-filter-fab"
-          variant="neutral"
+          variant="glass"
           :disabled="!canFilterFolder"
           :aria-label="filterButtonLabel"
           :aria-pressed="false"
@@ -1467,7 +1467,7 @@ onBeforeUnmount(() => {
         <sky-fab
           component="button"
           type="button"
-          variant="neutral"
+          variant="glass"
           :aria-label="phone.t('Apps.mail.compose')"
           @click="beginCompose()"
         >

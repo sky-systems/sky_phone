@@ -111,3 +111,8 @@ end
 
 AddEventHandler("onResourceStart", reset_provider)
 AddEventHandler("onResourceStop", reset_provider)
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    selected_provider_name = nil
+    last_provider_state = nil
+end)

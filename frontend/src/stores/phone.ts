@@ -8,6 +8,11 @@ import type {
 } from '@/types/device'
 import { clampPage } from '@/utils/pages'
 import { cloneJsonData } from '@/utils/clone'
+import {
+  EMPTY_CUSTOM_PHONE_TONES,
+  isCustomTonePreferenceId,
+  parseCustomPhoneToneCatalog,
+} from '@/utils/customTones'
 import { nuiCall } from '@/utils/nui'
 import type { NuiResponse } from '@/utils/nui'
 import {
@@ -24,6 +29,13 @@ import {
 
 type LocaleTree = Record<string, unknown>
 
+const intlLocaleCodes: Record<string, string> = {
+  cn: 'zh-CN',
+  cz: 'cs-CZ',
+  rs: 'sr-Cyrl-RS',
+  se: 'sv-SE',
+}
+
 export type PasscodeResponseData = {
   attemptsRemaining?: number
   retryAfter?: number
@@ -33,11 +45,13 @@ export type PasscodeResponseData = {
 export type PhoneOpenPayload = {
   account?: DeviceBootstrap['account']
   device?: PhoneDevice
+  disabledApps?: string[]
   fallbackLocales?: LocaleTree
   lang?: string
   locales?: LocaleTree
   memos?: DeviceBootstrap['memos']
   notes?: DeviceBootstrap['notes']
+  phoneNumberFormat?: DeviceBootstrap['phoneNumberFormat']
   player?: DeviceBootstrap['player']
   security?: DeviceSecurity
   token?: string
@@ -167,7 +181,7 @@ const companiesFallbackLocales = {
     descriptionPlaceholder:
       'Describe what happened and how the company can help.',
     contact: 'Contact number',
-    registeredSim: 'Replies go to your registered SIM {number}.',
+    registeredSim: 'Replies go to your phone number {number}.',
     registeredSimRequired: 'A registered SIM is required to send a request.',
     addPhotos: 'Add Photos ({count}/3)',
     selectedPhoto: 'Selected request photo',
@@ -217,7 +231,9 @@ const companiesFallbackLocales = {
     workspace: 'Company Workspace',
     publicAvailability: 'Public Availability',
     takeCalls: 'Take company calls',
-    takeCallsBody: 'Route new service-line calls to this active SIM.',
+    takeCallsBody: 'Route new service-line calls to this phone.',
+    dispatch: 'Take dispatch duty',
+    dispatchBody: 'Receive company calls before other employees.',
     dialServiceLine: 'Call from service line',
     dialServiceLineBody: 'Make an outgoing call that displays {number}.',
     dialServiceLineHint:
@@ -287,7 +303,7 @@ const companiesFallbackLocales = {
     address: 'Address',
     district: 'District',
     acceptRequests: 'Accept service requests',
-    acceptRequestsBody: 'Allow registered SIMs to open structured requests.',
+    acceptRequestsBody: 'Allow customers to send service requests.',
     saveProfile: 'Save Profile',
     hours: 'Opening Hours',
     dayOpen: 'Company is open on this day',
@@ -319,6 +335,10 @@ const companiesFallbackLocales = {
     locationUpdated: 'Current location selected.',
     callsEnabled: 'Company calls enabled.',
     callsDisabled: 'Company calls disabled.',
+    dispatchEnabled:
+      'Dispatch duty enabled. Company calls will reach you first.',
+    dispatchDisabled:
+      'Dispatch duty ended. You can still receive company calls.',
     profileSaved: 'Company profile saved.',
     hoursSaved: 'Opening hours saved.',
     servicesSaved: 'Services saved.',
@@ -638,7 +658,8 @@ const cryptoFallbackLocales = {
     invalid_handle: 'Use 3–20 letters, numbers, dots or underscores.',
     handle_taken: 'That VaultX handle is already taken.',
     profile_exists: 'This character already owns a VaultX profile.',
-    invalid_password: 'Password must be 8–72 characters.',
+    invalid_password:
+      'Use 8–72 characters with uppercase, lowercase, a number, and a special character.',
     password_mismatch: 'The passwords do not match.',
     accept_terms: 'Confirm that this is a fictional in-game wallet.',
     invalid_credentials: 'The password is incorrect.',
@@ -717,7 +738,13 @@ const citywarnFallbackLocales = {
   emptyFiltered: 'No matching warnings',
   emptyFilteredBody: 'Your personal filters hide the current alerts.',
   mapTitle: 'Warning areas',
-  mapBody: 'Highlighted areas show the approximate scope of active alerts.',
+  mapBody:
+    'The map marks active warning locations. Open a warning for details about the affected area.',
+  mapControls: 'Map controls',
+  mapZoomIn: 'Zoom in',
+  mapZoomOut: 'Zoom out',
+  mapReset: 'Reset map view',
+  mapHint: 'Drag to move the map. Use the mouse wheel or + / - to zoom.',
   publisher: {
     title: 'Authority tools',
     body: 'You are on duty as {job} ({grade}) and may publish warnings.',
@@ -805,7 +832,690 @@ const citywarnFallbackLocales = {
   },
 }
 
+const adminPanelFallbackLocales = {
+  webhooks: {
+    categoryLabels: {
+      Account: 'Sky Cloud account',
+      Admin: 'Administration',
+      Banking: 'Banking',
+      Billing: 'Invoices',
+      Calendar: 'Calendar',
+      Calls: 'Calls',
+      CityWarn: 'CityWarn',
+      Companies: 'Companies',
+      Contacts: 'Contacts',
+      CrewLink: 'CrewLink',
+      Crypto: 'VaultX',
+      CustomApps: 'Custom apps',
+      DarkChat: 'DarkChat',
+      Device: 'Phone settings',
+      EasyShare: 'EasyShare',
+      Feather: 'Feather',
+      Flare: 'Flare',
+      FlipTok: 'FlipTok',
+      Gallery: 'Photos',
+      Garage: 'Garage',
+      Health: 'Health',
+      Housing: 'Properties',
+      Mail: 'Email',
+      Map: 'Map',
+      Marketplace: 'CityMarkt',
+      Memos: 'Voice memos',
+      Messages: 'Messages',
+      Music: 'Music',
+      Notes: 'Notes',
+      Pages: 'Local Pages',
+      Picstagram: 'Picstagram',
+      Radio: 'Radio',
+      Security: 'Phone lock',
+      Sim: 'SIM card',
+      SkyPic: 'SkyPic',
+      SkyRide: 'SkyRide',
+      Uploads: 'Media uploads',
+      WeazelNews: 'Weazel News',
+    },
+    appearance: 'Public appearance and videos',
+    footerIcon: 'Sky Phone footer logo URL',
+    appIcon: 'App icon URL',
+    videoMaxBytes: 'Maximum total video attachment size per message (bytes)',
+    videoHelp:
+      'Videos are uploaded as Discord attachments. Oversized or unavailable files retain a visible link. Maximum 20 MiB.',
+    title: 'Discord webhooks',
+    body: 'Configure admin logs and public player announcements separately. Save changes using the button at the top of Phonepanel.',
+    sidebar:
+      'Saved webhook URLs stay on the server. Changes take effect immediately and survive restarts. SkyPic settings are ready for its integration.',
+    reload: 'Reload saved settings',
+    loading: 'Loading webhook settings…',
+    general: 'General settings',
+    enabled: 'Enable Discord webhooks',
+    audience: 'Audience',
+    admin: 'Admin logs',
+    public: 'Public player info',
+    adminHelp:
+      'Full activity logs for administrators, including private content. Use channels accessible only to staff.',
+    publicHelp:
+      'Announces public posts, stories and listings. Private profiles, messages and player identifiers are excluded. Uses only public destinations.',
+    username: 'Admin webhook name',
+    avatarUrl: 'Admin avatar URL',
+    avatarHelp:
+      'Optional HTTPS image URL. Leave empty to use the webhook’s Discord avatar.',
+    queueLimit: 'Maximum queued message parts',
+    maxAttempts: 'Maximum delivery attempts',
+    resetGeneral: 'Use general settings from WebHooks.lua',
+    allCategories: 'All categories',
+    scope: 'Show',
+    categories: 'App channels',
+    actions: 'Individual actions',
+    category: 'App / category',
+    search: 'Search channels or actions',
+    routingHelp:
+      'Actions inherit their app channel, app channels inherit the default. Disabled stops that route. File setting uses WebHooks.lua.',
+    empty: 'No matching channels.',
+    default: 'Default channel',
+    configured: 'Own URL stored',
+    notConfigured: 'No own URL stored',
+    destination: 'Destination',
+    url: 'Webhook URL',
+    keepExisting: 'Leave empty to keep the saved URL',
+    enterUrl: 'Paste Discord webhook URL',
+    secretHelp:
+      'Saved URLs are never displayed. Paste a new URL to replace the current one.',
+    modes: {
+      file: 'File setting',
+      inherit: 'Inherit',
+      disabled: 'Disabled',
+      custom: 'Own webhook',
+    },
+  },
+  name: 'Phone Admin',
+  subtitle: 'Administration',
+  navigation: 'Admin navigation',
+  refresh: 'Refresh admin data',
+  loading: 'Loading protected data...',
+  tabs: {
+    overview: 'Overview',
+    players: 'Players',
+    devices: 'Devices',
+    apps: 'Apps',
+    accounts: 'Accounts',
+    messages: 'Messages',
+    calls: 'Calls',
+    moderation: 'Moderation',
+    tones: 'Sounds',
+    webhooks: 'Webhooks',
+    audit: 'Audit',
+    configurator: 'Phone configurator',
+  },
+  overview: {
+    eyebrow: 'Server',
+    title: 'Dashboard',
+    body: 'Players, devices, apps, and phone data.',
+    stats: 'Server phone statistics',
+    online: 'Online',
+    devices: 'Devices',
+    accounts: 'Accounts',
+    audit: 'Audit entries',
+    control: 'Navigation',
+    features: 'Modules',
+    featuresBody: 'Open an administration module.',
+    recent: 'Recent activity',
+    playerFeature: 'Identity, finances, job, and duty',
+    deviceFeature: 'IMEI, SIM, number, and activity',
+    appFeature: 'Install or remove phone apps',
+    accountFeature: 'Account access and protected credentials',
+    messageFeature: 'Review recent SMS activity',
+    callFeature: 'Review recent call activity',
+    moderationFeature: 'Reset access, number, or device data',
+    tonesFeature: 'Manage ringtones and notification sounds',
+    auditFeature: 'Review sensitive admin actions',
+    configuratorFeature: 'Manage config.lua and media.lua through SQL',
+  },
+  statistics: {
+    eyebrow: 'Live data',
+    title: 'Phone statistics',
+    body: 'Current usage and device status, refreshed every 15 seconds.',
+    today: 'Activity today',
+    todayBody: 'Phone and admin activity since midnight.',
+    messagesToday: 'Messages',
+    callsToday: 'Calls',
+    auditToday: 'Admin actions',
+    coverage: 'Device coverage',
+    coverageBody: 'Current share of all stored phones.',
+    linkedDevices: 'Account linked',
+    simDevices: 'SIM assigned',
+    activeDevices: 'Updated in 24 hours',
+    ofDevices: '{count} of {total} devices',
+  },
+  configurator: {
+    faceIdMaskWhitelistLabel: 'Allowed Face ID masks',
+    faceIdMaskLabels: {
+      Model: 'Ped model',
+      Drawable: 'Mask drawable ID',
+      Texture: 'Texture ID (-1 = all)',
+    },
+    context: 'Runtime configuration',
+    eyebrow: 'System tool',
+    sections: 'Configuration',
+    search: 'Search settings or paths',
+    configScope: 'config.lua',
+    mediaScope: 'media.lua',
+    noResults: 'No matching settings',
+    loading: 'Loading SQL configuration...',
+    title: 'Phone configurator',
+    body: 'Manage phone and media settings from the protected admin workspace.',
+    disabledTitle: 'SQL configuration is not active',
+    disabledBody:
+      'Enable the configurator at the beginning of config.lua and restart sky_phone. Until then, file values remain active and editing is locked.',
+    manualSave: 'Manual save',
+    refreshNotice:
+      'Nothing is written automatically. The green check verifies config.lua and media.lua in SQL and refreshes the active server, client, media and UI configuration immediately.',
+    fieldCount: '{count} fields',
+    secretConfigured: 'Secret configured · enter a replacement',
+    invalidValue: 'Check the highlighted table or number value.',
+    saved: 'SQL configuration saved and applied.',
+    customTones: {
+      context: 'Sound library',
+      eyebrow: 'Audio management',
+      library: 'Library',
+      title: 'Custom ringtones and notification sounds',
+      body: 'Manage local audio files from the database or config.lua without external URLs.',
+      configTitle: 'File-based alternative',
+      configBody:
+        'If the FiveM client does not open a file dialog, place the file in the resource folder and register it in config.lua.',
+      configSource: 'config.lua',
+      configManaged:
+        'This tone is managed through config.lua and can only be previewed here.',
+      name: 'Display name',
+      namePlaceholder: 'For example Dispatch',
+      category: 'Use as',
+      ringtone: 'Ringtone',
+      notification: 'Notification sound',
+      chooseFile: 'Choose audio file',
+      fileHint: 'MP3, OGG, WAV, or WebM · up to 2 MB and 30 seconds',
+      preview: 'Preview',
+      add: 'Add tone',
+      loading: 'Loading tone library...',
+      ringtones: 'Ringtones',
+      notifications: 'Notification sounds',
+      empty: 'No custom tones in this category yet.',
+      delete: 'Delete tone',
+      confirmDelete: 'Click again to confirm',
+      saved: 'The tone was saved and is immediately available on every phone.',
+      deleted: 'The tone was deleted.',
+      errors: {
+        type: 'Choose an MP3, OGG, WAV, or WebM audio file.',
+        size: 'The audio file may not exceed 2 MB.',
+        duration: 'The tone must be between 0.25 and 30 seconds long.',
+        invalid: 'The audio file could not be read.',
+        playback: 'The tone could not be played.',
+      },
+    },
+    citywarnCategoryColors: 'Category colors',
+    citywarnPublisherLabels: {
+      MinimumGrade: 'Minimum job grade',
+      MaximumSeverity: 'Highest warning level',
+      CityWide: 'Allow city-wide warnings',
+      Categories: 'Allowed categories',
+    },
+    citywarnBlipLabels: {
+      Sprite: 'Sprite',
+      Display: 'Map display',
+      ShortRange: 'Short range',
+      CategoryId: 'Category ID',
+      CategoryName: 'Category name',
+      GroupByCategory: 'Group by category',
+      RadiusEnabled: 'Show radius',
+      Radius: 'Radius (metres)',
+    },
+    descriptions: {
+      citywarnPublishers:
+        'Choose which jobs may publish CityWarn warnings. Enter the internal job name, for example mechanic, and click Add job. Set its permissions, then save with the green check.',
+      citywarnPublisher:
+        'Permissions for the job {name}. This job must already exist on your server. If RequireDuty is enabled, employees must be on duty to publish.',
+      citywarnPublisherMinimumGrade:
+        'Lowest job grade allowed to publish. 0 allows every grade; 2 allows grade 2 and above. Enter the grade number, not its name.',
+      citywarnPublisherMaximumSeverity:
+        'Highest level this job may publish: information (notice), warning (warning), danger (danger) or extreme (extreme danger). Lower levels are also allowed.',
+      citywarnPublisherCityWide:
+        'On: this job may warn the whole city. Off: warnings must target a limited area on the map.',
+      citywarnPublisherCategories:
+        'Add one category per row: public_safety (public safety), police (police), fire (fire), medical (medical), infrastructure (infrastructure) or evacuation (evacuation). Use these exact codes. An empty list allows no warnings.',
+      faceIdMaskWhitelist:
+        'Exceptions for masks on ped component 1, up to 256 entries. No mask (drawable 0) is always allowed. Each exception applies only to the specified ped model.',
+      faceIdMaskModel:
+        'Ped model name, e.g. mp_m_freemode_01 or mp_f_freemode_01. Custom models are supported (up to 64 letters, digits, underscores or hyphens).',
+      faceIdMaskDrawable:
+        'Global drawable ID of the allowed mask on component 1 (1-65535). IDs may differ between models and clothing packs.',
+      faceIdMaskTexture:
+        'Allowed texture ID (0-65535). Use -1 to allow every texture of this mask.',
+
+      citywarnBlipSprite:
+        'GTA blip sprite ID. Default: 161 (signal). Sprite 10 draws a large outline; use the separate radius setting for a fixed map area.',
+      citywarnBlipDisplay:
+        'Display mode: 0/1/7 hidden; 2/6 map and minimap, selectable; 3/4 map only; 5/9 minimap only; 8/10 both, not selectable.',
+      citywarnBlipShortRange:
+        'When enabled, the minimap shows the blip only nearby. Default: on.',
+      citywarnBlipCategoryId:
+        'Custom named map category ID from 12 to 133. Default: 12. Choose an unused ID to avoid sharing another category.',
+      citywarnBlipCategoryName:
+        'Map legend category name, up to 99 bytes without GTA formatting. Default: CityWarn.',
+      citywarnBlipGroupByCategory:
+        'Groups warnings under the category name in the map legend, hiding individual short titles. Leave off to show each short title. Default: off.',
+      citywarnBlipRadiusEnabled:
+        'Shows the same fixed area around each located warning on the GTA map and in CityWarn. The area has no separate GTA map legend entry.',
+      citywarnBlipRadius:
+        'Shared radius for the GTA map and CityWarn app, in metres (1-50000). Default: 100. Independent of the warning notification area.',
+      citywarnCategoryColor:
+        'Color in #RRGGBB format for this warning category. Applies to GTA blips, radius areas and the CityWarn app. Text contrast adjusts automatically.',
+      companyName: 'Company name shown in Discover (maximum 32 characters).',
+      companyLogo: 'Admin-managed company logo (HTTPS image URL).',
+      companyCover: 'Admin-managed company cover photo (HTTPS image URL).',
+      companyCallRouting:
+        'round_robin: ring available employees one at a time. ring_all: ring all available employees together; the first to answer gets the call. Requires call availability and MinimumGrade; busy or unreachable phones are skipped.',
+      companyCallAttempts:
+        'Maximum total attempts for round_robin, including the first employee (1-20). Ignored by ring_all.',
+      companyCallRingSeconds:
+        'Ring time in seconds (1-120) per round_robin attempt or for the entire ring_all group.',
+      featureToggle: 'Turns {name} on or off.',
+      boolean: 'Controls whether {name} is allowed.',
+      number:
+        'Numeric value for {name}. Enter the number without a unit or Lua calculation.',
+      text: 'Sets the text value used for {name}.',
+      optionalText:
+        'Sets the optional value for {name}; switch it off to disable it.',
+      list: 'Entries for {name}. Add each value in its own row; do not paste a comma-separated list or Lua braces into one field.',
+      table: 'Groups the related settings for {name}.',
+      credential: 'Stores the protected credential used by {name}.',
+      url: 'URL or endpoint for {name}. Enter the complete address, for example https://media.example.com/image.jpg. Use a direct file link for images.',
+      hosts:
+        'Allowed domains for {name}. Example: media.example.com. Add one domain per row, without https:// or a file path.',
+      milliseconds:
+        'Timing for {name} in milliseconds. Example: 10000 = 10 seconds. Enter only 10000.',
+      seconds:
+        'Timing for {name} in seconds. Example: 60 = 1 minute. Enter only 60.',
+      rateLimit:
+        'Maximum {name} actions per minute. Example: 20 allows up to 20 actions in 60 seconds.',
+      byteLimit:
+        'Maximum size for {name} in bytes. Example: 15728640 = 15 MiB. Enter 15728640, not 15 or a Lua calculation.',
+      textLimit:
+        'Maximum length for {name}. Example: 200 limits the text to 200 characters.',
+      distance: 'World distance for {name} in metres. Example: 10 = 10 metres.',
+      coordinates: 'Sets the world coordinates or orientation for {name}.',
+      gameAsset: 'Sets the GTA model or prop used for {name}.',
+      animation: 'Sets the animation asset used for {name}.',
+      access: 'Defines the jobs, groups or permission level for {name}.',
+      integration: 'Selects the connected framework or provider for {name}.',
+      path: 'Sets the storage or resource path used for {name}.',
+      color: 'Sets the interface color used for {name}.',
+      displayText:
+        'Text shown to players for {name}. Enter the text directly, without Lua quotation marks.',
+      phoneNumber: 'Sets the phone or service number used for {name}.',
+      routing: 'Controls how incoming requests are routed for {name}.',
+      command:
+        'Chat command for {name}. Enter the name without the leading slash. Example: phonepanel is opened with /phonepanel.',
+      locale:
+        'Language code for {name}. Examples: de = German, en = English, es = Spanish.',
+      debug: 'Controls detailed diagnostic output for {name}.',
+      mediaQuality: 'Sets the media quality or volume used for {name}.',
+      amount: 'Sets the maximum or displayed amount for {name}.',
+      giphyApiKey:
+        'API key from developers.giphy.com → Dashboard → Create an API Key. Paste your own key, not the website URL. Used for GIF search; it does not enable photo imports.',
+      gifRating:
+        'Maximum GIPHY content rating. Enter g, pg, pg-13 or r. Example: pg-13.',
+      fiveManageApiKey:
+        'Create a token with Media access in the FiveManage dashboard → Tokens and paste it here. Required for camera uploads and FiveManage import sources, including external links imported through that source.',
+      fiveManageBaseUrl:
+        'FiveManage API endpoint, not an image link. Normally keep https://api.fivemanage.com/api/v3/file. Paste the image URL in Photos → Import instead.',
+      importEnabled:
+        'Allows imports of external HTTPS images and videos in Photos. The import button appears only when at least one enabled, valid source under Websites is accessible to the player.',
+      importWebsites:
+        'To set up FiveManage imports, enter your own FiveManage.ApiKey and enable Import and the source. Add the domain of your image host to AllowedMediaHosts and save with the green check. Paste your own direct HTTPS image URL in Photos → Import.',
+      importSource:
+        'One import source shown in Photos, for example FiveManage. Expand it to configure the adapter, allowed domains and media types.',
+      importSourceId:
+        'Unique internal source ID, for example city_media. Use 1–64 lowercase letters, digits, underscores or hyphens. Keep the ID stable after importing media.',
+      importSourceLabel:
+        'Source name players see in Photos. Example: City Wallpapers. Maximum 64 characters.',
+      importSourceEnabled:
+        'Enables this source. It appears in Photos only if its adapter settings are valid and the player has any RequiredAce permission. For FiveManage, also set the API key.',
+      importAdapter:
+        'Enter fivemanage for a FiveManage source (API key and Path required), or manifest for your own JSON media catalog (ManifestUrl required). Adding a domain does not create an adapter.',
+      importApiKey:
+        'Optional FiveManage token for this source. Leave empty to use FiveManage.ApiKey. Paste only your own token with Media access, not a URL.',
+      importPath:
+        'FiveManage catalog folder, for example sky_phone/imports. Keep this value when allowing an external image host; add its domain under AllowedMediaHosts.',
+      importMediaTypes:
+        'Allowed media types: photo for images, video for videos. Add each as a separate list entry. For wallpapers, include photo.',
+      importHosts:
+        'Add each domain as a separate entry, for example media.example.com. No https://, path or *. Subdomains are included. Keep fivemanage.com for FiveManage media. Paste the complete image URL in Photos → Import.',
+      importManifestUrl:
+        'HTTPS URL of your own JSON media catalog, for example https://media.example.com/sky-phone/media.json. Requires version: 1 and items with id, filename, type, mimeType, size and url. This field is not for a JPG link.',
+      importRequiredAce:
+        'Optional ACE permission for this source, for example sky_phone.import.city_media. Leave empty to allow all players who can use Photos.',
+      importAuth:
+        'Manifest authentication: none for a public catalog, bearer with TokenConvar, or header with Header and ValueConvar. Example: Type = none for a publicly accessible media.json.',
+      importAuthConvar:
+        'Name of the server convar containing the manifest credential, for example sky_phone_city_media_token. Set its secret value in server.cfg with set; enter only the convar name here.',
+      importAuthHeader:
+        'HTTP header name for manifest authentication with Type = header. Example: X-API-Key. Put the convar name for its secret value in ValueConvar.',
+      wallpaperImport:
+        'Shows external image import in the wallpaper picker. Also requires Import.Enabled and an accessible import source whose MediaTypes includes photo. Camera and existing Photos remain available independently.',
+      photoEncoding:
+        'Image format for camera captures. Enter jpg, png or webp. Example: jpg for compressed photos.',
+      photoQuality:
+        'Camera image quality from 0 to 1. Example: 0.95 for high quality. Higher values usually create larger JPG/WebP files; PNG ignores this setting.',
+      videoBitrate:
+        'Video recording bitrate in kilobits per second. Example: 1500 = 1.5 Mbit/s. Higher values increase quality and upload size.',
+    },
+    table: {
+      list: 'List',
+      table: 'Key table',
+      vector: 'Vector',
+      entry: 'Entry',
+      general: 'General',
+      subtabs: {
+        Dictionaries: 'Dictionaries',
+        Clips: 'Clips',
+        Transforms: 'Transforms',
+        RateLimits: 'Rate Limits',
+        Publishers: 'Publishers',
+        ExternalPingResources: 'External Ping Resources',
+        Markets: 'Markets',
+        TrustedAdapters: 'Trusted Adapters',
+        AllowedDisappearTimers: 'Allowed Disappear Timers',
+        MusicTracks: 'Music Tracks',
+        VehicleImages: 'Vehicle Images',
+        Custom: 'Custom',
+        Valet: 'Valet',
+        AutoPriority: 'Automatic Priority',
+        Camera: 'Camera',
+        Categories: 'Categories',
+        Districts: 'Districts',
+        PhotoGradients: 'Photo Gradients',
+        LbPhone: 'LB Phone',
+        Tracks: 'Tracks',
+        Props: 'Props',
+        CustomLocations: 'Custom Locations',
+        Animation: 'Animation',
+        ReportReasons: 'Report Reasons',
+        DisplayName: 'Display Name',
+        Hud: 'HUD',
+        Badge: 'Badge',
+        LockedChannels: 'Locked Channels',
+        NumberGroups: 'Number Groups',
+        CustomFare: 'Custom Fare',
+        DriverJobs: 'Driver Jobs',
+        Services: 'Services',
+        QuickLocations: 'Quick Locations',
+        AllowedJobs: 'Allowed Jobs',
+        Websites: 'Websites',
+      },
+      addRow: 'Add row',
+      addField: 'Add field',
+      addJob: 'Add job',
+      remove: 'Remove',
+      emptyList: 'No rows yet. Add the first row with plus.',
+      emptyTable: 'No fields yet. Add the first key below.',
+      keyPlaceholder: 'New key',
+      jobPlaceholder: 'Job name',
+      convertToList: 'Use list',
+      convertToMap: 'Use typed key table',
+      convertToTable: 'Use key table',
+      types: {
+        string: 'Text',
+        number: 'Number',
+        boolean: 'Switch',
+        list: 'List',
+        table: 'Table',
+      },
+    },
+  },
+  players: {
+    eyebrow: 'Active sessions',
+    title: 'Online players',
+    online: 'Online now',
+    empty: 'No players found',
+    emptyBody: 'Adjust the search or refresh the live player list.',
+  },
+  search: {
+    players: 'Search name, ID, job, or number',
+    apps: 'Search apps',
+    clear: 'Clear search',
+  },
+  detail: {
+    character: 'Character profile',
+    data: 'Player data overview',
+    cash: 'Cash',
+    bank: 'Bank',
+    job: 'Job',
+    duty: 'Duty',
+    onDuty: 'On duty',
+    offDuty: 'Off duty',
+    identity: 'Identity',
+    playerData: 'Player data',
+    identifier: 'Character identifier',
+    birthdate: 'Birthdate',
+    grade: 'Job grade',
+    unknown: 'Unknown',
+  },
+  devices: {
+    eyebrow: 'Device control',
+    title: 'Phones',
+    body: 'Inspect every phone assigned to the selected player.',
+    choose: 'Choose phone',
+    empty: 'No phone found',
+    emptyBody: 'This player currently has no phone device that can be managed.',
+    noNumber: 'No phone number',
+    noSim: 'No SIM',
+    imei: 'IMEI',
+    updated: 'Last activity',
+    apps: 'Claimed apps',
+    account: 'Linked account',
+  },
+  credentials: {
+    eyebrow: 'Protected data',
+    title: 'Credentials',
+    email: 'iFruit email',
+    password: 'iFruit password',
+    reveal: 'Reveal',
+    copy: 'Copy password',
+    copied: 'Password copied.',
+    noAccount: 'No iFruit account is linked to this phone.',
+    passcode: 'Device passcode',
+    passcodeHashed: '{length}-digit PIN · securely hashed and not recoverable',
+    passcodeDisabled: 'No passcode configured',
+    revealTitle: 'Reveal protected password?',
+    revealBody:
+      'This action is server-authorized, rate-limited, and written to the admin audit log.',
+    cancel: 'Cancel',
+    confirmReveal: 'Reveal password',
+  },
+  apps: {
+    eyebrow: 'Remote management',
+    title: 'App access',
+    description:
+      'Stage app access for this device. Nothing changes until you save.',
+    installed: 'Installed',
+    available: 'Available',
+    protected: 'System app',
+    changes: '{count} pending changes',
+  },
+  activity: {
+    protected: 'Protected activity',
+    messagesTitle: 'Messages',
+    messagesBody: 'Recent SMS activity for the selected SIM.',
+    callsTitle: 'Calls',
+    callsBody: 'Recent call activity for the selected SIM.',
+    loading: 'Loading activity...',
+    incoming: 'Incoming',
+    outgoing: 'Outgoing',
+    mediaMessage: '{type} message',
+    noMessages: 'No message activity found.',
+    noCalls: 'No call activity found.',
+    status: {
+      completed: 'Completed',
+      missed: 'Missed',
+      rejected: 'Rejected',
+      busy: 'Busy',
+      unanswered: 'Unanswered',
+      cancelled: 'Cancelled',
+      failed: 'Failed',
+      ringing: 'Ringing',
+    },
+  },
+  moderation: {
+    eyebrow: 'Device administration',
+    title: 'Moderation actions',
+    body: 'Every action is server-authorized, rate-limited, and audited.',
+    resetPasscode: 'Reset passcode',
+    resetPasscodeBody: 'Remove the device PIN and clear failed attempts.',
+    changeNumber: 'Change number',
+    changeNumberBody: 'Assign a new unique number to the current SIM.',
+    factoryReset: 'Factory reset',
+    factoryResetBody: 'Clear local device data and disconnect the account.',
+    saveFirst: 'Save or discard pending app changes first.',
+    phoneNumber: 'New phone number',
+    phoneNumberPlaceholder: 'Enter the full configured number',
+    typeToConfirm: 'Type {word} to confirm the factory reset.',
+    confirmWord: 'RESET',
+    cancel: 'Cancel',
+    'reset-passcodeSuccess': 'Passcode reset.',
+    'change-numberSuccess': 'Phone number changed.',
+    'factory-resetSuccess': 'Phone factory reset completed.',
+    dialogs: {
+      'reset-passcodeTitle': 'Reset device passcode?',
+      'reset-passcodeBody':
+        'The player can unlock this phone without the previous PIN afterward.',
+      'change-numberTitle': 'Change phone number?',
+      'change-numberBody':
+        'The new number must match the configured server number format and be unique.',
+      'factory-resetTitle': 'Factory reset this phone?',
+      'factory-resetBody':
+        'This clears local device data, app settings, security, and the linked account. This cannot be undone.',
+    },
+    confirm: {
+      'reset-passcode': 'Reset passcode',
+      'change-number': 'Change number',
+      'factory-reset': 'Factory reset',
+    },
+  },
+  editor: {
+    brand: 'SKY PHONE',
+    workspace: 'ADMIN',
+    players: 'Player directory',
+    audit: 'Audit log',
+    selectPlayer:
+      'Select a player to inspect identity, devices, credentials, and app access.',
+    save: 'Save changes',
+    saveHint: 'Apply pending changes',
+    saved: 'Changes saved.',
+    unsaved: 'Unsaved changes',
+    close: 'Close admin panel',
+    refresh: 'Refresh live data',
+    online: 'LIVE',
+    profile: 'PROFILE',
+    financial: 'FINANCIAL',
+    device: 'DEVICE',
+    security: 'SECURITY',
+    noAutoSave: 'Manual save',
+    noAutoSaveBody: 'Changes stay local until the green check is pressed.',
+    discardTitle: 'Discard unsaved changes?',
+    discardBody:
+      'Your staged app or configuration changes have not been saved.',
+    keepEditing: 'Keep editing',
+    discard: 'Discard changes',
+    saveFailed: 'Some changes could not be saved.',
+    noSelection: 'No player selected',
+  },
+  audit: {
+    eyebrow: 'Accountability',
+    title: 'Audit trail',
+    body: 'Sensitive reveals and remote app changes are recorded here.',
+    empty: 'No admin actions yet',
+    emptyBody: 'Protected actions will appear here after they are performed.',
+    by: '{actor} · target ID {target}',
+    actions: {
+      grant_app: 'App installed',
+      revoke_app: 'App removed',
+      reveal_account_password: 'Password revealed',
+      view_messages: 'Messages viewed',
+      view_calls: 'Calls viewed',
+      reset_passcode: 'Passcode reset',
+      change_number: 'Phone number changed',
+      factory_reset: 'Phone factory reset',
+      save_configuration: 'Configuration saved',
+      save_webhooks: 'Webhook settings saved',
+      create_custom_tone: 'Custom tone added',
+      delete_custom_tone: 'Custom tone deleted',
+    },
+  },
+  errors: {
+    not_authorized: 'You do not have access to the admin panel.',
+    rate_limited: 'Too many admin requests. Please wait.',
+    player_unavailable: 'That player is no longer online.',
+    device_not_owned: 'That phone no longer belongs to the selected player.',
+    invalid_app: 'That app is not registered on the server.',
+    app_protected: 'This system app cannot be removed.',
+    revision_conflict:
+      'The data changed in the meantime. Reopen the section and try again.',
+    configurator_disabled: 'Enable the phone configurator in config.lua first.',
+    invalid_field: 'That configuration field is no longer available.',
+    invalid_value: 'A configuration value is invalid.',
+    invalid_webhook: 'Enter a valid Discord webhook URL.',
+    invalid_tone: 'Check the tone name, file type, file size, and duration.',
+    tone_name_taken: 'A tone with this name already exists in this category.',
+    tone_limit: 'This category already contains 32 custom tones.',
+    tone_not_found: 'That tone no longer exists.',
+    invalid_upload: 'The tone upload is incomplete or invalid.',
+    operation_in_progress: 'Another tone upload is already in progress.',
+    account_not_found: 'No iFruit account is linked to this phone.',
+    invalid_phone_number:
+      'Enter a phone number in the configured server format.',
+    phone_number_unchanged: 'This SIM already uses that phone number.',
+    phone_number_taken: 'That phone number is already assigned.',
+    no_sim: 'This phone has no SIM that can be changed.',
+    passcode_not_set: 'This phone has no passcode configured.',
+    device_not_found: 'This phone no longer exists.',
+    metadata_unsupported: 'The phone inventory metadata could not be updated.',
+    invalid_request: 'The admin request was invalid.',
+    request_failed: 'The admin request failed.',
+    default: 'The admin panel is temporarily unavailable.',
+  },
+}
+
 const defaultLocales: LocaleTree = {
+  FaceId: {
+    title: 'Face ID',
+    setupBody:
+      'Unlock your phone with a glance. You can set up Face ID now or later in Settings.',
+    pinFallback: 'Your device passcode remains available at any time.',
+    requiresPin:
+      'Create a device passcode first. It is your backup when Face ID is unavailable.',
+    enable: 'Set Up Face ID',
+    unlock: 'Unlock with Face ID',
+    saved: 'Face ID settings saved.',
+    scanning: 'Recognizing you…',
+    retry: 'Try Again',
+    usePin: 'Use Passcode',
+    errors: {
+      face_id_not_enabled:
+        'Face ID is not set up on this phone. Use your passcode.',
+      face_id_not_recognized:
+        'Face not recognized. Try again or use the device passcode.',
+      face_id_unavailable: 'Face ID is currently unavailable.',
+      face_id_masked:
+        'Remove your mask to use Face ID, or enter your passcode.',
+      invalid_passcode: 'Incorrect device passcode.',
+      passcode_locked:
+        'Too many attempts. Wait before entering your passcode again.',
+      passcode_not_set: 'Set up a device passcode first.',
+      rate_limited: 'Please wait a moment before trying again.',
+      device_not_open: 'Open this phone again to continue.',
+      device_locked: 'Unlock this phone first.',
+      request_failed: 'Face ID is unavailable. Try again or use your passcode.',
+    },
+  },
+  AdminPanel: adminPanelFallbackLocales,
   Apps: {
     citywarn: citywarnFallbackLocales,
     crypto: cryptoFallbackLocales,
@@ -841,6 +1551,7 @@ const defaultLocales: LocaleTree = {
       history: 'Transfer History',
       noHistory: 'No transfers yet.',
       noNearby: 'No visible players are nearby.',
+      readyToReceive: 'Ready to receive a share.',
       visibility: 'Visibility',
       requestSent: 'Waiting for acceptance...',
       incomingFrom: '{name} wants to share',
@@ -2385,7 +3096,7 @@ const defaultLocales: LocaleTree = {
       to: 'To:',
       connectPrivately: 'Connect privately',
       newChatBody:
-        'Enter an exact Dark-ID or invitation code. Unknown identities require confirmation.',
+        "Enter another person's Dark-ID or invitation code. You can share your own ID from your profile.",
       darkIdOrInvite: 'Dark-ID or invitation code',
       continue: 'Continue',
       contacts: 'DarkChat Contacts',
@@ -2631,6 +3342,8 @@ const defaultLocales: LocaleTree = {
         recipient_not_found: 'That number is unavailable.',
         blocked: 'This contact has blocked calls and messages from your SIM.',
         messaging_unavailable: 'This company contact does not accept messages.',
+        service_line_text_only:
+          'Company service lines currently accept text messages only.',
         no_sim: 'This phone has no SIM card.',
         rate_limited: 'Too many messages. Try again in a minute.',
         request_failed: 'Messages are temporarily unavailable.',
@@ -2950,6 +3663,7 @@ const defaultLocales: LocaleTree = {
         uninstallTitle: 'Uninstall this app?',
         uninstallBody:
           '{app} will be removed from this phone. You can download it again from the App Store.',
+        uninstallFailed: 'The app could not be uninstalled. Please try again.',
       },
       details: {
         skyStudios: 'Sky Studios',
@@ -3016,6 +3730,7 @@ const defaultLocales: LocaleTree = {
       searchRecents: 'Search Calls',
       contactDetails: 'Contact Details',
       unknownCaller: 'Unknown Caller',
+      anonymousCaller: 'Anonymous',
       callHistory: 'Call History',
       noCallHistory: 'No calls with this number yet.',
       noContacts: 'No Contacts',
@@ -3047,6 +3762,7 @@ const defaultLocales: LocaleTree = {
       privateLabel: 'Private',
       contactCard: 'Contact Card',
       removeContact: 'Remove Contact',
+      returnToCall: 'Return to Call',
       mobile: 'Mobile',
       messagesProfile: 'Messages',
       notes: 'Notes',
@@ -3485,6 +4201,8 @@ const defaultLocales: LocaleTree = {
       viewRides: 'View Ride Options',
       change: 'Change',
       requestRide: 'Request SkyRide',
+      playerDriverNotice:
+        'SkyRide matches you with real player drivers. A driver must be online and accept your request.',
       serviceMeta: '{eta} min away · {seats} seats',
       distanceMeters: '{distance} m',
       distanceKilometers: '{distance} km',
@@ -3555,7 +4273,8 @@ const defaultLocales: LocaleTree = {
         cancelled: 'Cancelled',
       },
       statusBody: {
-        searching: 'We are matching you with a nearby driver.',
+        searching:
+          'Your request is waiting for an available player driver to accept it.',
         accepted: 'Your driver is preparing to pick you up.',
         driver_arriving: 'Your driver is on the way to your pickup.',
         arrived: 'Your driver is waiting at the pickup point.',
@@ -3768,6 +4487,9 @@ const defaultLocales: LocaleTree = {
       clearHistory: 'Clear History',
     },
     snake: {
+      level: 'Level',
+      levelHint: 'New fruit every 10 points. New skin every 30 points.',
+      nextLevel: 'Next level at {score} points',
       name: 'Snake',
       backToMenu: 'Back to game menu',
       board: 'Snake game board',
@@ -4445,8 +5167,13 @@ const defaultLocales: LocaleTree = {
       video: 'Video',
       microphoneOn: 'Microphone on',
       microphoneOff: 'Microphone muted',
-      focusHelp: 'Space for movement',
-      returnHelp: 'Space to return',
+      focusHelp: 'Hold the look key to look around',
+      returnHelp: 'Release the look key for controls',
+      lockCamera: 'Lock camera movement',
+      unlockCamera: 'Unlock camera movement',
+      lookKey: 'Look',
+      spaceKey: 'Space',
+      holdKey: 'hold',
       uploading: '{count} uploading',
       saving: 'Saving video...',
       openGallery: 'Open Photos',
@@ -4461,6 +5188,11 @@ const defaultLocales: LocaleTree = {
         invalid_media_type: 'The uploaded media type is invalid.',
         invalid_upload: 'The upload could not be verified.',
         invalid_upload_token: 'The upload session is no longer valid.',
+        media_provider_failed: 'The camera upload service is unavailable.',
+        media_provider_rate_limited:
+          'The camera upload service is busy. Try again shortly.',
+        media_provider_unauthorized:
+          'The configured FiveManage API key was rejected.',
         missing_config: 'Camera uploads are not configured.',
         microphone_unavailable:
           'Allow microphone access or mute the microphone before recording.',
@@ -5046,6 +5778,10 @@ const defaultLocales: LocaleTree = {
       accountPurchasesValue: 'Available',
       notifications: 'Notifications',
       sounds: 'Sounds & Haptics',
+      callSettings: 'Call Settings',
+      hideCallerId: 'Hide Caller ID',
+      hideCallerIdDescription:
+        'Show Anonymous instead of your number when you call someone.',
       general: 'General Settings',
       security: 'Passcode & Security',
       appearance: 'Appearance',
@@ -5602,6 +6338,8 @@ export const usePhoneStore = defineStore('phone', {
   state: () => ({
     cameraLandscape: false,
     currentPage: 1,
+    customTones: cloneJsonData(EMPTY_CUSTOM_PHONE_TONES),
+    customTonesLoaded: false,
     device: null as PhoneDevice | null,
     deviceRevisions: {} as Record<string, number>,
     deviceSessionToken: null as string | null,
@@ -5636,6 +6374,45 @@ export const usePhoneStore = defineStore('phone', {
       this.cameraLandscape = false
       this.isOpen = false
     },
+    setLocale(
+      lang: string,
+      locales: LocaleTree,
+      fallbackLocales: LocaleTree,
+    ): void {
+      this.lang = intlLocaleCodes[lang] ?? lang
+      this.locales = locales
+      this.fallbackLocales = fallbackLocales
+    },
+    setCustomTones(payload: unknown): void {
+      this.customTones = parseCustomPhoneToneCatalog(payload)
+      this.customTonesLoaded = true
+      this.reconcileCustomTonePreferences()
+    },
+    reconcileCustomTonePreferences(): void {
+      if (!this.customTonesLoaded) return
+      let changed = false
+      const ringtone = this.preferences.settings.ringtone
+      if (
+        isCustomTonePreferenceId(ringtone) &&
+        !this.customTones.ringtones.some((tone) => tone.id === ringtone)
+      ) {
+        this.preferences.settings.ringtone = 'skyline'
+        changed = true
+      }
+      const notificationSound = this.preferences.settings.notificationSound
+      if (
+        isCustomTonePreferenceId(notificationSound) &&
+        !this.customTones.notificationSounds.some(
+          (tone) => tone.id === notificationSound,
+        )
+      ) {
+        this.preferences.settings.notificationSound = 'chime'
+        changed = true
+      }
+      if (changed && this.device) {
+        this.saveDeviceNamespace('settings', this.preferences)
+      }
+    },
     open(payload: PhoneOpenPayload = {}): void {
       const nextImei = payload.device?.imei ?? this.device?.imei ?? null
       const nextToken = payload.token ?? this.deviceSessionToken
@@ -5646,10 +6423,12 @@ export const usePhoneStore = defineStore('phone', {
         this.persistenceGeneration += 1
       }
       this.deviceSessionToken = nextToken
-      this.lang = payload.lang ?? 'en'
+      const lang = payload.lang ?? 'en'
+      this.lang = intlLocaleCodes[lang] ?? lang
       this.fallbackLocales = payload.fallbackLocales ?? defaultLocales
       this.locales = payload.locales ?? this.fallbackLocales
       if (payload.device) this.hydrateDevice(payload.device)
+      this.reconcileCustomTonePreferences()
       if (payload.player) this.player = payload.player
       this.security = payload.security ?? {
         enabled: false,
@@ -5770,6 +6549,22 @@ export const usePhoneStore = defineStore('phone', {
       ) as PhonePreferencesV1['settings'][K]
       this.saveDeviceNamespace('settings', this.preferences)
     },
+    async setHideCallerId(hidden: boolean): Promise<boolean> {
+      const previous = this.preferences.settings.hideCallerId
+      const session = this.persistenceSession
+      const generation = this.persistenceGeneration
+      this.preferences.settings.hideCallerId = hidden
+      const saved = await this.saveDeviceNamespace('settings', this.preferences)
+      if (
+        !saved &&
+        this.persistenceSession === session &&
+        this.persistenceGeneration === generation &&
+        this.preferences.settings.hideCallerId === hidden
+      ) {
+        this.preferences.settings.hideCallerId = previous
+      }
+      return saved
+    },
     setAlertVolumes(value: number): void {
       const volume = Math.min(100, Math.max(0, Math.round(value)))
       this.preferences.settings.notificationVolume = volume
@@ -5843,6 +6638,38 @@ export const usePhoneStore = defineStore('phone', {
         ),
       ].slice(0, 4)
       this.saveDeviceNamespace('settings', this.preferences)
+    },
+    async unlockWithFaceId(): Promise<NuiResponse<PasscodeResponseData>> {
+      const token = this.deviceSessionToken
+      const imei = this.device?.imei
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:face-id-unlock',
+      )
+      if (token !== this.deviceSessionToken || imei !== this.device?.imei) {
+        return { success: false, error: 'device_not_open' }
+      }
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
+    },
+    async setFaceId(
+      enabled: boolean,
+      passcode: string,
+    ): Promise<NuiResponse<PasscodeResponseData>> {
+      const token = this.deviceSessionToken
+      const imei = this.device?.imei
+      const response = await nuiCall<PasscodeResponseData>(
+        'security:set-face-id',
+        { enabled, passcode },
+      )
+      if (token !== this.deviceSessionToken || imei !== this.device?.imei) {
+        return { success: false, error: 'device_not_open' }
+      }
+      if (response.success && response.data?.security) {
+        this.security = response.data.security
+      }
+      return response
     },
     async unlockWithPasscode(
       passcode: string,
