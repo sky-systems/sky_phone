@@ -71,7 +71,8 @@ local function new_client(options)
             if name == "sky_phone:garage:valet-complete" then
                 test.completions = test.completions + 1
                 if options.completion_delay then env.Wait(options.completion_delay) end
-                return { success = not options.completion_failure }
+                return { success = not options.completion_failure,
+                    data = { vehicleKeys = options.key_grant } }
             end
             assert(name == "sky_phone:garage:valet-cancel", name)
             return { success = true }
@@ -180,6 +181,19 @@ local function new_client(options)
         test.callbacks["garage:vehicles"]({}, function(value) result = value end)
         return result.data.vehicles
     end
+    env.Bridge.Debug = function() end
+    env.exports["wasabi_carlock"] = { GiveKey = function(_, plate)
+        assert(plate == "VALET")
+        assert(test.completions == 1, "keys must wait for the server")
+        test.key_calls = (test.key_calls or 0) + 1
+        if options.key_error then error("provider failed") end
+    end }
+    local original_resource_state = env.GetResourceState
+    env.GetResourceState = function(name)
+        if name == "wasabi_carlock" then return "started" end
+        return original_resource_state(name)
+    end
+    assert(loadfile("sky_phone/source/bridge/client/vehiclekeys.lua", "t", env))()
     assert(loadfile("sky_phone/source/client/garage.lua", "t", env))()
     test.callbacks["garage:valet-request"]({ plate = "VALET" }, function(result)
         assert(result.success, "request must be accepted")
@@ -282,4 +296,20 @@ assert(vehicles[1].fuel == 70 and vehicles[2].fuel == 20 and vehicles[3].fuel ==
 assert(msk_overview.fuel_config_reads == 1, "read MSK fuel config once per overview")
 for _, vehicle in ipairs(vehicles) do assert(vehicle.mskFuel == nil, "keep provider data out of NUI") end
 
-print("Client garage valet tests passed (12 scenarios)")
+local grant = { name = "wasabi", resource = "wasabi_carlock", plate = "VALET" }
+local with_keys = new_client({ key_grant = grant, completion_delay = 1000 })
+with_keys.advance(3400)
+assert(not with_keys.key_calls, "keys cannot be issued before server confirmation")
+with_keys.advance(1000)
+assert(with_keys.key_calls == 1 and with_keys.state.status == "delivered")
+
+local rejected_keys = new_client({ key_grant = grant, completion_failure = true })
+rejected_keys.advance(4400)
+assert(not rejected_keys.key_calls and not rejected_keys.entities[2])
+
+local broken_keys = new_client({ key_grant = grant, key_error = true })
+broken_keys.advance(4400)
+assert(broken_keys.state.status == "delivered" and broken_keys.entities[2],
+    "client export failures must not delete a server-confirmed delivery")
+
+print("Client garage valet tests passed (15 scenarios)")

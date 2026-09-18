@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
+import type { AdminConfiguratorStructure } from '../src/types/admin'
+import { createMutableTableEntry } from '../src/utils/adminConfiguratorDefaults'
+
 import { describe, expect, it } from 'vitest'
 
 type ConfiguratorField = {
@@ -38,6 +41,21 @@ const configSource = readFileSync(
   'utf8',
 )
 
+describe('Garage vehicle key configuration', () => {
+  it('exposes automatic key detection as an editable string', () => {
+    const field = loadConfiguratorSections()
+      .flatMap((section) => section.fields)
+      .find((entry) => entry.path === 'Garage')
+    expect(
+      (field?.value as { VehicleKeySystem: string }).VehicleKeySystem,
+    ).toBe('auto')
+    expect(field?.structure?.fields?.VehicleKeySystem).toEqual({
+      kind: 'value',
+      valueType: 'string',
+    })
+  })
+})
+
 describe('Face ID mask configuration', () => {
   it('provides a typed empty list so admins can add their first mask exception', () => {
     const field = loadConfiguratorSections()
@@ -58,6 +76,52 @@ describe('Face ID mask configuration', () => {
         },
       },
     })
+  })
+})
+
+describe('CityWarn publisher configuration', () => {
+  it('creates independent usable job drafts with editable category lists', () => {
+    const field = loadConfiguratorSections()
+      .flatMap((section) => section.fields)
+      .find((entry) => entry.path === 'CityWarn')
+    const schema = field?.structure?.fields?.Publishers as Extract<
+      AdminConfiguratorStructure,
+      { kind: 'table' }
+    >
+    expect(schema.mutableKeys).toBe(true)
+    expect(schema.template).toMatchObject({
+      kind: 'table',
+      fields: {
+        MinimumGrade: { kind: 'value', valueType: 'number' },
+        MaximumSeverity: { kind: 'value', valueType: 'string' },
+        CityWide: { kind: 'value', valueType: 'boolean' },
+        Categories: {
+          kind: 'list',
+          items: [],
+          template: { kind: 'value', valueType: 'string' },
+        },
+      },
+    })
+    for (const job of Object.values(schema.fields))
+      expect(job).toEqual(schema.template)
+    const draft = createMutableTableEntry(
+      schema,
+      'CityWarn.Publishers',
+      'mechanic',
+    ) as { Categories: string[] }
+    expect(draft).toEqual({
+      MinimumGrade: 2,
+      MaximumSeverity: 'information',
+      CityWide: false,
+      Categories: ['public_safety'],
+    })
+    draft.Categories.push('infrastructure')
+    expect(
+      createMutableTableEntry(schema, 'CityWarn.Publishers', 'tow'),
+    ).toEqual(schema.entryDefault)
+    expect(
+      (schema.entryDefault as { Categories: string[] }).Categories,
+    ).toEqual(['public_safety'])
   })
 })
 

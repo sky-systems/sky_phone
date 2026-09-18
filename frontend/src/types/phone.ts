@@ -53,6 +53,7 @@ export type PhoneCall = {
   video?: boolean
   videoRequested?: boolean
   videoIncoming?: boolean
+  anonymous?: boolean
   answeredAt?: number
   channel?: number
   device?: { imei: string; name: string }

@@ -2,7 +2,7 @@
 local function fixture(routing)
     local state = {
         callbacks = {}, handlers = {}, timers = {}, events = {}, devices = {},
-        ready = {}, owned = {}, flight = {}, rows = {}, entries = {},
+        ready = {}, owned = {}, flight = {}, hidden = {}, rows = {}, entries = {},
         voice_starts = {}, voice_stops = {}, hooks = {}, threads = {},
     }
     local noop = function() end
@@ -11,11 +11,11 @@ local function fixture(routing)
     end
     local env = setmetatable({
         Config = {
-            Calls = { RingSeconds = 30 },
+            Calls = { RingSeconds = 30, RecentPageSize = 50 },
             Companies = { CallRouting = { MaxAttempts = 3, RingSeconds = 10 } },
             Sim = { Enabled = true, NumberLength = 7, NumberPrefix = "" },
             Payphones = {
-                Enabled = true, Props = { "test-booth" }, PricePerSecond = 0,
+                Enabled = true, Props = { "test-booth" }, PricePerSecond = 0, CallerNumber = "5559999",
                 Animation = { HangupDurationMs = 2000 }, MaximumCallDistance = 5,
             },
         },
@@ -113,16 +113,24 @@ local function fixture(routing)
             return { { id = ("550e8400-e29b-41d4-a716-%012d"):format(next_uuid) } }
         end
         if sql:find("FROM `sky_phone_device_data`", 1, true) then
-            return { { payload = { settings = { airplaneMode = state.flight[params[1]] == true } } } }
+            return { { payload = { settings = {
+                airplaneMode = state.flight[params[1]] == true,
+                hideCallerId = state.hidden[params[1]],
+            } } } }
         end
         if sql:find("INSERT INTO `sky_phone_calls`", 1, true) then
-            state.rows[params[1]] = { status = "ringing", callee_sim_id = params[3] }
+            state.rows[params[1]] = { status = "ringing", callee_sim_id = params[3], caller_number = params[4] }
             return { insertId = 1 }
         end
         if sql:find("INSERT INTO `sky_phone_call_entries`", 1, true) then
+            local rerouted = sql:find("SELECT `id`, ?, ?", 1, true)
             local entry = {
-                id = #state.entries + 1, call_id = params[1], account = params[2],
-                direction = params[4], status = params[5],
+                id = #state.entries + 1,
+                call_id = rerouted and params[4] or params[1],
+                account = rerouted and params[1] or params[2],
+                direction = rerouted and "incoming" or params[4],
+                status = rerouted and "ringing" or params[5],
+                other_number = rerouted and params[3] or params[6],
             }
             state.entries[entry.id] = entry
             return { insertId = entry.id }
@@ -154,13 +162,24 @@ local function fixture(routing)
             end
             return { affectedRows = 1 }
         end
+        if sql:find("FROM `sky_phone_call_entries` e", 1, true) then
+            assert(sql:find("e.`other_number`", 1, true), "Recents must use the recipient's history")
+            local rows = {}
+            for _, entry in ipairs(state.entries) do
+                if entry.account == params[1] then rows[#rows + 1] = entry end
+            end
+            return rows
+        end
         if sql:find("FROM `sky_phone_sims`", 1, true) then
             for _, device in pairs(state.devices) do
-                if device.phone_number == params[1] then return { { id = device.sim_id, imei = device.imei } } end
+                if device.phone_number == params[1] then
+                    return { { id = device.sim_id, imei = device.imei, account_id = device.account_id,
+                        device_name = device.device_name, phone_number = device.phone_number } }
+                end
             end
             return {}
         end
-        if sql:find("sky_phone_call_blocks", 1, true) then return {} end
+        if sql:find("sky_phone_call_blocks", 1, true) then return state.blocked and { { blocked = 1 } } or {} end
         error("Unhandled SQL: " .. sql)
     end
     function env.Bridge.Database.Transaction(statements)
@@ -505,4 +524,98 @@ test("becoming incapacitated while accepting cannot attach a late voice connecti
         assert(not result.success, phase)
         if phase == "voice" or phase == "transaction" then assert(#state.voice_stops >= 1, phase) end
     end
+end)
+test("hidden caller IDs never reach direct recipients, snapshots or synced history", function()
+    local state = fixture()
+    state.hidden["device-1"] = true
+    local call = state.dial(1, "5550006")
+    local caller = state.env.SkyPhoneCalls.GetForSource(1)
+    local recipient = state.env.SkyPhoneCalls.GetForSource(6)
+    assert(caller.otherNumber == "5550006" and caller.caller.number == "5550001")
+    assert(recipient.anonymous and recipient.otherNumber == "")
+    assert(recipient.caller.number == "" and recipient.caller.source == nil)
+    assert(state.rows[call.id].caller_number == "5550001", "Routing and server audit identity must remain intact")
+    state.hidden["device-1"] = false -- An in-progress call keeps its original privacy.
+    assert(state.action("answer", 6, call.id).success)
+    assert(state.env.SkyPhoneCalls.GetForSource(6).otherNumber == "")
+    assert(state.action("hangup", 1, call.id).success)
+    for _, event in ipairs(state.events) do
+        if event.source == 6 and (event.name == "sky_phone:call:incoming" or event.name == "sky_phone:call:state") then
+            assert(event.payload.otherNumber == "" and event.payload.anonymous)
+        end
+    end
+    local recents = state.callbacks["sky_phone:calls:recents"](6)
+    assert(recents.success and #recents.data == 1 and recents.data[1].other_number == "")
+    assert(state.entries[1].other_number == "5550006", "Outgoing history keeps the dialed number")
+    state.dial(1, "5550006")
+    assert(state.env.SkyPhoneCalls.GetForSource(6).otherNumber == "5550001", "Disabling privacy applies to the next call")
+end)
+
+test("caller ID privacy is read from the caller's stored boolean setting", function()
+    for _, value in ipairs({ false, "true", 1 }) do
+        local state = fixture()
+        state.hidden["device-1"] = value
+        state.hidden["device-6"] = true
+        local result = state.callbacks["sky_phone:calls:dial"](1, {
+            phoneNumber = "5550006", anonymous = true, hideCallerId = true,
+        })
+        assert(result.success)
+        local recipient = state.env.SkyPhoneCalls.GetForSource(6)
+        assert(not recipient.anonymous and recipient.otherNumber == "5550001")
+    end
+    local state = fixture()
+    state.hidden["device-1"] = true
+    assert(state.callbacks["sky_phone:calls:dial"](1, {
+        phoneNumber = "5550006", anonymous = false, hideCallerId = false,
+    }).success)
+    assert(state.env.SkyPhoneCalls.GetForSource(6).anonymous)
+end)
+
+test("anonymous service calls stay hidden for every employee and after rerouting", function()
+    for _, routing in ipairs({ "ring_all", "round_robin" }) do
+        local state = fixture(routing)
+        state.hidden["device-1"] = true
+        local call = state.dial()
+        state.hidden["device-1"] = false
+        if routing == "round_robin" then
+            assert(state.action("decline", 2, call.id).success)
+        end
+        local recipient = state.env.SkyPhoneCalls.GetForSource(3)
+        assert(recipient.anonymous and recipient.caller.number == "" and recipient.caller.source == nil)
+        assert(state.action("answer", 3, call.id).success)
+        assert(state.action("hangup", 1, call.id).success)
+        for _, event in ipairs(state.events) do
+            if event.source ~= 1 and (event.name == "sky_phone:call:incoming" or event.name == "sky_phone:call:state") then
+                assert(event.payload.anonymous and event.payload.otherNumber == "", routing)
+            end
+        end
+        for _, entry in ipairs(state.entries) do
+            if entry.direction == "incoming" then assert(entry.other_number == "", routing) end
+        end
+    end
+end)
+
+test("missed and declined anonymous calls never reveal the caller in history", function()
+    for _, reason in ipairs({ "missed", "declined" }) do
+        local state = fixture()
+        state.hidden["device-1"] = true
+        local call = state.dial(1, "5550006")
+        if reason == "missed" then state.timers[1][2]()
+        else assert(state.action("decline", 6, call.id).success) end
+        local recents = state.callbacks["sky_phone:calls:recents"](6)
+        assert(recents.data[1].status == reason and recents.data[1].other_number == "")
+    end
+end)
+
+test("caller ID privacy does not bypass blocked SIMs or alter payphone identity", function()
+    local state = fixture()
+    state.hidden["device-1"] = true
+    state.blocked = true
+    local result = state.dial(1, "5550006")
+    assert(result.state ~= "ringing" and state.event_count("sky_phone:call:incoming") == 0)
+    state = fixture()
+    state.hidden["device-1"] = true
+    state.dial(1, "911", true)
+    local recipient = state.env.SkyPhoneCalls.GetForSource(2)
+    assert(not recipient.anonymous and recipient.otherNumber == "5559999")
 end)

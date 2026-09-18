@@ -3,7 +3,7 @@ import { runInNewContext } from 'node:vm'
 
 import { createPinia, setActivePinia } from 'pinia'
 import ts from 'typescript'
-import { computed, type ComputedRef } from 'vue'
+import { computed, ref, type ComputedRef } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePhoneStore, type PhoneOpenPayload } from '@/stores/phone'
@@ -32,8 +32,21 @@ const handlers = parsed.statements
   )
   .map((node) => node.getText(parsed))
   .join('\n')
+const visibilityWatch = parsed.statements.find(
+  (node) =>
+    ts.isExpressionStatement(node) &&
+    ts.isCallExpression(node.expression) &&
+    node.expression.expression.getText(parsed) === 'watch' &&
+    node.expression.arguments[0]?.getText(parsed) === '() => phone.isOpen',
+)
+if (!visibilityWatch || !ts.isExpressionStatement(visibilityWatch)) {
+  throw new Error('Phone visibility watcher was not found')
+}
+const visibilityHandler = (
+  visibilityWatch.expression as ts.CallExpression
+).arguments[1]!.getText(parsed)
 const executable = ts.transpileModule(
-  `${handlers}\n({ onMessage, setupRequired })`,
+  `${handlers}\nconst onVisibilityChanged = ${visibilityHandler}\n({ onMessage, setupRequired, onVisibilityChanged })`,
   {
     compilerOptions: { target: ts.ScriptTarget.ES2022 },
   },
@@ -48,16 +61,43 @@ describe('phone root device lifecycle', () => {
   let onMessage: (event: { source: null; data: unknown }) => void
   let setupRequired: ComputedRef<boolean>
   let showNotification: ReturnType<typeof vi.fn>
+  let onVisibilityChanged: (isOpen: boolean) => void
+  const isLocked = ref(false)
 
   beforeEach(() => {
     vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) })
     setActivePinia(createPinia())
     const hydrate = vi.fn()
     showNotification = vi.fn()
+    isLocked.value = false
     const runtime = runInNewContext(executable, {
       window,
       computed,
+      isLocked,
       isDevelopment: false,
+      developmentLockScreenPreview: false,
+      faceIdRequest: 0,
+      unlockTimer: undefined,
+      ...Object.fromEntries(
+        [
+          'faceIdVisible',
+          'faceIdBusy',
+          'passcodeRequired',
+          'unlockedServicesLoaded',
+          'controlCenterOpened',
+          'isUnlocking',
+          'passcodeVisible',
+          'passcodeBusy',
+          'passcodeError',
+          'passcodeResetKey',
+          'passcodeRetrySeconds',
+          'pendingUnlockRoute',
+        ].map((name) => [name, ref(0)]),
+      ),
+      weather: { start: vi.fn() },
+      router: { replace: vi.fn() },
+      loadUnlockedPhoneData: vi.fn(),
+      startPasscodeLock: vi.fn(),
       isTrustedRootMessageSource,
       phone: usePhoneStore(),
       configurePhoneNumberFormat: vi.fn(),
@@ -82,9 +122,14 @@ describe('phone root device lifecycle', () => {
       activitySuspended: { value: false },
       syncNavigationState: () => Promise.resolve(),
       nuiCall: vi.fn(),
-    }) as { onMessage: typeof onMessage; setupRequired: typeof setupRequired }
+    }) as {
+      onMessage: typeof onMessage
+      setupRequired: typeof setupRequired
+      onVisibilityChanged: typeof onVisibilityChanged
+    }
     onMessage = runtime.onMessage
     setupRequired = runtime.setupRequired
+    onVisibilityChanged = runtime.onVisibilityChanged
   })
 
   afterEach(() => vi.unstubAllGlobals())
@@ -177,5 +222,46 @@ describe('phone root device lifecycle', () => {
 
     expect(usePhoneStore().isOpen).toBe(true)
     expect(setupRequired.value).toBe(false)
+  })
+
+  it('requires unlocking before resuming unfinished setup on a protected phone', () => {
+    onMessage({
+      source: null,
+      data: {
+        type: 'app:open',
+        data: {
+          ...payload,
+          security: { enabled: true, length: 6, lockedUntil: 0 },
+          device: {
+            ...payload.device,
+            data: {
+              settings: {
+                payload: {
+                  version: 1,
+                  settings: { setupCompleted: false, setupStep: 8 },
+                },
+                revision: 4,
+              },
+            },
+          },
+        },
+      },
+    })
+    onVisibilityChanged(true)
+
+    expect(isLocked.value).toBe(true)
+    expect(setupRequired.value).toBe(false)
+
+    isLocked.value = false
+    expect(setupRequired.value).toBe(true)
+    expect(usePhoneStore().preferences.settings.setupStep).toBe(8)
+  })
+
+  it('starts setup immediately on a new phone without a passcode', () => {
+    onMessage({ source: null, data: { type: 'app:open', data: payload } })
+    onVisibilityChanged(true)
+
+    expect(isLocked.value).toBe(false)
+    expect(setupRequired.value).toBe(true)
   })
 })

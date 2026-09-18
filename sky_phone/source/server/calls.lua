@@ -113,16 +113,25 @@ local function find_device_holder(imei)
     return nil
 end
 
-local function airplane_mode(imei)
+local function call_settings(imei)
     local rows = Bridge.Database.Query([[
         SELECT `payload` FROM `sky_phone_device_data`
         WHERE `device_imei` = ? AND `namespace` = 'settings' LIMIT 1
     ]], { imei })
     if not rows[1] then
-        return false
+        return {}
     end
     local payload = json.decode(rows[1].payload)
-    return payload and payload.settings and payload.settings.airplaneMode == true
+    return type(payload) == "table" and type(payload.settings) == "table" and payload.settings or {}
+end
+
+local function airplane_mode(imei)
+    return call_settings(imei).airplaneMode == true
+end
+
+local function visible_caller_number(call)
+    -- Never send the hidden number to recipients or their synced call history.
+    return call.hide_caller_id and "" or call.caller_number
 end
 
 local function add_call_entry(call_id, device, direction, status, other_number)
@@ -154,7 +163,8 @@ local function call_payload(call, source, state, channel)
         videoIncoming = call.video_requester ~= nil and call.video_requester ~= source,
         state = state,
         direction = outgoing and "outgoing" or "incoming",
-        otherNumber = outgoing and call.callee_number or call.caller_number,
+        anonymous = call.hide_caller_id == true,
+        otherNumber = outgoing and call.callee_number or visible_caller_number(call),
         startedAt = call.started_at,
         answeredAt = call.answered_at,
         channel = channel,
@@ -173,12 +183,14 @@ end
 local function call_snapshot(call, source)
     local state = call.answered_at and "connected" or "ringing"
     local channel = state == "connected" and call.channel or nil
-    local payload = call_payload(call, source, state, channel)
-    payload.anonymous = false
+    local payload, outgoing = call_payload(call, source, state, channel)
     payload.caller = {
         number = call.caller_number,
         source = call.caller_source,
     }
+    if call.hide_caller_id and not outgoing then
+        payload.caller = { number = "" }
+    end
     -- Compatibility snapshots show the recipient's own offer (or one pending
     -- recipient for caller/ID lookups); only answering assigns the actual callee.
     local callee_source = call.callee_source
@@ -952,6 +964,9 @@ local function schedule_no_answer(call)
 end
 
 local function start_ringing_call(call, ring_seconds)
+    if call.caller_device and not call.payphone then
+        call.hide_caller_id = call_settings(call.caller_device.imei).hideCallerId == true
+    end
     if call.ringing_targets then
         -- There is no callee until one of the ringing employees answers.
         call.callee_source, call.callee_sim_id, call.callee_device = nil, nil, nil
@@ -965,10 +980,10 @@ local function start_ringing_call(call, ring_seconds)
         add_call_entry(call.id, call.caller_device, "outgoing", "ringing", call.callee_number)
         if call.ringing_targets then
             for _, target in pairs(call.ringing_targets) do
-                target.entry_id = add_call_entry(call.id, target.device, "incoming", "ringing", call.caller_number)
+                target.entry_id = add_call_entry(call.id, target.device, "incoming", "ringing", visible_caller_number(call))
             end
         else
-            add_call_entry(call.id, call.callee_device, "incoming", "ringing", call.caller_number)
+            add_call_entry(call.id, call.callee_device, "incoming", "ringing", visible_caller_number(call))
         end
     end
 
@@ -1081,7 +1096,7 @@ reroute_company_call = function(call, previous_status)
                     FROM `sky_phone_calls`
                     WHERE `id` = ? AND `status` = 'ringing'
                 ]],
-                params = { next_account_id, next_device_imei, call.caller_number, call.id },
+                params = { next_account_id, next_device_imei, visible_caller_number(call), call.id },
             },
         })
         if not updated then

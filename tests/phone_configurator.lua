@@ -9,7 +9,7 @@ local function load_script(path, environment)
     assert(loadfile("sky_phone/" .. path, "t", environment))()
 end
 
-local function new_server(database, configure_defaults)
+local function new_server(database, configure_defaults, defer_initialization)
     database = database or { payloads = {}, writes = 0 }
     local callbacks, broadcasts, updates = {}, {}, {}
     local noop = function() end
@@ -18,6 +18,13 @@ local function new_server(database, configure_defaults)
         IsDuplicityVersion = function() return true end,
         vector3 = function(x, y, z) return { __skyType = "vector3", x = x, y = y, z = z } end,
         print = noop,
+        promise = { new = function()
+            return { resolve = function(self) self.resolved = true end }
+        end },
+        Citizen = { Await = function(pending)
+            if not pending.resolved then coroutine.yield("awaiting_runtime") end
+            assert(pending.resolved, "runtime must be initialized before answering")
+        end },
     }, { __index = _G })
     load_script("config/config.lua", environment)
     load_script("config/media.lua", environment)
@@ -37,7 +44,9 @@ local function new_server(database, configure_defaults)
         Debug = noop,
         Callbacks = { Register = function(name, callback) callbacks[name] = callback end },
         Database = {
-            Migrate = noop,
+            Migrate = function()
+                if defer_initialization then coroutine.yield("awaiting_database") end
+            end,
             AfterMigration = noop,
             Query = function(sql, parameters)
                 if sql:find("INSERT IGNORE", 1, true) then
@@ -69,7 +78,13 @@ local function new_server(database, configure_defaults)
         assert(name == "sky_phone:configurator:sync" and target == -1)
         broadcasts[#broadcasts + 1] = copy(payload)
     end
-    load_script("source/server/phone_configurator.lua", environment)
+    load_script("source/bridge/server/vehiclekeys.lua", environment)
+    local initialization = coroutine.create(function()
+        load_script("source/server/phone_configurator.lua", environment)
+    end)
+    local started, state = coroutine.resume(initialization)
+    assert(started, state)
+    if defer_initialization then assert(state == "awaiting_database") end
 
     local server = {
         env = environment, database = database, broadcasts = broadcasts, updates = updates,
@@ -89,6 +104,11 @@ local function new_server(database, configure_defaults)
     end
     function server.runtime()
         return callbacks["sky_phone:configurator:runtime"]().data
+    end
+    function server.finish_initialization()
+        local success, reason = coroutine.resume(initialization)
+        assert(success, reason)
+        assert(coroutine.status(initialization) == "dead")
     end
     return server
 end
@@ -137,6 +157,30 @@ local function test(name, callback)
         print("FAIL " .. name .. ": " .. tostring(message))
     end
 end
+
+test("early runtime requests wait for the stored configuration during resource startup", function()
+    local server = new_server(nil, nil, true)
+    local responses, requests = {}, {}
+    for index = 1, 2 do
+        requests[index] = coroutine.create(function()
+            responses[index] = server.runtime()
+        end)
+        local success, state = coroutine.resume(requests[index])
+        assert(success, state)
+        assert(state == "awaiting_runtime", "the callback must be registered before database initialization")
+        assert(responses[index] == nil, "early requests must not receive defaults or incomplete configuration")
+    end
+    assert(server.database.row == nil)
+    server.finish_initialization()
+    for index, request in ipairs(requests) do
+        local success, reason = coroutine.resume(request)
+        assert(success, reason)
+        assert(coroutine.status(request) == "dead")
+        assert(responses[index].enabled and type(responses[index].config.Phone) == "table")
+        assert(responses[index].revision == server.database.row.revision)
+    end
+    assert(server.runtime().revision == server.database.row.revision)
+end)
 
 test("Face ID mask whitelist can be created, edited and cleared through SQL and live clients", function()
     local server = new_server()
@@ -256,6 +300,24 @@ test("MSK garage selection survives SQL reload and reaches connected phones", fu
     assert(new_client(restarted).config.Garage.System == "msk")
 end)
 
+test("vehicle key system is validated, persisted and sent to phones", function()
+    local server = new_server()
+    local client = new_client(server)
+    local garage = server.field("Garage").value
+    assert(garage.VehicleKeySystem == "auto")
+    assert(server.field("Garage").structure.fields.VehicleKeySystem.valueType == "string")
+    for _, name in ipairs({ "none", "qb", "qbox", "kiminaze", "msk", "jota", "custom_client", "custom_server", "auto" }) do
+        garage.VehicleKeySystem = name
+        assert(server.save({ change("Garage", garage) }).success)
+        client.sync(server.broadcasts[#server.broadcasts])
+        assert(client.config.Garage.VehicleKeySystem == name)
+        assert(new_server(server.database).env.Config.Garage.VehicleKeySystem == name)
+    end
+    garage.VehicleKeySystem = "unknown_keys"
+    assert(server.save({ change("Garage", garage) }).error == "invalid_value")
+    assert(server.env.Config.Garage.VehicleKeySystem == "auto")
+end)
+
 test("false scalar settings save together with other panel changes and survive reload", function()
     local server = new_server()
     local apps = server.field("Apps").value
@@ -349,6 +411,101 @@ test("stale revisions cannot overwrite saved settings", function()
     assert(not result.success and result.error == "revision_conflict")
     assert(server.database.writes == 1 and #server.broadcasts == 1)
     assert(server.env.Config.Companies.Enabled == true)
+end)
+
+test("CityWarn publishers and categories can be added, changed, removed and restored from SQL", function()
+    local server = new_server()
+    local field = server.field("CityWarn")
+    local schema = field.structure.fields.Publishers
+    assert(schema.kind == "table" and schema.mutableKeys)
+    assert(schema.template.fields.MinimumGrade.valueType == "number")
+    assert(schema.template.fields.Categories.kind == "list")
+    assert(#schema.template.fields.Categories.items == 0, "categories must not be locked to the defaults")
+    assert(schema.template.fields.Categories.template.valueType == "string")
+    local settings = field.value
+    settings.Publishers.mechanic = copy(schema.entryDefault)
+    settings.Publishers.mechanic.Categories = { "infrastructure" }
+    settings.Publishers.mechanic.MinimumGrade = 0
+    settings.Publishers.police.Categories = { "police" }
+    settings.Publishers.fire = nil
+    assert(server.save({ change("CityWarn", settings) }).success)
+    assert(server.env.Config.CityWarn.Publishers.mechanic.MaximumSeverity == "information")
+    assert(server.updates[1].config.CityWarn.Publishers.mechanic.MinimumGrade == 0)
+    assert(server.runtime().config.CityWarn.Publishers == nil, "publisher policy stays server-owned")
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.CityWarn.Publishers.fire == nil, "removed jobs must not return")
+    assert(#restarted.env.Config.CityWarn.Publishers.police.Categories == 1)
+    assert(restarted.env.Config.CityWarn.Publishers.police.Categories[1] == "police")
+    settings = restarted.field("CityWarn").value
+    settings.Publishers.mechanic.MaximumSeverity = "danger"
+    settings.Publishers.mechanic.CityWide = true
+    settings.Publishers.mechanic.Categories = { "infrastructure", "evacuation" }
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    restarted = new_server(server.database)
+    assert(restarted.env.Config.CityWarn.Publishers.mechanic.CityWide)
+    assert(restarted.env.Config.CityWarn.Publishers.mechanic.Categories[2] == "evacuation")
+    settings = restarted.field("CityWarn").value
+    settings.Publishers.mechanic.Categories = {}
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    restarted = new_server(server.database)
+    assert(next(restarted.env.Config.CityWarn.Publishers.mechanic.Categories) == nil)
+    settings = restarted.field("CityWarn").value
+    settings.Publishers = {}
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    restarted = new_server(server.database)
+    assert(next(restarted.env.Config.CityWarn.Publishers) == nil)
+    settings = restarted.field("CityWarn").value
+    settings.Publishers.mechanic = copy(restarted.field("CityWarn").structure.fields.Publishers.entryDefault)
+    assert(restarted.save({ change("CityWarn", settings) }).success)
+    assert(new_server(server.database).env.Config.CityWarn.Publishers.mechanic.Categories[1] == "public_safety")
+end)
+
+test("an empty file-based publisher list still has a complete creation schema", function()
+    local server = new_server(nil, function(defaults) defaults.CityWarn.Publishers = {} end)
+    local field = server.field("CityWarn")
+    local schema = field.structure.fields.Publishers
+    assert(schema.mutableKeys and schema.template.fields.CityWide.valueType == "boolean")
+    assert(next(schema.fields) == nil)
+    field.value.Publishers.mechanic = copy(schema.entryDefault)
+    assert(server.save({ change("CityWarn", field.value) }).success)
+    assert(new_server(server.database).env.Config.CityWarn.Publishers.mechanic.MinimumGrade == 2)
+end)
+
+test("invalid publisher permissions reject the whole save before SQL or runtime updates", function()
+    local invalid = {
+        function(p) p.MinimumGrade = -1 end,
+        function(p) p.MinimumGrade = 1.5 end,
+        function(p) p.MinimumGrade = math.huge end,
+        function(p) p.MinimumGrade = "2" end,
+        function(p) p.MaximumSeverity = "urgent" end,
+        function(p) p.MaximumSeverity = "" end,
+        function(p) p.CityWide = "true" end,
+        function(p) p.Categories = { "unknown" } end,
+        function(p) p.Categories = { "police", "police" } end,
+        function(p) p.Categories = { [2] = "police" } end,
+        function(p) p.Categories = { police = true } end,
+        function(p) p.Categories = { false } end,
+        function(p) p.Categories = nil end,
+        function(p) p.Unexpected = true end,
+    }
+    for _, mutate in ipairs(invalid) do
+        for _, job in ipairs({ "mechanic", "police" }) do
+            local server = new_server()
+            local field = server.field("CityWarn")
+            field.value.Publishers[job] = copy(field.structure.fields.Publishers.entryDefault)
+            mutate(field.value.Publishers[job])
+            assert(not server.save({ change("CityWarn", field.value), change("Companies.Enabled", false) }).success)
+            assert(server.database.writes == 0 and #server.broadcasts == 0 and #server.updates == 0)
+            assert(server.env.Config.Companies.Enabled == true)
+        end
+    end
+    for _, job in ipairs({ "bad job", "bad.job", "", string.rep("a", 65), "__skyType" }) do
+        local server = new_server()
+        local field = server.field("CityWarn")
+        field.value.Publishers[job] = copy(field.structure.fields.Publishers.entryDefault)
+        assert(not server.save({ change("CityWarn", field.value) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
 end)
 
 test("CityWarn presentation roundtrips through SQL and reaches connected and new clients", function()

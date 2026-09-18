@@ -177,10 +177,18 @@ describe('Camera app controls', () => {
   })
 
   it('locks look controls without changing the global gameplay camera', () => {
+    const lookControl = cameraView.match(
+      /<SkyButton\b[^>]*class="camera-lock-control"[^>]*>/s,
+    )?.[0]
+
+    expect(lookControl).toBeDefined()
+    expect(lookControl).toContain('variant="plain"')
+    expect(lookControl).not.toMatch(/\bglass\b/)
     expect(cameraView).toContain("nuiCall('camera:setLocked'")
     expect(cameraView).toContain('cameraLocked.value')
     expect(cameraView).toContain('Apps.camera.lookKey')
-    expect(cameraView).not.toContain('Apps.camera.spaceKey')
+    expect(cameraView).toContain('Apps.camera.spaceKey')
+    expect(cameraView).toContain('Apps.camera.holdKey')
     expect(cameraClient).toContain('RegisterNUICallback("camera:setLocked"')
     expect(cameraClient).toContain('INPUT_LOOK_LR')
     expect(cameraClient).toContain('INPUT_LOOK_UD')
@@ -199,8 +207,17 @@ describe('Camera app controls', () => {
   })
 
   it('uses the configured HoldToLook control and Space in camera modes', () => {
-    expect(cameraView).not.toContain("event.code !== 'Space'")
-    expect(cameraView).not.toContain("window.addEventListener('keydown'")
+    expect(cameraView).toContain("event.code !== 'Space'")
+    expect(cameraView).toContain(
+      "window.addEventListener('keyup', onCameraKeyup, true)",
+    )
+    expect(cameraView).toContain(
+      "window.removeEventListener('keyup', onCameraKeyup, true)",
+    )
+    expect(cameraView).toContain(
+      "window.addEventListener('blur', releaseCameraLook)",
+    )
+    expect(cameraView).toContain('event.preventDefault()')
     expect(focusClient).toContain(
       'function SkyPhoneFocus.IsHoldToLookPressed()',
     )
@@ -209,7 +226,7 @@ describe('Camera app controls', () => {
     )
     expect(cameraClient).toContain('SkyPhoneFocus.IsHoldToLookPressed()')
     expect(cameraClient).toContain(
-      'IsDisabledControlPressed(0, camera_passthrough_control)',
+      'camera_state.nui_look_held or SkyPhoneFocus.IsHoldToLookPressed()',
     )
     expect(cameraClient).toMatch(
       /if data\.active then\s+watch_camera_controls\(\)/,

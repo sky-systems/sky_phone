@@ -152,16 +152,16 @@ export const useAppStoreStore = defineStore('app-store', {
       this.persist()
       return true
     },
-    claimApp(id: LaunchablePhoneAppId): void {
-      if (!this.isAvailable(id)) return
+    claimApp(id: LaunchablePhoneAppId): Promise<boolean> {
+      if (!this.isAvailable(id)) return Promise.resolve(false)
       this.uninstalledApps = this.uninstalledApps.filter(
         (appId) => appId !== id,
       )
       if (!this.claimedApps.includes(id)) {
         this.claimedApps.push(id)
         this.homeLayout = restoreHomeApp(this.homeLayout, id)
-        this.persist()
       }
+      return this.persist()
     },
     cancelPendingInstalls(): void {
       const installations = pendingInstallations.get(this)
@@ -579,8 +579,8 @@ export const useAppStoreStore = defineStore('app-store', {
 
       return true
     },
-    persist(): void {
-      usePhoneStore().saveDeviceNamespace('apps', {
+    persist(): Promise<boolean> {
+      return usePhoneStore().saveDeviceNamespace('apps', {
         claimedApps: this.claimedApps,
         homeLayout: this.homeLayout,
         launchCounts: this.launchCounts,

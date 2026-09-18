@@ -21,10 +21,22 @@ describe('PhoneSetupAssistant contract', () => {
     expect(source).toContain('appStore.claimApp')
     expect(source).toContain('await phone.completeSetup()')
     expect(source).toMatch(
-      /if \(step\.value === 8\) \{[\s\S]*void finish\(\)[\s\S]*return/,
+      /if \(step\.value === 8\) \{[\s\S]*await finish\(\)[\s\S]*return/,
     )
     expect(source).toContain(':disabled="setupCompleteBusy"')
     expect(source).toContain("phone.t('Setup.ready.saveFailed')")
+  })
+
+  it('shows save progress and failures on the app selection page', () => {
+    const appPage = source
+      .split('<template v-else-if="step === 8">')[1]
+      ?.split('<template v-else>')[0]
+
+    expect(appPage).toContain(':disabled="setupCompleteBusy"')
+    expect(appPage).toContain('v-if="setupCompleteBusy"')
+    expect(appPage).toContain("phone.t('Setup.ready.saving')")
+    expect(appPage).toContain('v-if="setupCompleteError"')
+    expect(appPage).toContain('role="alert"')
   })
 
   it('persists progress and supports resuming or moving backward', () => {

@@ -167,7 +167,9 @@ const callContact = computed(() => {
 const callName = computed(() => {
   const number = calls.activeCall?.otherNumber ?? ''
   return (
-    props.previewTitle ?? callContact.value?.name ?? formatPhoneNumber(number)
+    props.previewTitle ??
+    callContact.value?.name ??
+    (number ? formatPhoneNumber(number) : phone.t('Apps.phone.anonymousCaller'))
   )
 })
 const callInitials = computed(() =>

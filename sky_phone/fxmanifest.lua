@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.3.9'
+version '0.3.12'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -36,6 +36,7 @@ client_scripts {
     'source/client/phone_configurator.lua',
     'source/bridge/client/framework.lua',
     'source/bridge/client/player_state.lua',
+    'source/bridge/client/vehiclekeys.lua',
     'source/bridge/client/housing.lua',
     'source/bridge/client/housing/*.lua',
     'source/bridge/client/calls.lua',
@@ -94,6 +95,7 @@ server_scripts {
     'source/server/logging_content.lua',
     'source/server/logging_public.lua',
     'source/bridge/server/callbacks.lua',
+    'source/bridge/server/vehiclekeys.lua',
     'source/server/phone_configurator.lua',
     'source/bridge/server/framework.lua',
     'source/bridge/server/frameworks/*.lua',
