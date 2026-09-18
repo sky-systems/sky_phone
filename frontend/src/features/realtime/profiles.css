@@ -1,0 +1,5 @@
+.realtime-live-avatar {
+  outline: 2px solid var(--sky-danger) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 12px var(--sky-danger-soft) !important;
+}

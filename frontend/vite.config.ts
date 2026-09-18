@@ -15,6 +15,10 @@ export default defineConfig({
     outDir: 'dist',
     target: 'chrome103',
     rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        display: fileURLToPath(new URL('./display.html', import.meta.url)),
+      },
       output: {
         assetFileNames: 'assets/sky-[name]-[hash].[ext]',
         chunkFileNames: 'assets/sky-[name]-[hash].js',
@@ -29,6 +33,11 @@ export default defineConfig({
     },
   },
   server: {
+    // Browser traces contain HTML snapshots; do not hot-reload the app when
+    // Playwright writes reports or traces during a theme test.
+    watch: {
+      ignored: ['**/theme-test-results/**', '**/playwright-report/**'],
+    },
     fs: {
       allow: [fileURLToPath(new URL('.', import.meta.url))],
       strict: false,

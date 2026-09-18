@@ -1,6 +1,9 @@
 local registered_callbacks = {}
 local migration_callbacks = {}
 local event_handlers = {}
+local threads = {}
+function CreateThread(fn) threads[#threads+1] = coroutine.create(fn) end
+function Wait() coroutine.yield() end
 
 Bridge = {
     Callbacks = {
@@ -327,4 +330,21 @@ assert(accounts_position < phone_position)
 assert(persistence_position < phone_position)
 assert(phone_position < migration_position)
 
-print("server phone modules: ok")
+local blocked = "player_cuffed"
+Bridge.PlayerState = { GetBlockReason = function() return blocked end }
+opened_event = nil
+assert(registered_callbacks["sky_phone:device:open-request"](1, {}).error == "player_cuffed")
+assert(not SkyPhone.OpenDeviceForCall(1, phone_item.metadata.imei))
+local session, reason = SkyPhone.RequireDeviceSession(1)
+assert(not session and reason.error == "player_cuffed")
+assert(opened_event == nil, "Blocked phone use must never send an open event")
+blocked = nil
+local prepare = SkyPhoneSim.PrepareDevice
+SkyPhoneSim.PrepareDevice = function(...)
+    local ok, err = prepare(...)
+    blocked = "player_incapacitated"
+    return ok, err
+end
+local late = registered_callbacks["sky_phone:device:open-request"](1, {})
+assert(not late.success and opened_event == nil, "A late preparation cannot open a phone after becoming unconscious")
+print("server phone modules: ok; restricted opens, sessions and delayed preparation")

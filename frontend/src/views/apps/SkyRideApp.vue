@@ -590,7 +590,7 @@ onBeforeUnmount(() => {
     :class="{ 'skyride-app--dark': phone.isDarkMode }"
     :label="phone.t('Apps.skyride.name')"
     :dark="phone.isDarkMode"
-    accent="#c49a00"
+    :accent="phone.isDarkMode ? '#ffd54a' : '#876800'"
     accent-soft="rgba(245, 197, 24, 0.16)"
   >
     <div class="skyride-ambient" aria-hidden="true"></div>
@@ -1782,6 +1782,7 @@ onBeforeUnmount(() => {
 }
 
 .skyride-app--dark {
+  --sky-segmented-active-text: #20231f;
   --ride-accent-strong: #f5c518;
   --ride-bg-rgb: 8 9 11;
   --ride-bg: #08090b;

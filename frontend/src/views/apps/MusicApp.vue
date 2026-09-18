@@ -95,6 +95,51 @@ const activeTabIndex = computed(() =>
   tabs.findIndex((item) => item.id === activeTab.value),
 )
 const activePlaylist = ref<MusicPlaylist | null>(null)
+const sharedTracks = ref<MusicTrack[]>([])
+const sharedPlaylist = ref(false)
+function readSharedMusic(): { title: string; tracks: MusicTrack[] } | null {
+  if (
+    typeof route.query.sharedMusic !== 'string' ||
+    route.query.sharedMusic.length > 65536
+  )
+    return null
+  try {
+    const data = JSON.parse(route.query.sharedMusic)
+    if (!Array.isArray(data.songs) || typeof data.title !== 'string')
+      return null
+    const tracks: MusicTrack[] = data.songs
+      .slice(0, 250)
+      .flatMap((item: unknown) => {
+        if (!item || typeof item !== 'object') return []
+        const song = item as Record<string, unknown>
+        if (song.source === 'server')
+          return music.serverTracks.filter((track) => track.id === song.song_id)
+        if (
+          song.source !== 'youtube' ||
+          typeof song.video_id !== 'string' ||
+          !/^[a-zA-Z0-9_-]{11}$/.test(song.video_id) ||
+          typeof song.song_id !== 'string' ||
+          typeof song.title !== 'string' ||
+          typeof song.artist !== 'string'
+        )
+          return []
+        return [
+          {
+            id: song.song_id,
+            source: 'youtube' as const,
+            videoId: song.video_id,
+            title: song.title,
+            artist: song.artist,
+            artwork: `https://i.ytimg.com/vi/${song.video_id}/hqdefault.jpg`,
+          },
+        ]
+      })
+    return { title: data.title, tracks }
+  } catch {
+    return null
+  }
+}
+
 const addMenuOpened = ref(false)
 const actionMenuOpened = ref(false)
 const actionTrack = ref<MusicTrack | null>(null)
@@ -124,7 +169,11 @@ const searchResults = computed(() => {
   )
 })
 const playlistTracks = computed(() =>
-  activePlaylist.value ? music.tracksForPlaylist(activePlaylist.value) : [],
+  sharedPlaylist.value
+    ? sharedTracks.value
+    : activePlaylist.value
+      ? music.tracksForPlaylist(activePlaylist.value)
+      : [],
 )
 const availablePlaylistTracks = computed(() => {
   const playlist = activePlaylist.value
@@ -396,6 +445,8 @@ function openPlaylist(playlist: MusicPlaylist): void {
 }
 
 function closePlaylist(): void {
+  sharedPlaylist.value = false
+  sharedTracks.value = []
   activePlaylist.value = null
   scrollToTop()
 }
@@ -623,7 +674,7 @@ function onKeydown(event: KeyboardEvent): void {
 watch(
   () => music.playlists,
   () => {
-    if (!activePlaylist.value) return
+    if (!activePlaylist.value || sharedPlaylist.value) return
     activePlaylist.value =
       music.playlists.find(
         (playlist) => playlist.id === activePlaylist.value?.id,
@@ -642,13 +693,33 @@ onMounted(async () => {
   if (target.kind === 'playlist') {
     const playlist = music.playlists.find((entry) => entry.id === target.id)
     if (playlist) openPlaylist(playlist)
+    else {
+      const shared = readSharedMusic()
+      if (shared) {
+        sharedTracks.value = shared.tracks
+        sharedPlaylist.value = true
+        openPlaylist({
+          id: target.id,
+          name: shared.title,
+          createdAt: 0,
+          entries: shared.tracks.map((track) => ({
+            source: track.source,
+            songId: track.id,
+          })),
+        })
+      }
+    }
     return
   }
-  const track = music.allTracks.find(
-    (entry) => entry.id === target.id && entry.source === target.source,
-  )
+  const track =
+    music.allTracks.find(
+      (entry) => entry.id === target.id && entry.source === target.source,
+    ) ??
+    readSharedMusic()?.tracks.find(
+      (entry) => entry.id === target.id && entry.source === target.source,
+    )
   if (!track) return
-  await playTrack(track)
+  await playTrack(track, [track])
   playerOpened.value = true
 })
 
@@ -680,7 +751,7 @@ onBeforeUnmount(() => {
     >
       <template #right>
         <sky-link
-          v-if="activePlaylist"
+          v-if="activePlaylist && !sharedPlaylist"
           component="button"
           icon-only
           :aria-label="phone.t('Apps.music.playlistActions')"
@@ -691,7 +762,7 @@ onBeforeUnmount(() => {
           <Ellipsis :size="22" />
         </sky-link>
         <sky-link
-          v-else
+          v-else-if="!sharedPlaylist"
           component="button"
           icon-only
           :aria-label="phone.t('Apps.music.addMusic')"
@@ -758,6 +829,7 @@ onBeforeUnmount(() => {
               large
               rounded
               tonal
+              v-if="!sharedPlaylist"
               @click="openActivePlaylistTrackPicker"
             >
               <CirclePlus :size="18" />
@@ -789,6 +861,7 @@ onBeforeUnmount(() => {
             </template>
             <template #after>
               <sky-link
+                v-if="!sharedPlaylist"
                 component="button"
                 icon-only
                 :aria-label="phone.t('Apps.music.songActions')"

@@ -17,6 +17,7 @@ import PhoneHomeIndicator from '@/components/PhoneHomeIndicator.vue'
 import PhoneControlCenter from '@/components/PhoneControlCenter.vue'
 import PhoneDynamicIsland from '@/components/PhoneDynamicIsland.vue'
 import PhoneMediaCapture from '@/components/PhoneMediaCapture.vue'
+import RealtimeService from '@/components/RealtimeService.vue'
 import PhoneMemoRecorder from '@/components/PhoneMemoRecorder.vue'
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
 import PhonePasscode from '@/components/PhonePasscode.vue'
@@ -32,6 +33,7 @@ import RadioHud from '@/components/RadioHud.vue'
 import SimPhonePicker, {
   type SimPhoneChoice,
 } from '@/components/SimPhonePicker.vue'
+import { installWorldDisplayCapture } from '@/utils/worldDisplay'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { useClockStore } from '@/stores/clock'
 import { useGamesStore } from '@/features/games/store'
@@ -348,9 +350,8 @@ const activeAppId = computed(() =>
   typeof route.params.appId === 'string' ? route.params.appId : '',
 )
 const WHITE_STATUS_BAR_APP_IDS = new Set([
-  'calculator',
   'camera',
-  'fliptok',
+  'map',
   'neon-drop',
   'sky-flappy',
   'snake',
@@ -367,7 +368,9 @@ const isDynamicIslandGalleryRoute = computed(
 const isDevelopmentRoute = computed(
   () =>
     isDevelopment &&
-    (route.name === 'development-sky-ui' || isDynamicIslandGalleryRoute.value),
+    (route.name === 'development-sky-ui' ||
+      route.name === 'development-realtime' ||
+      isDynamicIslandGalleryRoute.value),
 )
 const appTransitionName = computed(() =>
   route.query.transition === 'app-switch' ? 'app-switch' : 'app-window',
@@ -760,7 +763,10 @@ function openDevelopmentPayphonePreview(): void {
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (!isTrustedRootMessageSource(event.source, window)) return
 
-  if (event.data?.type === 'admin:open') {
+  if (event.data?.type === 'radio:disconnected') {
+    const payload = event.data.data as { reason?: string } | undefined
+    radio.forceDisconnect(payload?.reason)
+  } else if (event.data?.type === 'admin:open') {
     const data = event.data.data as AdminPanelOpenPayload | undefined
     if (data?.lang && data.locales && data.fallbackLocales) {
       phone.setLocale(data.lang, data.locales, data.fallbackLocales)
@@ -1588,7 +1594,22 @@ function onFocusOut(event: FocusEvent): void {
   )
 }
 
+let removeWorldDisplayCapture: (() => void) | undefined
+watch(
+  () =>
+    [
+      phone.isOpen,
+      phone.device?.imei,
+      phone.preferences.settings.frame,
+    ] as const,
+  ([open, , frame]) => {
+    if (open && window.GetParentResourceName)
+      void nuiCall('worldDisplay:color', { frame })
+  },
+)
 onMounted(() => {
+  if (window.GetParentResourceName)
+    removeWorldDisplayCapture = installWorldDisplayCapture()
   removePhoneAudioController = installPhoneAudioController()
   document.addEventListener('focusin', onFocusIn)
   document.addEventListener('focusout', onFocusOut)
@@ -1627,6 +1648,18 @@ onMounted(() => {
   }, 1000)
   if (isDevelopment) {
     const developmentHydration = hydrateDevelopmentPhone()
+    const realtimePreview = developmentParameters.get('realtimePreview')
+    if (
+      realtimePreview &&
+      ['call', 'picstagram', 'fliptok'].includes(realtimePreview)
+    ) {
+      void developmentHydration.then(() =>
+        router.replace({
+          path: `/development/realtime/${realtimePreview}`,
+          query: { view: developmentParameters.get('liveView') ?? 'host' },
+        }),
+      )
+    }
     if (developmentParameters.has('simPickerPreview')) {
       simPicker.value = {
         choices: [
@@ -1796,6 +1829,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  removeWorldDisplayCapture?.()
   removePhoneAudioController?.()
   updateTextInputFocus(false)
   cancelUnlockedPhoneDataLoad()
@@ -1829,6 +1863,7 @@ onBeforeUnmount(() => {
     <AdminPanel @close="adminPanelOpen = false" />
   </SkyProvider>
   <PhoneMediaCapture />
+  <RealtimeService />
   <PhoneMemoRecorder />
   <RadioHud />
   <PayphoneOverlay />
@@ -1989,6 +2024,10 @@ onBeforeUnmount(() => {
                     'phone-app--messages': route.params.appId === 'messages',
                     'phone-app--status-light':
                       lockedCallVisible ||
+                      (isDevelopment &&
+                        route.name === 'development-realtime' &&
+                        route.params.scene === 'call') ||
+                      phone.appStatusBarLight === true ||
                       WHITE_STATUS_BAR_APP_IDS.has(activeAppId) ||
                       (activeAppId === 'phone' && calls.activeCall !== null),
                     'phone-app--status-dark':
@@ -2116,7 +2155,12 @@ onBeforeUnmount(() => {
               />
               <PhoneDynamicIsland
                 v-if="!setupRequired && !isDynamicIslandGalleryRoute"
-                :call-screen-visible="lockedCallVisible"
+                :call-screen-visible="
+                  lockedCallVisible ||
+                  (isDevelopment &&
+                    route.name === 'development-realtime' &&
+                    route.params.scene === 'call')
+                "
                 @expanded-change="dynamicIslandExpanded = $event"
                 @live-activity-change="dynamicIslandActivity = $event"
               />

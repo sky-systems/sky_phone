@@ -45,6 +45,7 @@ end
 
 local function join_voice(channel)
     local next_channel = tonumber(channel) or 0
+    if next_channel > 0 and next_channel == call_channel then return true end
     if not Bridge.Calls.Join(next_channel) then
         return false
     end
@@ -137,7 +138,16 @@ function SkyPhoneCalls.Reset()
     end
 end
 
+AddEventHandler("sky_phone:client:restricted", function()
+    local previous = active_call_payload
+    SkyPhoneCalls.Reset()
+    if previous then
+        SendNUIMessage({ type = "call:state", data = { id = previous.id, state = "disconnected" } })
+    end
+end)
+
 RegisterNetEvent("sky_phone:call:incoming", function(data)
+    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then return end
     if type(data) ~= "table" or type(data.id) ~= "string" or data.state ~= "ringing" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid incoming call data.")
         return
@@ -150,6 +160,8 @@ RegisterNetEvent("sky_phone:call:incoming", function(data)
 end)
 
 RegisterNetEvent("sky_phone:call:state", function(data)
+    if type(data) == "table" and (data.state == "ringing" or data.state == "connected")
+        and Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then return end
     if type(data) ~= "table" or type(data.id) ~= "string" or type(data.state) ~= "string" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid call state data.")
         return

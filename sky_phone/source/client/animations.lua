@@ -5,10 +5,12 @@ local MODE_CAMERA_REAR = "camera_rear"
 local MODE_CAMERA_SELFIE = "camera_selfie"
 local LOOPED_UPPER_BODY_FLAGS = 49
 local TRANSITION_UPPER_BODY_FLAGS = 48
+local IK_ARM_TARGET_HAND_BONE = 1
 
 local animation_state = {
     call_direction = nil,
     call_state = nil,
+    call_video = false,
     camera_active = false,
     camera_front = false,
     camera_landscape = false,
@@ -22,6 +24,7 @@ local animation_state = {
 }
 
 local reevaluate
+local current_frame = "black"
 
 local function load_model(model_hash)
     RequestModel(model_hash)
@@ -70,6 +73,38 @@ local function can_animate(ped)
     return true
 end
 
+SkyPhoneAnimations = {}
+
+function SkyPhoneAnimations.AimCamera(camera_position, target_position, front)
+    -- Keep the networked phone in the hand while excluding it from our own
+    -- rear-camera footage. Visibility returns automatically next frame.
+    if animation_state.camera_active and not front and animation_state.prop
+        and DoesEntityExist(animation_state.prop) then
+        SetEntityLocallyInvisible(animation_state.prop)
+    end
+    local ped = animation_state.ped
+    if not animation_state.camera_active or not Config.Animations.Enabled
+        or not ped or not animation_state.prop or not can_animate(ped)
+        or animation_state.current_mode == MODE_HIDDEN then return end
+    local head = GetPedBoneCoords(ped, 31086, 0.0, 0.0, 0.0)
+    local direction = front and (camera_position - target_position) or (target_position - camera_position)
+    local length = math.sqrt(direction.x ^ 2 + direction.y ^ 2 + direction.z ^ 2)
+    if length < 0.001 then return end
+    -- Keep the target in arm's reach; the phone prop stays attached to the hand.
+    local reach = front and 0.52 or 0.40
+    local hand = head + direction * (reach / length)
+    local left = Config.Animations.PropBone == 60309 or Config.Animations.PropBone == 18905
+    -- Target the hand directly, without requiring IK allow-tags in the phone animation.
+    -- AimCamera runs each camera frame; the camera already smooths its orbit, so do not
+    -- add another blend-in delay between the rendered camera and the holding arm.
+    SetPedCanArmIk(ped, true)
+    SetIkTarget(ped, left and 3 or 4, 0, -1, hand.x, hand.y, hand.z - 0.14,
+        IK_ARM_TARGET_HAND_BONE, 0, 150)
+    -- Keep the head and wrist orientation from the camera-hold animation. Driving
+    -- the head toward a nearby moving camera fights that pose and feeds back into
+    -- the head-anchored camera position on the next frame.
+end
+
 local function get_phone_dictionary(ped)
     if not IsPedInAnyVehicle(ped, false) then
         return Config.Animations.Dictionaries.OnFoot, "on_foot"
@@ -85,6 +120,15 @@ end
 local function derive_mode()
     if not Config.Animations.Enabled then
         return MODE_HIDDEN
+    end
+    -- Keep the normal phone-opening transition, then use the upright camera grip
+    -- while transmitting video. The reading loop bends the head and wrist down.
+    if animation_state.call_video and (animation_state.call_state == "connected"
+        or animation_state.call_state == "ringing") then
+        if animation_state.camera_active then
+            return animation_state.camera_front and MODE_CAMERA_SELFIE or MODE_CAMERA_REAR
+        end
+        return MODE_PHONE_READ
     end
     if animation_state.call_state == "connected" then
         return MODE_CALL
@@ -156,7 +200,7 @@ local function ensure_phone_prop(ped, revision)
         delete_phone_prop()
     end
 
-    local model_hash = joaat(Config.Animations.PropModel)
+    local model_hash = joaat(SkyPhoneProp.Model(current_frame, Config.Animations.PropModel))
     if not load_model(model_hash) then
         return false
     end
@@ -384,6 +428,19 @@ reevaluate = function(force)
     end)
 end
 
+function SkyPhoneAnimations.GetProp()
+    return animation_state.prop
+end
+
+function SkyPhoneAnimations.SetFrame(frame)
+    if frame == current_frame or not SkyPhoneProp.Frames[frame] then return end
+    current_frame = frame
+    if not SkyPhoneProp.Models[joaat(Config.Animations.PropModel)] then return end
+    animation_state.revision = animation_state.revision + 1
+    cleanup_phone()
+    reevaluate(true)
+end
+
 AddEventHandler("sky_phone:configurator:updated", function()
     animation_state.revision = animation_state.revision + 1
     cleanup_phone()
@@ -393,6 +450,7 @@ end)
 local function reset_animation_state()
     animation_state.phone_open = false
     animation_state.call_state = nil
+    animation_state.call_video = false
     animation_state.call_direction = nil
     animation_state.camera_active = false
     animation_state.camera_front = false
@@ -432,6 +490,7 @@ AddEventHandler("sky_phone:animation:call", function(data)
     end
     animation_state.call_state = data.state
     animation_state.call_direction = data.direction
+    animation_state.call_video = data.video == true
     reevaluate(false)
 end)
 

@@ -101,6 +101,12 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  if (path === 'Phone.BlockWhenDead') return 'phoneBlockWhenDead'
+  if (path === 'Phone.BlockWhenCuffed') return 'phoneBlockWhenCuffed'
+  if (path === 'Radio.RequirePhoneItem') return 'radioRequirePhoneItem'
+  if (path === 'Calls.VoiceProvider') return 'callsVoiceProvider'
+  if (path === 'Speaker.Enabled') return 'phoneSpeaker'
+  if (path === 'Animations.WorldDisplayEnabled') return 'phoneWorldDisplay'
   if (path === 'Security.FaceIdMaskWhitelist') return 'faceIdMaskWhitelist'
   const faceIdMask = path.match(
     /^Security\.FaceIdMaskWhitelist(?:\[\d+\]|\.\d+)\.(Model|Drawable|Texture)$/,

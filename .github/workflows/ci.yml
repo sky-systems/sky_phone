@@ -47,6 +47,18 @@ jobs:
       - name: Test Phone Configurator persistence and runtime sync
         run: lua5.4 tests/phone_configurator.lua
 
+      - name: Test realtime media and EasyShare receive flows
+        run: |
+          lua5.4 tests/server_realtime.lua
+          lua5.4 tests/server_realtime_cloudflare.lua
+          lua5.4 tests/client_realtime.lua
+          lua5.4 tests/server_easyshare.lua
+          lua5.4 tests/server_social_discovery.lua
+          lua5.4 tests/client_calls.lua
+          lua5.4 tests/client_camera.lua
+          lua5.4 tests/client_pma_calls.lua
+          lua5.4 tests/server_pma_calls.lua
+
       - name: Test media import URL probes and validation
         run: lua5.4 tests/media_import.lua
 
@@ -79,6 +91,8 @@ jobs:
         run: |
           lua5.4 tests/server_callback_startup.lua
           lua5.4 tests/client_phone_lifecycle.lua
+          lua5.4 tests/server_world_display.lua
+          lua5.4 tests/client_world_display.lua
 
       - name: Test client idle workers and active phone controls
         run: |
@@ -129,6 +143,22 @@ jobs:
 
       - name: Test frontend
         run: pnpm test
+
+      - name: Install theme test browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Test all app themes in the browser
+        run: pnpm test:themes
+
+      - name: Upload theme audit reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-theme-audit
+          path: |
+            frontend/theme-test-results
+            frontend/playwright-report
+          retention-days: 7
 
       - name: Build deployable NUI
         run: pnpm build-only

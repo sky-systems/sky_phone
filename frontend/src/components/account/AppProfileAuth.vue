@@ -291,7 +291,7 @@ const canSubmit = computed(() => {
   max-width: 320px;
   margin: 0 auto;
   padding: 12px 4px 18px;
-  color: inherit;
+  color: var(--sky-text);
   text-align: center;
 }
 .app-profile-auth__hero {
@@ -312,19 +312,19 @@ const canSubmit = computed(() => {
   border: 1px solid rgba(255, 214, 62, 0.46);
   border-color: color-mix(
     in srgb,
-    var(--auth-accent, #ffd63e) 46%,
+    var(--auth-accent, var(--sky-app-accent)) 46%,
     transparent
   );
   border-radius: 15px;
-  color: var(--auth-accent, var(--yellow, #ffd63e));
+  color: var(--auth-accent, var(--sky-app-accent));
   background: rgba(255, 214, 62, 0.14);
-  background: color-mix(in srgb, var(--auth-accent, #ffd63e) 14%, transparent);
+  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 14%, transparent);
   box-shadow: 0 10px 28px rgba(255, 214, 62, 0.16);
   box-shadow: 0 10px 28px
-    color-mix(in srgb, var(--auth-accent, #ffd63e) 16%, transparent);
+    color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 16%, transparent);
 }
 .app-profile-auth__hero small {
-  color: var(--auth-accent, var(--yellow, #ffd63e));
+  color: var(--auth-accent, var(--sky-app-accent));
   font-size: 9px;
   font-weight: 850;
   letter-spacing: 0.1em;
@@ -332,14 +332,14 @@ const canSubmit = computed(() => {
 }
 .app-profile-auth__hero h2 {
   margin: 3px 0 0;
-  color: inherit;
+  color: var(--sky-text);
   font-size: 20px;
   line-height: 1.08;
 }
 .app-profile-auth__hero p {
   grid-column: 2;
   margin: 6px 0 0;
-  color: var(--muted, #9ba4aa);
+  color: var(--sky-muted);
   font-size: 11px;
   line-height: 1.35;
 }
@@ -350,8 +350,8 @@ const canSubmit = computed(() => {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
-  background: var(--panel, #20262c);
-  background: color-mix(in srgb, var(--panel, #20262c) 90%, transparent);
+  background: var(--sky-surface);
+  background: color-mix(in srgb, var(--sky-surface) 90%, transparent);
   box-shadow: 0 22px 50px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(22px) saturate(1.15);
 }
@@ -363,7 +363,7 @@ const canSubmit = computed(() => {
   height: 150px;
   border-radius: 50%;
   background: rgba(255, 214, 62, 0.16);
-  background: color-mix(in srgb, var(--auth-accent, #ffd63e) 16%, transparent);
+  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 16%, transparent);
   filter: blur(38px);
   content: '';
   pointer-events: none;
@@ -375,7 +375,7 @@ const canSubmit = computed(() => {
   padding: 3px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.16);
+  background: var(--sky-surface-muted);
 }
 .app-profile-auth__mode :deep(.app-profile-auth__mode-button) {
   border-radius: 3px;
@@ -391,6 +391,10 @@ const canSubmit = computed(() => {
     .app-profile-auth__mode-button--register.app-profile-auth__mode-button--active
   ) {
   border-radius: 3px 10px 10px 3px;
+}
+.app-profile-auth__mode
+  :deep(.app-profile-auth__mode-button:not(.app-profile-auth__mode-button--active)) {
+  color: var(--auth-accent, var(--sky-app-accent));
 }
 .app-profile-auth__photo {
   display: flex;
@@ -414,16 +418,16 @@ const canSubmit = computed(() => {
   border: 2px solid rgba(255, 214, 62, 0.58);
   border-color: color-mix(
     in srgb,
-    var(--auth-accent, #ffd63e) 58%,
+    var(--auth-accent, var(--sky-app-accent)) 58%,
     transparent
   );
   border-radius: 50%;
-  color: var(--auth-accent, var(--yellow, #ffd63e));
-  background: var(--panel, #20262c);
+  color: var(--auth-accent, var(--sky-app-accent));
+  background: var(--sky-surface);
   background: color-mix(
     in srgb,
-    var(--auth-accent, #ffd63e) 10%,
-    var(--panel, #20262c)
+    var(--auth-accent, var(--sky-app-accent)) 10%,
+    var(--sky-surface)
   );
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
 }
@@ -443,10 +447,10 @@ const canSubmit = computed(() => {
   width: 22px;
   height: 22px;
   place-items: center;
-  border: 2px solid var(--panel, #20262c);
+  border: 2px solid var(--sky-surface);
   border-radius: 50%;
   color: #fff;
-  background: var(--auth-accent, #ffd63e);
+  background: var(--auth-accent, var(--sky-app-accent));
   z-index: 1;
 }
 .app-profile-auth__photo > div {
@@ -460,7 +464,7 @@ const canSubmit = computed(() => {
   justify-content: flex-start;
   gap: 6px;
   border-color: rgba(255, 255, 255, 0.12);
-  color: inherit;
+  color: var(--sky-text);
   background: rgba(255, 255, 255, 0.04);
   font-size: 11px;
 }
@@ -483,9 +487,9 @@ const canSubmit = computed(() => {
   height: 34px;
   place-items: center;
   border-radius: 11px;
-  color: var(--auth-accent, #ffd63e);
+  color: var(--auth-accent, var(--sky-app-accent));
   background: rgba(255, 214, 62, 0.13);
-  background: color-mix(in srgb, var(--auth-accent, #ffd63e) 13%, transparent);
+  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 13%, transparent);
 }
 .app-profile-auth__identity div {
   min-width: 0;
@@ -493,7 +497,7 @@ const canSubmit = computed(() => {
 .app-profile-auth__identity small {
   display: block;
   margin-bottom: 1px;
-  color: var(--muted, #9ba4aa);
+  color: var(--sky-muted);
   font-size: 9px;
 }
 .app-profile-auth__identity strong {
@@ -505,7 +509,7 @@ const canSubmit = computed(() => {
   white-space: nowrap;
 }
 .app-profile-auth__identity > svg {
-  color: var(--muted, #9ba4aa);
+  color: var(--sky-muted);
 }
 .app-profile-auth__username-field {
   display: grid;
@@ -537,8 +541,8 @@ const canSubmit = computed(() => {
   height: 34px;
   place-items: center;
   border-radius: 11px;
-  color: var(--auth-accent, #ffd63e);
-  background: color-mix(in srgb, var(--auth-accent, #ffd63e) 13%, transparent);
+  color: var(--auth-accent, var(--sky-app-accent));
+  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 13%, transparent);
 }
 .app-profile-auth__password-field div {
   min-width: 0;
@@ -546,7 +550,7 @@ const canSubmit = computed(() => {
 .app-profile-auth__password-field small {
   display: block;
   margin-bottom: 1px;
-  color: var(--muted, #9ba4aa);
+  color: var(--sky-muted);
   font-size: 9px;
 }
 .app-profile-auth__password-field input {
@@ -556,7 +560,7 @@ const canSubmit = computed(() => {
   padding: 0;
   border: 0;
   outline: 0;
-  color: inherit;
+  color: var(--sky-text);
   background: transparent;
   font: inherit;
   font-size: 12px;
@@ -564,8 +568,8 @@ const canSubmit = computed(() => {
   line-height: 18px;
 }
 .app-profile-auth__password-field input::placeholder {
-  color: var(--muted, #9ba4aa);
-  opacity: 0.72;
+  color: var(--sky-muted);
+  opacity: 1;
 }
 .app-profile-auth__username-field > span {
   display: grid;
@@ -573,8 +577,8 @@ const canSubmit = computed(() => {
   height: 34px;
   place-items: center;
   border-radius: 11px;
-  color: var(--auth-accent, #ffd63e);
-  background: color-mix(in srgb, var(--auth-accent, #ffd63e) 13%, transparent);
+  color: var(--auth-accent, var(--sky-app-accent));
+  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 13%, transparent);
 }
 .app-profile-auth__username-field div {
   min-width: 0;
@@ -582,7 +586,7 @@ const canSubmit = computed(() => {
 .app-profile-auth__username-field small {
   display: block;
   margin-bottom: 1px;
-  color: var(--muted, #9ba4aa);
+  color: var(--sky-muted);
   font-size: 9px;
 }
 .app-profile-auth__username-field input {
@@ -592,7 +596,7 @@ const canSubmit = computed(() => {
   padding: 0;
   border: 0;
   outline: 0;
-  color: inherit;
+  color: var(--sky-text);
   background: transparent;
   font: inherit;
   font-size: 12px;
@@ -600,15 +604,15 @@ const canSubmit = computed(() => {
   line-height: 18px;
 }
 .app-profile-auth__username-field input::placeholder {
-  color: var(--muted, #9ba4aa);
-  opacity: 0.72;
+  color: var(--sky-muted);
+  opacity: 1;
 }
 .app-profile-auth__fields {
   margin-top: 0;
   margin-right: 0;
   margin-bottom: 11px;
   margin-left: 0;
-  color: inherit;
+  color: var(--sky-text);
   background: rgba(255, 255, 255, 0.045) !important;
   text-align: left;
 }
@@ -616,10 +620,10 @@ const canSubmit = computed(() => {
   color: inherit !important;
 }
 .app-profile-auth__fields :deep(.text-xs > div) {
-  background: var(--panel, #20262c) !important;
+  background: var(--sky-surface) !important;
   background: color-mix(
     in srgb,
-    var(--panel, #20262c) 94%,
+    var(--sky-surface) 94%,
     transparent
   ) !important;
 }
@@ -628,12 +632,12 @@ const canSubmit = computed(() => {
   padding: 8px 10px;
   border: 1px solid rgba(255, 105, 97, 0.22);
   border-radius: 11px;
-  color: #ff6961;
+  color: var(--sky-danger);
   background: rgba(255, 105, 97, 0.08);
   font-size: 11px;
 }
 .app-profile-auth__submit {
-  --sky-app-accent: var(--auth-accent, var(--yellow, #ffd63e));
+  --sky-app-accent: var(--auth-accent, var(--sky-app-accent));
   --sky-button-text: #fff;
   width: 100%;
   min-height: 44px;
@@ -641,10 +645,10 @@ const canSubmit = computed(() => {
   justify-content: space-between;
   padding: 0 17px;
   color: #fff !important;
-  background: var(--auth-accent, var(--yellow, #ffd63e)) !important;
+  background: var(--sky-app-accent-shade) !important;
   box-shadow: 0 10px 26px rgba(255, 214, 62, 0.25);
   box-shadow: 0 10px 26px
-    color-mix(in srgb, var(--auth-accent, #ffd63e) 25%, transparent);
+    color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 25%, transparent);
   font-weight: 750;
 }
 .app-profile-auth__submit:disabled {
@@ -700,7 +704,7 @@ const canSubmit = computed(() => {
   border-radius: 11px;
   display: grid;
   place-items: center;
-  color: #b8c5ce;
+  color: var(--sky-muted);
   background: transparent;
   font: inherit;
   font-size: 14px;
@@ -714,9 +718,9 @@ const canSubmit = computed(() => {
 }
 .app-profile-auth__mode-choice--active {
   color: #fff;
-  background: var(--auth-accent, #ffd63e);
+  background: var(--auth-accent, var(--sky-app-accent));
   box-shadow: 0 6px 16px
-    color-mix(in srgb, var(--auth-accent, #ffd63e) 28%, transparent);
+    color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 28%, transparent);
   font-weight: 750;
 }
 .app-profile-auth--centered .app-profile-auth__identity,

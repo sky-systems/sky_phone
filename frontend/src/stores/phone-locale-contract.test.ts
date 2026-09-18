@@ -150,6 +150,15 @@ describe('phone locale contract', () => {
     },
   )
 
+  it.each([...localeSources])(
+    'keeps %s in one expanded locale table without appended overrides',
+    (_locale, source) => {
+      expect(source.match(/\bLocales\s*\[/g)).toHaveLength(1)
+      expect(source).not.toMatch(
+        /^\s*(?:[A-Za-z_][A-Za-z0-9_]*|\["[^"]+"\])\s*=\s*\{[^\r\n}]*=/m,
+      )
+    },
+  )
   it('exposes vehicle key labels and help under the Phonepanel configurator', () => {
     for (const values of localeValues.values()) {
       expect(

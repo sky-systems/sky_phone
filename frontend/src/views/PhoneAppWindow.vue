@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
+import EasyShareContentPreview from '@/components/EasyShareContentPreview.vue'
 import CustomAppFrame from '@/components/CustomAppFrame.vue'
 import { getPhoneApp, isExternalPhoneApp } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
@@ -10,6 +11,14 @@ import AppStoreApp from '@/views/apps/AppStoreApp.vue'
 
 const route = useRoute()
 const phone = usePhoneStore()
+const shareLaunch = ref('')
+watch(
+  () => route.query.easyShareLaunch,
+  (value) => {
+    if (typeof value === 'string' && value) shareLaunch.value = value
+  },
+  { immediate: true },
+)
 const app = computed(() => getPhoneApp(route.params.appId))
 const builtinAppComponent = computed(() =>
   app.value?.id === 'app-store' ? AppStoreApp : app.value?.component,
@@ -30,6 +39,7 @@ const launchStyle = computed(() => {
   <div
     v-if="app && !app.adminOnly"
     class="app-window"
+    :data-app-id="app.id"
     :class="{
       'app-window--camera-landscape':
         app.id === 'camera' && phone.cameraLandscape,
@@ -42,11 +52,12 @@ const launchStyle = computed(() => {
       :key="getCustomAppFrameKey(app)"
       :app="app"
     />
-    <Suspense v-else>
-      <component :is="builtinAppComponent" />
+    <Suspense v-else :key="app.id">
+      <component :is="builtinAppComponent" :key="shareLaunch" />
       <template #fallback>
         <div class="app-loading">{{ phone.t('Common.loading') }}</div>
       </template>
     </Suspense>
+    <EasyShareContentPreview />
   </div>
 </template>

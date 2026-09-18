@@ -2363,13 +2363,11 @@ onMounted(async () => {
 
 <style scoped>
 .feather-app {
-  --feather-blue: #438cf5;
-  --feather-blue-dark: #2867d8;
-  --sky-app-accent: var(--feather-blue);
-  --sky-app-accent-soft: rgba(67, 140, 245, 0.15);
+  --feather-blue: var(--sky-app-accent);
+  --feather-blue-dark: var(--sky-app-accent-shade);
   --color-primary: var(--feather-blue);
-  background: #fff;
-  color: #111923;
+  background: var(--sky-bg);
+  color: var(--sky-text);
 }
 .feather-media-preview {
   position: absolute;
@@ -2489,15 +2487,15 @@ onMounted(async () => {
 }
 .feather-auth {
   --auth-accent: var(--feather-blue);
-  --panel: #18212b;
+  --panel: var(--sky-surface);
   min-height: 100%;
   overflow-y: auto;
   padding: 68px 15px 34px;
-  color: #f4f7fa;
+  color: var(--sky-text);
   background:
     radial-gradient(circle at 85% 5%, rgb(90 183 255 / 18%), transparent 31%),
     radial-gradient(circle at 0 42%, rgb(67 140 245 / 8%), transparent 36%),
-    #0f151b;
+    var(--sky-bg);
 }
 .feather-auth__hero {
   display: flex;
@@ -2708,6 +2706,9 @@ onMounted(async () => {
   color: #2c9b6d;
   background: rgb(44 155 109 / 9%);
   text-align: left;
+}
+.feather-app--light .feather-onboarding__account {
+  color: #19744e;
 }
 .feather-onboarding__account svg {
   grid-row: span 2;
@@ -3574,26 +3575,26 @@ onMounted(async () => {
 
 /* Signed-in Feather mirrors the compact, card-led Local Pages shell. */
 .feather-app--active {
-  --feather-blue: #58a6ff;
-  --feather-blue-dark: #2778dc;
+  --feather-blue: var(--sky-app-accent);
+  --feather-blue-dark: var(--sky-app-accent-shade);
   --color-primary: var(--feather-blue);
-  --feather-panel: #20262c;
-  --feather-muted: #9ba4aa;
-  --feather-border: rgb(255 255 255 / 8%);
+  --feather-panel: var(--sky-surface);
+  --feather-muted: var(--sky-muted);
+  --feather-border: var(--sky-hairline);
   position: relative;
   height: 100%;
   padding: 0;
   overflow: hidden;
-  background: #12171b !important;
-  color: #f7f8f4;
+  background: var(--sky-bg) !important;
+  color: var(--sky-text);
   font-family: var(--sky-font-family);
 }
 .feather-app--active.feather-app--light {
-  --feather-panel: #f0f1ec;
-  --feather-muted: #70797e;
-  --feather-border: rgb(0 0 0 / 8%);
-  background: #fbfbf6 !important;
-  color: #171b1e;
+  --feather-panel: var(--sky-surface);
+  --feather-muted: var(--sky-muted);
+  --feather-border: var(--sky-hairline);
+  background: var(--sky-bg) !important;
+  color: var(--sky-text);
 }
 .feather-app--active button,
 .feather-app--active input,
@@ -3602,7 +3603,7 @@ onMounted(async () => {
   font: inherit;
 }
 .feather-app--active .feather-navbar {
-  --sky-navbar-glass: color-mix(in srgb, #12171b 91%, transparent);
+  --sky-navbar-glass: var(--sky-glass-solid);
   --sky-safe-area-top: 46px;
   position: absolute;
   z-index: 8;
@@ -3611,12 +3612,12 @@ onMounted(async () => {
   left: 0;
   flex: none;
   border-bottom: 0;
-  background: color-mix(in srgb, #12171b 88%, transparent);
+  background: var(--sky-glass-solid);
   backdrop-filter: blur(18px);
 }
 .feather-app--active.feather-app--light .feather-navbar {
-  --sky-navbar-glass: color-mix(in srgb, #fbfbf6 91%, transparent);
-  background: color-mix(in srgb, #fbfbf6 88%, transparent);
+  --sky-navbar-glass: var(--sky-glass-solid);
+  background: var(--sky-glass-solid);
 }
 .feather-app--active.feather-app--section .feather-navbar {
   border-bottom: 1px solid var(--feather-border);
@@ -3870,7 +3871,7 @@ onMounted(async () => {
 .feather-app--active :deep(.feather-post__header strong) {
   font-size: 13px;
 }
-.feather-app--active :deep(.feather-post__header span) {
+.feather-app--active :deep(.feather-post__meta) {
   color: var(--feather-muted);
   font-size: 10.5px;
 }
@@ -4830,7 +4831,7 @@ onMounted(async () => {
   border-radius: 50% !important;
   padding: 0;
   background: transparent !important;
-  color: #fff;
+  color: var(--sky-text);
   box-shadow: none;
 }
 .feather-edit__navbar-save :deep(svg) {
@@ -5407,5 +5408,28 @@ onMounted(async () => {
   .feather-connections__remove {
     border-color: #f04f65;
   }
+}
+/* Navbar actions sit on the current theme, unlike the white cover artwork. */
+.feather-app--active .feather-navbar .feather-profile__logout {
+  --sky-app-accent: var(--feather-blue);
+  --sky-button-text: var(--sky-text);
+  color: var(--sky-text);
+  border-color: var(--sky-hairline);
+}
+.feather-app--active :deep(.feather-post__name) {
+  color: var(--sky-text);
+}
+.feather-app--active .feather-composer,
+.feather-app--active .feather-edit {
+  color: var(--sky-text);
+  background: var(--sky-bg);
+}
+.feather-app--active .feather-composer textarea,
+.feather-app--active .feather-edit input,
+.feather-app--active .feather-edit textarea {
+  color: var(--sky-text);
+}
+.feather-app--light .feather-edit__photo-actions :deep(.sky-button) {
+  color: var(--sky-app-accent-shade);
 }
 </style>
