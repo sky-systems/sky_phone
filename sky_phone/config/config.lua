@@ -486,6 +486,7 @@ Config.Billing = {
 }
 
 Config.Garage = {
+    VehicleKeySystem = "auto", -- auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc (alias: jota), kiminaze, ic3d, zyke_garages, custom_client, custom_server
     System = "auto", -- auto, custom, esx, qb, qbox, ak47, bp, cd, codem, ds-servercreator, hex, jg, msk, my, okok, op, quasar, rx, vms, ws, zyke_garages
     MaximumVehicles = 250,
     RequestsPerMinute = 30,

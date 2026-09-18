@@ -434,6 +434,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
+    ['Garage.VehicleKeySystem', t('configurator.vehicleKeySystemLabel')],
     [
       'Animations.WorldDisplayEnabled',
       t('configurator.phoneWorldDisplayLabel'),
@@ -503,6 +504,12 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
       `CrewLink.QuickPing.${key}`,
       t(`configurator.crewlinkQuickPingLabels.${key}`),
     ]),
+    ...['MinimumGrade', 'MaximumSeverity', 'CityWide', 'Categories'].map(
+      (key) => [
+        `CityWarn.Publishers.*.${key}`,
+        t(`configurator.citywarnPublisherLabels.${key}`),
+      ],
+    ),
     ['CityWarn.CategoryColors', t('configurator.citywarnCategoryColors')],
     ...Object.keys(DEFAULT_CITYWARN_COLORS).map((category) => [
       `CityWarn.CategoryColors.${category}`,

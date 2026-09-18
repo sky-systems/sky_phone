@@ -14,6 +14,12 @@ describe('admin configurator descriptions', () => {
       configuratorDescriptionKey('Animations.WorldDisplayEnabled', false),
     ).toBe('phoneWorldDisplay')
   })
+
+  it('explains automatic vehicle key detection in Garage', () => {
+    expect(configuratorDescriptionKey('Garage.VehicleKeySystem', 'auto')).toBe(
+      'vehicleKeySystem',
+    )
+  })
   it('explains model-specific Face ID masks and texture wildcards', () => {
     expect(configuratorDescriptionKey('Security.FaceIdMaskWhitelist', [])).toBe(
       'faceIdMaskWhitelist',
@@ -67,6 +73,28 @@ describe('admin configurator descriptions', () => {
       )
     }
   })
+  it.each([
+    ['CityWarn.Publishers', 'citywarnPublishers'],
+    ['CityWarn.Publishers.mechanic', 'citywarnPublisher'],
+    [
+      'CityWarn.Publishers.police.MinimumGrade',
+      'citywarnPublisherMinimumGrade',
+    ],
+    [
+      'CityWarn.Publishers.mechanic.MaximumSeverity',
+      'citywarnPublisherMaximumSeverity',
+    ],
+    ['CityWarn.Publishers.mechanic.CityWide', 'citywarnPublisherCityWide'],
+    ['CityWarn.Publishers.mechanic.Categories', 'citywarnPublisherCategories'],
+    [
+      'CityWarn.Publishers.mechanic.Categories[1]',
+      'citywarnPublisherCategories',
+    ],
+    ['CityWarn.Publishers.police.Categories.2', 'citywarnPublisherCategories'],
+  ])('explains publisher permissions for %s', (path, key) => {
+    expect(configuratorDescriptionKey(path, '')).toBe(key)
+  })
+
   it('selects specific descriptions before generic value descriptions', () => {
     expect(configuratorDescriptionKey('CrewLink.PingCooldownSeconds', 5)).toBe(
       'crewlinkPingCooldown',
@@ -160,6 +188,18 @@ describe('admin configurator descriptions', () => {
     expect(
       describeConfiguratorValue(translate, 'Radio.AllowedJobs[2]', 'police'),
     ).toBe('configurator.descriptions.access:Allowed Jobs #2')
+  })
+
+  it('keeps internal publisher job names intact in help text', () => {
+    const translate = (key: string, params?: Record<string, string>) =>
+      `${key}:${params?.name}`
+    expect(
+      describeConfiguratorValue(
+        translate,
+        'CityWarn.Publishers.road_crew-2',
+        {},
+      ),
+    ).toBe('configurator.descriptions.citywarnPublisher:road_crew-2')
   })
 
   it('humanizes subtab keys', () => {

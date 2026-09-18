@@ -1251,7 +1251,8 @@ onBeforeUnmount(() => {
       <template #right>
         <div
           v-if="selectionMode"
-          class="gallery-header-actions sky-ui-provider sky-ui-provider--dark"
+          class="gallery-header-actions sky-ui-provider"
+          :class="{ 'sky-ui-provider--dark': phone.isDarkMode }"
         >
           <SkyToolbarPane class="gallery-header-tool gallery-header-tool--text">
             <SkyButton
@@ -1265,7 +1266,8 @@ onBeforeUnmount(() => {
         </div>
         <div
           v-else
-          class="gallery-header-actions sky-ui-provider sky-ui-provider--dark"
+          class="gallery-header-actions sky-ui-provider"
+          :class="{ 'sky-ui-provider--dark': phone.isDarkMode }"
         >
           <SkyToolbarPane class="gallery-header-tool gallery-header-tool--icon">
             <SkyButton
@@ -1792,7 +1794,7 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 .gallery-selection-action :deep(.sky-button) {
-  color: #fff;
+  color: var(--sky-text);
 }
 .gallery-grid--fill {
   flex: 1;

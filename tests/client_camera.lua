@@ -9,9 +9,9 @@ local event_handlers = {}
 local threads = {}
 local hold_to_look_pressed = false
 local disabled_controls = {}
-local disabled_pressed_controls = {}
 local disabled_control_normals = {}
 local triggered_events = {}
+local nui_messages = {}
 local thread_stop = {}
 local locally_hidden = {}
 local view_modes = {}
@@ -57,7 +57,9 @@ function TriggerEvent(name, data)
     triggered_events[#triggered_events + 1] = { name = name, data = data }
 end
 function TriggerServerEvent() end
-function SendNUIMessage() end
+function SendNUIMessage(message)
+    nui_messages[#nui_messages + 1] = message
+end
 function CreateThread(callback)
     threads[#threads + 1] = callback
 end
@@ -82,10 +84,6 @@ function DisablePlayerFiring() end
 function HideHudAndRadarThisFrame() end
 function GetCurrentResourceName() return "sky_phone" end
 function IsDisabledControlJustPressed() return false end
-function IsDisabledControlPressed(group, control)
-    assert(group == 0, "camera passthrough must read the primary input group")
-    return disabled_pressed_controls[control] == true
-end
 function GetDisabledControlNormal(_, control) return disabled_control_normals[control] or 0.0 end
 
 function GetEntityCoords()
@@ -162,7 +160,7 @@ event_handlers["sky_phone:client:cameraFocusApplied"]({
     focused = true,
     gameInput = true,
 })
-disabled_pressed_controls[22] = true
+assert(response_from("camera:setFocus", { focused = false }).success)
 disabled_control_normals[1] = 0.2
 local watcher_ok, watcher_error = pcall(threads[2])
 assert(not watcher_ok and watcher_error == thread_stop, "camera watcher must run one controlled frame")
@@ -173,15 +171,71 @@ assert(
         and not camera_focus_event.data.nuiFocused,
     "holding Space must release the camera cursor for simultaneous look and movement"
 )
+assert(nui_messages[#nui_messages].data.looking, "the UI must learn that looking is active even while keyboard focus stays true")
 for _, control in ipairs({ 30, 31, 32, 33, 34, 35 }) do
     assert(not disabled_controls[control], ("camera passthrough must preserve movement control %d"):format(control))
 end
 local camera_ok, camera_error = pcall(threads[1])
 assert(not camera_ok and camera_error == thread_stop, "selfie camera must render one controlled frame")
 assert(not close_enough(camera_coord.x, 10.0), "horizontal look input must orbit the selfie camera around the player")
-assert(camera_coord.y < 20.40, "selfie orbit must retain its configured distance from the player")
-disabled_pressed_controls[22] = false
-disabled_control_normals[1] = 0.0
+assert(camera_coord.y < 20.40, "selfie orbit must retain its configured distance from the player")disabled_control_normals[1] = 0.0
+
+local function run_controls_frame()
+    local ok, err = pcall(threads[2])
+    assert(not ok and err == thread_stop, "camera controls must finish one controlled frame")
+end
+
+local function last_cursor_claim()
+    for index = #triggered_events, 1, -1 do
+        local event = triggered_events[index]
+        if event.name == "sky_phone:client:setCameraFocus" then
+            return event.data.nuiFocused
+        end
+    end
+    error("expected a camera focus claim")
+end
+
+local stable_event_count = #triggered_events
+run_controls_frame()
+assert(#triggered_events == stable_event_count, "holding Space must keep its focus claim without per-frame churn")
+assert(response_from("camera:setFocus", { focused = true }).success)
+assert(last_cursor_claim(), "releasing Space must immediately restore the cursor")
+run_controls_frame()
+assert(last_cursor_claim(), "the control watcher must preserve the released Space state")
+
+hold_to_look_pressed = true
+run_controls_frame()
+assert(not last_cursor_claim(), "the configured HoldToLook control must still release the cursor")
+assert(response_from("camera:setFocus", { focused = false }).success)
+hold_to_look_pressed = false
+run_controls_frame()
+assert(not last_cursor_claim(), "releasing the configured control must not cancel a held Space key")
+hold_to_look_pressed = true
+assert(response_from("camera:setFocus", { focused = true }).success)
+assert(not last_cursor_claim(), "releasing Space must not cancel the configured control")
+hold_to_look_pressed = false
+run_controls_frame()
+assert(last_cursor_claim(), "releasing both look inputs must restore the cursor")
+
+assert(response_from("camera:setLocked", { locked = true }).success)
+assert(response_from("camera:setFocus", { focused = false }).success)
+hold_to_look_pressed = true
+run_controls_frame()
+assert(last_cursor_claim(), "a locked camera must reject both look input sources")
+assert(response_from("camera:setFocus", { focused = true }).success)
+hold_to_look_pressed = false
+assert(response_from("camera:setLocked", { locked = false }).success)
+assert(not response_from("camera:setFocus", { focused = "false" }).success, "malformed focus claims must be rejected")
+assert(not response_from("camera:setFocus", {}).success, "missing focus values must be rejected")
+assert(not response_from("camera:setFocus", false).success, "non-table focus requests must be rejected")
+
+event_handlers["sky_phone:client:cameraFocusApplied"]({
+    active = true,
+    cursor = true,
+    focused = true,
+    gameInput = false,
+})
+assert(not nui_messages[#nui_messages].data.looking, "restoring the cursor must clear the UI look indicator")
 
 assert(response_from("camera:setFacing", { front = false }).success)
 assert(camera_destroyed and not scripted_camera_rendering, "rear mode must release the selfie camera")
@@ -199,6 +253,9 @@ SkyPhoneCamera.SetFlashlight(false)
 assert(not SkyPhoneCamera.GetState().flashEnabled, "flashlight state must report disabled")
 
 SkyPhoneCamera.EnableWalkable(true)
+stable_event_count = #triggered_events
+assert(response_from("camera:setFocus", { focused = true }).success)
+assert(#triggered_events == stable_event_count, "NUI key release must not steal focus from a walkable camera")
 local walkable_state = SkyPhoneCamera.GetState()
 assert(walkable_state.walkable, "walkable camera must report enabled")
 assert(walkable_state.selfie, "walkable camera must preserve selfie mode")
@@ -210,6 +267,15 @@ SkyPhoneCamera.DisableWalkable()
 local closed_state = SkyPhoneCamera.GetState()
 assert(not closed_state.walkable, "walkable camera must report disabled")
 assert(not closed_state.active, "walkable camera disable must close the camera")
+
+assert(response_from("camera:setActive", { active = true }).success)
+assert(response_from("camera:setFocus", { focused = false }).success)
+assert(not last_cursor_claim())
+assert(response_from("camera:setActive", { active = false }).success)
+assert(response_from("camera:setActive", { active = true }).success)
+run_controls_frame()
+assert(last_cursor_claim(), "reopening the camera must discard the previous held Space state")
+assert(response_from("camera:setActive", { active = false }).success)
 
 print("Client camera tests passed")
 

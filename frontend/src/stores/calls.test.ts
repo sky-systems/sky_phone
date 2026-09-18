@@ -112,6 +112,50 @@ describe('calls store', () => {
     expect(calls.activeCall?.video).toBe(false)
   })
 
+  it('does not dial an anonymous history entry', async () => {
+    expect(await useCallsStore().dial('')).toEqual({
+      success: false,
+      error: 'invalid_number',
+    })
+    expect(nuiCall).not.toHaveBeenCalled()
+  })
+
+  it('waits for the caller ID setting to be saved before dialing', async () => {
+    const phone = usePhoneStore()
+    phone.open({
+      device: { data: {}, imei: '111', name: 'Phone', sim: null },
+      token: 'caller-id-session',
+    })
+    let finishSave!: (value: {
+      success: boolean
+      data: { revision: number }
+    }) => void
+    vi.mocked(nuiCall).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishSave = resolve
+      }),
+    )
+    const saving = phone.setHideCallerId(true)
+    const dialing = useCallsStore().dial('5551110025')
+    await Promise.resolve()
+    expect(nuiCall).toHaveBeenCalledTimes(1)
+    expect(nuiCall).toHaveBeenLastCalledWith(
+      'device:save',
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          settings: expect.objectContaining({ hideCallerId: true }),
+        }),
+      }),
+    )
+    finishSave({ success: true, data: { revision: 1 } })
+    await saving
+    await dialing
+    expect(nuiCall).toHaveBeenLastCalledWith('calls:dial', {
+      phoneNumber: '5551110025',
+      video: false,
+    })
+  })
+
   it('rings for incoming calls and stops when connected', () => {
     const stop = vi.fn()
     vi.mocked(playPhoneTone).mockReturnValueOnce(stop)

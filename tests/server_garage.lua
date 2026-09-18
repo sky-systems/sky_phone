@@ -20,6 +20,7 @@ local function new_server(options)
     local resources = options.resources or { msk_garage = "started" }
     local env = setmetatable({
         Config = { Garage = {
+            VehicleKeySystem = options.key_system or "auto",
             System = options.system or "msk", MaximumVehicles = 250, RequestsPerMinute = 30,
             VehicleImages = { Enabled = false },
             Valet = {
@@ -35,7 +36,10 @@ local function new_server(options)
         Wait = coroutine.yield,
         NetworkGetEntityFromNetworkId = function(id) return id == 10 and 100 or 0 end,
         DoesEntityExist = function(entity) return entity == 100 and 1 or nil end,
-        NetworkGetEntityOwner = function() return 1 end,
+        NetworkGetEntityOwner = function() return options.entity_owner or 1 end,
+        GetEntityType = function() return options.entity_type or 2 end,
+        GetEntityModel = function() return options.entity_model or 970598228 end,
+        GetVehicleNumberPlateText = function() return options.entity_plate or " MSK123 " end,
         os = { time = function() return test.now or 1000 end },
         json = { decode = function(value)
             assert(value == "{properties}", "malformed JSON")
@@ -110,6 +114,14 @@ local function new_server(options)
             end,
         },
     }
+    env.exports = { ["qb-vehiclekeys"] = { GiveKeys = function(_, source, plate)
+        test.key_calls = (test.key_calls or 0) + 1
+        assert(source == 1 and plate == "MSK123", "only the verified owner and plate may receive keys")
+        if options.key_error then error("provider failed") end
+        if options.key_yield then coroutine.yield() end
+        return not options.key_failure
+    end } }
+    assert(loadfile("sky_phone/source/bridge/server/vehiclekeys.lua", "t", env))()
     assert(loadfile("sky_phone/source/server/garage.lua", "t", env))()
     function test.call(action, data, source)
         return test.callbacks["sky_phone:garage:" .. action](source or 1, data)
@@ -265,6 +277,75 @@ scenario("session and rate limits still protect MSK access", function()
     local no_session = new_server({ no_session = true })
     assert(no_session.call("vehicles").error == "no_session")
     assert(no_session.request().error == "no_session" and #no_session.queries == 0)
+end)
+
+scenario("keys are issued once, only after a matching completed delivery", function()
+    local test = new_server({ resources = { ["qb-vehiclekeys"] = "started" } })
+    local order = test.request()
+    assert(order.success and not test.key_calls)
+    local data = { orderId = order.data.orderId, networkId = 10, plate = "OTHER", provider = "quasar" }
+    assert(test.call("valet-complete", data, 2).error == "valet_not_found")
+    assert(test.call("valet-complete", data).success and test.key_calls == 1)
+    assert(test.call("valet-complete", data).error == "valet_not_found" and test.key_calls == 1)
+    assert(test.cancel(order).error == "valet_not_found")
+end)
+
+for _, mismatch in ipairs({
+    { entity_type = 1 }, { entity_plate = "OTHER" }, { entity_model = 123 }, { entity_owner = 2 },
+}) do
+    scenario("unmatched entity cannot receive keys", function()
+        mismatch.resources = { ["qb-vehiclekeys"] = "started" }
+        local test = new_server(mismatch)
+        local order = test.request()
+        assert(test.call("valet-complete", { orderId = order.data.orderId, networkId = 10 }).error
+            == "valet_vehicle_unverified")
+        assert(not test.key_calls)
+    end)
+end
+
+scenario("expired orders cannot receive keys between timeout sweeps", function()
+    local test = new_server({ resources = { ["qb-vehiclekeys"] = "started" } })
+    local order = test.request()
+    test.now = 1180
+    assert(not test.call("valet-complete", { orderId = order.data.orderId, networkId = 10 }).success)
+    assert(not test.key_calls)
+end)
+
+scenario("client key grant is returned only for the validated delivery", function()
+    local test = new_server({ resources = { msk_vehiclekeys = "started" } })
+    local order = test.request()
+    local result = test.call("valet-complete", { orderId = order.data.orderId, networkId = 10 })
+    assert(result.success and result.data.vehicleKeys.name == "msk")
+    assert(result.data.vehicleKeys.plate == "MSK123" and not test.key_calls)
+end)
+
+scenario("unavailable explicit key provider does not charge the player", function()
+    local test = new_server({ key_system = "qb", resources = {} })
+    assert(test.request().error == "garage_unavailable")
+    assert(test.charged == 0 and test.rows[1].stored == 1)
+end)
+
+for _, failure in ipairs({ "key_error", "key_failure" }) do
+    scenario(failure .. " keeps cancellation and refund available", function()
+        local test = new_server({ [failure] = true, resources = { ["qb-vehiclekeys"] = "started" } })
+        local order = test.request()
+        assert(test.call("valet-complete", { orderId = order.data.orderId, networkId = 10 }).error
+            == "valet_completion_failed")
+        assert(test.cancel(order).success)
+        assert(test.refunded == 750 and test.rows[1].stored == 1)
+    end)
+end
+
+scenario("yielding key exports cannot issue duplicate keys or cancel during completion", function()
+    local test = new_server({ key_yield = true, resources = { ["qb-vehiclekeys"] = "started" } })
+    local order = test.request()
+    local data = { orderId = order.data.orderId, networkId = 10 }
+    local completion = coroutine.create(function() assert(test.call("valet-complete", data).success) end)
+    assert(coroutine.resume(completion))
+    assert(test.call("valet-complete", data).error == "valet_not_found")
+    assert(test.cancel(order).error == "valet_not_found")
+    assert(coroutine.resume(completion))
+    assert(test.key_calls == 1)
 end)
 
 print(("Server garage tests passed (%d scenarios)"):format(scenarios))

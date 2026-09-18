@@ -93,7 +93,6 @@ describe('phone apps use Sky UI', () => {
 
   it('uses shared liquid glass for remaining compact interaction controls', () => {
     const minimumGlassButtons: Record<string, number> = {
-      'CameraApp.vue': 1,
       'FeatherApp.vue': 2,
       'FlareApp.vue': 1,
       'FlipTokApp.vue': 2,

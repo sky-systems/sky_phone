@@ -8,6 +8,24 @@ import {
   WALLPAPER_IDS,
 } from './preferences'
 describe('preferences', () => {
+  it('keeps caller ID visible by default and restores only boolean privacy settings', () => {
+    expect(parsePhonePreferences(null).settings.hideCallerId).toBe(false)
+    for (const hideCallerId of [undefined, false, 'true', 1, null]) {
+      expect(
+        parsePhonePreferences(
+          JSON.stringify({ version: 1, settings: { hideCallerId } }),
+        ).settings.hideCallerId,
+      ).toBe(false)
+    }
+    const hidden = parsePhonePreferences(
+      JSON.stringify({ version: 1, settings: { hideCallerId: true } }),
+    )
+    expect(hidden.settings.hideCallerId).toBe(true)
+    expect(
+      parsePhonePreferences(JSON.stringify(hidden)).settings.hideCallerId,
+    ).toBe(true)
+  })
+
   it('allows one-percent phone scale adjustments', () => {
     expect(PHONE_SCALE_STEP).toBe(1)
   })

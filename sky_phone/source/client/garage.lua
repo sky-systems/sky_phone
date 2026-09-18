@@ -533,7 +533,13 @@ local function run_valet_delivery(order)
         return
     end
     if not completion or not completion.success then
-        fail_valet("valet_completion_failed", false)
+        fail_valet("valet_completion_failed", true)
+        return
+    end
+    if not Bridge.VehicleKeys.GiveKeys(vehicle, completion.data and completion.data.vehicleKeys) then
+        Bridge.Framework.Notify(garage_locale.name, garage_locale.errors.default, "error", 5000)
+    end
+    if current_valet ~= valet or valet.cancelled then
         return
     end
     remove_valet_blip()

@@ -140,6 +140,8 @@ export const useCallsStore = defineStore('calls', () => {
     phoneNumber: string,
     video = false,
   ): Promise<NuiResponse<PhoneCall>> {
+    if (!phoneNumber) return { success: false, error: 'invalid_number' }
+    await phone.flushDevicePersistence()
     const response = await nuiCall<PhoneCall>('calls:dial', {
       phoneNumber,
       video,

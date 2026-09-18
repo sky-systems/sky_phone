@@ -154,6 +154,7 @@ const canExtendTable = computed(
 )
 const isJobTable = computed(
   () =>
+    props.path === 'CityWarn.Publishers' ||
     props.path === 'Radio.DisplayName.AllowedJobs' ||
     /^Radio\.LockedChannels\[\d+\]\.jobs$/.test(props.path),
 )
@@ -347,6 +348,9 @@ function tableEntryLabel(key: string): string {
   const path = tableEntryPath(key)
   return (
     props.labels.fieldNames?.[path] ??
+    props.labels.fieldNames?.[
+      path.replace(/^CityWarn\.Publishers\.[^.]+\./, 'CityWarn.Publishers.*.')
+    ] ??
     props.labels.fieldNames?.[path.replace(/\[\d+\]/g, '[]')] ??
     key
   )

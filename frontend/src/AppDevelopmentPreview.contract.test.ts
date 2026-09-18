@@ -22,8 +22,8 @@ describe('browser development preview contract', () => {
 
   it('starts unlocked while preserving an explicit lock screen preview', () => {
     expect(source).toContain("developmentParameters.has('lockScreenPreview')")
-    expect(source).toContain(
-      'developmentLockScreenPreview ||\n        (!isDevelopment && phone.security.enabled)',
+    expect(source).toMatch(
+      /developmentLockScreenPreview\s*\|\|\s*\(!isDevelopment && phone\.security\.enabled\)/,
     )
     expect(source).toContain("developmentParameters.has('setupPreview')")
   })
@@ -84,7 +84,7 @@ describe('browser development preview contract', () => {
       /\.phone-home-indicator:focus-visible span\s*\{[^}]*0 0 0 2px #0a84ff,/s,
     )
   })
-  
+
    it('replaces rectangular CEF focus outlines on the side hardware controls', () => {
     expect(mainCss).toMatch(
       /\.phone-hardware-button:focus\s*\{[^}]*outline:\s*none;/s,

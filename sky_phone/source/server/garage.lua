@@ -387,7 +387,13 @@ Bridge.Callbacks.Register("sky_phone:garage:valet-request", function(source, dat
     if balance < price then
         return { success = false, error = "insufficient_funds" }
     end
+    local key_provider = Bridge.VehicleKeys.ResolveProvider()
+    if not key_provider then
+        return { success = false, error = "garage_unavailable" }
+    end
     local order = {
+        key_provider = key_provider,
+        model = tonumber(vehicle.model) or (type(vehicle.model) == "string" and joaat(vehicle.model)),
         cost = price,
         expires_at = now + valet.TimeoutSeconds,
         identifier = identifier,
@@ -430,7 +436,7 @@ end)
 
 Bridge.Callbacks.Register("sky_phone:garage:valet-cancel", function(source, data)
     local order = active_valets[source]
-    if not order or type(data) ~= "table" or data.orderId ~= order.id then
+    if not order or order.completing or type(data) ~= "table" or data.orderId ~= order.id then
         return { success = false, error = "valet_not_found" }
     end
     cancel_valet(source, order)
@@ -439,22 +445,38 @@ end)
 
 Bridge.Callbacks.Register("sky_phone:garage:valet-complete", function(source, data)
     local order = active_valets[source]
-    if not order or type(data) ~= "table" or data.orderId ~= order.id then
+    if not order or order.completing or type(data) ~= "table" or data.orderId ~= order.id then
         return { success = false, error = "valet_not_found" }
     end
 
-    local network_id = tonumber(data.networkId)
-    if not network_id or network_id <= 0 or network_id ~= math.floor(network_id) then
-        return { success = false, error = "valet_vehicle_unverified" }
-    end
-    local entity = NetworkGetEntityFromNetworkId(network_id)
-    if entity == 0 or not DoesEntityExist(entity) or tonumber(NetworkGetEntityOwner(entity)) ~= source then
+    if order.expires_at <= os.time() or Bridge.Framework.GetIdentifier(source) ~= order.identifier then
         return { success = false, error = "valet_vehicle_unverified" }
     end
 
+    local network_id = tonumber(data.networkId)
+    if not network_id or network_id <= 0 or network_id == math.huge or network_id ~= math.floor(network_id) then
+        return { success = false, error = "valet_vehicle_unverified" }
+    end
+    local entity = NetworkGetEntityFromNetworkId(network_id)
+    if entity == 0 or not DoesEntityExist(entity) or tonumber(NetworkGetEntityOwner(entity)) ~= source
+        or GetEntityType(entity) ~= 2
+        or normalized_plate(GetVehicleNumberPlateText(entity)) ~= order.plate
+        or not order.model or GetEntityModel(entity) % 4294967296 ~= order.model % 4294967296 then
+        return { success = false, error = "valet_vehicle_unverified" }
+    end
+
+    order.completing = true
+    local keys_given, client_keys = Bridge.VehicleKeys.GiveKeys(source, entity, order.plate, order.key_provider)
+    order.completing = nil
+    if active_valets[source] ~= order then
+        return { success = false, error = "valet_not_found" }
+    end
+    if not keys_given then
+        return { success = false, error = "valet_completion_failed" }
+    end
     active_valets[source] = nil
     valet_cooldowns[source] = os.time() + Config.Garage.Valet.CooldownSeconds
-    return { success = true }
+    return { success = true, data = { vehicleKeys = client_keys } }
 end)
 
 AddEventHandler("playerDropped", function()
@@ -480,7 +502,7 @@ CreateThread(function()
         Wait(5000)
         local now = os.time()
         for source, order in pairs(active_valets) do
-            if order.expires_at <= now then
+            if not order.completing and order.expires_at <= now then
                 cancel_valet(source, order)
                 TriggerClientEvent("sky_phone:garage:valet-aborted", source, "valet_timeout")
             end

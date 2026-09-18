@@ -28,6 +28,7 @@ import { SkySegmented, SkySegmentedButton } from '@/ui'
 import { createGameView, type GameView } from '@/utils/gameView'
 import { formatRecordingDuration, mediaErrorKey } from '@/utils/media'
 import { nuiCall } from '@/utils/nui'
+import { isTextInputElement } from '@/utils/textInputFocus'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 
 type CaptureItem = {
@@ -56,6 +57,7 @@ const microphoneEnabled = ref(true)
 const frontCamera = ref(false)
 const shutterActive = ref(false)
 const cameraLocked = ref(false)
+const cameraLooking = ref(false)
 const recording = ref(false)
 const savingVideo = ref(false)
 const recordingStartedAt = ref(0)
@@ -72,6 +74,7 @@ let recordingTimer: number | undefined
 let gameView: GameView | null = null
 let renderFrameId: number | undefined
 let resizeObserver: ResizeObserver | null = null
+let spaceHeld = false
 
 const pendingCount = computed(
   () =>
@@ -247,7 +250,39 @@ async function toggleFacing(): Promise<void> {
 
 async function toggleCameraLock(): Promise<void> {
   cameraLocked.value = !cameraLocked.value
+  if (cameraLocked.value) releaseCameraLook()
   await nuiCall('camera:setLocked', { locked: cameraLocked.value })
+}
+
+function onCameraKeydown(event: KeyboardEvent): void {
+  if (
+    event.code !== 'Space' ||
+    (event.target instanceof HTMLElement && isTextInputElement(event.target))
+  )
+    return
+  // Space belongs to looking, even when a camera button still has DOM focus.
+  event.preventDefault()
+  if (event.repeat || spaceHeld || cameraLocked.value) return
+  spaceHeld = true
+  if (isDevelopment) cameraLooking.value = true
+  void nuiCall('camera:setFocus', { focused: false })
+}
+
+function releaseCameraLook(): void {
+  if (!spaceHeld) return
+  spaceHeld = false
+  if (isDevelopment) cameraLooking.value = false
+  void nuiCall('camera:setFocus', { focused: true })
+}
+
+function onCameraKeyup(event: KeyboardEvent): void {
+  if (event.code !== 'Space') return
+  if (
+    spaceHeld ||
+    !(event.target instanceof HTMLElement && isTextInputElement(event.target))
+  )
+    event.preventDefault()
+  releaseCameraLook()
 }
 
 function toggleOrientation(): void {
@@ -351,7 +386,9 @@ function onMessage(event: MessageEvent): void {
     data?: Record<string, unknown>
     type?: string
   }
-  if (message.type === 'camera:zoom') {
+  if (message.type === 'camera:focus') {
+    cameraLooking.value = message.data?.looking === true
+  } else if (message.type === 'camera:zoom') {
     const zoom = Number(message.data?.zoom)
     if (Number.isFinite(zoom) && zoom >= minimumZoom && zoom <= maximumZoom) {
       selectedZoom.value = zoom
@@ -428,6 +465,9 @@ onMounted(() => {
     '*',
   )
   window.addEventListener('message', onMessage)
+  window.addEventListener('keydown', onCameraKeydown, true)
+  window.addEventListener('keyup', onCameraKeyup, true)
+  window.addEventListener('blur', releaseCameraLook)
   void nuiCall('camera:setActive', { active: true })
   void nuiCall<MediaConfig>('media:config').then((response) => {
     if (response.success && response.data?.videoBitrateKbps) {
@@ -443,6 +483,10 @@ onBeforeUnmount(() => {
   if (noticeTimer !== undefined) window.clearTimeout(noticeTimer)
   if (recordingTimer !== undefined) window.clearInterval(recordingTimer)
   window.removeEventListener('message', onMessage)
+  window.removeEventListener('keydown', onCameraKeydown, true)
+  window.removeEventListener('keyup', onCameraKeyup, true)
+  window.removeEventListener('blur', releaseCameraLook)
+  releaseCameraLook()
   if (renderFrameId !== undefined) window.cancelAnimationFrame(renderFrameId)
   resizeObserver?.disconnect()
   gameView?.dispose()
@@ -546,10 +590,13 @@ onBeforeUnmount(() => {
       </span>
       <SkyButton
         v-else
-        glass
-        rounded
-        class="camera-focus-pill camera-lock-control"
-        :class="{ 'camera-lock-control--active': cameraLocked }"
+        inline
+        variant="plain"
+        class="camera-lock-control"
+        :class="{
+          'camera-lock-control--active': cameraLocked,
+          'camera-lock-control--looking': cameraLooking,
+        }"
         type="button"
         :aria-label="
           phone.t(
@@ -563,7 +610,21 @@ onBeforeUnmount(() => {
       >
         <LockKeyhole v-if="cameraLocked" :size="12" />
         <LockOpen v-else :size="12" />
-        <kbd>{{ phone.t('Apps.camera.lookKey') }}</kbd>
+        <span class="camera-look-copy">
+          <span class="camera-look-label">
+            {{
+              phone.t(
+                cameraLocked
+                  ? 'Apps.camera.unlockCamera'
+                  : 'Apps.camera.lookKey',
+              )
+            }}
+          </span>
+          <span v-if="!cameraLocked" class="camera-look-shortcut">
+            <kbd>{{ phone.t('Apps.camera.spaceKey') }}</kbd>
+            {{ phone.t('Apps.camera.holdKey') }}
+          </span>
+        </span>
       </SkyButton>
       <sky-fab
         component="button"
@@ -812,9 +873,6 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
 }
-.camera-topbar-spacer {
-  min-width: 0;
-}
 .camera-topbar .camera-control {
   width: 44px;
   height: 44px;
@@ -864,17 +922,41 @@ onBeforeUnmount(() => {
   font-size: 11px;
 }
 .camera-lock-control {
-  min-height: 44px;
-  padding: 7px 10px;
+  justify-self: center;
+  width: auto;
+  max-width: 100%;
+  min-width: var(--sky-touch-target);
+  height: var(--sky-touch-target);
+  min-height: var(--sky-touch-target);
+  padding: 0 var(--sky-space-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  color: #fff;
+  gap: var(--sky-space-2);
+  color: var(--sky-text);
+  font-size: 11px;
   cursor: pointer;
 }
-.camera-lock-control--active {
-  color: #ffd60a;
+.camera-lock-control > svg {
+  flex-shrink: 0;
+}
+.camera-look-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sky-space-1);
+  min-width: 0;
+}
+.camera-look-label {
+  line-height: 1.2;
+  text-align: center;
+}
+.camera-look-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sky-space-1);
+  font-size: 10px;
+  opacity: 0.72;
 }
 .camera-lock-control kbd {
   padding: 1px 5px;
@@ -887,6 +969,12 @@ onBeforeUnmount(() => {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+.camera-lock-control--looking .camera-look-shortcut {
+  opacity: 1;
+}
+.camera-lock-control--looking kbd {
+  background: rgb(255 255 255 / 24%);
 }
 .camera-record-status {
   position: absolute;

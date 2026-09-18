@@ -159,6 +159,16 @@ describe('phone locale contract', () => {
       )
     },
   )
+  it('exposes vehicle key labels and help under the Phonepanel configurator', () => {
+    for (const values of localeValues.values()) {
+      expect(
+        values.has('Nui.AdminPanel.configurator.vehicleKeySystemLabel'),
+      ).toBe(true)
+      expect(
+        values.get('Nui.AdminPanel.configurator.descriptions.vehicleKeySystem'),
+      ).toContain('auto')
+    }
+  })
 
   it('keeps every bundled frontend fallback in en.lua', () => {
     const missing = [...collectDefaultLocalePaths(phoneStoreSource)].filter(
@@ -246,6 +256,56 @@ describe('phone locale contract', () => {
       })
 
       expect(mismatches).toEqual([])
+    },
+  )
+
+  it.each([...localeValues])(
+    'explains CityWarn permissions in %s without corrupting codes or text',
+    (locale, values) => {
+      const prefix = 'Nui.AdminPanel.configurator.'
+      for (const key of [
+        'citywarnPublishers',
+        'citywarnPublisher',
+        'citywarnPublisherMinimumGrade',
+        'citywarnPublisherMaximumSeverity',
+        'citywarnPublisherCityWide',
+        'citywarnPublisherCategories',
+      ]) {
+        const text = values.get(`${prefix}descriptions.${key}`)
+        expect(text, `${locale}: ${key}`).toBeTruthy()
+        expect(text).not.toMatch(/\uFFFD|Ã.|Â.|â€|Ð.|Ñ./)
+        if (locale !== 'en')
+          expect(text).not.toBe(
+            englishValues.get(`${prefix}descriptions.${key}`),
+          )
+      }
+      for (const key of [
+        'MinimumGrade',
+        'MaximumSeverity',
+        'CityWide',
+        'Categories',
+      ]) {
+        expect(
+          values.get(`${prefix}citywarnPublisherLabels.${key}`),
+        ).toBeTruthy()
+      }
+      for (const code of ['information', 'warning', 'danger', 'extreme']) {
+        expect(
+          values.get(`${prefix}descriptions.citywarnPublisherMaximumSeverity`),
+        ).toContain(code)
+      }
+      for (const code of [
+        'public_safety',
+        'police',
+        'fire',
+        'medical',
+        'infrastructure',
+        'evacuation',
+      ]) {
+        expect(
+          values.get(`${prefix}descriptions.citywarnPublisherCategories`),
+        ).toContain(code)
+      }
     },
   )
 
