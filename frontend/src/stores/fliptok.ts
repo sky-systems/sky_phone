@@ -24,6 +24,10 @@ export const useFlipTokStore = defineStore('fliptok', {
     profile: null as FlipTokProfile | null,
     profileVideos: [] as FlipTokVideo[],
     searchResults: [] as FlipTokVideo[],
+    searchProfiles: [] as FlipTokProfile[],
+    searchRevision: 0,
+    searchLoading: false,
+    searchError: false,
     viewedProfile: null as FlipTokProfile | null,
   }),
   actions: {
@@ -115,11 +119,19 @@ export const useFlipTokStore = defineStore('fliptok', {
       return response.success && response.data ? response.data : null
     },
     async discover(search: string): Promise<FlipTokVideo[]> {
-      const response = await nuiCall<FlipTokVideo[]>('fliptok:discover', {
-        search,
-      })
-      this.searchResults =
-        response.success && response.data ? response.data : []
+      const revision = ++this.searchRevision
+      this.searchLoading = true
+      this.searchError = false
+      const [videos, profiles] = await Promise.all([
+        nuiCall<FlipTokVideo[]>('fliptok:discover', { search }),
+        nuiCall<FlipTokProfile[]>('fliptok:profiles', { search }),
+      ])
+      if (revision !== this.searchRevision) return this.searchResults
+      this.searchLoading = false
+      this.searchError = !videos.success || !profiles.success
+      this.searchResults = videos.success && videos.data ? videos.data : []
+      this.searchProfiles =
+        profiles.success && profiles.data ? profiles.data : []
       return this.searchResults
     },
     async react(video: FlipTokVideo, kind: 'like' | 'save'): Promise<void> {

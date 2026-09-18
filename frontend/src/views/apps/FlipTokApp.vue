@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import ProfileSuggestions from '@/components/ProfileSuggestions.vue'
+import LiveProfileStrip from '@/components/LiveProfileStrip.vue'
+import { useLiveProfiles } from '@/features/realtime/useLiveProfiles'
+import LiveBroadcast from '@/components/LiveBroadcast.vue'
+import LiveSetup from '@/components/LiveSetup.vue'
+import { useRealtimeStore } from '@/features/realtime/store'
 import {
   Bell,
   Bookmark,
@@ -98,6 +104,19 @@ type ProfileMediaContext = {
 
 const phone = usePhoneStore()
 const store = useFlipTokStore()
+const {
+  live: liveDirectory,
+  entries: liveEntries,
+  liveFor,
+  joinLive,
+} = useLiveProfiles(
+  'fliptok',
+  computed(() => store.authenticated),
+)
+function openAvatar(id: string | number): void {
+  if (!joinLive(id)) void openProfile(Number(id))
+}
+
 const messageMedia = useMessageMediaStore()
 const route = useRoute()
 const router = useRouter()
@@ -122,7 +141,20 @@ const visibilityMenuTarget = ref<HTMLElement | null>(null)
 const accountTypeSheetOpen = ref(false)
 const profilePhotoSheetOpen = ref(false)
 const composeOpen = ref(false)
+const liveCompose = ref(false)
+const realtime = useRealtimeStore()
 const profileEditOpen = ref(false)
+watch(
+  () =>
+    store.authenticated &&
+    tab.value === 'feed' &&
+    !composeOpen.value &&
+    !profileEditOpen.value,
+  (videoVisible) => {
+    phone.appStatusBarLight = videoVisible
+  },
+  { immediate: true },
+)
 const musicSheetOpen = ref(false)
 const reportSheetOpen = ref(false)
 const connectionsOpen = ref(false)
@@ -1587,8 +1619,7 @@ watch(tab, async (value) => {
   pauseFlipTokYoutube()
   if (value === 'activity' && !(await store.loadActivities()))
     notify(t('errors.default'))
-  if (value === 'discover' && store.searchResults.length === 0)
-    await runSearch()
+  if (value === 'discover') await runSearch()
   if (value === 'feed') {
     await nextTick()
     observeVideos()
@@ -1744,6 +1775,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  phone.appStatusBarLight = null
   removePhoneOutputVolumeListener?.()
   observer?.disconnect()
   if (videoClickTimer !== null) window.clearTimeout(videoClickTimer)
@@ -2050,8 +2082,13 @@ onBeforeUnmount(() => {
             <div class="video-profile-action">
               <button
                 class="avatar"
-                :aria-label="video.display_name"
-                @click="openProfile(video.profile_id)"
+                :class="{ 'realtime-live-avatar': liveFor(video.profile_id) }"
+                :aria-label="
+                  liveFor(video.profile_id)
+                    ? phone.t('Realtime.joinLive', { name: video.display_name })
+                    : video.display_name
+                "
+                @click="openAvatar(video.profile_id)"
               >
                 <img v-if="video.avatar_url" :src="video.avatar_url" alt="" />
                 <template v-else>{{ initials(video.display_name) }}</template>
@@ -2141,6 +2178,17 @@ onBeforeUnmount(() => {
         </template>
       </SkyNavbar>
       <SkyScrollArea padded with-tabbar class="light-screen discover-screen">
+        <LiveProfileStrip :entries="liveEntries" @join="joinLive" />
+        <ProfileSuggestions
+          :profiles="store.searchProfiles"
+          :search="search"
+          :loading="store.searchLoading"
+          :error="store.searchError"
+          :is-live="(id) => Boolean(liveFor(id))"
+          @profile="(id) => openProfile(Number(id))"
+          @avatar="openAvatar"
+          @retry="runSearch"
+        />
         <div class="trend-pills">
           <SkyChip
             v-for="trend in discoveryTags"
@@ -2241,7 +2289,15 @@ onBeforeUnmount(() => {
         with-tabbar
         class="light-screen profile-screen"
       >
-        <div class="profile-avatar">
+        <SkyButton
+          clear
+          rounded
+          icon-only
+          class="profile-avatar"
+          :class="{ 'realtime-live-avatar': liveFor(currentProfile.id) }"
+          :aria-label="currentProfile.display_name"
+          @click="joinLive(currentProfile.id)"
+        >
           <img
             v-if="currentProfile.avatar_url"
             :src="currentProfile.avatar_url"
@@ -2250,7 +2306,7 @@ onBeforeUnmount(() => {
           <template v-else>{{
             initials(currentProfile.display_name)
           }}</template>
-        </div>
+        </SkyButton>
         <h1>
           {{ currentProfile.display_name }}
           <Check v-if="currentProfile.verified" class="verified" />
@@ -2371,268 +2427,292 @@ onBeforeUnmount(() => {
 
     <section v-if="composeOpen" class="overlay-screen compose-screen">
       <SkyNavbar
-        :title="t('newVideo')"
+        :title="liveCompose ? phone.t('Realtime.goLive') : t('newVideo')"
         :show-back="true"
         :back-label="t('cancel')"
         back-appearance="surface"
         @back="composeOpen = false"
       />
       <SkyScrollArea padded class="compose-body">
-        <header class="compose-intro">
-          <span><Video /></span>
-          <div>
-            <strong>{{ t('createTitle') }}</strong>
-            <p>{{ t('createBody') }}</p>
-          </div>
-        </header>
-        <SkyGlass v-if="!selectedMedia" class="media-picker">
-          <header>
-            <ImagePlus /><strong>{{ t('chooseMedia') }}</strong>
-            <span>{{ t('chooseMediaHint') }}</span>
-          </header>
-          <div class="media-source-grid">
-            <button type="button" @click="chooseVideo('camera')">
-              <Camera /><strong>{{ t('recordVideo') }}</strong>
-            </button>
-            <button type="button" @click="chooseVideo('photos')">
-              <Video /><strong>{{ t('chooseVideo') }}</strong>
-            </button>
-            <button type="button" @click="choosePhotoSlideshow('photos')">
-              <ImagePlus /><strong>{{ t('photoSlideshow') }}</strong>
-            </button>
-          </div>
-        </SkyGlass>
-        <SkyGlass v-else class="media-preview">
-          <video
-            v-if="selectedMediaType === 'video'"
-            ref="previewVideo"
-            :src="selectedMedia.url"
-            controls
-            playsinline
-            @loadedmetadata="loadComposerVideo"
-            @play="handleComposerPlayback(true)"
-            @pause="handleComposerPlayback(false)"
-            @timeupdate="enforceComposerTrim"
-          />
-          <div v-else class="compose-photo-preview">
-            <img
-              v-if="selectedComposerPhoto"
-              :key="selectedComposerPhoto.id"
-              :src="selectedComposerPhoto.url"
-              alt=""
-            />
-            <template v-if="selectedMediaItems.length > 1">
-              <SkyButton
-                glass
-                icon-only
-                rounded
-                type="button"
-                class="compose-photo-preview__arrow compose-photo-preview__arrow--previous"
-                :disabled="composerPhotoIndex === 0"
-                :aria-label="t('previousPhoto')"
-                @click="moveComposerPhoto(-1)"
-              >
-                <ChevronLeft />
-              </SkyButton>
-              <SkyButton
-                glass
-                icon-only
-                rounded
-                type="button"
-                class="compose-photo-preview__arrow compose-photo-preview__arrow--next"
-                :disabled="composerPhotoIndex === selectedMediaItems.length - 1"
-                :aria-label="t('nextPhoto')"
-                @click="moveComposerPhoto(1)"
-              >
-                <ChevronRight />
-              </SkyButton>
-              <span class="compose-photo-preview__count">
-                {{ composerPhotoIndex + 1 }} / {{ selectedMediaItems.length }}
-              </span>
-              <div class="compose-photo-preview__dots" aria-hidden="true">
-                <span
-                  v-for="media in selectedMediaItems"
-                  :key="media.id"
-                  :class="{
-                    active:
-                      selectedMediaItems[composerPhotoIndex]?.id === media.id,
-                  }"
-                />
-              </div>
-            </template>
-          </div>
-          <div class="media-preview__actions">
-            <SkyButton
-              small
-              rounded
-              tonal
-              @click="
-                selectedMediaType === 'photo'
-                  ? choosePhotoSlideshow('photos')
-                  : chooseVideo('photos')
-              "
-            >
-              {{ t('changeMedia') }}
-            </SkyButton>
-            <SkyButton
-              small
-              rounded
-              tonal
-              @click="
-                selectedMediaType === 'photo'
-                  ? choosePhotoSlideshow('camera')
-                  : chooseVideo('camera')
-              "
-            >
-              <Camera />{{ t('camera') }}
-            </SkyButton>
-          </div>
-          <audio
-            v-if="composerMusicUrl"
-            ref="composerMusic"
-            :src="composerMusicUrl"
-            loop
-            preload="metadata"
-            @loadedmetadata="markComposerMusicReady"
-            @error="markComposerMusicFailed"
-          />
-        </SkyGlass>
-        <SkyGlass
-          v-if="selectedMediaType === 'video' && videoDurationMs"
-          class="editor-card"
+        <SkySegmented
+          v-if="realtime.config?.enabled && realtime.config.fliptok"
+          strong
         >
-          <h3>{{ t('trimAndCover') }}</h3>
-          <label>
-            <span
-              >{{ t('trimStart') }}
-              <strong>{{ formatDuration(trimStartMs) }}</strong></span
-            >
-            <SkyRange
-              :value="trimStartMs"
-              :min="0"
-              :max="Math.max(0, trimEndMs - 500)"
-              :step="100"
-              @input="updateTrimStart"
-            />
-          </label>
-          <label>
-            <span
-              >{{ t('trimEnd') }}
-              <strong>{{ formatDuration(trimEndMs) }}</strong></span
-            >
-            <SkyRange
-              :value="trimEndMs"
-              :min="Math.min(videoDurationMs, trimStartMs + 500)"
-              :max="videoDurationMs"
-              :step="100"
-              @input="updateTrimEnd"
-            />
-          </label>
-          <label>
-            <span
-              >{{ t('coverFrame') }}
-              <strong>{{ formatDuration(coverTimeMs) }}</strong></span
-            >
-            <SkyRange
-              :value="coverTimeMs"
-              :min="trimStartMs"
-              :max="trimEndMs"
-              :step="100"
-              @input="updateCover"
-            />
-          </label>
-        </SkyGlass>
-        <SkyGlass v-if="selectedMedia" class="editor-card">
-          <button class="sound-picker" type="button" @click="openMusicSheet">
-            <span><Music2 />{{ t('sounds') }}</span>
-            <strong>{{
-              selectedMusic
-                ? `${selectedMusic.title} · ${selectedMusic.artist}`
-                : customMusicTitle
-                  ? `${customMusicTitle} · ${customMusicArtist}`
-                  : customMusicUrl
-                    ? t('customSound')
-                    : t('originalOnly')
-            }}</strong>
-            <ChevronDown />
-          </button>
-          <label>
-            <span
-              >{{ t('originalVolume') }}
-              <strong>{{ originalVolume }}%</strong></span
-            >
-            <SkyRange
-              :value="originalVolume"
-              :min="0"
-              :max="100"
-              :step="1"
-              @input="originalVolume = rangeNumber($event)"
-            />
-          </label>
-          <label :class="{ disabled: !hasMusic }">
-            <span
-              >{{ t('musicVolume') }}
-              <strong>{{ hasMusic ? `${musicVolume}%` : '—' }}</strong></span
-            >
-            <SkyRange
-              :value="musicVolume"
-              :min="0"
-              :max="100"
-              :step="1"
-              :disabled="!hasMusic"
-              @input="musicVolume = rangeNumber($event)"
-            />
-          </label>
-          <p v-if="customMusicLoadFailed" class="custom-sound-error">
-            {{ t('customSoundLoadFailed') }}
-          </p>
-        </SkyGlass>
-        <SkyList inset strong class="compose-form-list">
-          <SkyField
-            type="textarea"
-            :label="t('caption')"
-            :placeholder="t('captionPlaceholder')"
-            :value="caption"
-            maxlength="500"
-            @input="caption = inputValue($event)"
-          />
-          <SkyListItem
-            link
-            link-component="button"
-            content-class="w-full"
-            :title="t('whoCanWatch')"
-            :after="
-              visibility === 'public'
-                ? t('public')
-                : visibility === 'followers'
-                  ? t('followersOnly')
-                  : t('private')
-            "
-            @click="openVisibilityMenu"
-          />
-          <SkyListItem :title="t('allowComments')">
-            <template #after>
-              <SkyToggle
-                v-model="commentsEnabled"
-                :aria-label="t('allowComments')"
-              />
-            </template>
-          </SkyListItem>
-        </SkyList>
-        <div class="compose-actions">
-          <SkyButton
-            tonal
-            rounded
-            :disabled="!canPublish"
-            @click="publish(true)"
-            >{{ t('saveDraft') }}</SkyButton
-          ><SkyButton
-            rounded
-            :disabled="!canPublish || publishing"
-            @click="publish(false)"
-            >{{ publishing ? t('publishing') : t('post') }}</SkyButton
+          <SkySegmentedButton
+            :active="!liveCompose"
+            @click="liveCompose = false"
+            >{{ t('newVideo') }}</SkySegmentedButton
           >
-        </div>
+          <SkySegmentedButton
+            :active="liveCompose"
+            @click="liveCompose = true"
+            >{{ phone.t('Realtime.goLive') }}</SkySegmentedButton
+          >
+        </SkySegmented>
+        <LiveSetup
+          v-if="liveCompose"
+          app="fliptok"
+          @started="liveDirectory?.open()"
+        />
+        <template v-else>
+          <header class="compose-intro">
+            <span><Video /></span>
+            <div>
+              <strong>{{ t('createTitle') }}</strong>
+              <p>{{ t('createBody') }}</p>
+            </div>
+          </header>
+          <SkyGlass v-if="!selectedMedia" class="media-picker">
+            <header>
+              <ImagePlus /><strong>{{ t('chooseMedia') }}</strong>
+              <span>{{ t('chooseMediaHint') }}</span>
+            </header>
+            <div class="media-source-grid">
+              <button type="button" @click="chooseVideo('camera')">
+                <Camera /><strong>{{ t('recordVideo') }}</strong>
+              </button>
+              <button type="button" @click="chooseVideo('photos')">
+                <Video /><strong>{{ t('chooseVideo') }}</strong>
+              </button>
+              <button type="button" @click="choosePhotoSlideshow('photos')">
+                <ImagePlus /><strong>{{ t('photoSlideshow') }}</strong>
+              </button>
+            </div>
+          </SkyGlass>
+          <SkyGlass v-else class="media-preview">
+            <video
+              v-if="selectedMediaType === 'video'"
+              ref="previewVideo"
+              :src="selectedMedia.url"
+              controls
+              playsinline
+              @loadedmetadata="loadComposerVideo"
+              @play="handleComposerPlayback(true)"
+              @pause="handleComposerPlayback(false)"
+              @timeupdate="enforceComposerTrim"
+            />
+            <div v-else class="compose-photo-preview">
+              <img
+                v-if="selectedComposerPhoto"
+                :key="selectedComposerPhoto.id"
+                :src="selectedComposerPhoto.url"
+                alt=""
+              />
+              <template v-if="selectedMediaItems.length > 1">
+                <SkyButton
+                  glass
+                  icon-only
+                  rounded
+                  type="button"
+                  class="compose-photo-preview__arrow compose-photo-preview__arrow--previous"
+                  :disabled="composerPhotoIndex === 0"
+                  :aria-label="t('previousPhoto')"
+                  @click="moveComposerPhoto(-1)"
+                >
+                  <ChevronLeft />
+                </SkyButton>
+                <SkyButton
+                  glass
+                  icon-only
+                  rounded
+                  type="button"
+                  class="compose-photo-preview__arrow compose-photo-preview__arrow--next"
+                  :disabled="
+                    composerPhotoIndex === selectedMediaItems.length - 1
+                  "
+                  :aria-label="t('nextPhoto')"
+                  @click="moveComposerPhoto(1)"
+                >
+                  <ChevronRight />
+                </SkyButton>
+                <span class="compose-photo-preview__count">
+                  {{ composerPhotoIndex + 1 }} / {{ selectedMediaItems.length }}
+                </span>
+                <div class="compose-photo-preview__dots" aria-hidden="true">
+                  <span
+                    v-for="media in selectedMediaItems"
+                    :key="media.id"
+                    :class="{
+                      active:
+                        selectedMediaItems[composerPhotoIndex]?.id === media.id,
+                    }"
+                  />
+                </div>
+              </template>
+            </div>
+            <div class="media-preview__actions">
+              <SkyButton
+                small
+                rounded
+                tonal
+                @click="
+                  selectedMediaType === 'photo'
+                    ? choosePhotoSlideshow('photos')
+                    : chooseVideo('photos')
+                "
+              >
+                {{ t('changeMedia') }}
+              </SkyButton>
+              <SkyButton
+                small
+                rounded
+                tonal
+                @click="
+                  selectedMediaType === 'photo'
+                    ? choosePhotoSlideshow('camera')
+                    : chooseVideo('camera')
+                "
+              >
+                <Camera />{{ t('camera') }}
+              </SkyButton>
+            </div>
+            <audio
+              v-if="composerMusicUrl"
+              ref="composerMusic"
+              :src="composerMusicUrl"
+              loop
+              preload="metadata"
+              @loadedmetadata="markComposerMusicReady"
+              @error="markComposerMusicFailed"
+            />
+          </SkyGlass>
+          <SkyGlass
+            v-if="selectedMediaType === 'video' && videoDurationMs"
+            class="editor-card"
+          >
+            <h3>{{ t('trimAndCover') }}</h3>
+            <label>
+              <span
+                >{{ t('trimStart') }}
+                <strong>{{ formatDuration(trimStartMs) }}</strong></span
+              >
+              <SkyRange
+                :value="trimStartMs"
+                :min="0"
+                :max="Math.max(0, trimEndMs - 500)"
+                :step="100"
+                @input="updateTrimStart"
+              />
+            </label>
+            <label>
+              <span
+                >{{ t('trimEnd') }}
+                <strong>{{ formatDuration(trimEndMs) }}</strong></span
+              >
+              <SkyRange
+                :value="trimEndMs"
+                :min="Math.min(videoDurationMs, trimStartMs + 500)"
+                :max="videoDurationMs"
+                :step="100"
+                @input="updateTrimEnd"
+              />
+            </label>
+            <label>
+              <span
+                >{{ t('coverFrame') }}
+                <strong>{{ formatDuration(coverTimeMs) }}</strong></span
+              >
+              <SkyRange
+                :value="coverTimeMs"
+                :min="trimStartMs"
+                :max="trimEndMs"
+                :step="100"
+                @input="updateCover"
+              />
+            </label>
+          </SkyGlass>
+          <SkyGlass v-if="selectedMedia" class="editor-card">
+            <button class="sound-picker" type="button" @click="openMusicSheet">
+              <span><Music2 />{{ t('sounds') }}</span>
+              <strong>{{
+                selectedMusic
+                  ? `${selectedMusic.title} · ${selectedMusic.artist}`
+                  : customMusicTitle
+                    ? `${customMusicTitle} · ${customMusicArtist}`
+                    : customMusicUrl
+                      ? t('customSound')
+                      : t('originalOnly')
+              }}</strong>
+              <ChevronDown />
+            </button>
+            <label>
+              <span
+                >{{ t('originalVolume') }}
+                <strong>{{ originalVolume }}%</strong></span
+              >
+              <SkyRange
+                :value="originalVolume"
+                :min="0"
+                :max="100"
+                :step="1"
+                @input="originalVolume = rangeNumber($event)"
+              />
+            </label>
+            <label :class="{ disabled: !hasMusic }">
+              <span
+                >{{ t('musicVolume') }}
+                <strong>{{ hasMusic ? `${musicVolume}%` : '—' }}</strong></span
+              >
+              <SkyRange
+                :value="musicVolume"
+                :min="0"
+                :max="100"
+                :step="1"
+                :disabled="!hasMusic"
+                @input="musicVolume = rangeNumber($event)"
+              />
+            </label>
+            <p v-if="customMusicLoadFailed" class="custom-sound-error">
+              {{ t('customSoundLoadFailed') }}
+            </p>
+          </SkyGlass>
+          <SkyList inset strong class="compose-form-list">
+            <SkyField
+              type="textarea"
+              :label="t('caption')"
+              :placeholder="t('captionPlaceholder')"
+              :value="caption"
+              maxlength="500"
+              @input="caption = inputValue($event)"
+            />
+            <SkyListItem
+              link
+              link-component="button"
+              content-class="w-full"
+              :title="t('whoCanWatch')"
+              :after="
+                visibility === 'public'
+                  ? t('public')
+                  : visibility === 'followers'
+                    ? t('followersOnly')
+                    : t('private')
+              "
+              @click="openVisibilityMenu"
+            />
+            <SkyListItem :title="t('allowComments')">
+              <template #after>
+                <SkyToggle
+                  v-model="commentsEnabled"
+                  :aria-label="t('allowComments')"
+                />
+              </template>
+            </SkyListItem>
+          </SkyList>
+          <div class="compose-actions">
+            <SkyButton
+              tonal
+              rounded
+              :disabled="!canPublish"
+              @click="publish(true)"
+              >{{ t('saveDraft') }}</SkyButton
+            ><SkyButton
+              rounded
+              :disabled="!canPublish || publishing"
+              @click="publish(false)"
+              >{{ publishing ? t('publishing') : t('post') }}</SkyButton
+            >
+          </div>
+        </template>
       </SkyScrollArea>
     </section>
 
@@ -3386,6 +3466,7 @@ onBeforeUnmount(() => {
       :text="feedback"
       @click="feedback = ''"
     />
+    <LiveBroadcast ref="liveDirectory" app="fliptok" hide-trigger />
   </SkyAppPage>
 </template>
 

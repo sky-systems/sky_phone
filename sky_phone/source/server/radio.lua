@@ -3,6 +3,21 @@ local channels = {}
 local joined_at = {}
 local last_requests = {}
 local speaker_states = {}
+local connection_versions = {}
+
+local function access_error(source)
+    local blocked = Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(source)
+    if blocked then return blocked end
+    if Config.Radio.RequirePhoneItem ~= false then
+        -- Existing adapter targets one item; no database request, session or IMEI
+        -- lookup, and no inventory scan for players who are not using the radio.
+        local slots = Bridge.Inventory.GetSlotsWithItem(source, Config.Phone.Item)
+        for _, slot in pairs(slots) do
+            if (tonumber(slot.count or slot.amount) or 0) > 0 then return nil end
+        end
+        return "phone_not_owned"
+    end
+end
 
 local function supports_secondary()
     return Bridge.Radio.SupportsSecondary()
@@ -267,6 +282,41 @@ local function remove_from_channels(source)
     end
 end
 
+local function force_disconnect(source, reason)
+    connection_versions[source] = (connection_versions[source] or 0) + 1
+    if speaker_states[source] then Bridge.Radio.SetPlayerSpeaker(source, false) end
+    speaker_states[source] = nil
+    local was_connected = channels[source] ~= nil
+    if was_connected then
+        Bridge.Radio.DisconnectPlayer(source)
+        remove_from_channels(source)
+    end
+    TriggerClientEvent("sky_phone:radio:disconnected", source, { reason = reason })
+    if was_connected then
+        local identifier, profile = load_profile(source)
+        if profile then
+            profile.primaryFrequency, profile.secondaryFrequency = 0, 0
+            save_profile(identifier, profile)
+        end
+    end
+end
+AddEventHandler("sky_phone:player:restricted", force_disconnect)
+CreateThread(function()
+    while true do
+        Wait(1000)
+        for source in pairs(channels) do
+            local reason = access_error(source)
+            if reason then force_disconnect(source, reason) end
+        end
+    end
+end)
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    for source in pairs(channels) do
+        local reason = access_error(source)
+        if reason then force_disconnect(source, reason) end
+    end
+end)
+
 local function rate_limited(source, action, milliseconds)
     local now = GetGameTimer()
     local key = ("%s:%s"):format(source, action)
@@ -311,9 +361,14 @@ Bridge.Callbacks.Register("sky_phone:radio:get", function(source)
 end)
 
 Bridge.Callbacks.Register("sky_phone:radio:connect", function(source, data)
+    if type(data) ~= "table" then return { success = false, error = "invalid_request" } end
     if rate_limited(source, "connect", 500) then
         return { success = false, error = "rate_limited" }
     end
+    local reason = access_error(source)
+    if reason then return { success = false, error = reason } end
+    connection_versions[source] = (connection_versions[source] or 0) + 1
+    local version = connection_versions[source]
     local primary = normalize_frequency(data.frequency, false)
     local secondary = normalize_frequency(data.secondaryFrequency or 0, true)
     if not primary or not secondary then
@@ -336,6 +391,11 @@ Bridge.Callbacks.Register("sky_phone:radio:connect", function(source, data)
     if not profile then
         return { success = false, error = "player_unavailable" }
     end
+    -- Framework/inventory/SQL adapters may yield while the state changes.
+    reason = access_error(source)
+    if reason or version ~= connection_versions[source] then
+        return { success = false, error = reason or "request_cancelled" }
+    end
     local previous = channels[source]
     local previous_set = frequency_set(previous)
     channels[source] = { primary = primary, secondary = secondary }
@@ -352,6 +412,14 @@ Bridge.Callbacks.Register("sky_phone:radio:connect", function(source, data)
     end)())
     save_profile(identifier, profile)
 
+    if version ~= connection_versions[source] then
+        return { success = false, error = "request_cancelled" }
+    end
+    reason = access_error(source)
+    if reason then
+        force_disconnect(source, reason)
+        return { success = false, error = reason }
+    end
     local current_set = frequency_set(channels[source])
     local name = get_radio_member_name(source)
     for frequency in pairs(previous_set) do
@@ -382,6 +450,8 @@ Bridge.Callbacks.Register("sky_phone:radio:connect", function(source, data)
 end)
 
 Bridge.Callbacks.Register("sky_phone:radio:disconnect", function(source)
+    connection_versions[source] = (connection_versions[source] or 0) + 1
+    if channels[source] then Bridge.Radio.DisconnectPlayer(source) end
     if speaker_states[source] then
         Bridge.Radio.SetPlayerSpeaker(source, false)
     end
@@ -403,6 +473,8 @@ Bridge.Callbacks.Register("sky_phone:radio:set-speaker", function(source, data)
     if rate_limited(source, "set-speaker", 250) then
         return { success = false, error = "rate_limited" }
     end
+    local reason = access_error(source)
+    if reason then force_disconnect(source, reason); return { success = false, error = reason } end
     if not channels[source] then
         return { success = false, error = "radio_not_connected" }
     end
@@ -496,6 +568,7 @@ end)
 
 AddEventHandler("playerDropped", function()
     local player_source = source
+    connection_versions[player_source] = nil
     if speaker_states[player_source] then
         Bridge.Radio.SetPlayerSpeaker(player_source, false)
     end

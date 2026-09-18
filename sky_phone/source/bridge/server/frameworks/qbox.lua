@@ -6,6 +6,11 @@ local function get_player(source)
     return exports.qbx_core:GetPlayer(tonumber(source))
 end
 
+function Bridge.Framework.GetStatusData(source)
+    local player = get_player(source)
+    return player and player.PlayerData and player.PlayerData.metadata or {}
+end
+
 function Bridge.Framework.GetPlayers()
     local players = {}
     for _, player_source in ipairs(GetPlayers()) do

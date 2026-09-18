@@ -225,7 +225,7 @@ onBeforeUnmount(() => {
 <template>
   <SkyAppPage
     class="health-app"
-    accent="#ff375f"
+    :accent="phone.isDarkMode ? '#ff375f' : '#d9264d'"
     accent-soft="rgba(255, 55, 95, 0.16)"
     :dark="phone.isDarkMode"
     :label="phone.t('Apps.health.name')"
@@ -661,7 +661,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .health-app {
-  --health-accent: #ff375f;
+  --health-accent: var(--sky-app-accent);
   --health-orange: #ff9f0a;
   --health-green: var(--sky-success);
   --health-panel: var(--sky-surface);
@@ -858,7 +858,7 @@ onBeforeUnmount(() => {
 .health-week-day small {
   overflow: hidden;
   max-width: 40px;
-  color: var(--sky-subtle);
+  color: var(--sky-muted);
   font-size: 9px;
   text-overflow: ellipsis;
 }

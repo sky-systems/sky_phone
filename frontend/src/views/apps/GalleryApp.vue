@@ -1092,7 +1092,22 @@ watch(hasMore, () => void nextTick().then(observeMore))
 
 onMounted(() => {
   window.addEventListener('message', onMessage)
-  void loadGallery()
+  void loadGallery().then(async () => {
+    if (
+      !['photo', 'video', 'media'].includes(String(route.query.easyShareKind))
+    )
+      return
+    const id = Number(route.query.easyShareId)
+    if (!Number.isSafeInteger(id) || id < 1) return
+    const response = await nuiCall<PhoneMedia[]>('gallery:list', {
+      id,
+      limit: 1,
+    })
+    if (response.success && response.data?.[0]) {
+      media.value = mergeMedia(media.value, response.data)
+      openMedia(response.data[0])
+    }
+  })
   void loadImportSources()
 })
 

@@ -2384,7 +2384,7 @@ onBeforeUnmount(() => {
   --cl-surface: rgba(255, 255, 255, 0.84);
   --cl-text: #102034;
   --cl-muted: #6e7c8d;
-  --cl-map-header-background: linear-gradient(90deg, #061823, #0f2837);
+  --cl-map-header-background: var(--cl-bg);
   --sky-safe-area-top: 46px;
   --sky-safe-area-bottom: 25px;
   position: relative;
@@ -2394,6 +2394,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 .crewlink--dark {
+  --cl-map-header-background: linear-gradient(90deg, #061823, #0f2837);
   --cl-bg: #071018;
   --cl-surface: rgba(17, 29, 40, 0.88);
   --cl-text: #f3f8fb;
@@ -2441,17 +2442,17 @@ onBeforeUnmount(() => {
   );
 }
 .crewlink-auth {
-  --auth-accent: #20bde0;
-  --panel: rgba(18, 39, 53, 0.92);
+  --auth-accent: var(--sky-app-accent-shade);
+  --panel: var(--sky-surface);
   box-sizing: border-box;
   min-height: 100%;
   padding: calc(var(--sky-safe-area-top) + 20px) 18px
     calc(var(--sky-safe-area-bottom) + 20px);
   justify-content: center;
-  color: #f3f8fb;
+  color: var(--sky-text);
   background:
     radial-gradient(circle at 82% 8%, rgba(39, 217, 237, 0.2), transparent 34%),
-    linear-gradient(180deg, #07131d, #091923);
+    var(--sky-bg);
   overflow-y: auto;
 }
 .crewlink-auth :deep(.app-profile-auth) {
@@ -2469,25 +2470,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border: 1px solid rgba(132, 173, 192, 0.18);
   border-radius: var(--sky-radius-pill, 999px);
-  background: rgba(5, 20, 29, 0.62);
+  background: var(--sky-surface-muted);
   box-shadow: none;
-}
-.crewlink-auth :deep(.app-profile-auth__mode::before) {
-  position: absolute;
-  z-index: 0;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc((100% - 12px) / 2);
-  border-radius: var(--sky-radius-pill, 999px);
-  background: linear-gradient(135deg, #139de9, #1687f5);
-  box-shadow: 0 5px 14px rgba(13, 126, 226, 0.26);
-  content: '';
-  pointer-events: none;
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-.crewlink-auth :deep(.app-profile-auth__mode--register::before) {
-  transform: translateX(calc(100% + 4px));
 }
 .crewlink-auth :deep(.app-profile-auth__mode-button) {
   position: relative;
@@ -2506,14 +2490,13 @@ onBeforeUnmount(() => {
 }
 .crewlink-auth :deep(.app-profile-auth__mode-button--active) {
   color: #ffffff;
-  background: transparent !important;
+  background: var(--sky-app-accent-shade) !important;
   box-shadow: none;
 }
 .crewlink-auth :deep(.app-profile-auth__mode-button:active) {
   transform: scale(0.98);
 }
 @media (prefers-reduced-motion: reduce) {
-  .crewlink-auth :deep(.app-profile-auth__mode::before),
   .crewlink-auth :deep(.app-profile-auth__mode-button) {
     transition: none;
   }
@@ -2525,7 +2508,7 @@ onBeforeUnmount(() => {
   padding: 12px;
   border: 1px solid rgba(132, 173, 192, 0.1);
   border-radius: 22px;
-  background: rgba(13, 35, 47, 0.74) !important;
+  background: var(--sky-surface) !important;
 }
 .crewlink-auth :deep(.app-profile-auth__fields > .sky-list__items) {
   display: grid;
@@ -2537,8 +2520,8 @@ onBeforeUnmount(() => {
   padding: 0 14px;
   border: 1px solid rgba(145, 178, 194, 0.52);
   border-radius: 11px;
-  color: #f3f8fb;
-  background: rgba(8, 25, 35, 0.32);
+  color: var(--sky-text);
+  background: var(--sky-surface-muted);
   transition:
     border-color 160ms ease,
     background-color 160ms ease,
@@ -2546,7 +2529,7 @@ onBeforeUnmount(() => {
 }
 .crewlink-auth :deep(.app-profile-auth__credential-field:focus-within) {
   border-color: var(--auth-accent);
-  background: rgba(11, 34, 45, 0.72);
+  background: var(--sky-surface-muted);
   box-shadow: 0 0 0 2px rgba(32, 189, 224, 0.14);
 }
 .crewlink-auth :deep(.app-profile-auth__credential-field .sky-field__border) {
@@ -2557,7 +2540,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   margin-right: 10px;
   padding: 0;
-  color: #e6f4f8;
+  color: var(--sky-text);
 }
 .crewlink-auth :deep(.app-profile-auth__credential-field .sky-field__inner) {
   display: flex;
@@ -2568,7 +2551,7 @@ onBeforeUnmount(() => {
 .crewlink-auth :deep(.app-profile-auth__credential-field .sky-field__label) {
   display: block;
   margin: 0;
-  color: #8ea5b0;
+  color: var(--sky-muted);
   font-size: 10px;
   font-weight: 650;
   line-height: 13px;
@@ -2588,14 +2571,14 @@ onBeforeUnmount(() => {
 .crewlink-auth :deep(.app-profile-auth__credential-field .sky-field__input) {
   height: 24px;
   min-height: 24px;
-  color: #f3f8fb;
+  color: var(--sky-text);
   font-size: 14px;
   font-weight: 650;
   line-height: 20px;
 }
 .crewlink-auth
   :deep(.app-profile-auth__credential-field .sky-field__input::placeholder) {
-  color: #647b86;
+  color: var(--sky-muted);
   opacity: 1;
 }
 .crewlink-logo {
@@ -2634,8 +2617,8 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 .crewlink-navbar--map {
-  --sky-text: #f3f8fb;
-  --sky-muted: #aab7c1;
+  --sky-text: var(--cl-text);
+  --sky-muted: var(--cl-muted);
   background: var(--cl-map-header-background);
 }
 .crewlink-navbar--map :deep(.sky-navbar__blur),
@@ -2830,7 +2813,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: white;
+  color: var(--cl-text);
   background: var(--cl-map-header-background);
 }
 .crewlink-map-summary::after {
@@ -2859,7 +2842,7 @@ onBeforeUnmount(() => {
   font-size: 14px;
   font-weight: 600;
   line-height: 18px;
-  color: #c0ced8;
+  color: var(--cl-muted);
   white-space: nowrap;
 }
 .crewlink-live-dot {
@@ -2941,8 +2924,8 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   overflow: hidden;
-  color: white;
-  background: var(--crew);
+  color: #10232d;
+  background: color-mix(in srgb, var(--crew) 55%, white);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   font-size: 9px;
   font-weight: 900;
@@ -3977,5 +3960,8 @@ onBeforeUnmount(() => {
   .crewlink-orbits i {
     animation: none;
   }
+}
+.crewlink:not(.crewlink--dark) .crewlink-tabbar {
+  --sky-app-accent: #005bbd;
 }
 </style>

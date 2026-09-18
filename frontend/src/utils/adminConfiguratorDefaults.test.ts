@@ -114,7 +114,7 @@ describe('admin configurator defaults', () => {
       false,
     )
   })
-  
+
   it('uses the configured access value when adding radio jobs', () => {
     const channelJobs: AdminConfiguratorStructure = {
       entryDefault: true,

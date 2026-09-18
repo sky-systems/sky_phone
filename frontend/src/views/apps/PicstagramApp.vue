@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import ProfileSuggestions from '@/components/ProfileSuggestions.vue'
+import LiveProfileStrip from '@/components/LiveProfileStrip.vue'
+import { useLiveProfiles } from '@/features/realtime/useLiveProfiles'
+import LiveBroadcast from '@/components/LiveBroadcast.vue'
+import LiveSetup from '@/components/LiveSetup.vue'
+import { useRealtimeStore } from '@/features/realtime/store'
 import {
   Bell,
   Bookmark,
@@ -78,13 +84,26 @@ import {
 
 type Tab = 'home' | 'explore' | 'create' | 'activity' | 'profile'
 type AuthMode = 'login' | 'register'
-type ComposeKind = 'post' | 'story'
+type ComposeKind = 'post' | 'story' | 'live'
 type ConnectionMode = 'followers' | 'following'
 type ProfileSection = 'all' | 'videos' | 'tagged'
 type MediaSource = 'camera' | 'photos'
 
 const phone = usePhoneStore()
 const store = usePicstagramStore()
+const {
+  live: liveDirectory,
+  entries: liveEntries,
+  liveFor,
+  joinLive,
+} = useLiveProfiles(
+  'picstagram',
+  computed(() => store.authenticated),
+)
+function openAvatar(id: string | number): void {
+  if (!joinLive(id)) void openProfile(String(id))
+}
+
 const mediaPicker = useMessageMediaStore()
 const route = useRoute()
 const router = useRouter()
@@ -96,6 +115,7 @@ const authDisplayName = ref('')
 const authPassword = ref('')
 const authConfirmPassword = ref('')
 const authSubmitting = ref(false)
+const realtime = useRealtimeStore()
 const composeKind = ref<ComposeKind>('post')
 const selectedMedia = ref<PhoneMedia[]>([])
 const composePreviewIndex = ref(0)
@@ -332,7 +352,13 @@ async function signOut(): Promise<void> {
 async function showTab(next: Tab): Promise<void> {
   tab.value = next
   selectedPost.value = null
-  if (next === 'explore' && !store.explore.length) await store.loadExplore()
+  if (next === 'explore') {
+    const [loaded] = await Promise.all([
+      store.loadExplore(),
+      store.search(search.value),
+    ])
+    if (!loaded) notify(errorMessage('default'))
+  }
   if (next === 'activity') await store.loadActivities()
   if (next === 'profile' && store.profile) {
     await store.loadProfile({ profileId: store.profile.id })
@@ -849,11 +875,7 @@ async function respondToFollowRequest(
 watch(search, (value) => {
   if (searchTimer !== null) window.clearTimeout(searchTimer)
   searchTimer = window.setTimeout(() => {
-    if (value.trim()) void store.search(value)
-    else {
-      store.searchPosts = []
-      store.searchProfiles = []
-    }
+    void store.search(value)
   }, 300)
 })
 
@@ -1005,9 +1027,14 @@ onBeforeUnmount(() => {
             <header class="ps-post-header">
               <button
                 class="ps-author"
-                @click="openProfile(selectedPost.profile_id)"
+                @click="openAvatar(selectedPost.profile_id)"
               >
-                <span class="ps-avatar ps-avatar--small">
+                <span
+                  class="ps-avatar ps-avatar--small"
+                  :class="{
+                    'realtime-live-avatar': liveFor(selectedPost.profile_id),
+                  }"
+                >
                   <img
                     v-if="selectedPost.avatar_url"
                     :src="selectedPost.avatar_url"
@@ -1183,6 +1210,7 @@ onBeforeUnmount(() => {
         </SkyNavbar>
         <SkyScrollArea with-tabbar class="ps-screen ps-feed">
           <div class="ps-stories" :aria-label="t('stories')">
+            <LiveProfileStrip :entries="liveEntries" @join="joinLive" />
             <button class="ps-story-add" @click="beginStoryCompose">
               <span class="ps-story-ring ps-story-ring--add"
                 ><span class="ps-avatar"
@@ -1199,11 +1227,17 @@ onBeforeUnmount(() => {
             <button
               v-for="group in storyGroups"
               :key="group.stories[0].profile_id"
-              @click="openStoryGroup(group.stories)"
+              @click="
+                joinLive(group.stories[0].profile_id) ||
+                openStoryGroup(group.stories)
+              "
             >
               <span
                 class="ps-story-ring"
-                :class="{ seen: group.stories.every((story) => story.seen) }"
+                :class="{
+                  seen: group.stories.every((story) => story.seen),
+                  'realtime-live-avatar': liveFor(group.stories[0].profile_id),
+                }"
                 ><span class="ps-avatar"
                   ><img
                     v-if="group.avatar"
@@ -1229,8 +1263,10 @@ onBeforeUnmount(() => {
             class="ps-post-card"
           >
             <header class="ps-post-header">
-              <button class="ps-author" @click="openProfile(post.profile_id)">
-                <span class="ps-avatar ps-avatar--small"
+              <button class="ps-author" @click="openAvatar(post.profile_id)">
+                <span
+                  class="ps-avatar ps-avatar--small"
+                  :class="{ 'realtime-live-avatar': liveFor(post.profile_id) }"
                   ><img
                     v-if="post.avatar_url"
                     :src="post.avatar_url"
@@ -1379,31 +1415,16 @@ onBeforeUnmount(() => {
           /></template>
         </SkyNavbar>
         <SkyScrollArea with-tabbar class="ps-screen ps-explore">
-          <div
-            v-if="search && store.searchProfiles.length"
-            class="ps-profile-results"
-          >
-            <button
-              v-for="profile in store.searchProfiles"
-              :key="profile.id"
-              @click="openProfile(profile)"
-            >
-              <span class="ps-avatar"
-                ><img
-                  v-if="profile.avatar_url"
-                  :src="profile.avatar_url"
-                  alt=""
-                /><template v-else>{{
-                  initials(profile.display_name)
-                }}</template></span
-              ><span
-                ><strong
-                  >{{ profile.display_name }}
-                  <Check v-if="profile.verified" class="ps-verified" /></strong
-                ><small>@{{ profile.handle }}</small></span
-              ><ChevronRight />
-            </button>
-          </div>
+          <ProfileSuggestions
+            :profiles="store.searchProfiles"
+            :search="search"
+            :loading="store.searchLoading"
+            :error="store.searchError"
+            :is-live="(id) => Boolean(liveFor(id))"
+            @profile="(id) => openProfile(String(id))"
+            @avatar="openAvatar"
+            @retry="store.search(search)"
+          />
           <div class="ps-grid">
             <button
               v-for="post in search ? store.searchPosts : store.explore"
@@ -1443,14 +1464,18 @@ onBeforeUnmount(() => {
 
       <template v-else-if="tab === 'create'">
         <SkyNavbar
-          :title="t(composeKind === 'post' ? 'newPost' : 'newStory')"
+          :title="
+            composeKind === 'live'
+              ? phone.t('Realtime.goLive')
+              : t(composeKind === 'post' ? 'newPost' : 'newStory')
+          "
           show-back
           :back-label="phone.t('Common.back')"
           back-appearance="surface"
           variant="compact"
           @back="showTab('home')"
         >
-          <template #right>
+          <template v-if="composeKind !== 'live'" #right>
             <SkyLink
               component="button"
               class="ps-publish-link"
@@ -1474,158 +1499,171 @@ onBeforeUnmount(() => {
               @click="setComposeKind('story')"
               >{{ t('newStory') }}</SkySegmentedButton
             >
-          </SkySegmented>
-          <SkyCard class="ps-create-card">
-            <div
-              v-if="selectedMedia.length && currentComposeMedia"
-              class="ps-selection-preview"
+            <SkySegmentedButton
+              v-if="realtime.config?.enabled && realtime.config.picstagram"
+              :active="composeKind === 'live'"
+              @click="setComposeKind('live')"
+              >{{ phone.t('Realtime.goLive') }}</SkySegmentedButton
             >
-              <div :key="currentComposeMedia.id" class="ps-selection-slide">
-                <video
-                  v-if="currentComposeMedia.mediaType === 'video'"
-                  :src="currentComposeMedia.url"
-                  autoplay
-                  loop
-                  muted
-                  playsinline
-                />
-                <img v-else :src="currentComposeMedia.url" alt="" />
-                <button
-                  class="ps-selection-remove"
-                  :aria-label="t('remove')"
-                  @click="removeComposeMedia(currentComposeMedia.id)"
-                >
-                  <X />
-                </button>
-              </div>
-              <template v-if="selectedMedia.length > 1">
-                <SkyButton
-                  glass
-                  icon-only
-                  rounded
-                  class="ps-selection-arrow ps-selection-arrow--left"
-                  :aria-label="t('previousPhoto')"
-                  :disabled="composePreviewIndex === 0"
-                  @click="moveComposePreview(-1)"
-                >
-                  <ChevronLeft />
-                </SkyButton>
-                <SkyButton
-                  glass
-                  icon-only
-                  rounded
-                  class="ps-selection-arrow ps-selection-arrow--right"
-                  :aria-label="t('nextPhoto')"
-                  :disabled="composePreviewIndex === selectedMedia.length - 1"
-                  @click="moveComposePreview(1)"
-                >
-                  <ChevronRight />
-                </SkyButton>
-                <span class="ps-selection-counter">
-                  {{ composePreviewIndex + 1 }}/{{ selectedMedia.length }}
-                </span>
-                <div class="ps-selection-dots" aria-hidden="true">
-                  <span
-                    v-for="(_, index) in selectedMedia"
-                    :key="index"
-                    :class="{ active: composePreviewIndex === index }"
+          </SkySegmented>
+          <LiveSetup
+            v-if="composeKind === 'live'"
+            app="picstagram"
+            @started="liveDirectory?.open()"
+          />
+          <template v-else>
+            <SkyCard class="ps-create-card">
+              <div
+                v-if="selectedMedia.length && currentComposeMedia"
+                class="ps-selection-preview"
+              >
+                <div :key="currentComposeMedia.id" class="ps-selection-slide">
+                  <video
+                    v-if="currentComposeMedia.mediaType === 'video'"
+                    :src="currentComposeMedia.url"
+                    autoplay
+                    loop
+                    muted
+                    playsinline
                   />
+                  <img v-else :src="currentComposeMedia.url" alt="" />
+                  <button
+                    class="ps-selection-remove"
+                    :aria-label="t('remove')"
+                    @click="removeComposeMedia(currentComposeMedia.id)"
+                  >
+                    <X />
+                  </button>
+                </div>
+                <template v-if="selectedMedia.length > 1">
+                  <SkyButton
+                    glass
+                    icon-only
+                    rounded
+                    class="ps-selection-arrow ps-selection-arrow--left"
+                    :aria-label="t('previousPhoto')"
+                    :disabled="composePreviewIndex === 0"
+                    @click="moveComposePreview(-1)"
+                  >
+                    <ChevronLeft />
+                  </SkyButton>
+                  <SkyButton
+                    glass
+                    icon-only
+                    rounded
+                    class="ps-selection-arrow ps-selection-arrow--right"
+                    :aria-label="t('nextPhoto')"
+                    :disabled="composePreviewIndex === selectedMedia.length - 1"
+                    @click="moveComposePreview(1)"
+                  >
+                    <ChevronRight />
+                  </SkyButton>
+                  <span class="ps-selection-counter">
+                    {{ composePreviewIndex + 1 }}/{{ selectedMedia.length }}
+                  </span>
+                  <div class="ps-selection-dots" aria-hidden="true">
+                    <span
+                      v-for="(_, index) in selectedMedia"
+                      :key="index"
+                      :class="{ active: composePreviewIndex === index }"
+                    />
+                  </div>
+                </template>
+                <SkyChip>{{
+                  t('selectedPhotos', { count: String(selectedMedia.length) })
+                }}</SkyChip>
+                <span
+                  v-if="currentComposeMedia.mediaType === 'video'"
+                  class="ps-video-preview-badge"
+                  ><Video />{{ t('video') }}</span
+                >
+              </div>
+              <template v-else>
+                <div class="ps-create-intro">
+                  <span><ImagePlus /></span
+                  ><strong>{{
+                    t(composeKind === 'post' ? 'newPost' : 'newStory')
+                  }}</strong>
+                  <p>
+                    {{
+                      t(
+                        composeKind === 'post'
+                          ? 'choosePhotosHint'
+                          : 'chooseStoryHint',
+                      )
+                    }}
+                  </p>
+                </div>
+                <div class="ps-source-grid">
+                  <button @click="openComposeMedia('photos', 'photo')">
+                    <Images /><span
+                      ><strong>{{ t('photo') }}</strong
+                      ><small>{{ t('gallery') }}</small></span
+                    >
+                  </button>
+                  <button @click="openComposeMedia('camera', 'photo')">
+                    <Camera /><span
+                      ><strong>{{ t('photo') }}</strong
+                      ><small>{{ t('camera') }}</small></span
+                    >
+                  </button>
+                  <button @click="openComposeMedia('photos', 'video')">
+                    <Video /><span
+                      ><strong>{{ t('video') }}</strong
+                      ><small>{{ t('gallery') }}</small></span
+                    >
+                  </button>
+                  <button @click="openComposeMedia('camera', 'video')">
+                    <Camera /><span
+                      ><strong>{{ t('video') }}</strong
+                      ><small>{{ t('camera') }}</small></span
+                    >
+                  </button>
                 </div>
               </template>
-              <SkyChip>{{
-                t('selectedPhotos', { count: String(selectedMedia.length) })
-              }}</SkyChip>
-              <span
-                v-if="currentComposeMedia.mediaType === 'video'"
-                class="ps-video-preview-badge"
-                ><Video />{{ t('video') }}</span
+              <SkyButton
+                v-if="selectedMedia.length"
+                block
+                rounded
+                tonal
+                class="ps-change-selection"
+                @click="changeComposeSelection"
               >
+                <Images />{{ t('changePhotos') }}
+              </SkyButton>
+            </SkyCard>
+            <div class="ps-compose-fields">
+              <SkyField
+                v-if="composeKind === 'post'"
+                v-model="caption"
+                :label="t('caption')"
+                :placeholder="t('captionPlaceholder')"
+                type="textarea"
+                :rows="4"
+              />
+              <SkyField
+                v-else
+                v-model="storyText"
+                :label="t('story')"
+                :placeholder="t('storyTextPlaceholder')"
+                type="textarea"
+                :rows="4"
+              />
+              <SkyField
+                v-if="composeKind === 'post'"
+                v-model="location"
+                :label="t('location')"
+                :placeholder="t('locationPlaceholder')"
+                ><template #media><MapPin /></template
+              ></SkyField>
+              <label v-if="composeKind === 'post'" class="ps-toggle-row"
+                ><span
+                  ><strong>{{ t('allowComments') }}</strong
+                  ><small>{{ t('comments') }}</small></span
+                ><SkyToggle v-model="commentsEnabled"
+              /></label>
             </div>
-            <template v-else>
-              <div class="ps-create-intro">
-                <span><ImagePlus /></span
-                ><strong>{{
-                  t(composeKind === 'post' ? 'newPost' : 'newStory')
-                }}</strong>
-                <p>
-                  {{
-                    t(
-                      composeKind === 'post'
-                        ? 'choosePhotosHint'
-                        : 'chooseStoryHint',
-                    )
-                  }}
-                </p>
-              </div>
-              <div class="ps-source-grid">
-                <button @click="openComposeMedia('photos', 'photo')">
-                  <Images /><span
-                    ><strong>{{ t('photo') }}</strong
-                    ><small>{{ t('gallery') }}</small></span
-                  >
-                </button>
-                <button @click="openComposeMedia('camera', 'photo')">
-                  <Camera /><span
-                    ><strong>{{ t('photo') }}</strong
-                    ><small>{{ t('camera') }}</small></span
-                  >
-                </button>
-                <button @click="openComposeMedia('photos', 'video')">
-                  <Video /><span
-                    ><strong>{{ t('video') }}</strong
-                    ><small>{{ t('gallery') }}</small></span
-                  >
-                </button>
-                <button @click="openComposeMedia('camera', 'video')">
-                  <Camera /><span
-                    ><strong>{{ t('video') }}</strong
-                    ><small>{{ t('camera') }}</small></span
-                  >
-                </button>
-              </div>
-            </template>
-            <SkyButton
-              v-if="selectedMedia.length"
-              block
-              rounded
-              tonal
-              class="ps-change-selection"
-              @click="changeComposeSelection"
-            >
-              <Images />{{ t('changePhotos') }}
-            </SkyButton>
-          </SkyCard>
-          <div class="ps-compose-fields">
-            <SkyField
-              v-if="composeKind === 'post'"
-              v-model="caption"
-              :label="t('caption')"
-              :placeholder="t('captionPlaceholder')"
-              type="textarea"
-              :rows="4"
-            />
-            <SkyField
-              v-else
-              v-model="storyText"
-              :label="t('story')"
-              :placeholder="t('storyTextPlaceholder')"
-              type="textarea"
-              :rows="4"
-            />
-            <SkyField
-              v-if="composeKind === 'post'"
-              v-model="location"
-              :label="t('location')"
-              :placeholder="t('locationPlaceholder')"
-              ><template #media><MapPin /></template
-            ></SkyField>
-            <label v-if="composeKind === 'post'" class="ps-toggle-row"
-              ><span
-                ><strong>{{ t('allowComments') }}</strong
-                ><small>{{ t('comments') }}</small></span
-              ><SkyToggle v-model="commentsEnabled"
-            /></label>
-          </div>
+          </template>
         </SkyScrollArea>
       </template>
 
@@ -1739,14 +1777,21 @@ onBeforeUnmount(() => {
           class="ps-screen ps-profile"
         >
           <section class="ps-profile-header">
-            <span class="ps-avatar ps-avatar--profile"
+            <SkyButton
+              clear
+              rounded
+              icon-only
+              class="ps-avatar ps-avatar--profile"
+              :class="{ 'realtime-live-avatar': liveFor(currentProfile.id) }"
+              :aria-label="currentProfile.display_name"
+              @click="joinLive(currentProfile.id)"
               ><img
                 v-if="currentProfile.avatar_url"
                 :src="currentProfile.avatar_url"
                 alt=""
               /><template v-else>{{
                 initials(currentProfile.display_name)
-              }}</template></span
+              }}</template></SkyButton
             >
             <div class="ps-profile-stats">
               <button>
@@ -2517,6 +2562,12 @@ onBeforeUnmount(() => {
       ></SkyDialog
     >
     <SkyNotification :opened="Boolean(feedback)" :text="feedback" />
+    <LiveBroadcast
+      ref="liveDirectory"
+      app="picstagram"
+      hide-trigger
+      reserve-navigation
+    />
   </SkyAppPage>
 </template>
 

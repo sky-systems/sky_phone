@@ -115,6 +115,37 @@ describe('Picstagram store', () => {
     vi.mocked(nuiCall).mockReset()
   })
 
+  it('loads people suggestions even without a search term', async () => {
+    vi.mocked(nuiCall).mockResolvedValueOnce({
+      success: true,
+      data: { profiles: [profile], posts: [] },
+    })
+    const store = usePicstagramStore()
+    expect(await store.search('')).toBe(true)
+    expect(nuiCall).toHaveBeenCalledWith('picstagram:search', { search: '' })
+    expect(store.searchProfiles).toEqual([profile])
+  })
+
+  it('keeps newer search results when an older request finishes late', async () => {
+    const store = usePicstagramStore()
+    let finish!: (value: Awaited<ReturnType<typeof nuiCall>>) => void
+    vi.mocked(nuiCall).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    const older = store.search('old')
+    vi.mocked(nuiCall).mockResolvedValueOnce({
+      success: true,
+      data: { profiles: [profile], posts: [] },
+    })
+    await store.search('Nova')
+    finish({ success: true, data: { profiles: [], posts: [] } })
+    await older
+    expect(store.searchProfiles).toEqual([profile])
+  })
+
   it('updates verification on every visible surface', () => {
     const store = usePicstagramStore()
     store.profile = { ...profile }

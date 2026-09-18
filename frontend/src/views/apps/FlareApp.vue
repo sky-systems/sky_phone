@@ -2262,6 +2262,9 @@ onBeforeUnmount(() => {
   background: var(--flare-surface) !important;
   color: var(--flare-ink);
 }
+.flare-page:not(.sky-app-page--dark) {
+  --flare: #dc2345;
+}
 .flare-page--without-tabs,
 .flare-page--chat {
   padding-bottom: 0 !important;
@@ -2575,6 +2578,15 @@ onBeforeUnmount(() => {
 }
 .flare-action--like {
   color: #28c98b !important;
+}
+.flare-page:not(.sky-app-page--dark) .flare-action--rewind {
+  color: #9c6708 !important;
+}
+.flare-page:not(.sky-app-page--dark) .flare-action--super {
+  color: #087bab !important;
+}
+.flare-page:not(.sky-app-page--dark) .flare-action--like {
+  color: #13855b !important;
 }
 
 .flare-scroll-view,

@@ -7,7 +7,9 @@ import {
   SquarePen,
   Trash2,
 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { nuiCall } from '@/utils/nui'
 
 import NotesRichTextEditor from '@/components/NotesRichTextEditor.vue'
 import { useNotesStore } from '@/stores/notes'
@@ -36,6 +38,7 @@ import type { Note } from '@/utils/notes'
 import { noteBodyToPlainText } from '@/utils/noteRichText'
 
 const phone = usePhoneStore()
+const route = useRoute()
 const notes = useNotesStore()
 const easyShare = useEasyShareStore()
 const searchQuery = ref('')
@@ -196,6 +199,17 @@ function shareNote(): void {
     title: noteTitle(note),
   })
 }
+onMounted(async () => {
+  if (
+    route.query.easyShareKind !== 'note' ||
+    typeof route.query.easyShareId !== 'string'
+  )
+    return
+  const response = await nuiCall<Note[]>('notes:list')
+  if (response.success && response.data) notes.hydrate(response.data)
+  const note = notes.notes.find((entry) => entry.id === route.query.easyShareId)
+  if (note) editNote(note)
+})
 </script>
 
 <template>
