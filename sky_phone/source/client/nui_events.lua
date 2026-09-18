@@ -1,4 +1,5 @@
 local relays_with_data = {
+    ["sky_phone:skypic:changed"] = "skypic:changed",
     ["sky_phone:mail:changed"] = "mail:changed",
     ["sky_phone:easyshare:changed"] = "easyshare:changed",
     ["sky_phone:marketplace:changed"] = "marketplace:changed",

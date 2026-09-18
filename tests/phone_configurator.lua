@@ -689,6 +689,30 @@ test("invalid CrewLink native settings and key defaults cannot reach SQL or clie
     end
 end)
 
+
+test("SkyPic configuration preserves live references, syncs and survives SQL reload", function()
+    local server = new_server()
+    local field = server.field("SkyPic")
+    assert(field.structure.kind == "table" and not field.structure.mutableKeys)
+    assert(field.structure.fields.SpotlightReportReasons.kind == "list")
+    local runtime = server.env.Config.SkyPic
+    local settings = field.value
+    settings.MaximumSnapRecipients = 8
+    settings.AllowSponsoredSpotlights = false
+    settings.SpotlightReportReasons[2] = "custom_reason"
+    assert(server.save({ change("SkyPic", settings) }).success)
+    assert(server.env.Config.SkyPic == runtime and runtime.MaximumSnapRecipients == 8)
+    assert(not runtime.AllowSponsoredSpotlights and runtime.SpotlightReportReasons[2] == "custom_reason")
+    local client = new_client(server)
+    assert(client.config.SkyPic.MaximumSnapRecipients == 8)
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.SkyPic.MaximumSnapRecipients == 8)
+    assert(not restarted.env.Config.SkyPic.AllowSponsoredSpotlights)
+    assert(new_client(restarted).config.SkyPic.SpotlightReportReasons[2] == "custom_reason")
+    settings.MaximumSnapRecipients = "8"
+    assert(not restarted.save({ change("SkyPic", settings) }).success)
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")

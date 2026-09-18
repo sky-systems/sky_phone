@@ -212,6 +212,14 @@ RegisterNetEvent("sky_phone:picstagram:new", function(data)
     SendNUIMessage({ type = "picstagram:new", data = data })
 end)
 
+RegisterNetEvent("sky_phone:skypic:new", function(data)
+    local skypic_locale = app_locales.skypic
+    local notification_text = skypic_locale.notifications[data.kind] or skypic_locale.notifications.default
+    data.title = skypic_locale.name
+    data.text = notification_text:gsub("{actor}", tostring(data.actor or ""))
+    SendNUIMessage({ type = "skypic:new", data = data })
+end)
+
 RegisterNetEvent("sky_phone:feather:new", function(data)
     local locale = app_locales.feather
     local notification_text = locale.notifications[data.kind] or locale.notifications.default

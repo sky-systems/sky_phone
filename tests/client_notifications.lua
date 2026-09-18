@@ -1,3 +1,8 @@
+local config_event_handlers = {}
+function AddEventHandler(name, callback)
+    config_event_handlers[name] = callback
+end
+
 local net_events = {}
 local nui_messages = {}
 local registered_apps = {

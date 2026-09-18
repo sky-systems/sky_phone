@@ -693,6 +693,9 @@ if skypic_file then
     end
     SkyPhone.AllowOperation = function() return true end
     function CreateThread() end
+    function AddEventHandler(name, callback)
+        assert(name == "sky_phone:configurator:serverUpdated" and type(callback) == "function")
+    end
     Bridge.Database.AfterMigration = function(_, callback) callback() end
     Bridge.Callbacks.Register = function(name, callback)
         feature_callbacks[name] = SkyPhoneLog.WrapCallback(name, callback)

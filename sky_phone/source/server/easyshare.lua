@@ -37,6 +37,7 @@ local valid_apps = {
     phone = true,
     photos = true,
     picstagram = true,
+    skypic = true,
 }
 local valid_visibilities = { contacts = true, everyone = true, hidden = true }
 
