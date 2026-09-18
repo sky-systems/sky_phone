@@ -114,8 +114,13 @@ function Bridge.Inventory.MetadataMatches(actual, expected)
     end
     actual = type(actual) == "table" and actual or {}
     for key, value in pairs(expected) do
-        if actual[key] ~= value then
-            return false
+        if type(value) == "table" and type(actual[key]) == "table" then
+            local matches, mismatch_key = Bridge.Inventory.MetadataMatches(actual[key], value)
+            if not matches then
+                return false, tostring(key) .. "." .. mismatch_key
+            end
+        elseif actual[key] ~= value then
+            return false, tostring(key)
         end
     end
     return true
