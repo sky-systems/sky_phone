@@ -1,6 +1,7 @@
 Bridge.Database.AfterMigration("sky_phone", function()
 
 local sessions = {}
+local market_viewers = {}
 local profile_locks = {}
 local exchange_lock = false
 local markets = {}
@@ -594,7 +595,7 @@ local function balance(account, asset)
         row and (tonumber(row.version) or 0) or 0
 end
 
-local function market_dtos(selected_market_ids)
+local function market_dtos(selected_market_ids, compact)
     local selected = nil
     if selected_market_ids then
         selected = {}
@@ -608,6 +609,7 @@ local function market_dtos(selected_market_ids)
         if not selected or selected[market_id] then
             local config = markets[market_id]
             local row = market_state[market_id]
+            local version = row.version
             local history = market_history[market_id]
             local prices = {}
             local first_history_index = math.max(1, #history - Config.Crypto.SparklinePoints + 1)
@@ -629,27 +631,62 @@ local function market_dtos(selected_market_ids)
             local first = prices[1]
             local price = tonumber(row.price) or config.InitialPrice
             local daily_low, daily_high = market_daily_range(market_id, price, timestamp)
-            result[#result + 1] = {
+            local market = {
                 id = market_id,
-                symbol = config.Symbol,
-                name = config.Name,
-                color = config.Color,
-                logo = config.Logo,
+                version = version,
                 price = decimal_string(price, Config.Crypto.PriceScale),
                 changePercent = first > 0 and ((price - first) / first) * 100 or 0,
                 enabled = row.status == "active",
                 high24h = decimal_string(daily_high, Config.Crypto.PriceScale),
                 low24h = decimal_string(daily_low, Config.Crypto.PriceScale),
-                issuedSupply = decimal_string(config.IssuedSupply * Config.Crypto.AssetScale, Config.Crypto.AssetScale),
-                treasuryAvailable = decimal_string(balance("treasury", market_id), Config.Crypto.AssetScale),
                 priceHistory = price_history,
-                sparkline = sparkline,
                 updatedAt = (tonumber(row.updated_at) or timestamp) * 1000,
             }
+            if not compact then
+                market.symbol = config.Symbol
+                market.name = config.Name
+                market.color = config.Color
+                market.logo = config.Logo
+                market.issuedSupply = decimal_string(config.IssuedSupply * Config.Crypto.AssetScale, Config.Crypto.AssetScale)
+                market.sparkline = sparkline
+            end
+            market.treasuryAvailable = decimal_string(balance("treasury", market_id), Config.Crypto.AssetScale)
+            result[#result + 1] = market
         end
     end
     return result
 end
+
+Bridge.Callbacks.Register("sky_phone:crypto:watch", function(source, data)
+    if type(data.active) ~= "boolean" then
+        return { success = false, error = "invalid_request" }
+    end
+    if not data.active then
+        market_viewers[source] = nil
+        return { success = true }
+    end
+    if not Config.Crypto.Enabled then
+        return { success = false, error = "service_unavailable" }
+    end
+    if not SkyPhone.AllowOperation(source, "crypto:watch", 30, 10) then
+        return { success = false, error = "rate_limited" }
+    end
+    local viewer = {}
+    market_viewers[source] = viewer
+    local phone_session, _, phone_error = require_phone(source)
+    if market_viewers[source] ~= viewer then
+        return { success = false, error = "request_cancelled" }
+    end
+    if not phone_session then
+        market_viewers[source] = nil
+        return phone_error
+    end
+    viewer.token = phone_session.token
+    -- A fresh, compact snapshot closes the gap between opening the app and
+    -- subscribing. Later ticks carry only changing fields, never logos/metadata
+    -- or a second, normalized copy of the same chart history.
+    return { success = true, data = market_dtos(nil, true) }
+end)
 
 local function activity(profile_id)
     local rows = Bridge.Database.Query([[
@@ -1479,6 +1516,7 @@ end
 
 AddEventHandler("playerDropped", function()
     sessions[source] = nil
+    market_viewers[source] = nil
 end)
 
 ensure_schema()
@@ -1760,10 +1798,23 @@ local function start_crypto_schedulers()
                 end
                 market_cursor = ((market_cursor + market_count - 1) % #market_order) + 1
                 if #changed_markets > 0 then
-                    TriggerClientEvent("sky_phone:crypto:changed", -1, {
-                        markets = market_dtos(changed_markets),
-                        updatedAt = os.time() * 1000,
-                    })
+                    local payload
+                    for player_source, viewer in pairs(market_viewers) do
+                        if viewer.token then
+                            local phone_session = SkyPhone.RequireSession(player_source)
+                            if not phone_session or phone_session.token ~= viewer.token then
+                                market_viewers[player_source] = nil
+                            else
+                                payload = payload or {
+                                    markets = market_dtos(changed_markets, true),
+                                    updatedAt = os.time() * 1000,
+                                }
+                                if market_viewers[player_source] == viewer then
+                                    Bridge.Network.SendClient("sky_phone:crypto:changed", player_source, payload)
+                                end
+                            end
+                        end
+                    end
                 end
             end)
         end

@@ -112,6 +112,35 @@ local function test(name, callback)
     end
 end
 
+test("latent device snapshots respect close, invalidation, switching and overtaking updates", function()
+    local client = new_client()
+    client.nui("ui:ready")
+    client.run_threads()
+    local first = device("first")
+    first.networkRevision = 1
+    client.events["sky_phone:device:opening"](1, "first")
+    SkyPhoneClient.Toggle(false)
+    client.events["sky_phone:device:open"](first)
+    assert(not SkyPhoneClient.GetState().open, "closing must cancel the in-flight open")
+    client.events["sky_phone:device:opening"](2, "second")
+    client.events["sky_phone:device:invalidated"]()
+    local second = device("second")
+    second.networkRevision = 2
+    client.events["sky_phone:device:open"](second)
+    assert(not SkyPhoneClient.GetState().open, "invalidation must cancel the in-flight open")
+    client.events["sky_phone:device:opening"](3, "third")
+    local third = device("third")
+    third.networkRevision = 3
+    local latest = device("third", "5552222222")
+    latest.networkRevision = 4
+    client.events["sky_phone:device:updated"](latest)
+    assert(client.nui("ui:opened").success)
+    assert(SkyPhoneClient.GetState().open, "a complete newer update may finish the announced open")
+    client.events["sky_phone:device:open"](third)
+    client.events["sky_phone:device:open"](first)
+    assert(SkyPhoneClient.GetState().phoneNumber == "5552222222", "late initial snapshots cannot overwrite newer data")
+end)
+
 test("late device updates cannot revive a closed phone", function()
     local client = new_client()
     client.authorize(device("old-session"))

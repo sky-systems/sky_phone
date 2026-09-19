@@ -32,21 +32,25 @@ RegisterNetEvent("sky_phone:bridge:callback:request", function(name, request_id,
     local callback = registered_callbacks[name]
     if not callback then
         if deferred_callbacks[name] then
-            TriggerClientEvent("sky_phone:bridge:callback:response", player_source, request_id,
+            Bridge.Network.SendClient("sky_phone:bridge:callback:response", player_source, request_id,
                 { success = false, error = "server_initializing" })
             return
         end
         Bridge.Debug("error", "[sky_phone] Server callback '%s' is not registered.", name)
-        TriggerClientEvent("sky_phone:bridge:callback:response", player_source, request_id, nil)
+        Bridge.Network.SendClient("sky_phone:bridge:callback:response", player_source, request_id, nil)
         return
     end
 
     local success, result = pcall(callback, player_source, data)
     if not success then
         Bridge.Debug("error", "[sky_phone] Server callback '%s' failed: %s", name, tostring(result))
-        TriggerClientEvent("sky_phone:bridge:callback:response", player_source, request_id, nil)
+        Bridge.Network.SendClient("sky_phone:bridge:callback:response", player_source, request_id, nil)
         return
     end
 
-    TriggerClientEvent("sky_phone:bridge:callback:response", player_source, request_id, result)
+    if not Bridge.Network.SendClient("sky_phone:bridge:callback:response", player_source, request_id, result) then
+        Bridge.Debug("error", "[sky_phone] Could not return server callback '%s'.", name)
+        Bridge.Network.SendClient("sky_phone:bridge:callback:response", player_source, request_id,
+            { success = false, error = "request_failed" })
+    end
 end)

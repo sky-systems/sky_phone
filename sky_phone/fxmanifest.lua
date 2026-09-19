@@ -17,6 +17,7 @@ provide 'yseries'
 shared_scripts {
     'config/init.lua',
     'source/bridge/shared.lua',
+    'source/bridge/network.lua',
     'source/bridge/inventory.lua',
     'source/shared/imei.lua',
     'source/shared/sim_number.lua',

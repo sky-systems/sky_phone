@@ -1213,6 +1213,9 @@ local function normalize_change_value(field, value)
     return nil
 end
 
+local published_client_config
+local published_client_revision
+
 local function client_payload()
     local payload = {}
     for key in pairs(CLIENT_CONFIG_KEYS) do
@@ -1229,12 +1232,43 @@ local function client_payload()
     return payload
 end
 
+local function same_client_value(left, right)
+    if type(left) ~= type(right) then return false end
+    if type(left) ~= "table" then return left == right end
+    for key, value in pairs(left) do
+        if not same_client_value(value, right[key]) then return false end
+    end
+    for key in pairs(right) do
+        if left[key] == nil then return false end
+    end
+    return true
+end
+
 function SkyPhoneConfigurator.Broadcast(target)
-    TriggerClientEvent("sky_phone:configurator:sync", target or -1, {
-        config = client_payload(),
+    local current = client_payload()
+    local payload = {
+        config = current,
         enabled = configurator_enabled,
         revision = revision,
-    })
+    }
+    target = target or -1
+    if target == -1 and published_client_config then
+        payload.config = {}
+        payload.removed = {}
+        payload.baseRevision = published_client_revision
+        for key, value in pairs(current) do
+            if not same_client_value(value, published_client_config[key]) then
+                payload.config[key] = value
+            end
+        end
+        for key in pairs(published_client_config) do
+            if current[key] == nil then payload.removed[#payload.removed + 1] = key end
+        end
+    end
+    if Bridge.Network.SendClient("sky_phone:configurator:sync", target, payload) and target == -1 then
+        published_client_config = current
+        published_client_revision = revision
+    end
 end
 
 local function read_stored_row()
@@ -1570,6 +1604,8 @@ Bridge.Database.Query(([[
 
 apply_stored_row(read_stored_row())
 apply_runtime_configuration()
+published_client_config = client_payload()
+published_client_revision = revision
 Bridge.Database.AfterMigration("sky_phone", migrate_blank_company_definitions)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_request_defaults)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_service_line_messaging)
