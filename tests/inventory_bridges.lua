@@ -35,6 +35,103 @@ local function load_inventory_contract(adapter_path)
     dofile("sky_phone/source/bridge/server/inventory_contract.lua")
 end
 
+do
+    local function copy_export_value(value)
+        if type(value) ~= "table" then
+            return value
+        end
+        local copy = {}
+        for key, nested_value in pairs(value) do
+            copy[key] = copy_export_value(nested_value)
+        end
+        return copy
+    end
+
+    local ox_item = { name = "phone", slot = 1, count = 1, metadata = {} }
+    local ox_write_mode = "persist"
+    local ox_inventory = {}
+
+    function ox_inventory:GetSlot(source, slot)
+        assert(source == 5 and slot == 1)
+        -- FiveM exports serialize tables instead of sharing Lua table references.
+        return copy_export_value(ox_item)
+    end
+
+    function ox_inventory:SetMetadata(source, slot, metadata)
+        assert(source == 5 and slot == 1)
+        if ox_write_mode == "ignore" then
+            return
+        end
+        ox_item.metadata = copy_export_value(metadata)
+        if ox_write_mode == "drop_nested" then
+            ox_item.metadata.custom.labels = nil
+        elseif ox_write_mode == "change_nested" then
+            ox_item.metadata.custom.labels[1] = "changed"
+        elseif ox_write_mode == "remove_slot" then
+            ox_item = nil
+        end
+        -- SetMetadata has no success return value, including when it succeeds.
+    end
+
+    reset_bridge("ox", true, true)
+    exports = { ox_inventory = ox_inventory }
+    GetResourceState = function(resource_name)
+        return resource_name == "ox_inventory" and "started" or "missing"
+    end
+    load_inventory_contract("sky_phone/source/bridge/server/inventory/ox.lua")
+    local metadata_errors = {}
+    Bridge.Debug = function(level, message, ...)
+        assert(level == "error")
+        metadata_errors[#metadata_errors + 1] = message:format(...)
+    end
+
+    assert(Bridge.Inventory.SetSlotMetadata(5, "1", { imei = "123456789012345" }))
+
+    local phone_metadata = {
+        imei = "123456789012345",
+        sim_id = "test-sim",
+        phone_number = "5550100",
+        custom = { labels = { "kept", "also kept" }, enabled = false, empty = {} },
+    }
+    assert(Bridge.Inventory.SetSlotMetadata(5, "1", phone_metadata),
+        "Ox must accept successfully persisted metadata containing copied nested tables")
+    assert(ox_item.metadata.custom ~= phone_metadata.custom)
+    assert(ox_item.metadata.custom.labels ~= phone_metadata.custom.labels)
+
+    local without_sim = copy_export_value(phone_metadata)
+    without_sim.sim_id = nil
+    without_sim.phone_number = nil
+    assert(Bridge.Inventory.SetSlotMetadata(5, 1, without_sim))
+    assert(ox_item.metadata.sim_id == nil and ox_item.metadata.phone_number == nil)
+    assert(ox_item.metadata.custom.labels[1] == "kept")
+    assert(#metadata_errors == 0, "Successful metadata writes must not emit error diagnostics")
+
+    ox_write_mode = "ignore"
+    assert(not Bridge.Inventory.SetSlotMetadata(5, 1, phone_metadata),
+        "Ox must reject a metadata write that did not persist the requested SIM")
+    ox_write_mode = "drop_nested"
+    assert(not Bridge.Inventory.SetSlotMetadata(5, 1, phone_metadata),
+        "Ox must reject missing nested metadata")
+    assert(metadata_errors[#metadata_errors]:find("field 'custom.labels'", 1, true))
+    ox_write_mode = "change_nested"
+    assert(not Bridge.Inventory.SetSlotMetadata(5, 1, phone_metadata),
+        "Ox must reject changed nested metadata")
+    assert(metadata_errors[#metadata_errors]:find("field 'custom.labels.1'", 1, true))
+    ox_write_mode = "remove_slot"
+    assert(not Bridge.Inventory.SetSlotMetadata(5, 1, phone_metadata))
+    assert(metadata_errors[#metadata_errors]:find("after writing", 1, true))
+    assert(not Bridge.Inventory.SetSlotMetadata(5, 1, phone_metadata))
+    assert(metadata_errors[#metadata_errors]:find("before writing", 1, true))
+    assert(#metadata_errors == 5)
+
+    assert(Bridge.Inventory.MetadataMatches({ imei = "test", extra = "kept" }, { imei = "test" }))
+    assert(Bridge.Inventory.MetadataMatches({ custom = { enabled = false } }, { custom = { enabled = false } }))
+    assert(not Bridge.Inventory.MetadataMatches({ custom = { enabled = true } }, { custom = { enabled = false } }))
+    assert(not Bridge.Inventory.MetadataMatches({}, { custom = {} }))
+    assert(not Bridge.Inventory.MetadataMatches({ custom = "wrong type" }, { custom = {} }))
+    assert(not Bridge.Inventory.MetadataMatches({ custom = {} }, { custom = "wrong type" }))
+end
+
 local core_items = {
     {
         name = "phone",
