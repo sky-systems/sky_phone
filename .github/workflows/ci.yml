@@ -44,6 +44,14 @@ jobs:
             luac5.4 -p "$file"
           done < <(find sky_phone tests -type f -name '*.lua' -print0)
 
+      - name: Test inventory bridges, tooltips and SIM actions
+        run: |
+          lua5.4 tests/inventory_bridges.lua
+          lua5.4 tests/inventory_extended_bridges.lua
+          lua5.4 tests/client_inventory.lua
+          lua5.4 tests/server_sim_inventory.lua
+          lua5.4 tests/client_sim.lua
+
       - name: Test Phone Configurator persistence and runtime sync
         run: lua5.4 tests/phone_configurator.lua
 
