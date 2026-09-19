@@ -88,9 +88,9 @@ describe('phone inventory contracts', () => {
   })
 
   it('auto-detects registered inventories and forces metadata-free adapters into compatible modes', () => {
-    const inventoryBridge = readResourceFile(
-      'source/bridge/server/inventory.lua',
-    )
+    const inventoryBridge =
+      readResourceFile('source/bridge/server/inventory.lua') +
+      readResourceFile('source/bridge/inventory.lua')
 
     expect(inventoryBridge).toContain(
       '{ name = "hex", resource = "hex_4_inventory", framework = "esx", metadata = false },',

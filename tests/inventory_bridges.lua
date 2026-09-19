@@ -29,6 +29,7 @@ local function reset_bridge(inventory_name, unique_phones, sim_cards_enabled)
 end
 
 local function load_inventory_contract(adapter_path)
+    dofile("sky_phone/source/bridge/inventory.lua")
     dofile("sky_phone/source/bridge/server/inventory.lua")
     dofile(adapter_path)
     dofile("sky_phone/source/bridge/server/inventory_contract.lua")
