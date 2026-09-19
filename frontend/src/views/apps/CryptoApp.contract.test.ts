@@ -361,7 +361,9 @@ describe('VaultX crypto app contracts', () => {
     )
     expect(server).toContain('local function advance_global_market_cycle')
     expect(server).toContain('Config.Crypto.MeanReversionBasisPoints')
-    expect(server).toContain('TriggerClientEvent("sky_phone:crypto:changed"')
+    expect(server).toContain(
+      'Bridge.Network.SendClient("sky_phone:crypto:changed"',
+    )
     expect(server).toContain('priceHistory = price_history')
     expect(source).toContain('selected.priceHistory')
     expect(source).toContain('4500 + Math.random() * 2500')

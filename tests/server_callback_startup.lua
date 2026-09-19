@@ -17,6 +17,10 @@ local function new_server(failing_module, yielding_module)
         response = result
     end
     env.Bridge = {
+        Network = { SendClient = function(...)
+            env.TriggerClientEvent(...)
+            return true
+        end },
         Callbacks = {},
         Database = { Query = function()
             queries = queries + 1
@@ -123,3 +127,6 @@ for _, name in ipairs(endpoints) do
 end
 
 print("Server callback startup and recovery tests passed")
+
+dofile("tests/network_transport.lua")
+dofile("tests/server_crypto_network.lua")
