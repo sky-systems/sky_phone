@@ -1,48 +1,53 @@
 # Exports
 
-Exports let one resource call functions exposed by another resource.
+An export is a contract between resources on the same execution side. Prefer runtime
+registration with `exports("name", implementation)` where the resource uses it; the argument
+is the exported function name, not the resource name. Call it with
+`exports["resource_name"]:name(arguments)`. Manifest `export`/`server_export` declarations
+instead expose named global functions on the corresponding side.
 
-## Defining exports (Lua)
+Read the provider's manifest, export registration and implementation before using it. Confirm
+arguments, return shape, whether it yields, and error behavior. Do not assume an export also
+exists on the other side or that dependency ordering means asynchronous provider data is ready.
 
-In your resource’s manifest:
+Keep payloads purposeful. Cross-resource serialization differs from ordinary Lua references;
+there is no universal rule that many tiny export calls beat one batch. Measure the actual
+call path before changing granularity. Do not retain stale function references across provider
+restarts; follow the existing resource lifecycle.
 
-```lua
-exports { 'getWidget', 'setWidget' }
-```
+When AGENTS requires the Sky bridge, use its documented facades directly without wrapper aliases.
 
-In your script, define the globals (or use the runtime export API):
+## Provider and consumer example
 
-```lua
-local widget = nil
-
-function getWidget()
-  return widget
-end
-
-function setWidget(value)
-  widget = value
-end
-```
-
-## Consuming exports (Lua)
+For a resource-owned, server-side in-memory counter, runtime registration keeps the
+implementation local to its provider. This demonstrates arguments, state and a return
+value; it is not a money/reward endpoint and does not add a network event:
 
 ```lua
-local w = exports.myresource:getWidget()
-exports.myresource:setWidget(42)
+-- example_counter/server.lua
+local total = 0
+
+exports("AddToCount", function(amount)
+    assert(type(amount) == "number" and amount == amount
+        and amount > 0 and amount <= 100 and amount % 1 == 0,
+        "AddToCount expects an integer from 1 to 100")
+    total = total + amount
+    return total
+end)
 ```
-
-## Server exports
-
-Use **server_export** in the manifest and define the same on the server script. Other resources call them from server context:
 
 ```lua
-exports.myresource:getData()
+-- Another resource's server script, with the provider dependency declared:
+local new_total = exports["example_counter"]:AddToCount(2)
+print(("[example_consumer] Counter is %s"):format(new_total))
 ```
 
-## Notes
+For an existing manifest-declared export, the corresponding declaration is
+`server_export "AddToCount"` and the provider must define a global
+`function AddToCount(amount) ... end` containing the implementation. A local function
+with that name is not exposed by manifest metadata. Use `export` on the client side.
+Choose one registration form for a contract; do not add a duplicate alias merely to
+demonstrate both. The getter/setter pattern uses the same provider-owned-state boundary.
 
-- Prefer **exports** over manifest `export` when possible (e.g. `exports('resname', function() ... end)`).
-
-## Reference
-
-- Resource manifest exports: https://docs.fivem.net/docs/scripting-reference/resource-manifest/resource-manifest/#export
+[Manifest export docs](https://docs.fivem.net/docs/scripting-reference/resource-manifest/resource-manifest/#export)
+and [scheduler export implementation](reference-links.md) provide the source trail.
