@@ -1020,4 +1020,8 @@ If Sky Phone helps your server, star the repository and share it with other Five
 
 Sky Phone is free and open-source software licensed under the [GNU General Public License v3.0](LICENSE).
 
-Third-party acknowledgements and license information are available in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Third-party acknowledgements and complete library license texts are available in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The production build updates this inventory and copies it together with the GPL into the deployable resource, so release and pull-request packages include both files. The listed licenses apply to the identified components; they do not grant additional rights to unrelated artwork, maps, or audio.
+
+The inventory includes the declared frontend dependency tree and Tailwind's generated CSS, with supplemental notices maintained in [licenses/ADDITIONAL_NOTICES.md](licenses/ADDITIONAL_NOTICES.md). It conservatively includes supporting packages, not only code present in the final NUI bundle. After dependency updates, run `pnpm build` from `frontend` to regenerate and publish the notices; `pnpm licenses:check` verifies the checked-in inventory. Preserve upstream copyright and license texts when updating the supplements.
+
+The corresponding source and build scripts for each published release are available through the matching version tag and source archives on the [releases page](https://github.com/sky-systems/sky_phone/releases). Release and pull-request packages include `SOURCE.txt` linking the exact built commit and its source archive. A pull-request filename identifies the PR head; `SOURCE.txt` records the actual checkout tested by CI, which may be GitHub's merge commit.

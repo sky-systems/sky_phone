@@ -700,6 +700,8 @@ If Sky Phone helps your server, star the repository and share it with other Five
 
 ## License, credits, and notices
 
-Sky Phone is free and open-source software licensed under the [GNU General Public License v3.0](../LICENSE).
+Sky Phone is free and open-source software licensed under the [GNU General Public License v3.0](LICENSE).
 
-Third-party acknowledgements and license information are available in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+Third-party acknowledgements and complete library license texts are included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The GPL and these notices accompany the resource in release and pull-request packages. The listed licenses apply to the identified components; they do not grant additional rights to unrelated artwork, maps, or audio.
+
+The corresponding Vue/TypeScript and Lua sources, dependency lockfile, and build scripts are available in the [public repository](https://github.com/sky-systems/sky_phone). Published release and pull-request packages include `SOURCE.txt` with links to the exact source commit and its archive. A pull-request filename identifies the PR head; `SOURCE.txt` records the actual checkout tested by CI, which may be GitHub's merge commit. Published releases also provide the matching version tag and source archives on the [releases page](https://github.com/sky-systems/sky_phone/releases).

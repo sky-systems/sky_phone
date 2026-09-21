@@ -11,8 +11,11 @@
     "preview": "vite preview",
     "typecheck": "vue-tsc --build",
     "lint": "eslint .",
+    "licenses:check": "node scripts/third-party-notices.cjs --check",
+    "licenses:write": "node scripts/third-party-notices.cjs --write",
     "format": "prettier --write src/ testserver/ build.cjs",
-    "test": "vitest run && pnpm test:browser-mocks",
+    "test": "pnpm test:licenses && vitest run && pnpm test:browser-mocks",
+    "test:licenses": "node --test scripts/tests/third-party-notices.cjs",
     "test:browser-mocks": "node testserver/smoke.cjs"
   },
   "pnpm": {
