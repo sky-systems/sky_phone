@@ -179,9 +179,13 @@ Start the selected voice resource before Sky Phone.
 2. Copy the included resource into your FiveM resources directory and keep its folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
 4. Review `sky_phone/config/config.lua` and `sky_phone/config/media.lua`.
-5. Add the required inventory items.
+5. Add the required [inventory items](#inventory-items). With **ox_inventory**, also remove the existing NPWD phone handler as described below.
 6. Add `ensure sky_phone` to `server.cfg`.
 7. Restart the server and watch the console for warnings.
+
+> [!WARNING]
+> **Using ox_inventory? Removing its NPWD phone handler is a required installation step when that block exists.**
+> Changing `data/items.lua` alone is not enough. Follow [Remove the NPWD phone handler](#1-remove-the-npwd-phone-handler-required) before testing the phone item, even if NPWD is stopped or not installed.
 
 Example start order:
 
@@ -355,6 +359,35 @@ The server-only block is evaluated only on the server. Because the project uses 
 
 ### ox_inventory
 
+#### 1. Remove the NPWD phone handler (required)
+
+> [!WARNING]
+> **Remove the old NPWD handler before using Sky Phone.** It can intercept the `phone` item even when NPWD is stopped or not installed. Updating the item definition in `data/items.lua` does not remove this separate handler.
+
+Search the **entire `ox_inventory` resource** for `Item('phone'` (or `Item("phone"` if the file uses double quotes). Check these locations:
+
+- Current releases: `ox_inventory/modules/items/client.lua`
+- Older releases: `ox_inventory/items/client.lua`
+
+**REMOVE the following complete NPWD block if present, from `Item('phone', ...` through its final `end)`. This is code to delete, not code to add:**
+
+```lua
+-- REMOVE this entire NPWD block if present. Do not add it.
+Item('phone', function(data, slot)
+    local success, result = pcall(function()
+        return exports.npwd:isPhoneVisible()
+    end)
+
+    if success then
+        exports.npwd:setPhoneVisible(not result)
+    end
+end)
+```
+
+Keep the `phone` item definition in `ox_inventory/data/items.lua`; remove only the NPWD handler above. If no matching NPWD handler exists, continue with the item definitions.
+
+#### 2. Add the inventory items
+
 Default entries in `ox_inventory/data/items.lua` for unique phones with physical SIM cards. The phone includes an **Eject SIM** context button ([Ox item buttons](https://overextended.dev/ox_inventory/Guides/creatingItems)):
 
 ```lua
@@ -392,6 +425,8 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
 ```
 
 Do not configure an LB Phone client event or client export. Sky Phone registers the usable items through its server-side inventory adapter.
+
+**Restart the complete server after both changes**, then verify that using the `phone` item opens Sky Phone. Recheck the NPWD handler after updating or replacing ox_inventory, as an update may restore it.
 
 The server registers `Config.Phone.Item` as usable for every supported inventory adapter: `ak47`, `codem`, `core`, `jaksam`, `jpr`, `lj`, `mf`, `one`, `origen`, `ox`, `ps`, `qb`, `qs`, `smx`, `tgiann`, `hex`, and `esx`. Resource startup fails visibly if the selected adapter or its resource is unavailable.
 
