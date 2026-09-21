@@ -103,10 +103,6 @@ const configuratorValueEditor = readFileSync(
   new URL('./AdminConfigValueEditor.vue', import.meta.url),
   'utf8',
 )
-const configInputWidth = readFileSync(
-  new URL('../directives/configInputWidth.ts', import.meta.url),
-  'utf8',
-)
 
 describe('standalone admin panel contracts', () => {
   it('renders as a dedicated full-screen editor outside the phone shell', () => {
@@ -489,10 +485,6 @@ describe('standalone admin panel contracts', () => {
     expect(configuratorValueEditor).toMatch(
       /props\.labels\.fieldNames\?\.\[tableEntryPath\(key\)\]\s*\?\?\s*props\.tabLabel\?\.\(key, tableValue\.value\[key\]\)\s*\?\?\s*key/,
     )
-    expect(source).toContain('v-config-input-width')
-    expect(configuratorValueEditor).toContain('v-config-input-width')
-    expect(configInputWidth).toContain("input.addEventListener('input'")
-    expect(configInputWidth).toContain('input.scrollWidth')
     expect(source).toContain('filter: drop-shadow')
     expect(source).toContain("input[type='number']::-webkit-inner-spin-button")
     expect(configuratorValueEditor).toContain(

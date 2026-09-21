@@ -44,7 +44,6 @@ import {
   isPhoneAppRemovable,
   PHONE_APPS,
 } from '@/config/apps'
-import { vConfigInputWidth } from '@/directives/configInputWidth'
 import { useAdminStore } from '@/stores/admin'
 import { usePhoneStore } from '@/stores/phone'
 import type {
@@ -1743,7 +1742,6 @@ onBeforeUnmount(() => {
                       class="admin-panel-config-optional"
                     >
                       <input
-                        v-config-input-width
                         type="text"
                         :aria-label="`${field.label} ${field.path}`"
                         :value="
@@ -1772,7 +1770,6 @@ onBeforeUnmount(() => {
 
                     <input
                       v-else
-                      v-config-input-width
                       :aria-label="`${field.label} ${field.path}`"
                       :type="
                         field.sensitive
@@ -4221,6 +4218,7 @@ button:disabled {
 
 .admin-panel-config-field > input,
 .admin-panel-config-optional > input {
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   border: 0;
@@ -4230,10 +4228,6 @@ button:disabled {
   background: #1b1e1b;
   font: inherit;
   font-size: calc(10 * var(--admin-unit));
-}
-
-.admin-panel-config-field > input {
-  justify-self: start;
 }
 
 .admin-panel-config-field > input[type='number'] {
@@ -4263,16 +4257,21 @@ button:disabled {
 }
 
 .admin-panel-config-optional {
+  width: 100%;
   min-width: 0;
   max-width: 100%;
   display: flex;
   align-items: center;
-  justify-self: start;
   gap: calc(8 * var(--admin-unit));
+}
+
+.admin-panel-config-optional > input {
+  flex: 1 1 0;
 }
 
 .admin-panel-config-toggle {
   position: relative;
+  flex-shrink: 0;
   justify-self: start;
   width: calc(32 * var(--admin-unit));
   height: calc(18 * var(--admin-unit));

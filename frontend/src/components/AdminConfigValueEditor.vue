@@ -8,7 +8,6 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
-import { vConfigInputWidth } from '@/directives/configInputWidth'
 import type { AdminConfiguratorStructure } from '@/types/admin'
 import {
   blankFromConfiguratorStructure,
@@ -1119,7 +1118,6 @@ function mapEntryStructure(
     class="config-value-optional"
   >
     <input
-      v-config-input-width
       class="config-value-input"
       type="text"
       :aria-label="ariaLabel"
@@ -1156,7 +1154,6 @@ function mapEntryStructure(
 
   <input
     v-else
-    v-config-input-width
     class="config-value-input"
     :aria-label="ariaLabel"
     :type="
@@ -1587,12 +1584,16 @@ function mapEntryStructure(
 }
 
 .config-value-optional {
+  width: 100%;
   min-width: 0;
   max-width: 100%;
   display: flex;
   align-items: center;
-  justify-self: start;
   gap: calc(7 * var(--admin-unit));
+}
+
+.config-value-optional > .config-value-input {
+  flex: 1 1 0;
 }
 
 .config-structured-editor__empty {
@@ -1669,10 +1670,10 @@ function mapEntryStructure(
 }
 
 .config-value-input {
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   height: calc(29 * var(--admin-unit));
-  justify-self: start;
   padding: 0 calc(8 * var(--admin-unit));
 }
 
@@ -1694,6 +1695,7 @@ function mapEntryStructure(
 
 .config-value-toggle {
   position: relative;
+  flex-shrink: 0;
   justify-self: start;
   width: calc(32 * var(--admin-unit));
   height: calc(18 * var(--admin-unit));
