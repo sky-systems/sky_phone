@@ -1049,6 +1049,10 @@ Sky Phone is free, but you are not left alone with it. For installation help, co
 
 If Sky Phone helps your server, star the repository and share it with other FiveM developers. Feedback and focused pull requests are welcome.
 
+## Music integrations
+
+The server-only [Music library export](MUSIC_API.md) lets authorized resources read the equipped phone's playlists and tracks.
+
 ## License, credits, and notices
 
 Sky Phone is free and open-source software licensed under the [GNU General Public License v3.0](LICENSE).

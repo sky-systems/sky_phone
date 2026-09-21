@@ -411,6 +411,17 @@ local function bootstrap(account_id, imei)
     }
 end
 
+exports("GetMusicLibrary", function(source)
+    local device, reason = SkyPhoneDeviceDirectory.GetOnlineBySource(source)
+    if not device then return nil, reason end
+    local library = bootstrap(device.accountId, device.imei)
+    local current = SkyPhoneDeviceDirectory.GetOnlineBySource(source)
+    if not current or current.imei ~= device.imei or current.accountId ~= device.accountId then
+        return nil, "device_changed"
+    end
+    return library
+end)
+
 local function owned_playlist(account_id, imei, playlist_id)
     local condition, owner_params = owner_condition(account_id, imei)
     local params = { playlist_id }
