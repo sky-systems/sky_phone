@@ -2,7 +2,7 @@ local function new_server(responder, configure)
     local requests, warnings = {}, {}
     local noop = function() end
     local environment = setmetatable({
-        Config = {},
+        Config = { PhoneConfigurator = { Enabled = true } },
         AddEventHandler = noop,
         SetTimeout = noop,
         GetConvar = function() return "" end,
