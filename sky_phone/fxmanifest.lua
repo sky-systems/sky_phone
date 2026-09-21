@@ -171,7 +171,6 @@ files {
     'source/html/index.html',
     'source/html/assets/**',
     'source/html/img/**',
-    'source/html/sounds/**',
     'config/music/**',
 }
 

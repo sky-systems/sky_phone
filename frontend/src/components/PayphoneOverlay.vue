@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import payphoneFrame from '@/assets/img/payphone/american-payphone-frame.png'
 import { nuiCall } from '@/utils/nui'
-import { registerPhoneMediaElement } from '@/utils/phoneAudio'
+import { playPhoneEffect } from '@/utils/tones'
 import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 
 type PayphoneState =
@@ -65,28 +65,11 @@ const input = ref<HTMLInputElement | null>(null)
 const now = ref(Date.now())
 const statusOverride = ref('')
 let ticker: number | undefined
-let buttonSoundIndex = 0
-const buttonSounds: HTMLAudioElement[] = []
-
-function prepareButtonSounds(): void {
-  if (buttonSounds.length) return
-  for (let index = 0; index < 4; index += 1) {
-    const sound = registerPhoneMediaElement(
-      new Audio(`${import.meta.env.BASE_URL}sounds/button.mp3`),
-    )
-    sound.preload = 'auto'
-    sound.volume = 0.55
-    buttonSounds.push(sound)
-  }
-}
+let stopButtonSound: (() => void) | undefined
 
 function playButtonSound(): void {
-  prepareButtonSounds()
-  const sound = buttonSounds[buttonSoundIndex]
-  buttonSoundIndex = (buttonSoundIndex + 1) % buttonSounds.length
-  sound.currentTime = 0
-  const playback = sound.play()
-  if (playback) void playback.catch(() => undefined)
+  stopButtonSound?.()
+  stopButtonSound = playPhoneEffect('button', 55, false)
 }
 
 const active = computed(() =>
@@ -235,6 +218,8 @@ function onMessage(event: MessageEvent): void {
     applyCall(event.data.data as PayphoneCall)
   } else if (event.data?.type === 'payphone:close') {
     visible.value = false
+    stopButtonSound?.()
+    stopButtonSound = undefined
   }
 }
 
@@ -258,7 +243,6 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(() => {
-  prepareButtonSounds()
   window.addEventListener('message', onMessage)
   window.addEventListener('keydown', onKeydown, true)
   ticker = window.setInterval(() => {
@@ -270,11 +254,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('message', onMessage)
   window.removeEventListener('keydown', onKeydown, true)
   if (ticker !== undefined) window.clearInterval(ticker)
-  for (const sound of buttonSounds) {
-    sound.pause()
-    sound.src = ''
-  }
-  buttonSounds.length = 0
+  stopButtonSound?.()
+  stopButtonSound = undefined
 })
 </script>
 

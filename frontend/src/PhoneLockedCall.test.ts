@@ -14,7 +14,7 @@ import { isTrustedRootMessageSource } from '@/utils/windowMessages'
 
 vi.mock('@/utils/nui', () => ({ nuiCall: vi.fn() }))
 vi.mock('@/utils/tones', () => ({
-  playPhoneMediaTone: vi.fn(() => vi.fn()),
+  playPhoneEffect: vi.fn(() => vi.fn()),
   playPhoneTone: vi.fn(() => vi.fn()),
   playPhoneVibration: vi.fn(() => vi.fn()),
 }))

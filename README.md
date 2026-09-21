@@ -971,7 +971,7 @@ pnpm build
 
 - On startup, the server console prints `SKY PHONE UI BUILD IS MISSING OR INCOMPLETE`, lists the missing or invalid packaged files, and shows repository-native build commands.
 - Install the latest published release package rather than GitHub's automatically generated source archive.
-- Confirm `sky_phone/source/html/index.html`, `assets`, `img`, and `sounds` exist.
+- Confirm `sky_phone/source/html/index.html`, `assets`, and `img` exist.
 - Developers working from source must run the frontend production build before starting the resource.
 
 ### Calls connect without audio

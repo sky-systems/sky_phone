@@ -10,7 +10,7 @@ import {
   type BuiltInRingtoneId,
 } from '@/utils/preferences'
 import {
-  playPhoneMediaTone,
+  playPhoneEffect,
   playPhoneTone,
   playPhoneVibration,
   type PhoneToneId,
@@ -69,24 +69,14 @@ export const useCallsStore = defineStore('calls', () => {
           lastEndedCallId = endedId
           stopCallEndTone()
           // Keep the one-shot tone alive when a terminal state is cleared.
-          stopEndTone = playPhoneMediaTone(
-            `${import.meta.env.BASE_URL}sounds/endcall.mp3`,
-            100,
-            false,
-          )
+          stopEndTone = playPhoneEffect('endcall', 100, false)
         }
         return
       }
       stopCallEndTone()
       if (state === 'connected') return
       if (direction === 'outgoing') {
-        onCleanup(
-          playPhoneMediaTone(
-            `${import.meta.env.BASE_URL}sounds/calling.mp3`,
-            100,
-            true,
-          ),
-        )
+        onCleanup(playPhoneEffect('calling', 100, true))
         return
       }
       const alertsMuted =
