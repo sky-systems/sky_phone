@@ -130,3 +130,4 @@ print("Server callback startup and recovery tests passed")
 
 dofile("tests/network_transport.lua")
 dofile("tests/server_crypto_network.lua")
+dofile("tests/server_crypto_schema.lua")
