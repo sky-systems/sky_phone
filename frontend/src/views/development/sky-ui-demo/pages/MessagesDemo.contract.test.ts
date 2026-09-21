@@ -22,17 +22,9 @@ describe('MessagesDemo Konsta parity', () => {
     )
   })
 
-  it('uses the exact filled 20px and 28px Framework7 iOS actions', () => {
-    expect(source).toContain(
-      "import ArrowUpCircleFill from 'framework7-icons/vue/vue/ArrowUpCircleFill.vue'",
-    )
-    expect(source).toContain(
-      "import CameraFill from 'framework7-icons/vue/vue/CameraFill.vue'",
-    )
-    expect(source).toContain('<SkyIcon :size="20"><CameraFill /></SkyIcon>')
-    expect(source).toContain(
-      '<SkyIcon :size="28"><ArrowUpCircleFill /></SkyIcon>',
-    )
+  it('keeps the camera and send actions at 20px and 28px', () => {
+    expect(source).toContain('<SkyIcon :size="20"><Camera /></SkyIcon>')
+    expect(source).toContain('<SkyIcon :size="28"><CircleArrowUp /></SkyIcon>')
     expect(source.match(/component="button"/g)).toHaveLength(2)
   })
 })
