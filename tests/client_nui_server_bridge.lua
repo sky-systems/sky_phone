@@ -38,8 +38,9 @@ local callback_count = 0
 for _ in pairs(callbacks) do
     callback_count = callback_count + 1
 end
-assert(callback_count == 313, ("expected 313 NUI server callbacks, got %d"):format(callback_count))
+assert(callback_count == 314, ("expected 314 NUI server callbacks, got %d"):format(callback_count))
 for _, required in ipairs({
+    "crypto:watch",
     "companies:dial-service-line",
     "mail:mailboxes",
     "calls:set-speaker",

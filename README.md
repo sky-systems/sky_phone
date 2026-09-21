@@ -179,9 +179,13 @@ Start the selected voice resource before Sky Phone.
 2. Copy the included resource into your FiveM resources directory and keep its folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
 4. Review `sky_phone/config/config.lua` and `sky_phone/config/media.lua`.
-5. Add the required inventory items.
+5. Add the required [inventory items](#inventory-items). With **ox_inventory**, also remove the existing NPWD phone handler as described below.
 6. Add `ensure sky_phone` to `server.cfg`.
 7. Restart the server and watch the console for warnings.
+
+> [!WARNING]
+> **Using ox_inventory? Removing its NPWD phone handler is a required installation step when that block exists.**
+> Changing `data/items.lua` alone is not enough. Follow [Remove the NPWD phone handler](#1-remove-the-npwd-phone-handler-required) before testing the phone item, even if NPWD is stopped or not installed.
 
 Example start order:
 
@@ -355,6 +359,35 @@ The server-only block is evaluated only on the server. Because the project uses 
 
 ### ox_inventory
 
+#### 1. Remove the NPWD phone handler (required)
+
+> [!WARNING]
+> **Remove the old NPWD handler before using Sky Phone.** It can intercept the `phone` item even when NPWD is stopped or not installed. Updating the item definition in `data/items.lua` does not remove this separate handler.
+
+Search the **entire `ox_inventory` resource** for `Item('phone'` (or `Item("phone"` if the file uses double quotes). Check these locations:
+
+- Current releases: `ox_inventory/modules/items/client.lua`
+- Older releases: `ox_inventory/items/client.lua`
+
+**REMOVE the following complete NPWD block if present, from `Item('phone', ...` through its final `end)`. This is code to delete, not code to add:**
+
+```lua
+-- REMOVE this entire NPWD block if present. Do not add it.
+Item('phone', function(data, slot)
+    local success, result = pcall(function()
+        return exports.npwd:isPhoneVisible()
+    end)
+
+    if success then
+        exports.npwd:setPhoneVisible(not result)
+    end
+end)
+```
+
+Keep the `phone` item definition in `ox_inventory/data/items.lua`; remove only the NPWD handler above. If no matching NPWD handler exists, continue with the item definitions.
+
+#### 2. Add the inventory items
+
 Default entries in `ox_inventory/data/items.lua` for unique phones with physical SIM cards. The phone includes an **Eject SIM** context button ([Ox item buttons](https://overextended.dev/ox_inventory/Guides/creatingItems)):
 
 ```lua
@@ -392,6 +425,8 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
 ```
 
 Do not configure an LB Phone client event or client export. Sky Phone registers the usable items through its server-side inventory adapter.
+
+**Restart the complete server after both changes**, then verify that using the `phone` item opens Sky Phone. Recheck the NPWD handler after updating or replacing ox_inventory, as an update may restore it.
 
 The server registers `Config.Phone.Item` as usable for every supported inventory adapter: `ak47`, `codem`, `core`, `jaksam`, `jpr`, `lj`, `mf`, `one`, `origen`, `ox`, `ps`, `qb`, `qs`, `smx`, `tgiann`, `hex`, and `esx`. Resource startup fails visibly if the selected adapter or its resource is unavailable.
 
@@ -831,7 +866,7 @@ The migration command is server-console only.
 
 ### Garage
 
-Set `Config.Garage.VehicleKeySystem` (default: `auto`) to give vehicle keys after a valet delivery. The same setting is available under Garage in the Phone Configurator. See [vehicle key integration](VEHICLEKEYS.md) for supported providers and the client/server bridge files.
+Set `Config.Garage.VehicleKeySystem` (default: `auto`) to give vehicle keys after a valet delivery. The same setting is available under Garage in the Phone Configurator.
 
 Select the provider under `Config.Garage.System`. Vehicle images use the configured CDN template with an icon fallback when no image is available.
 
@@ -912,8 +947,6 @@ Unlisted jobs can read news but cannot manage articles.
 ## External custom apps
 
 Sky Phone is not limited to the apps that ship with it. Other resources can register installable custom apps, publish them through the App Store, exchange messages with their NUI, send notifications, and use server-controlled permissions and storage.
-
-For the complete first-party export, ownership, readiness, and iframe protocol contract, see the [Creator API](CREATOR_API.md).
 
 Its native custom app surface includes client and server exports for app registration, lifecycle control, messaging, notifications, capability discovery, and policy management. Sky Phone also normalizes supported custom-app contracts from:
 
@@ -1024,4 +1057,8 @@ The server-only [Music library export](MUSIC_API.md) lets authorized resources r
 
 Sky Phone is free and open-source software licensed under the [GNU General Public License v3.0](LICENSE).
 
-Third-party acknowledgements and license information are available in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Third-party acknowledgements and complete library license texts are available in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The production build updates this inventory and copies it together with the GPL into the deployable resource, so release and pull-request packages include both files. The listed licenses apply to the identified components; they do not grant additional rights to unrelated artwork, maps, or audio.
+
+The inventory includes the declared frontend dependency tree and Tailwind's generated CSS, with supplemental notices maintained in [licenses/ADDITIONAL_NOTICES.md](licenses/ADDITIONAL_NOTICES.md). It conservatively includes supporting packages, not only code present in the final NUI bundle. After dependency updates, run `pnpm build` from `frontend` to regenerate and publish the notices; `pnpm licenses:check` verifies the checked-in inventory. Preserve upstream copyright and license texts when updating the supplements.
+
+The corresponding source and build scripts for each published release are available through the matching version tag and source archives on the [releases page](https://github.com/sky-systems/sky_phone/releases). Release and pull-request packages include `SOURCE.txt` linking the exact built commit and its source archive. A pull-request filename identifies the PR head; `SOURCE.txt` records the actual checkout tested by CI, which may be GitHub's merge commit.

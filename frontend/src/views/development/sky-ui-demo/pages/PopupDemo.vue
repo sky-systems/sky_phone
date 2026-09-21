@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Xmark from 'framework7-icons/vue/vue/Xmark.vue'
+import { X } from 'lucide-vue-next'
 import { ref } from 'vue'
 
 import {
@@ -53,7 +53,7 @@ const demo = useSkyUiDemoContext()
                 icon-only
                 @click="popupOpened = false"
               >
-                <SkyIcon :size="20"><Xmark /></SkyIcon>
+                <SkyIcon :size="20"><X /></SkyIcon>
               </SkyLink>
             </template>
           </SkyNavbar>

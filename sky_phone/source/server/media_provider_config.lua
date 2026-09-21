@@ -15,3 +15,11 @@ function SkyPhoneMediaProviderConfig.FiveManageApiKey(override_key)
 
     return trim_key(Config.Media.FiveManage.ApiKey)
 end
+
+function SkyPhoneMediaProviderConfig.FiveManageSetupHint()
+    if Config.PhoneConfigurator.Enabled == true then
+        return "Add a FiveManage V3 token with Media access to FiveManage.ApiKey in /phonepanel > Phone Configurator and save with the green check. The token applies immediately; config/media.lua is ignored while the Phone Configurator is enabled."
+    end
+
+    return "Add a FiveManage V3 token with Media access to Config.Media.FiveManage.ApiKey in config/media.lua and restart sky_phone."
+end

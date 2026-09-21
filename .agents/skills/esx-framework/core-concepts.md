@@ -1,217 +1,76 @@
-# ESX Core Concepts
+# Initialization and lifecycle
 
-## Framework Architecture
+Inspect fxmanifest.lua, imports and resource start order before changing initialization.
+Current ESX imports obtain the shared object through the es_extended getSharedObject export.
+Use the installed import contract rather than adding legacy polling/getSharedObject network
+events. When AGENTS requires the Sky bridge, use its existing framework initialization.
 
-ESX Legacy is a **modular framework** that provides:
-- Player management and persistence
-- Job and economy systems
-- Inventory and weapon management
-- UI components (menus, notifications, progress bars)
-- Database integration (MySQL/MariaDB)
+Client PlayerData is a local view, not the server player object or a permission authority.
+Inspect the actual serialized shape; do not assume inventories/accounts are always keyed maps
+or every optional field exists. Distinguish login, character selection, player-loaded, job
+change, logout and disconnect. A resource can start after the player is already loaded.
+Initialize from current state and subscribe to the relevant installed-version lifecycle once.
 
-## Getting ESX Object
+Avoid duplicating ESX import handlers that already maintain PlayerData. Recreating caches by
+blindly assigning event payloads can lose updates or retain old character data. Keep entity,
+job and player caches invalidated through their owners; do not freeze values at startup.
+The exact event names and payloads must come from the installed producer and consumer.
 
-### Client Side
+[ESX imports and core source](reference-links.md).
+
+## Established import and script layout
+
+For a direct ESX resource, the installed import is loaded before scripts that use its global. Keep the actual resource's dependency layout; this is not a Sky feature manifest:
 
 ```lua
--- RECOMMENDED: Using CreateThread
-CreateThread(function()
-    while not ESX do
-        Wait(100)
-    end
-    
-    while not ESX.IsPlayerLoaded() do
-        Wait(100)
-    end
-    
-    -- ESX is now available and player is loaded
-    print('Player loaded:', ESX.PlayerData.firstName, ESX.PlayerData.lastName)
-end)
+-- fxmanifest.lua fragment
+shared_script "@es_extended/imports.lua"
+dependency "es_extended"
+client_script "client.lua"
+server_script "server.lua"
 ```
 
-### Server Side
+If the adapter intentionally uses only the export, its established initialization may instead be:
 
 ```lua
--- ESX is immediately available on server
-ESX = exports['es_extended']:getSharedObject()
-
--- Or if using newer exports pattern
-ESX = exports.es_extended.getSharedObject()
+local ESX = exports["es_extended"]:getSharedObject()
 ```
 
-## PlayerData Structure
+An export alone does not install every per-resource lifecycle handler in `imports.lua`. Preserve the current import choice rather than combining imports, export polling and legacy `esx:getSharedObject` events. An ESX object being available does not imply that the player/character or every DB-backed job catalogue has finished loading. `ESX.GetJobs()` has its own readiness wait at the pinned revision.
 
-**Available on CLIENT only** via `ESX.PlayerData`:
+Typical concerns remain separate: manifest/imports; client presentation and input; server authority/persistence; shared data definitions; configuration; locales; generated NUI. Keep real loaders and filenames instead of imposing a new generic directory tree.
+
+## PlayerData and xPlayer shape
+
+The following is a **shape sketch**, not an assignment to copy over live ESX data:
 
 ```lua
-ESX.PlayerData = {
-    coords = vector3(x, y, z),        -- Last known position
-    ped = PlayerPedId(),              -- Player ped handle
-    group = "user",                    -- Permission group (user/admin/superadmin)
-    identifier = "char1:license...",   -- Character identifier
-    ssn = "123-45-6789",              -- Social Security Number
-    inventory = {},                    -- Items (table with item name as key)
-    job = {},                          -- Job data (name, label, grade, salary, etc.)
-    loadout = {},                      -- Weapons
-    name = "John Doe",                 -- Player name (Steam/FiveM)
-    playerId = 1,                      -- Server ID
-    source = 1,                        -- Server ID
-    variables = {},                    -- Custom variables set by server
-    weight = 12,                       -- Current inventory weight
-    maxWeight = 24,                    -- Maximum inventory weight
-    metadata = {},                     -- Custom metadata
-    admin = false,                     -- Is admin (based on group)
-    license = "license:...",           -- Rockstar license
-    dateofbirth = "01/01/2000",       -- Character DOB
-    height = 181,                      -- Character height
-    dead = false,                      -- Is player dead
-    firstName = "John",                -- Character first name
-    lastName = "Doe",                  -- Character last name
-    sex = "m",                         -- Character gender (m/f)
-    money = 187,                       -- Cash amount (use accounts instead)
-    accounts = {                       -- Money accounts
-        money = 187,
-        bank = 5000,
-        black_money = 0
-    }
+-- CLIENT view: fields depend on core, character and inventory providers.
+local player_view = {
+    job = { name = "police", grade = 0, onDuty = true },
+    accounts = { { name = "bank", money = 5000 }, { name = "money", money = 100 } },
+    inventory = { { name = "bread", count = 2, weight = 1 } },
+    loadout = { { name = "WEAPON_PISTOL", ammo = 12, components = {} } },
+    metadata = {},
+    variables = {}
 }
 ```
 
-## xPlayer Object (Server)
-
-**Available on SERVER only** — represents a player with methods:
-
-### Getting xPlayer
+Full account/inventory/loadout values are arrays in default ESX. Minimal server getters produce maps. Use `GetAccount`/`getAccount` for a named account rather than assuming `accounts.bank.money`. Coordinates may be computed by the import metatable rather than a permanently current stored field. Identity, name/firstName/lastName, SSN, license, group, ped, playerId/source, weight/maxWeight, dead/skin and other optional character fields must be read from the installed serialization path; do not invent a universal complete `PlayerData` record or SSN/identifier format.
 
 ```lua
--- Standard way
-local xPlayer = ESX.GetPlayerFromId(source)
-
--- By identifier
-local xPlayer = ESX.GetPlayerFromIdentifier("license:abc123...")
+-- SERVER: xPlayer is a live framework object, not the serialized client table.
+local x_player = ESX.GetPlayerFromId(player_id)
+if not x_player then
+    print("[example] player lookup failed: player is not loaded")
+    return
+end
+local job = x_player.getJob()
+local bank = x_player.getAccount("bank")
 ```
 
-### xPlayer contains same data as PlayerData PLUS server-only methods:
+Default bound methods use `x_player.method(...)`, not an added colon. Treat a source as an online session, and use the actual character identifier for durable data. See [server lookup](server-functions.md#player-selection-examples) and [player methods](xplayer-methods.md).
 
-```lua
-xPlayer.identifier      -- Player identifier
-xPlayer.name           -- Player name
-xPlayer.job            -- Job data
-xPlayer.accounts       -- Money accounts
-xPlayer.inventory      -- Items
-xPlayer.loadout        -- Weapons
-xPlayer.group          -- Permission group
-xPlayer.coords         -- Last known coords
--- ... many methods (see xplayer-methods.md)
-```
+## Startup and changes
 
-## Framework Initialization
-
-### Client Startup Flow
-
-1. ESX object becomes available
-2. Player connects to server
-3. Server creates xPlayer
-4. Client receives PlayerData via `esx:playerLoaded` event
-5. `ESX.PlayerLoaded` becomes true
-6. `ESX.PlayerData` is populated
-
-### Server Startup Flow
-
-1. ESX loads from database
-2. Jobs are loaded (`ESX.Jobs`)
-3. Items are loaded (`ESX.Items`)
-4. Resources can now use ESX
-
-## Important Events
-
-### Client Events
-
-```lua
--- Player loaded (character selected)
-AddEventHandler('esx:playerLoaded', function(playerData)
-    ESX.PlayerData = playerData
-end)
-
--- Player data updated
-AddEventHandler('esx:updatePlayerData', function(key, value)
-    ESX.PlayerData[key] = value
-end)
-
--- Job changed
-AddEventHandler('esx:setJob', function(job)
-    ESX.PlayerData.job = job
-end)
-
--- Player died
-AddEventHandler('esx:onPlayerDeath', function(data)
-    -- Handle death
-end)
-
--- Player spawned
-AddEventHandler('esx:onPlayerSpawn', function()
-    -- Handle spawn
-end)
-```
-
-### Server Events
-
-```lua
--- Player joined (before character selection)
-AddEventHandler('esx:onPlayerJoined', function()
-    local _source = source
-    -- Player connected
-end)
-
--- Player loaded (character selected)
-AddEventHandler('esx:playerLoaded', function(playerId, xPlayer)
-    -- xPlayer is now available
-end)
-
--- Player dropped
-AddEventHandler('esx:playerDropped', function(playerId, reason)
-    -- Player left server
-end)
-```
-
-## Constants and Configuration
-
-```lua
--- Use UPPERCASE for constants
-local MAX_DISTANCE <const> = 10.0  -- Lua 5.4 const
-local INTERACTION_KEY = 38          -- E key
-
--- Use Config for resource settings
-Config = {}
-Config.MaxWeight = 24
-Config.EnableSocieties = true
-```
-
-## Best Practices
-
-1. **Always wait for player load on client**:
-   ```lua
-   while not ESX.IsPlayerLoaded() do
-       Wait(100)
-   end
-   ```
-
-2. **Check for nil on server**:
-   ```lua
-   local xPlayer = ESX.Player(source)
-   if not xPlayer then return end
-   ```
-
-3. **Cache ESX object**:
-   ```lua
-   -- Do this once at resource start
-   ESX = exports.es_extended.getSharedObject()
-   
-   -- NOT in every function/event
-   ```
-
-4. **Use ESX.GetPlayerFromId**:
-   ```lua
-   local xPlayer = ESX.GetPlayerFromId(source)
-   if not xPlayer then return end
-   ```
+Use [the complete client and server lifecycle examples](events-callbacks.md#client-lifecycle-events-and-payloads): subscribe once, initialize from current state when already loaded, invalidate on logout/disconnect, and refresh job/ped views when their owner changes them. Do not start permanent per-frame loops merely to wait for ESX, freeze the initial job, or duplicate import handlers. Resource-start, player-load and ped-ready are separate conditions.

@@ -15,12 +15,8 @@ describe('PopupDemo Konsta parity', () => {
     expect(source).not.toContain('<div class="sky-app-page')
   })
 
-  it('uses the exact iOS close icon and one scroll owner', () => {
-    expect(source).toContain(
-      "import Xmark from 'framework7-icons/vue/vue/Xmark.vue'",
-    )
-    expect(source).toContain('<SkyIcon :size="20"><Xmark /></SkyIcon>')
-    expect(source).not.toContain("from 'lucide-vue-next'")
+  it('keeps a 20px close icon and one scroll owner', () => {
+    expect(source).toContain('<SkyIcon :size="20"><X /></SkyIcon>')
     expect(source.match(/<SkyScrollArea/g)).toHaveLength(1)
   })
 

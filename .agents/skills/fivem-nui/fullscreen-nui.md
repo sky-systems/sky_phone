@@ -1,205 +1,47 @@
-# Fullscreen NUI
+# Messages and Fullscreen Focus
 
-Fullscreen NUI pages are the most common type of user interface in FiveM. They overlay on top of the game and can have input focus for mouse/keyboard interaction.
+Read this for game-to-browser state, show/close behavior and focus ownership. Inspect the existing resource protocol before adding messages or another focus controller.
 
-## Natives
+## Message contract
 
-Key natives for fullscreen NUI:
-
-- **SEND_NUI_MESSAGE** / **SendNUIMessage** — Send data from Lua to the browser (JSON).
-- **SET_NUI_FOCUS** — Control keyboard and mouse focus for the NUI page.
-
-## Sending messages to NUI
-
-Use `SendNUIMessage` to send data to your UI:
+The Lua convenience wrapper encodes a table:
 
 ```lua
--- Lua example
 SendNUIMessage({
-    type = 'openMenu',
-    data = {
-        title = 'Shop',
-        items = shopItems
-    }
+    type = "state",
+    revision = revision,
+    data = ui_state
 })
 ```
 
-## Receiving messages in the browser
+The raw `SEND_NUI_MESSAGE` native takes a JSON string. The Lua wrapper does not return the native's result. Neither form acknowledges that the application's listener/store is ready. Register browser listeners first, signal readiness and hydrate a complete snapshot; rehydrate after reload. Retain revision/session ownership when asynchronous replies can arrive after a close/reopen or selection change.
 
-In your HTML/JavaScript, listen for messages using the `message` event:
+Use a small explicit message protocol. Validate message shape before updating UI state. Keep authoritative identity, permissions, balances, inventory and prices on the game/server side. Browser state is a projection that can be rebuilt.
 
-```js
-window.addEventListener('message', (event) => {
-    const data = event.data;
-    
-    if (data.type === 'openMenu') {
-        showMenu(data.data.title, data.data.items);
-    }
-});
-```
+## Focus ownership
 
-## NUI Focus
-
-Control focus with `SetNUIFocus`:
+`SET_NUI_FOCUS` accepts keyboard-focus and cursor booleans. Manage open/close through the resource's existing focus owner, including error and resource-stop cleanup. FiveM maintains focus across resources, so avoid scattered independent focus toggles. Do not assume a lower resource receives click-through from another fullscreen UI.
 
 ```lua
--- Enable both keyboard and mouse
-SetNUIFocus(true, true)
-
--- Enable keyboard only (no cursor)
-SetNUIFocus(true, false)
-
--- Disable focus completely
-SetNUIFocus(false, false)
+SetNUIFocus(true, true)   -- Keyboard focus and cursor
+SetNUIFocus(true, false)  -- Keyboard focus without cursor
+SetNUIFocus(false, false) -- Release this resource's focus
 ```
 
-**Important:**
-- The first parameter controls **keyboard focus**.
-- The second parameter controls **mouse cursor** visibility and focus.
-- Always disable focus when closing the UI to prevent input issues.
+The most recently focused resource is on top of the limited focus stack; resource pages are fullscreen frames. These calls control the invoking resource, not another resource's focus. DOM `element.focus()` selects a control within the page and does not replace game-side focus. The [complete panel example](examples.md#complete-local-panel-package-open-hydrate-and-close) shows both sides together.
 
-## Focus stack
+Handle Escape in the DOM while NUI owns keyboard input, then call the close route. Complete that callback and release the resource's focus. A hidden fullscreen root must be transparent and noninteractive; scope pointer handling to the visible panel.
 
-FiveM maintains a focus stack for NUI resources:
-- The most recently focused resource is on top.
-- Resources are rendered as full-screen iframes.
-- There's no click-through across resources.
-- Only the current resource can control its own focus.
+If a feature intentionally keeps game input, verify the target `SET_NUI_FOCUS_KEEP_INPUT` implementation and suppress only controls that would create unsafe gameplay actions during that interaction. Select mouse/controller/FPS/alt-tab cases according to the changed input path. A layout-only adjustment does not need every input mode retested.
 
-## Referencing assets
+## Lifecycle and verification
 
-Use the `https://cfx-nui-{resourceName}/` protocol to reference resource files:
+Own and dispose listeners, timers, observers, requests, media and framework subscriptions. Do not send unchanged full state every tick. Choose update rate/payload from the feature and measured behavior, not a universal delay constant.
 
-```html
-<!-- Reference a JavaScript file in your resource -->
-<script type="text/javascript" src="https://cfx-nui-my-resource/build/app.js"></script>
+Check open/close and affected routes; add reload/resource-stop and stale-response cases when lifecycle or transport changes. For full compatibility, phone scaling or media work, consult the relevant `fivem-cef-rules` reference when available. Distinguish browser preview, built/copy-verified files and actual FiveM tests.
 
-<!-- Reference a CSS file -->
-<link rel="stylesheet" href="https://cfx-nui-my-resource/styles/main.css">
+Sources: [fullscreen NUI](https://docs.fivem.net/docs/scripting-manual/nui-development/full-screen-nui/) and [source/binding map](reference-links.md).
 
-<!-- Reference an image -->
-<img src="https://cfx-nui-my-resource/images/logo.png">
-```
+## Live developer tools
 
-**Note:** The old `nui://` protocol is deprecated and no longer works in newer browser versions. Always use `https://cfx-nui-`.
-
-## Developer tools
-
-### Chrome DevTools
-
-Access CEF remote debugging tools at [http://localhost:13172/](http://localhost:13172/) while the game is running. Use any Chromium-based browser.
-
-### Console command
-
-Alternatively, use the `nui_devTools` command in the F8 console (requires developer mode enabled).
-
-## Example: Simple menu
-
-**Lua (client.lua):**
-```lua
-local menuOpen = false
-
-RegisterCommand('openmenu', function()
-    menuOpen = true
-    SetNUIFocus(true, true)
-    SendNUIMessage({
-        type = 'show',
-        items = {
-            {id = 1, name = 'Item 1', price = 100},
-            {id = 2, name = 'Item 2', price = 200}
-        }
-    })
-end)
-
-RegisterNUICallback('close', function(data, cb)
-    menuOpen = false
-    SetNUIFocus(false, false)
-    cb('ok')
-end)
-
-RegisterNUICallback('buyItem', function(data, cb)
-    print('Buying item:', data.itemId)
-    -- Handle purchase logic
-    cb({success = true, message = 'Purchase successful'})
-end)
-```
-
-**HTML (ui/index.html):**
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: Arial; }
-        #menu { display: none; background: rgba(0,0,0,0.8); color: white; padding: 20px; }
-        .item { padding: 10px; cursor: pointer; }
-        .item:hover { background: rgba(255,255,255,0.1); }
-    </style>
-</head>
-<body>
-    <div id="menu">
-        <h2>Shop</h2>
-        <div id="items"></div>
-        <button onclick="closeMenu()">Close</button>
-    </div>
-    
-    <script src="https://cfx-nui-my-resource/ui/app.js"></script>
-</body>
-</html>
-```
-
-**JavaScript (ui/app.js):**
-```js
-window.addEventListener('message', (event) => {
-    if (event.data.type === 'show') {
-        showMenu(event.data.items);
-    }
-});
-
-function showMenu(items) {
-    const menu = document.getElementById('menu');
-    const itemsDiv = document.getElementById('items');
-    
-    itemsDiv.innerHTML = '';
-    items.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'item';
-        div.textContent = `${item.name} - $${item.price}`;
-        div.onclick = () => buyItem(item.id);
-        itemsDiv.appendChild(div);
-    });
-    
-    menu.style.display = 'block';
-}
-
-function closeMenu() {
-    document.getElementById('menu').style.display = 'none';
-    fetch(`https://${GetParentResourceName()}/close`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-    });
-}
-
-function buyItem(itemId) {
-    fetch(`https://${GetParentResourceName()}/buyItem`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: itemId })
-    }).then(resp => resp.json()).then(resp => {
-        if (resp.success) {
-            alert(resp.message);
-        }
-    });
-}
-
-function GetParentResourceName() {
-    return window.location.hostname.replace('cfx-nui-', '');
-}
-```
-
-## Reference
-
-- Fullscreen NUI: https://docs.fivem.net/docs/scripting-manual/nui-development/full-screen-nui/
-- SEND_NUI_MESSAGE: https://docs.fivem.net/natives/?_0x78608ACB
-- SET_NUI_FOCUS: https://docs.fivem.net/natives/?_0x5B98AE30
+With FiveM running, inspect the intended resource frame through `http://localhost:13172/` in a Chromium browser, or `nui_devTools` in F8 with developer mode enabled. Use Console for boot/callback errors and Network for final asset URLs, status and MIME. Desktop DevTools on a preview page inspect a different runtime. The CEF testing reference keeps the full blank-page diagnostic sequence and release matrix.

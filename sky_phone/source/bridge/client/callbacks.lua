@@ -7,7 +7,11 @@ function Bridge.Callbacks.Trigger(name, data)
     local request = promise.new()
     pending_requests[request_id] = request
 
-    TriggerServerEvent("sky_phone:bridge:callback:request", name, request_id, data)
+    if not Bridge.Network.SendServer("sky_phone:bridge:callback:request", name, request_id, data) then
+        pending_requests[request_id] = nil
+        request:resolve(nil)
+        return Citizen.Await(request)
+    end
 
     SetTimeout(Config.Bridge.CallbackTimeout, function()
         if pending_requests[request_id] ~= request then
