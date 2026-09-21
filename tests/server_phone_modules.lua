@@ -3,6 +3,10 @@ local migration_callbacks = {}
 local event_handlers = {}
 
 Bridge = {
+    Network = { SendClient = function(...)
+        TriggerClientEvent(...)
+        return true
+    end },
     Callbacks = {
         Register = function(name, callback)
             assert(type(name) == "string" and type(callback) == "function")

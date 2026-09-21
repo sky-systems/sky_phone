@@ -23,7 +23,7 @@ local callback_groups = {
         remove-member leave create-ping remove-ping
     ]],
     crypto = [[
-        bootstrap register login logout quote execute deposit withdraw update-profile recipient transfer
+        bootstrap register login logout quote execute deposit withdraw update-profile recipient transfer watch
     ]],
     ["custom-app"] = [[storage:get storage:set]],
     darkchat = [[
