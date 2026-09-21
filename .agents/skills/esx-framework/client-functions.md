@@ -1,256 +1,100 @@
-# ESX Client Functions
+# Client state and presentation
 
-All functions available on **CLIENT side** via `ESX` object.
+At the inspected revision, ESX.IsPlayerLoaded() returns ESX.PlayerLoaded, and
+ESX.GetPlayerData() returns the current ESX.PlayerData table. The returned table is not an
+authoritative server permission record. Account/inventory UI may be stale; server mutations
+must re-resolve their own state.
 
-## Player State
+Use the resource's established lifecycle to initialize after load and clear/reinitialize on
+character changes. Do not add an unconditional wait loop to every consumer. Verify specialized
+APIs such as inventory search, spawn management or input helpers against the installed source
+instead of copying a generic function catalog.
 
-### ESX.IsPlayerLoaded()
+ESX.SecureNetEvent(name, callback) filters event origin on the client at the inspected version.
+It cannot protect server economy state from a compromised client. See [event contracts](events-callbacks.md).
 
-Returns if player has successfully loaded.
+Preserve the chosen UI integration. When the applicable AGENTS.md requires Sky UI helpers and
+shared tablet controls, use them and localize user-facing copy. In standalone resources,
+ox_lib is an option where already adopted, not a mandatory replacement for all interfaces.
+
+[Verified client implementation and docs entry](reference-links.md).
+
+## State, accounts and inventory examples
+
+Direct ESX calls are for the existing adapter/direct integration. If AGENTS requires the Sky bridge, keep its PlayerCache/framework/UI contracts instead.
 
 ```lua
 if ESX.IsPlayerLoaded() then
-    print('Player is loaded and ready')
-end
-
--- Common pattern: wait for load
-while not ESX.IsPlayerLoaded() do
-    Wait(250)
-end
-```
-
-### ESX.GetPlayerData()
-
-Returns `ESX.PlayerData` (same as accessing it directly).
-
-```lua
-local playerData = ESX.GetPlayerData()
-print('Player job:', playerData.job.name)
-```
-
-### ESX.SetPlayerData(key, value)
-
-Sets player data locally (will be overwritten by server updates).
-
-```lua
-ESX.SetPlayerData('customKey', 'customValue')
-print(ESX.PlayerData.customKey) -- 'customValue'
-```
-
-## Secure Events
-
-### ESX.SecureNetEvent(name, callback)
-
-Registers a client event that can ONLY be triggered by server (prevents cheaters).
-
-```lua
-ESX.SecureNetEvent('myResource:giveReward', function(amount)
-    -- Only server can trigger this
-    print('Received reward:', amount)
-end)
-
--- Server side:
-TriggerClientEvent('myResource:giveReward', playerId, 1000)
-```
-
-## Inventory
-
-### ESX.SearchInventory(items, count)
-
-Searches player inventory for items.
-
-```lua
--- Search single item
-local breadItem = ESX.SearchInventory('bread')
-if breadItem and breadItem.count > 0 then
-    print('You have', breadItem.count, 'bread')
-end
-
--- Search multiple items
-local items = ESX.SearchInventory({'bread', 'water'}, true)
-for itemName, itemData in pairs(items) do
-    print(itemName, ':', itemData.count)
-end
-```
-
-## Notifications
-
-ESX has its own notification system, but **USE OX_LIB** for notifications instead:
-
-```lua
--- Use ox_lib for notifications (preferred)
-lib.notify({
-    title = 'Bank',
-    description = 'You received $500',
-    type = 'success'
-})
-```
-
-## Input & Controls
-
-### ESX.RegisterInput(command, label, inputGroup, key, onPress, onRelease)
-
-Registers a keybind.
-
-```lua
-ESX.RegisterInput('openInventory', 'Open Inventory', 'keyboard', 'f2', 
-    function()
-        -- Key pressed
-        print('Opening inventory')
-    end, 
-    function()
-        -- Key released (optional)
-        print('Closed inventory')
+    local player_data = ESX.GetPlayerData()
+    local bank = ESX.GetAccount("bank")
+    if bank then
+        print(("[example] local bank display: %s"):format(bank.money))
     end
-)
+end
+
+-- Presentation-only data; this is not a server persistence operation.
+ESX.SetPlayerData("example_view", { page = "home" })
 ```
 
-### ESX.HashString(str)
-
-Gets input hash/mapping for display (wrongly named, returns input label).
+`SetPlayerData(key, value)` updates the local table and emits `esx:setPlayerData(key, value, old)` for changed scalar/table values, except `loadout`. Imports already own their data synchronization; prefer resource-owned UI state for unrelated screen settings.
 
 ```lua
-local inputLabel = ESX.HashString('openInventory')
-ESX.ShowHelpNotification('Press ' .. inputLabel .. ' to open inventory', false, true, 3000)
+local bread = ESX.SearchInventory("bread")
+if bread and bread.count > 0 then
+    print(("[example] bread display count: %s"):format(bread.count))
+end
+
+local bread_count = ESX.SearchInventory("bread", true) -- number or nil
+local counts = ESX.SearchInventory({ "bread", "water" }, true)
+for item_name, count in pairs(counts) do
+    print(("[example] %s display count: %s"):format(item_name, count))
+end
 ```
 
-## Spawn Management
+`SearchInventory(items, count?)` returns one record/count for a string, or a map for a list. **At the pinned revision it removes matched entries from the supplied list**, so pass a new list or copy when the caller must retain it. Missing items may be absent/nil. A custom inventory may replace this path entirely. Client counts remain unsuitable for granting or consuming items.
 
-### ESX.DisableSpawnManager()
-
-Disables FiveM's default spawn manager.
+## Keybind and vehicle helpers
 
 ```lua
+ESX.RegisterInput("example_panel", localized_open_label, "keyboard", "F2", function()
+    print("[example] panel key pressed")
+end, function()
+    print("[example] panel key released")
+end)
+
+local control_token = ESX.HashString("example_panel")
+local vehicle_type = ESX.GetVehicleTypeClient("t20")
+```
+
+`RegisterInput(command, label, mapper, key, on_press, on_release?)` delegates to xLib's keybind definition at this revision. Preserve existing input ownership and localization. `HashString` returns a formatted `~INPUT_...~` token, not a translated key label. `GetVehicleTypeClient(model)` accepts a model string/hash and returns a category string or `false` for unavailable/non-vehicle models; it does not accept a vehicle entity handle. Native model checks behind the helper are engine boundaries, not proven runtime compatibility for an arbitrary add-on model.
+
+## Spawn management
+
+```lua
+-- Only within the resource that actually owns character spawning, in a yieldable context.
 ESX.DisableSpawnManager()
-```
-
-### ESX.SpawnPlayer(coords, heading, cb)
-
-Spawns player at coords with optional callback.
-
-```lua
-local spawnCoords = vector4(100.0, 200.0, 50.0, 90.0)
-ESX.SpawnPlayer(spawnCoords, function()
-    print('Player spawned')
+ESX.SpawnPlayer(skin, { x = 100.0, y = 200.0, z = 50.0, heading = 90.0 }, function()
+    print("[example] provider spawn callback completed")
 end)
 ```
 
-## Coords & Position
+The pinned signature is `SpawnPlayer(skin, coords, cb)`, and `coords.heading` is read explicitly. The old `(coords, heading, cb)` description and `vector4 + callback` example were incompatible with it. It awaits the skin load, invokes collision/spawn natives, and calls its callback; inspect the installed character/spawn owner's additional freeze/loadout/fade lifecycle before using it. A sample callback completing is not evidence that every surrounding initialization step is done.
 
-### ESX.GetAccount(accountName)
+## UI integration options
 
-Returns player's account data.
+The existing provider determines which UI to use. Relevant ESX calls remain available where their required resources are installed:
 
-```lua
-local bankAccount = ESX.GetAccount('bank')
-print('Bank balance:', bankAccount.money)
-```
-
-## Vehicle Functions
-
-### ESX.GetVehicleTypeClient(model)
-
-Returns vehicle type for model.
+| API | Arguments / provider |
+|---|---|
+| `ESX.ShowNotification` | `(message, type?, length?, title?, position?)`, forwards to `esx_notify` |
+| `ESX.ShowAdvancedNotification` | `(sender, subject, message, texture_dict, icon_type, flash?, save_to_brief?, hud_color?)` |
+| `ESX.ShowHelpNotification` | `(message, this_frame?, beep?, duration?)` |
+| `ESX.Progressbar`, `ESX.CancelProgressbar` | `(message, length?, options?)` / `()`, `esx_progressbar`; result is the provider's creation result, not automatically task completion |
+| `ESX.TextUI`, `ESX.HideUI` | Provider-specific text UI arguments / `()`, `esx_textui` |
+| `ESX.OpenContext`, `PreviewContext`, `CloseContext`, `RefreshContext` | Forwarded context contracts; inspect installed `esx_context` before relying on options |
 
 ```lua
-local vehicleType = ESX.GetVehicleTypeClient('t20')
-print('Vehicle type:', vehicleType) -- 'automobile', 'bike', 'boat', 'heli', etc.
+ESX.ShowNotification(localized_message, "info", 3000, localized_title, "top-right")
 ```
 
-## UI Components (Use ox_lib)
-
-ESX has its own UI resources, but **USE OX_LIB** for all UI components:
-
-```lua
--- Progress bars
-if lib.progressBar({
-    duration = 5000,
-    label = 'Repairing vehicle...',
-    useWhileDead = false,
-    canCancel = true,
-    disable = {
-        car = true,
-        move = true
-    },
-    anim = {
-        dict = 'mini@repair',
-        clip = 'fixing_a_player'
-    }
-}) then
-    print('Repair complete')
-end
-
--- Context menus
-lib.registerContext({
-    id = 'player_menu',
-    title = 'Player Menu',
-    options = {
-        {
-            title = 'Give Money',
-            icon = 'dollar-sign',
-            onSelect = function()
-                -- Handle give money
-            end
-        },
-        {
-            title = 'Check ID',
-            icon = 'id-card',
-            onSelect = function()
-                -- Handle check ID
-            end
-        }
-    }
-})
-
-lib.showContext('player_menu')
-
--- Text UI
-lib.showTextUI('[E] - Interact', {
-    position = "right-center"
-})
-
-lib.hideTextUI()
-```
-
-## Best Practices
-
-1. **Always check player loaded before using PlayerData**:
-   ```lua
-   if not ESX.IsPlayerLoaded() then return end
-   ```
-
-2. **Cache PlayerData locally when needed**:
-   ```lua
-   local job = ESX.PlayerData.job
-   if job.name == 'police' then
-       -- Do something
-   end
-   ```
-
-3. **Use SecureNetEvent for events that modify player state**:
-   ```lua
-   -- CLIENT
-   ESX.SecureNetEvent('myResource:serverAction', function(data)
-       -- Safe to use, only server can trigger
-   end)
-   ```
-
-4. **Search inventory before assuming item exists**:
-   ```lua
-   local item = ESX.SearchInventory('bread')
-   if item and item.count > 0 then
-       -- Player has bread
-   end
-   ```
-
-5. **Use ox_lib for all UI**:
-   ```lua
-   -- Notifications
-   lib.notify({title = 'Success', description = 'Action completed', type = 'success'})
-   
-   -- Progress bars
-   lib.progressBar({duration = 5000, label = 'Working...'})
-   
-   -- Context menus
-   lib.showContext('my_menu')
-   ```
+If ox_lib is already the selected provider, [its UI reference](../oxlib/interface.md) covers notification, progress, context/menu and TextUI options. Do not replace an existing UI merely because a generic example uses ox_lib. Keep localization, cancellation, controls/animations and success-after-authoritative-completion behavior. For source/target/server event examples see [events and callbacks](events-callbacks.md).

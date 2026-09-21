@@ -1,25 +1,21 @@
 ---
 name: fivem-security
-description: Best practices and rules for securing FiveM resources against cheaters and exploits. Use this skill when writing or reviewing server-side and client-side code to ensure malicious events, unauthorized entity creations, and client trust issues are prevented. Focuses on strict server authority and safe event handling.
+description: Review or implement FiveM server authority for network events, callbacks, rewards, permissions and shared state changes.
 ---
 
-# 🛡️ FiveM Security & Anti-Exploit Principles
+# FiveM server authority
 
-This skill provides architectural guidance for securing FiveM resources against common cheats, unauthorized event triggers, and malicious data manipulation.
+Trace who requests an action and which server-owned state authorizes its result. Client input,
+NUI, client callback results and client-writable state bags do not establish entitlement.
+Validate the relevant actor, target, bounded input and permitted transition; consume rewards
+once and protect yielding mutations against re-entry.
 
-**Core Philosophy:** NEVER TRUST THE CLIENT. 
+When the applicable AGENTS.md requires the Sky bridge, retain Sky.FW operations,
+Sky_Jobs.PlayerCache identity/job/duty and the existing callback/serialization paths without
+documented-API existence guards. Otherwise preserve resource-owned adapters. A cooldown or
+duplicate UUID helper is not a permission or transaction lock.
 
-The client is in the hands of the user, which means it can be fully compromised. Every action that affects the game state, economy, or other players MUST be validated on the server.
-
-## 📂 Core Concepts & Rules
-
-Detailed rules are broken down into specific topics within the `rules/` directory:
-
-- **[events.md](rules/events.md)**: How to properly structure and validate `RegisterNetEvent` / `TriggerServerEvent` to prevent unauthorized execution.
-
-## ⚠️ The Golden Rules of FiveM Security
-
-1. **Server Authority**: The server dictates the truth. The client only requests actions.
-2. **Never Trust Parameters**: Always validate arguments sent from the client (e.g., if a client says "give me $50", the server must check if the client *earned* it, not just blindly accept the amount).
-3. **Distance Checks**: Always check the distance on the server side before allowing an interaction (e.g., looting, selling, entering a zone).
-4. **Rate Limiting**: Prevent event spamming by implementing server-side cooldowns or debouncing for critical actions.
+Read [event and mutation boundaries](events.md) for the applicable action. Verify relevant
+CFX APIs in official docs, then registration/binding and implementation at an identified
+revision; [sources](sources.md) records the inspected paths. State runtime/source limits
+instead of treating example code as complete protection.

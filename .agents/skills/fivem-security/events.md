@@ -1,73 +1,78 @@
-# 🛡️ Secure Event Handling
+# Event and mutation boundaries
 
-The single biggest vulnerability in FiveM development is trusting data sent from the client via `TriggerServerEvent`. **Hackers don't need complex menus; they just execute events with spoofed parameters.**
+Keep internal privileged actions in functions or local-only events. Register a network event
+only when remote callers need it. RegisterNetEvent permits network dispatch; it does not
+validate permissions. GetInvokingResource reports script provenance, not a trustworthy
+player or client. Rejecting non-nil provenance does not secure a server event.
 
-## ❌ Bad Practice: Trusting the Client
+For a client-triggered mutation, apply the checks the action actually requires:
 
-Never let the client dictate the outcome.
+- Capture event source before yielding; resolve the actor server-side. Authorize job/duty,
+  grade/role and target ownership from server-owned state, not submitted identity fields.
+- Bound types, lengths, numeric ranges and collection sizes. Select catalog records and
+  calculate prices/rewards on the server. A recognized item name alone does not authorize a grant.
+- Check relevant distance and routing/instance membership from the server. Verify the entity
+  exists and belongs to the intended session before using its coordinates; a universal latency
+  radius is not appropriate. OneSync position is synchronized state, not proof of honest movement.
+- Validate the allowed workflow transition. Claim/consume a completion before a yielding
+  side effect, then follow the existing success/failure/compensation path. Recheck session
+  identity after asynchronous work when disconnect or source reuse can change the actor.
+- Rate-limit the relevant actor/action and bound pending state. A client-local delay can be
+  bypassed; a global cooldown can block unrelated players. Caller-generated UUIDs are not receipts.
 
-```lua
--- CLIENT
-TriggerServerEvent("job:payMe", 5000) -- The hacker just changes this to 5000000
+Do not expose a generic give-item/pay event that accepts arbitrary quantities. Prefer a request
+for an existing server-owned operation. Client origin filters and callback correlation are
+additional boundaries, not server authorization. UI visibility does not grant permission.
 
--- SERVER
-RegisterNetEvent("job:payMe", function(amount)
-    local src = source
-    local Player = QBCore.Functions.GetPlayer(src)
-    Player.Functions.AddMoney("cash", amount) -- Boom, economy ruined.
-end)
-```
+When working with the Sky bridge, inspect Security.lua before choosing its helpers. At the
+inspected revision, server Cooldown(time, description, noNotify) uses a shared flag;
+IsNotDuplicate(uuid) keeps bounded recent UUIDs. Neither provides per-player ownership or a
+once-only business transaction. Preserve established serialization rather than adding a new layer.
 
-## ✅ Good Practice: Server Authority
+Reject invalid requests through explicit results and explanatory English diagnostics; do not
+silently mask broken invariants. Keep logs bounded and free of secrets. See [sources](sources.md).
 
-The client **requests** an action; the server **calculates** the result.
+## Worked once-only claim boundary
 
-```lua
--- CLIENT
--- Client just says "I finished the job"
-TriggerServerEvent("job:requestPayment") 
-
--- SERVER
-RegisterNetEvent("job:requestPayment", function()
-    local src = source
-    local Player = QBCore.Functions.GetPlayer(src)
-    
-    -- The SERVER decides how much to pay based on server-side logic/config
-    local paymentAmount = Config.JobPayAmount 
-    
-    -- Additional security: Are they actually clocked in? Did they wait the required time?
-    if not ServerSideJobState[src].isWorking then return end
-    
-    Player.Functions.AddMoney("cash", paymentAmount)
-end)
-```
-
-## 📍 Distance Checks (Crucial)
-
-If a player triggers an event to "buy an item" or "harvest a plant," the server **MUST** check if they are actually physically near the location. Hackers can trigger events from across the map.
+This pure Lua example shows the non-yielding claim step only. `operations` contains records
+created/completed by trusted server logic; `actor_key` is resolved server-side, not supplied
+by the client. Perform the action's permission, distance and session checks before this step.
 
 ```lua
--- SERVER
-local sellPosition = vector3(100.0, 0.0, 0.0)
-
-RegisterNetEvent("packages:givePackage", function()
-    local src = source
-    local ped = GetPlayerPed(src)
-    local position = GetEntityCoords(ped) 
-    
-    -- Server checks distance. 10 units is usually a safe margin for latency.
-    if #(position - sellPosition) >= 10.0 then 
-        print(("Exploit attempt: %s tried to sell from too far away."):format(GetPlayerName(src)))
-        return 
+local function claim_completed_operation(operations, actor_key, operation_id)
+    local operation
+    local rejection
+    if type(operation_id) ~= "string" or #operation_id == 0 or #operation_id > 64 then
+        rejection = "invalid_operation_id"
+    else
+        operation = operations[operation_id]
+        if not operation then
+            rejection = "unknown_operation"
+        elseif operation.actor_key ~= actor_key then
+            rejection = "wrong_owner"
+        elseif operation.state ~= "completed_unclaimed" then
+            rejection = "not_claimable"
+        end
     end
 
-    -- Proceed with giving the item
-end)
+    if rejection then
+        print(("[claim] Request rejected: %s"):format(rejection))
+        return nil, rejection
+    end
+
+    -- No await/Wait/provider call between checking and claiming this record.
+    operation.state = "claimed"
+    return operation
+end
 ```
 
-## 🛡️ Best Practices Summary
+The caller derives the reward from the returned server record, never from request values.
+A second call for the same operation cannot pass the state check, including while the first
+call yields in the provider. This protects the local claim boundary, not persistence across
+restarts or multiple processes: durable rewards need an authoritative unique claim/ledger
+and an idempotent delivery contract. Keep claimed/uncertain state when a provider outcome is
+unknown; blindly resetting it or retrying can duplicate a grant. Reconcile through the owning
+service's documented failure path and use stable session/identity checks after yielding.
 
-1. **Client requests, Server decides.** Never send prices, amounts, or sensitive item names from the client if it can be avoided.
-2. **Always perform Distance Checks** on the server using `GetEntityCoords(GetPlayerPed(source))`.
-3. **Verify State.** If the event requires a specific job or item, verify it on the server *again*.
-4. **Log suspicious activity.** If a distance check fails drastically, log it for admins.
+Transport wiring stays with the resource's existing server callback/event owner. Do not expose
+this helper as a generic client-chosen payment API or treat a notification as proof of delivery.

@@ -1,34 +1,38 @@
-# init — Adding ox_lib to a resource
+# Setup and scope
 
-Add ox_lib as a shared script so `lib` (and optionally `cache`, `require`) are available in client and server.
+Import @ox_lib/init.lua as a shared_script before consumers in fxmanifest.lua. Declare/order
+the actual dependency according to the resource's manifest. This adds lib, cache and a require
+mechanism; inspect the installed initializer when resolving module-loading issues.
 
-**fxmanifest.lua**
+lib dynamically loads library modules. require imports modules and is not interchangeable
+with inventing a lib.require("callback") call. Optional ox_libs metadata preloads named modules
+supported by that version; add only those the resource needs.
+
+Client/server/shared availability is module-specific. A shared initializer does not make every
+UI function callable on the server. Likewise, Lua and JavaScript packages do not guarantee
+identical APIs. Inspect the execution-side implementation before choosing an export/import.
+Do not silently change server configuration or install a second library to fix a caller contract.
+
+[Setup docs](https://overextended.dev/docs/ox_lib) and [pinned init.lua](sources.md).
+
+## Minimal direct integration
+
+For a resource that owns a direct ox_lib integration, its `fxmanifest.lua` can contain:
 
 ```lua
-fx_version 'cerulean'
-game 'gta5'
+fx_version "cerulean"
+game "gta5"
 
-shared_scripts {
-  '@ox_lib/init.lua',
-}
--- Or if it's the only shared script:
--- shared_script '@ox_lib/init.lua'
+shared_script "@ox_lib/init.lua"
+client_script "client.lua"
+server_script "server.lua"
+dependency "ox_lib"
 
-client_scripts { 'client.lua' }
-server_scripts { 'server.lua' }
+-- Optional: preload locale when this resource uses locale(...).
+ox_libs { "locale" }
 ```
 
-Optional: preload specific modules so they are available without `lib.require()`:
-
-```lua
-ox_libs {
-  'locale',
-  'callback',
-  'math',
-  'table',
-}
-```
-
-Modules can also be loaded dynamically with `lib.require('callback')` or by calling `lib.callback`, `lib.notify`, etc. (ox_lib loads them on first use).
-
-Ensure the resource `ox_lib` is started before your resource (e.g. in server.cfg or `ensure ox_lib`).
+Start `ox_lib` before the consumer (`ensure ox_lib`, then `ensure your_resource`). Merge
+these declarations into the existing manifest; preserve configuration/import order. An
+`ox_libs` entry names a supported module, whereas `require` loads a Lua module by its own
+contract. Calling a supported `lib` method loads that library module on demand.
