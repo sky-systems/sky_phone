@@ -24,11 +24,8 @@ describe('SidePanelsDemo Konsta parity', () => {
     expect(source).toContain(':label="panel.title"')
   })
 
-  it('uses the exact iOS close icon, floating transparency, and 16px rhythm', () => {
-    expect(source).toContain(
-      "import Xmark from 'framework7-icons/vue/vue/Xmark.vue'",
-    )
-    expect(source).toContain('<SkyIcon :size="20"><Xmark /></SkyIcon>')
+  it('keeps a 20px close icon, floating transparency, and 16px rhythm', () => {
+    expect(source).toContain('<SkyIcon :size="20"><X /></SkyIcon>')
     expect(source).toContain('--sky-safe-area-top: 0px;')
     expect(source).toContain('--sky-safe-area-bottom: 0px;')
     expect(source).toMatch(

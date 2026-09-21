@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import ArrowUpCircleFill from 'framework7-icons/vue/vue/ArrowUpCircleFill.vue'
-import CameraFill from 'framework7-icons/vue/vue/CameraFill.vue'
+import { Camera, CircleArrowUp } from 'lucide-vue-next'
 import { computed, nextTick, onMounted, ref } from 'vue'
 
 import {
@@ -183,7 +182,7 @@ onMounted(async () => {
               icon-only
               type="button"
             >
-              <SkyIcon :size="20"><CameraFill /></SkyIcon>
+              <SkyIcon :size="20"><Camera /></SkyIcon>
             </SkyLink>
           </SkyToolbarPane>
         </template>
@@ -198,7 +197,7 @@ onMounted(async () => {
               :style="{ opacity: canSend ? 1 : 0.3 }"
               @click="sendMessage"
             >
-              <SkyIcon :size="28"><ArrowUpCircleFill /></SkyIcon>
+              <SkyIcon :size="28"><CircleArrowUp /></SkyIcon>
             </SkyLink>
           </SkyToolbarPane>
         </template>
