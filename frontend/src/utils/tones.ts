@@ -1,7 +1,5 @@
 import {
-  getPhoneOutputVolume,
   registerPhoneMediaElement,
-  subscribePhoneOutputVolume,
   unregisterPhoneMediaElement,
 } from '@/utils/phoneAudio'
 import type { AlarmSoundId } from '@/utils/alarms'
@@ -9,7 +7,6 @@ import type { BuiltInNotificationSoundId } from '@/utils/preferences'
 
 export type PhoneToneId = AlarmSoundId | BuiltInNotificationSoundId
 export type PhoneVibrationKind = 'call' | 'notification'
-export type PhoneEffectId = 'calling' | 'endcall' | 'button'
 
 type ToneVoice = {
   detune?: number
@@ -409,284 +406,9 @@ const TONE_PATTERNS: Record<PhoneToneId, TonePattern> = {
   },
 }
 
-// Original oscillator compositions: no recordings or sampled media are used.
-const EFFECT_PATTERNS: Record<PhoneEffectId, TonePattern> = {
-  calling: {
-    loopPauseMs: 900,
-    steps: [
-      {
-        offsetMs: 0,
-        durationMs: 260,
-        attackMs: 18,
-        releaseMs: 70,
-        voices: [
-          { frequency: 372, type: 'triangle' },
-          { frequency: 558, gain: 0.2 },
-        ],
-      },
-      {
-        offsetMs: 400,
-        durationMs: 310,
-        attackMs: 18,
-        releaseMs: 90,
-        voices: [
-          { frequency: 392, type: 'triangle' },
-          { frequency: 588, gain: 0.2 },
-        ],
-      },
-    ],
-  },
-  endcall: {
-    loopPauseMs: 450,
-    steps: [
-      {
-        offsetMs: 0,
-        durationMs: 125,
-        attackMs: 8,
-        releaseMs: 65,
-        voices: [
-          { frequency: 624, gain: 0.7 },
-          { frequency: 936, gain: 0.12 },
-        ],
-      },
-      {
-        offsetMs: 145,
-        durationMs: 180,
-        attackMs: 8,
-        releaseMs: 110,
-        voices: [
-          { frequency: 416, gain: 0.7 },
-          { frequency: 624, gain: 0.12 },
-        ],
-      },
-    ],
-  },
-  button: {
-    loopPauseMs: 110,
-    steps: [
-      {
-        offsetMs: 0,
-        durationMs: 70,
-        attackMs: 3,
-        releaseMs: 50,
-        voices: [
-          { frequency: 730, type: 'triangle', gain: 0.55 },
-          { frequency: 1095, gain: 0.1 },
-        ],
-      },
-    ],
-  },
-}
-
-const VIBRATION_PATTERNS: Record<PhoneVibrationKind, TonePattern> = {
-  call: {
-    loopPauseMs: 950,
-    steps: [
-      {
-        offsetMs: 0,
-        durationMs: 260,
-        attackMs: 18,
-        releaseMs: 35,
-        voices: [
-          { frequency: 112, type: 'triangle', gain: 0.6 },
-          { frequency: 118, gain: 0.35 },
-        ],
-      },
-      {
-        offsetMs: 380,
-        durationMs: 320,
-        attackMs: 18,
-        releaseMs: 45,
-        voices: [
-          { frequency: 112, type: 'triangle', gain: 0.6 },
-          { frequency: 118, gain: 0.35 },
-        ],
-      },
-    ],
-  },
-  notification: {
-    loopPauseMs: 450,
-    steps: [
-      {
-        offsetMs: 0,
-        durationMs: 105,
-        attackMs: 8,
-        releaseMs: 25,
-        voices: [
-          { frequency: 132, type: 'square', gain: 0.32 },
-          { frequency: 151, gain: 0.28 },
-        ],
-      },
-      {
-        offsetMs: 175,
-        durationMs: 150,
-        attackMs: 8,
-        releaseMs: 35,
-        voices: [
-          { frequency: 132, type: 'square', gain: 0.32 },
-          { frequency: 151, gain: 0.28 },
-        ],
-      },
-    ],
-  },
-}
-
-let effectContext: AudioContext | undefined
-const activeEffects = new Set<() => void>()
-
-export function playPhoneEffect(
-  effect: PhoneEffectId | 'vibration-call' | 'vibration-notification',
-  volumePercent: number,
-  loop: boolean,
-): () => void {
-  const pattern =
-    effect === 'vibration-call'
-      ? VIBRATION_PATTERNS.call
-      : effect === 'vibration-notification'
-        ? VIBRATION_PATTERNS.notification
-        : EFFECT_PATTERNS[effect]
-  const localVolume = Math.max(
-    0,
-    Math.min(1, Number.isFinite(volumePercent) ? volumePercent / 100 : 0),
-  )
-  if (localVolume === 0) return () => undefined
-
-  let context: AudioContext
-  try {
-    if (!effectContext) {
-      const Constructor =
-        window.AudioContext ??
-        (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext
-      if (!Constructor) throw new Error('Web Audio is unavailable')
-      effectContext = new Constructor()
-    }
-    context = effectContext
-  } catch (error: unknown) {
-    console.error('[Phone audio] Failed to create effect audio context', error)
-    return () => undefined
-  }
-
-  let stopped = false
-  let output: GainNode | undefined
-  let unsubscribeVolume: (() => void) | undefined
-  let nextPatternTimer: ReturnType<typeof setTimeout> | undefined
-  const voices = new Map<
-    OscillatorNode,
-    { gain?: GainNode; started: boolean }
-  >()
-
-  const stop = (): void => {
-    if (stopped) return
-    stopped = true
-    if (nextPatternTimer !== undefined) clearTimeout(nextPatternTimer)
-    unsubscribeVolume?.()
-    for (const [oscillator, voice] of voices) {
-      oscillator.onended = null
-      if (voice.started) {
-        try {
-          oscillator.stop()
-        } catch (error: unknown) {
-          console.error('[Phone audio] Failed to stop effect oscillator', error)
-        }
-      }
-      oscillator.disconnect()
-      voice.gain?.disconnect()
-    }
-    voices.clear()
-    output?.disconnect()
-    activeEffects.delete(stop)
-    if (activeEffects.size === 0 && effectContext === context) {
-      effectContext = undefined
-      void context.close().catch((error: unknown) => {
-        console.error(
-          '[Phone audio] Failed to close effect audio context',
-          error,
-        )
-      })
-    }
-  }
-
-  const schedulePattern = (): void => {
-    if (stopped) return
-    try {
-      const startAt = context.currentTime
-      for (const step of pattern.steps) {
-        for (const voice of step.voices) {
-          const oscillator = context.createOscillator()
-          const activeVoice: { gain?: GainNode; started: boolean } = {
-            started: false,
-          }
-          voices.set(oscillator, activeVoice)
-          const gain = context.createGain()
-          activeVoice.gain = gain
-          const start = startAt + step.offsetMs / 1000
-          const end = start + step.durationMs / 1000
-          const peak = voice.gain ?? 1
-          oscillator.type = voice.type ?? 'sine'
-          oscillator.frequency.value = voice.frequency
-          oscillator.detune.value = voice.detune ?? 0
-          gain.gain.setValueAtTime(0, start)
-          gain.gain.linearRampToValueAtTime(
-            peak,
-            start + (step.attackMs ?? 10) / 1000,
-          )
-          gain.gain.setValueAtTime(peak, end - (step.releaseMs ?? 25) / 1000)
-          gain.gain.linearRampToValueAtTime(0, end)
-          oscillator.connect(gain)
-          gain.connect(output!)
-          oscillator.onended = () => {
-            oscillator.onended = null
-            oscillator.disconnect()
-            gain.disconnect()
-            voices.delete(oscillator)
-            if (stopped || voices.size > 0) return
-            if (loop) {
-              nextPatternTimer = setTimeout(
-                schedulePattern,
-                pattern.loopPauseMs,
-              )
-            } else {
-              stop()
-            }
-          }
-          oscillator.start(start)
-          activeVoice.started = true
-          oscillator.stop(end)
-        }
-      }
-    } catch (error: unknown) {
-      console.error('[Phone audio] Failed to synthesize phone effect', error)
-      stop()
-    }
-  }
-
-  activeEffects.add(stop)
-  try {
-    output = context.createGain()
-    output.connect(context.destination)
-    const updateVolume = (masterVolume: number): void => {
-      output!.gain.setValueAtTime(
-        localVolume * masterVolume * 0.16,
-        context.currentTime,
-      )
-    }
-    updateVolume(getPhoneOutputVolume())
-    unsubscribeVolume = subscribePhoneOutputVolume(updateVolume)
-    void context
-      .resume()
-      .then(schedulePattern)
-      .catch((error: unknown) => {
-        if (!stopped) {
-          console.error('[Phone audio] Failed to start phone effect', error)
-          stop()
-        }
-      })
-  } catch (error: unknown) {
-    console.error('[Phone audio] Failed to initialize phone effect', error)
-    stop()
-  }
-  return stop
+const VIBRATION_SOUND_PATHS: Record<PhoneVibrationKind, string> = {
+  call: 'sounds/vibration-call.mp3',
+  notification: 'sounds/vibration-notification.mp3',
 }
 
 export function phoneToneDuration(tone: PhoneToneId): number {
@@ -818,5 +540,26 @@ export function playPhoneVibration(
   kind: PhoneVibrationKind,
   loop: boolean,
 ): () => void {
-  return playPhoneEffect(`vibration-${kind}`, 100, loop)
+  const player = registerPhoneMediaElement(
+    new Audio(`${import.meta.env.BASE_URL}${VIBRATION_SOUND_PATHS[kind]}`),
+  )
+  let stopped = false
+  player.loop = loop
+  player.preload = 'auto'
+  player.volume = 1
+  void player.play().catch((error: unknown) => {
+    if (!stopped) {
+      console.error('[Phone audio] Failed to start vibration sound', error)
+    }
+  })
+
+  return () => {
+    if (stopped) return
+    stopped = true
+    player.pause()
+    player.currentTime = 0
+    player.removeAttribute('src')
+    player.load()
+    unregisterPhoneMediaElement(player)
+  }
 }

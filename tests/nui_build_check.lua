@@ -27,6 +27,7 @@ local valid_files = {
     ["source/html/assets/sky-index.css"] = "body{}",
     ["source/html/assets/sky-index.js"] = "console.log('ready')",
     ["source/html/img/custom-app.svg"] = "<svg></svg>",
+    ["source/html/sounds/button.mp3"] = "audio",
 }
 
 assert(run_check(valid_files) == "", "a complete NUI build must not print a warning")
@@ -36,6 +37,7 @@ assert(missing_build_output:find("SKY PHONE UI BUILD IS MISSING OR INCOMPLETE", 
 assert(missing_build_output:find("source/html/index.html", 1, true))
 assert(missing_build_output:find("source/html/assets/*", 1, true))
 assert(missing_build_output:find("source/html/img/custom-app.svg", 1, true))
+assert(missing_build_output:find("source/html/sounds/button.mp3", 1, true))
 assert(missing_build_output:find("not GitHub's automatic source archive", 1, true))
 assert(missing_build_output:find("cd frontend", 1, true))
 assert(missing_build_output:find("pnpm install --frozen-lockfile", 1, true))

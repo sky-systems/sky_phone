@@ -2,6 +2,7 @@ local resource_name = GetCurrentResourceName()
 local index_path = "source/html/index.html"
 local required_static_files = {
     "source/html/img/custom-app.svg",
+    "source/html/sounds/button.mp3",
 }
 
 local function load_non_empty_file(path)
