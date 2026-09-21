@@ -26,6 +26,26 @@ for (const requiredFragment of [
   }
 }
 
+for (const file of ["LICENSE", "THIRD_PARTY_NOTICES.md"]) {
+  try {
+    const source = await readFile(join(repositoryRoot, file), "utf8");
+    const packaged = await readFile(
+      join(repositoryRoot, "sky_phone", file),
+      "utf8",
+    );
+    if (
+      !source.trim() ||
+      source.replace(/\r\n/g, "\n") !== packaged.replace(/\r\n/g, "\n")
+    ) {
+      fail(
+        `${file} must have an identical, nonempty copy in sky_phone; run the frontend build`,
+      );
+    }
+  } catch (error) {
+    fail(`Cannot verify packaged license file ${file}: ${error.message}`);
+  }
+}
+
 const rulesetDirectory = join(repositoryRoot, ".github", "rulesets");
 const rulesetFiles = (await readdir(rulesetDirectory)).filter((file) =>
   file.endsWith(".json"),

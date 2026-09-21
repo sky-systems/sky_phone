@@ -15,6 +15,8 @@ These JSON files are import-ready repository rulesets for `sky-systems/sky_phone
 
 Successful pull requests receive a 14-day test-resource artifact containing the deployable `sky_phone` folder and built NUI. `Pull request test resource link` runs after `CI` and maintains one download comment in the pull request. It does not check out, download, or execute pull-request content with its write-capable token.
 
+Release and pull-request packages also contain the project `LICENSE` and complete `THIRD_PARTY_NOTICES.md`. The frontend check verifies the generated dependency notice inventory and both packaging workflows verify that the license files are present in the ZIP. These checks do not certify the provenance of other bundled assets.
+
 `protect-release-tags.json` accepts stable numeric semantic versions such as `0.2.0`, rejects a leading `v`, and makes created tags immutable.
 
 The built-in repository `Maintain` role uses `RepositoryRole` actor ID `2`. Its branch bypass is limited to pull requests and is what permits maintainers to merge; its tag bypass is always available so maintainers can create and recover releases. Changing the committed JSON alone does not update an already imported ruleset.
