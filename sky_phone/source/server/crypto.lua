@@ -159,14 +159,34 @@ local function ensure_schema()
     for _, statement in ipairs(statements) do
         Bridge.Database.Query(statement, {})
     end
-    Bridge.Database.Query("ALTER TABLE `sky_phone_crypto_profiles` ADD COLUMN IF NOT EXISTS `price_alerts` TINYINT(1) UNSIGNED NOT NULL DEFAULT 1 AFTER `password_hash`", {})
-    Bridge.Database.Query("ALTER TABLE `sky_phone_crypto_profiles` ADD COLUMN IF NOT EXISTS `trade_confirmations` TINYINT(1) UNSIGNED NOT NULL DEFAULT 1 AFTER `price_alerts`", {})
-    Bridge.Database.Query("ALTER TABLE `sky_phone_crypto_profiles` ADD COLUMN IF NOT EXISTS `hide_balances` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 AFTER `trade_confirmations`", {})
-    Bridge.Database.Query("ALTER TABLE `sky_phone_crypto_profiles` ADD COLUMN IF NOT EXISTS `crypto_key` CHAR(22) CHARACTER SET ascii COLLATE ascii_bin NULL AFTER `handle`", {})
+    -- MySQL does not support ADD COLUMN IF NOT EXISTS. Inspect both tables once
+    -- so upgrades and repeated starts only add columns that are still missing.
+    local columns = Bridge.Database.Query([[
+        SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (?, ?)
+    ]], { "sky_phone_crypto_profiles", "sky_phone_crypto_operations" })
+    local existing_columns = {}
+    for _, column in ipairs(columns) do
+        existing_columns[column.table_name:lower() .. "." .. column.column_name:lower()] = true
+    end
+    local function add_missing_column(table_name, column_name, definition)
+        local key = table_name .. "." .. column_name
+        if not existing_columns[key] then
+            Bridge.Database.Query(("ALTER TABLE `%s` ADD COLUMN `%s` %s"):format(
+                table_name, column_name, definition
+            ), {})
+            existing_columns[key] = true
+        end
+    end
+    add_missing_column("sky_phone_crypto_profiles", "price_alerts", "TINYINT(1) UNSIGNED NOT NULL DEFAULT 1 AFTER `password_hash`")
+    add_missing_column("sky_phone_crypto_profiles", "trade_confirmations", "TINYINT(1) UNSIGNED NOT NULL DEFAULT 1 AFTER `price_alerts`")
+    add_missing_column("sky_phone_crypto_profiles", "hide_balances", "TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 AFTER `trade_confirmations`")
+    add_missing_column("sky_phone_crypto_profiles", "crypto_key", "CHAR(22) CHARACTER SET ascii COLLATE ascii_bin NULL AFTER `handle`")
     Bridge.Database.Query([[ALTER TABLE `sky_phone_crypto_operations`
         MODIFY COLUMN `type` ENUM('buy','sell','deposit','withdrawal','transfer_in','transfer_out') NOT NULL]], {})
-    Bridge.Database.Query("ALTER TABLE `sky_phone_crypto_operations` ADD COLUMN IF NOT EXISTS `quantity` DECIMAL(36,0) UNSIGNED NOT NULL DEFAULT 0 AFTER `market_id`", {})
-    Bridge.Database.Query("ALTER TABLE `sky_phone_crypto_operations` ADD COLUMN IF NOT EXISTS `counterparty_key` CHAR(22) CHARACTER SET ascii COLLATE ascii_bin NULL AFTER `quantity`", {})
+    add_missing_column("sky_phone_crypto_operations", "quantity", "DECIMAL(36,0) UNSIGNED NOT NULL DEFAULT 0 AFTER `market_id`")
+    add_missing_column("sky_phone_crypto_operations", "counterparty_key", "CHAR(22) CHARACTER SET ascii COLLATE ascii_bin NULL AFTER `quantity`")
     Bridge.Database.Query("ALTER TABLE `sky_phone_crypto_operations` MODIFY COLUMN `counterparty_key` CHAR(22) CHARACTER SET ascii COLLATE ascii_bin NULL", {})
 end
 
