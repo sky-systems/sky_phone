@@ -78,6 +78,10 @@ local function new_server(database, configure_defaults, defer_initialization)
         assert(name == "sky_phone:configurator:sync" and target == -1)
         broadcasts[#broadcasts + 1] = copy(payload)
     end
+    environment.Bridge.Network = { SendClient = function(...)
+        environment.TriggerClientEvent(...)
+        return true
+    end }
     load_script("source/bridge/server/vehiclekeys.lua", environment)
     local initialization = coroutine.create(function()
         load_script("source/server/phone_configurator.lua", environment)
@@ -687,6 +691,35 @@ test("invalid CrewLink native settings and key defaults cannot reach SQL or clie
         assert(not server.save({ change("CrewLink", settings) }).success)
         assert(#server.broadcasts == 0)
     end
+end)
+
+test("changed config groups converge for 60 clients despite delayed or missing deltas", function()
+    local server = new_server()
+    local clients = {}
+    local old_snapshot = server.runtime()
+    for index = 1, 60 do clients[index] = new_client(server) end
+    local apps = server.field("Apps").value
+    apps.feather = false
+    assert(server.save({ change("Apps", apps) }).success)
+    local first = copy(server.broadcasts[1])
+    assert(first.baseRevision == 1 and first.revision == 2)
+    assert(first.config.Apps.feather == false and first.config.Crypto == nil and first.config.Phone == nil,
+        "one app switch must not rebroadcast unchanged market definitions or device config")
+    local phone = server.field("Phone").value
+    phone.Keybind = false
+    assert(server.save({ change("Phone", phone) }).success)
+    local second = copy(server.broadcasts[2])
+    assert(second.baseRevision == 2 and second.config.Apps == nil)
+    for index, client in ipairs(clients) do
+        if index % 2 == 0 then client.sync(first) end
+        client.sync(second)
+        client.sync(first)
+        client.sync(old_snapshot)
+        assert(client.config.Apps.feather == false and client.config.Phone.Keybind == false)
+        assert(client.revisions[#client.revisions] == 3, "late snapshots must never roll back config")
+    end
+    local reconnect = new_client(server)
+    assert(reconnect.config.Apps.feather == false and reconnect.config.Phone.Keybind == false)
 end)
 
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))

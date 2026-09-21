@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import type {
   CryptoBootstrap,
   CryptoMarket,
+  CryptoMarketUpdate,
   CryptoQuote,
   CryptoRecipient,
   CryptoSide,
@@ -20,14 +21,29 @@ export const useCryptoStore = defineStore('crypto', {
     error: '',
     isLoading: false,
     pendingQuote: null as CryptoQuote | null,
+    marketWatching: false,
+    marketWatchGeneration: 0,
   }),
   actions: {
-    applyMarketUpdate(markets: CryptoMarket[]): void {
+    applyMarketUpdate(markets: CryptoMarketUpdate[]): void {
       if (!this.data || markets.length === 0) return
       const changed = new Map(markets.map((market) => [market.id, market]))
-      const nextMarkets = this.data.markets.map(
-        (market) => changed.get(market.id) ?? market,
-      )
+      const nextMarkets = this.data.markets.map((market) => {
+        const update = changed.get(market.id)
+        if (!update) return market
+        if ((update.version ?? 0) < (market.version ?? 0)) {
+          changed.delete(market.id)
+          return market
+        }
+        const next = { ...market, ...update }
+        if (update.priceHistory && !update.sparkline) {
+          const prices = update.priceHistory.map(Number)
+          const minimum = Math.min(...prices)
+          const span = Math.max(...prices) - minimum || 1
+          next.sparkline = prices.map((price) => (price - minimum) / span)
+        }
+        return next
+      })
       const prices = new Map(
         nextMarkets.map((market) => [market.id, Number(market.price)]),
       )
@@ -54,6 +70,34 @@ export const useCryptoStore = defineStore('crypto', {
         this.pendingQuote = null
       }
     },
+    applyBootstrap(data: CryptoBootstrap): void {
+      const current = new Map(
+        this.data?.markets.map((market) => [market.id, market]),
+      )
+      this.data = data
+      this.applyMarketUpdate(
+        data.markets.flatMap((market) => {
+          const newer = current.get(market.id)
+          return newer && (newer.version ?? 0) > (market.version ?? 0)
+            ? [newer]
+            : []
+        }),
+      )
+    },
+    async watchMarkets(active: boolean): Promise<void> {
+      this.marketWatching = active
+      const generation = ++this.marketWatchGeneration
+      const response = await nuiCall<CryptoMarketUpdate[]>('crypto:watch', {
+        active,
+      })
+      if (generation !== this.marketWatchGeneration) return
+      if (!response.success) {
+        this.marketWatching = false
+        this.error = response.error ?? 'request_failed'
+      } else if (active && response.data) {
+        this.applyMarketUpdate(response.data)
+      }
+    },
     async previewMarketTick(): Promise<boolean> {
       const response = await nuiCall<CryptoMarket[]>('crypto:market-tick', {})
       if (!response.success || !response.data) return false
@@ -74,7 +118,7 @@ export const useCryptoStore = defineStore('crypto', {
     async load(): Promise<boolean> {
       const response = await this.call<CryptoBootstrap>('bootstrap')
       if (!response.success || !response.data) return false
-      this.data = response.data
+      this.applyBootstrap(response.data)
       return true
     },
     async register(handle: string, password: string): Promise<boolean> {
@@ -83,13 +127,13 @@ export const useCryptoStore = defineStore('crypto', {
         password,
       })
       if (!response.success || !response.data) return false
-      this.data = response.data
+      this.applyBootstrap(response.data)
       return true
     },
     async login(password: string): Promise<boolean> {
       const response = await this.call<CryptoBootstrap>('login', { password })
       if (!response.success || !response.data) return false
-      this.data = response.data
+      this.applyBootstrap(response.data)
       return true
     },
     async logout(): Promise<void> {
@@ -118,7 +162,7 @@ export const useCryptoStore = defineStore('crypto', {
         idempotencyKey: requestKey('transfer'),
       })
       if (!response.success || !response.data) return false
-      this.data = response.data
+      this.applyBootstrap(response.data)
       return true
     },
     async settle(
@@ -132,7 +176,7 @@ export const useCryptoStore = defineStore('crypto', {
         password,
       })
       if (!response.success || !response.data) return false
-      this.data = response.data
+      this.applyBootstrap(response.data)
       return true
     },
     async quote(
@@ -171,7 +215,7 @@ export const useCryptoStore = defineStore('crypto', {
       })
       this.pendingQuote = null
       if (!response.success || !response.data) return false
-      this.data = response.data
+      this.applyBootstrap(response.data)
       return true
     },
     async updateProfile(payload: {
@@ -187,7 +231,7 @@ export const useCryptoStore = defineStore('crypto', {
         payload,
       )
       if (!response.success || !response.data) return false
-      this.data = response.data
+      this.applyBootstrap(response.data)
       return true
     },
   },
