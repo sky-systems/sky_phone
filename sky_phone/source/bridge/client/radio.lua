@@ -130,6 +130,7 @@ function Bridge.Radio.Join(primary, secondary)
     end
 
     if selected == "saltychat" then
+        exports.saltychat:SetMicClick(true)
         exports.saltychat:SetRadioChannel(tostring(primary), true)
         exports.saltychat:SetRadioChannel(secondary > 0 and tostring(secondary) or "", false)
         return true
@@ -145,6 +146,7 @@ local function leave_provider(selected)
     elseif selected == "pma" then
         exports["pma-voice"]:setRadioChannel(0)
     elseif selected == "saltychat" then
+        exports.saltychat:SetMicClick(false)
         Bridge.Radio.SetSpeaker(false)
         exports.saltychat:SetRadioChannel("", true)
         exports.saltychat:SetRadioChannel("", false)
