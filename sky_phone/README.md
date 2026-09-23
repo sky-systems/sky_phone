@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../inventory_images/phone.png" alt="Sky Phone, the free FiveM phone script" width="128">
+  <img src="config/images/phone.png" alt="Sky Phone, the free FiveM phone script" width="128">
 </p>
 
 <h1 align="center">Sky Phone: Free FiveM Phone Script</h1>
@@ -167,7 +167,7 @@ Start the selected voice resource before Sky Phone.
 2. Keep the resource folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
 4. Review `sky_phone/config/config.lua` and `sky_phone/config/media.lua`.
-5. Add the required [inventory items](#inventory-items). With **ox_inventory**, also remove the existing NPWD phone handler as described below.
+5. Add the required [inventory items and their images](#inventory-items). With **ox_inventory**, also remove the existing NPWD phone handler as described below.
 6. Add `ensure sky_phone` to `server.cfg`.
 7. Restart the server and watch the console for warnings.
 
@@ -297,6 +297,16 @@ configured peppers.
 The server-only block is evaluated only on the server. Because the project uses a customer-requested single configuration file that is also present in the client resource package, protect access to your distributed resource files if these values must remain strictly secret.
 
 ## Inventory items
+
+This resource includes an image for each default item in `config/images/`:
+
+| Item | Image |
+| --- | --- |
+| `phone` | `phone.png` |
+| `sky_phone_sim_registered` | `sky_phone_sim_registered.png` |
+| `sky_phone_sim_anonymous` | `sky_phone_sim_anonymous.png` |
+
+Copy these PNG files into your inventory's item image directory. For the default `ox_inventory` image path, use `ox_inventory/web/images/`. Other inventories use their own image directory. If you change an item name in `Config.Phone` or `Config.Sim`, give its image the same name expected by your inventory.
 
 ### ox_inventory
 
