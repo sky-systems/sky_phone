@@ -135,6 +135,8 @@ describe('incoming calls on a locked phone', () => {
     expect(runtime.lockedCallVisible.value).toBe(true)
     expect(isLocked.value).toBe(true)
     expect(loadUnlockedPhoneData).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(3000)
+    expect(useCallsStore().elapsedSeconds).toBe(3)
     expect(nuiCall).not.toHaveBeenCalledWith(
       'security:unlock',
       expect.anything(),
@@ -195,7 +197,7 @@ describe('incoming calls on a locked phone', () => {
     expect(runtime.lockedCallVisible.value).toBe(false)
   })
 
-  it('starts the locked call timer without loading contacts, recents, or private deep links', async () => {
+  it('does not load contacts, recents, or private deep links in the locked call view', async () => {
     const script = parseSetup('./views/apps/PhoneApp.vue')
     const mounted = script.statements.find(
       (node) =>
@@ -207,10 +209,8 @@ describe('incoming calls on a locked phone', () => {
     const code = ts.transpileModule(mounted.getText(script), {
       compilerOptions: { target: ts.ScriptTarget.ES2022 },
     }).outputText
-    const updateCallElapsed = vi.fn()
     const bootstrap = vi.fn()
     const consumeMany = vi.fn()
-    const setInterval = vi.fn()
     let mount: (() => Promise<void>) | undefined
     runInNewContext(code, {
       onMounted: (callback: () => Promise<void>) => {
@@ -219,13 +219,8 @@ describe('incoming calls on a locked phone', () => {
       props: { locked: true },
       calls: { bootstrap },
       mediaPicker: { consumeMany },
-      window: { setInterval },
-      updateCallElapsed,
-      callClock: null,
     })
     await mount?.()
-    expect(updateCallElapsed).toHaveBeenCalledOnce()
-    expect(setInterval).toHaveBeenCalledWith(updateCallElapsed, 500)
     expect(bootstrap).not.toHaveBeenCalled()
     expect(consumeMany).not.toHaveBeenCalled()
   })

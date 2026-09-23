@@ -188,7 +188,7 @@ const callInitials = computed(() =>
 const callDuration = computed(() => {
   const call = calls.activeCall
   if (!call || call.state !== 'connected') return ''
-  return formatDuration(now.value - (call.answeredAt ?? call.startedAt))
+  return formatDuration(calls.elapsedSeconds * 1000)
 })
 const callStatus = computed(() => {
   if (props.previewSubtitle !== undefined) return props.previewSubtitle
