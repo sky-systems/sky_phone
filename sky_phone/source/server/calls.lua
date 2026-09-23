@@ -154,6 +154,7 @@ local function call_payload(call, source, state, channel)
         otherNumber = outgoing and call.callee_number or visible_caller_number(call),
         startedAt = call.started_at,
         answeredAt = call.answered_at,
+        elapsedSeconds = call.answered_at and math.max(0, os.time() - call.answered_at) or 0,
         channel = channel,
         speakerEnabled = call.speakers and call.speakers[source] == true or false,
         speakerSupported = speaker_supported,

@@ -56,7 +56,7 @@ describe('Phone Dynamic Island contract', () => {
     expect(source).toContain('@click.stop="endCall"')
     expect(source).toContain('void calls.decline()')
     expect(source).toContain('void calls.hangup()')
-    expect(source).toContain('call.answeredAt ?? call.startedAt')
+    expect(source).toContain('formatDuration(calls.elapsedSeconds * 1000)')
   })
 
   it('hides an activity in its owning foreground app but restores it after closing', () => {

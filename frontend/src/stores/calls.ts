@@ -25,6 +25,9 @@ const RINGTONE_TONES: Record<BuiltInRingtoneId, PhoneToneId> = {
 export const useCallsStore = defineStore('calls', () => {
   const phone = usePhoneStore()
   const activeCall = ref<PhoneCall | null>(null)
+  const elapsedSeconds = ref(0)
+  let elapsedAtStart = 0
+  let clockStartedAt = 0
   const contacts = ref<PhoneContact[]>([])
   const recents = ref<RecentCall[]>([])
   let lastEndedCallId: string | undefined
@@ -36,6 +39,38 @@ export const useCallsStore = defineStore('calls', () => {
   }
 
   onScopeDispose(stopCallEndTone)
+
+  watch(
+    [
+      () => activeCall.value?.id,
+      () => activeCall.value?.state,
+      () => activeCall.value?.elapsedSeconds,
+    ],
+    ([id, state, serverElapsed], [previousId, previousState], onCleanup) => {
+      if (state !== 'connected') {
+        elapsedSeconds.value = 0
+        return
+      }
+
+      // Server timestamps and the user's wall clock need not agree. Keep one
+      // monotonic clock for every call view, including the Dynamic Island.
+      const now = performance.now()
+      const localElapsed =
+        id === previousId && previousState === 'connected'
+          ? elapsedAtStart + (now - clockStartedAt) / 1000
+          : 0
+      elapsedAtStart = Math.max(0, serverElapsed ?? 0, localElapsed)
+      clockStartedAt = now
+      elapsedSeconds.value = Math.floor(elapsedAtStart)
+      const timer = setInterval(() => {
+        elapsedSeconds.value = Math.floor(
+          elapsedAtStart + (performance.now() - clockStartedAt) / 1000,
+        )
+      }, 500)
+      onCleanup(() => clearInterval(timer))
+    },
+    { flush: 'sync' },
+  )
 
   function playSelectedRingtone(volume: number): () => void {
     const selected = phone.preferences.settings.ringtone
@@ -263,6 +298,7 @@ export const useCallsStore = defineStore('calls', () => {
     decline,
     deleteContact,
     dial,
+    elapsedSeconds,
     hangup,
     loadContacts,
     loadRecents,
