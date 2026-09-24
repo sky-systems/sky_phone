@@ -317,6 +317,19 @@ test("custom admission checks do not close an active session on normal data upda
     assert(not SkyPhoneClient.GetState().open, "Status restrictions still apply to active updates")
 end)
 
+test("a newer update cannot bypass cancellation of an announced device switch", function()
+    local client = new_client()
+    client.authorize(device("first", "5551111111"))
+    client.events["sky_phone:device:opening"](2, "second")
+    local second = device("second", "5552222222")
+    second.device.imei = "356938035643810"
+    second.networkRevision = 3
+    PhoneFunctions.CanOpenPhone = function() return false end
+    client.events["sky_phone:device:updated"](second)
+    assert(not SkyPhoneClient.GetState().open and #client.take_messages("device:updated") == 0)
+    assert(SkyPhoneClient.GetState().phoneNumber == "5551111111", "Cancelled switches cannot replace device data")
+end)
+
 test("custom checks revalidate after inventory awaits and before NUI rehydration", function()
     local client = new_client()
     local request = coroutine.create(function() return SkyPhoneClient.Toggle(true) end)

@@ -569,8 +569,7 @@ RegisterNetEvent("sky_phone:device:opening", function(revision, token)
 end)
 
 local function receive_device_snapshot(data, opening)
-    if Bridge.PlayerState.GetBlockReason()
-        or ((opening or not is_open) and not PhoneFunctions.CanOpenPhone()) then
+    if Bridge.PlayerState.GetBlockReason() then
         close_phone()
         return
     end
@@ -597,6 +596,10 @@ local function receive_device_snapshot(data, opening)
         or data.device.imei ~= device_payload.device.imei or data.token ~= device_payload.token)
     then
         Bridge.Debug("debug", "[sky_phone] Ignored a device update outside its authorized session.")
+        return
+    end
+    if (opening or not is_open) and not PhoneFunctions.CanOpenPhone() then
+        close_phone()
         return
     end
     if data.networkRevision then device_network_revision = data.networkRevision end
