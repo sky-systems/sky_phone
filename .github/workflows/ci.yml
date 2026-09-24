@@ -73,6 +73,11 @@ jobs:
       - name: Test SkyPic reactions and configured pagination
         run: lua5.4 tests/server_skypic.lua
 
+      - name: Test editable player checks and radio restrictions
+        run: |
+          lua5.4 tests/player_restrictions.lua
+          lua5.4 tests/client_radio_restrictions.lua
+
       - name: Test service-line routing and call lifecycle
         run: |
           lua5.4 tests/server_calls.lua
