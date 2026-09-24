@@ -12,6 +12,7 @@ function GetGameTimer()
 end
 
 Bridge = {
+    PlayerState = { GetBlockReason = function() return nil end },
     Calls = {
         Join = function(channel)
             joined_channel = channel
@@ -52,6 +53,7 @@ end
 function TriggerEvent() end
 function AddEventHandler(name, callback) net_events[name] = callback end
 
+dofile("sky_phone/config/functions.lua")
 dofile("sky_phone/source/client/calls.lua")
 
 local success, error_code = SkyPhoneCalls.Dial(nil, nil)
@@ -60,6 +62,16 @@ assert(SkyPhoneCalls.Dial("5550101"), "valid dial target must reach the server")
 assert(SkyPhoneCalls.GetActive() == nil, "inactive calls must not expose a snapshot")
 success, error_code = SkyPhoneCalls.Hangup()
 assert(not success and error_code == "call_not_found", "hangup must reject missing calls locally")
+
+local can_open = PhoneFunctions.CanOpenPhone
+PhoneFunctions.CanOpenPhone = function() return false end
+local message_count = #nui_messages
+net_events["sky_phone:call:incoming"]({
+    id = "cancelled-call", state = "ringing", direction = "incoming",
+})
+assert(not SkyPhoneCalls.IsActive() and not focus_claim and #nui_messages == message_count,
+    "Client cancellation must prevent late incoming events from taking focus or reaching NUI")
+PhoneFunctions.CanOpenPhone = can_open
 
 net_events["sky_phone:call:incoming"]({
     id = "call-1",
@@ -70,6 +82,13 @@ net_events["sky_phone:call:incoming"]({
 })
 assert(SkyPhoneCalls.IsActive() and focus_claim, "incoming call must become active and claim focus")
 assert(nui_messages[#nui_messages].type == "call:incoming", "incoming call must reach NUI")
+
+PhoneFunctions.CanOpenPhone = function() return false end
+message_count = #nui_messages
+SkyPhoneCalls.ReplayNui()
+assert(not focus_claim and #nui_messages == message_count and SkyPhoneCalls.IsActive(),
+    "Blocked NUI rehydration must release call focus without restoring the overlay or ending the call")
+PhoneFunctions.CanOpenPhone = can_open
 
 local snapshot = assert(SkyPhoneCalls.GetActive())
 snapshot.state = "ended"

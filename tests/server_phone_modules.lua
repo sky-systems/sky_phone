@@ -6,6 +6,7 @@ function CreateThread(fn) threads[#threads+1] = coroutine.create(fn) end
 function Wait() coroutine.yield() end
 
 Bridge = {
+    PlayerState = { GetBlockReason = function() return nil end },
     Network = { SendClient = function(...)
         TriggerClientEvent(...)
         return true
@@ -125,6 +126,7 @@ SkyPhoneImei = {}
 SkyPhoneSimNumber = {}
 
 local module_paths = {
+    "sky_phone/config/functions.lua",
     "sky_phone/source/server/phone_security.lua",
     "sky_phone/source/server/phone_accounts.lua",
     "sky_phone/source/server/phone_persistence.lua",
@@ -343,6 +345,7 @@ local session, reason = SkyPhone.RequireDeviceSession(1)
 assert(not session and reason.error == "player_cuffed")
 assert(opened_event == nil, "Blocked phone use must never send an open event")
 blocked = nil
+hide_phone_during_prepare = false
 local prepare = SkyPhoneSim.PrepareDevice
 SkyPhoneSim.PrepareDevice = function(...)
     local ok, err = prepare(...)
@@ -352,3 +355,36 @@ end
 local late = registered_callbacks["sky_phone:device:open-request"](1, {})
 assert(not late.success and opened_event == nil, "A late preparation cannot open a phone after becoming unconscious")
 print("server phone modules: ok; restricted opens, sessions and delayed preparation")
+
+blocked = nil
+SkyPhoneSim.PrepareDevice = prepare
+PhoneFunctions.CanOpenPhone = function(src)
+    assert(src == 1, "Custom server checks must receive the requesting source")
+    return false
+end
+assert(registered_callbacks["sky_phone:device:open-request"](1, {}).error == "request_cancelled")
+assert(not SkyPhone.OpenDeviceForCall(1, phone_item.metadata.imei))
+assert(opened_event == nil, "Custom cancellation must not open a device")
+
+local custom_allowed = true
+PhoneFunctions.CanOpenPhone = function() return custom_allowed end
+SkyPhoneSim.PrepareDevice = function(...)
+    local ok, err = prepare(...)
+    custom_allowed = false
+    return ok, err
+end
+local cancelled = registered_callbacks["sky_phone:device:open-request"](1, {})
+assert(not cancelled.success and cancelled.error == "request_cancelled" and opened_event == nil)
+local cancelled_session, cancelled_reason = SkyPhone.RequireDeviceSession(1)
+assert(not cancelled_session and cancelled_reason.error == "device_not_open")
+custom_allowed = true
+SkyPhoneSim.PrepareDevice = prepare
+local query = Bridge.Database.Query
+Bridge.Database.Query = function(...)
+    local result = query(...)
+    custom_allowed = false
+    return result
+end
+assert(not SkyPhone.OpenDeviceForCall(1, phone_item.metadata.imei) and opened_event == nil,
+    "Incoming calls must recheck custom cancellation after loading the device")
+print("server phone modules: ok; custom opening checks and cancellation after preparation")

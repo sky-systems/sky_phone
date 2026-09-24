@@ -246,7 +246,7 @@ local function close_phone(close_device_session)
 end
 
 local function request_phone_open(callback_name)
-    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then return false end
+    if not PhoneFunctions.CanOpenPhone() then close_phone(); return false end
     if is_open or open_requested then
         return true
     end
@@ -254,6 +254,7 @@ local function request_phone_open(callback_name)
     open_requested = true
     local result = Bridge.Callbacks.Trigger(callback_name, {})
     if type(result) == "table" and result.success == true then
+        if not PhoneFunctions.CanOpenPhone() then close_phone(); return false end
         return true
     end
 
@@ -286,6 +287,7 @@ local function toggle_phone(open, no_focus)
 
     open_without_focus = no_focus == true
     if is_open or open_requested then
+        if not PhoneFunctions.CanOpenPhone() then close_phone(); return false end
         if is_open then
             SkyPhoneFocus.SetPhone(true, open_without_focus)
         end
@@ -438,7 +440,11 @@ RegisterNUICallback("ui:ready", function(data, cb)
     send_phone_tone_catalog()
     SkyPhoneApps.SendCatalog()
     if device_open_authorized and device_payload then
-        send_open_message()
+        if PhoneFunctions.CanOpenPhone() then
+            send_open_message()
+        else
+            close_phone()
+        end
     end
     if admin_panel_open then
         send_admin_panel_open()
@@ -461,9 +467,10 @@ RegisterNUICallback("ui:ready", function(data, cb)
 end)
 
 RegisterNUICallback("ui:opened", function(data, cb)
-    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then
+    local allowed, reason = PhoneFunctions.CanOpenPhone()
+    if not allowed then
         close_phone()
-        cb({ success = false })
+        cb({ success = false, error = reason or "request_cancelled" })
         return
     end
     if type(data) ~= "table" then
@@ -562,7 +569,10 @@ RegisterNetEvent("sky_phone:device:opening", function(revision, token)
 end)
 
 local function receive_device_snapshot(data, opening)
-    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then close_phone(); return end
+    if Bridge.PlayerState.GetBlockReason() then
+        close_phone()
+        return
+    end
     if type(data) ~= "table" or type(data.device) ~= "table" or type(data.device.imei) ~= "string" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid device snapshot.")
         if not is_open then
@@ -586,6 +596,10 @@ local function receive_device_snapshot(data, opening)
         or data.device.imei ~= device_payload.device.imei or data.token ~= device_payload.token)
     then
         Bridge.Debug("debug", "[sky_phone] Ignored a device update outside its authorized session.")
+        return
+    end
+    if (opening or not is_open) and not PhoneFunctions.CanOpenPhone() then
+        close_phone()
         return
     end
     if data.networkRevision then device_network_revision = data.networkRevision end

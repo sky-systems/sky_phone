@@ -19,6 +19,10 @@ Lua tests cover call membership, range/buckets, overlapping speakers, mute and s
 
 ## Player restrictions and radio item requirement
 
+The shared, editable checks live in `config/functions.lua`. See
+[Player checks and opening cancellation](PLAYER_CHECKS.md) to customize death,
+handcuffs or cancel phone opening with `PhoneFunctions.CanOpenPhone`.
+
 All three switches default to `true` in `config/config.lua` and `/phonepanel`:
 
 | Setting | Effect |

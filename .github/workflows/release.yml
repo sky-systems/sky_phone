@@ -85,6 +85,14 @@ jobs:
             luac5.4 -p "$file"
           done < <(find sky_phone tests -type f -name '*.lua' -print0)
 
+      - name: Test Lua resource contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in tests/*.lua; do
+            lua5.4 "$file"
+          done
+
       - name: Create release archive
         shell: bash
         run: |
@@ -122,11 +130,13 @@ jobs:
 
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "$archive" "${archive}.sha256" --clobber
+            gh release edit "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --prerelease=false --latest
           else
             gh release create "$GITHUB_REF_NAME" \
               "$archive" \
               "${archive}.sha256" \
               --verify-tag \
               --generate-notes \
-              --title "$GITHUB_REF_NAME Beta"
+              --latest \
+              --title "$GITHUB_REF_NAME"
           fi

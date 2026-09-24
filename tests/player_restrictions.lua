@@ -27,6 +27,7 @@ local function env()
     end
     e.TriggerClientEvent = function(name, ...) e.events[#e.events+1] = { name, ... } end
     e.exports = {}
+    assert(loadfile("sky_phone/config/functions.lua", "t", e))()
     return e
 end
 local function load(e, path) assert(loadfile("sky_phone/source/" .. path, "t", e))() end
@@ -100,7 +101,7 @@ e.metadata[1] = {}; assert(guard.GetBlockReason(1) == nil)
 local event_count = #e.events
 e.metadata[1] = { isdead = true }; guard.Check(1)
 assert(#e.events > event_count, "A new death after revival must reapply cleanup")
-print("PASS server state: native death, metadata, Sky state bags, cuff/death separation, mute isolation and self-only reports")
+print("PASS server state: native death, metadata, framework state bags, cuff/death separation, mute isolation and self-only reports")
 
 -- Client detects native ESX cuffs even without an export or after resource restart.
 local c = env()
@@ -145,6 +146,27 @@ tick(c.threads[1]); assert(not c.report.cuffed and not c.report.dead)
 c.Config.Phone.BlockWhenCuffed = true
 native_dead = true; assert(c.Bridge.PlayerState.GetBlockReason() == "player_incapacitated")
 print("PASS client state: cuffs, state-change reports, native death and ESX revive")
+
+-- Both adapters use the editable functions, including their side/source context.
+e.PhoneFunctions.IsDead = function(context)
+    assert(context.isServer and context.source == 1 and context.ped == 1)
+    return false
+end
+e.PhoneFunctions.IsHandcuffed = function(context)
+    assert(context.framework == e.metadata[1] and context.state == e.players[1])
+    return true
+end
+local allowed, reason = e.PhoneFunctions.CanOpenPhone(1)
+assert(not allowed and reason == "player_cuffed")
+e.Config.Phone.BlockWhenCuffed = false
+assert(e.PhoneFunctions.CanOpenPhone(1))
+c.PhoneFunctions.IsDead = function(context)
+    assert(not context.isServer and context.source == nil and context.ped == 1)
+    return false
+end
+c.PhoneFunctions.IsHandcuffed = function() return false end
+assert(c.PhoneFunctions.CanOpenPhone(), "Client adapters must use the editable status checks")
+print("PASS editable status checks: client/server context and independent config switches")
 
 -- Execute each real framework server adapter against its documented player API.
 for _, name in ipairs({ "esx", "qb", "qbox" }) do

@@ -130,6 +130,10 @@ end
 
 function SkyPhoneCalls.ReplayNui()
     if active_call_payload then
+        if not PhoneFunctions.CanOpenPhone() then
+            SkyPhoneFocus.SetCall(false)
+            return
+        end
         SendNUIMessage({ type = "call:state", data = SkyPhoneCalls.GetActive() })
     end
 end
@@ -153,7 +157,7 @@ AddEventHandler("sky_phone:client:restricted", function()
 end)
 
 RegisterNetEvent("sky_phone:call:incoming", function(data)
-    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then return end
+    if not PhoneFunctions.CanOpenPhone() then return end
     if type(data) ~= "table" or type(data.id) ~= "string" or data.state ~= "ringing" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid incoming call data.")
         return

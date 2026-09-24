@@ -17,7 +17,7 @@ Successful pull requests receive a 14-day test-resource artifact containing the 
 
 Release and pull-request packages also contain the project `LICENSE` and complete `THIRD_PARTY_NOTICES.md`. The frontend check verifies the generated dependency notice inventory and both packaging workflows verify that the license files are present in the ZIP. These checks do not certify the provenance of other bundled assets.
 
-`protect-release-tags.json` accepts stable numeric semantic versions such as `0.2.0`, rejects a leading `v`, and makes created tags immutable.
+`protect-release-tags.json` accepts stable numeric semantic versions such as `1.0.0`, rejects a leading `v`, and makes created tags immutable. The release workflow requires an exact match with `fxmanifest.lua`, runs the Lua resource tests as well as the frontend checks, and publishes the version as a stable latest release without a Beta suffix.
 
 The built-in repository `Maintain` role uses `RepositoryRole` actor ID `2`. Its branch bypass is limited to pull requests and is what permits maintainers to merge; its tag bypass is always available so maintainers can create and recover releases. Changing the committed JSON alone does not update an already imported ruleset.
 
