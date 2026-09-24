@@ -212,6 +212,7 @@ export type SkyPicBootstrap = {
   profile: SkyPicProfile | null
   requests: SkyPicFriendRequest[]
   stories: SkyPicStory[]
+  storyPageSize?: number
   suggestions: SkyPicProfileSummary[]
   unreadCount: number
 }

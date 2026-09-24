@@ -19,7 +19,10 @@ const migrationSource = readFileSync(
   'utf8',
 )
 const clientSource = readFileSync(
-  new URL('../../../../sky_phone/source/client/nui_server_bridge.lua', import.meta.url),
+  new URL(
+    '../../../../sky_phone/source/client/nui_server_bridge.lua',
+    import.meta.url,
+  ),
   'utf8',
 )
 
@@ -173,7 +176,7 @@ describe('MailApp Sky UI contract', () => {
 
   it('keeps authentication hints legible and placeholders muted', () => {
     expect(source).toMatch(
-      /\.mail-auth__field input::placeholder\s*\{[^}]*color:\s*var\(--mail-muted\)[^}]*opacity:\s*0\.72/s,
+      /\.mail-auth__field input::placeholder\s*\{[^}]*color:\s*var\(--mail-muted\)[^}]*opacity:\s*1/s,
     )
     expect(source).toMatch(
       /\.mail-auth__warning\s*\{[^}]*color:\s*var\(--sky-text\)[^}]*font-size:\s*14px[^}]*font-weight:\s*500[^}]*line-height:\s*19px/s,
@@ -205,7 +208,7 @@ describe('MailApp Sky UI contract', () => {
     )
     expect(source).toContain('class="mail-navbar__select"')
     expect(source).toMatch(
-      /\.mail-navbar__select\.sky-link\)\s*\{[^}]*width:\s*auto[^}]*height:\s*var\(--sky-touch-target\)[^}]*padding:\s*0 var\(--sky-space-3\)[^}]*color:\s*#fff[^}]*font-size:\s*15px/s,
+      /\.mail-navbar__select\.sky-link\)\s*\{[^}]*width:\s*auto[^}]*height:\s*var\(--sky-touch-target\)[^}]*padding:\s*0 var\(--sky-space-3\)[^}]*color:\s*var\(--sky-text\)[^}]*font-size:\s*15px/s,
     )
     expect(source).toMatch(
       /\.mail-navbar__select\.sky-link:focus-visible\)\s*\{[^}]*outline:\s*0[^}]*box-shadow:\s*inset 0 0 0 1px #fff/s,
@@ -214,10 +217,10 @@ describe('MailApp Sky UI contract', () => {
       /\.sky-navbar-back-link__icon\)\s*\{[^}]*transform:\s*translateX\(2px\)/s,
     )
     expect(source).toMatch(
-      /\.mail-navbar\s+:deep\(\.sky-link\)\s*\{[^}]*color:\s*#fff/s,
+      /\.mail-navbar\s+:deep\(\.sky-link\)\s*\{[^}]*color:\s*var\(--sky-text\)/s,
     )
     expect(source).toMatch(
-      /\.mail-navbar\s+:deep\(\.sky-navbar-back-link\)\s*\{[^}]*color:\s*#fff/s,
+      /\.mail-navbar\s+:deep\(\.sky-navbar-back-link\)\s*\{[^}]*color:\s*var\(--sky-text\)/s,
     )
     expect(source).not.toMatch(
       /\.mail-navbar\s+:deep\(\.sky-link\)\s*\{[^}]*color:\s*var\(--mail-blue\)/s,
@@ -302,7 +305,9 @@ describe('Mail custom mailbox server contract', () => {
     ]) {
       const callback = endpoint.slice('mail:'.length)
       expect(clientSource).toMatch(
-        new RegExp(`mail\\s*=\\s*\\[\\[[^\\]]*(?:^|\\s)${callback}(?:\\s|\\]\\])`),
+        new RegExp(
+          `mail\\s*=\\s*\\[\\[[^\\]]*(?:^|\\s)${callback}(?:\\s|\\]\\])`,
+        ),
       )
     }
   })

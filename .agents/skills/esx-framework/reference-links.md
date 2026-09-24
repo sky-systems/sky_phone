@@ -1,137 +1,46 @@
-# ESX Framework Reference Links
+# ESX source map
 
-## Official Documentation
+Checked 2026-09-20 against ESX fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a.
+This is an inspected upstream revision, not a promise about the installed server.
 
-- **Main Documentation**: https://docs.esx-framework.org/en
-- **GitHub Repository**: https://github.com/esx-framework/esx_core
-- **Discord Community**: https://discord.esx-framework.org
+- [Official ESX docs](https://docs.esx-framework.org/): locate the current page for the exact
+  method/version. Some deep links were unavailable during the audit; a failed fetch does not
+  confirm a contract.
+- [imports.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/imports.lua):
+  shared object and PlayerData lifecycle.
+- [Client functions](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/client/functions.lua):
+  IsPlayerLoaded, GetPlayerData, SecureNetEvent.
+- [Server functions](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/server/functions.lua):
+  player lookups, filters and provider registration.
+- [Player class](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/server/classes/player.lua):
+  account/inventory/job/metadata methods; inspect active overrides as well.
+- [Server callback adapter](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/server/modules/callback.lua),
+  [client callback adapter](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/client/modules/callback.lua):
+  current ESX-to-xLib argument mapping; [xLib server compatibility handler](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/esx_lib/imports/callback/server.lua),
+  registerCompat maps source/reply/request arguments. Recheck the installed handler for replies.
+- CFX [event source docs](https://docs.fivem.net/docs/scripting-manual/working-with-events/listening-for-events/)
+  and [Await docs](https://docs.fivem.net/docs/scripting-reference/runtimes/lua/functions/Citizen.Await);
+  [scheduler.lua](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/data/shared/citizen/scripting/lua/scheduler.lua)
+  at 0d8a2a6f78a9922445d8930305af82a7b1826980, SetEventRoutine/Citizen.Await.
 
-## Core Documentation
+For additional CFX/native use verify official signature/context, then matching registration,
+binding and implementation; record SHA/function, yield/RPC semantics and unavailable engine limits.
+A wrapper inspection or build does not prove live gameplay or performance.
 
-### Getting Started
-- **Introduction**: https://docs.esx-framework.org/en
-- **ESX Core Overview**: https://docs.esx-framework.org/en/esx_core
-- **Best Coding Practices**: https://docs.esx-framework.org/en/tutorial/coding_practices
-- **Developing a Script**: https://docs.esx-framework.org/en/tutorial/developing
+## Event and restoration source details
 
-### Client-Side
-- **Client Functions**: https://docs.esx-framework.org/en/esx_core/es_extended/client/functions
-- **Client Events**: https://docs.esx-framework.org/en/esx_core/es_extended/events/client
-- **Client Modules**: https://docs.esx-framework.org/en/esx_core/es_extended/client
-  - **Callback**: https://docs.esx-framework.org/en/esx_core/es_extended/client/modules/callback
-  - **ESX.Game**: https://docs.esx-framework.org/en/esx_core/es_extended/client/modules/game
-  - **Streaming**: https://docs.esx-framework.org/en/esx_core/es_extended/client/modules/streaming
-  - **Scaleform**: https://docs.esx-framework.org/en/esx_core/es_extended/client/modules/scaleform
+The semantic restoration checked the following **same pinned ESX revision**, not an unidentified installed server:
 
-### Server-Side
-- **Server Functions**: https://docs.esx-framework.org/en/esx_core/es_extended/server/functions
-- **Server Events**: https://docs.esx-framework.org/en/esx_core/es_extended/events/server
-- **xPlayer Functions**: https://docs.esx-framework.org/en/esx_core/es_extended/server/xplayer
-- **OneSync**: https://docs.esx-framework.org/en/esx_core/es_extended/server/onesync
+| Source | Relevant contract |
+|---|---|
+| [client callback module](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/esx_lib/imports/callback/client.lua) and [server callback module](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/esx_lib/imports/callback/server.lua), `registerCompat`, trigger helpers | Client compatibility handler `(reply, ...)`, server `(source, reply, ...)`; explicit reply resolves promise; await invalid/timeout rejection; owner-stop cleanup |
+| [server/main.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/server/main.lua), `loadESXPlayer`, `onPlayerDropped`, join/logout hooks | Serialized PlayerData, local versus client playerLoaded payload, multichar join distinction, dropped/logout lifecycle, pickup types |
+| [client/modules/events.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/client/modules/events.lua) | playerLoaded/spawn progression, inventory/account/job consumers, updatePlayerData → SetPlayerData |
+| [client/modules/actions.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/client/modules/actions.lua), [death.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/client/modules/death.lua) | `esx:playerPedChanged(ped)` producer; death payload fields and client-to-server trust boundary |
+| [client/functions.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/client/functions.lua), SearchInventory, SpawnPlayer, SetPlayerData, HashString, GetVehicleTypeClient | Search mutates supplied item list; count result shape; `(skin, coords, cb)` spawn; local data event; input token and vehicle category |
+| [client/compat.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/client/compat.lua#L60) | RegisterInput maps to xLib.addKeybind fields |
+| [server/functions.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/server/functions.lua), RegisterCommand, GetExtendedPlayers/GetNumPlayers, GetIdentifier, GetVehicleType, GetJobs, item/override registration, Core.SavePlayer | Typed command arguments; grouped/minimal selection; identifier prefix removal; client-derived vehicle cache; catalogue/readiness; metadata save path |
+| [server/modules/createJob.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/server/modules/createJob.lua) | CreateJob fourth jobType argument, transaction and existing-grade behavior |
+| [server/classes/player.lua](https://github.com/esx-framework/esx_core/blob/fe59ca0bd6da59e2ec6eb4a8d06ece312e96ae7a/%5Bcore%5D/es_extended/server/classes/player.lua), CreateExtendedPlayer and bound methods | Full arrays/minimal maps; getWeapon two returns; heading option; money/item/weapon result differences; setMeta truthiness overload; all override factories applied at construction |
 
-### Shared
-- **PlayerData Structure**: https://docs.esx-framework.org/en/esx_core/es_extended/playerdata
-- **Shared Functions**: https://docs.esx-framework.org/en/esx_core/es_extended/shared
-  - **Math**: https://docs.esx-framework.org/en/esx_core/es_extended/shared/math
-  - **Table**: https://docs.esx-framework.org/en/esx_core/es_extended/shared/table
-  - **Timeout**: https://docs.esx-framework.org/en/esx_core/es_extended/shared/timeout
-
-### Configuration
-- **Main Config**: https://docs.esx-framework.org/en/esx_core/es_extended/config/main
-- **Discord Logs**: https://docs.esx-framework.org/en/esx_core/es_extended/config/logs
-- **Weapon Config**: https://docs.esx-framework.org/en/esx_core/es_extended/config/weapon
-- **Adjustments**: https://docs.esx-framework.org/en/esx_core/es_extended/config/adjustments
-
-### Commands
-- **Commands Documentation**: https://docs.esx-framework.org/en/esx_core/es_extended/commands
-
-## UI Components
-
-- **esx_context**: https://docs.esx-framework.org/en/esx_core/esx_context
-- **esx_notify**: https://docs.esx-framework.org/en/esx_core/esx_notify
-- **esx_progressbar**: https://docs.esx-framework.org/en/esx_core/esx_progressbar
-- **esx_textui**: https://docs.esx-framework.org/en/esx_core/esx_textui
-- **esx_menu_default**: https://docs.esx-framework.org/en/esx_core/esx_menu_default
-- **esx_menu_dialog**: https://docs.esx-framework.org/en/esx_core/esx_menu_dialog
-- **esx_menu_list**: https://docs.esx-framework.org/en/esx_core/esx_menu_list
-
-## Player Systems
-
-- **esx_identity**: https://docs.esx-framework.org/en/esx_core/esx_identity
-- **esx_multicharacter**: https://docs.esx-framework.org/en/esx_core/esx_multicharacter
-- **esx_skin**: https://docs.esx-framework.org/en/esx_core/esx_skin
-- **skinchanger**: https://docs.esx-framework.org/en/esx_core/skinchanger
-
-## Popular Addons
-
-### Jobs
-- **Police Job**: https://docs.esx-framework.org/en/esx_addons/esx_policejob
-- **Ambulance Job**: https://docs.esx-framework.org/en/esx_addons/esx_ambulancejob
-- **Mechanic Job**: https://docs.esx-framework.org/en/esx_addons/esx_mechanicjob
-- **Taxi Job**: https://docs.esx-framework.org/en/esx_addons/esx_taxijob
-- **Generic Jobs**: https://docs.esx-framework.org/en/esx_addons/esx_jobs
-
-### Economy & Shops
-- **Banking**: https://docs.esx-framework.org/en/esx_addons/esx_banking
-- **Shops**: https://docs.esx-framework.org/en/esx_addons/esx_shops
-- **Weapon Shop**: https://docs.esx-framework.org/en/esx_addons/esx_weaponshop
-- **Vehicle Shop**: https://docs.esx-framework.org/en/esx_addons/esx_vehicleshop
-- **Clothe Shop**: https://docs.esx-framework.org/en/esx_addons/esx_clotheshop
-- **LS Custom**: https://docs.esx-framework.org/en/esx_addons/esx_lscustom
-- **Barbershop**: https://docs.esx-framework.org/en/esx_addons/esx_barbershop
-
-### Systems
-- **Billing**: https://docs.esx-framework.org/en/esx_addons/esx_billing
-- **License**: https://docs.esx-framework.org/en/esx_addons/esx_license
-- **Society**: https://docs.esx-framework.org/en/esx_addons/esx_society
-- **Datastore**: https://docs.esx-framework.org/en/esx_addons/esx_datastore
-- **Service**: https://docs.esx-framework.org/en/esx_addons/esx_service
-- **Status**: https://docs.esx-framework.org/en/esx_addons/esx_status
-- **Basic Needs**: https://docs.esx-framework.org/en/esx_addons/esx_basicneeds
-
-### Vehicles & Property
-- **Garage**: https://docs.esx-framework.org/en/esx_addons/esx_garage
-- **Property**: https://docs.esx-framework.org/en/esx_addons/esx_property
-- **DMV School**: https://docs.esx-framework.org/en/esx_addons/esx_dmvschool
-
-### Other
-- **HUD**: https://docs.esx-framework.org/en/esx_addons/esx_hud
-- **Animations**: https://docs.esx-framework.org/en/esx_addons/esx_animations
-- **RP Chat**: https://docs.esx-framework.org/en/esx_addons/esx_rpchat
-- **Job Listing**: https://docs.esx-framework.org/en/esx_addons/esx_joblisting
-
-## Troubleshooting
-
-- **Common Issues**: https://docs.esx-framework.org/en/troubleshoot
-- **GitHub Issues**: https://github.com/esx-framework/esx_core/issues
-
-## Community Resources
-
-- **Discord**: https://discord.esx-framework.org (13,000+ members)
-- **GitHub Organization**: https://github.com/esx-framework
-- **Official Website**: https://esx-framework.org
-
-## Related Documentation
-
-### FiveM Documentation
-- **Natives Reference**: https://docs.fivem.net/natives/
-- **Scripting Reference**: https://docs.fivem.net/docs/scripting-reference/
-- **Resource Manifest**: https://docs.fivem.net/docs/scripting-reference/resource-manifest/resource-manifest/
-
-### Database (oxmysql)
-- **oxmysql Documentation**: https://overextended.dev/oxmysql
-
-### UI Library (ox_lib)
-- **ox_lib Documentation**: https://overextended.dev/ox_lib
-
-## Quick Access
-
-When helping developers, reference these pages for:
-
-- **Getting Started**: https://docs.esx-framework.org/en/tutorial/developing
-- **Client Functions**: https://docs.esx-framework.org/en/esx_core/es_extended/client/functions
-- **Server Functions**: https://docs.esx-framework.org/en/esx_core/es_extended/server/functions
-- **xPlayer Methods**: https://docs.esx-framework.org/en/esx_core/es_extended/server/xplayer
-- **PlayerData Structure**: https://docs.esx-framework.org/en/esx_core/es_extended/playerdata
-- **Best Practices**: https://docs.esx-framework.org/en/tutorial/coding_practices
-- **Coding Annotations**: https://docs.esx-framework.org/en/tutorial/coding_practices/annotations
+For `getPlayTime`, Cfx [GET_PLAYER_TIME_ONLINE declaration](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/ext/native-decls/GetPlayerTimeOnline.md) specifies server string source → integer seconds; [PlayerScriptFunctions.cpp](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/code/components/citizen-server-impl/src/PlayerScriptFunctions.cpp#L280) returns `Client::GetSecondsOnline()`. Event/command/source primitives additionally use [ResourceScriptFunctions.cpp](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/code/components/citizen-scripting-core/src/ResourceScriptFunctions.cpp), [ResourceEventComponent.cpp](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/code/components/citizen-resources-core/src/ResourceEventComponent.cpp) and the scheduler/binding path above. Framework wrappers that invoke proprietary engine natives are not evidence of their in-game effects.

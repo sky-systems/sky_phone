@@ -321,6 +321,10 @@ local event
 function RegisterNetEvent(name, callback) event = { name = name, callback = callback } end
 local client_results = {}
 function TriggerClientEvent(...) client_results[#client_results + 1] = table.pack(...) end
+Bridge.Network = { SendClient = function(...)
+    TriggerClientEvent(...)
+    return true
+end }
 dofile("sky_phone/source/bridge/server/callbacks.lua")
 Bridge.Callbacks.Register("sky_phone:messages:send", function() return { success = true, data = { body = "bridge" } } end)
 source = 8
@@ -495,6 +499,10 @@ Bridge.Database.Query = function(query, params)
     return {}
 end
 client_results = {}
+Bridge.Network = { SendClient = function(...)
+    TriggerClientEvent(...)
+    return true
+end }
 dofile("sky_phone/source/bridge/server/callbacks.lua")
 Bridge.Callbacks.RegisterDeferred("sky_phone:feather:create-post")
 source = 1

@@ -25,6 +25,9 @@ const RINGTONE_TONES: Record<BuiltInRingtoneId, PhoneToneId> = {
 export const useCallsStore = defineStore('calls', () => {
   const phone = usePhoneStore()
   const activeCall = ref<PhoneCall | null>(null)
+  const elapsedSeconds = ref(0)
+  let elapsedAtStart = 0
+  let clockStartedAt = 0
   const contacts = ref<PhoneContact[]>([])
   const recents = ref<RecentCall[]>([])
   let lastEndedCallId: string | undefined
@@ -36,6 +39,38 @@ export const useCallsStore = defineStore('calls', () => {
   }
 
   onScopeDispose(stopCallEndTone)
+
+  watch(
+    [
+      () => activeCall.value?.id,
+      () => activeCall.value?.state,
+      () => activeCall.value?.elapsedSeconds,
+    ],
+    ([id, state, serverElapsed], [previousId, previousState], onCleanup) => {
+      if (state !== 'connected') {
+        elapsedSeconds.value = 0
+        return
+      }
+
+      // Server timestamps and the user's wall clock need not agree. Keep one
+      // monotonic clock for every call view, including the Dynamic Island.
+      const now = performance.now()
+      const localElapsed =
+        id === previousId && previousState === 'connected'
+          ? elapsedAtStart + (now - clockStartedAt) / 1000
+          : 0
+      elapsedAtStart = Math.max(0, serverElapsed ?? 0, localElapsed)
+      clockStartedAt = now
+      elapsedSeconds.value = Math.floor(elapsedAtStart)
+      const timer = setInterval(() => {
+        elapsedSeconds.value = Math.floor(
+          elapsedAtStart + (performance.now() - clockStartedAt) / 1000,
+        )
+      }, 500)
+      onCleanup(() => clearInterval(timer))
+    },
+    { flush: 'sync' },
+  )
 
   function playSelectedRingtone(volume: number): () => void {
     const selected = phone.preferences.settings.ringtone
@@ -136,23 +171,47 @@ export const useCallsStore = defineStore('calls', () => {
     return response.success
   }
 
-  async function dial(phoneNumber: string): Promise<NuiResponse<PhoneCall>> {
+  async function dial(
+    phoneNumber: string,
+    video = false,
+  ): Promise<NuiResponse<PhoneCall>> {
     if (!phoneNumber) return { success: false, error: 'invalid_number' }
     await phone.flushDevicePersistence()
-    const response = await nuiCall<PhoneCall>('calls:dial', { phoneNumber })
+    const response = await nuiCall<PhoneCall>('calls:dial', {
+      phoneNumber,
+      video,
+    })
     if (response.success && response.data) applyCallState(response.data)
     return response
   }
 
-  async function answer(): Promise<NuiResponse> {
+  async function videoAction(
+    action: 'request' | 'accept' | 'decline' | 'stop',
+  ): Promise<NuiResponse> {
     if (!activeCall.value) return { success: false, error: 'call_not_found' }
-    const response = await nuiCall('calls:answer', { id: activeCall.value.id })
-    if (response.success && activeCall.value) {
-      activeCall.value = {
-        ...activeCall.value,
-        answeredAt: activeCall.value.answeredAt ?? Date.now(),
-        state: 'connected',
-      }
+    return nuiCall('calls:video', { id: activeCall.value.id, action })
+  }
+
+  async function answer(video = false): Promise<NuiResponse> {
+    const call = activeCall.value
+    if (!call || call.state !== 'ringing' || call.direction !== 'incoming') {
+      return { success: false, error: 'call_not_found' }
+    }
+    const response = await nuiCall<PhoneCall>('calls:answer', {
+      id: call.id,
+      video,
+    })
+    // A late response must not revive a hung-up call or overwrite a newer state.
+    if (response.success && activeCall.value === call) {
+      activeCall.value =
+        response.data?.id === call.id
+          ? response.data
+          : {
+              ...call,
+              answeredAt: call.answeredAt ?? Date.now(),
+              state: 'connected',
+              video: call.video === true && video,
+            }
     }
     return response
   }
@@ -255,6 +314,7 @@ export const useCallsStore = defineStore('calls', () => {
 
   return {
     activeCall,
+    videoAction,
     answer,
     applyCallState,
     bootstrap,
@@ -263,6 +323,7 @@ export const useCallsStore = defineStore('calls', () => {
     decline,
     deleteContact,
     dial,
+    elapsedSeconds,
     hangup,
     loadContacts,
     loadRecents,

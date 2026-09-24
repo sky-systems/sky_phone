@@ -12,6 +12,14 @@ local function get_player(source)
     return ESX.GetPlayerFromId(source)
 end
 
+function Bridge.Framework.GetStatusData(source)
+    local player = get_player(source)
+    return player and {
+        dead = player.dead == true or player.get("dead") == true,
+        isdead = player.get("isDead"),
+    } or {}
+end
+
 function Bridge.Framework.GetPlayers()
     local players = {}
     for _, player in pairs(ESX.GetExtendedPlayers()) do

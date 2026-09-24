@@ -528,6 +528,7 @@ local function list_inbox(profile_id)
 end
 
 local function list_stories(profile_id, offset)
+    local page_size = limit("PageSize", 30)
     local rows = Bridge.Database.Query([[
         SELECT story.`id`, story.`profile_id`, story.`view_seconds`, story.`expires_at`, story.`created_at`,
             author.`handle`, author.`display_name`, author.`avatar_seed`, author.`snap_score`,
@@ -556,7 +557,7 @@ local function list_stories(profile_id, offset)
         LIMIT ? OFFSET ?
     ]], {
         profile_id, profile_id, profile_id, profile_id, profile_id, profile_id, profile_id,
-        limit("PageSize", 30), offset or 0,
+        page_size, offset or 0,
     })
     local stories = {}
     for _, row in ipairs(rows) do
@@ -575,7 +576,7 @@ local function list_stories(profile_id, offset)
             viewCount = tonumber(row.view_count) or 0,
         }
     end
-    return stories
+    return stories, page_size
 end
 
 local function spotlight_from_row(row, profile_id)
@@ -609,6 +610,7 @@ local function spotlight_from_row(row, profile_id)
 end
 
 local function list_spotlights(profile_id, offset, spotlight_id)
+    local page_size = spotlight_id and 1 or limit("SpotlightPageSize", 12)
     local exact_id = spotlight_id or ""
     local rows = Bridge.Database.Query([[
         SELECT spotlight.`id`, spotlight.`profile_id`, spotlight.`caption`,
@@ -661,13 +663,13 @@ local function list_spotlights(profile_id, offset, spotlight_id)
         LIMIT ? OFFSET ?
     ]], {
         profile_id, profile_id, profile_id, profile_id, profile_id, profile_id, profile_id,
-        exact_id, exact_id, spotlight_id and 1 or limit("SpotlightPageSize", 12), offset or 0,
+        exact_id, exact_id, page_size, offset or 0,
     })
     local spotlights = {}
     for _, row in ipairs(rows) do
         spotlights[#spotlights + 1] = spotlight_from_row(row, profile_id)
     end
-    return spotlights
+    return spotlights, page_size
 end
 
 local function accessible_spotlight(spotlight_id, profile_id)
@@ -791,6 +793,7 @@ Bridge.Callbacks.Register("sky_phone:skypic:bootstrap", function(source)
     end
     local profile_id = profile.profile_id
     local conversations = list_conversations(profile_id)
+    local stories, story_page_size = list_stories(profile_id, 0)
     local unread_count = 0
     for _, conversation in ipairs(conversations) do
         unread_count = unread_count + conversation.unreadCount
@@ -804,7 +807,8 @@ Bridge.Callbacks.Register("sky_phone:skypic:bootstrap", function(source)
             requests = list_requests(profile_id),
             conversations = conversations,
             inbox = list_inbox(profile_id),
-            stories = list_stories(profile_id, 0),
+            stories = stories,
+            storyPageSize = story_page_size,
             suggestions = list_profiles(profile_id, "", true),
             unreadCount = unread_count,
         },
@@ -1663,6 +1667,7 @@ Bridge.Callbacks.Register("sky_phone:skypic:save-message", function(source, data
                 ELSE NULL
             END
         WHERE message.`id` = ? AND message.`message_type` = 'text' AND message.`deleted_at` IS NULL
+            AND (message.`expires_at` IS NULL OR message.`expires_at` > CURRENT_TIMESTAMP(6))
             AND ((message.`sender_profile_id` = ? AND message.`sender_deleted_at` IS NULL)
                 OR (message.`recipient_profile_id` = ? AND message.`recipient_deleted_at` IS NULL))
             AND NOT EXISTS (
@@ -2221,7 +2226,8 @@ Bridge.Callbacks.Register("sky_phone:skypic:stories", function(source, data)
     if not offset then
         return { success = false, error = "invalid_request" }
     end
-    return { success = true, data = list_stories(profile.profile_id, offset) }
+    local stories, page_size = list_stories(profile.profile_id, offset)
+    return { success = true, data = stories, pageSize = page_size }
 end)
 
 Bridge.Callbacks.Register("sky_phone:skypic:view-story", function(source, data)
@@ -2333,6 +2339,7 @@ Bridge.Callbacks.Register("sky_phone:skypic:story-viewers", function(source, dat
     ]], { story_id, profile.profile_id })[1] then
         return { success = false, error = "not_authorized" }
     end
+    local page_size = limit("PageSize", 30)
     local rows = Bridge.Database.Query([[
         SELECT viewer.`id` AS `profile_id`, viewer.`handle`, viewer.`display_name`, viewer.`avatar_seed`,
             viewer.`snap_score`, avatar.`url` AS `avatar_url`, story_view.`viewed_at`,
@@ -2349,7 +2356,7 @@ Bridge.Callbacks.Register("sky_phone:skypic:story-viewers", function(source, dat
         LIMIT ? OFFSET ?
     ]], {
         profile.profile_id, profile.profile_id, story_id,
-        limit("PageSize", 30), offset,
+        page_size, offset,
     })
     local viewers = {}
     for _, row in ipairs(rows) do
@@ -2361,7 +2368,7 @@ Bridge.Callbacks.Register("sky_phone:skypic:story-viewers", function(source, dat
         viewer.viewedAt = row.viewed_at
         viewers[#viewers + 1] = viewer
     end
-    return { success = true, data = viewers }
+    return { success = true, data = viewers, pageSize = page_size }
 end)
 
 Bridge.Callbacks.Register("sky_phone:skypic:remove-story", function(source, data)
@@ -2397,7 +2404,8 @@ Bridge.Callbacks.Register("sky_phone:skypic:spotlight-feed", function(source, da
     if not offset then
         return { success = false, error = "invalid_request" }
     end
-    return { success = true, data = list_spotlights(profile.profile_id, offset) }
+    local spotlights, page_size = list_spotlights(profile.profile_id, offset)
+    return { success = true, data = spotlights, pageSize = page_size }
 end)
 
 Bridge.Callbacks.Register("sky_phone:skypic:publish-spotlight", function(source, data)
@@ -2533,7 +2541,7 @@ Bridge.Callbacks.Register("sky_phone:skypic:like-spotlight", function(source, da
         return error_response
     end
     local spotlight_id = type(data) == "table" and data.spotlightId or nil
-    local active = type(data) == "table" and data.active or nil
+    local active = type(data) == "table" and data.active
     if not valid_id(spotlight_id) or type(active) ~= "boolean"
         or not accessible_spotlight(spotlight_id, profile.profile_id)
     then
@@ -2576,6 +2584,7 @@ Bridge.Callbacks.Register("sky_phone:skypic:spotlight-comments", function(source
     then
         return { success = false, error = "spotlight_unavailable" }
     end
+    local page_size = limit("SpotlightCommentPageSize", 50)
     local rows = Bridge.Database.Query([[
         SELECT comment.`id`, comment.`spotlight_id`, comment.`profile_id`, comment.`body`,
             comment.`created_at`, author.`handle`, author.`display_name`, author.`avatar_seed`,
@@ -2600,13 +2609,13 @@ Bridge.Callbacks.Register("sky_phone:skypic:spotlight-comments", function(source
     ]], {
         profile.profile_id, profile.profile_id, spotlight_id,
         profile.profile_id, profile.profile_id,
-        limit("SpotlightCommentPageSize", 50), offset,
+        page_size, offset,
     })
     local comments = {}
     for _, row in ipairs(rows) do
         comments[#comments + 1] = spotlight_comment_from_row(row, profile.profile_id)
     end
-    return { success = true, data = comments }
+    return { success = true, data = comments, pageSize = page_size }
 end)
 
 Bridge.Callbacks.Register("sky_phone:skypic:comment-spotlight", function(source, data)

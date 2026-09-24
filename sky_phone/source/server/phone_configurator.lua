@@ -30,12 +30,14 @@ if configurator_enabled then
     local border = "======================================================================"
     print(([[
 ^1%s^0
-^1          SKY PHONE CONFIGURATION FILES ARE DISABLED              ^0
+^1          SKY PHONE: IN-GAME CONFIGURATOR ENABLED                 ^0
 ^1%s^0
-^1 The Phone Configurator is ENABLED.^0
-^1 Runtime settings from config.lua and media.lua are DISABLED.^0
-^1 Configure all phone and media settings IN GAME through /phonepanel.^0
-^1 Config.PhoneConfigurator, Config.CommandPermissions and Config.CustomTones remain file-based.^0
+^1 Phone and media settings are loaded from SQL.^0
+^1 Edit them in /phonepanel > Phone Configurator and save your changes.^0
+^1 Changes to config.lua and media.lua are ignored in this mode,^0
+^1 including media API keys such as the FiveManage token.^0
+^1 File-based exceptions in config.lua:^0
+^1 Config.PhoneConfigurator, Config.CommandPermissions, Config.CustomTones.^0
 ^1%s^0]]):format(border, border, border))
 end
 
@@ -69,6 +71,7 @@ local CLIENT_CONFIG_KEYS = {
     Phone = true,
     Picstagram = true,
     Radio = true,
+    Realtime = true,
     Security = true,
     Sim = true,
     SkyPic = true,
@@ -446,7 +449,7 @@ local function sensitive_path(path)
         or normalized:find("secret", 1, true)
         or normalized:find("pepper", 1, true)
         or normalized == "password"
-        or normalized == "token"
+        or normalized:sub(-5) == "token"
         or normalized == "authorization"
         or normalized == "credential"
         or normalized == "connectionstring"
@@ -1214,6 +1217,9 @@ local function normalize_change_value(field, value)
     return nil
 end
 
+local published_client_config
+local published_client_revision
+
 local function client_payload()
     local payload = {}
     for key in pairs(CLIENT_CONFIG_KEYS) do
@@ -1230,12 +1236,43 @@ local function client_payload()
     return payload
 end
 
+local function same_client_value(left, right)
+    if type(left) ~= type(right) then return false end
+    if type(left) ~= "table" then return left == right end
+    for key, value in pairs(left) do
+        if not same_client_value(value, right[key]) then return false end
+    end
+    for key in pairs(right) do
+        if left[key] == nil then return false end
+    end
+    return true
+end
+
 function SkyPhoneConfigurator.Broadcast(target)
-    TriggerClientEvent("sky_phone:configurator:sync", target or -1, {
-        config = client_payload(),
+    local current = client_payload()
+    local payload = {
+        config = current,
         enabled = configurator_enabled,
         revision = revision,
-    })
+    }
+    target = target or -1
+    if target == -1 and published_client_config then
+        payload.config = {}
+        payload.removed = {}
+        payload.baseRevision = published_client_revision
+        for key, value in pairs(current) do
+            if not same_client_value(value, published_client_config[key]) then
+                payload.config[key] = value
+            end
+        end
+        for key in pairs(published_client_config) do
+            if current[key] == nil then payload.removed[#payload.removed + 1] = key end
+        end
+    end
+    if Bridge.Network.SendClient("sky_phone:configurator:sync", target, payload) and target == -1 then
+        published_client_config = current
+        published_client_revision = revision
+    end
 end
 
 local function read_stored_row()
@@ -1263,6 +1300,52 @@ local function apply_stored_row(row)
     revision = tonumber(row.revision) or 1
     updated_at = row.updated_at
     updated_by_name = row.updated_by_name
+end
+
+local function migrate_legacy_phone_prop()
+    if not configurator_enabled then return end
+    local migration_name = "sky-phone:configurator:phone-prop:v1"
+    local completed = Bridge.Database.Query(
+        "SELECT 1 FROM `sky_phone_migrations` WHERE `name` = ? LIMIT 1",
+        { migration_name }
+    )
+    if completed[1] then return end
+
+    local row = read_stored_row()
+    local config_payload = decode_payload(row.config_payload, "config")
+    local animations = config_payload.Animations
+    -- Upgrade the previous shipped default without changing custom prop choices
+    -- or calibrated hand transforms. Persist it so the Configurator stays truthful.
+    local migrated = type(animations) == "table" and animations.PropModel == "prop_npc_phone_02"
+    local statements = {}
+    if migrated then
+        animations.PropModel = "sky_phone_prop"
+        statements[#statements + 1] = {
+            query = ([[
+                UPDATE `%s`
+                SET `config_payload` = ?, `revision` = `revision` + 1
+                WHERE `id` = ?
+            ]]):format(TABLE_NAME),
+            params = { encode_payload(config_payload, "config"), CONFIG_ROW_ID },
+        }
+    end
+    statements[#statements + 1] = {
+        query = [[
+            INSERT IGNORE INTO `sky_phone_migrations` (`name`, `source`, `stats`)
+            VALUES (?, ?, ?)
+        ]],
+        params = { migration_name, "sky-phone", json.encode({ migrated = migrated }) },
+    }
+    if not Bridge.Database.Transaction(statements) then
+        error("[sky_phone] Could not migrate the Phone Configurator legacy phone prop.")
+    end
+    if not migrated then return end
+
+    apply_stored_row(read_stored_row())
+    apply_runtime_configuration()
+    TriggerEvent("sky_phone:configurator:serverUpdated", revision)
+    SkyPhoneConfigurator.Broadcast(-1)
+    Bridge.Debug("info", "[sky_phone] Migrated the legacy phone prop to sky_phone_prop.", { always = true })
 end
 
 local function migrate_blank_company_definitions()
@@ -1571,10 +1654,13 @@ Bridge.Database.Query(([[
 
 apply_stored_row(read_stored_row())
 apply_runtime_configuration()
+published_client_config = client_payload()
+published_client_revision = revision
 Bridge.Database.AfterMigration("sky_phone", migrate_blank_company_definitions)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_request_defaults)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_service_line_messaging)
 Bridge.Database.AfterMigration("sky_phone", migrate_company_service_line_messaging)
+Bridge.Database.AfterMigration("sky_phone", migrate_legacy_phone_prop)
 
 function SkyPhoneConfigurator.GetAdminData()
     local data = build_admin_data()
@@ -1625,6 +1711,26 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     end
 
     local candidate_config = deserialize_value(next_config)
+    local realtime = candidate_config.Realtime
+    local bounds = {
+        FrameRate = { 5, 30 }, VideoBitrateKbps = { 100, 5000 }, MaxVideoEdge = { 240, 1080 },
+        MaxViewers = { 1, 128 }, MaxBroadcasts = { 1, 32 }, MaxDurationMinutes = { 1, 240 },
+        NearbyDistance = { 1, 30 }, NearbyMaxSpeakers = { 0, 16 },
+    }
+    if type(realtime) ~= "table" or (realtime.Transport ~= "p2p" and realtime.Transport ~= "cloudflare")
+        or (realtime.ForceRelay and not realtime.TurnEnabled) then
+        return { success = false, error = "invalid_value" }
+    end
+    for key, range in pairs(bounds) do
+        local value = realtime[key]
+        if type(value) ~= "number" or value ~= value or value < range[1] or value > range[2]
+            or (key ~= "NearbyDistance" and value % 1 ~= 0) then
+            return { success = false, error = "invalid_value" }
+        end
+    end
+    for _, key in ipairs({ "Enabled", "VideoCalls", "Picstagram", "FlipTok", "NearbyAudio", "TurnEnabled", "ForceRelay" }) do
+        if type(realtime[key]) ~= "boolean" then return { success = false, error = "invalid_value" } end
+    end
     if not Bridge.VehicleKeys.IsSupported(candidate_config.Garage.VehicleKeySystem) then
         return { success = false, error = "invalid_value" }
     end

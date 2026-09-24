@@ -226,7 +226,7 @@ onBeforeUnmount(() => {
 <template>
   <sky-app-page
     component="main"
-    accent="#ff9f0a"
+    :accent="phone.isDarkMode ? '#ff9f0a' : '#9b5800'"
     accent-soft="rgba(255, 159, 10, 0.16)"
     class="native-app clock-app"
   >

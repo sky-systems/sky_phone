@@ -37,6 +37,7 @@ local function reset_bridge(inventory_name, resource_name, inventory_export, fra
 end
 
 local function load_adapter(adapter_path)
+    dofile("sky_phone/source/bridge/inventory.lua")
     dofile("sky_phone/source/bridge/server/inventory.lua")
     dofile(adapter_path)
     dofile("sky_phone/source/bridge/server/inventory_contract.lua")
@@ -65,6 +66,7 @@ GetResourceState = function(resource_name)
     end
     return "missing"
 end
+dofile("sky_phone/source/bridge/inventory.lua")
 dofile("sky_phone/source/bridge/server/inventory.lua")
 assert(Bridge.Inventory.Name == "tgiann", "auto detection must follow the shared Sky inventory priority")
 
@@ -117,7 +119,7 @@ local jaksam_usable = {}
 local jaksam = {}
 
 function jaksam:getInventory()
-    return { items = jaksam_items }
+    return { id = "player_inventory", items = jaksam_items }
 end
 
 function jaksam:setItemMetadataInSlot(_, slot, metadata)
@@ -145,6 +147,13 @@ reset_bridge("jaksam", "jaksam_inventory", jaksam)
 load_adapter("sky_phone/source/bridge/server/inventory/jaksam.lua")
 assert(Bridge.Inventory.SetSlotMetadata(22, 5, { imei = "222222222222222" }))
 assert_metadata(Bridge.Inventory.GetSlot(22, 5).metadata, "222222222222222")
+assert(Bridge.Inventory.IsPlayerInventory(22, "player_inventory"))
+assert(not Bridge.Inventory.IsPlayerInventory(22, "stash_inventory"))
+jaksam_items["SLOT-7"] = { name = "phone", amount = 1, metadata = { imei = "777777777777777" } }
+assert(Bridge.Inventory.GetSlot(22, "SLOT-7").slot == 7, "Jaksam stores item slots as SLOT-N map keys")
+assert(Bridge.Inventory.GetSlot(22, 7).metadata.imei == "777777777777777")
+assert(#Bridge.Inventory.GetSlotsWithItem(22, "phone") == 2)
+jaksam_items["SLOT-7"] = nil
 assert(Bridge.Inventory.RegisterUsableItem("phone", function(source, item)
     assert(source == 22 and item.slot == 5)
 end))
@@ -193,8 +202,8 @@ local origen_items = {
 }
 local origen = {}
 
-function origen:GetInventory()
-    return { inventory = origen_items }
+function origen:getInventoryItems()
+    return origen_items
 end
 
 function origen:setMetadata(_, slot, metadata)
@@ -205,11 +214,16 @@ function origen:canCarryItem()
     return true
 end
 
-function origen:addItem()
+function origen:addItem(source, name, amount, slot, info)
+    assert(source == 24 and name == "sim_registered" and amount == 1)
+    assert(slot == 12 and info.sim_id == "test-sim", "Origen expects slot before info")
+    origen_items[slot] = { name = name, amount = amount, slot = slot, info = info }
     return true
 end
 
-function origen:removeItem()
+function origen:removeItem(source, name, amount, slot)
+    assert(source == 24 and name == "sim_registered" and amount == 1 and slot == 12)
+    origen_items[slot] = nil
     return true
 end
 
@@ -217,6 +231,10 @@ reset_bridge("origen", "origen_inventory", origen)
 load_adapter("sky_phone/source/bridge/server/inventory/origen.lua")
 assert(Bridge.Inventory.SetSlotMetadata(24, 9, { imei = "444444444444444" }))
 assert_metadata(Bridge.Inventory.GetSlot(24, 9).metadata, "444444444444444")
+assert(Bridge.Inventory.AddItem(24, "sim_registered", 1, 12, { sim_id = "test-sim", phone_number = "5550101" }))
+assert(Bridge.Inventory.GetSlot(24, 12).metadata.phone_number == "5550101")
+assert(Bridge.Inventory.RemoveItem(24, "sim_registered", 1, nil, { sim_id = "test-sim" }) == 1)
+assert(Bridge.Inventory.GetSlot(24, 12) == nil)
 
 local tgiann_items = {
     [11] = { name = "phone", slot = 11, amount = 1, info = {} },

@@ -41,13 +41,39 @@ end
 function Bridge.Inventory.SetSlotMetadata(source, slot_id, metadata)
     local slot = Bridge.Inventory.GetSlot(source, slot_id)
     if not slot then
+        Bridge.Debug(
+            "error",
+            "[sky_phone] ox_inventory metadata update could not find source %s slot %s before writing.",
+            tostring(source),
+            tostring(slot_id)
+        )
         return false
     end
 
     local requested_metadata = type(metadata) == "table" and metadata or {}
     inventory:SetMetadata(source, tonumber(slot_id), requested_metadata)
     local updated = Bridge.Inventory.GetSlot(source, slot_id)
-    return updated and Bridge.Inventory.MetadataMatches(updated.metadata, requested_metadata) or false
+    if not updated then
+        Bridge.Debug(
+            "error",
+            "[sky_phone] ox_inventory metadata update could not find source %s slot %s after writing.",
+            tostring(source),
+            tostring(slot_id)
+        )
+        return false
+    end
+
+    local matches, mismatch_key = Bridge.Inventory.MetadataMatches(updated.metadata, requested_metadata)
+    if not matches then
+        Bridge.Debug(
+            "error",
+            "[sky_phone] ox_inventory metadata verification failed for source %s slot %s field '%s'.",
+            tostring(source),
+            tostring(slot_id),
+            mismatch_key
+        )
+    end
+    return matches
 end
 
 function Bridge.Inventory.CanCarryItem(source, item_name, count, metadata)

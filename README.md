@@ -81,7 +81,7 @@ Snake advances one level every 10 points, cycles through six food appearances, a
 | A polished phone that feels like one connected product | A free replacement for fragmented or expensive phone setups | Full source access and a documented-in-code integration surface |
 | Persistent phones, SIMs, accounts, settings, and content | Automatic schema installation and upgrades | Client and server exports for custom app lifecycle and permissions |
 | Social, business, media, utility, and game experiences | Framework, inventory, voice, garage, and housing bridges | Compatibility layers for established FiveM phone app ecosystems |
-| English and German localization | Controlled LB Phone migration with preview and rollback | Vue 3, TypeScript, Pinia, Vite, and reusable Sky UI components |
+| 15 bundled locales with English fallback | Controlled LB Phone migration with preview and rollback | Vue 3, TypeScript, Pinia, Vite, and reusable Sky UI components |
 
 ## Compatibility at a glance
 
@@ -94,7 +94,7 @@ Snake advances one level every 10 points, cycles through six food appearances, a
 | **Housing** | RTX Housing, Quasar Housing, TGIANN House, VMS Housing, RX Housing, NoLag Properties, SN Properties, ESX Property, qbx_properties |
 | **Garages** | Built-in/custom data and a broad set of popular garage providers configured through the bridge |
 | **Custom app contracts** | Sky Phone, LB Phone, 17Movement, High Phone, Quasar Smartphone, YSeries |
-| **Languages** | English, German |
+| **Languages** | Arabic, Chinese, Czech, Dutch, English, Finnish, French, German, Italian, Polish, Portuguese, Russian, Serbian, Spanish, Swedish |
 | **Database** | MySQL or MariaDB through oxmysql |
 
 ## Feature highlights
@@ -110,7 +110,7 @@ Snake advances one level every 10 points, cycles through six food appearances, a
 - Automatic database installation and versioned upgrades
 - LB Phone migration with preview, progress reporting, safe retries, and rollback support
 - Custom app APIs and compatibility adapters for established phone ecosystems
-- English and German localization throughout the player-facing interface
+- 15 bundled locales with English fallback throughout the player-facing interface
 
 ## Requirements
 
@@ -179,9 +179,13 @@ Start the selected voice resource before Sky Phone.
 2. Copy the included resource into your FiveM resources directory and keep its folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
 4. Review `sky_phone/config/config.lua` and `sky_phone/config/media.lua`.
-5. Add the required inventory items.
+5. Add the required [inventory items and their images](#inventory-items). With **ox_inventory**, also remove the existing NPWD phone handler as described below.
 6. Add `ensure sky_phone` to `server.cfg`.
 7. Restart the server and watch the console for warnings.
+
+> [!WARNING]
+> **Using ox_inventory? Removing its NPWD phone handler is a required installation step when that block exists.**
+> Changing `data/items.lua` alone is not enough. Follow [Remove the NPWD phone handler](#1-remove-the-npwd-phone-handler-required) before testing the phone item, even if NPWD is stopped or not installed.
 
 Example start order:
 
@@ -276,8 +280,15 @@ shown only as configured and are replaced only when an administrator enters a ne
 
 Available locales:
 
-- English: `en`
-- German: `de`
+| Language | Locale | Language | Locale | Language | Locale |
+| --- | --- | --- | --- | --- | --- |
+| Arabic | `ar` | Chinese | `cn` | Czech | `cz` |
+| Dutch | `nl` | English | `en` | Finnish | `fi` |
+| French | `fr` | German | `de` | Italian | `it` |
+| Polish | `pl` | Portuguese | `pt` | Russian | `ru` |
+| Serbian | `rs` | Spanish | `es` | Swedish | `se` |
+
+Regional codes resolve to their base language. The aliases `zh`, `cs`, `sr`, and `sv` select `cn`, `cz`, `rs`, and `se`.
 
 Select the language near the top of `config.lua`:
 
@@ -298,7 +309,7 @@ sky_phone/config/locales/en.lua
 sky_phone/config/locales/de.lua
 ```
 
-The German locale uses the complete English structure as a fallback, so newly introduced keys never leave the interface without text.
+Every locale uses the complete English structure as a fallback, so newly introduced keys never leave the interface without text.
 
 ### Debug output
 
@@ -346,9 +357,48 @@ The server-only block is evaluated only on the server. Because the project uses 
 
 ## Inventory items
 
+The release includes an image for each default item in `sky_phone/config/images/`:
+
+| Item | Image |
+| --- | --- |
+| `phone` | `phone.png` |
+| `sky_phone_sim_registered` | `sky_phone_sim_registered.png` |
+| `sky_phone_sim_anonymous` | `sky_phone_sim_anonymous.png` |
+
+Copy these PNG files into your inventory's item image directory. For the default `ox_inventory` image path, use `ox_inventory/web/images/`. Other inventories use their own image directory; the QBCore-style definitions below already name the matching files. If you change an item name in `Config.Phone` or `Config.Sim`, give its image the same name expected by your inventory.
+
 ### ox_inventory
 
-Default entries for unique phones with physical SIM cards:
+#### 1. Remove the NPWD phone handler (required)
+
+> [!WARNING]
+> **Remove the old NPWD handler before using Sky Phone.** It can intercept the `phone` item even when NPWD is stopped or not installed. Updating the item definition in `data/items.lua` does not remove this separate handler.
+
+Search the **entire `ox_inventory` resource** for `Item('phone'` (or `Item("phone"` if the file uses double quotes). Check these locations:
+
+- Current releases: `ox_inventory/modules/items/client.lua`
+- Older releases: `ox_inventory/items/client.lua`
+
+**REMOVE the following complete NPWD block if present, from `Item('phone', ...` through its final `end)`. This is code to delete, not code to add:**
+
+```lua
+-- REMOVE this entire NPWD block if present. Do not add it.
+Item('phone', function(data, slot)
+    local success, result = pcall(function()
+        return exports.npwd:isPhoneVisible()
+    end)
+
+    if success then
+        exports.npwd:setPhoneVisible(not result)
+    end
+end)
+```
+
+Keep the `phone` item definition in `ox_inventory/data/items.lua`; remove only the NPWD handler above. If no matching NPWD handler exists, continue with the item definitions.
+
+#### 2. Add the inventory items
+
+Default entries in `ox_inventory/data/items.lua` for unique phones with physical SIM cards. The phone includes an **Eject SIM** context button ([Ox item buttons](https://overextended.dev/ox_inventory/Guides/creatingItems)):
 
 ```lua
 ["phone"] = {
@@ -357,6 +407,14 @@ Default entries for unique phones with physical SIM cards:
     stack = false,
     close = true,
     consume = 0,
+    buttons = {
+        {
+            label = "Eject SIM", -- Translate this static inventory label, e.g. "SIM entfernen".
+            action = function(slot)
+                exports.sky_phone:EjectSimFromSlot(slot)
+            end,
+        },
+    },
 },
 
 ["sky_phone_sim_registered"] = {
@@ -377,6 +435,8 @@ Default entries for unique phones with physical SIM cards:
 ```
 
 Do not configure an LB Phone client event or client export. Sky Phone registers the usable items through its server-side inventory adapter.
+
+**Restart the complete server after both changes**, then verify that using the `phone` item opens Sky Phone. Recheck the NPWD handler after updating or replacing ox_inventory, as an update may restore it.
 
 The server registers `Config.Phone.Item` as usable for every supported inventory adapter: `ak47`, `codem`, `core`, `jaksam`, `jpr`, `lj`, `mf`, `one`, `origen`, `ox`, `ps`, `qb`, `qs`, `smx`, `tgiann`, `hex`, and `esx`. Resource startup fails visibly if the selected adapter or its resource is unavailable.
 
@@ -440,6 +500,8 @@ Sky Phone owns the metadata values and writes them server-side. Do not pre-gener
 
 When a metadata-capable phone item is used for the first time, Sky Phone reserves an IMEI and writes it back to that exact slot. Existing metadata is preserved. The adapter then reads the slot again and rejects the operation if the inventory did not persist the requested values.
 
+Sky Phone automatically registers IMEI and phone-number tooltip labels for `ox_inventory`, `tgiann-inventory`, and `one_inventory`, using `Config.Bridge.Locale`. Other inventories need the configuration described below. A new phone has no IMEI until it is initialized; its phone number appears once a physical or automatic SIM is assigned. With `Config.Phone.Unique = false`, identity and number belong to the character and are not written to the phone item.
+
 For reliable Unique Phones:
 
 - Set `Config.Phone.Unique = true`.
@@ -449,6 +511,164 @@ For reliable Unique Phones:
 - When changing inventory systems, migrate the complete item metadata table. Without the old `imei`, the next use creates a new device identity and does not automatically attach the old handset data.
 
 With `Config.Phone.Unique = false`, the handset identity is stored once per framework character instead of on each phone item. The phone item may stack. Physical SIMs still require per-item metadata, so `Config.Sim.Enabled` must be `false` on `hex` and native `esx`.
+
+### Inventory tooltip setup
+
+Persisting item metadata and displaying it are separate inventory features. Sky Phone writes the values through every metadata-capable bridge; the inventory controls which fields its UI renders. The following covers all bundled adapters, based on the linked public documentation/source. Inventory versions and custom UI forks can differ.
+
+| Inventory | IMEI / number display | SIM context button |
+| --- | --- | --- |
+| [Ox](https://overextended.dev/ox_inventory/Functions/Client#displaymetadata) | Automatic `displayMetadata` labels | `buttons` in the phone definition above |
+| [TGIANN](https://tgiann.gitbook.io/tgiann/scripts/tgiann-inventory/exports/client) | Automatic `DisplayItemMetadata` labels for the configured phone and SIM items; enable `hasMetadata` | `buttons`; example below |
+| [One Inventory](https://onestudios.gg/docs/client/exports) | Automatic `ShowItemMetadata` labels for the configured phone and SIM items | `RegisterItemButton`; example below |
+| [Jaksam](https://documentation.jaksam-scripts.com/jaksam-inventory/guides/metadata) | Add `displayFields`; example below | `contextActions`; example below |
+| [Core](https://docs.c8re.store/core-inventory/configuration#metadata-display) | Add `ShownMetadata` entries and enable hover information | No custom item-button API verified in the public exports |
+| [AK47](https://docs.menanak47.com/multi-framework/ak47_inventory/templates/tooltip) | Enable the fields in `Config.ShowValueFromItemInfo` | No custom item-button API verified in the public exports |
+| [QB](https://github.com/qbcore-framework/qb-inventory/blob/main/html/app.js) | Current stock UI lists `info` fields automatically unless `info.display = false`; labels come from the inventory UI | No stock per-item custom-button API |
+| [PS](https://github.com/Project-Sloth/ps-inventory/blob/main/html/js/app.js), [LJ](https://github.com/loljoshie/lj-inventory/blob/main/html/js/app.js) | Add the phone/SIM fields to `FormatItemInfo`; example below | No stock per-item custom-button API |
+| [Quasar](https://www.quasar-store.com/docs/advanced-inventory/commands-and-exports) (`qs`) | Values persist in `info`; UI formatting depends on the installed version. No label-registration API verified | No custom item-button contract verified in the public docs |
+| [CodeM mInventory](https://codem.gitbook.io/codem-documentation/m-series/essentials/minventory-remake/exports-and-commands/client-exports) (`codem-inventory`) | Values persist; configure the installed inventory's tooltip UI. No label-registration API verified for this resource | No custom item-button contract verified for this resource |
+| [JPR](https://joaos-organization-3.gitbook.io/jpresources-documentation/installation/inventory/events-and-commands) | Values persist in `info`; configure the installed inventory's tooltip UI. No label-registration API verified | No custom item-button contract verified in the public docs |
+| [Origen](https://docs.origennetwork.com/scripts/origen_inventory/exports) | Has a metadata viewer via `displayMetadata(slot)`, not Ox-style label registration | `buttons` with `action(slot)`; example and integration sources below |
+| [MF](https://github.com/meta-hub/mf-inventory/wiki/Examples) | Values persist; no public tooltip-label registration API verified | No custom item-button contract verified in the public docs |
+| SMX | The bridge stores metadata per item name in character metadata; no per-slot hover integration verified | No custom item-button contract verified |
+| `hex_4_inventory`, native ESX | No per-item metadata; unique phones and physical SIMs are disabled | Physical SIM removal unavailable |
+
+The automatic labels use the existing translations in all 15 phone locales, including regional aliases and English fallback. They are registered again after the selected inventory restarts. Repeated Configurator updates do not append duplicate labels. If you change the locale, restart the inventory and Sky Phone (or reconnect clients): some inventories can append labels but cannot replace/remove earlier labels. Static item definitions and inventory-owned tooltip formatters use that inventory's own translations.
+
+CodeM's newer [Supreme Inventory documentation](https://codem.gitbook.io/codem-documentation/supreme-series/essentials/inventory/exports/client-exports) describes `codem-inventoryv2`, a different resource from the bundled `codem` adapter. Its Ox compatibility exports must not be assumed to exist on `codem-inventory`.
+
+#### Jaksam: hover fields and SIM button
+
+Merge these fields into your phone in `jaksam_inventory/_data/items.lua`; retain its other properties. Add the `phone_number` display field to both physical SIM definitions too. Change the static labels to your inventory language. [Metadata](https://documentation.jaksam-scripts.com/jaksam-inventory/guides/metadata), [context actions](https://documentation.jaksam-scripts.com/jaksam-inventory/guides/context-actions).
+
+```lua
+displayFields = {
+    { field = "imei", label = "IMEI: ${value}" },
+    { field = "phone_number", label = "Phone number: ${value}" },
+},
+contextActions = {
+    {
+        label = "Eject SIM",
+        icon = "bi-sim",
+        callback = function(inventoryId, slotIndex)
+            exports.sky_phone:EjectSimFromSlot(slotIndex, inventoryId)
+        end,
+    },
+},
+```
+
+Pass `inventoryId` through: Jaksam actions can also refer to a stash or vehicle inventory. Sky Phone checks that it is the acting player's inventory before resolving the slot. The bridge accepts Jaksam's numeric and `SLOT-N` slot representations.
+
+#### Core: hover fields
+
+In Core's configuration, set `ShowInformationsOnHover = true` and add these entries to the existing `ShownMetadata` table, preserving its other entries. If Core's in-game configuration editor is enabled, make the equivalent changes there; Core then ignores file-based configuration. [Core configuration](https://docs.c8re.store/core-inventory/configuration#metadata-display).
+
+```lua
+["imei"] = "IMEI",
+["phone_number"] = "Phone number",
+```
+
+#### AK47: hover fields
+
+Add the two flags to AK47's configuration and translate `imei` and `phone_number` in its locale file. Existing tooltip flags remain enabled. [AK47 tooltip configuration](https://docs.menanak47.com/multi-framework/ak47_inventory/templates/tooltip).
+
+```lua
+Config.ShowValueFromItemInfo.imei = true
+Config.ShowValueFromItemInfo.phone_number = true
+```
+
+#### PS / LJ: hover formatter
+
+In the stock `html/js/app.js`, place the following inside `FormatItemInfo(itemData, dom)`, after its tooltip positioning code and before its existing item-specific branches. Match the item names to your configuration and translate the two labels in your inventory UI. Values are inserted as text, so metadata cannot inject HTML. [PS source](https://github.com/Project-Sloth/ps-inventory/blob/main/html/js/app.js), [LJ source](https://github.com/loljoshie/lj-inventory/blob/main/html/js/app.js).
+
+```javascript
+const phoneItems = ['phone', 'sky_phone_sim_registered', 'sky_phone_sim_anonymous'];
+if (itemData && phoneItems.includes(itemData.name)) {
+    const info = itemData.info || {};
+    $('.item-info-title').empty().append($('<p>').text(itemData.label));
+    const description = $('.item-info-description').empty();
+    if (itemData.description) description.append($('<p>').text(itemData.description));
+    for (const [key, label] of [['imei', 'IMEI'], ['phone_number', 'Phone number']]) {
+        if (info[key] != null && info[key] !== '') {
+            description.append($('<p>').append(
+                $('<strong>').text(label + ': '), $('<span>').text(String(info[key]))
+            ));
+        }
+    }
+    return;
+}
+```
+
+### Remove a SIM from the inventory
+
+With `Config.Sim.Enabled = true`, the client export `exports.sky_phone:EjectSimFromSlot(slot)` removes the physical SIM from the clicked phone and returns `{ success = true }` or `{ success = false, error = "..." }`. It also displays a notification in the configured phone language. `slot` can be a slot number/string or an item payload containing `slot` and optionally `metadata.imei`. `GetInventoryLabels()` returns localized `imei`, `phone_number`, and `eject_sim` labels for custom client integrations.
+
+The server resolves the phone and inserted SIM from its own inventory/database state. The phone must be in the player's inventory; move it out of a stash first. The action works with a closed or locked handset and never opens or unlocks its contents. With multiple unique phones it targets the clicked handset, independently of the currently open phone. In non-unique mode, any owned phone refers to the character's device. Automatic virtual SIMs cannot be ejected.
+
+A successful action returns one SIM item, preserves its number and registration data, clears the handset's SIM/number metadata, ends calls on that SIM, and refreshes the phone. A full inventory or failed metadata write leaves the SIM in the handset. Repeated/concurrent requests are guarded. Inventories without a verified custom-button contract can still use **Phone Settings → General → Eject SIM**.
+
+#### TGIANN button
+
+Merge this field into the configured phone item; retain `hasMetadata = true`, `useable = true`, and `shouldClose = true`. Both physical SIM items also need `hasMetadata = true`. [TGIANN item buttons](https://tgiann.gitbook.io/tgiann/scripts/tgiann-inventory/guides/creating-items).
+
+```lua
+buttons = {
+    {
+        label = "Eject SIM",
+        action = function(slot)
+            exports.sky_phone:EjectSimFromSlot(slot)
+        end,
+    },
+},
+```
+
+#### One Inventory button
+
+One Inventory's item-button editor can call the client export `sky_phone.EjectSimFromSlot` with its item payload. Alternatively, put the following in a client integration resource started after `one_inventory` and `sky_phone`. Use exactly one registration method. Replace `phone` if you use another item name. Export registrations are temporary; rerun this integration after a resource restart. [One client exports](https://onestudios.gg/docs/client/exports).
+
+```lua
+local registered = false
+local function registerSimButton()
+    if registered or GetResourceState("one_inventory") ~= "started"
+        or GetResourceState("sky_phone") ~= "started" then return end
+    registered = exports.one_inventory:RegisterItemButton(
+        "phone", exports.sky_phone:GetInventoryLabels().eject_sim,
+        function(payload)
+            exports.sky_phone:EjectSimFromSlot(payload)
+        end
+    )
+end
+
+AddEventHandler("onClientResourceStart", function(resource)
+    if resource == "one_inventory" or resource == "sky_phone" then registerSimButton() end
+end)
+AddEventHandler("onClientResourceStop", function(resource)
+    if resource == "one_inventory" then registered = false end
+end)
+CreateThread(registerSimButton)
+```
+
+#### Origen button
+
+Merge this into the phone definition in `origen_inventory/data/items.lua`. Origen documents the [custom-item `buttons` field](https://docs.origennetwork.com/scripts/origen_inventory/custom); the client `action(slot)` form is shown in the **origen_inventory** tabs of Prodigy Studios' published [Notebook integration](https://docs.prodigyrp.net/civ/prp-notebook/installation) and [Drug Drops integration](https://docs.prodigyrp.net/crime/prp-drug-drops/installation.html). The example below follows those integrations.
+
+```lua
+buttons = {
+    {
+        label = "Eject SIM",
+        action = function(slot)
+            exports.sky_phone:EjectSimFromSlot(slot)
+        end,
+    },
+},
+```
+
+Origen's separate `displayMetadata(slot)` export opens its metadata viewer; it does not accept Ox's `displayMetadata(key, label)` arguments. Keep the existing phone use handler so using the item continues to open the phone. The bridge uses `getInventoryItems(source)` and the slot-before-info `addItem(source, item, amount, slot, info)` / `removeItem(source, item, amount, slot)` signatures from the [current export reference](https://docs.origennetwork.com/scripts/origen_inventory/exports), also used by the published [AK47 integration](https://github.com/MenanAk47/ak47_lib/blob/main/integration/server/inventory.lua).
+
+#### Other custom context menus
+
+Custom client menus can call the same export, or dispatch the local event `TriggerEvent("sky_phone:sim:eject-item", slot, inventoryId)`. Do not call the existing Settings NUI callback from an inventory button: that callback deliberately targets the open, unlocked phone session.
 
 ## Phone and SIM modes
 
@@ -464,7 +684,7 @@ Config.Sim.Enabled = true
 | `Unique = true` | Every phone item receives its own IMEI. Settings, apps, local data, linked account, and SIM move with the item. The item must not stack. |
 | `Unique = false` | Every framework character receives one persistent virtual device. Any configured phone item opens that device. The item may stack. |
 
-With unique phones, using an inventory item selects that exact handset whenever the inventory reports its slot. The F1 hotkey reopens the last selected IMEI; if no handset has been selected yet, the server chooses the first concrete phone slot. The client never supplies a slot or IMEI.
+With unique phones, using an inventory item selects that exact handset whenever the inventory reports its slot. The F1 hotkey reopens the last selected IMEI; if no handset has been selected yet, the server chooses the first concrete phone slot. These opening paths resolve the device server-side. The optional inventory SIM button sends a slot that the server validates separately.
 
 | SIM mode | Behavior |
 | --- | --- |
@@ -656,7 +876,7 @@ The migration command is server-console only.
 
 ### Garage
 
-Set `Config.Garage.VehicleKeySystem` (default: `auto`) to give vehicle keys after a valet delivery. The same setting is available under Garage in the Phone Configurator. See [vehicle key integration](VEHICLEKEYS.md) for supported providers and the client/server bridge files.
+Set `Config.Garage.VehicleKeySystem` (default: `auto`) to give vehicle keys after a valet delivery. The same setting is available under Garage in the Phone Configurator.
 
 Select the provider under `Config.Garage.System`. Vehicle images use the configured CDN template with an icon fallback when no image is available.
 
@@ -737,8 +957,6 @@ Unlisted jobs can read news but cannot manage articles.
 ## External custom apps
 
 Sky Phone is not limited to the apps that ship with it. Other resources can register installable custom apps, publish them through the App Store, exchange messages with their NUI, send notifications, and use server-controlled permissions and storage.
-
-For the complete first-party export, ownership, readiness, and iframe protocol contract, see the [Creator API](CREATOR_API.md).
 
 Its native custom app surface includes client and server exports for app registration, lifecycle control, messaging, notifications, capability discovery, and policy management. Sky Phone also normalizes supported custom-app contracts from:
 
@@ -846,8 +1064,16 @@ Sky Phone is free, but you are not left alone with it. For installation help, co
 
 If Sky Phone helps your server, star the repository and share it with other FiveM developers. Feedback and focused pull requests are welcome.
 
+## Music integrations
+
+The server-only [Music library export](MUSIC_API.md) lets authorized resources read the equipped phone's playlists and tracks.
+
 ## License, credits, and notices
 
 Sky Phone is free and open-source software licensed under the [GNU General Public License v3.0](LICENSE).
 
-Third-party acknowledgements and license information are available in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Third-party acknowledgements and complete library license texts are available in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The production build updates this inventory and copies it together with the GPL into the deployable resource, so release and pull-request packages include both files. The listed licenses apply to the identified components; they do not grant additional rights to unrelated artwork, maps, or audio.
+
+The inventory includes the declared frontend dependency tree and Tailwind's generated CSS, with supplemental notices maintained in [licenses/ADDITIONAL_NOTICES.md](licenses/ADDITIONAL_NOTICES.md). It conservatively includes supporting packages, not only code present in the final NUI bundle. After dependency updates, run `pnpm build` from `frontend` to regenerate and publish the notices; `pnpm licenses:check` verifies the checked-in inventory. Preserve upstream copyright and license texts when updating the supplements.
+
+The corresponding source and build scripts for each published release are available through the matching version tag and source archives on the [releases page](https://github.com/sky-systems/sky_phone/releases). Release and pull-request packages include `SOURCE.txt` linking the exact built commit and its source archive. A pull-request filename identifies the PR head; `SOURCE.txt` records the actual checkout tested by CI, which may be GitHub's merge commit.

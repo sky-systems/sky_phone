@@ -4,11 +4,16 @@ end
 
 local inventory = exports["jaksam_inventory"]
 
-local function normalize(item)
-    local normalized = Bridge.Inventory.NormalizeItem(item)
+local function slot_number(value)
+    return tonumber(value) or (type(value) == "string" and tonumber(value:match("^SLOT%-(%d+)$"))) or nil
+end
+
+local function normalize(item, fallback_slot)
+    local normalized = Bridge.Inventory.NormalizeItem(item, "metadata", slot_number(fallback_slot))
     if not normalized or not normalized.name or normalized.amount < 1 then
         return nil
     end
+    normalized.slot = slot_number(normalized.slot) or slot_number(fallback_slot)
     return normalized
 end
 
@@ -24,9 +29,9 @@ end
 
 function Bridge.Inventory.GetSlot(source, slot_id)
     for index, item in pairs(get_inventory(source)) do
-        local normalized = normalize(item)
+        local normalized = normalize(item, index)
         local item_slot = normalized and (normalized.slot or tonumber(index)) or nil
-        if tostring(item_slot) == tostring(slot_id) then
+        if normalized and item_slot and item_slot == slot_number(slot_id) then
             normalized.slot = item_slot
             return normalized
         end
@@ -37,7 +42,7 @@ end
 function Bridge.Inventory.GetSlotsWithItem(source, item_name, metadata)
     local matches = {}
     for index, item in pairs(get_inventory(source)) do
-        local normalized = normalize(item)
+        local normalized = normalize(item, index)
         if normalized and normalized.name == item_name
             and Bridge.Inventory.MetadataMatches(normalized.metadata, metadata) then
             normalized.slot = normalized.slot or tonumber(index) or index
@@ -91,4 +96,12 @@ function Bridge.Inventory.RegisterUsableItem(item_name, callback)
         callback(source, normalize(Bridge.Inventory.ResolveUsableItem(...)))
     end)
     return true
+end
+
+function Bridge.Inventory.IsPlayerInventory(source, inventory_id)
+    if inventory_id == nil or tostring(inventory_id) == tostring(source) then
+        return true
+    end
+    local player_inventory = inventory:getInventory(source)
+    return type(player_inventory) == "table" and inventory_id == player_inventory.id
 end

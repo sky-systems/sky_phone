@@ -8,7 +8,8 @@ local callback_groups = {
     banking = [[overview transfer]],
     billing = [[overview list detail markRead pay dispute]],
     calendar = [[list create update delete]],
-    calls = [[recents dial answer set-speaker set-muted decline hangup block]],
+    realtime = [[config list create join ready chat drop leave heartbeat signal sfu]],
+    calls = [[recents dial answer set-speaker set-muted video decline hangup block]],
     citywarn = [[bootstrap publish update resolve]],
     companies = [[
         list get my-requests get-request work-context work-queue list-members
@@ -23,7 +24,7 @@ local callback_groups = {
         remove-member leave create-ping remove-ping
     ]],
     crypto = [[
-        bootstrap register login logout quote execute deposit withdraw update-profile recipient transfer
+        bootstrap register login logout quote execute deposit withdraw update-profile recipient transfer watch
     ]],
     ["custom-app"] = [[storage:get storage:set]],
     darkchat = [[
@@ -38,7 +39,7 @@ local callback_groups = {
     ]],
     flare = [[bootstrap delete-profile save-profile set-discovery swipe rewind unmatch thread send]],
     fliptok = [[
-        register login logout bootstrap feed video discover music-metadata publish react follow
+        register login logout bootstrap feed video discover profiles music-metadata publish react follow
         comments comment comment-react view share profile connections update-profile activities
         mark-activities report admin-reports admin-resolve-report block delete
     ]],

@@ -40,6 +40,7 @@ import {
   zoomPanAtPoint,
   type MapViewportMetrics,
 } from '@/features/map/mapViewport'
+import { useRoute } from 'vue-router'
 import { useMapStore } from '@/stores/map'
 import { useEasyShareStore } from '@/stores/easyshare'
 import { usePhoneStore } from '@/stores/phone'
@@ -51,6 +52,7 @@ import { readPhoneViewportGeometry } from '@/utils/phoneViewportGeometry'
 type MapStyle = 'default' | 'satellite' | 'atlas' | 'roads'
 
 const phone = usePhoneStore()
+const route = useRoute()
 const mapStore = useMapStore()
 const easyShare = useEasyShareStore()
 const mapStyle = ref<MapStyle>('default')
@@ -582,7 +584,45 @@ onMounted(() => {
     updateViewport()
   }
   void loadCurrentLocation(false)
-  void mapStore.load()
+  void mapStore.load().then(() => {
+    if (route.query.easyShareKind !== 'location') return
+    const marker = mapStore.markers.find(
+      (entry) => entry.id === route.query.easyShareId,
+    )
+    let shared = marker
+    if (!shared && typeof route.query.sharedLocation === 'string') {
+      try {
+        const value = JSON.parse(route.query.sharedLocation)
+        if (Number.isFinite(value.x) && Number.isFinite(value.y))
+          shared = {
+            id: 'shared-location',
+            label: String(value.label ?? ''),
+            color: 'blue',
+            coords: {
+              ...clampDefaultMapPoint(value),
+              z: Number.isFinite(value.z) ? value.z : 0,
+            },
+          }
+      } catch {
+        /* Ignore invalid deep links. */
+      }
+    }
+    if (shared) {
+      selectMarker(shared)
+      const metrics = viewportMetrics()
+      if (metrics) {
+        const nextZoom = Math.max(3, minimumCoverZoom(metrics, baseMinZoom))
+        const percent = worldToPercent(shared.coords)
+        normalizeViewport(
+          {
+            x: -(percent.x - 0.5) * metrics.canvasWidth * nextZoom,
+            y: -(percent.y - 0.5) * metrics.canvasHeight * nextZoom,
+          },
+          nextZoom,
+        )
+      }
+    }
+  })
 })
 
 onBeforeUnmount(() => {
@@ -850,6 +890,7 @@ onBeforeUnmount(() => {
           <sky-button
             large
             rounded
+            v-if="selectedMarker.id !== 'shared-location'"
             class="map-marker-delete"
             :disabled="mapStore.isLoading"
             @click="deleteSelectedMarker"
@@ -872,7 +913,7 @@ onBeforeUnmount(() => {
 .map-app {
   position: relative;
   overflow: hidden;
-  background: #111827;
+  background: var(--sky-bg);
 }
 
 .map-viewport {

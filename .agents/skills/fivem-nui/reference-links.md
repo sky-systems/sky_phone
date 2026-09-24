@@ -1,128 +1,42 @@
-# Reference Links
+# NUI Primary Sources
 
-Official documentation and useful resources for FiveM NUI development.
+Checked 2026-09-20. Start with official docs, then inspect implementation/registration/binding at the target revision. Refresh mutable platform claims when they matter. A public source SHA does not identify the installed client.
 
-## Official FiveM Documentation
+## Public contracts
 
-### NUI Development
-- **NUI Overview**: https://docs.fivem.net/docs/scripting-manual/nui-development/
-- **Fullscreen NUI**: https://docs.fivem.net/docs/scripting-manual/nui-development/full-screen-nui/
-- **NUI Callbacks**: https://docs.fivem.net/docs/scripting-manual/nui-development/nui-callbacks/
-- **Loading Screens**: https://docs.fivem.net/docs/scripting-manual/nui-development/loading-screens/
-- **Direct-rendered UI (DUI)**: https://docs.fivem.net/docs/scripting-manual/nui-development/dui/
+- [Fullscreen NUI](https://docs.fivem.net/docs/scripting-manual/nui-development/full-screen-nui/): manifest, asset origins, messaging and focus.
+- [NUI callbacks](https://docs.fivem.net/docs/scripting-manual/nui-development/nui-callbacks/): JSON requests/results, injected parent-resource API and callback completion.
+- [Resource manifest](https://docs.fivem.net/docs/scripting-reference/resource-manifest/): packaged files and secure resource configuration.
+- [DUI](https://docs.fivem.net/docs/scripting-manual/nui-development/dui/): direct-rendered UI lifecycle.
+- [Server security](https://docs.fivem.net/docs/developers/server-security/): server validation of client input.
+- [Legacy/Enhanced comparison](https://docs.fivem.net/docs/developers/legacy-vs-enhanced/): edition-specific behavior. Check the actual target.
 
-### Natives Reference
-- **SEND_NUI_MESSAGE**: https://docs.fivem.net/natives/?_0x78608ACB
-- **SET_NUI_FOCUS**: https://docs.fivem.net/natives/?_0x5B98AE30
-- **All Natives**: https://docs.fivem.net/natives/
+## Inspected public source revision
 
-### Scripting Manual
-- **Creating Your First Script**: https://docs.fivem.net/docs/scripting-manual/introduction/creating-your-first-script/
-- **Working with Events**: https://docs.fivem.net/docs/scripting-manual/working-with-events/
-- **Resource Manifest**: https://docs.fivem.net/docs/scripting-reference/resource-manifest/resource-manifest/
+`citizenfx/fivem` SHA `0d8a2a6f78a9922445d8930305af82a7b1826980` was public master during this check. Prefer a matching deployed revision when available.
 
-### Lua Functions
-- **RegisterNUICallback**: https://docs.fivem.net/docs/scripting-reference/runtimes/lua/functions/RegisterNUICallback/
-- **SendNUIMessage**: https://docs.fivem.net/docs/scripting-reference/runtimes/lua/functions/SendNUIMessage/
+| Path/function | What it establishes |
+| --- | --- |
+| [RegisterNuiCallback declaration](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/ext/native-decls/RegisterNuiCallback.md) | Client, callback-name/function inputs, void return |
+| [SendNuiMessage declaration](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/ext/native-decls/SendNuiMessage.md) | Client, JSON-string input, raw BOOL result |
+| [SetNuiFocus declaration](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/ext/native-decls/SetNuiFocus.md) | Client, focus/cursor booleans, void return |
+| [ResourceUICallbacks.cpp](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/code/components/nui-resources/src/ResourceUICallbacks.cpp), `MakeUICallback`, `RegisterNuiCallback<IsRef>` | JSON/MessagePack conversion, direct references and legacy event registration |
+| [scheduler.lua](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/data/shared/citizen/scripting/lua/scheduler.lua#L739-L810) | Current/legacy Lua callback wrappers; `SendNUIMessage` encodes the table and does not return the raw native result |
+| [ResourceUI.cpp](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/code/components/nui-resources/src/ResourceUI.cpp), `Create`, `InvokeCallback`, `OnTick` hook | Resource origins, revision-specific strict-mode check, queued callback execution and dead-resource check |
+| [ResourceUIScripting.cpp](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/code/components/nui-resources/src/ResourceUIScripting.cpp), `sendMessageToFrame`, `SEND_NUI_MESSAGE`, `SET_NUI_FOCUS` | JSON parsing/emission, resource/frame lookup and focus/cursor votes |
+| [Lua generator](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/ext/natives/codegen_out_lua.lua), `printArgument`, `printInvocationArguments`, `printNative` | Function references and argument/result binding |
 
-## Security
-- **Secure Your Events**: https://docs.fivem.net/docs/developers/server-security/
+Those three signatures have no output-pointer parameter. Callback execution is scheduled locally; this path is not a server RPC. The send path does not await an application listener or server outcome. For any additional native, verify its own docs/source rather than extending these conclusions by analogy.
 
-## Web Technologies
+Keep runtime probes and profiling separate from source evidence. This record does not prove browser capability, input behavior, live resource correctness or GTA engine internals on a deployed client.
 
-### HTML/CSS/JavaScript
-- **MDN Web Docs**: https://developer.mozilla.org/
-- **Fetch API**: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
-- **Window.postMessage**: https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
+## Worked-example source details
 
-### Modern Frameworks
-- **React**: https://react.dev/
-- **Vue**: https://vuejs.org/
-- **Svelte**: https://svelte.dev/
-- **Vite**: https://vitejs.dev/
+The restoration rechecked these paths at the same Cfx SHA:
 
-### CSS Frameworks
-- **Tailwind CSS**: https://tailwindcss.com/
-- **Bootstrap**: https://getbootstrap.com/
+- [NUICallbacks_PushEvent.cpp](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/code/components/nui-core/src/NUICallbacks_PushEvent.cpp#L73): injected `GetParentResourceName` returns the browser's registered frame name, not a parsed URL hostname.
+- [RegisterCommand declaration](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/ext/native-decls/RegisterCommand.md), [GetCurrentResourceName declaration](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/ext/native-decls/GetCurrentResourceName.md), and [ResourceScriptFunctions.cpp](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/code/components/citizen-scripting-core/src/ResourceScriptFunctions.cpp#L48): shared registration/context; command arguments are `(name, function, restricted)` and have no out-pointer, resource name comes from the current script runtime. See [command docs](https://docs.fivem.net/docs/scripting-manual/migrating-from-deprecated/creating-commands/).
+- [onResourceStop docs](https://docs.fivem.net/docs/scripting-reference/events/list/onResourceStop/) and [ResourceEventComponent.cpp](https://github.com/citizenfx/fivem/blob/0d8a2a6f78a9922445d8930305af82a7b1826980/code/components/citizen-resources-core/src/ResourceEventComponent.cpp#L93): `onResourceStop` is synchronous during stop; `onClientResourceStop` is queued after stop. Use the former for this resource's own cleanup.
+- [Loading screens](https://docs.fivem.net/docs/scripting-manual/nui-development/loading-screens/) are a separate lifecycle from an ordinary `ui_page`; use that reference when the task concerns one.
 
-### TypeScript
-- **TypeScript Documentation**: https://www.typescriptlang.org/docs/
-
-## Build Tools
-- **Vite**: https://vitejs.dev/
-- **Webpack**: https://webpack.js.org/
-- **npm**: https://www.npmjs.com/
-
-## Community Resources
-
-### Forums
-- **FiveM Forums**: https://forum.cfx.re/
-- **FiveM Discord**: https://discord.gg/fivem
-
-### Code Examples
-- **FiveM Cookbook**: https://docs.fivem.net/docs/cookbook/
-- **GitHub - FiveM**: https://github.com/citizenfx/fivem
-
-## Tools
-
-### Debugging
-- **Chrome DevTools**: http://localhost:13172/ (when game is running)
-- **F8 Console**: In-game developer console
-
-### Development
-- **Visual Studio Code**: https://code.visualstudio.com/
-- **Browser DevTools**: Built into Chrome, Firefox, Edge
-
-## Additional Resources
-
-### Performance
-- **Web Performance**: https://web.dev/performance/
-- **Chrome DevTools Performance**: https://developer.chrome.com/docs/devtools/performance/
-
-### Accessibility
-- **Web Accessibility**: https://www.w3.org/WAI/
-- **ARIA**: https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA
-
-## Quick Reference Card
-
-### Key Lua Functions
-```lua
--- Send message to UI
-SendNUIMessage({type = 'action', data = value})
-
--- Set focus
-SetNUIFocus(hasKeyboardFocus, hasMouseFocus)
-
--- Register callback
-RegisterNUICallback('callbackName', function(data, cb)
-    cb(responseData)
-end)
-```
-
-### Key JavaScript Patterns
-```js
-// Listen for messages
-window.addEventListener('message', (event) => {
-    // Handle event.data
-});
-
-// Call callback
-fetch(`https://${GetParentResourceName()}/callbackName`, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data)
-});
-
-// Get resource name
-function GetParentResourceName() {
-    return window.location.hostname.replace('cfx-nui-', '');
-}
-```
-
-### Asset References
-```html
-<!-- Use https://cfx-nui-{resourceName}/ protocol -->
-<script src="https://cfx-nui-my-resource/js/app.js"></script>
-<link href="https://cfx-nui-my-resource/css/style.css" rel="stylesheet">
-<img src="https://cfx-nui-my-resource/images/logo.png">
-```
+For browser examples, [Fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API), [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController), [DOM textContent](https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent) and [TypeScript narrowing](https://www.typescriptlang.org/docs/handbook/2/narrowing.html) document the web-language side. Check actual embedded capabilities and the installed bundler/framework docs; this skill does not prescribe a new UI stack.

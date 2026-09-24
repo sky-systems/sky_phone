@@ -33,6 +33,10 @@ Config.Bridge = {
 Config.Command = "phone"
 
 Config.Phone = {
+    -- Applies to phone use, ringing/active calls (including video), streams and radio.
+    -- ESX/Qbox/QBCore status and native death/handcuff checks are detected automatically.
+    BlockWhenDead = true, -- includes unconscious/laststand; false permits phone/voice use while downed
+    BlockWhenCuffed = true, -- false permits phone/voice use while handcuffed
     Item = "phone",
     Unique = true, -- true: data follows each phone item; false: one persistent phone per character; forced false for metadata-free inventories
     Keybind = "F1", -- false disables the configurable phone key mapping
@@ -154,12 +158,43 @@ Config.Speaker = {
     Enabled = true, -- global phone and radio speaker controls
 }
 
+-- All voice controls run in sky_phone; no pma-voice manifest change is required.
+-- PMA: speaker adds nearby players (3 m, same routing bucket) to the call so they
+-- can hear and speak. Mute silences the microphone for calls, proximity and radio.
+-- SaltyChat: speaker uses SetPhoneSpeaker; mute uses SetPlayerAlive(false), which
+-- also affects proximity/radio. The previous alive state is restored on unmute/end
+-- only if the player is not dead/downed. Yaca uses its phone-specific exports.
 Config.Calls = {
     VoiceProvider = "pma", -- auto, yaca (alias: yaca-voice), pma (alias: pma-voice), saltychat (alias: salty)
     RingSeconds = 30,
     ContactNameMaxLength = 80,
     ContactNotesMaxLength = 500,
     RecentPageSize = 100,
+}
+
+-- Video calls and Picstagram / FlipTok live broadcasts. Managed in /phonepanel.
+-- p2p sends one stream per viewer; cloudflare publishes once to Cloudflare SFU.
+-- TURN is independently selectable and relays connections blocked by NAT/firewalls.
+-- Default: P2P video calls and livestreams, with no Cloudflare account or credentials.
+-- Cloudflare SFU and TURN are OPTIONAL: enable for connection problems, larger audiences,
+-- or when the server owner prefers Cloudflare. TURN can also be used with P2P.
+Config.Realtime = {
+    Enabled = true,
+    Transport = "p2p", -- p2p, cloudflare
+    VideoCalls = true,
+    Picstagram = true,
+    FlipTok = true,
+    FrameRate = 24,
+    VideoBitrateKbps = 1200,
+    MaxVideoEdge = 720,
+    MaxViewers = 32, -- use SFU for larger audiences; P2P consumes broadcaster upload per viewer
+    MaxBroadcasts = 8,
+    MaxDurationMinutes = 120,
+    NearbyAudio = true,
+    NearbyDistance = 15.0, -- upper bound, also limited by each contributor's voice range
+    NearbyMaxSpeakers = 8,
+    TurnEnabled = false,
+    ForceRelay = false, -- requires TurnEnabled; applies to P2P (SFU connects directly to Cloudflare)
 }
 
 Config.Payphones = {
@@ -197,6 +232,9 @@ Config.Payphones = {
 }
 
 Config.Radio = {
+    -- Checks Config.Phone.Item on join and once per second for connected radio users only.
+    -- Losing the last phone disconnects both frequencies, including background radio.
+    RequirePhoneItem = true, -- false allows radio without a phone item, including auto-rejoin
     VoiceProvider = "auto", -- auto, yaca, pma, saltychat
     DefaultVolume = 50,
     HistoryLimit = 8,
@@ -253,7 +291,9 @@ Config.Radio = {
 
 Config.Animations = {
     Enabled = true,
-    PropModel = "prop_npc_phone_02",
+    -- Optional nearby screen mirroring; props and frame colors work without it.
+    WorldDisplayEnabled = false,
+    PropModel = "sky_phone_prop",
     PropBone = 28422,
     LoadTimeoutMs = 5000,
     ContextPollMs = 250,
@@ -1230,6 +1270,26 @@ Config.CityWarn = {
 -- =============================================================================
 
 if IsDuplicityVersion() then
+    -- Cloudflare dashboard > Realtime > SFU: create an application, copy App ID / App Secret.
+    -- Cloudflare dashboard > Realtime > TURN: create a key, copy Token ID / API Token.
+    -- https://developers.cloudflare.com/realtime/sfu/quickstart/
+    -- https://developers.cloudflare.com/realtime/turn/generate-credentials/
+    -- Configure these in /phonepanel (SQL mode). Keep the placeholders below empty.
+    -- config.lua is downloaded by clients even inside IsDuplicityVersion(). Never paste secrets here.
+    -- File mode: set the following NON-REPLICATED convars in server.cfg before ensure sky_phone:
+    -- set sky_phone_cf_sfu_app_id "<App ID>"
+    -- set sky_phone_cf_sfu_app_secret "<App Secret>"
+    -- set sky_phone_cf_turn_key_id "<TURN Token ID>"
+    -- set sky_phone_cf_turn_api_token "<TURN API Token>"
+    -- Use set, NEVER setr or sets. No Cloudflare account is required for default P2P.
+    Config.RealtimeSecrets = {
+        AppId = "",
+        AppSecret = "",
+        TurnKeyId = "",
+        ApiToken = "",
+    }
+
+
     -- -------------------------------------------------------------------------
     -- Server secrets
     -- -------------------------------------------------------------------------

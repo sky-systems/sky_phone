@@ -9,6 +9,7 @@ const { getWebhooks, saveWebhooks } = require('./webhooks-fixture.cjs')
 const app = express()
 const port = Number(process.argv[2]) || 3001
 
+app.get('/health', (_request, response) => response.json({ ready: true }))
 app.use(cors())
 app.use(express.json({ limit: '3mb' }))
 
@@ -10218,6 +10219,38 @@ app.post('/api/:endpoint', (request, response) => {
     response.json({ success: true, data: { items, offset: 0, hasMore: false } })
     return
   }
+  if (endpoint === 'fliptok:profiles') {
+    const search = String(request.body.search ?? '')
+      .toLowerCase()
+      .replace(/^@/, '')
+    const flipTokProfiles = [
+      ...new Map(
+        flipTokVideos.map((video) => [
+          video.profile_id,
+          {
+            ...flipTokProfile,
+            id: video.profile_id,
+            handle: video.handle,
+            display_name: video.display_name,
+            avatar_url: video.avatar_url,
+            verified: video.verified,
+            is_owner: video.profile_id === flipTokProfile.id,
+          },
+        ]),
+      ).values(),
+    ]
+    response.json({
+      success: true,
+      data: flipTokProfiles
+        .filter((profile) =>
+          `${profile.handle} ${profile.display_name}`
+            .toLowerCase()
+            .includes(search),
+        )
+        .slice(0, 20),
+    })
+    return
+  }
   if (endpoint === 'fliptok:discover') {
     const search = String(request.body.search ?? '').toLowerCase()
     response.json({
@@ -11030,6 +11063,10 @@ app.post('/api/:endpoint', (request, response) => {
   }
   if (endpoint === 'crypto:market-tick') {
     response.json({ success: true, data: advanceCryptoMarkets() })
+    return
+  }
+  if (endpoint === 'crypto:watch') {
+    response.json({ success: true, data: request.body.active ? cryptoOverview().markets : undefined })
     return
   }
   if (endpoint === 'crypto:login') {

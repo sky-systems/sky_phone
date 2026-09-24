@@ -4078,7 +4078,7 @@ onMounted(async () => {
   background: transparent;
   text-align: left;
 }
-.citymarkt-listing-card__favorite {
+.citymarkt button.citymarkt-listing-card__favorite {
   position: relative;
   z-index: 2;
   grid-area: 1 / 1;
@@ -4115,7 +4115,7 @@ onMounted(async () => {
 .citymarkt-listing-card__favorite:active {
   transform: scale(0.94);
 }
-.citymarkt-listing-card__favorite.active {
+.citymarkt button.citymarkt-listing-card__favorite.active {
   color: var(--yellow);
 }
 .citymarkt-listing-card .citymarkt__card-image {
@@ -4173,7 +4173,7 @@ onMounted(async () => {
   width: 116px;
   height: 116px;
 }
-.citymarkt__grid--wide .citymarkt-listing-card__favorite {
+.citymarkt__grid--wide .citymarkt button.citymarkt-listing-card__favorite {
   justify-self: start;
   margin-left: 79px;
 }

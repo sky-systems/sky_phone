@@ -18,6 +18,7 @@ local valid_kinds = {
     video = true,
 }
 local valid_apps = {
+    ["app-store"] = true,
     calendar = true,
     camera = true,
     citymarkt = true,
@@ -400,6 +401,12 @@ end
 
 local function canonical_music(device, data)
     if data.kind == "track" and type(data.meta) == "table" and data.meta.source == "server" then
+        local discovered = SkyPhoneMusic and SkyPhoneMusic.GetServerTrack(data.id)
+        if discovered then
+            return { title = discovered.title, subtitle = discovered.artist,
+                copyText = discovered.title .. " — " .. discovered.artist,
+                link = "skyphone://music/server/" .. data.id, meta = { source = "server" } }
+        end
         for _, track in ipairs(Config.Music.Tracks) do
             if track.Id == data.id then
                 return {
@@ -427,7 +434,7 @@ local function canonical_music(device, data)
                 copyText = track.title .. " — " .. track.artist,
                 imageUrl = "https://i.ytimg.com/vi/" .. track.video_id .. "/hqdefault.jpg",
                 link = "skyphone://music/youtube/" .. data.id,
-                meta = { source = "youtube" },
+                meta = { source = "youtube", songs = { { source = "youtube", song_id = data.id, video_id = track.video_id, title = track.title, artist = track.artist } } },
             }
         end
     elseif data.kind == "playlist" then
@@ -442,11 +449,19 @@ local function canonical_music(device, data)
             GROUP BY playlist.`id`, playlist.`name` LIMIT 1
         ]=]):format(condition), query_params)
         if playlist then
+            local songs = Bridge.Database.Query([[
+                SELECT item.`source`, item.`song_id`, song.`video_id`, song.`title`, song.`artist`
+                FROM `sky_phone_music_playlist_items` item
+                LEFT JOIN `sky_phone_music_youtube_songs` song ON song.`id` = item.`song_id` AND item.`source` = 'youtube'
+                WHERE item.`playlist_id` = ? ORDER BY item.`position`, item.`id`
+            ]], { data.id })
+            if #songs > Config.Music.MaximumPlaylistSongs then return nil end
             return {
                 title = playlist.name,
                 subtitle = tostring(playlist.song_count) .. " tracks",
                 copyText = playlist.name .. " · " .. tostring(playlist.song_count),
                 link = "skyphone://music/playlist/" .. data.id,
+                meta = { songs = songs },
             }
         end
     end
@@ -712,7 +727,7 @@ local function sanitize_payload(source, device, data)
         end
         append_params(media_params, owner_params)
         local media_rows = Bridge.Database.Query(([[
-            SELECT `id`, `url`, `media_type` AS `mediaType`
+            SELECT `id`, `url`, `remote_id`, `media_type` AS `mediaType`
             FROM `sky_phone_media`
             WHERE `id` IN (%s) AND %s AND `media_type` IN ('photo', 'video')
             ORDER BY `created_at` ASC, `id` ASC
@@ -725,6 +740,7 @@ local function sanitize_payload(source, device, data)
             items[#items + 1] = {
                 id = tonumber(row.id),
                 mediaType = row.mediaType,
+                remoteId = row.remote_id,
                 url = row.url,
             }
         end
@@ -770,6 +786,8 @@ local function sanitize_payload(source, device, data)
                 canonical = canonical_post(device, app_id, payload.id)
             elseif app_id == "crewlink" then
                 canonical = canonical_crewlink_invite(device, payload.id)
+            elseif app_id == "app-store" and type(payload.id) == "string" and (Config.Apps[payload.id] == true or SkyPhoneApps and SkyPhoneApps.GetPolicy and SkyPhoneApps.GetPolicy(payload.id)) then
+                canonical = { title = payload.id, copyText = payload.id, link = "skyphone://app-store/" .. payload.id }
             end
         end
         if not canonical then
@@ -801,13 +819,22 @@ function SkyPhoneEasyShare.SanitizeChatPayload(source, data)
     return sanitize_payload(source, device, data)
 end
 
+local function open_payload(payload, incoming)
+    local received = incoming and payload.meta and payload.meta.received
+    if type(received) ~= "table" then return payload end
+    local result = {}
+    for key, value in pairs(payload) do result[key] = value end
+    result.appId, result.id, result.kind, result.link = received.appId, received.id, received.kind, received.link
+    return result
+end
+
 local function transfer_for_source(transfer, source)
     local incoming = transfer.recipient_source == source
     return {
         id = transfer.id,
         direction = incoming and "incoming" or "outgoing",
         otherName = incoming and transfer.sender_name or transfer.recipient_name,
-        payload = transfer.payload,
+        payload = open_payload(transfer.payload, incoming),
         progress = transfer.progress,
         status = transfer.status,
         createdAt = transfer.created_at,
@@ -843,6 +870,53 @@ local function finish_transfer(transfer, status)
     active_transfers[transfer.id] = nil
 end
 
+-- Import only the server-canonical snapshot accepted by the recipient. Personal song IDs
+-- belong to the sender and must be remapped before opening a received playlist.
+local function receive_music(device, payload)
+    local meta = payload.meta or {}
+    if type(meta.songs) ~= "table" or #meta.songs > Config.Music.MaximumPlaylistSongs then return false end
+    local condition, owner_params = owner_condition(device)
+    local function count(table_name)
+        local row = first_row(("SELECT COUNT(*) AS `count` FROM `%s` WHERE %s"):format(table_name, condition), owner_params)
+        return tonumber(row and row.count) or 0
+    end
+    local playlist = payload.kind == "playlist"
+    if playlist and count("sky_phone_music_playlists") >= Config.Music.MaximumPlaylists then return false end
+    local missing, entries = {}, {}
+    for _, song in ipairs(meta.songs) do
+        if song.source == "server" then
+            entries[#entries + 1] = { source = "server", id = song.song_id }
+        elseif song.source == "youtube" and type(song.video_id) == "string" then
+            local params = { song.video_id }; append_params(params, owner_params)
+            local existing = first_row(("SELECT `id` FROM `sky_phone_music_youtube_songs` WHERE `video_id` = ? AND %s LIMIT 1"):format(condition), params)
+            local id = existing and existing.id or uuid()
+            if not existing then missing[#missing + 1] = { id = id, song = song } end
+            entries[#entries + 1] = { source = "youtube", id = id }
+        end
+    end
+    if count("sky_phone_music_youtube_songs") + #missing > Config.Music.MaximumPersonalSongs then return false end
+    local account_id = device.account_id and tonumber(device.account_id) or nil
+    for _, entry in ipairs(missing) do
+        Bridge.Database.Query([[
+            INSERT INTO `sky_phone_music_youtube_songs` (`id`, `account_id`, `device_imei`, `video_id`, `title`, `artist`)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ]], { entry.id, account_id, account_id and nil or device.imei, entry.song.video_id, entry.song.title, entry.song.artist })
+    end
+    local id = playlist and uuid() or entries[1] and entries[1].id
+    if not id then return false end
+    if playlist then
+        Bridge.Database.Query("INSERT INTO `sky_phone_music_playlists` (`id`, `account_id`, `device_imei`, `name`) VALUES (?, ?, ?, ?)",
+            { id, account_id, account_id and nil or device.imei, payload.title })
+        for index, entry in ipairs(entries) do
+            Bridge.Database.Query("INSERT INTO `sky_phone_music_playlist_items` (`playlist_id`, `source`, `song_id`, `position`) VALUES (?, ?, ?, ?)",
+                { id, entry.source, entry.id, index })
+        end
+    end
+    meta.received = { appId = "music", id = id, kind = payload.kind,
+        link = "skyphone://music/" .. (playlist and "playlist/" or "youtube/") .. id }
+    return true
+end
+
 local function apply_received_payload(transfer)
     local device = SkyPhone.LoadDevice(transfer.recipient_imei)
     if not device then
@@ -850,6 +924,7 @@ local function apply_received_payload(transfer)
     end
     local account_id = device.account_id and tonumber(device.account_id) or nil
     local meta = transfer.payload.meta or {}
+    transfer.payload.meta = meta
     if transfer.payload.kind == "contact" then
         Bridge.Database.Query([[ 
             INSERT INTO `sky_phone_contacts`
@@ -861,12 +936,14 @@ local function apply_received_payload(transfer)
         })
         TriggerClientEvent("sky_phone:contacts:changed", transfer.recipient_source, {})
     elseif transfer.payload.kind == "note" or transfer.payload.kind == "text" or transfer.payload.kind == "document" then
+        local note_id = uuid()
+        meta.received = { appId = "notes", kind = "note", id = note_id }
         Bridge.Database.Query([[ 
             INSERT INTO `sky_phone_notes`
                 (`id`, `account_id`, `device_imei`, `title`, `body`, `pinned`)
             VALUES (?, ?, ?, ?, ?, 0)
         ]], {
-            uuid(), account_id, account_id and nil or device.imei,
+            note_id, account_id, account_id and nil or device.imei,
             meta.title or transfer.payload.title, meta.body or transfer.payload.copyText,
         })
         if account_id then
@@ -875,19 +952,31 @@ local function apply_received_payload(transfer)
             SkyPhone.RefreshDevice(device.imei)
         end
     elseif transfer.payload.kind == "location" then
+        local marker_id = uuid()
+        meta.received = { appId = "map", kind = "location", id = marker_id }
         Bridge.Database.Query([[ 
             INSERT INTO `sky_phone_map_markers`
                 (`id`, `device_imei`, `label`, `color`, `position_x`, `position_y`, `position_z`)
             VALUES (?, ?, ?, 'blue', ?, ?, ?)
-        ]], { uuid(), device.imei, transfer.payload.title:sub(1, 40), meta.x, meta.y, meta.z })
-    elseif transfer.payload.kind == "photo" or transfer.payload.kind == "video" then
-        Bridge.Database.Query([[ 
-            INSERT INTO `sky_phone_media` (`account_id`, `device_imei`, `url`, `remote_id`, `media_type`)
-            VALUES (?, ?, ?, ?, ?)
-        ]], {
-            account_id, account_id and nil or device.imei, meta.url, meta.remoteId, transfer.payload.kind,
-        })
+        ]], { marker_id, device.imei, transfer.payload.title:sub(1, 40), meta.x, meta.y, meta.z })
+    elseif transfer.payload.kind == "photo" or transfer.payload.kind == "video" or transfer.payload.kind == "media" then
+        local items = transfer.payload.kind == "media" and meta.items or {
+            { url = meta.url, remoteId = meta.remoteId, mediaType = transfer.payload.kind },
+        }
+        if type(items) ~= "table" or #items == 0 then return false end
+        for _, item in ipairs(items) do
+            local inserted = Bridge.Database.Query([[
+                INSERT INTO `sky_phone_media` (`account_id`, `device_imei`, `url`, `remote_id`, `media_type`)
+                VALUES (?, ?, ?, ?, ?)
+            ]], { account_id, account_id and nil or device.imei, item.url, item.remoteId, item.mediaType })
+            local media_id = type(inserted) == "number" and inserted or (type(inserted) == "table" and tonumber(inserted.insertId))
+            if not media_id then return false end
+            if not meta.received then meta.received = { appId = "photos", kind = item.mediaType, id = media_id } end
+        end
         TriggerClientEvent("sky_phone:gallery:changed", transfer.recipient_source, {})
+    elseif transfer.payload.appId == "music" and (transfer.payload.kind == "playlist"
+        or transfer.payload.kind == "track" and meta.source == "youtube") then
+        return receive_music(device, transfer.payload)
     elseif transfer.payload.kind == "post"
         or transfer.payload.kind == "profile"
         or transfer.payload.kind == "track"
@@ -916,6 +1005,9 @@ local function advance_transfer(id)
     notify_transfer(transfer)
     if transfer.progress >= 100 then
         if apply_received_payload(transfer) then
+            Bridge.Database.Query("UPDATE `sky_phone_easyshare_transfers` SET `payload` = ? WHERE `id` = ?", {
+                json.encode(transfer.payload), transfer.id,
+            })
             finish_transfer(transfer, "completed")
         else
             finish_transfer(transfer, "failed")
@@ -933,7 +1025,7 @@ local function row_transfer(row, current_imei)
         id = row.id,
         direction = row.recipient_imei == current_imei and "incoming" or "outgoing",
         otherName = row.recipient_imei == current_imei and row.sender_name or row.recipient_name,
-        payload = decoded,
+        payload = open_payload(decoded, row.recipient_imei == current_imei),
         progress = tonumber(row.progress) or 0,
         status = row.status,
         createdAt = (tonumber(row.created_at_unix) or 0) * 1000,

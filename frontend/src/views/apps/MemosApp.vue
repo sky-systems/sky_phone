@@ -890,7 +890,7 @@ onBeforeUnmount(() => {
 .memos-page,
 .memo-detail-page,
 .memos-overlay-theme {
-  --sky-app-accent: #ff3b30;
+  --sky-app-accent: var(--sky-danger);
   --sky-app-accent-soft: rgb(255 59 48 / 15%);
 }
 
@@ -963,6 +963,9 @@ onBeforeUnmount(() => {
   align-self: center;
 }
 
+.memos-page:not(.sky-app-page--dark) .memo-row__play {
+  color: #d82722;
+}
 .memo-row__play {
   width: 38px;
   height: 38px;

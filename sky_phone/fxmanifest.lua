@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.3.12'
+version '0.3.14'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -17,7 +17,11 @@ provide 'yseries'
 shared_scripts {
     'config/init.lua',
     'source/bridge/shared.lua',
+    'source/shared/player_state.lua',
+    'source/bridge/network.lua',
+    'source/bridge/inventory.lua',
     'source/shared/imei.lua',
+    'source/shared/phone_prop.lua',
     'source/shared/sim_number.lua',
     'source/shared/custom_apps.lua',
     'source/bridge/phones/shared.lua',
@@ -34,15 +38,19 @@ client_scripts {
     'source/bridge/client/callbacks.lua',
     'source/client/phone_configurator.lua',
     'source/bridge/client/framework.lua',
+    'source/bridge/client/player_state.lua',
+    'source/bridge/client/inventory.lua',
     'source/bridge/client/vehiclekeys.lua',
     'source/bridge/client/housing.lua',
     'source/bridge/client/housing/*.lua',
     'source/bridge/client/calls.lua',
     'source/client/animations.lua',
+    'source/client/world_display.lua',
     'source/client/focus.lua',
     'source/client/calls.lua',
     'source/client/sim.lua',
     'source/client/camera.lua',
+    'source/client/realtime.lua',
     'source/client/location.lua',
     'source/client/citywarn.lua',
     'source/client/weather.lua',
@@ -96,11 +104,13 @@ server_scripts {
     'source/server/phone_configurator.lua',
     'source/bridge/server/framework.lua',
     'source/bridge/server/frameworks/*.lua',
+    'source/bridge/server/player_state.lua',
     'source/bridge/server/housing.lua',
     'source/bridge/server/housing/*.lua',
     'source/bridge/server/inventory.lua',
     'source/bridge/server/inventory/*.lua',
     'source/bridge/server/inventory_contract.lua',
+    'source/bridge/server/pma_calls.lua',
     'source/bridge/server/voice.lua',
     'source/server/custom_apps.lua',
     'source/server/media_metadata.lua',
@@ -112,6 +122,7 @@ server_scripts {
     'source/server/phone_accounts.lua',
     'source/server/phone_persistence.lua',
     'source/server/phone.lua',
+    'source/server/world_display.lua',
     'source/server/device_directory.lua',
     'source/server/db_migrate.lua',
     'source/server/logging_settings.lua',
@@ -145,6 +156,8 @@ server_scripts {
     'source/server/housing.lua',
     'source/server/marketplace.lua',
     'source/server/pages.lua',
+    'source/server/realtime_cloudflare.lua',
+    'source/server/realtime.lua',
     'source/server/fliptok.lua',
     'source/server/picstagram.lua',
     'source/server/feather.lua',
@@ -167,6 +180,7 @@ server_scripts {
 
 files {
     'source/html/index.html',
+    'source/html/display.html',
     'source/html/assets/**',
     'source/html/img/**',
     'source/html/sounds/**',
@@ -176,3 +190,5 @@ files {
 ui_page 'source/html/index.html'
 
 dependency 'oxmysql'
+
+data_file 'DLC_ITYP_REQUEST' 'stream/phone_prop/sky_phone_prop.ytyp'

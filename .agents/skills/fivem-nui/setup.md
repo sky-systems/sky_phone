@@ -1,385 +1,69 @@
-# Setting up NUI in a Resource
+# Packaging a NUI
 
-This guide covers the basic setup for adding a NUI interface to your FiveM resource.
+Read this for a new UI, a blank page, missing assets or a build-path change. Follow the resource's existing frontend/build layout rather than introducing another toolchain.
 
-## Folder structure
-
-Recommended folder structure for a resource with NUI:
-
-```
-my-resource/
-├── fxmanifest.lua
-├── client.lua
-├── server.lua
-└── ui/
-    ├── index.html
-    ├── css/
-    │   └── style.css
-    ├── js/
-    │   └── app.js
-    └── images/
-        └── logo.png
-```
-
-## fxmanifest.lua configuration
-
-You need to specify the `ui_page` and include all UI files in the `files` array:
+## Resource contract
 
 ```lua
-fx_version 'cerulean'
-game 'gta5'
+fx_version "cerulean"
+game "gta5"
 
-author 'Your Name'
-description 'Resource with NUI'
-version '1.0.0'
-
--- Client-side Lua script
-client_script 'client.lua'
-
--- Server-side Lua script
-server_script 'server.lua'
-
--- Specify the root UI page
-ui_page 'ui/index.html'
-
--- All UI files must be included in files array
-files {
-    'ui/index.html',
-    'ui/css/style.css',
-    'ui/js/app.js',
-    'ui/images/logo.png'
-}
-```
-
-### Using wildcards
-
-You can use wildcards for convenience:
-
-```lua
-ui_page 'ui/index.html'
+ui_page "html/index.html"
 
 files {
-    'ui/**/*.*'  -- Include all files recursively in ui folder
+    "html/index.html",
+    "html/assets/**/*"
 }
 ```
 
-## External hosting
+This is an illustrative manifest fragment: retain the resource's actual scripts/dependencies and include every emitted file it needs, including fonts, workers, WASM and media. Check exact filename case and the generated HTML, not only source templates. An external HTTPS `ui_page` is also supported, but hosting and availability then become part of the delivery path.
 
-You can also host the UI externally:
+For a complete manifest/HTML/CSS/client/browser example, read [the local panel](examples.md#complete-local-panel-package-open-hydrate-and-close). It includes relative assets, initial hidden state, ready hydration, open/close, Escape, focus and resource-stop cleanup.
 
-```lua
-ui_page 'https://ui-frontend.example.com/v1.0.0/index.html'
+## Build and hosting options
 
--- No files array needed for external hosting
-```
+Keep the installed framework and lockfile. The relevant Vite options are concrete configuration, not a reason to reinstall React/Vue or pin an obsolete Vite major:
 
-**Benefits:**
-- Faster updates without resource restart
-- Can use modern build tools and CI/CD
-- Reduces resource download size
-
-**Considerations:**
-- Requires external web hosting
-- Players need internet connection
-- Potential latency for initial load
-
-## Basic HTML structure
-
-**ui/index.html:**
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Resource UI</title>
-    <link rel="stylesheet" href="https://cfx-nui-my-resource/ui/css/style.css">
-</head>
-<body>
-    <div id="app">
-        <!-- Your UI content here -->
-    </div>
-    
-    <script src="https://cfx-nui-my-resource/ui/js/app.js"></script>
-</body>
-</html>
-```
-
-## Basic CSS
-
-**ui/css/style.css:**
-```css
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow: hidden;
-}
-
-#app {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    display: none; /* Hidden by default */
-}
-
-#app.visible {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-```
-
-## Basic JavaScript
-
-**ui/js/app.js:**
 ```js
-// Helper to get resource name
-function GetParentResourceName() {
-    return window.location.hostname.replace('cfx-nui-', '');
-}
-
-// Listen for messages from Lua
-window.addEventListener('message', (event) => {
-    const data = event.data;
-    
-    switch(data.type) {
-        case 'show':
-            showUI(data.data);
-            break;
-        case 'hide':
-            hideUI();
-            break;
-        case 'update':
-            updateUI(data.data);
-            break;
-    }
-});
-
-// Show the UI
-function showUI(data) {
-    const app = document.getElementById('app');
-    app.classList.add('visible');
-    
-    // Populate UI with data
-    if (data) {
-        // Handle data...
-    }
-}
-
-// Hide the UI
-function hideUI() {
-    const app = document.getElementById('app');
-    app.classList.remove('visible');
-}
-
-// Update UI content
-function updateUI(data) {
-    // Update logic...
-}
-
-// Close UI and notify Lua
-function closeUI() {
-    hideUI();
-    
-    fetch(`https://${GetParentResourceName()}/close`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: JSON.stringify({})
-    });
-}
-
-// ESC key to close
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-        closeUI();
-    }
-});
-```
-
-## Basic Lua client script
-
-**client.lua:**
-```lua
-local uiOpen = false
-
--- Command to open UI
-RegisterCommand('openui', function()
-    openUI()
-end)
-
--- Open the UI
-function openUI()
-    if uiOpen then return end
-    
-    uiOpen = true
-    SetNUIFocus(true, true)
-    
-    SendNUIMessage({
-        type = 'show',
-        data = {
-            title = 'My UI',
-            content = 'Hello from FiveM!'
-        }
-    })
-end
-
--- Close the UI
-function closeUI()
-    if not uiOpen then return end
-    
-    uiOpen = false
-    SetNUIFocus(false, false)
-    
-    SendNUIMessage({
-        type = 'hide'
-    })
-end
-
--- Handle close callback from NUI
-RegisterNUICallback('close', function(data, cb)
-    closeUI()
-    cb('ok')
-end)
-
--- Example: Update UI with server data
-RegisterNetEvent('myresource:client:updateUI')
-AddEventHandler('myresource:client:updateUI', function(newData)
-    SendNUIMessage({
-        type = 'update',
-        data = newData
-    })
-end)
-```
-
-## Modern build tools
-
-For production applications, consider using modern build tools:
-
-### Using Vite
-
-**package.json:**
-```json
-{
-  "name": "my-resource-ui",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build"
-  },
-  "devDependencies": {
-    "vite": "^5.0.0"
-  }
-}
-```
-
-**vite.config.js:**
-```js
-import { defineConfig } from 'vite'
+import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: './',
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-    assetsInlineLimit: 0
-  }
-})
+    base: "./",
+    build: {
+        outDir: "dist",
+        emptyOutDir: true,
+        assetsInlineLimit: 0,
+        // Add target/cssTarget from the project's verified supported CEF floor.
+    },
+});
 ```
 
-**fxmanifest.lua:**
+`outDir` must match the real packaging path. `emptyOutDir` clears that build directory; never point it at source or unrelated files. `assetsInlineLimit: 0` is an optional choice to keep imported assets external, not a FiveM requirement. Preserve required framework plugins. Include emitted nested chunks, not only `index.html`:
+
 ```lua
-ui_page 'ui/dist/index.html'
-
-files {
-    'ui/dist/**/*'
-}
+ui_page "ui/dist/index.html"
+files { "ui/dist/index.html", "ui/dist/**/*" }
 ```
 
-### Using React
+An explicitly hosted page uses `ui_page "https://ui.example.com/releases/1/index.html"`; packaged local dependencies still need `files`. Hosting can reduce the resource download and support web deployments, but adds availability, latency, certificate, caching/version-consistency and external-network dependencies. Deploying a web page does not force an already loaded NUI to refresh. Test its parent-resource callback origin and strict-mode behavior. See the CEF runtime/build reference for JS/CSS targets, capability probes and fallbacks.
 
-```bash
-npm create vite@latest ui -- --template react
-cd ui
-npm install
-npm run build
-```
+Use relative packaged URLs; in Vite an embedded build commonly uses `base: "./"`. Set JS/CSS output targets from the supported client floor. A successful desktop build does not establish CEF support. Inspect the actual resource manifest and final bundle before assuming a conventional `html/` directory.
 
-### Using Vue
+`https://cfx-nui-<resource>/path` is the resource asset origin. Callback POSTs use `https://${GetParentResourceName()}/callback`; these serve different purposes. Do not add `nui://` asset URLs or derive resource identity from `window.location.hostname`. The platform injects `GetParentResourceName()` even when page hosting differs from the resource name.
 
-```bash
-npm create vite@latest ui -- --template vue
-cd ui
-npm install
-npm run build
-```
+## Startup and browser preview
 
-## Testing during development
+Keep the initial fullscreen page transparent and noninteractive until opened. Register browser listeners before sending a `ready` callback; the client then provides the effective state snapshot. Existing handshakes should be reused. Arbitrary delays do not establish readiness.
 
-1. **Browser testing:** Open `ui/index.html` directly in your browser for quick UI testing.
-2. **Mock data:** Create mock data in your JavaScript for testing without running the game.
-3. **Hot reload:** Use Vite or similar tools for hot module replacement during development.
-4. **DevTools:** Use `http://localhost:13172/` while the game is running to debug the live NUI.
+Use a separate explicit preview/mock entrypoint for desktop development. Production code must use the injected platform identity and real callback routes. Mock success is presentation evidence, not proof of a server mutation or FiveM behavior.
 
-## Common mistakes
+For compatibility and lifecycle details, use the relevant `fivem-cef-rules` reference when available. Packaging checks remain necessary even when a browser preview works.
 
-### Forgetting to add files to manifest
+## Verify the delivered artifact
 
-❌ **Wrong:**
-```lua
-ui_page 'ui/index.html'
--- Missing files array!
-```
+- Trace source → generated HTML/assets → manifest → deployed resource copy.
+- Confirm referenced files exist with matching case and URLs; inspect Console/Network for the failing request.
+- Follow repository-prescribed frontend build and deployment-copy commands.
+- Test the changed route in the target FiveM client when available; label missing runtime validation.
 
-✅ **Correct:**
-```lua
-ui_page 'ui/index.html'
-files {
-    'ui/index.html',
-    'ui/css/style.css',
-    'ui/js/app.js'
-}
-```
-
-### Wrong asset references
-
-❌ **Wrong:**
-```html
-<script src="./app.js"></script>
-<script src="/ui/app.js"></script>
-<script src="nui://my-resource/ui/app.js"></script>
-```
-
-✅ **Correct:**
-```html
-<script src="https://cfx-nui-my-resource/ui/app.js"></script>
-```
-
-### Not disabling focus
-
-❌ **Wrong:**
-```lua
--- User closes UI but focus is still active
--- Now they can't move or shoot!
-```
-
-✅ **Correct:**
-```lua
-RegisterNUICallback('close', function(data, cb)
-    SetNUIFocus(false, false) -- Always disable focus!
-    cb('ok')
-end)
-```
-
-## Reference
-
-- Resource Manifest: https://docs.fivem.net/docs/scripting-reference/resource-manifest/resource-manifest/
-- Fullscreen NUI: https://docs.fivem.net/docs/scripting-manual/nui-development/full-screen-nui/
+Primary sources: [resource manifest](https://docs.fivem.net/docs/scripting-reference/resource-manifest/), [fullscreen NUI](https://docs.fivem.net/docs/scripting-manual/nui-development/full-screen-nui/), and [the pinned source map](reference-links.md).

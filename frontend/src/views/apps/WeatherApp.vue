@@ -142,6 +142,7 @@ watch(
 <template>
   <SkyAppPage
     class="weather-app"
+    data-theme-policy="scene"
     :class="[
       forecast ? `weather-app--${forecast.condition}` : '',
       { 'weather-app--night': isNight },

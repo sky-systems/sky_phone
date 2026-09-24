@@ -198,7 +198,7 @@ describe('admin configurator fixture', () => {
           root !== 'CustomTones',
       )
 
-    expect(sections).toHaveLength(47)
+    expect(sections).toHaveLength(49)
     expect(
       fields.reduce(
         (total, field) => total + countStructure(field.structure),

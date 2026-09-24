@@ -303,6 +303,7 @@ local function normalize_server_tracks()
 end
 
 normalize_server_tracks()
+SkyPhoneMusic = { GetServerTrack = function(id) return server_tracks_by_id[id] end }
 
 AddEventHandler("sky_phone:configurator:serverUpdated", normalize_server_tracks)
 
@@ -410,6 +411,17 @@ local function bootstrap(account_id, imei)
         playlists = list_playlists(account_id, imei),
     }
 end
+
+exports("GetMusicLibrary", function(source)
+    local device, reason = SkyPhoneDeviceDirectory.GetOnlineBySource(source)
+    if not device then return nil, reason end
+    local library = bootstrap(device.accountId, device.imei)
+    local current = SkyPhoneDeviceDirectory.GetOnlineBySource(source)
+    if not current or current.imei ~= device.imei or current.accountId ~= device.accountId then
+        return nil, "device_changed"
+    end
+    return library
+end)
 
 local function owned_playlist(account_id, imei, playlist_id)
     local condition, owner_params = owner_condition(account_id, imei)

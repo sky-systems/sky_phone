@@ -259,9 +259,10 @@ local function build_registry()
             if website_error == "missing_api_key" then
                 Bridge.Debug(
                     "warn",
-                    "[sky_phone] Media import source '%s' at index %s is disabled because Config.Media.FiveManage.ApiKey is empty. Add a FiveManage V3 token with Media access in the Phone Configurator and save it.",
+                    "[sky_phone] Media import source '%s' at index %s is disabled because Config.Media.FiveManage.ApiKey is empty. %s",
                     tostring(source_name or "unknown"),
-                    tostring(index)
+                    tostring(index),
+                    SkyPhoneMediaProviderConfig.FiveManageSetupHint()
                 )
             else
                 Bridge.Debug(

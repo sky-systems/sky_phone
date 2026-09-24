@@ -1,17 +1,27 @@
-# Debugging FiveM scripts
+# Trace the failing side
 
-## Server vs client logs
+Identify the reproduction, actual resource/package, active provider and exact error first.
+Trace the caller through the authority/provider and back to its consumer. Inspect configuration
+and shipped bytes when source and observed behavior disagree.
 
-- **Server console** (TxAdmin, terminal, or server window): errors and prints from `server_script` and server-side code.
-- **F8 client console**: in-game console opened with **F8**. Shows errors and prints from `client_script` and client-side code.
+Server console logs describe server execution; F8 logs describe the game client's execution.
+NUI also has its own browser diagnostics. A clean server console does not rule out a client
+or UI error. Read available logs first; request the relevant F8/server excerpt only when needed
+for an unresolved branch. Preserve the timestamp, resource name, stack and reproduction steps.
 
-## When to ask for F8 logs
+When the missing evidence is client-side, the concrete collection procedure is:
 
-If there is **no error on the server side** (server console is clean or the issue doesn’t show there), ask the user to **share the F8 logs** (client console). Many issues (client Lua errors, missing natives, UI or gameplay bugs) only appear in the client console.
+1. Reproduce the issue once and note the action and time.
+2. Press F8 in the game client to open its console.
+3. Copy the relevant error and stack, including the resource/file/line and adjacent context.
 
-Tell the user to:
-1. Reproduce the issue in-game.
-2. Press **F8** to open the client console.
-3. Copy the relevant output (errors in red, or the last lines) and share it.
+Collect the matching server excerpt for a server branch and browser diagnostics for a NUI
+branch. Do not ask for all logs merely because one console is clean.
 
-This helps distinguish server-side vs client-side problems.
+Use narrow English diagnostics that explain the failing value and boundary; do not log secrets
+or whole player records. Under the Sky bridge workspace rules, diagnostics stay out of locale files and user-facing
+messages remain localized. Remove speculative guards, retries or waits that hide the cause.
+
+Report evidence separately: static parsing, build output, deployment-copy hashes, server restart
+and in-game reproduction prove different things. A browser or unit test is not a FiveM session.
+For timing claims use a comparable [FiveM profiler capture](https://docs.fivem.net/docs/scripting-manual/debugging/using-profiler/).

@@ -1,61 +1,60 @@
-# Error Handling
+# Errors, provider results and yielding
 
-An unexpected state or condition within the code may cause a lua error to be thrown. However, these bad states can have other consequences when not so explicitly detected and handled. They may propagate bad state to other components of the system, or introduce unintended behavior. Checking for and handling unexpected state can make your code more robust to possible failures and vulnerabilities.
+Fail clearly on broken internal invariants. Validate real external boundaries such as client
+payloads, absent players, provider failures and missing persisted records. When AGENTS requires the Sky bridge,
+documented `Sky`/`Sky_Jobs` APIs are guaranteed: call them directly without existence checks.
+Explain defensive rejection in English diagnostics; keep user-facing responses localized.
 
-## Use assert instead of 'if expression then error()'
+`pcall` returning true means the call did not throw; it does not mean the provider operation
+succeeded. Inspect the returned result separately. Some APIs return false, some return no
+status, and promises can reject. For a void write, verify post-state where the task needs proof
+of success. Do not introduce pcall/retries/fallbacks merely to hide an unexplained error.
 
-assert is a more succinct, readable way to throw an error on a condition not being met.
+`Citizen.Await` yields a scheduler coroutine and raises a rejected promise value. Provider
+await wrappers may propagate this; they do not guarantee nil on failure. Capture event source
+before any yield and use the established operation lock/session identity handling. Keep claims
+or once-only transitions protected before a yielding side effect and release/compensate through
+the resource's defined failure path. Handle cancellation/disconnect without reusing stale state.
 
-**BAD:**
-```lua
-if not someVar then error("someVar is nil") end
-```
+## Invariants versus expected rejection
 
-**GOOD:**
-```lua
-assert(someVar ~= nil, "someVar is nil")
-```
+Use a precise assertion for an internal condition that must hold. Test the actual invariant:
+`assert(record ~= nil, "Expected the prepared record")` allows false, while `assert(record, ...)`
+does not. Do not mechanically replace a check with a differently defined condition, or add
+assertions around guaranteed framework APIs.
 
-## Pre-condition check liberally
-
-When performing an operation, make a list of assumptions and then write pre-condition checks.
-
-## Fail loudly for unexpected state
-
-When writing pre-condition checks, failure should often result in a lua error with a message. Failing silently by just early returning from a function can be difficult to debug and may go undetected.
-
-**BAD:**
-```lua
-if not isPlayerDead() then return end
-```
-
-**GOOD:**
-```lua
-assert(isPlayerDead(), "player is not dead")
-```
-
-## Throwing an Error vs Logging
-
-Some states may be unexpected, but recoverable. In these cases, it may be preferable to log the state, but still allow the operation to proceed. An example of this would be a player selling items to an NPC. If some of the items were failing to sell, it would be better to log/print the error, while allowing the rest of the items to go through.
-
-Keep in mind what execution will be cancelled by throwing an error and use best judgment to decide whether throwing or logging is the better choice.
-
-## Assertions vs Errors as Values
-
-Assertions cause lua errors to propagate up the stack, forcing callers to handle them via protected calls. While assertions should always be used for unexpected or "impossible" cases, errors as values can be helpful for expected failure cases that we want the caller of the API to handle. This involves returning a success boolean, followed by an optional error code & message. Doing this makes the default behavior of our function fail silently, as it becomes the callers responsibility to decide to handle the error. This can provide a better experience for players as a silent failure may be preferable to loud error messages in cases where the player pressed the wrong button for example.
-
-Note that API functions should be idempotent when possible. A no-op result is still considered successful, if the state of the system is the one the caller expects after the function is ran.
-
-### Example Error as Value
+Expected validation failures can return an explicit error value for the caller to handle:
 
 ```lua
-function add(a, b)
-    if not a or not b then
-        return nil, {
-            code = 'missing_required_params',
-            message = 'either a or b is nil',
-        }
+local function parse_quantity(raw_quantity)
+    if type(raw_quantity) ~= "string" and type(raw_quantity) ~= "number" then
+        return nil, "invalid_quantity"
     end
-    return a + b
+
+    local quantity = tonumber(raw_quantity)
+    if quantity == nil or quantity % 1 ~= 0 or quantity < 1 or quantity > 100 then
+        return nil, "invalid_quantity"
+    end
+
+    return quantity
 end
+
+local quantity, reason = parse_quantity("3")
+if quantity == nil then
+    print(("Quantity rejected: %s"):format(reason))
+    return nil, reason
+end
+-- Continue with the validated quantity under the operation's authority checks.
 ```
+
+The caller must handle the result; an error value is not permission to fail invisibly. Translate
+the rejection through the resource's existing localized response path. A parser does not grant
+ownership, permission, inventory capacity or funds.
+
+An error aborts the current call path. For independent batch items, record a recoverable failure
+and continue only if partial completion is the defined contract; an all-or-nothing operation
+needs its transaction/compensation path instead. Design idempotent operations where appropriate:
+an already-satisfied requested state can be a successful no-op. Repeating a payout is a side
+effect, so it requires an operation identity and once-only claim, not a repeated success flag.
+
+[Lua protected calls and pinned scheduler evidence](reference-links.md).

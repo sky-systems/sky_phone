@@ -5,6 +5,8 @@ local transactions = {}
 local stopped_calls = {}
 local speaker_enabled = true
 local audit_records = {}
+local server_time = 1000
+os.time = function() return server_time end
 
 SkyPhoneLog = { Record = function(category, action, status, source, details)
     audit_records[#audit_records + 1] = {
@@ -183,6 +185,7 @@ assert(type(caller_state.id) == "string", "Sky call UUIDs must stay strings")
 assert(caller_state.id == call.id and caller_state.state == "ringing", "ringing call state changed")
 assert(caller_state.direction == "outgoing" and caller_state.otherNumber == "5550102", "caller view changed")
 assert(caller_state.channel == nil, "ringing calls must not expose a voice channel")
+assert(caller_state.elapsedSeconds == 0, "ringing time must not count as connected duration")
 assert(caller_state.caller.source == 10 and caller_state.caller.number == "5550101", "caller identity changed")
 assert(caller_state.callee.source == 20 and caller_state.callee.number == "5550102", "callee identity changed")
 assert(not caller_state.anonymous and not caller_state.video, "unsupported call modes must remain explicit")
@@ -207,11 +210,38 @@ call.muted[10] = true
 call.speakers[10] = true
 call.voice_provider = "yaca"
 call.voice_started = true
+server_time = 1022
 
 caller_state = assert(SkyPhoneCalls.GetForSource(10))
+assert(caller_state.elapsedSeconds == 12, "connected duration must use the server clock")
+assert(SkyPhoneCalls.GetForSource(20).elapsedSeconds == 12, "both participants must receive the same duration")
+server_time = 1025
+assert(SkyPhoneCalls.GetById(call.id).elapsedSeconds == 15, "recovered snapshots must contain the current duration")
 assert(caller_state.state == "connected" and caller_state.channel == 42, "connected call state changed")
 assert(caller_state.muted and caller_state.muteSupported, "muted state must be projected for the caller")
 assert(caller_state.speakerEnabled and caller_state.speakerSupported, "speaker state must be projected for the caller")
+
+-- All three providers project capabilities and use the same authorized callbacks.
+SkyPhone.AllowOperation = function() return true end
+for _, provider in ipairs({ "pma", "saltychat", "yaca" }) do
+    call.voice_provider = provider
+    local payload = SkyPhoneCalls.GetForSource(10)
+    assert(payload.muteSupported and payload.speakerSupported, provider .. " controls must be available")
+    for _, action in ipairs({ "set-muted", "set-speaker" }) do
+        local callback = registered_callbacks["sky_phone:calls:" .. action]
+        assert(not callback(30, { id=call.id, enabled=true }).success, "Nonparticipants cannot control call audio")
+        assert(not callback(10, { id="wrong", enabled=true }).success, "Stale call IDs must be rejected")
+        assert(not callback(10, { id=call.id, enabled="true" }).success, "Audio state must be boolean")
+        assert(callback(10, { id=call.id, enabled=true }).success)
+        assert(callback(10, { id=call.id, enabled=false }).success)
+    end
+end
+Bridge.Calls.SetMuted = function() return false end
+assert(not registered_callbacks["sky_phone:calls:set-muted"](10, {id=call.id, enabled=true}).success)
+assert(not call.muted[10], "A provider failure cannot mark the UI muted")
+Bridge.Calls.SetMuted = function() return true end
+call.voice_provider="yaca"; call.muted[10]=true; call.speakers[10]=true
+client_events = {}
 
 local ended, end_error = SkyPhoneCalls.EndForSource(0)
 assert(not ended and end_error == "invalid_source", "invalid termination sources must be rejected")

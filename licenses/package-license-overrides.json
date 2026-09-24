@@ -1,0 +1,10 @@
+{
+  "konsta@5.2.0": {
+    "path": "package-licenses/konsta-5.2.0-LICENSE",
+    "source": "https://raw.githubusercontent.com/konstaui/konsta/v5.2.0/LICENSE"
+  },
+  "@vue/devtools-api@6.6.4": {
+    "path": "package-licenses/vue-devtools-api-6.6.4-LICENSE",
+    "source": "https://raw.githubusercontent.com/vuejs/devtools-v6/v6.6.4/LICENSE"
+  }
+}

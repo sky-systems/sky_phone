@@ -1,6 +1,7 @@
 SkyPhoneCalls = {}
 
 local active_call_payload = nil
+local active_call_updated_at = 0
 local call_channel = 0
 
 local function copy_payload(value)
@@ -45,6 +46,7 @@ end
 
 local function join_voice(channel)
     local next_channel = tonumber(channel) or 0
+    if next_channel > 0 and next_channel == call_channel then return true end
     if not Bridge.Calls.Join(next_channel) then
         return false
     end
@@ -82,7 +84,12 @@ function SkyPhoneCalls.GetActive()
     if not active_call_payload then
         return nil
     end
-    return copy_payload(active_call_payload)
+    local payload = copy_payload(active_call_payload)
+    if payload.state == "connected" then
+        local elapsed_ms = (GetGameTimer() - active_call_updated_at) % 4294967296
+        payload.elapsedSeconds = (payload.elapsedSeconds or 0) + math.floor(elapsed_ms / 1000)
+    end
+    return payload
 end
 
 function SkyPhoneCalls.Answer()
@@ -123,7 +130,7 @@ end
 
 function SkyPhoneCalls.ReplayNui()
     if active_call_payload then
-        SendNUIMessage({ type = "call:state", data = active_call_payload })
+        SendNUIMessage({ type = "call:state", data = SkyPhoneCalls.GetActive() })
     end
 end
 
@@ -137,7 +144,16 @@ function SkyPhoneCalls.Reset()
     end
 end
 
+AddEventHandler("sky_phone:client:restricted", function()
+    local previous = active_call_payload
+    SkyPhoneCalls.Reset()
+    if previous then
+        SendNUIMessage({ type = "call:state", data = { id = previous.id, state = "disconnected" } })
+    end
+end)
+
 RegisterNetEvent("sky_phone:call:incoming", function(data)
+    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then return end
     if type(data) ~= "table" or type(data.id) ~= "string" or data.state ~= "ringing" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid incoming call data.")
         return
@@ -150,12 +166,15 @@ RegisterNetEvent("sky_phone:call:incoming", function(data)
 end)
 
 RegisterNetEvent("sky_phone:call:state", function(data)
+    if type(data) == "table" and (data.state == "ringing" or data.state == "connected")
+        and Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then return end
     if type(data) ~= "table" or type(data.id) ~= "string" or type(data.state) ~= "string" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid call state data.")
         return
     end
     if data.state == "ringing" or data.state == "connected" then
         active_call_payload = data
+        active_call_updated_at = GetGameTimer()
     end
     if data.state ~= "ringing" then
         SkyPhoneFocus.SetCall(false)

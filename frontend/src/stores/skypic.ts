@@ -202,7 +202,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
   async function sessionCall<T = unknown>(
     endpoint: string,
     data: Record<string, unknown> = {},
-  ): Promise<NuiResponse<T>> {
+  ): Promise<NuiResponse<T> & { pageSize?: number }> {
     const requestSession = sessionVersion
     const response = await nuiCall<T>(endpoint, data)
     return requestSession === sessionVersion
@@ -275,7 +275,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     conversations.value = sortByLastItem(arrayOrEmpty(data.conversations))
     inbox.value = arrayOrEmpty(data.inbox)
     stories.value = arrayOrEmpty(data.stories)
-    storiesHasMore.value = stories.value.length >= STORY_PAGE_SIZE
+    storiesHasMore.value =
+      stories.value.length >= (data.storyPageSize ?? STORY_PAGE_SIZE)
     suggestions.value = arrayOrEmpty(data.suggestions)
     unreadCount.value = Math.max(0, Number(data.unreadCount) || 0)
   }
@@ -776,7 +777,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     setError(response)
     if (!response.success || !response.data) return false
     stories.value = response.data
-    storiesHasMore.value = response.data.length >= STORY_PAGE_SIZE
+    storiesHasMore.value =
+      response.data.length >= (response.pageSize ?? STORY_PAGE_SIZE)
     return true
   }
 
@@ -790,7 +792,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     setError(response)
     if (!response.success || !response.data) return false
     stories.value = uniqueById([...stories.value, ...response.data])
-    storiesHasMore.value = response.data.length >= STORY_PAGE_SIZE
+    storiesHasMore.value =
+      response.data.length >= (response.pageSize ?? STORY_PAGE_SIZE)
     return true
   }
 
@@ -833,7 +836,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     setError(response)
     if (!response.success || !response.data) return false
     spotlights.value = response.data
-    spotlightsHasMore.value = response.data.length >= SPOTLIGHT_PAGE_SIZE
+    spotlightsHasMore.value =
+      response.data.length >= (response.pageSize ?? SPOTLIGHT_PAGE_SIZE)
     return true
   }
 
@@ -848,7 +852,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     setError(response)
     if (!response.success || !response.data) return false
     spotlights.value = uniqueById([...spotlights.value, ...response.data])
-    spotlightsHasMore.value = response.data.length >= SPOTLIGHT_PAGE_SIZE
+    spotlightsHasMore.value =
+      response.data.length >= (response.pageSize ?? SPOTLIGHT_PAGE_SIZE)
     return true
   }
 
@@ -938,7 +943,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
     spotlightCommentsSpotlightId = spotlightId
     spotlightComments.value = response.data
     spotlightCommentsHasMore.value =
-      response.data.length >= SPOTLIGHT_COMMENT_PAGE_SIZE
+      response.data.length >= (response.pageSize ?? SPOTLIGHT_COMMENT_PAGE_SIZE)
     return true
   }
 
@@ -965,7 +970,7 @@ export const useSkyPicStore = defineStore('skypic', () => {
       ...response.data,
     ])
     spotlightCommentsHasMore.value =
-      response.data.length >= SPOTLIGHT_COMMENT_PAGE_SIZE
+      response.data.length >= (response.pageSize ?? SPOTLIGHT_COMMENT_PAGE_SIZE)
     return true
   }
 
@@ -1102,7 +1107,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     if (!response.success || !response.data) return false
     storyViewers.value = response.data
     storyViewersStoryId = storyId
-    storyViewersHasMore.value = response.data.length >= STORY_PAGE_SIZE
+    storyViewersHasMore.value =
+      response.data.length >= (response.pageSize ?? STORY_PAGE_SIZE)
     return true
   }
 
@@ -1127,7 +1133,8 @@ export const useSkyPicStore = defineStore('skypic', () => {
     setError(response)
     if (!response.success || !response.data) return false
     storyViewers.value = uniqueById([...storyViewers.value, ...response.data])
-    storyViewersHasMore.value = response.data.length >= STORY_PAGE_SIZE
+    storyViewersHasMore.value =
+      response.data.length >= (response.pageSize ?? STORY_PAGE_SIZE)
     return true
   }
 

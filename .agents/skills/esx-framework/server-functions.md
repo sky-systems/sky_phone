@@ -1,464 +1,174 @@
-# ESX Server Functions
+# Server lookup and service boundaries
 
-All functions available on **SERVER side** via `ESX` object.
+Verified at the [inspected ESX revision](reference-links.md):
 
-## Player Retrieval
+| Operation | Contract to preserve |
+| --- | --- |
+| ESX.GetPlayerFromId(source) | Current xPlayer or nil; a source is an online session, not durable character identity |
+| ESX.GetPlayerFromIdentifier(identifier) | Current indexed player or nil; use the identifier format owned by the installed character system |
+| ESX.GetExtendedPlayers(key, value, minimal) | Optional filters can change grouping; minimal returns sources instead of player objects |
+| ESX.RegisterServerCallback(name, handler) | Remote request boundary; see [callbacks](events-callbacks.md) |
 
-### ESX.GetPlayerFromId(source)
+An online lookup is not an offline player API. Do not guess a character prefix from a license
+or coerce a durable identifier to a numeric source. Where AGENTS requires Sky job APIs, use
+PlayerCache for identity/job/duty rather than importing these lookups into feature code.
 
-Returns xPlayer object for player.
+For commands, usable items, jobs, pickups and society money, trace the registered service and
+provider first. Verify permissions, target/account/item validity, capacity and bounded quantities
+before mutation. A typed command argument does not prove a positive integer or entitlement.
+Keep player lookups close to the operation and revalidate after yielding when the session can change.
 
-```lua
-local xPlayer = ESX.GetPlayerFromId(source)
-if not xPlayer then return end
+Do not write directly to framework tables while a provider owns the state; its cache/save path
+may overwrite the DB or diverge. Inspect overrides and persistence hooks before designing a fix.
 
-print('Player name:', xPlayer.getName())
-```
+## Player selection examples
 
-### ESX.GetPlayerFromIdentifier(identifier)
-
-Returns xPlayer object by identifier.
-
-```lua
-local xPlayer = ESX.GetPlayerFromIdentifier('license:abc123...')
-if not xPlayer then return end
-```
-
-### ESX.GetExtendedPlayers(key, value)
-
-Returns multiple players matching filter.
+The following code belongs in the existing direct ESX adapter/resource. All lookups are online; they do not fetch offline characters.
 
 ```lua
--- Get all police officers
-local policeOfficers = ESX.GetExtendedPlayers('job', 'police')
-for i, xPlayer in ipairs(policeOfficers) do
-    print('Officer:', xPlayer.getName())
+local x_player = ESX.GetPlayerFromId(player_id)
+local by_identifier = ESX.GetPlayerFromIdentifier(character_identifier)
+local officers = ESX.GetExtendedPlayers("job", "police")
+for _, officer in ipairs(officers) do
+    print(("[example] online police source: %s"):format(officer.source))
 end
 
--- Get ALL players (no filter)
-local allPlayers = ESX.GetExtendedPlayers()
-for i, xPlayer in ipairs(allPlayers) do
-    print(xPlayer.getName())
+local officer_ids = ESX.GetExtendedPlayers("job", "police", true)
+local groups = ESX.GetExtendedPlayers("job", { "police", "ambulance" })
+for job_name, players in pairs(groups) do
+    print(("[example] %s count: %s"):format(job_name, #players))
 end
+local all_players = ESX.GetExtendedPlayers()
+local police_count = ESX.GetNumPlayers("job", "police")
+local counts = ESX.GetNumPlayers("job", { "police", "ambulance" })
+local connected_count = ESX.GetNumPlayers()
 ```
 
-### ESX.GetNumPlayers(key, value)
+Table filters return grouped results, not one flat list. `minimal=true` returns sources. Unfiltered `GetNumPlayers()` uses connected players, while `GetExtendedPlayers()` enumerates loaded ESX objects; counts can differ during initialization. The helper's convenient filter is not proof of better asymptotic/runtime performance; inspect and profile the relevant path.
 
-Returns number of players matching filter.
+`ESX.GetIdentifier(player_id)` resolves the configured FiveM identifier type and strips that type prefix in the pinned core. It is **not** a universal `char1:license:...` generator; multichar builds the character identifier separately. `x_player.getIdentifier()` returns the actual character identifier on that object. Never reconstruct one by guessing a prefix.
 
-```lua
-local policeCount = ESX.GetNumPlayers('job', 'police')
-print('Police online:', policeCount)
+## Commands with typed arguments
 
-local totalPlayers = ESX.GetNumPlayers()
-print('Total players:', totalPlayers)
-```
-
-## Player Identification
-
-### ESX.GetIdentifier(playerId)
-
-Returns player's identifier (license with char prefix).
+`ESX.RegisterCommand(name, group, handler, allow_console?, suggestion?)` registers permissions through ACE. `name` and `group` may be strings or lists. The handler receives `(x_player_or_false, named_args, show_error)`; console has no player object.
 
 ```lua
-local identifier = ESX.GetIdentifier(source)
-print('Player identifier:', identifier)
--- Output: "char1:license:abc123..."
-```
-
-## Callbacks
-
-### ESX.RegisterServerCallback(name, cb)
-
-Registers a server callback that client can trigger.
-
-```lua
-ESX.RegisterServerCallback('myResource:getData', function(source, cb, param1)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    if not xPlayer then return cb(nil) end
-    
-    -- Do server logic
-    local data = {
-        money = xPlayer.getMoney(),
-        job = xPlayer.job.name
-    }
-    
-    cb(data)
-end)
-
--- Client calls it:
--- ESX.TriggerServerCallback('myResource:getData', function(data)
---     print(data.money, data.job)
--- end, 'param1')
-```
-
-### ESX.TriggerClientCallback(playerId, name, cb, ...)
-
-Triggers a client callback and waits for response.
-
-**WARNING**: Never trust client data for sensitive operations!
-
-```lua
-ESX.TriggerClientCallback(source, 'esx:getVehicleType', function(vehicleType)
-    print('Vehicle type:', vehicleType)
-end, 'bati')
-```
-
-### ESX.AwaitClientCallback(playerId, name, ...)
-
-Triggers client callback and waits (blocking).
-
-**WARNING**: Never trust client data for sensitive operations!
-
-```lua
-local vehicleType = ESX.AwaitClientCallback(source, 'esx:getVehicleType', 'bati')
-print('Vehicle type:', vehicleType)
-```
-
-## Commands
-
-### ESX.RegisterCommand(name, group, cb, allowConsole, suggestion)
-
-Registers a command with permission check.
-
-```lua
-ESX.RegisterCommand('heal', 'admin', function(xPlayer, args, showError)
-    xPlayer.triggerEvent('esx_ambulancejob:heal', 'full')
-end, false, {
-    help = 'Heal yourself',
-    arguments = {}
-})
-
--- With arguments
-ESX.RegisterCommand('givemoney', 'admin', function(xPlayer, args, showError)
-    local targetPlayer = ESX.GetPlayerFromId(args.playerId)
-    if not targetPlayer then
-        return showError('Player not found')
+-- Read-only example. labels contains the resource's localized command text.
+ESX.RegisterCommand("example_jobcount", "admin", function(x_player, args, show_error)
+    local jobs = ESX.GetJobs()
+    if not jobs[args.job] then
+        show_error(labels.invalid_job)
+        return
     end
-    
-    targetPlayer.addMoney(args.amount, 'Admin gave money')
-    xPlayer.showNotification('Gave $' .. args.amount .. ' to ' .. targetPlayer.getName())
-end, false, {
-    help = 'Give money to player',
-    arguments = {
-        {name = 'playerId', help = 'Player ID', type = 'playerId'},
-        {name = 'amount', help = 'Amount', type = 'number'}
-    }
+    print(("[example] %s online: %s"):format(args.job, ESX.GetNumPlayers("job", args.job)))
+end, true, {
+    help = labels.job_count,
+    validate = true,
+    arguments = { { name = "job", help = labels.job_name, type = "string" } }
 })
 ```
 
-## Jobs
+| Argument type | Pinned parser result |
+|---|---|
+| `number` | Numeric conversion, without an automatic positive/integer/range guarantee |
+| `player` | Current target xPlayer; supports `me` |
+| `playerId` | Current numeric target source; supports `me` |
+| `string` | Text rejected if it parses as a number |
+| `item`, `weapon` | Validated item/weapon name; weapon uppercased |
+| `any` | Raw token |
+| `merge` | Remaining tokens joined as text |
+| `coordinate` | Numeric coordinate extraction |
 
-### ESX.GetJobs()
+`suggestion.validate=true` checks argument count. A per-argument `Validator = { validate = function(value) ... end, err = localized_error }` can enforce additional constraints in the pinned version. Inspect installed compatibility before using it. Typed parsing and admin permission still do not substitute for action-specific targets, bounded quantities and server-owned authority.
 
-Returns all registered jobs.
+## Jobs and items
 
 ```lua
-local jobs = ESX.GetJobs()
-for jobName, jobData in pairs(jobs) do
-    print('Job:', jobName, jobData.label)
-    for grade, gradeData in pairs(jobData.grades) do
-        print('  Grade:', gradeData.label, 'Salary:', gradeData.salary)
+for job_name, job in pairs(ESX.GetJobs()) do
+    for grade_key, grade in pairs(job.grades) do
+        print(("[example] %s grade %s salary %s"):format(job_name, grade_key, grade.salary))
     end
 end
-```
-
-### ESX.DoesJobExist(job, grade)
-
-Checks if job and grade exist.
-
-```lua
-if ESX.DoesJobExist('police', 4) then
-    print('Police chief grade exists')
-end
-```
-
-### ESX.CreateJob(name, label, grades)
-
-Creates a new job and inserts into database.
-
-```lua
-ESX.CreateJob('baker', 'Baker', {
-    {grade = 0, name = 'apprentice', label = 'Apprentice', salary = 320},
-    {grade = 1, name = 'employee', label = 'Employee', salary = 470},
-    {grade = 2, name = 'manager', label = 'Manager', salary = 610},
-    {grade = 3, name = 'boss', label = 'Boss', salary = 910}
-})
-```
-
-### ESX.RefreshJobs()
-
-Reloads jobs from database.
-
-```lua
--- After manually editing jobs in database
-ESX.RefreshJobs()
-```
-
-## Items
-
-### ESX.GetItems()
-
-Returns all registered items.
-
-```lua
+local exists = ESX.DoesJobExist("police", 4)
 local items = ESX.GetItems()
-for itemName, itemData in pairs(items) do
-    print('Item:', itemName, itemData.label, 'Weight:', itemData.weight)
-end
+local label = ESX.GetItemLabel("bread") -- nil/logged warning if unknown
+local usable = ESX.GetUsableItems() -- map of name -> true
 ```
 
-### ESX.GetItemLabel(item)
+| API | Options and effects |
+|---|---|
+| `ESX.GetJobs(job_type?)` | Waits for job catalogue readiness; optional type string/list filters the job map |
+| `ESX.CreateJob(name, label, grades, job_type?)` | SQL-backed creation/missing-grade insertion; default type `civ`; boolean success, can yield. Existing-job behavior is version-specific. |
+| `ESX.RefreshJobs()` | Reloads DB job definitions and updates the provider's job/cache lifecycle |
+| `ESX.AddItems(items)` | Default inventory only; entries use `name`, `label`, optional `weight`, `rare`, `canRemove` |
+| `ESX.RefreshItems()` | Default inventory only; reloads catalogue and online inventories; returns loaded count at this revision |
+| `ESX.RegisterUsableItem(name, handler)` | Registers handler `(source, item, ...)`; does not itself consume an item |
+| `ESX.UseItem(source, item, ...)` | Invokes registered callback if catalogue/handler exist; not a complete ownership or transaction guard |
 
-Returns item label.
+Example migration-time definitions, only when the resource owns the requested catalogue change:
 
 ```lua
-local label = ESX.GetItemLabel('bread')
-print('Item label:', label) -- 'Bread'
-```
+local created = ESX.CreateJob("example_baker", localized_job_label, {
+    { grade = 0, name = "apprentice", label = localized_grade_label, salary = 320 }
+}, "civ")
 
-### ESX.AddItems(items)
-
-Adds new items to database and ESX.Items (only if using default inventory).
-
-```lua
 ESX.AddItems({
-    {name = 'energy_drink', label = 'Energy Drink', weight = 1, rare = false, canRemove = true},
-    {name = 'diamond_ring', label = 'Diamond Ring', weight = 2, rare = true}
+    { name = "example_leaflet", label = localized_item_label, weight = 1, rare = false, canRemove = true }
 })
 ```
 
-### ESX.RefreshItems()
-
-Reloads items from database (only if using default inventory).
+These are persistent operations, not startup boilerplate to run blindly. Follow the installed provider's migration and readiness path. An external inventory uses its own item catalogue and registration contracts.
 
 ```lua
-ESX.RefreshItems()
-```
-
-### ESX.RegisterUsableItem(item, cb)
-
-Registers an item as usable.
-
-```lua
-ESX.RegisterUsableItem('bread', function(playerId)
-    local xPlayer = ESX.GetPlayerFromId(playerId)
-    if not xPlayer then return end
-    
-    xPlayer.removeInventoryItem('bread', 1)
-    
-    -- Heal player or do something
-    TriggerClientEvent('esx_status:add', playerId, 'hunger', 200000)
-    xPlayer.showNotification('You ate bread', 'success')
+-- Default inventory, non-consuming display item. The item must exist in the catalogue.
+ESX.RegisterUsableItem("example_leaflet", function(src)
+    local x_player = ESX.GetPlayerFromId(src)
+    if not x_player then
+        print("[example] item use rejected: player is not loaded")
+        return
+    end
+    local item = x_player.getInventoryItem("example_leaflet")
+    if not item or item.count < 1 then
+        print("[example] item use rejected: player does not own the leaflet")
+        return
+    end
+    x_player.triggerEvent("example:openLeaflet")
 end)
 ```
 
-### ESX.UseItem(source, item, ...)
+For consumables, validate/serialize the operation and inspect the removal result before the effect. Do not copy the old unchecked food/reward sample into a server endpoint.
 
-Forces player to use item.
-
-```lua
-ESX.UseItem(source, 'bread')
-```
-
-### ESX.GetUsableItems()
-
-Returns all usable items.
+## Vehicles, pickups and dispatch
 
 ```lua
-local usableItems = ESX.GetUsableItems()
-for itemName, isUsable in pairs(usableItems) do
-    if isUsable then
-        print('Usable:', itemName)
-    end
-end
-```
-
-## Vehicle Functions
-
-### ESX.GetVehicleType(model, playerId, cb)
-
-Returns vehicle type (server must ask client).
-
-```lua
--- With callback
-ESX.GetVehicleType('t20', source, function(vehicleType)
-    print('Vehicle type:', vehicleType)
+ESX.GetVehicleType("t20", target_source, function(vehicle_type)
+    print(("[example] client-reported vehicle type: %s"):format(vehicle_type))
 end)
-
--- With promise (blocking)
-local vehicleType = ESX.GetVehicleType('t20', source)
-print('Vehicle type:', vehicleType)
+-- Alternative in a yieldable coroutine:
+local vehicle_type = ESX.GetVehicleType("t20", target_source)
 ```
 
-## Pickups (Default Inventory Only)
+The server helper uses a model cache and, on a cache miss, asks the client through `esx:GetVehicleType` (case-sensitive). Do not treat that client result as security authority. The callback form returns asynchronously; the no-callback form can yield. See [client callback boundaries](events-callbacks.md#client-callbacks-are-untrusted-display-data).
 
-### ESX.CreatePickup(type, name, count, label, playerId, components, tintIndex)
+Default-inventory `ESX.CreatePickup(item_type, name, count, label, player_id, components?, tint_index?, coords?)` records a pickup and broadcasts it. The matching core paths use `item_standard`, **`item_account`** and `item_weapon`; the old `item_money` example was incorrect. Calling CreatePickup does not remove the original item/account/loadout. The server owner must perform exactly one validated transfer into the pickup lifecycle and prevent duplication. Preserve weapon components/tint and position, and use external inventory drops when that provider owns inventory.
 
-Creates a pickup at player's position.
+For dispatch, use `x_player.triggerEvent(name, ...)`, CFX `TriggerClientEvent(name, source, ...)`, or `ESX.TriggerClientEvent(name, source_or_source_list, ...)`. Complete examples are in [events and callbacks](events-callbacks.md#secure-events-and-ordinary-dispatch).
 
-```lua
--- Item pickup
-ESX.CreatePickup('item_standard', 'bread', 5, 'Bread', source)
+## Logging and player overrides
 
--- Money pickup
-ESX.CreatePickup('item_money', 'money', 500, 'Cash', source)
+`ESX.Trace(message)` is conditional on the configured debug setting; it is not suitable as the only required failure log. `ESX.DiscordLog(webhook_name, title, color, message)` and `ESX.DiscordLogFields(webhook_name, title, color, fields)` use configured webhook/color keys. Field records contain `name`, `value`, optional `inline`. Keep secrets/personal data out and use only the resource's authorized logging design. Documentation examples do not authorize posting to Discord.
 
--- Weapon pickup
-ESX.CreatePickup('item_weapon', 'WEAPON_PISTOL', 50, 'Pistol', source, {}, 0)
-```
-
-## Events
-
-### ESX.TriggerClientEvent(eventName, playerIds, ...)
-
-Triggers event for one or multiple players.
+At the pinned revision, `ESX.RegisterPlayerFunctionOverrides(index, overrides)` stores **factories** used while creating a player. Each `factory(self)` must return the callable method:
 
 ```lua
--- Single player
-ESX.TriggerClientEvent('myResource:notify', source, 'Hello!')
-
--- Multiple players
-local officers = ESX.GetExtendedPlayers('job', 'police')
-local officerIds = {}
-for i, xPlayer in ipairs(officers) do
-    table.insert(officerIds, xPlayer.source)
-end
-
-ESX.TriggerClientEvent('myResource:alert', officerIds, 'Code 3!')
-```
-
-## Discord Logs
-
-### ESX.DiscordLog(webhookName, title, color, message)
-
-Sends simple Discord log.
-
-```lua
-ESX.DiscordLog('UserActions', 'Player Joined', 'green', 'John Doe joined the server')
-```
-
-### ESX.DiscordLogFields(webhookName, title, color, fields)
-
-Sends Discord log with fields.
-
-```lua
-ESX.DiscordLogFields('AdminActions', '/givemoney Used', 'orange', {
-    {name = 'Admin', value = xPlayer.getName(), inline = true},
-    {name = 'Target', value = targetPlayer.getName(), inline = true},
-    {name = 'Amount', value = '$5000', inline = true}
-})
-```
-
-## Player Function Overrides
-
-### ESX.RegisterPlayerFunctionOverrides(index, overrides)
-
-Adds custom functions to xPlayer object.
-
-```lua
-local leoJobs = {'police', 'sheriff', 'fbi'}
-local medicJobs = {'ambulance', 'doctor', 'firefighter'}
-
-ESX.RegisterPlayerFunctionOverrides('customFunctions', {
-    isLeo = function(self)
-        return table.contains(leoJobs, self.job.name)
-    end,
-    isMedic = function(self)
-        return table.contains(medicJobs, self.job.name)
+ESX.RegisterPlayerFunctionOverrides("example_methods", {
+    getDutySummary = function(self)
+        return function()
+            local job = self.getJob()
+            return { name = job.name, onDuty = job.onDuty }
+        end
     end
 })
-
--- Now you can use:
--- if xPlayer.isLeo() then ... end
 ```
 
-### ESX.SetPlayerFunctionOverride(index)
-
-Switches active override set.
-
-```lua
-ESX.SetPlayerFunctionOverride('customFunctions')
-```
-
-## Debug
-
-### ESX.Trace(msg)
-
-Prints trace message when Debug is enabled in config.
-
-```lua
-ESX.Trace('Player ' .. xPlayer.getName() .. ' opened inventory')
-```
-
-## Best Practices
-
-1. **Always check for nil**:
-   ```lua
-   local xPlayer = ESX.GetPlayerFromId(source)
-   if not xPlayer then return end
-   ```
-
-2. **Use GetExtendedPlayers for filtered player lists**:
-   ```lua
-   -- GOOD - Get specific job
-   local officers = ESX.GetExtendedPlayers('job', 'police')
-   
-   -- BAD - Loop through all then filter
-   for _, xPlayer in pairs(ESX.GetExtendedPlayers()) do
-       if xPlayer.job.name == 'police' then
-           -- Less efficient
-       end
-   end
-   ```
-
-3. **Never trust client data**:
-   ```lua
-   -- BAD
-   RegisterNetEvent('myResource:buyItem')
-   AddEventHandler('myResource:buyItem', function(price)
-       -- Client controls price! Bad!
-       local xPlayer = ESX.GetPlayerFromId(source)
-       xPlayer.removeMoney(price)
-   end)
-   
-   -- GOOD
-   RegisterNetEvent('myResource:buyItem')
-   AddEventHandler('myResource:buyItem', function(itemName)
-       local xPlayer = ESX.GetPlayerFromId(source)
-       if not xPlayer then return end
-       
-       local price = Config.Items[itemName].price -- Server controls price
-       if xPlayer.getMoney() >= price then
-           xPlayer.removeMoney(price, 'Bought ' .. itemName)
-           xPlayer.addInventoryItem(itemName, 1)
-       end
-   end)
-   ```
-
-4. **Use callbacks for client-to-server data requests**:
-   ```lua
-   ESX.RegisterServerCallback('myResource:canBuy', function(source, cb, itemName)
-       local xPlayer = ESX.GetPlayerFromId(source)
-       if not xPlayer then return cb(false) end
-       
-       local price = Config.Items[itemName].price
-       cb(xPlayer.getMoney() >= price)
-   end)
-   ```
-
-5. **Cache xPlayer when using multiple times**:
-   ```lua
-   -- GOOD
-   local xPlayer = ESX.GetPlayerFromId(source)
-   if not xPlayer then return end
-   
-   local money = xPlayer.getMoney()
-   local job = xPlayer.job.name
-   local inventory = xPlayer.inventory
-   
-   -- BAD (calls GetPlayerFromId 3 times)
-   local money = ESX.GetPlayerFromId(source).getMoney()
-   local job = ESX.GetPlayerFromId(source).job.name
-   local inventory = ESX.GetPlayerFromId(source).inventory
-   ```
+Do not add such a method when the existing `getJob()`/bridge already meets the need; the example documents the factory shape. The pinned class iterates all registered override sets at construction. `ESX.SetPlayerFunctionOverride(index)` sets configuration after validating the name, but this does **not** prove exclusive switching or retroactive replacement on already-created players. Trace the installed constructor and active inventory adapter before using either API. The original factory returning `table.contains(...)` would have installed a boolean, not an `xPlayer.isLeo()` function.

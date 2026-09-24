@@ -99,6 +99,7 @@ function Bridge.Radio.SetSpeaker(enabled)
 end
 
 function Bridge.Radio.Join(primary, secondary)
+    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then return false end
     local selected = resolve_provider()
     if selected == "yaca" then
         local voice = exports["yaca-voice"]
@@ -109,6 +110,10 @@ function Bridge.Radio.Join(primary, secondary)
         if not voice:isRadioEnabled() then
             voice:enableRadio(true)
             Wait(100)
+        end
+        if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then
+            Bridge.Radio.Leave()
+            return false
         end
         voice:setActiveRadioChannel(1)
         voice:changeRadioFrequency(tostring(primary))
@@ -130,6 +135,7 @@ function Bridge.Radio.Join(primary, secondary)
     end
 
     if selected == "saltychat" then
+        exports.saltychat:SetMicClick(true)
         exports.saltychat:SetRadioChannel(tostring(primary), true)
         exports.saltychat:SetRadioChannel(secondary > 0 and tostring(secondary) or "", false)
         return true
@@ -141,10 +147,13 @@ end
 
 local function leave_provider(selected)
     if selected == "yaca" then
+        exports["yaca-voice"]:changeRadioFrequencyRaw(1, "0")
+        exports["yaca-voice"]:changeRadioFrequencyRaw(2, "0")
         exports["yaca-voice"]:enableRadio(false)
     elseif selected == "pma" then
         exports["pma-voice"]:setRadioChannel(0)
     elseif selected == "saltychat" then
+        exports.saltychat:SetMicClick(false)
         Bridge.Radio.SetSpeaker(false)
         exports.saltychat:SetRadioChannel("", true)
         exports.saltychat:SetRadioChannel("", false)

@@ -44,7 +44,6 @@ import {
   isPhoneAppRemovable,
   PHONE_APPS,
 } from '@/config/apps'
-import { vConfigInputWidth } from '@/directives/configInputWidth'
 import { useAdminStore } from '@/stores/admin'
 import { usePhoneStore } from '@/stores/phone'
 import type {
@@ -397,6 +396,15 @@ function configuratorSubtabLabel(key: string, value: unknown): string {
   )
 }
 
+function configuratorSectionLabel(section: {
+  id: string
+  label: string
+}): string {
+  if (section.id === 'config:Realtime') return phone.t('Realtime.settingsGroup')
+  if (section.id === 'config:RealtimeSecrets')
+    return phone.t('Realtime.credentialsGroup')
+  return section.label
+}
 function selectConfiguratorScope(scope: ConfiguratorScope): void {
   configuratorScope.value = scope
   configuratorQuery.value = ''
@@ -408,6 +416,8 @@ function configuratorDescription(
   structure?: AdminConfiguratorStructure,
   label?: string,
 ): string {
+  if (/^Realtime(?:Secrets)?(?:\.|$)/.test(path))
+    return phone.t(`Realtime.help.${path.split('.').at(-1)}`)
   return describeConfiguratorValue(t, path, value, structure, label)
 }
 
@@ -424,6 +434,48 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
     ['Garage.VehicleKeySystem', t('configurator.vehicleKeySystemLabel')],
+    [
+      'Animations.WorldDisplayEnabled',
+      t('configurator.phoneWorldDisplayLabel'),
+    ],
+    [
+      'Realtime.NearbyMaxSpeakers',
+      phone.t('Realtime.settings.NearbyMaxSpeakers'),
+    ],
+    ...[
+      'Phone.BlockWhenDead',
+      'Phone.BlockWhenCuffed',
+      'Radio.RequirePhoneItem',
+    ].map((path) => [
+      path,
+      t(`configurator.playerRestrictionLabels.${path.split('.').at(-1)}`),
+    ]),
+    ['Realtime.ForceRelay', phone.t('Realtime.settings.ForceRelay')],
+    ['Realtime.Transport', phone.t('Realtime.settings.Transport')],
+    ['Realtime.MaxVideoEdge', phone.t('Realtime.settings.MaxVideoEdge')],
+    ['Realtime.Enabled', phone.t('Realtime.settings.Enabled')],
+    [
+      'Realtime.VideoBitrateKbps',
+      phone.t('Realtime.settings.VideoBitrateKbps'),
+    ],
+    ['Realtime.FrameRate', phone.t('Realtime.settings.FrameRate')],
+    ['Realtime.MaxBroadcasts', phone.t('Realtime.settings.MaxBroadcasts')],
+    ['Realtime.VideoCalls', phone.t('Realtime.settings.VideoCalls')],
+    ['Realtime.TurnEnabled', phone.t('Realtime.settings.TurnEnabled')],
+    ['RealtimeSecrets.ApiToken', phone.t('Realtime.settings.ApiToken')],
+    ['Realtime.MaxViewers', phone.t('Realtime.settings.MaxViewers')],
+    ['Realtime.FlipTok', phone.t('Realtime.settings.FlipTok')],
+    [
+      'Realtime.MaxDurationMinutes',
+      phone.t('Realtime.settings.MaxDurationMinutes'),
+    ],
+    ['RealtimeSecrets.AppId', phone.t('Realtime.settings.AppId')],
+    ['Realtime.Picstagram', phone.t('Realtime.settings.Picstagram')],
+    ['RealtimeSecrets.TurnKeyId', phone.t('Realtime.settings.TurnKeyId')],
+    ['RealtimeSecrets.AppSecret', phone.t('Realtime.settings.AppSecret')],
+    ['Realtime.NearbyDistance', phone.t('Realtime.settings.NearbyDistance')],
+    ['Realtime.NearbyAudio', phone.t('Realtime.settings.NearbyAudio')],
+
     [
       'Security.FaceIdMaskWhitelist',
       t('configurator.faceIdMaskWhitelistLabel'),
@@ -1327,7 +1379,7 @@ onBeforeUnmount(() => {
               >
                 <Settings2 :size="16" style="--admin-icon-size: 16" />
                 <span>
-                  <strong>{{ section.label }}</strong>
+                  <strong>{{ configuratorSectionLabel(section) }}</strong>
                   <small>{{
                     section.scope === 'media'
                       ? t('configurator.mediaScope')
@@ -1656,7 +1708,9 @@ onBeforeUnmount(() => {
                         ? t('configurator.mediaScope')
                         : t('configurator.configScope')
                     }}</span>
-                    <h2>{{ activeConfiguratorSection.label }}</h2>
+                    <h2>
+                      {{ configuratorSectionLabel(activeConfiguratorSection) }}
+                    </h2>
                   </div>
                   <strong>{{
                     t('configurator.fieldCount', {
@@ -1743,7 +1797,6 @@ onBeforeUnmount(() => {
                       class="admin-panel-config-optional"
                     >
                       <input
-                        v-config-input-width
                         type="text"
                         :aria-label="`${field.label} ${field.path}`"
                         :value="
@@ -1772,7 +1825,6 @@ onBeforeUnmount(() => {
 
                     <input
                       v-else
-                      v-config-input-width
                       :aria-label="`${field.label} ${field.path}`"
                       :type="
                         field.sensitive
@@ -4221,6 +4273,7 @@ button:disabled {
 
 .admin-panel-config-field > input,
 .admin-panel-config-optional > input {
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   border: 0;
@@ -4230,10 +4283,6 @@ button:disabled {
   background: #1b1e1b;
   font: inherit;
   font-size: calc(10 * var(--admin-unit));
-}
-
-.admin-panel-config-field > input {
-  justify-self: start;
 }
 
 .admin-panel-config-field > input[type='number'] {
@@ -4263,16 +4312,21 @@ button:disabled {
 }
 
 .admin-panel-config-optional {
+  width: 100%;
   min-width: 0;
   max-width: 100%;
   display: flex;
   align-items: center;
-  justify-self: start;
   gap: calc(8 * var(--admin-unit));
+}
+
+.admin-panel-config-optional > input {
+  flex: 1 1 0;
 }
 
 .admin-panel-config-toggle {
   position: relative;
+  flex-shrink: 0;
   justify-self: start;
   width: calc(32 * var(--admin-unit));
   height: calc(18 * var(--admin-unit));

@@ -70,3 +70,18 @@ function Bridge.Framework.ShowHelpNotification(message, key)
     AddTextComponentSubstringPlayerName(("%s  %s"):format(control, tostring(message or "")))
     EndTextCommandDisplayHelp(0, false, false, -1)
 end
+
+function Bridge.Framework.GetStatusData()
+    if framework_name == "esx" then
+        esx = esx or exports["es_extended"]:getSharedObject()
+        return esx.GetPlayerData() or {}
+    elseif framework_name == "qbox" then
+        local data = exports.qbx_core:GetPlayerData()
+        return data and data.metadata or {}
+    elseif framework_name == "qb" then
+        qb = qb or exports["qb-core"]:GetCoreObject()
+        local data = qb.Functions.GetPlayerData()
+        return data and data.metadata or {}
+    end
+    return {}
+end

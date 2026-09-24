@@ -326,7 +326,7 @@ onBeforeUnmount(() => {
   background: rgb(255 255 255 / 54%);
 }
 
-.memory-header__actions .sky-button--glass { color: #7658c7; }
+.memory-header__actions .sky-button--glass { color: var(--sky-text); }
 
 .memory-header__actions button {
   display: grid;

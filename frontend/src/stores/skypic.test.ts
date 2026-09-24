@@ -1391,6 +1391,42 @@ describe('SkyPic store', () => {
     })
   })
 
+  it('keeps loading pages using the effective server page size', async () => {
+    const store = useSkyPicStore()
+    mockNuiCall.mockResolvedValueOnce({
+      success: true,
+      data: { ...bootstrap, stories: [story], storyPageSize: 1 },
+    })
+    await store.bootstrap()
+    expect(store.storiesHasMore).toBe(true)
+
+    const page = { data: [story], success: true, pageSize: 1 }
+    const empty = { data: [], success: true, pageSize: 1 }
+    mockNuiCall.mockResolvedValueOnce(page).mockResolvedValueOnce(empty)
+    await store.loadStories()
+    expect(store.storiesHasMore).toBe(true)
+    await store.loadMoreStories()
+    expect(store.storiesHasMore).toBe(false)
+
+    mockNuiCall.mockResolvedValueOnce(page).mockResolvedValueOnce(empty)
+    await store.loadSpotlights()
+    expect(store.spotlightsHasMore).toBe(true)
+    await store.loadMoreSpotlights()
+    expect(store.spotlightsHasMore).toBe(false)
+
+    mockNuiCall.mockResolvedValueOnce(page).mockResolvedValueOnce(empty)
+    await store.loadSpotlightComments('spotlight-one')
+    expect(store.spotlightCommentsHasMore).toBe(true)
+    await store.loadMoreSpotlightComments('spotlight-one')
+    expect(store.spotlightCommentsHasMore).toBe(false)
+
+    mockNuiCall.mockResolvedValueOnce(page).mockResolvedValueOnce(empty)
+    await store.loadStoryViewers(story.id)
+    expect(store.storyViewersHasMore).toBe(true)
+    await store.loadMoreStoryViewers(story.id)
+    expect(store.storyViewersHasMore).toBe(false)
+  })
+
   it('keeps stale data when a refresh fails', async () => {
     mockNuiCall.mockResolvedValueOnce({
       error: 'request_timeout',

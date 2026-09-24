@@ -415,6 +415,14 @@ Bridge.Callbacks.Register("sky_phone:gallery:list", function(source, data)
         condition = condition .. " AND `media_type` = ?"
         params[#params + 1] = media_type
     end
+    if data.id ~= nil then
+        local media_id = tonumber(data.id)
+        if not media_id or media_id < 1 or media_id ~= math.floor(media_id) then
+            return { success = false, error = "invalid_request" }
+        end
+        condition = condition .. " AND `id` = ?"
+        params[#params + 1] = media_id
+    end
     if data.favoriteOnly == true then
         condition = condition .. " AND `favorite` = 1"
     end
@@ -1175,7 +1183,8 @@ end)
 if SkyPhoneMediaProviderConfig.FiveManageApiKey() == "" then
     Bridge.Debug(
         "warn",
-        "[sky_phone] FiveManage media integration is disabled because Config.Media.FiveManage.ApiKey is empty in config/media.lua. Camera photo and video uploads, Voice Memo uploads, remote Gallery deletion, and FiveManage imports are unavailable. Add a FiveManage V3 token with Media access and restart sky_phone.",
+        "[sky_phone] FiveManage media integration is disabled because Config.Media.FiveManage.ApiKey is empty. Camera photo and video uploads, Voice Memo uploads, and remote Gallery deletion are unavailable. FiveManage imports require a global or source-specific token. %s",
+        SkyPhoneMediaProviderConfig.FiveManageSetupHint(),
         { always = true }
     )
 end
