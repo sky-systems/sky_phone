@@ -210,16 +210,18 @@ let storyViewerRequest = 0
 let threadNavigationRequest = 0
 let appMounted = false
 
-const isDarkPage = computed(
-  () =>
-    activeTab.value === 'camera' ||
-    activeTab.value === 'spotlight' ||
-    Boolean(composerMedia.value) ||
-    Boolean(store.openedSnap) ||
-    Boolean(store.viewedStory) ||
-    phone.isDarkMode,
-)
 const isAuthenticated = computed(() => appAuth.isSignedIn('skypic'))
+const isScenePage = computed(
+  () =>
+    isAuthenticated.value &&
+    Boolean(store.profile) &&
+    (activeTab.value === 'camera' ||
+      activeTab.value === 'spotlight' ||
+      Boolean(composerMedia.value) ||
+      Boolean(store.openedSnap) ||
+      Boolean(store.viewedStory)),
+)
+const isDarkPage = computed(() => isScenePage.value || phone.isDarkMode)
 const authSubmitEnabled = computed(
   () => Boolean(account.email) && isValidSkyPicHandle(authHandle.value),
 )
@@ -1695,11 +1697,12 @@ onBeforeUnmount(() => {
     accent="#5a6cff"
     accent-soft="rgba(90, 108, 255, 0.2)"
     :dark="isDarkPage"
+    :data-theme-policy="isScenePage ? 'scene' : undefined"
     :label="t('name')"
     class="skypic-app"
     :class="{
-      'skypic-app--player-dark': phone.isDarkMode,
-      'skypic-app--player-light': !phone.isDarkMode,
+      'skypic-app--page-dark': isDarkPage,
+      'skypic-app--page-light': !isDarkPage,
     }"
   >
     <div v-if="store.loading && !bootstrapped" class="sp-loading">
@@ -4034,11 +4037,11 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
-.skypic-app--player-light {
+.skypic-app--page-light {
   --sp-tab-monochrome: #000000;
 }
 
-.skypic-app--player-dark {
+.skypic-app--page-dark {
   --sp-tab-monochrome: #ffffff;
 }
 
@@ -5977,7 +5980,8 @@ input:focus-visible {
     opacity var(--sky-transition-normal) ease;
 }
 
-:deep(.sp-tab:not(.sky-tab-button--active)) {
+:deep(.sp-tab:not(.sky-tab-button--active) .sky-tab-button__label),
+:deep(.sp-tab:not(.sky-tab-button--active) .sky-tab-button__icon svg) {
   opacity: 0.58;
 }
 
