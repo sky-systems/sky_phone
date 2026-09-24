@@ -569,7 +569,11 @@ RegisterNetEvent("sky_phone:device:opening", function(revision, token)
 end)
 
 local function receive_device_snapshot(data, opening)
-    if not PhoneFunctions.CanOpenPhone() then close_phone(); return end
+    if Bridge.PlayerState.GetBlockReason()
+        or ((opening or not is_open) and not PhoneFunctions.CanOpenPhone()) then
+        close_phone()
+        return
+    end
     if type(data) ~= "table" or type(data.device) ~= "table" or type(data.device.imei) ~= "string" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid device snapshot.")
         if not is_open then

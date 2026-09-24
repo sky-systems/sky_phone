@@ -943,7 +943,7 @@ local function ring_callee(call, target)
         return
     end
     if player_blocked(source) or player_blocked(call.caller_source) then return end
-    SkyPhone.OpenDeviceForCall(source, device.imei)
+    if not SkyPhone.OpenDeviceForCall(source, device.imei) then return end
     if player_blocked(source) or player_blocked(call.caller_source) then return end
     if call.ended or call.answered_at or (target and call.ringing_targets[source] ~= target) then
         return

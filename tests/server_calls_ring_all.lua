@@ -7,7 +7,7 @@ local function fixture(routing)
     }
     local noop = function() end
     local function hook(name, ...)
-        if state.hooks[name] then state.hooks[name](...) end
+        if state.hooks[name] then return state.hooks[name](...) end
     end
     local env = setmetatable({
         Config = {
@@ -81,7 +81,10 @@ local function fixture(routing)
         hook("inventory", source)
         return state.owned[source] and state.devices[source].imei == imei and { 1 } or {}
     end
-    function env.SkyPhone.OpenDeviceForCall(source) hook("open", source) end
+    function env.SkyPhone.OpenDeviceForCall(source)
+        local opened = hook("open", source)
+        return opened ~= false
+    end
     env.SkyPhone.AllowOperation = function() return true end
     env.SkyPhone.NotifyAccount = noop
     env.Bridge.Debug = noop
@@ -221,6 +224,21 @@ local function test(name, callback)
     callback()
     print("PASS ring_all: " .. name)
 end
+
+test("cancelled device opening cannot trigger an incoming call overlay", function()
+    for _, number in ipairs({ "911", "5550006" }) do
+        local state = fixture()
+        state.hooks.open = function() return false end
+        state.dial(1, number)
+        assert(state.event_count("sky_phone:call:incoming") == 0, number)
+    end
+    local state = fixture()
+    state.hooks.open = function(source) return source ~= 2 end
+    state.dial()
+    assert(state.event_count("sky_phone:call:incoming", 2) == 0)
+    assert(state.event_count("sky_phone:call:incoming", 3) == 1)
+    assert(state.event_count("sky_phone:call:incoming", 4) == 1)
+end)
 
 test("all eligible phones ring; only the first answer connects and histories stay separate", function()
     local state = fixture()

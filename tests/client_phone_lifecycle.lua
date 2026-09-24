@@ -305,6 +305,18 @@ test("custom opening checks cancel direct opens, late snapshots and NUI confirma
     assert(not SkyPhoneClient.GetState().open)
 end)
 
+test("custom admission checks do not close an active session on normal data updates", function()
+    local client = new_client()
+    client.authorize(device("active"))
+    PhoneFunctions.CanOpenPhone = function() return false end
+    client.events["sky_phone:device:updated"](device("active", "5557777777"))
+    assert(SkyPhoneClient.GetState().open and #client.take_messages("device:updated") == 1)
+    assert(SkyPhoneClient.GetState().phoneNumber == "5557777777")
+    Bridge.PlayerState.GetBlockReason = function() return "player_cuffed" end
+    client.events["sky_phone:device:updated"](device("active"))
+    assert(not SkyPhoneClient.GetState().open, "Status restrictions still apply to active updates")
+end)
+
 test("custom checks revalidate after inventory awaits and before NUI rehydration", function()
     local client = new_client()
     local request = coroutine.create(function() return SkyPhoneClient.Toggle(true) end)
