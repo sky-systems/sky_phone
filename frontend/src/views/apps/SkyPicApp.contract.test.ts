@@ -33,10 +33,8 @@ describe('SkyPic frontend contract', () => {
 
   it('keeps every bottom tab and app surface theme-monochrome', () => {
     expect(viewSource).toContain('phone.isDarkMode')
-    expect(viewSource).toContain("'skypic-app--player-dark': phone.isDarkMode")
-    expect(viewSource).toContain(
-      "'skypic-app--player-light': !phone.isDarkMode",
-    )
+    expect(viewSource).toContain("'skypic-app--page-dark': isDarkPage")
+    expect(viewSource).toContain("'skypic-app--page-light': !isDarkPage")
     expect(viewSource).toContain(
       'class="sp-tab sp-tab--camera sp-tab--monochrome"',
     )

@@ -8,6 +8,7 @@ const authApps = [
   'citymarkt',
   'local-pages',
   'picstagram',
+  'skypic',
   'fliptok',
   'crypto',
   'mail',
@@ -73,7 +74,11 @@ for (const app of authApps) {
     if (app === 'local-pages')
       await targetApp.getByText('Profile', { exact: true }).click()
     await page.evaluate(async (app) => {
-      if (['feather', 'crewlink', 'citymarkt', 'local-pages'].includes(app)) {
+      if (
+        ['feather', 'crewlink', 'citymarkt', 'local-pages', 'skypic'].includes(
+          app,
+        )
+      ) {
         const { useAppAuthStore } = await import('/src/stores/app-auth.ts')
         useAppAuthStore().sessions[app] = false
       } else if (app === 'picstagram') {
@@ -112,6 +117,7 @@ for (const app of authApps) {
         citymarkt: '.citymarkt-auth',
         'local-pages': '.pages__auth',
         picstagram: '.ps-auth',
+        skypic: '.sp-auth',
         fliptok: '.fliptok-auth',
         crypto: '.auth-panel',
         mail: '.mail-auth',
