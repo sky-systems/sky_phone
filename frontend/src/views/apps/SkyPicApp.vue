@@ -222,6 +222,13 @@ const isScenePage = computed(
       Boolean(store.viewedStory)),
 )
 const isDarkPage = computed(() => isScenePage.value || phone.isDarkMode)
+watch(
+  isScenePage,
+  (scene) => {
+    phone.appStatusBarLight = scene
+  },
+  { immediate: true },
+)
 const authSubmitEnabled = computed(
   () => Boolean(account.email) && isValidSkyPicHandle(authHandle.value),
 )
@@ -1677,6 +1684,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  phone.appStatusBarLight = null
   appMounted = false
   threadNavigationRequest += 1
   storyNavigationRequest += 1
