@@ -377,7 +377,6 @@ const activeAppId = computed(() =>
 )
 const WHITE_STATUS_BAR_APP_IDS = new Set([
   'camera',
-  'skypic',
   'map',
   'neon-drop',
   'sky-flappy',
