@@ -2,14 +2,18 @@ local esx_dead = false
 local last_status, last_reason
 
 function Bridge.PlayerState.Get()
-    local bag = LocalPlayer.state
-    local status = Bridge.PlayerState.FromData(bag)
-    local flags = Bridge.PlayerState.FromData(Bridge.Framework.GetStatusData())
-    local ped = PlayerPedId()
-    local legacy_esx_dead = esx_dead and Bridge.Framework.GetName() == "esx"
-    status.dead = status.dead or flags.dead or legacy_esx_dead or IsEntityDead(ped)
-    status.cuffed = status.cuffed or flags.cuffed or IsPedCuffed(ped)
-    return status
+    local context = {
+        isServer = false,
+        ped = PlayerPedId(),
+        state = LocalPlayer.state,
+        framework = Bridge.Framework.GetStatusData() or {},
+        report = {},
+        legacyDead = esx_dead and Bridge.Framework.GetName() == "esx",
+    }
+    return {
+        dead = PhoneFunctions.IsDead(context),
+        cuffed = PhoneFunctions.IsHandcuffed(context),
+    }
 end
 
 function Bridge.PlayerState.GetBlockReason()

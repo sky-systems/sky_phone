@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.3.14'
+version '1.0.0'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -17,6 +17,7 @@ provide 'yseries'
 shared_scripts {
     'config/init.lua',
     'source/bridge/shared.lua',
+    'config/functions.lua',
     'source/shared/player_state.lua',
     'source/bridge/network.lua',
     'source/bridge/inventory.lua',

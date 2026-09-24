@@ -70,9 +70,6 @@ function SkyPhone.GetDisabledApps()
 end
 
 local sessions = {}
-local function player_blocked(source)
-    return Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(source)
-end
 AddEventHandler("sky_phone:player:restricted", function(source)
     pending_phone_opens[source] = nil
     sessions[source] = nil
@@ -760,7 +757,7 @@ function SkyPhone.FormatNumber(phone_number)
 end
 
 function SkyPhone.RequireDeviceSession(source)
-    local reason = player_blocked(source)
+    local reason = Bridge.PlayerState.GetBlockReason(source)
     if reason then return nil, { success = false, error = reason } end
     local session = sessions[source]
     if not session then
@@ -1013,8 +1010,9 @@ local function perform_phone_open(source, used_item)
         tostring(GetGameTimer() - opened_at),
         { always = true }
     )
-    local blocked = player_blocked(source)
-    if blocked then
+    local allowed, blocked = PhoneFunctions.CanOpenPhone(source)
+    if not allowed then
+        blocked = blocked or "request_cancelled"
         sessions[source] = nil
         TriggerClientEvent("sky_phone:device:error", source, blocked)
         return false, blocked
@@ -1026,8 +1024,9 @@ local function perform_phone_open(source, used_item)
 end
 
 local function open_phone(source, used_item)
-    local reason = player_blocked(source)
-    if reason then
+    local allowed, reason = PhoneFunctions.CanOpenPhone(source)
+    if not allowed then
+        reason = reason or "request_cancelled"
         TriggerClientEvent("sky_phone:device:error", source, reason)
         return false, reason
     end
@@ -1066,7 +1065,7 @@ phone_open_handler = open_phone
 flush_pending_phone_opens()
 
 function SkyPhone.OpenDeviceForCall(source, imei)
-    if player_blocked(source) then return false end
+    if not PhoneFunctions.CanOpenPhone(source) then return false end
     local matches = find_device_slots(source, imei)
     if not matches[1] then
         Bridge.Debug("warn", "[sky_phone] Could not open ringing device %s for source %s.", tostring(imei), tostring(source))
@@ -1099,8 +1098,9 @@ function SkyPhone.OpenDeviceForCall(source, imei)
         )
         return false
     end
-    local blocked = player_blocked(source)
-    if blocked then
+    local allowed, blocked = PhoneFunctions.CanOpenPhone(source)
+    if not allowed then
+        blocked = blocked or "request_cancelled"
         sessions[source] = nil
         TriggerClientEvent("sky_phone:device:error", source, blocked)
         return false, blocked

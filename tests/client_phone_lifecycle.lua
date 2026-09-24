@@ -20,6 +20,7 @@ local function new_client()
             if level == "warn" or level == "error" then logs[#logs + 1] = message:format(...) end
         end,
         Framework = { Notify = noop },
+        PlayerState = { GetBlockReason = function() return nil end },
         Callbacks = {
             Trigger = function(name)
                 if name == "sky_phone:device:open-request" then
@@ -52,6 +53,7 @@ local function new_client()
     CreateThread = function(callback) threads[#threads + 1] = coroutine.create(callback) end
     SetTimeout = function(delay, callback) timers[#timers + 1] = { delay = delay, callback = callback } end
 
+    dofile("sky_phone/config/functions.lua")
     dofile("sky_phone/source/client/main.lua")
 
     function client.run_threads()
@@ -285,6 +287,45 @@ test("death/cuffs reject direct opens, late authorization and NUI confirmation",
     reason = "player_incapacitated"
     client.events["sky_phone:client:forceClose"]()
     assert(not SkyPhoneClient.GetState().open)
+end)
+
+test("custom opening checks cancel direct opens, late snapshots and NUI confirmation", function()
+    local client = new_client()
+    PhoneFunctions.CanOpenPhone = function() return false end
+    assert(SkyPhoneClient.Toggle(true) == false)
+    client.events["sky_phone:device:open"](device("cancelled"))
+    assert(#client.take_messages("app:open") == 0)
+    assert(client.nui("ui:opened").error == "request_cancelled")
+
+    PhoneFunctions.CanOpenPhone = function() return true end
+    client.events["sky_phone:device:open"](device("pending"))
+    assert(#client.take_messages("app:open") == 1)
+    PhoneFunctions.CanOpenPhone = function() return false, "request_cancelled" end
+    assert(client.nui("ui:opened").error == "request_cancelled")
+    assert(not SkyPhoneClient.GetState().open)
+end)
+
+test("custom checks revalidate after inventory awaits and before NUI rehydration", function()
+    local client = new_client()
+    local request = coroutine.create(function() return SkyPhoneClient.Toggle(true) end)
+    local waiting, state = coroutine.resume(request)
+    assert(waiting and state == "awaiting_inventory")
+    PhoneFunctions.CanOpenPhone = function() return false end
+    local completed, opened = coroutine.resume(request, { success = true })
+    assert(completed and opened == false)
+    client.events["sky_phone:device:open"](device("late"))
+    assert(#client.take_messages("app:open") == 0)
+
+    PhoneFunctions.CanOpenPhone = function() return true end
+    client.authorize(device("active"))
+    PhoneFunctions.CanOpenPhone = function() return false end
+    assert(client.nui("ui:ready", { protocolVersion = 1 }).success)
+    assert(#client.take_messages("app:open") == 0 and not SkyPhoneClient.GetState().open)
+
+    PhoneFunctions.CanOpenPhone = function() return true end
+    client.authorize(device("active-again"))
+    PhoneFunctions.CanOpenPhone = function() return false end
+    assert(SkyPhoneClient.Toggle(true) == false and not SkyPhoneClient.GetState().open)
 end)
 
 assert(failures == 0, ("%s phone lifecycle tests failed"):format(failures))

@@ -2,15 +2,19 @@ local reports, applied, last_reports = {}, {}, {}
 
 function Bridge.PlayerState.Get(player_source)
     local player = Player(player_source)
-    local status = Bridge.PlayerState.FromData(player and player.state)
-    local framework = Bridge.Framework.GetStatusData(player_source)
-    local flags = Bridge.PlayerState.FromData(framework)
-    local report = reports[player_source] or {}
-    local ped = GetPlayerPed(player_source)
-    status.dead = status.dead or flags.dead or report.dead == true
-        or (ped ~= nil and ped ~= 0 and GetEntityHealth(ped) <= 0)
-    status.cuffed = status.cuffed or flags.cuffed or report.cuffed == true
-    return status
+    local context = {
+        isServer = true,
+        source = player_source,
+        ped = GetPlayerPed(player_source),
+        state = player and player.state or {},
+        framework = Bridge.Framework.GetStatusData(player_source) or {},
+        report = reports[player_source] or {},
+        legacyDead = false,
+    }
+    return {
+        dead = PhoneFunctions.IsDead(context),
+        cuffed = PhoneFunctions.IsHandcuffed(context),
+    }
 end
 
 function Bridge.PlayerState.GetBlockReason(player_source)
