@@ -5,6 +5,8 @@ local transactions = {}
 local stopped_calls = {}
 local speaker_enabled = true
 local audit_records = {}
+local server_time = 1000
+os.time = function() return server_time end
 
 SkyPhoneLog = { Record = function(category, action, status, source, details)
     audit_records[#audit_records + 1] = {
@@ -183,6 +185,7 @@ assert(type(caller_state.id) == "string", "Sky call UUIDs must stay strings")
 assert(caller_state.id == call.id and caller_state.state == "ringing", "ringing call state changed")
 assert(caller_state.direction == "outgoing" and caller_state.otherNumber == "5550102", "caller view changed")
 assert(caller_state.channel == nil, "ringing calls must not expose a voice channel")
+assert(caller_state.elapsedSeconds == 0, "ringing time must not count as connected duration")
 assert(caller_state.caller.source == 10 and caller_state.caller.number == "5550101", "caller identity changed")
 assert(caller_state.callee.source == 20 and caller_state.callee.number == "5550102", "callee identity changed")
 assert(not caller_state.anonymous and not caller_state.video, "unsupported call modes must remain explicit")
@@ -207,8 +210,13 @@ call.muted[10] = true
 call.speakers[10] = true
 call.voice_provider = "yaca"
 call.voice_started = true
+server_time = 1022
 
 caller_state = assert(SkyPhoneCalls.GetForSource(10))
+assert(caller_state.elapsedSeconds == 12, "connected duration must use the server clock")
+assert(SkyPhoneCalls.GetForSource(20).elapsedSeconds == 12, "both participants must receive the same duration")
+server_time = 1025
+assert(SkyPhoneCalls.GetById(call.id).elapsedSeconds == 15, "recovered snapshots must contain the current duration")
 assert(caller_state.state == "connected" and caller_state.channel == 42, "connected call state changed")
 assert(caller_state.muted and caller_state.muteSupported, "muted state must be projected for the caller")
 assert(caller_state.speakerEnabled and caller_state.speakerSupported, "speaker state must be projected for the caller")

@@ -127,8 +127,6 @@ const canAcceptVideo = computed(() =>
       (incomingVideoCall.value || calls.activeCall?.videoIncoming),
   ),
 )
-const callElapsedSeconds = ref(0)
-let callClock: number | null = null
 const tabs = [
   { id: 'recents', icon: Clock3 },
   { id: 'contacts', icon: ContactRound },
@@ -261,8 +259,8 @@ const activeCallLabel = computed(() => {
 })
 const activeCallStatus = computed(() => {
   if (calls.activeCall?.state !== 'connected') return activeCallLabel.value
-  const minutes = Math.floor(callElapsedSeconds.value / 60)
-  const seconds = String(callElapsedSeconds.value % 60).padStart(2, '0')
+  const minutes = Math.floor(calls.elapsedSeconds / 60)
+  const seconds = String(calls.elapsedSeconds % 60).padStart(2, '0')
   return `${String(minutes).padStart(2, '0')}:${seconds}`
 })
 const activeCallContact = computed(
@@ -540,20 +538,6 @@ async function toggleCallMute(): Promise<void> {
   }
 }
 
-function updateCallElapsed(): void {
-  const call = calls.activeCall
-  if (!call || call.state !== 'connected') {
-    callElapsedSeconds.value = 0
-    return
-  }
-  const timestamp = call.answeredAt ?? call.startedAt
-  const startedAt = timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp
-  callElapsedSeconds.value = Math.max(
-    0,
-    Math.floor((Date.now() - startedAt) / 1000),
-  )
-}
-
 function openCallContact(): void {
   const call = calls.activeCall
   if (!call?.otherNumber) return
@@ -762,8 +746,6 @@ watch(
 )
 
 onMounted(async () => {
-  updateCallElapsed()
-  callClock = window.setInterval(updateCallElapsed, 500)
   if (props.locked) return
 
   window.addEventListener('keydown', handleKeypadKeyboard)
@@ -810,7 +792,6 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeypadKeyboard)
-  if (callClock !== null) window.clearInterval(callClock)
 })
 </script>
 

@@ -5,6 +5,8 @@ local open_requested = false
 local device_open_authorized = false
 local open_without_focus = false
 local device_payload = nil
+local device_network_revision = 0
+local pending_device_token = nil
 local equipped_phone_number = nil
 local nui_generation = 0
 local live_activity_active = false
@@ -221,6 +223,7 @@ local function open_phone()
 end
 
 local function close_phone(close_device_session)
+    pending_device_token = nil
     local was_requested = open_requested
     local was_open = is_open
     open_requested = false
@@ -547,10 +550,21 @@ RegisterNUICallback("close", function(data, cb)
     cb({ success = true })
 end)
 
-RegisterNetEvent("sky_phone:device:open", function(data)
+RegisterNetEvent("sky_phone:device:opening", function(revision, token)
+    if type(revision) ~= "number" or type(token) ~= "string" then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid device opening announcement.")
+        return
+    end
+    if revision <= device_network_revision then return end
+    device_network_revision = revision
+    pending_device_token = token
+    open_requested = true
+end)
+
+local function receive_device_snapshot(data, opening)
     if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then close_phone(); return end
     if type(data) ~= "table" or type(data.device) ~= "table" or type(data.device.imei) ~= "string" then
-        Bridge.Debug("error", "[sky_phone] Rejected invalid device open data.")
+        Bridge.Debug("error", "[sky_phone] Rejected invalid device snapshot.")
         if not is_open then
             open_requested = false
             device_open_authorized = false
@@ -558,6 +572,24 @@ RegisterNetEvent("sky_phone:device:open", function(data)
         end
         return
     end
+    if data.networkRevision then
+        if type(data.networkRevision) ~= "number" or data.networkRevision < device_network_revision then return end
+        -- An update may complete before its initial snapshot. Both contain a
+        -- complete state, so the newer one may finish the announced open.
+        if pending_device_token and data.token == pending_device_token then
+            opening = true
+        elseif opening then
+            return
+        end
+    end
+    if not opening and (not device_open_authorized or not device_payload
+        or data.device.imei ~= device_payload.device.imei or data.token ~= device_payload.token)
+    then
+        Bridge.Debug("debug", "[sky_phone] Ignored a device update outside its authorized session.")
+        return
+    end
+    if data.networkRevision then device_network_revision = data.networkRevision end
+    pending_device_token = nil
     Bridge.Debug(
         "debug",
         "[sky_phone] Client received device open for IMEI %s account_linked=%s.",
@@ -576,24 +608,14 @@ RegisterNetEvent("sky_phone:device:open", function(data)
         return
     end
     open_phone()
+end
+
+RegisterNetEvent("sky_phone:device:open", function(data)
+    receive_device_snapshot(data, true)
 end)
 
 RegisterNetEvent("sky_phone:device:updated", function(data)
-    if type(data) ~= "table" or type(data.device) ~= "table" or type(data.device.imei) ~= "string" then
-        Bridge.Debug("error", "[sky_phone] Rejected invalid device update data.")
-        return
-    end
-    if not device_open_authorized or not device_payload
-        or data.device.imei ~= device_payload.device.imei
-        or data.token ~= device_payload.token
-    then
-        Bridge.Debug("debug", "[sky_phone] Ignored a device update outside its authorized session.")
-        return
-    end
-    apply_disabled_apps(data)
-    device_payload = data
-    update_equipped_phone_number(data)
-    SendNUIMessage({ type = "device:updated", data = data })
+    receive_device_snapshot(data, false)
 end)
 
 RegisterNetEvent("sky_phone:device:invalidated", function()
@@ -606,6 +628,7 @@ RegisterNetEvent("sky_phone:device:invalidated", function()
 end)
 
 RegisterNetEvent("sky_phone:device:error", function(error_code)
+    pending_device_token = nil
     if not is_open then
         open_requested = false
         device_open_authorized = false

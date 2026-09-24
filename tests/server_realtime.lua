@@ -159,4 +159,22 @@ success(invoke("signal",1,{id=video.room.id,target=2,signal={type="offer",sdp="d
 assert(events[#events].name=="sky_phone:realtime:signal" and events[#events].src==2)
 assert(not invoke("join",3,{id=video.room.id}).success)
 success(invoke("leave",2,{id=video.room.id}));assert(not call.video)
-print("Realtime authorization, topology, livechat, viewers, proximity and SFU tests passed")
+-- The real profile adapters query SQL. Two users can finish that query together.
+env.Config.Realtime.MaxBroadcasts = 1
+env.SkyPhoneRealtime.Apps.picstagram.publicProfile = function(profile_id)
+    coroutine.yield("loading_profile")
+    return profiles[profile_id]
+end
+local created = {}
+local creators = {}
+for player = 3, 4 do
+    creators[player] = coroutine.create(function()
+        created[player] = invoke("create", player, { kind = "live", app = "picstagram", title = "Concurrent" })
+    end)
+    local resumed, phase = coroutine.resume(creators[player])
+    assert(resumed and phase == "loading_profile")
+end
+for player = 3, 4 do assert(coroutine.resume(creators[player])) end
+assert(created[3].success and not created[4].success, "Concurrent profile loads must not exceed MaxBroadcasts")
+success(invoke("leave", 3, { id = created[3].data.room.id }))
+print("Realtime authorization, topology, livechat, viewers, proximity, capacity and SFU tests passed")

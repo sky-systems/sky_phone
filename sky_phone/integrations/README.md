@@ -27,9 +27,7 @@ All three switches default to `true` in `config/config.lua` and `/phonepanel`:
 | `Phone.BlockWhenCuffed` | Applies the same restrictions while handcuffed. |
 | `Radio.RequirePhoneItem` | Requires `Phone.Item` at manual/automatic radio join. Losing the last phone disconnects both frequencies, including background radio. |
 
-Sky job status is read directly from `LocalPlayer.state` on the client and `Player(source).state` on the server. No Sky job exports or job-specific events are used. `skyAmbulanceDead`, `dead`, `isdead` and `skyAmbulanceKnockout` cover medical death/unconsciousness; `ishandcuffed` and `skyCuffType` (`cuffs`/`zipties`, cleared to `false`) cover restraints. An explicit `skyAmbulanceDead = false` clears the legacy ESX death-event fallback after a medical revive.
-
-Sky restraints also set `isDead = true` as an inventory restriction. With an active `skyCuffType`, this particular alias is treated as a restraint flag; the independent medical flags and native death checks still apply. General `invBusy`, `inv_busy` and `busy` flags do not indicate death or cuffs. The phone only reads these states and never writes job state bags.
+Generic death and restraint flags are normalized by the phone. General `invBusy`, `inv_busy` and `busy` flags do not indicate death or cuffs. Other Sky resources are not queried.
 
 QBCore and Qbox read `isdead`, `inlaststand` and `ishandcuffed` from player metadata using their player APIs. ESX reads its player data/death events and replicated state. Legacy `esx_policejob` sets the ped handcuff flag: `IsPedCuffed` handles cuff/uncuff, automatic cuff expiry and resource restarts without guessing a toggle event. Legacy ESX statuses without a server API are reported only for the sending player; a client clear cannot override server metadata, replicated state or server ped health. This compatibility fallback is not an anti-cheat authority.
 

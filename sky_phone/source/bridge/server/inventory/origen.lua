@@ -13,9 +13,8 @@ local function normalize(item)
 end
 
 local function get_inventory(source)
-    local player_inventory = inventory:GetInventory(source)
-    return type(player_inventory) == "table" and type(player_inventory.inventory) == "table"
-        and player_inventory.inventory or {}
+    local items = inventory:getInventoryItems(source)
+    return type(items) == "table" and items or {}
 end
 
 function Bridge.Inventory.GetResourceName()
@@ -26,7 +25,7 @@ function Bridge.Inventory.GetSlot(source, slot_id)
     for index, item in pairs(get_inventory(source)) do
         local normalized = normalize(item)
         local item_slot = normalized and (normalized.slot or tonumber(index)) or nil
-        if tostring(item_slot) == tostring(slot_id) then
+        if normalized and item_slot and tostring(item_slot) == tostring(slot_id) then
             normalized.slot = item_slot
             return normalized
         end
@@ -67,7 +66,7 @@ function Bridge.Inventory.AddItem(source, item_name, count, slot, metadata)
     if not Bridge.Inventory.CanCarryItem(source, item_name, count, metadata) then
         return false
     end
-    return inventory:addItem(source, item_name, count, metadata or {}, slot, false) == true
+    return inventory:addItem(source, item_name, count, slot, metadata or {}) == true
 end
 
 function Bridge.Inventory.RemoveItem(source, item_name, count, slot, metadata)
@@ -78,7 +77,7 @@ function Bridge.Inventory.RemoveItem(source, item_name, count, slot, metadata)
             return 0
         end
     end
-    return inventory:removeItem(source, item_name, count, nil, slot, false) == true and count or 0
+    return inventory:removeItem(source, item_name, count, slot) == true and count or 0
 end
 
 function Bridge.Inventory.RegisterUsableItem(item_name, callback)

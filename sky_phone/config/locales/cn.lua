@@ -669,8 +669,8 @@ Locales["cn"] = {
                     videoBitrate = "视频录制码率（单位：kbps）。示例：1500 = 1.5 Mbit/s。数值越高，画质越高，上传文件越大。",
                     callsVoiceProvider = "所有控制均保留在 sky_phone 中，无需在清单中添加 pma-voice。PMA 静音会关闭通话、附近语音和对讲机的麦克风。SaltyChat 使用 SetPlayerAlive(false)，也会影响附近语音和对讲机；取消静音或挂断时会在遵守死亡状态的前提下恢复之前的语音状态。Yaca 使用手机专用导出接口。",
                     phoneSpeaker = "全局启用受支持的手机和对讲机扬声器。使用 PMA 时，同一 routing bucket 内 3 米范围的玩家会加入通话，可以听到并说话。他们自己的通话不会被打断。",
-                    phoneBlockWhenDead = "默认启用。死亡、昏迷或处于 laststand 状态时阻止使用手机，结束来电、当前通话、视频通话和直播，并断开两个对讲机频率。自动检测 sky_ambulancejob state bag（skyAmbulanceDead、dead、isdead）和 ESX/Qbox/QBCore 状态。禁用后允许在这些状态下使用。",
-                    phoneBlockWhenCuffed = "默认启用。被戴上手铐时阻止使用手机并结束通话、直播和对讲机连接。使用 sky_policejob state bag（ishandcuffed、skyCuffType）、ESX 警察手铐状态以及 Qbox/QBCore 警察元数据。无需修改语音或职业资源。",
+                    phoneBlockWhenDead = "默认启用。死亡、昏迷或处于 laststand 状态时阻止使用手机，并结束通话、直播和两个对讲机频率。使用 ESX/Qbox/QBCore 状态和原生死亡检测。",
+                    phoneBlockWhenCuffed = "默认启用。被戴上手铐时阻止使用手机，并结束通话、直播和对讲机连接。使用框架状态和原生手铐检测。",
                     radioRequirePhoneItem = "默认启用。加入或自动重新加入对讲机时需要 Phone.Item。每秒只检查已连接的对讲机用户；失去最后一部手机会断开两个频率，即使手机界面已关闭。禁用后允许无手机物品使用对讲机。",
                 },
                 table = {

@@ -90,7 +90,10 @@ local function set_phone_sim_metadata(source, phone_slot, sim)
         return false
     end
 
-    local metadata = phone_slot.metadata or {}
+    local metadata = {}
+    for key, value in pairs(phone_slot.metadata or {}) do
+        metadata[key] = value
+    end
     metadata.sim_id = sim and sim.id or nil
     metadata.phone_number = sim and sim.phone_number or nil
     metadata.formatted_number = sim and SkyPhoneSimNumber.Format(
@@ -99,7 +102,17 @@ local function set_phone_sim_metadata(source, phone_slot, sim)
         Config.Sim.NumberLength,
         Config.Sim.NumberPrefix
     ) or nil
-    return Bridge.Inventory.SetSlotMetadata(source, phone_slot.slot, metadata)
+    if not Bridge.Inventory.SetSlotMetadata(source, phone_slot.slot, metadata) then
+        return false
+    end
+    -- Verify removed keys too; subset comparisons cannot detect inventories
+    -- that merge metadata instead of replacing it.
+    local updated = Bridge.Inventory.GetSlot(source, phone_slot.slot)
+    local persisted = updated and updated.metadata
+    return updated and updated.name == Config.Phone.Item and type(persisted) == "table"
+        and persisted.imei == metadata.imei and persisted.sim_id == metadata.sim_id
+        and persisted.phone_number == metadata.phone_number and persisted.formatted_number == metadata.formatted_number
+        or false
 end
 
 local function prepare_device(source, phone_slot, imei)
@@ -314,12 +327,26 @@ local function rollback_phone_metadata(source, phone_slot, old_sim)
     set_phone_sim_metadata(source, phone_slot, old_sim)
 end
 
-local function insert_sim(source, phone_imei, confirmed)
+local function with_sim_operation(source, operation, ...)
     if Config.Sim.Enabled == false then
         return { success = false, error = "disabled" }
     end
     if operation_locks[source] then
         return { success = false, error = "operation_in_progress" }
+    end
+    operation_locks[source] = true
+    local success, result = pcall(operation, source, ...)
+    operation_locks[source] = nil
+    if not success then
+        Bridge.Debug("error", "[sky_phone] SIM operation failed: %s.", tostring(result))
+        return { success = false, error = "request_failed" }
+    end
+    return result
+end
+
+local function perform_insert_sim(source, phone_imei, confirmed)
+    if Config.Sim.Enabled == false then
+        return { success = false, error = "disabled" }
     end
     local pending = pending_insertions[source]
     if not pending or GetGameTimer() - pending.created_at > 60000 then
@@ -356,21 +383,17 @@ local function insert_sim(source, phone_imei, confirmed)
         return { success = false, error = "confirmation_required", data = { requiresConfirmation = true } }
     end
 
-    operation_locks[source] = true
     if not set_phone_sim_metadata(source, phone_slot, pending.sim) then
-        operation_locks[source] = nil
         return { success = false, error = "metadata_unsupported" }
     end
     if Bridge.Inventory.RemoveItem(source, pending.item_name, 1, pending.slot) ~= 1 then
         rollback_phone_metadata(source, phone_slot, old_sim)
-        operation_locks[source] = nil
         return { success = false, error = "sim_not_owned" }
     end
     local old_item_name = old_sim and (old_sim.sim_type == "registered" and Config.Sim.RegisteredItem or Config.Sim.AnonymousItem) or nil
     if old_sim and not Bridge.Inventory.AddItem(source, old_item_name, 1, pending.slot, sim_metadata(old_sim)) then
         Bridge.Inventory.AddItem(source, pending.item_name, 1, pending.slot, sim_metadata(pending.sim))
         rollback_phone_metadata(source, phone_slot, old_sim)
-        operation_locks[source] = nil
         return { success = false, error = "inventory_full" }
     end
 
@@ -403,12 +426,10 @@ local function insert_sim(source, phone_imei, confirmed)
         end
         Bridge.Inventory.AddItem(source, pending.item_name, 1, pending.slot, sim_metadata(pending.sim))
         rollback_phone_metadata(source, phone_slot, old_sim)
-        operation_locks[source] = nil
         return { success = false, error = "request_failed" }
     end
 
     pending_insertions[source] = nil
-    operation_locks[source] = nil
     if old_sim then
         SkyPhoneCompanies.ClearCallAvailability(source)
         SkyPhoneCalls.EndForSim(old_sim.id, "sim_removed")
@@ -416,6 +437,10 @@ local function insert_sim(source, phone_imei, confirmed)
     SkyPhone.RefreshDevice(phone_imei)
     TriggerClientEvent("sky_phone:sim:picker-close", source)
     return { success = true }
+end
+
+local function insert_sim(source, phone_imei, confirmed)
+    return with_sim_operation(source, perform_insert_sim, phone_imei, confirmed)
 end
 
 local function use_sim(source, used_item)
@@ -510,53 +535,145 @@ Bridge.Callbacks.Register("sky_phone:sim:picker-close", function(source)
     return { success = true }
 end)
 
-Bridge.Callbacks.Register("sky_phone:sim:eject", function(source)
-    if Config.Sim.Enabled == false then
-        return { success = false, error = "disabled" }
+local function owned_phone_slot(source, target)
+    local slot = Bridge.Inventory.GetSlot(source, target.slot)
+    if not slot or slot.name ~= Config.Phone.Item or (tonumber(slot.count or slot.amount) or 0) < 1 then
+        return nil
     end
-    if operation_locks[source] then
-        return { success = false, error = "operation_in_progress" }
+    if Config.Phone.Unique ~= false and ((tonumber(slot.count or slot.amount) or 0) ~= 1
+        or not slot.metadata or slot.metadata.imei ~= target.imei) then
+        return nil
     end
-    local session, error_response = SkyPhone.RequireSession(source)
-    if not session then
-        return error_response
+    return slot
+end
+
+local function restore_device_sim(imei, sim_id)
+    local restored = affected_rows(Bridge.Database.Query(
+        "UPDATE `sky_phone_devices` SET `sim_id` = ? WHERE `imei` = ? AND `sim_id` IS NULL",
+        { sim_id, imei }
+    )) == 1
+    if not restored then
+        Bridge.Debug("error", "[sky_phone] Could not restore the SIM association after a failed inventory ejection.")
     end
-    local device = SkyPhone.LoadDevice(session.imei)
+    return restored
+end
+
+local function eject_from_device(source, target)
+    local device = SkyPhone.LoadDevice(target.imei)
     local sim = device and device.sim_id and load_sim(device.sim_id) or nil
     if not sim or tonumber(sim.is_virtual) == 1 then
         return { success = false, error = "no_sim" }
     end
-    local phone_slot = Bridge.Inventory.GetSlot(source, session.slot)
+    if not owned_phone_slot(source, target) then
+        return { success = false, error = "phone_not_owned" }
+    end
+    local active_session = SkyPhone.RequireDeviceSession(source)
+    local was_active = active_session and active_session.imei == target.imei
     local item_name = sim.sim_type == "registered" and Config.Sim.RegisteredItem or Config.Sim.AnonymousItem
     local metadata = sim_metadata(sim)
     if not Bridge.Inventory.CanCarryItem(source, item_name, 1, metadata) then
         return { success = false, error = "inventory_full" }
     end
 
-    operation_locks[source] = true
-    if not set_phone_sim_metadata(source, phone_slot, nil) then
-        operation_locks[source] = nil
-        return { success = false, error = "metadata_unsupported" }
-    end
-    if not Bridge.Inventory.AddItem(source, item_name, 1, nil, metadata) then
-        rollback_phone_metadata(source, phone_slot, sim)
-        operation_locks[source] = nil
-        return { success = false, error = "inventory_full" }
-    end
+    -- Claim the SIM in SQL before creating a physical item. A second request
+    -- must never receive a second copy while the database call yields.
     if affected_rows(Bridge.Database.Query("UPDATE `sky_phone_devices` SET `sim_id` = NULL WHERE `imei` = ? AND `sim_id` = ?", {
-        session.imei,
+        target.imei,
         sim.id,
     })) ~= 1 then
-        Bridge.Inventory.RemoveItem(source, item_name, 1, nil, metadata)
-        rollback_phone_metadata(source, phone_slot, sim)
-        operation_locks[source] = nil
         return { success = false, error = "request_failed" }
     end
-    operation_locks[source] = nil
-    SkyPhoneCompanies.ClearCallAvailability(source)
+    local inventory_ok, inventory_error = pcall(function()
+        -- Inventory moves can happen during database awaits. Never change the
+        -- metadata of a different phone that has since entered the same slot.
+        local phone_slot = owned_phone_slot(source, target)
+        if not phone_slot then
+            return "phone_not_owned"
+        end
+        if not set_phone_sim_metadata(source, phone_slot, nil) then
+            return "metadata_unsupported"
+        end
+        if not Bridge.Inventory.AddItem(source, item_name, 1, nil, metadata) then
+            return "inventory_full"
+        end
+    end)
+    if not inventory_ok or inventory_error then
+        if restore_device_sim(target.imei, sim.id) then
+            local current_slot = owned_phone_slot(source, target)
+            if current_slot and not set_phone_sim_metadata(source, current_slot, sim) then
+                Bridge.Debug("error", "[sky_phone] Could not restore phone metadata after a failed inventory ejection.")
+            end
+        end
+        if not inventory_ok then
+            error(inventory_error)
+        end
+        return { success = false, error = inventory_error }
+    end
+    if was_active then
+        SkyPhoneCompanies.ClearCallAvailability(source)
+    end
     SkyPhoneCalls.EndForSim(sim.id, "sim_removed")
-    SkyPhone.RefreshDevice(session.imei)
+    SkyPhone.RefreshDevice(target.imei)
     return { success = true }
+end
+
+Bridge.Callbacks.Register("sky_phone:sim:eject", function(source)
+    return with_sim_operation(source, function()
+        local session, error_response = SkyPhone.RequireSession(source)
+        if not session then
+            return error_response
+        end
+        return eject_from_device(source, session)
+    end)
+end)
+
+Bridge.Callbacks.Register("sky_phone:sim:eject-item", function(source, data)
+    if type(data) ~= "table" then
+        return { success = false, error = "invalid_request" }
+    end
+    local slot_id = data.slot
+    if type(slot_id) == "number" then
+        if slot_id ~= slot_id or slot_id == math.huge or slot_id < 1 or slot_id % 1 ~= 0 then
+            return { success = false, error = "invalid_request" }
+        end
+    elseif type(slot_id) ~= "string" or #slot_id == 0 or #slot_id > 128 then
+        return { success = false, error = "invalid_request" }
+    end
+    if data.inventory ~= nil and type(data.inventory) ~= "string" and type(data.inventory) ~= "number" then
+        return { success = false, error = "invalid_request" }
+    end
+
+    return with_sim_operation(source, function()
+        if not Bridge.Inventory.IsPlayerInventory(source, data.inventory) then
+            return { success = false, error = "phone_not_owned" }
+        end
+        local slot = Bridge.Inventory.GetSlot(source, slot_id)
+        if not slot or slot.name ~= Config.Phone.Item or (tonumber(slot.count or slot.amount) or 0) < 1 then
+            return { success = false, error = "phone_not_owned" }
+        end
+        local imei = slot.metadata and slot.metadata.imei
+        if data.imei ~= nil and data.imei ~= imei then
+            return { success = false, error = "phone_not_owned" }
+        end
+        if Config.Phone.Unique == false then
+            local error_code
+            imei, error_code = SkyPhone.EnsureDevice(source, slot)
+            if not imei then
+                return { success = false, error = error_code or "request_failed" }
+            end
+        elseif not imei then
+            return { success = false, error = "no_sim" }
+        elseif not SkyPhoneImei.IsValid(imei) then
+            return { success = false, error = "invalid_imei" }
+        end
+        local matches = SkyPhone.FindDeviceSlots(source, imei)
+        if Config.Phone.Unique ~= false and #matches ~= 1 then
+            return { success = false, error = "invalid_imei" }
+        end
+        -- Physical SIM removal needs possession, not access to phone contents.
+        -- It never opens or unlocks a device session.
+        return eject_from_device(source, { imei = imei, slot = slot.slot })
+    end)
 end)
 
 AddEventHandler("playerDropped", function()

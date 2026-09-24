@@ -10,15 +10,11 @@ end
 function state.FromData(data)
     data = type(data) == "table" and data or {}
     local flag = state.Flag
-    local sky_cuffed = data.skyCuffType == "cuffs" or data.skyCuffType == "zipties"
-    -- Sky restraints also set isDead to disable inventory actions. Medical death
-    -- remains independent through skyAmbulanceDead/dead/isdead and native health.
     return {
-        dead = flag(data.dead) or (flag(data.isDead) and not sky_cuffed) or flag(data.isdead)
-            or flag(data.inlaststand) or flag(data.isDowned) or flag(data.unconscious)
-            or flag(data.skyAmbulanceDead) or flag(data.skyAmbulanceKnockout),
+        dead = flag(data.dead) or flag(data.isDead) or flag(data.isdead)
+            or flag(data.inlaststand) or flag(data.isDowned) or flag(data.unconscious),
         cuffed = flag(data.ishandcuffed) or flag(data.isHandcuffed) or flag(data.handcuffed)
-            or flag(data.isCuffed) or flag(data.skyCuffed) or sky_cuffed,
+            or flag(data.isCuffed),
     }
 end
 

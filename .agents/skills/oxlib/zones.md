@@ -1,68 +1,87 @@
-# zones — Poly, box, and sphere zones (lib.zones)
+# Zones
 
-Faster alternative to PolyZone. Use for “when player enters/leaves area” or “is player inside area”. **Note:** Server-side zones have limited support: `onEnter`, `onExit`, and `inside` do not work on server; use client for full behavior.
+Use lib.zones.poly, box or sphere for the shape already required by the resource.
+A polygon takes vector points and thickness; a box takes coords/size/rotation; a sphere takes
+coords/radius. Verify installed defaults instead of encoding an assumed universal shape.
 
-Reference: [Zones (Shared) – coxdocs.dev](https://coxdocs.dev/ox_lib/Modules/Zones/Shared).
+At the pinned source, omitted polygon thickness is `4`, sphere radius `2`, and box rotation
+`0` degrees. Specify box size explicitly: its documented default and the constructor's
+internal half-extents do not agree at this snapshot. Recheck defaults when changing versions.
 
-## lib.zones.poly — Polygon zone
+Client onEnter/onExit/inside callbacks track the local player; inside can run every frame.
+The server does not run these client tracking callbacks. For explicit geometry tests use
+the relevant zone:contains(point) contract. Client membership is not server authorization.
 
-`points` = array of `vector3` defining the polygon; `thickness` = height (default `4`).
+Keep callback work bounded and remove owned zones with zone:remove() when their lifecycle ends.
+Avoid duplicate registrations after reopening/reconfiguration. Keep debug drawing out of normal
+flows; verify client availability before using zone:setDebug. Do not claim zones outperform an
+alternative without profiling the relevant workload.
 
-```lua
-local zone = lib.zones.poly({
-  points = {
-    vec3(413.8, -1026.1, 29),
-    vec3(411.6, -1023.1, 29),
-    vec3(412.2, -1018.0, 29),
-    -- ...
-  },
-  thickness = 2,
-  onEnter = function(self) print('entered', self.id) end,
-  onExit = function(self) print('exited', self.id) end,
-  inside = function(self) end,  -- called every frame while inside
-  debug = true,
-})
-```
+When applicable AGENTS requires Sky interactions/zones, use that established owner instead of
+adding parallel registrations. [Zone docs](https://overextended.dev/docs/ox_lib/Zones/Shared)
+and [implementation](sources.md).
 
-## lib.zones.box — Box zone
+## The three shapes
 
-```lua
-local zone = lib.zones.box({
-  coords = vec3(442.5, -1017.6, 28.65),
-  size = vec3(2, 2, 2),   -- default vec3(2, 2, 2)
-  rotation = 45,          -- degrees, default 0
-  onEnter = onEnter,
-  onExit = onExit,
-  inside = inside,
-  debug = true,
-})
-```
-
-## lib.zones.sphere — Sphere zone
+Client construction examples; replace these illustration coordinates with the resource's
+measured geometry. `onEnter`/`onExit` run on changes, while `inside` is for bounded per-frame
+work. Keep ordinary setup, queries and network traffic out of `inside`.
 
 ```lua
-local zone = lib.zones.sphere({
-  coords = vec3(442.5, -1017.6, 28.65),
-  radius = 2,             -- default 2
-  onEnter = onEnter,
-  onExit = onExit,
-  inside = inside,
-  debug = true,
+local preview_visible = false
+local sphere = lib.zones.sphere({
+    coords = vec3(215.0, -810.0, 30.0),
+    radius = 3.0,
+    onEnter = function(self)
+        preview_visible = true
+        print(("Entered preview zone %s"):format(self.id))
+    end,
+    onExit = function(self)
+        preview_visible = false
+        print(("Left preview zone %s"):format(self.id))
+    end
 })
+
+local box = lib.zones.box({
+    coords = vec3(220.0, -810.0, 30.0),
+    size = vec3(4.0, 6.0, 3.0),
+    rotation = 25.0
+})
+
+local polygon = lib.zones.poly({
+    points = {
+        vec3(225.0, -813.0, 30.0), vec3(230.0, -813.0, 30.0),
+        vec3(230.0, -807.0, 30.0), vec3(225.0, -807.0, 30.0)
+    },
+    thickness = 3.0
+})
+
+local contained = box:contains(vec3(220.0, -810.0, 30.0))
+print(("Point inside example box: %s"):format(contained))
+box:setDebug(true, { r = 40, g = 180, b = 255, a = 90 })
+box:setDebug(false)
+
+-- At teardown/reconfiguration, release each owned registration.
+sphere:remove()
+box:remove()
+polygon:remove()
 ```
 
-## Methods
+Constructors can mutate the supplied table. Keep original configuration separately and
+rebuild from it when re-registering; blindly reusing a mutated box may halve its size again.
+Removal unregisters tracking; retaining an old Lua object does not restart its callbacks.
 
-- **zone:remove()** — Removes the zone (data table can be reused later, e.g. with `lib.zones.poly(zone)`).
-- **zone:contains(point)** — Returns `boolean` if `point` (vec3) is inside the zone.
-- **zone:setDebug(true|false)** — Toggle debug draw; optional second arg: `vec4(r, g, b, a)` for color.
+## Inspection and authoring
 
-## Utilities
+`lib.zones.getAllZones()` returns the registry (iterate with `pairs`, do not assume a dense
+array). Client `getCurrentZones()` exposes the internal inside/debug tracking set at this
+revision; it is not proof that every zone containing the player appears there. The client
+`getNearbyZones()` exposes the current spatial-neighborhood list, not an authorization test.
+Use `zone:contains(point)` when the exact geometry answer is needed. Server automatic player
+tracking/current/nearby state is not equivalent to the client's.
 
-- **lib.zones.getAllZones()** — All registered zones.
-- **lib.zones.getCurrentZones()** — Zones the player is currently inside (client).
-- **lib.zones.getNearbyZones()** — Zones near the player (client).
-
-## Creating zones in-game
-
-Use the built-in zone creator: `/zone poly`, `/zone box`, or `/zone sphere`. Controls appear on the right; zones are saved to `ox_lib/created_zones.lua`.
+For development, `/zone poly`, `/zone box` and `/zone sphere` open the built-in creator;
+its displayed controls guide shape editing. Results are written to `ox_lib/created_zones.lua`
+in the selected format. Move the reviewed configuration into its owning resource and keep
+debug drawing disabled for ordinary use. The creator is tooling, not a live customer config
+storage API; observe the server's permissions.

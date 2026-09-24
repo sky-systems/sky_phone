@@ -1106,7 +1106,8 @@ end)
 if SkyPhoneMediaProviderConfig.FiveManageApiKey() == "" then
     Bridge.Debug(
         "warn",
-        "[sky_phone] FiveManage media integration is disabled because Config.Media.FiveManage.ApiKey is empty in config/media.lua. Camera photo and video uploads, Voice Memo uploads, remote Gallery deletion, and FiveManage imports are unavailable. Add a FiveManage V3 token with Media access and restart sky_phone.",
+        "[sky_phone] FiveManage media integration is disabled because Config.Media.FiveManage.ApiKey is empty. Camera photo and video uploads, Voice Memo uploads, and remote Gallery deletion are unavailable. FiveManage imports require a global or source-specific token. %s",
+        SkyPhoneMediaProviderConfig.FiveManageSetupHint(),
         { always = true }
     )
 end

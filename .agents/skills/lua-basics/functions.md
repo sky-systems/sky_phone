@@ -1,157 +1,65 @@
-# Functions
+# Functions and return contracts
 
-## Size & Scope
+Give a function one coherent responsibility; split it when that improves ownership or reuse,
+not merely to satisfy a line/parameter count. Keep local helpers local. When the applicable Sky bridge workspace rules require it, do not
+create one-line wrapper aliases. Follow the owning module's public signatures and naming.
 
-- Functions should only do one thing, and should be small. If a function is not small, break it up into smaller functions.
-- Avoid mixing high level code with low level code in the same function.
+Document meaningful arguments, return values, side effects and whether a call can yield.
+Lua functions can return several values; forwarding through a table, parentheses or an
+expression may alter how many survive. Preserve the contract deliberately. Use
+`table.pack(...)` and its `n` with `table.unpack(values, 1, values.n)` when nil-bearing varargs matter.
 
-## Naming
+Ordinary Lua table arguments and returns share a table reference; they are not implicit deep
+copies. Cross-resource exports/network calls add separate serialization and lifetime rules.
+Inspect that boundary rather than assuming local mutation or identity semantics survive it.
+Choose batching/accessor granularity based on semantics and measured provider work.
 
-- Local functions should be named in camelCase format to differentiate from natives and standard lua library functions
-- Global functions should be named in PascalCase format
-- Functions should also be named with a leading verb.
+Anonymous callbacks are appropriate where their captures/lifetime are needed. Hoisting every
+closure is not a universal performance improvement. Avoid retaining player objects or large
+payloads after their owning request/session ends.
 
-**BAD:**
+## Parameters and documented exports
+
+For a new signature, put required parameters before optional ones. Use a leading verb when it
+clarifies the operation, and preserve established public names/signatures when repairing an API.
+Group related settings into a named options table when that makes calls easier to understand;
+there is no mandatory parameter-count limit. A boolean can be legitimate data. Avoid an opaque
+mode flag that makes one function perform unrelated operations, and avoid overloads whose types
+or return shapes are ambiguous. Keep high-level orchestration readable separately from detailed
+implementation when that separation has a real purpose.
+
+Use LuaLS annotations for public/exported arguments and returns, including optional values.
+This example gives the optional separator an explicit nil default:
+
 ```lua
-function player()
-function playerDrop()
-```
-
-**GOOD:**
-```lua
-function getPlayerObject()
-function dropPlayer()
-```
-
-## Parameters
-
-### Limit Number of Parameters
-
-If needing more than 3 or so parameters for a single function, that may be a sign that the parameters can be grouped within a table and passed as a object, rather than as individual arguments.
-
-**BAD:**
-```lua
-function createChar(name, age, height, birthday, nationality)
-
-end
-```
-
-**GOOD:**
-```lua
-function createChar(char)
-
-end
-```
-
-### Avoid boolean parameters in APIs
-
-Boolean parameters are a signal that a function is doing two things. Instead, call two different functions that each do one thing. While what is considered an API is ambiguous, a good rule of thumb is not to include boolean parameters in global or exported functions.
-
-**BAD:**
-```lua
-function PrintEmotionalState(isHappy)
-    if isHappy then
-        print("happy")
-    else
-        print("sad")
+---@param labels string[]
+---@param separator string|nil
+---@return string joined_labels
+local function join_labels(labels, separator)
+    if separator == nil then
+        separator = ", "
     end
-end
-```
 
-**GOOD:**
-```lua
-function PrintHappy()
-    print("happy")
+    return table.concat(labels, separator)
 end
 
-function PrintSad()
-    print("sad")
-end
+exports("JoinLabels", join_labels)
 ```
 
-### Avoid passing implied functions as arguments
+The export registration is FiveM-specific; follow the same-side provider/consumer and lifetime
+rules in [exports](../fivem-basics/exports.md). Annotations describe a contract; they do not
+validate untrusted input at runtime.
 
-Instead declare the function in a local variable and pass the variable as the argument. This has major performance improvements if the calling function is invoked more than once. Some functions such as CreateThread are often only invoked once, so there wouldn't be any performance improvement to localizing the argument function. However, it's still recommended anyway as a defensive measure to avoid the issue entirely if the code were to change in the future.
-
-**BAD:**
-```lua
-someFunction(function()
-
-end)
-```
-
-**GOOD:**
-```lua
-local function myFunction()
-
-end
-someFunction(myFunction)
-```
-
-### Parameter Overloads
-
-Be careful overloading a function. Overloading can be a smell that a function is doing more than one thing. Overloads are useful as wrapper functions, providing different ways to call the same underlying function.
-
-### Optional Parameters
-
-Required parameters should come before optional ones.
-
-## Export Documentation
-
-Exports should have a lua-language-server annotation to declare the API:
+## Preserve nil-bearing multiple returns
 
 ```lua
---- Puts a space between a first and last name
----@param first string first name
----@param last string last name
----@return string full name
-local function formatName(first, last)
-    return first .. ' ' .. last
-end
-
-exports('formatName', formatName)
+local values = table.pack("first", nil, "third")
+local first, second, third = table.unpack(values, 1, values.n)
+-- first == "first", second == nil, third == "third", values.n == 3
 ```
 
-### Keep returned values small in size
+The explicit end index preserves the nil slot. A plain table length cannot establish that
+three values were supplied when the sequence contains holes. Likewise, `return operation()`
+forwards all results, whereas `return (operation())` adjusts the call to one result.
 
-Since returned values are passed-by-value, there can be a significant performance cost to returning large payloads. Benchmarks show it is more performant to have many export calls that return a small amount of data each, than few export calls that return large payloads, even if the total number of bytes transferred is the same. Providing accessor exports instead of direct access to tables also makes your API more flexible to future changes.
-
-**BAD:**
-```lua
-exports('GetTable', function()
-    return myTable
-end)
-```
-
-**GOOD:**
-```lua
-exports('GetValue', function(key)
-    return myTable[key]
-end)
-```
-
-## Use guard clauses
-
-Often before doing the "real" work of a function, certain pre-conditions must be met. Guard clauses are conditional statements that provide early returns to check certain conditions. This allows the reader to also exit early, rather than reading the entire function.
-
-Additionally, using guard clauses avoids nesting, which can make code difficult to read. Sometimes though, a simple if statement reads just fine. Use your best judgment.
-
-**BAD:**
-```lua
-local function getFullName(first, last)
-    if not nameHidden and first and last then
-        return first .. last
-    else
-        return nil
-    end
-end
-```
-
-**GOOD:**
-```lua
-local function getFullName(first, last)
-    if nameHidden then return end
-    if not first or not last then return end
-    return first .. last
-end
-```
+[Lua/manual and CFX function-reference evidence](reference-links.md).

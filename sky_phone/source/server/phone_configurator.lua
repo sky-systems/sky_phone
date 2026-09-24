@@ -30,12 +30,14 @@ if configurator_enabled then
     local border = "======================================================================"
     print(([[
 ^1%s^0
-^1          SKY PHONE CONFIGURATION FILES ARE DISABLED              ^0
+^1          SKY PHONE: IN-GAME CONFIGURATOR ENABLED                 ^0
 ^1%s^0
-^1 The Phone Configurator is ENABLED.^0
-^1 Runtime settings from config.lua and media.lua are DISABLED.^0
-^1 Configure all phone and media settings IN GAME through /phonepanel.^0
-^1 Config.PhoneConfigurator, Config.CommandPermissions and Config.CustomTones remain file-based.^0
+^1 Phone and media settings are loaded from SQL.^0
+^1 Edit them in /phonepanel > Phone Configurator and save your changes.^0
+^1 Changes to config.lua and media.lua are ignored in this mode,^0
+^1 including media API keys such as the FiveManage token.^0
+^1 File-based exceptions in config.lua:^0
+^1 Config.PhoneConfigurator, Config.CommandPermissions, Config.CustomTones.^0
 ^1%s^0]]):format(border, border, border))
 end
 
@@ -1214,6 +1216,9 @@ local function normalize_change_value(field, value)
     return nil
 end
 
+local published_client_config
+local published_client_revision
+
 local function client_payload()
     local payload = {}
     for key in pairs(CLIENT_CONFIG_KEYS) do
@@ -1230,12 +1235,43 @@ local function client_payload()
     return payload
 end
 
+local function same_client_value(left, right)
+    if type(left) ~= type(right) then return false end
+    if type(left) ~= "table" then return left == right end
+    for key, value in pairs(left) do
+        if not same_client_value(value, right[key]) then return false end
+    end
+    for key in pairs(right) do
+        if left[key] == nil then return false end
+    end
+    return true
+end
+
 function SkyPhoneConfigurator.Broadcast(target)
-    TriggerClientEvent("sky_phone:configurator:sync", target or -1, {
-        config = client_payload(),
+    local current = client_payload()
+    local payload = {
+        config = current,
         enabled = configurator_enabled,
         revision = revision,
-    })
+    }
+    target = target or -1
+    if target == -1 and published_client_config then
+        payload.config = {}
+        payload.removed = {}
+        payload.baseRevision = published_client_revision
+        for key, value in pairs(current) do
+            if not same_client_value(value, published_client_config[key]) then
+                payload.config[key] = value
+            end
+        end
+        for key in pairs(published_client_config) do
+            if current[key] == nil then payload.removed[#payload.removed + 1] = key end
+        end
+    end
+    if Bridge.Network.SendClient("sky_phone:configurator:sync", target, payload) and target == -1 then
+        published_client_config = current
+        published_client_revision = revision
+    end
 end
 
 local function read_stored_row()
@@ -1617,6 +1653,8 @@ Bridge.Database.Query(([[
 
 apply_stored_row(read_stored_row())
 apply_runtime_configuration()
+published_client_config = client_payload()
+published_client_revision = revision
 Bridge.Database.AfterMigration("sky_phone", migrate_blank_company_definitions)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_request_defaults)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_service_line_messaging)

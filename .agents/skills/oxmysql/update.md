@@ -1,25 +1,47 @@
 # update
 
-Updates rows; returns affected row count (or result object with affectedRows).
+MySQL.update.await(sql, parameters) returns the affected-row count selected from the result
+header; it does not return a header object. Zero is a valid number and is truthy in Lua.
+Compare the expected count explicitly when a mutation must affect a row.
 
-**Lua (Promise)**
+An optimistic conditional UPDATE can detect a stale transition only if the caller checks
+the count and handles the failure. Interpret matched/changed rows using the actual driver,
+connection flags and statement; do not assume every zero count is an SQL error.
+
+[Update docs](https://overextended.dev/docs/oxmysql/Functions/update), [source](sources.md).
+
+## Checked state transition
+
+[Example setup](examples-setup.md). The predicate scopes the note to its owner and expected
+old state; the caller still owns authorization. Choose one calling style.
 
 ```lua
-local affected = MySQL.update.await('UPDATE `users` SET `lastname` = ? WHERE `identifier` = ?', { newLastName, identifier })
+local sql = "UPDATE example_notes SET state = ? WHERE id = ? AND owner = ? AND state = ?"
+local parameters = { "archived", note_id, owner_key, "draft" }
+local affected_rows = MySQL.update.await(sql, parameters)
+if affected_rows ~= 1 then
+    print("[notes] Expected one owned draft; no successful single-row transition")
+    return
+end
+print("Owned note archived")
 ```
 
-**Lua (Callback)**
-
 ```lua
-MySQL.update('UPDATE `users` SET `lastname` = ? WHERE `identifier` = ?', { newLastName, identifier }, function(affected)
-  -- use affected
+-- Callback alternative.
+MySQL.update(sql, parameters, function(affected_rows)
+    if affected_rows ~= 1 then
+        print("[notes] Expected one owned draft; no successful single-row transition")
+        return
+    end
+    print("Owned note archived")
 end)
 ```
 
-**JavaScript**
-
 ```js
-const result = await MySQL.update('UPDATE `users` SET `lastname` = ? WHERE `identifier` = ?', [newLastName, identifier]);
+const affectedRows = await MySQL.update(
+    "UPDATE example_notes SET state = ? WHERE id = ? AND owner = ? AND state = ?",
+    ["archived", noteId, ownerKey, "draft"]
+);
+if (affectedRows !== 1) console.log("[notes] No successful single-row transition");
+else console.log("Owned note archived");
 ```
-
-Always use `?` placeholders for values. Reference: [update – coxdocs.dev](https://coxdocs.dev/oxmysql/Functions/update).

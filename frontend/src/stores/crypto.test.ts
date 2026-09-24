@@ -46,6 +46,110 @@ describe('crypto store', () => {
     mockNuiCall.mockReset()
   })
 
+  it('merges compact history updates and rejects delayed older market versions', () => {
+    const crypto = useCryptoStore()
+    const market = {
+      id: 'aurora',
+      symbol: 'AUR',
+      name: 'Aurora',
+      color: '#fff',
+      logo: 'aurora',
+      price: '100.00',
+      priceHistory: ['90.00', '100.00'],
+      sparkline: [0, 1],
+      enabled: true,
+      changePercent: 0,
+      high24h: '100.00',
+      low24h: '90.00',
+      issuedSupply: '1000',
+      treasuryAvailable: '900',
+      version: 1,
+    }
+    crypto.data = {
+      ...bootstrap,
+      markets: [market],
+      cashBalance: '10.00',
+      holdings: [
+        {
+          assetId: 'aurora',
+          averagePrice: '90.00',
+          quantity: '2',
+          value: '200.00',
+        },
+      ],
+    }
+    crypto.applyMarketUpdate([
+      {
+        id: 'aurora',
+        version: 3,
+        price: '120.00',
+        priceHistory: ['90.00', '105.00', '120.00'],
+      },
+    ])
+    expect(crypto.data.markets[0]).toMatchObject({
+      name: 'Aurora',
+      symbol: 'AUR',
+      version: 3,
+      sparkline: [0, 0.5, 1],
+    })
+    expect(crypto.data.portfolioValue).toBe('250.00')
+    crypto.pendingQuote = quote
+    crypto.applyMarketUpdate([
+      {
+        id: 'aurora',
+        version: 2,
+        price: '110.00',
+        priceHistory: ['90.00', '110.00'],
+      },
+    ])
+    expect(crypto.data.markets[0].price).toBe('120.00')
+    expect(crypto.pendingQuote).toEqual(quote)
+    crypto.applyBootstrap({
+      ...bootstrap,
+      markets: [market],
+      cashBalance: '20.00',
+      holdings: [
+        {
+          assetId: 'aurora',
+          averagePrice: '90.00',
+          quantity: '3',
+          value: '300.00',
+        },
+      ],
+    })
+    expect(crypto.data.markets[0].version).toBe(3)
+    expect(crypto.data.portfolioValue).toBe('380.00')
+    crypto.applyMarketUpdate([
+      {
+        id: 'aurora',
+        version: 4,
+        price: '0.0002',
+        priceHistory: ['0.0001', '0.0002'],
+      },
+    ])
+    expect(crypto.data.markets[0].sparkline).toEqual([0, 1])
+  })
+
+  it('does not resume watching when an older subscription response arrives after closing', async () => {
+    const crypto = useCryptoStore()
+    let completeWatch!: (value: Awaited<ReturnType<typeof nuiCall>>) => void
+    mockNuiCall.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          completeWatch = resolve
+        }),
+    )
+    const watching = crypto.watchMarkets(true)
+    mockNuiCall.mockResolvedValueOnce({ success: true })
+    await crypto.watchMarkets(false)
+    completeWatch({ success: true, data: [] })
+    await watching
+    expect(crypto.marketWatching).toBe(false)
+    expect(mockNuiCall).toHaveBeenLastCalledWith('crypto:watch', {
+      active: false,
+    })
+  })
+
   it('loads the server-authoritative portfolio', async () => {
     mockNuiCall.mockResolvedValueOnce({ data: bootstrap, success: true })
     const crypto = useCryptoStore()

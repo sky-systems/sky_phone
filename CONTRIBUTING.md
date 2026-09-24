@@ -75,6 +75,8 @@ pnpm build
 
 The build publishes the generated NUI into `sky_phone/source/html`. Do not hand-edit generated output. A successful build proves source/build consistency, not behavior inside FiveM; report live runtime testing separately.
 
+The build also regenerates `THIRD_PARTY_NOTICES.md` from installed frontend dependencies and the supplemental texts in `licenses/`, then publishes matching `LICENSE` and `THIRD_PARTY_NOTICES.md` copies inside `sky_phone`. Include the regenerated notices with dependency updates and run `pnpm licenses:check`. Preserve complete upstream license and copyright texts; missing license files require a verified, version-specific supplement. Package license notices do not establish rights to unrelated images, maps, or audio.
+
 Every pull request also receives an automated CodeQL scan and dependency review. After the full CI run succeeds, GitHub packages the deployable `sky_phone` folder as a test-resource ZIP and adds or updates a download link in the pull request. The artifact is retained for 14 days. It is suitable for manual testing on a test server, but it is not a release and does not replace live FiveM validation.
 
 Lua, config, manifest, locale, SQL, and native changes must also be tested in a restarted FiveM resource with experimental OAL enabled. Pass native coordinates as separate numeric arguments and verify native signatures against authoritative documentation.

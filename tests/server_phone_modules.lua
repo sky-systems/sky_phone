@@ -6,6 +6,10 @@ function CreateThread(fn) threads[#threads+1] = coroutine.create(fn) end
 function Wait() coroutine.yield() end
 
 Bridge = {
+    Network = { SendClient = function(...)
+        TriggerClientEvent(...)
+        return true
+    end },
     Callbacks = {
         Register = function(name, callback)
             assert(type(name) == "string" and type(callback) == "function")

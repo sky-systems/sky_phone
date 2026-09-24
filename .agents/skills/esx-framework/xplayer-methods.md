@@ -1,624 +1,208 @@
-# xPlayer Methods (Server Only)
+# Player methods and provider contracts
 
-The xPlayer object represents a player on the **SERVER** with many useful methods.
+Read the installed player implementation and active overrides before using a method. Default
+ESX inventory, an external inventory and custom xPlayer overrides can have different shapes,
+side effects and return values. The [source map](reference-links.md) links the inspected class.
 
-## Getting xPlayer
+- getAccount(name) returns the matching account record or nil at the inspected revision;
+  the balance is a field of that record. getAccounts(minimal) changes representation.
+- Money/item mutations need a server-owned reason/operation, positive bounded quantities,
+  authorized accounts and a defined failure path. Do not infer success from a successful pcall.
+  Inspect false/nil/void/success semantics on the installed method and adapter; read post-state
+  for void writes when the result matters.
+- Capacity or balance checks alone do not make a later mutation atomic. Serialize the operation
+  through the established owner and prevent repeat grants, especially across provider awaits.
+- Default canCarryItem/inventory methods do not prove a replacement inventory supports
+  the same metadata, slots, nesting or return contract. Verify that provider version separately.
+- Default loadout methods and inventory weapons are distinct models. Do not run both grants
+  for one weapon or assume removing an inventory item also updates a default ESX loadout.
+- Job changes have grade/duty and event/cache effects. Where AGENTS requires Sky job APIs,
+  read PlayerCache and change state through the documented bridge and existing update lifecycle.
+- get/set variables and metadata methods do not automatically have identical persistence
+  semantics. Inspect getMeta, setMeta, clearMeta overloads and the actual save path.
+  Preserve nested values and false values; avoid replacing an entire record for one field.
 
-```lua
-local xPlayer = ESX.GetPlayerFromId(source)
-if not xPlayer then return end
-```
+Use the method's documented calling form; many xPlayer functions are bound closures called as
+x_player.method(...). Do not add a colon and shift arguments without checking its definition.
+Cache a resolved object within a valid operation, not indefinitely across logout/disconnect.
 
-## Basic Info
+## Identity, position, job and permissions
 
-### xPlayer.getName()
+All examples below assume the server has resolved the current player through the established adapter and authorized the operation. Do not paste mutation calls into an unrestricted event. When AGENTS requires the Sky bridge, keep `Sky.FW` for framework operations and `Sky_Jobs.PlayerCache` for name/job/duty reads.
 
-Returns player's name.
-
-```lua
-print('Player name:', xPlayer.getName())
-```
-
-### xPlayer.getIdentifier()
-
-Returns player's identifier (with char prefix).
-
-```lua
-print('Identifier:', xPlayer.getIdentifier())
--- Output: "char1:license:abc123..."
-```
-
-### xPlayer.getSSN()
-
-Returns player's Social Security Number.
-
-```lua
-print('SSN:', xPlayer.getSSN())
--- Output: "123-45-6789"
-```
-
-### xPlayer.setName(name)
-
-Sets player's name.
-
-```lua
-xPlayer.setName('John Doe')
-```
-
-## Coordinates
-
-### xPlayer.getCoords(vector)
-
-Returns player's last known coordinates.
+| Method | Pinned default contract |
+|---|---|
+| `getName()`, `setName(name)` | Name getter/setter; setter also updates the name state bag |
+| `getIdentifier()`, `getSSN()` | Existing character identifier/SSN; no fixed formatting guarantee |
+| `getSource()` / `getPlayerId()` | Online numeric source |
+| `getCoords(vector?, heading?)` | Current server ped coordinates: table by default, vector3 with `true`, vector4 with `true,true`; heading appears only when requested |
+| `setCoords(coordinates)` | Reads `x,y,z` and `w` or `heading` (defaults heading to zero); calls server natives |
+| `getJob()` | Job record including `name`, `label`, `type`, grade fields and `onDuty` |
+| `setJob(name, grade, on_duty?)` | Validates job/grade, applies default duty when omitted, forces unemployed off duty, updates metadata/state bag and emits job events |
+| `getGroup()`, `setGroup(group)` | Group getter/setter; setter changes ACE principals and emits group events |
+| `togglePaycheck(enabled)`, `isPaycheckEnabled()` | Boolean paycheck setting/query |
+| `kick(reason)` | Disconnects this player; requires an authorized moderation action |
 
 ```lua
--- As table
-local coords = xPlayer.getCoords()
-print(coords.x, coords.y, coords.z, coords.heading)
-
--- As vector3
-local coords = xPlayer.getCoords(true)
-local distance = #(coords - vector3(0, 0, 0))
-```
-
-### xPlayer.setCoords(coords)
-
-Teleports player to coordinates.
-
-```lua
-xPlayer.setCoords(vector3(100.0, 200.0, 50.0))
-
--- Or vector4 with heading
-xPlayer.setCoords(vector4(100.0, 200.0, 50.0, 90.0))
-```
-
-### xPlayer.kick(reason)
-
-Kicks player from server.
-
-```lua
-xPlayer.kick('You have been kicked')
-```
-
-## Job Management
-
-### xPlayer.getJob()
-
-Returns player's job data.
-
-```lua
-local job = xPlayer.getJob()
-print('Job:', job.name)
-print('Grade:', job.grade)
-print('Label:', job.label)
-print('Salary:', job.grade_salary)
-print('On Duty:', job.onDuty)
-```
-
-### xPlayer.setJob(name, grade, onDuty)
-
-Sets player's job.
-
-```lua
--- Set job with default duty state
-xPlayer.setJob('police', 4)
-
--- Set job and duty state
-xPlayer.setJob('police', 4, true) -- On duty
-xPlayer.setJob('police', 4, false) -- Off duty
-```
-
-## Money Management
-
-### xPlayer.getMoney()
-
-Returns cash amount.
-
-```lua
-local cash = xPlayer.getMoney()
-print('Cash:', cash)
-```
-
-### xPlayer.addMoney(amount, reason)
-
-Adds cash.
-
-```lua
-xPlayer.addMoney(500, 'Sold apples')
-```
-
-### xPlayer.removeMoney(amount, reason)
-
-Removes cash.
-
-```lua
-if xPlayer.getMoney() >= 500 then
-    xPlayer.removeMoney(500, 'Bought item')
-end
-```
-
-### xPlayer.setMoney(amount)
-
-Sets cash to exact amount.
-
-```lua
-xPlayer.setMoney(1000)
-```
-
-## Account Management
-
-### xPlayer.getAccounts(minimal)
-
-Returns all accounts.
-
-```lua
--- Full data
-local accounts = xPlayer.getAccounts()
-print('Bank:', accounts.bank.money)
-print('Cash:', accounts.money.money)
-
--- Minimal (just amounts)
-local accounts = xPlayer.getAccounts(true)
-print('Bank:', accounts.bank)
-print('Cash:', accounts.money)
-```
-
-### xPlayer.getAccount(accountName)
-
-Returns specific account.
-
-```lua
-local bankAccount = xPlayer.getAccount('bank')
-print('Bank balance:', bankAccount.money)
-```
-
-### xPlayer.addAccountMoney(account, amount, reason)
-
-Adds money to account.
-
-```lua
-xPlayer.addAccountMoney('bank', 5000, 'Paycheck received')
-```
-
-### xPlayer.removeAccountMoney(account, amount, reason)
-
-Removes money from account.
-
-```lua
-if xPlayer.getAccount('bank').money >= 2000 then
-    xPlayer.removeAccountMoney('bank', 2000, 'Paid bills')
-end
-```
-
-### xPlayer.setAccountMoney(account, amount, reason)
-
-Sets account to exact amount.
-
-```lua
-xPlayer.setAccountMoney('bank', 10000, 'Admin action')
-```
-
-## Paycheck Management
-
-### xPlayer.togglePaycheck(toggle)
-
-Enable/disable paycheck.
-
-```lua
-xPlayer.togglePaycheck(false) -- Disable paycheck
-xPlayer.togglePaycheck(true)  -- Enable paycheck
-```
-
-### xPlayer.isPaycheckEnabled()
-
-Check if paycheck is enabled.
-
-```lua
-if xPlayer.isPaycheckEnabled() then
-    print('Paycheck is enabled')
-end
-```
-
-## Inventory (Default ESX Inventory)
-
-### xPlayer.getInventory(minimal)
-
-Returns player inventory.
-
-```lua
--- Full data
-local inventory = xPlayer.getInventory()
-for itemName, itemData in pairs(inventory) do
-    print(itemName, itemData.count, itemData.weight)
-end
-
--- Minimal (just counts)
-local inventory = xPlayer.getInventory(true)
-for itemName, count in pairs(inventory) do
-    print(itemName, count)
-end
-```
-
-### xPlayer.getInventoryItem(item)
-
-Returns specific item data.
-
-```lua
-local breadItem = xPlayer.getInventoryItem('bread')
-print('Bread count:', breadItem.count)
-print('Bread weight:', breadItem.weight)
-```
-
-### xPlayer.addInventoryItem(item, count)
-
-Adds item to inventory.
-
-```lua
-xPlayer.addInventoryItem('bread', 5)
-```
-
-### xPlayer.removeInventoryItem(item, count)
-
-Removes item from inventory.
-
-```lua
-xPlayer.removeInventoryItem('bread', 2)
-```
-
-### xPlayer.setInventoryItem(item, count)
-
-Sets item to exact count.
-
-```lua
-xPlayer.setInventoryItem('bread', 10)
-```
-
-### xPlayer.hasItem(item)
-
-Checks if player has item.
-
-```lua
-if xPlayer.hasItem('bread') then
-    print('Player has bread')
-end
-```
-
-### xPlayer.getWeight()
-
-Returns current inventory weight.
-
-```lua
-print('Current weight:', xPlayer.getWeight())
-```
-
-### xPlayer.getMaxWeight()
-
-Returns max inventory weight.
-
-```lua
-print('Max weight:', xPlayer.getMaxWeight())
-```
-
-### xPlayer.setMaxWeight(weight)
-
-Sets max inventory weight.
-
-```lua
-xPlayer.setMaxWeight(50) -- Backpack equipped
-```
-
-### xPlayer.canCarryItem(item, count)
-
-Checks if player can carry item.
-
-```lua
-if xPlayer.canCarryItem('bread', 5) then
-    xPlayer.addInventoryItem('bread', 5)
+local coords = x_player.getCoords(false, true)
+print(("[example] heading: %s"):format(coords.heading))
+local position = x_player.getCoords(true)
+local position_and_heading = x_player.getCoords(true, true)
+
+-- Server-selected destination inside an authorized teleport flow.
+x_player.setCoords({ x = 100.0, y = 200.0, z = 50.0, heading = 90.0 })
+
+if ESX.DoesJobExist(server_job_name, server_grade) then
+    x_player.setJob(server_job_name, server_grade, false)
 else
-    xPlayer.showNotification('Inventory full', 'error')
+    print("[example] job change rejected: unknown job or grade")
 end
 ```
 
-### xPlayer.canSwapItem(firstItem, firstCount, secondItem, secondCount)
+Coordinate methods are live wrappers, not a promise that every engine/RPC action has completed. Their Cfx/native path and runtime availability still need target verification. Client-supplied destination/job/group values are not automatically authorized.
 
-Checks if items can be swapped.
+## Money and account representation
 
 ```lua
-if xPlayer.canSwapItem('bread', 5, 'water', 3) then
-    xPlayer.removeInventoryItem('bread', 5)
-    xPlayer.addInventoryItem('water', 3)
+local cash = x_player.getMoney()
+local bank = x_player.getAccount("bank") -- record or nil
+for _, account in ipairs(x_player.getAccounts()) do
+    print(("[example] configured account: %s"):format(account.name))
+end
+local amounts = x_player.getAccounts(true) -- map name -> amount
+local bank_amount = amounts.bank
+```
+
+Full accounts are an array, not `accounts.bank.money`. Account names come from server configuration. `getAccount` compares names case-insensitively at this revision.
+
+| Mutation | Parameters |
+|---|---|
+| `addMoney`, `removeMoney` | `(amount, reason?)`, cash-account wrappers |
+| `setMoney` | `(amount)`, exact cash balance |
+| `addAccountMoney`, `removeAccountMoney`, `setAccountMoney` | `(account_name, amount, reason?)` |
+
+```lua
+-- Within an already-authorized, serialized server operation; amount/reason are server-owned.
+local account = x_player.getAccount("bank")
+if not account or type(amount) ~= "number" or not (amount > 0 and amount <= 1000000)
+    or amount % 1 ~= 0 or account.money < amount then
+    print("[example] debit rejected: invalid account, amount or available balance")
+    return
+end
+local removed = x_player.removeAccountMoney("bank", amount, server_reason)
+if not removed then
+    error("[example] provider did not confirm the authorized debit")
 end
 ```
 
-## Weapon Management (Default ESX)
+This covers a single debit, not a complete transfer or purchase. The pinned default money mutators return `true` after changing state and can throw on invalid input; provider overrides may differ. Default removal does not supply a general insufficient-funds transaction guard. Recheck the active provider, bounds/rounding, serialization, operation identity and multi-step compensation/transaction policy. Never regard `pcall` success as proof that a provider accepted a debit.
 
-### xPlayer.getLoadout(minimal)
-
-Returns player's weapons.
+## Default inventory and capacity
 
 ```lua
--- Full data
-local loadout = xPlayer.getLoadout()
-for weaponName, weaponData in pairs(loadout) do
-    print(weaponName, weaponData.ammo, weaponData.components)
+for _, item in ipairs(x_player.getInventory()) do
+    print(("[example] %s count=%s weight=%s"):format(item.name, item.count, item.weight))
 end
+local positive_counts = x_player.getInventory(true) -- map; zero-count items omitted
+local bread = x_player.getInventoryItem("bread") -- record or nil
+local owned_item, owned_count = x_player.hasItem("bread") -- item/count, or false
+local current_weight = x_player.getWeight()
+local capacity = x_player.getMaxWeight()
+```
 
--- Minimal (just ammo and components)
-local loadout = xPlayer.getLoadout(true)
-for weaponName, weaponData in pairs(loadout) do
-    print(weaponName, weaponData.ammo)
+| Method | Meaning / result edge case |
+|---|---|
+| `addInventoryItem(item, count)` | Adds/rounds count and weight; true/false at pinned default. It does not itself perform a capacity check. |
+| `removeInventoryItem(item, count)` | Requires positive count and sufficient existing count; true/false or invalid-input error |
+| `setInventoryItem(item, count)` | Exact nonnegative count; returns nil for already-equal state, delegated mutation result otherwise, false for rejected state |
+| `canCarryItem(item, count)` | Capacity predicate, not entitlement or reservation |
+| `canSwapItem(first_item, first_count, second_item, second_count)` | Checks default inventory count/weight feasibility; it performs no transfer |
+| `setMaxWeight(weight)` | Updates max weight and sends the client update; use the provider's unit |
+
+```lua
+-- In an authorized operation with a validated positive integer quantity.
+if not x_player.canCarryItem(server_item, quantity) then
+    print("[example] inventory change rejected: capacity exceeded")
+    return
+end
+local added = x_player.addInventoryItem(server_item, quantity)
+if not added then
+    error("[example] provider did not confirm the inventory change")
 end
 ```
 
-### xPlayer.getWeapon(weaponName)
+Do not expose this as a generic give-item event. A swap needs the owner's atomicity/failure handling for both operations; a capacity predicate is not enough. Third-party inventory may use slots, metadata, nested values and void returns, so the example's result check is specific to the pinned default implementation.
 
-Returns specific weapon data.
+## Default loadout and weapons
 
 ```lua
-local pistol = xPlayer.getWeapon('WEAPON_PISTOL')
+for _, weapon in ipairs(x_player.getLoadout()) do
+    print(("[example] loadout item: %s ammo=%s"):format(weapon.name, weapon.ammo))
+end
+local compact_loadout = x_player.getLoadout(true) -- map keyed by weapon name
+local index, pistol = x_player.getWeapon("WEAPON_PISTOL")
 if pistol then
-    print('Ammo:', pistol.ammo)
-    print('Components:', json.encode(pistol.components))
+    print(("[example] pistol ammo=%s"):format(pistol.ammo))
 end
 ```
 
-### xPlayer.hasWeapon(weaponName)
+`getWeapon` returns **index, record**, or `nil, nil`; the first return is not the record. Minimal loadout entries always include ammo, and include nondefault tint/components when present. `hasWeapon(name)` and `hasWeaponComponent(name, component)` are predicates; `getWeaponTint(name)` returns tint or zero, so zero does not prove ownership.
 
-Checks if player has weapon.
+| Mutation | Arguments / distinction |
+|---|---|
+| `addWeapon`, `removeWeapon` | `(name, ammo)` / `(name)`; loadout, entity and UI effects |
+| `addWeaponAmmo`, `removeWeaponAmmo` | `(name, amount)`; changes ammo and invokes the native update |
+| `updateWeaponAmmo` | `(name, absolute_ammo)`; updates stored loadout; depleted throwable can be removed. Do not assume it is identical to native ammo-setting. |
+| `addWeaponComponent`, `removeWeaponComponent` | `(name, component_key)`; use a key supported by the configured weapon catalogue |
+| `setWeaponTint` | `(name, tint_index)` validated against that weapon's configured tints |
 
 ```lua
-if xPlayer.hasWeapon('WEAPON_PISTOL') then
-    print('Player has pistol')
+-- Example single edit inside an authorized default-loadout service.
+if x_player.hasWeapon("WEAPON_PISTOL") and not x_player.hasWeaponComponent("WEAPON_PISTOL", "suppressor") then
+    local changed = x_player.addWeaponComponent("WEAPON_PISTOL", "suppressor")
+    if not changed then
+        print("[example] component change rejected by weapon catalogue/provider")
+    end
 end
 ```
 
-### xPlayer.addWeapon(weaponName, ammo)
+Inspect each mutator's success/no-op/false semantics; do not assume all return the same shape. Inventory-based weapons are a different provider model, so do not additionally grant an ESX loadout weapon for the same item. These wrappers invoke engine natives; the framework source alone does not validate the proprietary engine outcome.
 
-Gives weapon to player.
+## Variables and metadata overloads
+
+`set(key, value)` / `get(key)` use `variables` and replicate the variable table to the client. This does not prove durable storage. `getMeta()` returns metadata; `getMeta(key)` returns one value; `getMeta(key, subkey)` reads a nested value and accepts a string-list to select multiple fields. Missing metadata can throw when ESX debug mode is enabled, so inspect the owned schema before optional reads.
 
 ```lua
-xPlayer.addWeapon('WEAPON_PISTOL', 250)
+x_player.set("example_view", "home")
+local page = x_player.get("example_view")
+
+x_player.setMeta("example_profile", { title = "Dr.", compact = false })
+local title = x_player.getMeta("example_profile", "title")
+local selected = x_player.getMeta("example_profile", { "title", "compact" })
+x_player.setMeta("example_profile", "title", "Prof.")
+x_player.clearMeta("example_profile", "title")
 ```
 
-### xPlayer.removeWeapon(weaponName)
-
-Removes weapon from player.
+Pinned `setMeta(index, value, subvalue)` has two modes: `(key, whole_value)` or `(key, subkey, subvalue)`. The implementation tests **truthiness** of `subvalue`, so passing a false subvalue selects the wrong mode. Its top-level validator also rejects plain booleans. To set a nested `false`, copy the owned table, change that field and write the complete table while preserving siblings:
 
 ```lua
-xPlayer.removeWeapon('WEAPON_PISTOL')
-```
-
-### xPlayer.addWeaponAmmo(weaponName, ammo)
-
-Adds ammo to weapon.
-
-```lua
-xPlayer.addWeaponAmmo('WEAPON_PISTOL', 50)
-```
-
-### xPlayer.removeWeaponAmmo(weaponName, ammo)
-
-Removes ammo from weapon.
-
-```lua
-xPlayer.removeWeaponAmmo('WEAPON_PISTOL', 25)
-```
-
-### xPlayer.updateWeaponAmmo(weaponName, ammo)
-
-Sets weapon ammo to exact amount.
-
-```lua
-xPlayer.updateWeaponAmmo('WEAPON_PISTOL', 100)
-```
-
-### xPlayer.addWeaponComponent(weaponName, component)
-
-Adds component to weapon.
-
-```lua
-xPlayer.addWeaponComponent('WEAPON_PISTOL', 'suppressor')
-```
-
-### xPlayer.removeWeaponComponent(weaponName, component)
-
-Removes component from weapon.
-
-```lua
-xPlayer.removeWeaponComponent('WEAPON_PISTOL', 'suppressor')
-```
-
-### xPlayer.hasWeaponComponent(weaponName, component)
-
-Checks if weapon has component.
-
-```lua
-if xPlayer.hasWeaponComponent('WEAPON_PISTOL', 'suppressor') then
-    print('Pistol has suppressor')
+local existing = x_player.getMeta().example_profile or {}
+local updated = {}
+for key, value in pairs(existing) do
+    updated[key] = value
 end
+updated.compact = false
+x_player.setMeta("example_profile", updated)
 ```
 
-### xPlayer.setWeaponTint(weaponName, tintIndex)
+`clearMeta(key)` deletes a whole field; `clearMeta(key, subkey_or_string_list)` removes selected nested fields. Metadata is included by ESX's save path; a setter call is not proof of immediate DB durability. Recheck the installed implementation before relying on this revision-specific overload workaround.
 
-Sets weapon tint.
+## Client communication and utility
 
 ```lua
-xPlayer.setWeaponTint('WEAPON_PISTOL', 2) -- Gold tint
+x_player.triggerEvent("example:showStatus", { status = "ready" })
+x_player.showNotification(localized_message, "info", 3000, localized_title, "top-right")
+local hours = math.floor(x_player.getPlayTime() / 3600)
 ```
 
-### xPlayer.getWeaponTint(weaponName)
-
-Gets weapon tint.
-
-```lua
-local tint = xPlayer.getWeaponTint('WEAPON_PISTOL')
-print('Tint index:', tint)
-```
-
-## Permissions
-
-### xPlayer.getGroup()
-
-Returns player's permission group.
-
-```lua
-local group = xPlayer.getGroup()
-print('Group:', group) -- 'user', 'admin', 'superadmin'
-```
-
-### xPlayer.setGroup(group)
-
-Sets player's permission group.
-
-```lua
-xPlayer.setGroup('admin')
-```
-
-## Variables & Metadata
-
-### xPlayer.set(key, value)
-
-Sets custom variable.
-
-```lua
-xPlayer.set('lastLocation', 'LS Airport')
-```
-
-### xPlayer.get(key)
-
-Gets custom variable.
-
-```lua
-local lastLocation = xPlayer.get('lastLocation')
-print('Last location:', lastLocation)
-```
-
-### xPlayer.setMeta(key, value, subKey)
-
-Sets metadata (persisted to database).
-
-```lua
-xPlayer.setMeta('title', 'Dr.')
-xPlayer.setMeta('licenses', 'driver', true) -- With subkey
-```
-
-### xPlayer.getMeta(key, subKey)
-
-Gets metadata.
-
-```lua
-local title = xPlayer.getMeta('title')
-print('Title:', title)
-
-local hasDriver = xPlayer.getMeta('licenses', 'driver')
-```
-
-### xPlayer.clearMeta(key, subKey)
-
-Clears metadata.
-
-```lua
-xPlayer.clearMeta('title')
-xPlayer.clearMeta('licenses', 'driver') -- Clear subkey
-```
-
-## Client Communication
-
-### xPlayer.triggerEvent(eventName, ...)
-
-Triggers client event for this player.
-
-```lua
-xPlayer.triggerEvent('myResource:showMenu', {title = 'Shop', items = {}})
-```
-
-### xPlayer.showNotification(msg, type, length, title, position)
-
-Shows notification to player.
-
-```lua
-xPlayer.showNotification('You received $500', 'success', 3000)
-```
-
-### xPlayer.showAdvancedNotification(sender, subject, msg, textureDict, iconType, flash, saveToBrief, hudColorIndex)
-
-Shows GTA-style notification.
-
-```lua
-xPlayer.showAdvancedNotification('Police', 'Dispatch', 'Code 3', 'CHAR_CALL911', 1)
-```
-
-### xPlayer.showHelpNotification(msg, thisFrame, beep, duration)
-
-Shows help notification.
-
-```lua
-xPlayer.showHelpNotification('Press E to interact', false, true, 3000)
-```
-
-## Utility
-
-### xPlayer.getPlayTime()
-
-Returns total playtime in seconds.
-
-```lua
-local playtime = xPlayer.getPlayTime()
-local hours = math.floor(playtime / 3600)
-print('Playtime:', hours, 'hours')
-```
-
-### xPlayer.executeCommand(command)
-
-Executes command as player.
-
-```lua
-xPlayer.executeCommand('dv 5')
-```
-
-## Best Practices
-
-1. **Always check if xPlayer exists**:
-   ```lua
-   local xPlayer = ESX.GetPlayerFromId(source)
-   if not xPlayer then return end
-   ```
-
-2. **Check before removing**:
-   ```lua
-   if xPlayer.getMoney() >= price then
-       xPlayer.removeMoney(price, 'Bought item')
-   else
-       xPlayer.showNotification('Not enough money', 'error')
-   end
-   ```
-
-3. **Check inventory space**:
-   ```lua
-   if xPlayer.canCarryItem('bread', 5) then
-       xPlayer.addInventoryItem('bread', 5)
-   else
-       xPlayer.showNotification('Inventory full', 'error')
-   end
-   ```
-
-4. **Always provide reasons**:
-   ```lua
-   -- GOOD
-   xPlayer.addMoney(500, 'Sold apples')
-   
-   -- BAD (no reason, harder to debug)
-   xPlayer.addMoney(500)
-   ```
-
-5. **Cache xPlayer reference**:
-   ```lua
-   -- GOOD
-   local xPlayer = ESX.GetPlayerFromId(source)
-   xPlayer.addMoney(100)
-   xPlayer.setJob('police', 0)
-   
-   -- BAD (calls GetPlayerFromId twice)
-   ESX.GetPlayerFromId(source).addMoney(100)
-   ESX.GetPlayerFromId(source).setJob('police', 0)
-   ```
+`showAdvancedNotification(sender, subject, message, texture_dict, icon_type, flash?, save_to_brief?, hud_color?)` and `showHelpNotification(message, this_frame?, beep?, duration?)` forward the client notification contracts. Keep visible copy localized. `getPlayTime()` adds stored prior playtime to the current connection time in seconds at the inspected revisions. `executeCommand(command)` sends the `esx:executeCommand` client event; it is not a general server-command executor. Never pass arbitrary client text through a privileged command facility.

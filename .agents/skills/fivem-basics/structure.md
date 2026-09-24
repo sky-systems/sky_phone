@@ -1,65 +1,36 @@
-# Structure/Scope
+# Resource structure
 
-Best practices for organizing FiveM resources and Lua code.
+Keep existing resource/package boundaries and manifest load order. Separate client, server
+and genuinely shared code so authority and available APIs are visible. Shared files are shipped
+to clients; secrets and server-only rules belong in server code.
 
-## Prefer Limited Scope
+Use the least exposure the caller needs: local function for internal work, exports for an
+explicit cross-resource API, events for notifications and network events for remote requests.
+These are different contracts, not interchangeable wrappers. A bare `function Name()` normally
+assigns a global; it is not a file-local declaration.
 
-Variables and functions should be scoped to the smallest visibility needed. Prefer in order:
-1. **local function** (most restricted)
-2. **function** (module/file level)
-3. **export function** (cross-resource)
-4. **AddEventHandler** (event-based)
-5. **RegisterNetEvent/Callback** (networked, least restricted)
+Group code by ownership and lifecycle. Prefer names and paths already used by the resource.
+When required by the applicable Sky bridge workspace rules, use underscore resource names, lowercase filenames, four-space indentation,
+double quotes, snake_case locals and PascalCase classes. Do not create one-line wrappers.
 
-## Separate Client & Server Files
+For a new resource, a small layout can make the execution sides visible:
 
-Client and server specific files should be organized into their own folders.
-
-**Example structure:**
-```
-my-resource/
-├── fxmanifest.lua
-├── client/
-│   ├── main.lua
-│   └── ui.lua
-└── server/
-    ├── main.lua
-    └── database.lua
+```text
+example_resource/
+  fxmanifest.lua
+  shared/config.lua
+  client/state.lua
+  client/main.lua
+  server/main.lua
+  server/persistence.lua
 ```
 
-## Use Logical Grouping
+Keep a public operation and its private helpers together when that hides implementation
+details. Place function-local values near their use; group longer-lived state at its owning
+module's top. Either declaration-kind grouping or call-order grouping can work; do not
+scatter an operation across files just to make every file smaller. Declare intentional
+globals in one owning file per execution side rather than redefining them in each consumer.
+Use names without spaces and follow existing resource/file naming instead of renaming public
+resources for cosmetic consistency.
 
-It may make sense to place constructs of the same type together in a file. For example:
-- All file scoped variables at the top of the file
-- Followed by all local functions
-- Followed by all global functions
-- Followed by events
-
-This grouping structure makes it easier to understand the API at the server, resource, and file levels.
-
-Alternatively, local single use functions could be located directly above or as close as possible to the functions they are called from, and grouping can be based on call structure rather than construct type.
-
-## Use Files/Modules To Hide Local Functions
-
-If you have one resource scoped function which calls a few local single use functions, put them all in their own file or module. This keeps your code organized and maintains proper encapsulation.
-
-## Resource Naming
-
-Resources should be named with underscores "_" instead of spaces. Other special characters should be avoided so that exports work well.
-
-**Examples:**
-- ✅ `my_awesome_resource`
-- ✅ `vehicle_shop`
-- ❌ `my awesome resource` (spaces)
-- ❌ `vehicle-shop!` (special characters)
-
-## File Naming
-
-Files should be named all lower case without any spaces. Dashes "-" or underscores "_" can be used instead of spaces.
-
-**Examples:**
-- ✅ `main.lua`
-- ✅ `player_manager.lua`
-- ✅ `vehicle-shop.lua`
-- ❌ `PlayerManager.lua` (camelCase)
-- ❌ `vehicle shop.lua` (spaces)
+See [manifest semantics and runtime sources](reference-links.md).

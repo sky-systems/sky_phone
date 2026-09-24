@@ -1,8 +1,12 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const {
+  generateThirdPartyNotices,
+} = require('./scripts/third-party-notices.cjs')
 
 const frontendRoot = __dirname
-const resourceDirectory = path.join(frontendRoot, '..', 'sky_phone')
+const repositoryRoot = path.resolve(frontendRoot, '..')
+const resourceDirectory = path.join(repositoryRoot, 'sky_phone')
 const sourceDirectory = path.join(frontendRoot, 'dist')
 const targetDirectory = path.join(resourceDirectory, 'source', 'html')
 const configDefaultPath = path.join(
@@ -51,6 +55,17 @@ if (!fs.existsSync(sourceDirectory)) {
   )
 }
 
+// Validate the complete notice inventory before replacing the published NUI.
+const thirdPartyNotices = generateThirdPartyNotices({
+  frontendRoot,
+  additionalNoticesPath: path.join(
+    repositoryRoot,
+    'licenses',
+    'ADDITIONAL_NOTICES.md',
+  ),
+})
+const projectLicense = fs.readFileSync(path.join(repositoryRoot, 'LICENSE'))
+
 fs.rmSync(targetDirectory, { force: true, recursive: true })
 fs.mkdirSync(targetDirectory, { recursive: true })
 fs.cpSync(sourceDirectory, targetDirectory, { recursive: true })
@@ -62,5 +77,15 @@ const normalizedIndex = fs
   .replace(/\n[ \t]*\n([ \t]*<\/body>)/g, '\n$1')
 fs.writeFileSync(targetIndex, normalizedIndex)
 
+fs.writeFileSync(
+  path.join(repositoryRoot, 'THIRD_PARTY_NOTICES.md'),
+  thirdPartyNotices,
+)
+fs.writeFileSync(path.join(resourceDirectory, 'LICENSE'), projectLicense)
+fs.writeFileSync(
+  path.join(resourceDirectory, 'THIRD_PARTY_NOTICES.md'),
+  thirdPartyNotices,
+)
+
 generateConfigDefault()
-console.log(`Published NUI to ${targetDirectory}`)
+console.log(`Published NUI and license notices to ${resourceDirectory}`)

@@ -1,58 +1,62 @@
-# Variables
+# Scope and lifetime
 
-## Naming
+Use local bindings unless an API deliberately exposes state. A bare function declaration is
+not automatically file-local. Keep names consistent with the owning resource; the Sky bridge workspace
+uses snake_case locals, PascalCase classes, four spaces and double quotes.
 
-### Name constants using ALL_CAPS
+A closure captures a variable, not a frozen snapshot of its value. Decide whether a callback
+needs the current binding, a request-local snapshot or a stable identifier to re-resolve later.
+Capture FiveM event `source` locally before yielding. Numeric player sources and entity handles
+must not become long-lived identity records across disconnect/recreation.
+
+Represent mutually exclusive workflow phases with one explicit state rather than independent
+booleans that allow impossible combinations. Keep state transitions with their owning module.
+If a table is keyed by a session/player, define cleanup and stale-work rejection at that lifecycle.
+Do not add generic state machinery when existing ownership already handles the case.
+
+## Names, placement and ignored values
+
+Declare a function-local value near its use. Keep long-lived module state and intentional globals
+in a clear owning section; initialize a shared global in one owning file per client/server context
+rather than scattering competing definitions across files. Shared scripts still run separately
+on the client and server.
+
+Where the owning module uses upper-case constants, use a descriptive name such as `MAX_ATTEMPTS`;
+capitalization alone does not prevent reassignment. Lua 5.4's `<const>` makes the binding constant:
 
 ```lua
-local MY_CONSTANT = "constant value"
-MY_GLOBAL_CONSTANT = "another constant value"
-```
+local MAX_ATTEMPTS <const> = 3
+local SETTINGS <const> = { enabled = true }
+SETTINGS.enabled = false -- Legal: the table itself is not frozen.
 
-### camelCase non-constant local variable names
-
-```lua
-local myVariable = "variable value"
-```
-
-### PascalCase non-constant global variable names
-
-```lua
-MyGlobalVariable = "global variable value"
-```
-
-### Use underscore "_" as the name of a variable that cannot be deleted but is unused
-
-```lua
-local function printValues(map)
-    for _, v in pairs(map) do
-        print(v)
-    end
+for _, label in ipairs({ "first", "second" }) do
+    print(label)
 end
 ```
 
-### Enums Vs Booleans
+`_` is an ordinary variable conventionally used for an ignored result, not special discard syntax.
+Follow the resource's naming convention for ordinary locals instead of imposing the archive's
+generic camelCase rule on a snake_case codebase.
 
-Enums should be used to reflect the state of something when more than two options exist. A common anti-pattern is using multiple booleans to reflect the state. This is confusing and problematic, because the code then needs to defend against impossible states, as the combination of booleans is able to represent more states than is desired. It also makes the code more opaque and harder to reason about. What does it mean if isWalking and isRunning are both false? That we don't know? Is the state idle? Or maybe swimming?
+Lua 5.4 also supports `<close>` locals. A non-nil/non-false value must supply `__close`; the scope
+exit calls that metamethod, including when unwinding an error. This is resource-lifetime behavior,
+not a general substitute for the owning asynchronous operation's explicit cleanup policy.
 
-**BAD:**
+## One state for mutually exclusive phases
+
 ```lua
-local isWalking = false
-local isRunning = false
-```
-
-**GOOD:**
-```lua
-local MOVEMENT = {
-    UNKNOWN = 1,
-    WALKING = 2,
-    RUNNING = 3
+local PHASE = {
+    IDLE = "idle",
+    PREPARING = "preparing",
+    COMPLETE = "complete",
 }
-local movementState = MOVEMENT.UNKNOWN
+local phase = PHASE.IDLE
+
+-- A transition changes one state, rather than allowing preparing and complete together.
+phase = PHASE.PREPARING
 ```
 
-Representing the state in an enum this way also makes it easier to modify in the future to add more states. Such as idle, swimming, flying, falling, etc. Adding an UNKNOWN field is useful when the enum isn't exhaustive, as a catch all to represent any other state.
+Use an explicit unknown state only when the model actually permits incomplete information.
+Separate booleans remain appropriate for independent facts that can legitimately hold together.
 
-## Location
-
-Local variables within a function should be declared as close as possible to the place where they are used. This limits what the developer must keep in their head while reading the code. Local variables declared outside of a function should be declared at the top of the file, grouped together. Global variables should be declared at the top of the file grouped together. client/server global variables should only be declared within a single client/server file. This helps keep things organized instead of spreading random globals around the resource.
+[Lua scope and CFX scheduler evidence](reference-links.md).

@@ -6,10 +6,7 @@ function Bridge.PlayerState.Get()
     local status = Bridge.PlayerState.FromData(bag)
     local flags = Bridge.PlayerState.FromData(Bridge.Framework.GetStatusData())
     local ped = PlayerPedId()
-    -- A published Sky medical state (including false on revive) supersedes the
-    -- legacy ESX death-event latch, which may never receive a matching spawn event.
     local legacy_esx_dead = esx_dead and Bridge.Framework.GetName() == "esx"
-        and bag.skyAmbulanceDead == nil
     status.dead = status.dead or flags.dead or legacy_esx_dead or IsEntityDead(ped)
     status.cuffed = status.cuffed or flags.cuffed or IsPedCuffed(ped)
     return status

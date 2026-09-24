@@ -1,6 +1,7 @@
 SkyPhoneCalls = {}
 
 local active_call_payload = nil
+local active_call_updated_at = 0
 local call_channel = 0
 
 local function copy_payload(value)
@@ -83,7 +84,12 @@ function SkyPhoneCalls.GetActive()
     if not active_call_payload then
         return nil
     end
-    return copy_payload(active_call_payload)
+    local payload = copy_payload(active_call_payload)
+    if payload.state == "connected" then
+        local elapsed_ms = (GetGameTimer() - active_call_updated_at) % 4294967296
+        payload.elapsedSeconds = (payload.elapsedSeconds or 0) + math.floor(elapsed_ms / 1000)
+    end
+    return payload
 end
 
 function SkyPhoneCalls.Answer()
@@ -124,7 +130,7 @@ end
 
 function SkyPhoneCalls.ReplayNui()
     if active_call_payload then
-        SendNUIMessage({ type = "call:state", data = active_call_payload })
+        SendNUIMessage({ type = "call:state", data = SkyPhoneCalls.GetActive() })
     end
 end
 
@@ -168,6 +174,7 @@ RegisterNetEvent("sky_phone:call:state", function(data)
     end
     if data.state == "ringing" or data.state == "connected" then
         active_call_payload = data
+        active_call_updated_at = GetGameTimer()
     end
     if data.state ~= "ringing" then
         SkyPhoneFocus.SetCall(false)

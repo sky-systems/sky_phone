@@ -167,6 +167,14 @@ local function new_room(source, data)
     if not profile then return nil end
     local rows = Bridge.Database.Query("SELECT UUID() AS `id`", {})
     if not rows[1] or not valid_id(rows[1].id) then return nil end
+    local title = type(data.title) == "string" and data.title:match("^%s*(.-)%s*$") or ""
+    local description = type(data.description) == "string" and data.description or ""
+    local title_length, description_length = utf8.len(title), utf8.len(description)
+    if #title > 480 or not title_length or title_length > 120 or title_length == 0
+        or #description > 4000 or not description_length or description_length > 1000 then return nil end
+    local adapter = SkyPhoneRealtime.Apps[data.app]
+    local public_profile = adapter.publicProfile and adapter.publicProfile(profile.id, profile.id) or profile
+    -- Profile loading can yield; reserve capacity only after it completes.
     local broadcasts = 0
     for _, room in pairs(rooms) do
         if room.kind == "live" then
@@ -175,13 +183,6 @@ local function new_room(source, data)
         end
     end
     if broadcasts >= Config.Realtime.MaxBroadcasts then return nil end
-    local title = type(data.title) == "string" and data.title:match("^%s*(.-)%s*$") or ""
-    local description = type(data.description) == "string" and data.description or ""
-    local title_length, description_length = utf8.len(title), utf8.len(description)
-    if #title > 480 or not title_length or title_length > 120 or title_length == 0
-        or #description > 4000 or not description_length or description_length > 1000 then return nil end
-    local adapter = SkyPhoneRealtime.Apps[data.app]
-    local public_profile = adapter.publicProfile and adapter.publicProfile(profile.id, profile.id) or profile
     local room = { id = rows[1].id, kind = "live", app = data.app, profileId = profile.id,
         hostAvatar = public_profile and public_profile.avatar_url,
         hostName = profile.display_name or profile.username, title = title, description = description, messages = {}, messageSequence = 0, host = source, members = { [source] = new_member("host") },
