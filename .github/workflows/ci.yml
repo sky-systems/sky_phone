@@ -70,6 +70,9 @@ jobs:
       - name: Test media import URL probes and validation
         run: lua5.4 tests/media_import.lua
 
+      - name: Test SkyPic reactions and configured pagination
+        run: lua5.4 tests/server_skypic.lua
+
       - name: Test service-line routing and call lifecycle
         run: |
           lua5.4 tests/server_calls.lua

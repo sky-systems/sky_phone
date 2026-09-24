@@ -38,7 +38,7 @@ local callback_count = 0
 for _ in pairs(callbacks) do
     callback_count = callback_count + 1
 end
-assert(callback_count == 327, ("expected 327 NUI server callbacks, got %d"):format(callback_count))
+assert(callback_count == 358, ("expected 358 NUI server callbacks, got %d"):format(callback_count))
 for _, required in ipairs({
     "crypto:watch",
     "companies:dial-service-line",
@@ -95,3 +95,24 @@ end)
 assert(last_payload.faceIdAppearance == nil, "Disabling Face ID never needs a scan")
 
 print("Client NUI server bridge tests passed")
+
+-- Every SkyPic endpoint must use the same validating bridge after the client split.
+local sky_pic_callbacks = 0
+for name, callback in pairs(callbacks) do
+    if name:match("^skypic:") then
+        sky_pic_callbacks = sky_pic_callbacks + 1
+        local responses = 0
+        server_result = { success = true, data = { ok = true } }
+        callback({}, function(result)
+            responses = responses + 1
+            assert(result == server_result)
+        end)
+        assert(responses == 1 and last_server_callback == "sky_phone:" .. name)
+        callback(false, function(result)
+            responses = responses + 1
+            assert(not result.success and result.error == "invalid_request")
+        end)
+        assert(responses == 2)
+    end
+end
+assert(sky_pic_callbacks == 31, "all SkyPic callbacks must survive the client module split")

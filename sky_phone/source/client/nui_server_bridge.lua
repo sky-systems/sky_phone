@@ -72,6 +72,15 @@ local callback_groups = {
         block report admin-reports admin-resolve-report
     ]],
     security = [[unlock set-passcode change-passcode disable-passcode face-id-unlock set-face-id]],
+    skypic = [[
+        bootstrap create-profile delete-account update-profile search
+        add-friend respond-friend remove-friend block send-snap
+        open-snap replay-snap publish-story stories view-story
+        story-viewers remove-story spotlight-feed publish-spotlight view-spotlight
+        like-spotlight spotlight-comments comment-spotlight delete-spotlight-comment remove-spotlight
+        report-spotlight thread send-message mark-thread save-message
+        delete-message
+    ]],
     sim = [[insert eject]],
     tones = [[list]],
     ["weazel-news"] = [[context list get manage-list create update delete]],

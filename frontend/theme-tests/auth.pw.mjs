@@ -8,6 +8,7 @@ const authApps = [
   'citymarkt',
   'local-pages',
   'picstagram',
+  'skypic',
   'fliptok',
   'crypto',
   'mail',
@@ -46,6 +47,16 @@ async function check(page, app, state, info) {
       .soft(report.checked.length, `${app}: no measured auth text`)
       .toBeGreaterThan(3)
     expect.soft(report.issues, `${app} ${state} ${mode}`).toEqual([])
+    if (app === 'skypic') {
+      const chrome = await page.evaluate(auditTheme, {
+        selector: '.phone-status-bar',
+        mode,
+        checkPalette: false,
+      })
+      expect
+        .soft(chrome.issues, `${app} ${state} ${mode} status bar`)
+        .toEqual([])
+    }
   }
 }
 
@@ -73,7 +84,11 @@ for (const app of authApps) {
     if (app === 'local-pages')
       await targetApp.getByText('Profile', { exact: true }).click()
     await page.evaluate(async (app) => {
-      if (['feather', 'crewlink', 'citymarkt', 'local-pages'].includes(app)) {
+      if (
+        ['feather', 'crewlink', 'citymarkt', 'local-pages', 'skypic'].includes(
+          app,
+        )
+      ) {
         const { useAppAuthStore } = await import('/src/stores/app-auth.ts')
         useAppAuthStore().sessions[app] = false
       } else if (app === 'picstagram') {
@@ -112,6 +127,7 @@ for (const app of authApps) {
         citymarkt: '.citymarkt-auth',
         'local-pages': '.pages__auth',
         picstagram: '.ps-auth',
+        skypic: '.sp-auth',
         fliptok: '.fliptok-auth',
         crypto: '.auth-panel',
         mail: '.mail-auth',
@@ -120,6 +136,11 @@ for (const app of authApps) {
       }[app],
     )
     await expect(authRoot).toBeVisible()
+    if (app === 'skypic')
+      await authRoot
+        .locator('.sky-segmented')
+        .getByRole('button', { name: 'Login', exact: true })
+        .click()
     await expect(authRoot.locator('input').first()).toBeVisible()
     await check(page, app, 'login-empty', info)
     const fields = window.locator(

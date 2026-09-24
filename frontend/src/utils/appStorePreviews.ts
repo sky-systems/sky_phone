@@ -15,6 +15,7 @@ const APP_STORE_PREVIEW_STYLES = {
   companies: { accent: '#4a92ff', surface: '#0c1728' },
   music: { accent: '#fa3d71', surface: '#240b19' },
   picstagram: { accent: '#e54cff', surface: '#210b27' },
+  skypic: { accent: '#24c7ff', surface: '#070f2b' },
   feather: { accent: '#3c9cff', surface: '#091c2d' },
   fliptok: { accent: '#24f0d2', surface: '#071d1b' },
   flare: { accent: '#ff567f', surface: '#260d18' },

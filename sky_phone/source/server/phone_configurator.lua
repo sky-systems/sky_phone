@@ -74,6 +74,7 @@ local CLIENT_CONFIG_KEYS = {
     Realtime = true,
     Security = true,
     Sim = true,
+    SkyPic = true,
     SkyRide = true,
     Speaker = true,
     TestData = true,

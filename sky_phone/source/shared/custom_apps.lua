@@ -67,6 +67,7 @@ local RESERVED_APP_IDS = {
     phone = true,
     photos = true,
     picstagram = true,
+    skypic = true,
     radio = true,
     settings = true,
     ["sky-flappy"] = true,
