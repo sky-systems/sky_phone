@@ -294,11 +294,21 @@ for _, control in ipairs({ 30, 31, 32, 33, 34, 35 }) do
 end
 assert(firing_disabled, "player attacks must remain disabled during camera passthrough")
 
-local movable_notification = resolve({ allow_movement = true, notification_focus = true })
-assert(
-    movable_notification.focused and not movable_notification.keep_input,
-    "movement configuration must not affect a notification without an open phone"
-)
+for _, allow_movement in ipairs({ false, true }) do
+    local notification = resolve({ allow_movement = allow_movement, notification_focus = true })
+    assert(
+        notification.focused and notification.cursor and notification.keep_input and not notification.block_game,
+        "persistent notifications must remain clickable without blocking movement, regardless of phone configuration"
+    )
+end
+
+for _, claim in ipairs({ "is_open", "payphone_focus", "sim_picker_open", "text_input_focused", "call_focus", "admin_panel_open" }) do
+    local notification = resolve({ notification_focus = true, [claim] = true })
+    assert(
+        notification.block_game and not notification.keep_input,
+        ("notification movement must not override the %s input policy"):format(claim)
+    )
+end
 
 local camera_game_input = resolve({
     camera_active = true,
@@ -481,5 +491,41 @@ SkyPhoneFocus.SetAdminPanel(true)
 assert(frame() == 1, "the configurator must also start input filtering from idle")
 SkyPhoneFocus.Reset()
 assert(frame() == 0, "resource cleanup must stop active input filtering")
+
+for _, allow_movement in ipairs({ false, true }) do
+    Config.Phone.AllowMovement = allow_movement
+    event_handlers["sky_phone:configurator:updated"]()
+    nui_callbacks["notification:focus"]({ active = true }, function(result)
+        assert(result.success, "persistent notification focus must acknowledge the NUI request")
+    end)
+    assert(nui_focus.focused and nui_focus.cursor and nui_keep_input, "CityWarn must retain its cursor and forward game input")
+
+    for _ = 1, 2 do
+        all_controls_disabled = {}
+        disabled_controls = {}
+        firing_disabled = false
+        assert(frame() == 1, "a persistent notification must use one active input worker")
+        assert(next(all_controls_disabled) == nil, "CityWarn must never disable all input groups")
+        assert_phone_radio_controls_blocked()
+        assert(not disabled_controls[30] and not disabled_controls[31], "CityWarn must preserve walking")
+        assert(disabled_controls[24] and firing_disabled, "dismissing CityWarn must not fire a weapon")
+    end
+
+    pressed_controls[19] = true
+    local notification_event_count = #triggered_events
+    for _ = 1, 3 do frame() end
+    assert(nui_focus.cursor, "HoldToLook must leave a closed-phone notification clickable")
+    assert(#triggered_events == notification_event_count, "holding Alt during CityWarn must not repeatedly reapply focus")
+    pressed_controls[19] = false
+
+    nui_callbacks["notification:focus"]({ active = false }, function(result)
+        assert(result.success, "dismissing a persistent notification must acknowledge the NUI request")
+    end)
+    assert(not nui_focus.focused and not nui_focus.cursor and not nui_keep_input, "dismissing CityWarn must release NUI focus")
+    all_controls_disabled = {}
+    disabled_controls = {}
+    assert(frame() == 0, "dismissing the last notification must stop its input worker")
+    assert(next(disabled_controls) == nil and next(all_controls_disabled) == nil, "dismissed CityWarn must release all control filters")
+end
 
 print("Client focus tests passed")
