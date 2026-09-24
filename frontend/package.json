@@ -34,6 +34,7 @@
     "dompurify": "^3.4.13",
     "emoji-picker-element-data": "^1.8.0",
     "fix-webm-duration": "^1.0.6",
+    "html-to-image": "1.11.13",
     "konsta": "~5.2.0",
     "lucide-vue-next": "^0.525.0",
     "pinia": "^3.0.3",

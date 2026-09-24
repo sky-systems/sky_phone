@@ -573,7 +573,9 @@ Locales["it"] = {
                     Radius = "Raggio (metri)",
                 },
                 vehicleKeySystemLabel = "Sistema di chiavi dei veicoli",
+                phoneWorldDisplayLabel = "Duplicazione schermo nelle vicinanze (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Disattivata per impostazione predefinita. Duplica lo schermo del telefono sul modello per i giocatori entro 3 metri nello stesso routing bucket. La disattivazione interrompe subito acquisizione, trasmissione delle immagini e browser DUI. Modelli del telefono e colori della cornice funzionano indipendentemente.",
                     vehicleKeySystem = "auto rileva una risorsa di chiavi attiva; none disattiva la consegna delle chiavi. Seleziona un fornitore se sono attivi più sistemi. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: chiama i dipendenti disponibili uno alla volta. ring_all: chiama tutti i dipendenti disponibili contemporaneamente; il primo che risponde riceve la chiamata. Richiede disponibilità alla chiamata e MinimumGrade; i telefoni occupati o irraggiungibili vengono saltati.",
                     companyCallAttempts = "Numero massimo di tentativi totali per round_robin, incluso il primo dipendente (1-20). Ignorato da ring_all.",

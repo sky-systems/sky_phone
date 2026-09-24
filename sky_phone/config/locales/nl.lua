@@ -573,7 +573,9 @@ Locales["nl"] = {
                     Radius = "Straal (meters)",
                 },
                 vehicleKeySystemLabel = "Voertuigsleutelsysteem",
+                phoneWorldDisplayLabel = "Schermspiegeling voor spelers dichtbij (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Standaard uitgeschakeld. Spiegelt het telefoonscherm op het model voor spelers binnen 3 meter in dezelfde routing bucket. Uitschakelen stopt direct de opname, beeldoverdracht en DUI-browsers. Telefoonmodellen en framekleuren werken onafhankelijk.",
                     vehicleKeySystem = "auto detecteert een actieve sleutelresource; none schakelt sleuteluitgifte uit. Kies een aanbieder als meerdere systemen actief zijn. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: bel alle beschikbare medewerkers één voor één. ring_all: bel alle beschikbare medewerkers tegelijk; degene die als eerste opneemt, krijgt het gesprek. Vereist oproepbeschikbaarheid en MinimumGrade; bezette of onbereikbare telefoons worden overgeslagen.",
                     companyCallAttempts = "Maximaal totaal aantal pogingen voor round_robin, inclusief de eerste werknemer (1-20). Wordt genegeerd door ring_all.",

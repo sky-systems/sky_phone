@@ -293,6 +293,7 @@ function TriggerEvent(name, data)
 end
 
 local prop_exists = false
+local created_prop_model = nil
 local ragdoll = false
 local played_clip = nil
 local hand_targets = {}
@@ -319,11 +320,12 @@ function IsPedSwimming() return false end
 function IsPedSwimmingUnderWater() return false end
 function IsPedInParachuteFreeFall() return false end
 function joaat(value) return value end
+dofile("sky_phone/source/shared/phone_prop.lua")
 function RequestModel() end
 function HasModelLoaded() return true end
 function SetModelAsNoLongerNeeded() end
 function GetGameTimer() return 0 end
-function CreateObject() prop_exists = true; return 99 end
+function CreateObject(model) prop_exists = true; created_prop_model = model; return 99 end
 function SetEntityCollision() end
 function GetPedBoneIndex(_, bone) return bone end
 function AttachEntityToEntity(prop, ped, bone)
@@ -474,3 +476,21 @@ TriggerEvent("sky_phone:animation:reset")
 frames(2)
 assert(not prop_exists and not next(hand_targets), "Reset must release the phone prop and arm tracking")
 print("PASS FaceTime camera/animation integration: base pose, both axes, continuous targets, facing and cleanup")
+
+-- A live Configurator upgrade must replace an already attached legacy model.
+TriggerEvent("sky_phone:animation:phone", true)
+frames(4)
+assert(created_prop_model == "prop_npc_phone_02" and prop_exists)
+Config.Animations.PropModel = "sky_phone_prop"
+TriggerEvent("sky_phone:configurator:updated", 2)
+frames(4)
+assert(created_prop_model == "sky_phone_prop" and SkyPhoneAnimations.GetProp() == 99,
+    "Configurator sync must recreate the active phone with the new prop")
+assert(SkyPhoneProp.Models[created_prop_model], "The replacement must qualify for the DUI display")
+SkyPhoneAnimations.SetFrame("blue")
+frames(4)
+assert(created_prop_model == "sky_phone_prop_blue" and SkyPhoneProp.Models[created_prop_model],
+    "Frame changes must select a DUI-capable color variant after the migration")
+TriggerEvent("sky_phone:animation:phone", false)
+assert(not prop_exists, "Closing the upgraded phone must release its prop")
+print("PASS live Configurator prop replacement and DUI palette eligibility")

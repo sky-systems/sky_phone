@@ -9,6 +9,12 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains the optional default-off nearby phone screen', () => {
+    expect(
+      configuratorDescriptionKey('Animations.WorldDisplayEnabled', false),
+    ).toBe('phoneWorldDisplay')
+  })
+
   it('explains automatic vehicle key detection in Garage', () => {
     expect(configuratorDescriptionKey('Garage.VehicleKeySystem', 'auto')).toBe(
       'vehicleKeySystem',

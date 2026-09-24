@@ -573,7 +573,9 @@ Locales["en"] = {
                     Radius = "Radius (metres)",
                 },
                 vehicleKeySystemLabel = "Vehicle key system",
+                phoneWorldDisplayLabel = "Nearby screen mirroring (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Off by default. Mirrors the phone screen onto the prop for players within 3 meters in the same routing bucket. Disabling immediately stops capture, image transmission and DUI browsers. Phone props and frame colors work independently.",
                     vehicleKeySystem = "auto detects a running key resource; none disables key delivery. Select a provider explicitly if several are running. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: ring available employees one at a time. ring_all: ring all available employees together; the first to answer gets the call. Requires call availability and MinimumGrade; busy or unreachable phones are skipped.",
                     companyCallAttempts = "Maximum total attempts for round_robin, including the first employee (1-20). Ignored by ring_all.",

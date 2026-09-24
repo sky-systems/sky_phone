@@ -573,7 +573,9 @@ Locales["fi"] = {
                     Radius = "Säde (metreinä)",
                 },
                 vehicleKeySystemLabel = "Ajoneuvojen avainjärjestelmä",
+                phoneWorldDisplayLabel = "Näytön peilaus lähistöllä (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Oletuksena pois käytöstä. Peilaa puhelimen näytön malliin pelaajille 3 metrin säteellä samassa routing bucketissa. Poistaminen käytöstä pysäyttää heti kaappauksen, kuvien lähetyksen ja DUI-selaimet. Puhelinmallit ja kehyksen värit toimivat erikseen.",
                     vehicleKeySystem = "auto tunnistaa käynnissä olevan avainresurssin; none poistaa avainten luovutuksen käytöstä. Valitse palveluntarjoaja, jos useita järjestelmiä on käynnissä. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: soita saatavilla oleville työntekijöille yksi kerrallaan. ring_all: soita kaikille saatavilla oleville työntekijöille samanaikaisesti; ensimmäisenä vastaava saa puhelun. Vaatii puhelun saatavuuden ja vähimmäisarvon (MinimumGrade); kiireiset tai tavoittamattomat puhelimet ohitetaan.",
                     companyCallAttempts = "round_robin:n enimmäispäättyneiden yritysten kokonaismäärä, mukaan lukien ensimmäinen työntekijä (1-20). ring_all jättää huomioimatta.",

@@ -573,7 +573,9 @@ Locales["cn"] = {
                     Radius = "半径 (米)",
                 },
                 vehicleKeySystemLabel = "车辆钥匙系统",
+                phoneWorldDisplayLabel = "附近手机屏幕镜像（DUI）",
                 descriptions = {
+                    phoneWorldDisplay = "默认关闭。将手机屏幕镜像到模型上，供同一 Routing-Bucket 内 3 米范围的玩家查看。关闭后立即停止捕获、图像传输和 DUI 浏览器。手机模型和边框颜色可独立使用。",
                     vehicleKeySystem = "auto 自动检测正在运行的钥匙资源；none 禁用钥匙发放。如果同时运行多个系统，请直接选择提供商。 auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: 依次呼叫可用员工。ring_all: 同时呼叫所有可用员工；最先接听者将获得通话。需要具备通话权限和最低等级 (MinimumGrade)；忙碌或无法接通的电话将被跳过。",
                     companyCallAttempts = "round_robin 的最大总尝试次数，包括第一位员工 (1-20)。会被 ring_all 忽略。",

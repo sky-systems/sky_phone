@@ -573,7 +573,9 @@ Locales["se"] = {
                     Radius = "Radie (meter)",
                 },
                 vehicleKeySystemLabel = "System för fordonsnycklar",
+                phoneWorldDisplayLabel = "Skärmspegling för spelare i närheten (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Avstängd som standard. Speglar telefonskärmen på modellen för spelare inom 3 meter i samma routing bucket. Avstängning stoppar omedelbart inspelning, bildöverföring och DUI-webbläsare. Telefonmodeller och ramfärger fungerar oberoende.",
                     vehicleKeySystem = "auto identifierar en aktiv nyckelresurs; none stänger av nyckelutdelningen. Välj en leverantör om flera system körs. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: ringa tillgängliga anställda en i taget. ring_all: ringa alla tillgängliga anställda samtidigt; den som svarar först får samtalet. Kräver samtalstillgänglighet och MinimumGrade; upptagna eller oanträffbara telefoner hoppas över.",
                     companyCallAttempts = "Maximalt antal totala försök för round_robin, inklusive den första anställningen (1-20). Ignoreras av ring_all.",

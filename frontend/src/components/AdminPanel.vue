@@ -435,6 +435,10 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   fieldNames: Object.fromEntries([
     ['Garage.VehicleKeySystem', t('configurator.vehicleKeySystemLabel')],
     [
+      'Animations.WorldDisplayEnabled',
+      t('configurator.phoneWorldDisplayLabel'),
+    ],
+    [
       'Realtime.NearbyMaxSpeakers',
       phone.t('Realtime.settings.NearbyMaxSpeakers'),
     ],

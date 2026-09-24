@@ -99,6 +99,8 @@ jobs:
         run: |
           lua5.4 tests/server_callback_startup.lua
           lua5.4 tests/client_phone_lifecycle.lua
+          lua5.4 tests/server_world_display.lua
+          lua5.4 tests/client_world_display.lua
 
       - name: Test client idle workers and active phone controls
         run: |

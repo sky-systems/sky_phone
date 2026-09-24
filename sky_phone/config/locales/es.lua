@@ -573,7 +573,9 @@ Locales["es"] = {
                     Radius = "Radio (metros)",
                 },
                 vehicleKeySystemLabel = "Sistema de llaves de vehículos",
+                phoneWorldDisplayLabel = "Duplicar pantalla a jugadores cercanos (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Desactivado por defecto. Duplica la pantalla del teléfono sobre el modelo para jugadores a menos de 3 metros en el mismo routing bucket. Al desactivarlo se detienen inmediatamente la captura, la transmisión de imágenes y los navegadores DUI. Los modelos y colores del marco funcionan de forma independiente.",
                     vehicleKeySystem = "auto detecta un recurso de llaves activo; none desactiva la entrega de llaves. Selecciona un proveedor si hay varios activos. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: llamar a los empleados disponibles uno por uno. ring_all: llamar a todos los empleados disponibles a la vez; el primero en responder recibe la llamada. Requiere disponibilidad para llamadas y MinimumGrade; se omiten los teléfonos ocupados o inaccesibles.",
                     companyCallAttempts = "Número máximo de intentos de round_robin, incluido el primer empleado (1-20). Se ignora en ring_all.",

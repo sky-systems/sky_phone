@@ -573,7 +573,9 @@ Locales["cz"] = {
                     Radius = "Poloměr (metry)",
                 },
                 vehicleKeySystemLabel = "Systém klíčů vozidel",
+                phoneWorldDisplayLabel = "Zrcadlení obrazovky v okolí (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "Ve výchozím stavu vypnuto. Zrcadlí obrazovku telefonu na model pro hráče do 3 metrů ve stejném routing bucketu. Vypnutí okamžitě zastaví snímání, přenos obrázků a prohlížeče DUI. Modely telefonů a barvy rámečků fungují nezávisle.",
                     vehicleKeySystem = "auto rozpozná spuštěný systém klíčů; none vypne předávání klíčů. Pokud běží více systémů, vyber konkrétního poskytovatele. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: vyzvánět dostupným zaměstnancům postupně po jednom. ring_all: vyzvánět všem dostupným zaměstnancům současně; hovor získá ten, kdo jej přijme jako první. Vyžaduje dostupnost pro hovory a MinimumGrade; zaneprázdněné nebo nedostupné telefony se přeskočí.",
                     companyCallAttempts = "Maximální celkový počet pokusů pro round_robin, včetně prvního zaměstnance (1-20). Ignorováno u ring_all.",

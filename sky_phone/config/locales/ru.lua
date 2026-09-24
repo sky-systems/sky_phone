@@ -573,7 +573,9 @@ Locales["ru"] = {
                     Radius = "Радиус (метры)",
                 },
                 vehicleKeySystemLabel = "Система ключей от транспорта",
+                phoneWorldDisplayLabel = "Трансляция экрана игрокам рядом (DUI)",
                 descriptions = {
+                    phoneWorldDisplay = "По умолчанию выключена. Отображает экран телефона на модели для игроков в радиусе 3 метров в одном routing bucket. Выключение сразу останавливает захват, передачу изображений и браузеры DUI. Модели телефонов и цвета рамки работают независимо.",
                     vehicleKeySystem = "auto определяет запущенный ресурс ключей; none отключает выдачу ключей. Если запущено несколько систем, выберите нужную вручную. auto, none, qb, qbox, quasar, mrnewb, mk, wasabi, msk, brutal, vehicles_keys, ak47, jc/jota, kiminaze, ic3d, zyke_garages, custom_client, custom_server.",
                     companyCallRouting = "round_robin: звонить доступным сотрудникам по очереди. ring_all: звонить всем доступным сотрудникам одновременно; первый, кто ответит, получит вызов. Требуется наличие возможности вызова и MinimumGrade; занятые или недоступные телефоны пропускаются.",
                     companyCallAttempts = "Максимальное общее количество попыток для round_robin, включая первого сотрудника (1-20). Игнорируется для ring_all.",

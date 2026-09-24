@@ -1301,6 +1301,52 @@ local function apply_stored_row(row)
     updated_by_name = row.updated_by_name
 end
 
+local function migrate_legacy_phone_prop()
+    if not configurator_enabled then return end
+    local migration_name = "sky-phone:configurator:phone-prop:v1"
+    local completed = Bridge.Database.Query(
+        "SELECT 1 FROM `sky_phone_migrations` WHERE `name` = ? LIMIT 1",
+        { migration_name }
+    )
+    if completed[1] then return end
+
+    local row = read_stored_row()
+    local config_payload = decode_payload(row.config_payload, "config")
+    local animations = config_payload.Animations
+    -- Upgrade the previous shipped default without changing custom prop choices
+    -- or calibrated hand transforms. Persist it so the Configurator stays truthful.
+    local migrated = type(animations) == "table" and animations.PropModel == "prop_npc_phone_02"
+    local statements = {}
+    if migrated then
+        animations.PropModel = "sky_phone_prop"
+        statements[#statements + 1] = {
+            query = ([[
+                UPDATE `%s`
+                SET `config_payload` = ?, `revision` = `revision` + 1
+                WHERE `id` = ?
+            ]]):format(TABLE_NAME),
+            params = { encode_payload(config_payload, "config"), CONFIG_ROW_ID },
+        }
+    end
+    statements[#statements + 1] = {
+        query = [[
+            INSERT IGNORE INTO `sky_phone_migrations` (`name`, `source`, `stats`)
+            VALUES (?, ?, ?)
+        ]],
+        params = { migration_name, "sky-phone", json.encode({ migrated = migrated }) },
+    }
+    if not Bridge.Database.Transaction(statements) then
+        error("[sky_phone] Could not migrate the Phone Configurator legacy phone prop.")
+    end
+    if not migrated then return end
+
+    apply_stored_row(read_stored_row())
+    apply_runtime_configuration()
+    TriggerEvent("sky_phone:configurator:serverUpdated", revision)
+    SkyPhoneConfigurator.Broadcast(-1)
+    Bridge.Debug("info", "[sky_phone] Migrated the legacy phone prop to sky_phone_prop.", { always = true })
+end
+
 local function migrate_blank_company_definitions()
     local migration_name = "sky-phone:configurator:company-definition-defaults:v1"
     local completed = Bridge.Database.Query(
@@ -1613,6 +1659,7 @@ Bridge.Database.AfterMigration("sky_phone", migrate_blank_company_definitions)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_request_defaults)
 Bridge.Database.AfterMigration("sky_phone", migrate_police_service_line_messaging)
 Bridge.Database.AfterMigration("sky_phone", migrate_company_service_line_messaging)
+Bridge.Database.AfterMigration("sky_phone", migrate_legacy_phone_prop)
 
 function SkyPhoneConfigurator.GetAdminData()
     local data = build_admin_data()

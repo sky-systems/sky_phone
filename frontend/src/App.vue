@@ -33,6 +33,7 @@ import RadioHud from '@/components/RadioHud.vue'
 import SimPhonePicker, {
   type SimPhoneChoice,
 } from '@/components/SimPhonePicker.vue'
+import { installWorldDisplayCapture } from '@/utils/worldDisplay'
 import { PHONE_FRAME_IMAGES } from '@/config/appearance'
 import { useClockStore } from '@/stores/clock'
 import { useGamesStore } from '@/features/games/store'
@@ -1593,7 +1594,22 @@ function onFocusOut(event: FocusEvent): void {
   )
 }
 
+let removeWorldDisplayCapture: (() => void) | undefined
+watch(
+  () =>
+    [
+      phone.isOpen,
+      phone.device?.imei,
+      phone.preferences.settings.frame,
+    ] as const,
+  ([open, , frame]) => {
+    if (open && window.GetParentResourceName)
+      void nuiCall('worldDisplay:color', { frame })
+  },
+)
 onMounted(() => {
+  if (window.GetParentResourceName)
+    removeWorldDisplayCapture = installWorldDisplayCapture()
   removePhoneAudioController = installPhoneAudioController()
   document.addEventListener('focusin', onFocusIn)
   document.addEventListener('focusout', onFocusOut)
@@ -1813,6 +1829,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  removeWorldDisplayCapture?.()
   removePhoneAudioController?.()
   updateTextInputFocus(false)
   cancelUnlockedPhoneDataLoad()
