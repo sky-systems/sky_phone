@@ -708,7 +708,7 @@ onUnmounted(() => {
     class="crypto-app"
     accent="#31d6aa"
     accent-soft="rgba(49,214,170,.16)"
-    dark
+    :dark="phone.isDarkMode"
   >
     <SkyNavbar
       v-if="authenticated"
@@ -1990,17 +1990,17 @@ onUnmounted(() => {
 .crypto-app {
   --card: #11151b;
   --muted: rgba(225, 234, 240, 0.58);
-  color: #f8fbfd;
+  color: var(--sky-text);
   background:
     radial-gradient(
       circle at 50% -10%,
       rgba(42, 91, 105, 0.25),
       transparent 33%
     ),
-    #05070b;
+    var(--sky-surface);
 }
 .vault-logout-confirm {
-  color: #fff;
+  color: var(--sky-text);
   background: #c4475c;
 }
 .state,
@@ -2057,35 +2057,35 @@ onUnmounted(() => {
 .auth-panel {
   padding: 14px;
   text-align: left;
-  background: #0b1118;
-  border: 1px solid rgba(255, 255, 255, 0.075);
+  background: var(--sky-surface);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 7.5%, transparent);
   border-radius: 22px;
   box-shadow:
     0 20px 46px rgba(0, 0, 0, 0.3),
-    inset 0 1px rgba(255, 255, 255, 0.04);
+    inset 0 1px color-mix(in srgb, var(--sky-text) 4%, transparent);
 }
 .auth-mode {
   min-height: 48px;
   margin-bottom: 14px;
   padding: 3px;
-  background: rgba(255, 255, 255, 0.045);
+  background: color-mix(in srgb, var(--sky-text) 4.5%, transparent);
   border-radius: 14px;
 }
 .auth-mode :deep(.sky-segmented-button) {
   min-height: 42px;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--sky-muted);
   font-size: 13px;
   font-weight: 800;
 }
 .auth-mode :deep(.sky-segmented-button--active) {
-  color: #fff;
+  color: var(--sky-text);
 }
 .auth-form {
   gap: 12px;
 }
 .auth-password-hint {
   margin: -3px 4px 0;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--sky-muted);
   font-size: 11px;
   line-height: 15px;
 }
@@ -2097,7 +2097,7 @@ onUnmounted(() => {
   min-height: 64px;
   margin-bottom: 12px;
   padding: 10px 13px;
-  color: #f8fbfd;
+  color: var(--sky-text);
   background: rgba(101, 251, 210, 0.055);
   border: 1px solid rgba(101, 251, 210, 0.15);
   border-radius: 17px;
@@ -2117,7 +2117,7 @@ onUnmounted(() => {
   min-width: 0;
 }
 .auth-account small {
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--sky-muted);
   font-size: 11px;
   font-weight: 750;
 }
@@ -2135,16 +2135,16 @@ onUnmounted(() => {
   min-height: 68px;
   margin: 0;
   padding: 0 14px;
-  color: #f8fbfd;
-  background: #080d13;
+  color: var(--sky-text);
+  background: var(--sky-surface);
   border-radius: 17px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 3.5%, transparent);
 }
 .auth-field:focus-within {
-  background: #091119;
+  background: var(--sky-surface);
   box-shadow:
     0 0 0 3px rgba(101, 251, 210, 0.06),
-    inset 0 1px rgba(255, 255, 255, 0.05);
+    inset 0 1px color-mix(in srgb, var(--sky-text) 5%, transparent);
 }
 .auth-field :deep(.sky-field__media) {
   display: grid;
@@ -2164,7 +2164,7 @@ onUnmounted(() => {
 }
 .auth-field :deep(.sky-field__label) {
   margin-top: 0;
-  color: rgba(255, 255, 255, 0.56);
+  color: var(--sky-muted);
   font-size: 11px;
   font-weight: 750;
 }
@@ -2180,17 +2180,17 @@ onUnmounted(() => {
 .auth-field :deep(.sky-field__input) {
   height: 33px;
   min-height: 33px;
-  color: #fff;
+  color: var(--sky-text);
   font-size: 16px;
   font-weight: 700;
   line-height: 21px;
 }
 .auth-field :deep(.sky-field__input::placeholder) {
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--sky-muted);
 }
 .auth-field :deep(.sky-field__border) {
   inset: 0;
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: color-mix(in srgb, var(--sky-text) 12%, transparent);
   border-radius: 17px;
 }
 .auth-field:focus-within :deep(.sky-field__border) {
@@ -2204,7 +2204,7 @@ onUnmounted(() => {
   font-weight: 900;
   border: 1px solid rgba(101, 251, 210, 0.48);
   border-radius: 12px;
-  background: var(--vault-mint);
+  background: var(--vault-action);
   box-shadow: none;
 }
 .form {
@@ -2222,11 +2222,11 @@ onUnmounted(() => {
 }
 .success,
 .up {
-  color: #31d6aa !important;
+  color: var(--vault-mint) !important;
 }
 .error,
 .down {
-  color: #ff5c70 !important;
+  color: var(--sky-danger) !important;
 }
 .visibility {
   display: grid;
@@ -2288,7 +2288,7 @@ onUnmounted(() => {
   justify-items: center;
   gap: 6px;
   padding: 0;
-  color: #eef3f5;
+  color: var(--sky-text);
   font-size: 11px;
   background: none;
   border: 0;
@@ -2299,7 +2299,7 @@ onUnmounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 17px;
-  background: #242a33;
+  background: var(--sky-surface);
 }
 .cash {
   display: flex;
@@ -2307,7 +2307,7 @@ onUnmounted(() => {
   gap: 12px;
   margin-bottom: 20px;
   padding: 15px;
-  background: linear-gradient(135deg, #172026, #101419);
+  background: linear-gradient(135deg, var(--sky-surface), var(--sky-surface));
 }
 .cash > svg {
   color: #49e4b2;
@@ -2337,7 +2337,7 @@ onUnmounted(() => {
   place-items: center;
   width: 40px;
   height: 40px;
-  color: #fff;
+  color: var(--sky-text);
   background: none;
   border: 0;
 }
@@ -2352,10 +2352,10 @@ onUnmounted(() => {
   width: 100%;
   margin-bottom: 8px;
   padding: 11px 12px;
-  color: #fff;
+  color: var(--sky-text);
   text-align: left;
   background: var(--card);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 5%, transparent);
   border-radius: 18px;
 }
 .row.static {
@@ -2380,7 +2380,7 @@ onUnmounted(() => {
   width: 38px;
   height: 38px;
   border-radius: 13px;
-  color: #fff;
+  color: var(--sky-text);
   font-weight: 900;
 }
 .activity-icon {
@@ -2410,10 +2410,10 @@ onUnmounted(() => {
   display: grid;
   min-height: 188px;
   padding: 15px;
-  color: #fff;
+  color: var(--sky-text);
   text-align: left;
   background: var(--card);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 5%, transparent);
   border-radius: 21px;
 }
 .market-grid button > small {
@@ -2448,11 +2448,11 @@ onUnmounted(() => {
   align-items: center;
   width: 100%;
   padding: 10px 2px;
-  color: #fff;
+  color: var(--sky-text);
   text-align: left;
   background: none;
   border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid color-mix(in srgb, var(--sky-text) 6%, transparent);
 }
 .movers button span:last-child {
   text-align: right;
@@ -2487,7 +2487,7 @@ onUnmounted(() => {
 }
 .big-chart {
   padding: 7px 0;
-  background: #080b0e;
+  background: var(--sky-surface);
   overflow: hidden;
 }
 .big-chart svg {
@@ -2495,7 +2495,7 @@ onUnmounted(() => {
   height: 180px;
 }
 .detail-chart__grid line {
-  stroke: rgba(255, 255, 255, 0.06);
+  stroke: color-mix(in srgb, var(--sky-text) 6%, transparent);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
@@ -2557,8 +2557,8 @@ onUnmounted(() => {
     transform 160ms ease;
 }
 .periods button.active {
-  color: #fff;
-  background: #252a31;
+  color: var(--sky-text);
+  background: var(--sky-surface);
 }
 @media (prefers-reduced-motion: reduce) {
   .detail-chart {
@@ -2604,7 +2604,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--sky-text) 6%, transparent);
   font-size: 12px;
 }
 .stats div:last-child {
@@ -2678,7 +2678,7 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 10px;
   min-height: 67px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--sky-text) 6%, transparent);
 }
 .settings label > span {
   display: flex;
@@ -2737,7 +2737,7 @@ onUnmounted(() => {
       rgba(51, 219, 176, 0.09),
       transparent 28%
     ),
-    linear-gradient(180deg, #070b11 0%, #030509 74%);
+    linear-gradient(180deg, var(--sky-surface) 0%, var(--sky-surface) 74%);
 }
 .crypto-app::before {
   position: absolute;
@@ -2745,18 +2745,18 @@ onUnmounted(() => {
   pointer-events: none;
   content: '';
   background-image: linear-gradient(
-    rgba(255, 255, 255, 0.018) 1px,
+    color-mix(in srgb, var(--sky-text) 1.8%, transparent) 1px,
     transparent 1px
   );
   background-size: 100% 48px;
   mask-image: linear-gradient(to bottom, #000, transparent 58%);
 }
 .crypto-app :deep(.sky-navbar) {
-  --sky-navbar-glass: #070b11;
+  --sky-navbar-glass: var(--sky-glass-solid);
   z-index: 12;
-  color: #f8fbfd;
-  background: #070b11;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  color: var(--sky-text);
+  background: var(--sky-surface);
+  border-bottom: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
 }
 .crypto-app :deep(.sky-navbar__right) {
   background: transparent;
@@ -2812,7 +2812,7 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 117, 136, 0.25);
   border-radius: var(--sky-radius-pill);
   box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.045),
+    inset 0 1px color-mix(in srgb, var(--sky-text) 4.5%, transparent),
     0 7px 18px rgba(255, 82, 106, 0.09);
   transition:
     color 160ms ease,
@@ -2825,7 +2825,7 @@ onUnmounted(() => {
   color: #ff7588;
 }
 .profile-signout:hover {
-  color: #fff;
+  color: var(--sky-text);
   background: linear-gradient(
     145deg,
     rgba(255, 117, 136, 0.24),
@@ -2865,10 +2865,10 @@ onUnmounted(() => {
   position: relative;
 }
 .crypto-app :deep(.sky-pill-navigation) {
-  --sky-glass-solid: rgba(14, 19, 27, 0.97);
+  --sky-glass-solid: var(--sky-surface);
 }
 .crypto-app :deep(.sky-pill-navigation .sky-segmented-button--active) {
-  color: #fff;
+  color: var(--sky-text);
 }
 .auth-hero__mark {
   display: grid;
@@ -2900,12 +2900,12 @@ onUnmounted(() => {
       rgba(101, 251, 210, 0.16),
       transparent 35%
     ),
-    linear-gradient(145deg, #151d28, #0a0f16 66%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+    linear-gradient(145deg, var(--sky-surface), var(--sky-surface) 66%);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 10%, transparent);
   border-radius: 30px;
   box-shadow:
     0 22px 50px rgba(0, 0, 0, 0.36),
-    inset 0 1px rgba(255, 255, 255, 0.08);
+    inset 0 1px color-mix(in srgb, var(--sky-text) 8%, transparent);
 }
 .portfolio-shell::after {
   position: absolute;
@@ -2915,7 +2915,7 @@ onUnmounted(() => {
   background: linear-gradient(
     112deg,
     transparent 38%,
-    rgba(255, 255, 255, 0.045) 49%,
+    color-mix(in srgb, var(--sky-text) 4.5%, transparent) 49%,
     transparent 60%
   );
 }
@@ -2968,7 +2968,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   padding: 5px 8px;
-  color: #b9c8ff;
+  color: var(--sky-text);
   background: rgba(112, 143, 255, 0.09);
   border: 1px solid rgba(140, 169, 255, 0.18);
   border-radius: var(--sky-radius-pill);
@@ -2979,9 +2979,9 @@ onUnmounted(() => {
   gap: 6px;
   align-items: center;
   padding: 6px 9px;
-  color: rgba(255, 255, 255, 0.76);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--sky-text);
+  background: color-mix(in srgb, var(--sky-text) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 8%, transparent);
   border-radius: var(--sky-radius-pill);
 }
 .live-pill i,
@@ -2989,7 +2989,7 @@ onUnmounted(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--vault-mint);
+  background: var(--vault-action);
   box-shadow: 0 0 9px var(--vault-mint);
 }
 .portfolio-value {
@@ -3044,7 +3044,7 @@ onUnmounted(() => {
   width: 13px;
   height: 2px;
   border-radius: 4px;
-  background: var(--vault-mint);
+  background: var(--vault-action);
 }
 .portfolio-chart__legend i.is-forecast {
   background: repeating-linear-gradient(
@@ -3062,11 +3062,11 @@ onUnmounted(() => {
   vector-effect: non-scaling-stroke;
 }
 .portfolio-chart__grid {
-  stroke: rgba(255, 255, 255, 0.055);
+  stroke: color-mix(in srgb, var(--sky-text) 5.5%, transparent);
   stroke-width: 1;
 }
 .portfolio-chart__zero {
-  stroke: rgba(255, 255, 255, 0.2);
+  stroke: color-mix(in srgb, var(--sky-text) 20%, transparent);
   stroke-width: 1;
   stroke-dasharray: 2 5;
 }
@@ -3111,7 +3111,7 @@ onUnmounted(() => {
   letter-spacing: 0.01em;
 }
 .portfolio-scale-label {
-  fill: rgba(255, 255, 255, 0.46);
+  fill: color-mix(in srgb, var(--sky-text) 46%, transparent);
   font-size: 9px;
   font-weight: 700;
 }
@@ -3120,7 +3120,7 @@ onUnmounted(() => {
   z-index: 1;
   justify-content: space-around;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
 }
 .portfolio-metrics div {
   display: grid;
@@ -3140,7 +3140,7 @@ onUnmounted(() => {
 .portfolio-metrics > i {
   width: 1px;
   height: 27px;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--sky-text) 8%, transparent);
 }
 .quick {
   gap: 8px;
@@ -3154,12 +3154,12 @@ onUnmounted(() => {
   padding: 11px 5px;
   background: linear-gradient(
     160deg,
-    rgba(30, 39, 51, 0.94),
-    rgba(12, 17, 24, 0.94)
+    color-mix(in srgb, var(--sky-surface) 94%, transparent),
+    color-mix(in srgb, var(--sky-surface) 94%, transparent)
   );
-  border: 1px solid rgba(255, 255, 255, 0.075);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 7.5%, transparent);
   border-radius: 19px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.045);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 4.5%, transparent);
   transition:
     transform 180ms ease,
     background 180ms ease,
@@ -3198,14 +3198,14 @@ onUnmounted(() => {
   .quick button:hover {
     background: linear-gradient(
       160deg,
-      rgba(37, 52, 64, 0.98),
-      rgba(15, 23, 31, 0.98)
+      color-mix(in srgb, var(--sky-surface) 98%, transparent),
+      color-mix(in srgb, var(--sky-surface) 98%, transparent)
     );
     border-color: rgba(101, 251, 210, 0.28);
     box-shadow:
       0 14px 26px rgba(0, 0, 0, 0.3),
       0 0 20px rgba(101, 251, 210, 0.06),
-      inset 0 1px rgba(255, 255, 255, 0.08);
+      inset 0 1px color-mix(in srgb, var(--sky-text) 8%, transparent);
     transform: translateY(-3px);
   }
   .quick button:hover span {
@@ -3220,10 +3220,10 @@ onUnmounted(() => {
   padding: 14px;
   background: linear-gradient(
     125deg,
-    rgba(21, 29, 39, 0.98),
-    rgba(12, 17, 23, 0.98)
+    color-mix(in srgb, var(--sky-surface) 98%, transparent),
+    color-mix(in srgb, var(--sky-surface) 98%, transparent)
   );
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
 }
 .allocation-copy {
   gap: 10px;
@@ -3259,7 +3259,7 @@ onUnmounted(() => {
   height: 4px;
   margin-top: 11px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.07);
+  background: color-mix(in srgb, var(--sky-text) 7%, transparent);
   border-radius: var(--sky-radius-pill);
 }
 .allocation-track i,
@@ -3275,12 +3275,12 @@ onUnmounted(() => {
   padding: 12px;
   background: linear-gradient(
     145deg,
-    rgba(19, 26, 35, 0.97),
-    rgba(10, 14, 20, 0.97)
+    color-mix(in srgb, var(--sky-surface) 97%, transparent),
+    color-mix(in srgb, var(--sky-surface) 97%, transparent)
   );
-  border-color: rgba(255, 255, 255, 0.07);
+  border-color: color-mix(in srgb, var(--sky-text) 7%, transparent);
   border-radius: 20px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 3.5%, transparent);
 }
 .asset-allocation {
   width: 72px;
@@ -3293,7 +3293,7 @@ onUnmounted(() => {
   margin-bottom: 20px;
   padding: 16px;
   overflow: hidden;
-  color: #fff;
+  color: var(--sky-text);
   text-align: left;
   background:
     radial-gradient(
@@ -3301,12 +3301,12 @@ onUnmounted(() => {
       rgba(101, 251, 210, 0.16),
       transparent 28%
     ),
-    linear-gradient(145deg, #18212d, #0a0f16 68%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+    linear-gradient(145deg, var(--sky-surface), var(--sky-surface) 68%);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 10%, transparent);
   border-radius: 26px;
   box-shadow:
     0 20px 45px rgba(0, 0, 0, 0.28),
-    inset 0 1px rgba(255, 255, 255, 0.07);
+    inset 0 1px color-mix(in srgb, var(--sky-text) 7%, transparent);
 }
 .featured-market__top {
   gap: 11px;
@@ -3356,8 +3356,8 @@ onUnmounted(() => {
   flex: 1;
   gap: 2px;
   padding: 9px 10px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--sky-text) 4.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 5%, transparent);
   border-radius: 12px;
 }
 .featured-market__stats small {
@@ -3380,8 +3380,8 @@ onUnmounted(() => {
   padding: 14px;
   background: linear-gradient(
     145deg,
-    rgba(19, 26, 35, 0.96),
-    rgba(10, 14, 20, 0.96)
+    color-mix(in srgb, var(--sky-surface) 96%, transparent),
+    color-mix(in srgb, var(--sky-surface) 96%, transparent)
   );
   border-radius: 20px;
 }
@@ -3429,7 +3429,7 @@ onUnmounted(() => {
     135deg,
     rgba(101, 251, 210, 0.3),
     rgba(104, 167, 255, 0.17) 48%,
-    rgba(255, 255, 255, 0.06)
+    color-mix(in srgb, var(--sky-text) 6%, transparent)
   );
   border-radius: 29px;
   box-shadow: 0 20px 46px rgba(0, 0, 0, 0.32);
@@ -3455,10 +3455,10 @@ onUnmounted(() => {
       rgba(104, 167, 255, 0.16),
       transparent 42%
     ),
-    linear-gradient(145deg, #18232f, #0b1119 68%);
+    linear-gradient(145deg, var(--sky-surface), var(--sky-surface) 68%);
   border: 0;
   border-radius: 28px 28px 18px 18px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 8%, transparent);
 }
 .activity-dashboard::after {
   position: absolute;
@@ -3468,7 +3468,7 @@ onUnmounted(() => {
   background: linear-gradient(
     118deg,
     transparent 32%,
-    rgba(255, 255, 255, 0.04) 48%,
+    color-mix(in srgb, var(--sky-text) 4%, transparent) 48%,
     transparent 64%
   );
 }
@@ -3482,7 +3482,7 @@ onUnmounted(() => {
   display: flex;
   gap: 6px;
   align-items: center;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--sky-muted);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -3499,16 +3499,16 @@ onUnmounted(() => {
   align-items: center;
   justify-self: start;
   padding: 5px 8px;
-  color: rgba(255, 255, 255, 0.68) !important;
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid rgba(255, 255, 255, 0.065);
+  color: var(--sky-muted) !important;
+  background: color-mix(in srgb, var(--sky-text) 5.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 6.5%, transparent);
   border-radius: var(--sky-radius-pill);
 }
 .activity-trade-count i {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--vault-mint);
+  background: var(--vault-action);
   box-shadow: 0 0 8px rgba(101, 251, 210, 0.68);
 }
 .activity-status {
@@ -3524,12 +3524,12 @@ onUnmounted(() => {
   background: linear-gradient(
     145deg,
     rgba(101, 251, 210, 0.13),
-    rgba(8, 17, 24, 0.7)
+    color-mix(in srgb, var(--sky-surface) 70%, transparent)
   );
   border: 1px solid rgba(101, 251, 210, 0.18);
   border-radius: 17px;
   box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 1px color-mix(in srgb, var(--sky-text) 7%, transparent),
     0 10px 24px rgba(0, 0, 0, 0.18);
 }
 .activity-status__icon {
@@ -3551,8 +3551,8 @@ onUnmounted(() => {
 }
 .activity-filter-panel {
   padding: 8px;
-  background: linear-gradient(180deg, #0b1118, #080d13);
-  border-top: 1px solid rgba(255, 255, 255, 0.055);
+  background: linear-gradient(180deg, var(--sky-surface), var(--sky-surface));
+  border-top: 1px solid color-mix(in srgb, var(--sky-text) 5.5%, transparent);
   border-radius: 0 0 28px 28px;
 }
 .activity-filters {
@@ -3561,10 +3561,10 @@ onUnmounted(() => {
   min-height: 50px;
   gap: 4px;
   padding: 3px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.055);
+  background: color-mix(in srgb, var(--sky-text) 4.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 5.5%, transparent);
   border-radius: 17px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 3.5%, transparent);
 }
 :deep(.activity-filters.sky-segmented--strong .sky-segmented__highlight) {
   top: 3px;
@@ -3578,7 +3578,7 @@ onUnmounted(() => {
   border: 1px solid rgba(101, 251, 210, 0.35);
   border-radius: 13px;
   box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 1px color-mix(in srgb, var(--sky-text) 8%, transparent),
     0 7px 18px rgba(0, 0, 0, 0.22);
 }
 .activity-filters :deep(.sky-segmented-button) {
@@ -3587,7 +3587,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 0 7px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--sky-muted);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -3612,7 +3612,7 @@ onUnmounted(() => {
   flex: 0 0 auto;
 }
 :deep(.activity-filters.sky-segmented--strong .sky-segmented-button--active) {
-  color: #fff;
+  color: var(--sky-text);
 }
 .activity-filters :deep(.sky-segmented-button:active:not(:disabled)) {
   transform: scale(0.98);
@@ -3628,8 +3628,8 @@ onUnmounted(() => {
   overflow: visible;
   background: linear-gradient(
     145deg,
-    rgba(19, 26, 35, 0.95),
-    rgba(9, 13, 18, 0.95)
+    color-mix(in srgb, var(--sky-surface) 95%, transparent),
+    color-mix(in srgb, var(--sky-surface) 95%, transparent)
   );
 }
 .activity-row::before {
@@ -3639,7 +3639,7 @@ onUnmounted(() => {
   left: -11px;
   width: 1px;
   content: '';
-  background: rgba(255, 255, 255, 0.09);
+  background: color-mix(in srgb, var(--sky-text) 9%, transparent);
 }
 .timeline-dot {
   position: absolute;
@@ -3649,7 +3649,7 @@ onUnmounted(() => {
   height: 7px;
   border: 2px solid #070b11;
   border-radius: 50%;
-  background: var(--vault-mint);
+  background: var(--vault-action);
   box-shadow: 0 0 7px var(--vault-mint);
 }
 .activity-icon--withdrawal {
@@ -3676,12 +3676,12 @@ onUnmounted(() => {
       rgba(101, 251, 210, 0.2),
       transparent 30%
     ),
-    linear-gradient(145deg, #1a2532, #0b1119 70%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+    linear-gradient(145deg, var(--sky-surface), var(--sky-surface) 70%);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 12%, transparent);
   border-radius: 29px;
   box-shadow:
     0 22px 55px rgba(0, 0, 0, 0.35),
-    inset 0 1px rgba(255, 255, 255, 0.08);
+    inset 0 1px color-mix(in srgb, var(--sky-text) 8%, transparent);
 }
 .profile-card__mesh {
   position: absolute;
@@ -3689,11 +3689,11 @@ onUnmounted(() => {
   bottom: -50px;
   width: 190px;
   height: 190px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 5%, transparent);
   border-radius: 50%;
   box-shadow:
-    inset 0 0 0 24px rgba(255, 255, 255, 0.015),
-    inset 0 0 0 48px rgba(255, 255, 255, 0.012);
+    inset 0 0 0 24px color-mix(in srgb, var(--sky-text) 1.5%, transparent),
+    inset 0 0 0 48px color-mix(in srgb, var(--sky-text) 1.2%, transparent);
 }
 .profile-card__top {
   position: relative;
@@ -3710,7 +3710,7 @@ onUnmounted(() => {
   font-size: 17px;
   font-weight: 900;
   background: linear-gradient(145deg, #b8ffea, #4b94ff);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 55%, transparent);
   border-radius: 19px;
   box-shadow: 0 12px 30px rgba(101, 251, 210, 0.18);
 }
@@ -3755,10 +3755,10 @@ onUnmounted(() => {
   min-height: 36px;
   flex: 0 0 auto;
   padding: 0 12px;
-  color: #fff;
+  color: var(--sky-text);
   background: rgba(101, 251, 210, 0.1);
   border: 1px solid rgba(101, 251, 210, 0.2);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 6%, transparent);
 }
 .profile-card__id {
   position: relative;
@@ -3766,7 +3766,7 @@ onUnmounted(() => {
   grid-template-columns: 1fr auto;
   margin-top: 20px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid color-mix(in srgb, var(--sky-text) 8%, transparent);
 }
 .profile-card__id small {
   color: var(--muted);
@@ -3782,7 +3782,7 @@ onUnmounted(() => {
 .profile-card__id svg {
   grid-column: 2;
   grid-row: 1 / span 2;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--sky-muted);
 }
 .wallet-key-card {
   display: grid;
@@ -3795,7 +3795,7 @@ onUnmounted(() => {
       rgba(101, 251, 210, 0.14),
       transparent 36%
     ),
-    linear-gradient(145deg, #151e28, #0a1017);
+    linear-gradient(145deg, var(--sky-surface), var(--sky-surface));
   border: 1px solid rgba(101, 251, 210, 0.13);
   border-radius: 19px;
 }
@@ -3862,8 +3862,8 @@ onUnmounted(() => {
 .profile-stats--premium div {
   min-height: 66px;
   align-content: center;
-  background: linear-gradient(145deg, #151c25, #0b1016);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(145deg, var(--sky-surface), var(--sky-surface));
+  border: 1px solid color-mix(in srgb, var(--sky-text) 6%, transparent);
 }
 .profile-feedback {
   margin: 10px 3px 0;
@@ -3927,11 +3927,11 @@ onUnmounted(() => {
 .movers {
   background: linear-gradient(
     145deg,
-    rgba(20, 27, 36, 0.97),
-    rgba(9, 13, 18, 0.97)
+    color-mix(in srgb, var(--sky-surface) 97%, transparent),
+    color-mix(in srgb, var(--sky-surface) 97%, transparent)
   );
-  border: 1px solid rgba(255, 255, 255, 0.065);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 6.5%, transparent);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 3.5%, transparent);
 }
 .settings label > span > svg {
   color: var(--vault-mint);
@@ -3959,26 +3959,33 @@ onUnmounted(() => {
 }
 .big-chart {
   background:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(145deg, #101720, #070b10);
+    linear-gradient(
+      color-mix(in srgb, var(--sky-text) 2.5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--sky-text) 2.5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(145deg, var(--sky-surface), var(--sky-surface));
   background-size:
     100% 40px,
     53px 100%,
     auto;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
   border-radius: 24px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
 }
 .periods {
   margin: 0 7px 7px;
   padding: 4px;
-  background: rgba(255, 255, 255, 0.035);
+  background: color-mix(in srgb, var(--sky-text) 3.5%, transparent);
   border-radius: 14px;
 }
 .periods button.active {
   color: #07100e;
-  background: var(--vault-mint);
+  background: var(--vault-action);
   box-shadow: 0 5px 18px rgba(101, 251, 210, 0.18);
 }
 .vault-detail-scroll {
@@ -3993,12 +4000,12 @@ onUnmounted(() => {
   left: calc(var(--sky-page-gutter) + var(--sky-safe-area-left));
   z-index: 11;
   padding: 6px;
-  background: #080d13;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--sky-surface);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 10%, transparent);
   border-radius: 23px;
   box-shadow:
     0 18px 46px rgba(0, 0, 0, 0.62),
-    inset 0 1px rgba(255, 255, 255, 0.06);
+    inset 0 1px color-mix(in srgb, var(--sky-text) 6%, transparent);
 }
 .detail-trade-action {
   min-width: 0;
@@ -4014,7 +4021,7 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   flex: 0 0 auto;
-  background: rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, var(--sky-text) 14%, transparent);
   border-radius: 11px;
 }
 .detail-trade-action > span:last-child {
@@ -4028,7 +4035,7 @@ onUnmounted(() => {
 }
 .detail-trade-action small {
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--sky-muted);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4038,7 +4045,7 @@ onUnmounted(() => {
   box-shadow: none;
 }
 .detail-trade-action--sell {
-  background: #202630;
+  background: var(--sky-surface);
   border: 1px solid rgba(255, 117, 136, 0.22);
   box-shadow: none;
 }
@@ -4058,15 +4065,15 @@ onUnmounted(() => {
 .crypto-app :deep(.sky-sheet__panel) {
   max-height: calc(100% - var(--sky-safe-area-top) - 20px);
   overflow-y: auto;
-  color: #f8fbfd;
+  color: var(--sky-text);
   background:
     radial-gradient(
       circle at 92% 0%,
       rgba(101, 251, 210, 0.1),
       transparent 27%
     ),
-    #0d1219;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+    var(--sky-surface);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 9%, transparent);
   border-bottom: 0;
   border-radius: 28px 28px 0 0;
   box-shadow: 0 -22px 70px rgba(0, 0, 0, 0.52);
@@ -4075,7 +4082,7 @@ onUnmounted(() => {
   background: transparent;
 }
 .crypto-app :deep(.sky-sheet__grabber::after) {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--sky-text) 20%, transparent);
 }
 .sheet {
   background: transparent;
@@ -4091,7 +4098,7 @@ onUnmounted(() => {
   justify-content: flex-start;
   gap: 12px;
   padding: 0 2px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
 }
 .sheet-heading {
   width: 100%;
@@ -4125,7 +4132,7 @@ onUnmounted(() => {
   font-size: 15px;
   font-weight: 900;
   background: linear-gradient(145deg, var(--vault-mint), var(--vault-blue));
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 20%, transparent);
   border-radius: 14px;
   box-shadow: 0 9px 24px rgba(101, 251, 210, 0.12);
 }
@@ -4149,10 +4156,10 @@ onUnmounted(() => {
       rgba(101, 251, 210, 0.14),
       transparent 42%
     ),
-    linear-gradient(145deg, #17212c, #0b1016);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+    linear-gradient(145deg, var(--sky-surface), var(--sky-surface));
+  border: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
   border-radius: 19px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.045);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 4.5%, transparent);
 }
 .sheet-market-summary span {
   display: grid;
@@ -4181,14 +4188,14 @@ onUnmounted(() => {
 .trade-side-selector {
   min-height: 50px;
   padding: 3px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--sky-text) 4.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 6%, transparent);
   border-radius: 17px;
 }
 .trade-side-selector :deep(.sky-segmented-button) {
   min-height: 42px;
   gap: 7px;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--sky-muted);
   font-size: 12px;
   font-weight: 800;
   border-radius: 13px;
@@ -4208,14 +4215,14 @@ onUnmounted(() => {
 :deep(
   .trade-side-selector.sky-segmented--strong .sky-segmented-button--active
 ) {
-  color: #fff;
+  color: var(--sky-text);
 }
 .trade-entry-card {
   display: grid;
   gap: 10px;
   padding: 12px;
-  background: linear-gradient(145deg, #131b24, #0a0f15);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(145deg, var(--sky-surface), var(--sky-surface));
+  border: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
   border-radius: 19px;
 }
 .trade-entry-meta {
@@ -4228,8 +4235,8 @@ onUnmounted(() => {
   gap: 2px;
   min-width: 0;
   padding: 9px 10px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--sky-text) 3.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 4%, transparent);
   border-radius: 12px;
 }
 .trade-entry-meta small {
@@ -4260,7 +4267,7 @@ onUnmounted(() => {
   gap: 2px;
 }
 .trade-protection b {
-  color: #f8fbfd;
+  color: var(--sky-text);
   font-size: 11px;
 }
 .trade-protection small {
@@ -4376,14 +4383,14 @@ onUnmounted(() => {
   gap: 7px;
   align-items: center;
   padding: 8px;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--sky-muted);
   text-align: left;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--sky-text) 3.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 6%, transparent);
   border-radius: 14px;
 }
 .transfer-assets button.active {
-  color: #fff;
+  color: var(--sky-text);
   background: rgba(101, 251, 210, 0.09);
   border-color: rgba(101, 251, 210, 0.27);
 }
@@ -4409,14 +4416,14 @@ onUnmounted(() => {
   font-size: 10px;
 }
 .transfer-balance b {
-  color: #fff;
+  color: var(--sky-text);
 }
 .transfer-submit {
   min-height: 52px;
   gap: 8px;
   color: #06110e;
   font-weight: 900;
-  background: var(--vault-mint);
+  background: var(--vault-action);
   border-radius: 16px;
   box-shadow: none;
 }
@@ -4444,10 +4451,10 @@ onUnmounted(() => {
       rgba(101, 251, 210, 0.08),
       transparent 52%
     ),
-    rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.065);
+    color-mix(in srgb, var(--sky-text) 2.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sky-text) 6.5%, transparent);
   border-radius: 16px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 3.5%, transparent);
 }
 .settlement-intro > span {
   display: grid;
@@ -4474,18 +4481,24 @@ onUnmounted(() => {
   min-height: 64px;
   margin: 0;
   padding: 0 15px;
-  color: #f8fbfd;
+  color: var(--sky-text);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent), #090f16;
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--sky-text) 4.5%, transparent),
+      transparent
+    ),
+    var(--sky-surface);
   border-radius: 17px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 4%, transparent);
 }
 .sheet-field:focus-within {
   background:
-    linear-gradient(145deg, rgba(101, 251, 210, 0.07), transparent), #090f16;
+    linear-gradient(145deg, rgba(101, 251, 210, 0.07), transparent),
+    var(--sky-surface);
   box-shadow:
     0 0 0 3px rgba(101, 251, 210, 0.065),
-    inset 0 1px rgba(255, 255, 255, 0.05);
+    inset 0 1px color-mix(in srgb, var(--sky-text) 5%, transparent);
 }
 .sheet-field :deep(.sky-field__media) {
   display: grid;
@@ -4505,7 +4518,7 @@ onUnmounted(() => {
 }
 .sheet-field :deep(.sky-field__label) {
   margin-top: 0;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--sky-muted);
   font-size: 10px;
   font-weight: 750;
 }
@@ -4521,17 +4534,17 @@ onUnmounted(() => {
 .sheet-field :deep(.sky-field__input) {
   height: 31px;
   min-height: 31px;
-  color: #fff;
+  color: var(--sky-text);
   font-size: 15px;
   font-weight: 700;
   line-height: 21px;
 }
 .sheet-field :deep(.sky-field__input::placeholder) {
-  color: rgba(255, 255, 255, 0.24);
+  color: var(--sky-muted);
 }
 .sheet-field :deep(.sky-field__border) {
   inset: 0;
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: color-mix(in srgb, var(--sky-text) 12%, transparent);
   border-radius: 17px;
 }
 .sheet-field:focus-within :deep(.sky-field__border) {
@@ -4549,7 +4562,7 @@ onUnmounted(() => {
   color: #06110e;
   font-size: 13px;
   font-weight: 900;
-  background: var(--vault-mint);
+  background: var(--vault-action);
   border: 1px solid rgba(101, 251, 210, 0.48);
   border-radius: 17px;
   box-shadow: none;
@@ -4585,7 +4598,7 @@ onUnmounted(() => {
   gap: 9px;
   align-items: flex-start;
   padding: 11px 12px;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--sky-muted);
   font-size: 11px;
   line-height: 1.4;
   background: rgba(101, 251, 210, 0.06);
@@ -4602,7 +4615,7 @@ onUnmounted(() => {
   color: #06110e;
   font-size: 13px;
   font-weight: 900;
-  background: var(--vault-mint);
+  background: var(--vault-action);
   border: 1px solid rgba(101, 251, 210, 0.48);
   border-radius: 16px;
   box-shadow: none;
@@ -4615,16 +4628,16 @@ onUnmounted(() => {
   display: grid;
   gap: 0;
   padding: 13px;
-  background: linear-gradient(145deg, #151d27, #0c1117);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(145deg, var(--sky-surface), var(--sky-surface));
+  border: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
   border-radius: 18px;
 }
 .quote-heading {
   align-items: center;
   margin-bottom: 8px;
   padding: 0 0 11px !important;
-  color: #f8fbfd !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  color: var(--sky-text) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
 }
 .quote-heading > span {
   display: grid;
@@ -4646,14 +4659,14 @@ onUnmounted(() => {
 .quote > div:nth-last-of-type(1) {
   margin-top: 4px;
   padding-top: 10px;
-  color: #f8fbfd;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: var(--sky-text);
+  border-top: 1px solid color-mix(in srgb, var(--sky-text) 7%, transparent);
 }
 .quote-expiry {
   margin-top: 8px;
   padding: 8px 9px;
   line-height: 1.35;
-  background: rgba(255, 255, 255, 0.035);
+  background: color-mix(in srgb, var(--sky-text) 3.5%, transparent);
   border-radius: 10px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -4670,5 +4683,16 @@ onUnmounted(() => {
 .phone-app--performance .activity-overview,
 .phone-app--performance .activity-status {
   box-shadow: none;
+}
+.crypto-app {
+  --card: var(--sky-surface);
+  --card-strong: var(--sky-surface-variant);
+  --muted: var(--sky-muted);
+  --vault-action: #65fbd2;
+  color: var(--sky-text);
+}
+.crypto-app:not(.sky-app-page--dark) {
+  --vault-mint: #087a58;
+  --vault-blue: #246abe;
 }
 </style>

@@ -247,7 +247,7 @@ onBeforeUnmount(() => {
     class="billing-app native-app"
     :label="t('name')"
     :dark="phone.isDarkMode"
-    accent="#1784ff"
+    :accent="phone.isDarkMode ? '#1784ff' : '#006ad6'"
     accent-soft="rgba(23, 132, 255, 0.16)"
     :class="{
       'billing-app--light': !phone.isDarkMode,
@@ -888,7 +888,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #929ba7;
+  color: var(--sky-muted);
 }
 .billing-loading--list {
   min-height: 180px;
@@ -910,7 +910,7 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, var(--billing-panel) 90%, transparent);
 }
 .billing-summary__item span {
-  color: #929ba7;
+  color: var(--sky-muted);
   font-size: 10px;
 }
 .billing-summary__item strong {
@@ -1027,7 +1027,7 @@ onBeforeUnmount(() => {
 .billing-invoice-card__copy small {
   margin-top: 3px;
   overflow: hidden;
-  color: #8d96a1;
+  color: var(--sky-muted);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1527,5 +1527,12 @@ onBeforeUnmount(() => {
 }
 .billing-notification {
   z-index: 50;
+}
+.billing-app--light .billing-navbar__brand,
+.billing-app--light .billing-status--overdue {
+  color: #c93028;
+}
+.billing-app--light .billing-status--open {
+  color: #0768c5;
 }
 </style>

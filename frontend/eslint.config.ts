@@ -8,7 +8,14 @@ import pluginVue from 'eslint-plugin-vue'
 
 export default defineConfigWithVueTs(
   { files: ['**/*.{ts,mts,tsx,vue}'], name: 'app/files-to-lint' },
-  globalIgnores(['**/.vite/**', '**/dist/**', 'testserver/**', 'build.cjs']),
+  globalIgnores([
+    '**/.vite/**',
+    '**/dist/**',
+    'testserver/**',
+    'theme-test-results/**',
+    'playwright-report/**',
+    'build.cjs',
+  ]),
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
   {

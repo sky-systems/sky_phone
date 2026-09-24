@@ -405,6 +405,14 @@ Bridge.Callbacks.Register("sky_phone:gallery:list", function(source, data)
         condition = condition .. " AND `media_type` = ?"
         params[#params + 1] = media_type
     end
+    if data.id ~= nil then
+        local media_id = tonumber(data.id)
+        if not media_id or media_id < 1 or media_id ~= math.floor(media_id) then
+            return { success = false, error = "invalid_request" }
+        end
+        condition = condition .. " AND `id` = ?"
+        params[#params + 1] = media_id
+    end
     if data.favoriteOnly == true then
         condition = condition .. " AND `favorite` = 1"
     end

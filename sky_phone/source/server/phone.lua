@@ -70,6 +70,20 @@ function SkyPhone.GetDisabledApps()
 end
 
 local sessions = {}
+local function player_blocked(source)
+    return Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(source)
+end
+AddEventHandler("sky_phone:player:restricted", function(source)
+    pending_phone_opens[source] = nil
+    sessions[source] = nil
+    SkyPhoneCompanies.ClearCallAvailability(source)
+end)
+CreateThread(function()
+    while true do
+        Wait(500)
+        for source in pairs(sessions) do Bridge.PlayerState.Check(source) end
+    end
+end)
 local preferred_device_imeis = {}
 local equipped_phone_numbers = {}
 local equipped_phone_identifiers = {}
@@ -746,6 +760,8 @@ function SkyPhone.FormatNumber(phone_number)
 end
 
 function SkyPhone.RequireDeviceSession(source)
+    local reason = player_blocked(source)
+    if reason then return nil, { success = false, error = reason } end
     local session = sessions[source]
     if not session then
         return nil, { success = false, error = "device_not_open" }
@@ -969,6 +985,12 @@ local function perform_phone_open(source, used_item)
         tostring(GetGameTimer() - opened_at),
         { always = true }
     )
+    local blocked = player_blocked(source)
+    if blocked then
+        sessions[source] = nil
+        TriggerClientEvent("sky_phone:device:error", source, blocked)
+        return false, blocked
+    end
     if not send_device_snapshot("sky_phone:device:open", source, payload) then
         return false, "request_failed"
     end
@@ -976,6 +998,11 @@ local function perform_phone_open(source, used_item)
 end
 
 local function open_phone(source, used_item)
+    local reason = player_blocked(source)
+    if reason then
+        TriggerClientEvent("sky_phone:device:error", source, reason)
+        return false, reason
+    end
     if phone_open_in_progress[source] then
         TriggerClientEvent("sky_phone:device:error", source, "operation_in_progress")
         return false, "operation_in_progress"
@@ -1011,6 +1038,7 @@ phone_open_handler = open_phone
 flush_pending_phone_opens()
 
 function SkyPhone.OpenDeviceForCall(source, imei)
+    if player_blocked(source) then return false end
     local matches = find_device_slots(source, imei)
     if not matches[1] then
         Bridge.Debug("warn", "[sky_phone] Could not open ringing device %s for source %s.", tostring(imei), tostring(source))
@@ -1042,6 +1070,12 @@ function SkyPhone.OpenDeviceForCall(source, imei)
             tostring(type(bootstrap_error) == "table" and bootstrap_error.error or "request_failed")
         )
         return false
+    end
+    local blocked = player_blocked(source)
+    if blocked then
+        sessions[source] = nil
+        TriggerClientEvent("sky_phone:device:error", source, blocked)
+        return false, blocked
     end
     return send_device_snapshot("sky_phone:device:open", source, payload)
 end

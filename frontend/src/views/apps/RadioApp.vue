@@ -236,7 +236,7 @@ onBeforeUnmount(() => {
 <template>
   <SkyAppPage
     class="radio-app"
-    accent="#0a84ff"
+    :accent="phone.isDarkMode ? '#0a84ff' : '#0074e8'"
     accent-soft="rgba(10, 132, 255, 0.16)"
     :dark="phone.isDarkMode"
     :label="phone.t('Apps.radio.name')"

@@ -38,12 +38,16 @@ local callback_count = 0
 for _ in pairs(callbacks) do
     callback_count = callback_count + 1
 end
-assert(callback_count == 314, ("expected 314 NUI server callbacks, got %d"):format(callback_count))
+assert(callback_count == 327, ("expected 327 NUI server callbacks, got %d"):format(callback_count))
 for _, required in ipairs({
     "crypto:watch",
     "companies:dial-service-line",
+    "fliptok:profiles",
     "mail:mailboxes",
     "calls:set-speaker",
+    "calls:video",
+    "realtime:config", "realtime:create", "realtime:join", "realtime:ready",
+    "realtime:signal", "realtime:sfu", "realtime:chat", "realtime:drop",
     "media:import:commit",
     "flare:delete-profile",
     "admin:webhooks",

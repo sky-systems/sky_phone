@@ -246,6 +246,7 @@ local function close_phone(close_device_session)
 end
 
 local function request_phone_open(callback_name)
+    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then return false end
     if is_open or open_requested then
         return true
     end
@@ -460,6 +461,11 @@ RegisterNUICallback("ui:ready", function(data, cb)
 end)
 
 RegisterNUICallback("ui:opened", function(data, cb)
+    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then
+        close_phone()
+        cb({ success = false })
+        return
+    end
     if type(data) ~= "table" then
         cb({ success = false, error = "invalid_request" })
         return
@@ -556,6 +562,7 @@ RegisterNetEvent("sky_phone:device:opening", function(revision, token)
 end)
 
 local function receive_device_snapshot(data, opening)
+    if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason() then close_phone(); return end
     if type(data) ~= "table" or type(data.device) ~= "table" or type(data.device.imei) ~= "string" then
         Bridge.Debug("error", "[sky_phone] Rejected invalid device snapshot.")
         if not is_open then

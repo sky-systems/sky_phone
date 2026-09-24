@@ -1,3 +1,8 @@
+local config_event_handlers = {}
+function AddEventHandler(name, callback)
+    config_event_handlers[name] = callback
+end
+
 local registered_exports = {}
 local migration_callback
 local triggered_events = {}

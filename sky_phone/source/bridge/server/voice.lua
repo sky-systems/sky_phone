@@ -107,17 +107,78 @@ end
 
 function Bridge.Calls.SupportsSpeaker()
     local selected = resolve_call_provider()
-    return Bridge.Speaker.IsEnabled() and (selected == "yaca" or selected == "saltychat")
+    return Bridge.Speaker.IsEnabled() and (selected == "yaca" or selected == "saltychat" or selected == "pma")
 end
 
 function Bridge.Calls.SupportsMute()
-    return resolve_call_provider() == "yaca"
+    return resolve_call_provider() ~= nil
 end
 
-function Bridge.Calls.Start(identifier, player_handles)
+-- SaltyChat's alive export controls general speech, not just the telephone.
+-- Remember the pre-mute voice state; never revive a dead/downed player on unmute.
+local salty_muted = {}
+local function player_is_dead(player_source)
+    if Bridge.PlayerState then return Bridge.PlayerState.Get(player_source).dead end
+    local player = Player(player_source)
+    local state = player and player.state
+    if state and (state.isDead or state.dead or state.isdead or state.inlaststand) then return true end
+    local ped = GetPlayerPed(player_source)
+    return not ped or ped == 0 or GetEntityHealth(ped) <= 0
+end
+local function set_salty_muted(player_source, enabled)
+    if GetResourceState("saltychat") ~= "started" then return false end
+    local success, err = pcall(function()
+        local previous = salty_muted[player_source]
+        if enabled then
+            if previous then return end
+            local alive = exports.saltychat:GetPlayerAlive(player_source)
+            assert(type(alive) == "boolean", "SaltyChat returned an invalid alive state")
+            exports.saltychat:SetPlayerAlive(player_source, false)
+            salty_muted[player_source] = { alive = alive }
+        elseif previous then
+            exports.saltychat:SetPlayerAlive(player_source, previous.alive and not player_is_dead(player_source))
+            salty_muted[player_source] = nil
+        end
+    end)
+    if not success then
+        Bridge.Debug("error", "[sky_phone] SaltyChat could not update mute for source %s: %s",
+            tostring(player_source), tostring(err), { always = true })
+    end
+    return success
+end
+CreateThread(function()
+    while true do
+        Wait(next(salty_muted) and 250 or 1000)
+        if GetResourceState("saltychat") == "started" then
+            for player_source, previous in pairs(salty_muted) do
+                local success, err = pcall(function()
+                    if player_is_dead(player_source) then previous.alive = false end
+                    -- A revive/voice refresh can restore alive while the call is muted.
+                    if exports.saltychat:GetPlayerAlive(player_source) then
+                        previous.alive = not player_is_dead(player_source)
+                        exports.saltychat:SetPlayerAlive(player_source, false)
+                    end
+                end)
+                if not success then
+                    Bridge.Debug("error", "[sky_phone] SaltyChat could not maintain mute for source %s: %s",
+                        tostring(player_source), tostring(err), { always = true })
+                end
+            end
+        end
+    end
+end)
+AddEventHandler("playerDropped", function() salty_muted[source] = nil end)
+AddEventHandler("onResourceStop", function(resource)
+    if resource == "saltychat" then salty_muted = {} return end
+    if resource == GetCurrentResourceName() then
+        for player_source in pairs(salty_muted) do set_salty_muted(player_source, false) end
+    end
+end)
+
+function Bridge.Calls.Start(identifier, player_handles, channel)
     local selected = resolve_call_provider()
     if selected == "pma" then
-        return true, selected
+        return SkyPhonePmaCalls.Start(identifier, player_handles, channel), selected
     end
     if selected == "yaca" then
         if not yaca_is_enabled() then
@@ -172,6 +233,7 @@ end
 
 function Bridge.Calls.Stop(identifier, player_handles, provider)
     local selected = provider or resolve_call_provider()
+    if selected == "pma" then SkyPhonePmaCalls.Stop(identifier) return end
     if selected == "yaca" then
         if GetResourceState("yaca-voice") ~= "started" then
             return
@@ -206,6 +268,7 @@ function Bridge.Calls.Stop(identifier, player_handles, provider)
         return
     end
 
+    for _, player_source in ipairs(player_handles) do set_salty_muted(tonumber(player_source), false) end
     local success, error_message = pcall(function()
         exports.saltychat:RemovePlayersFromCall(tostring(identifier), player_handles)
     end)
@@ -225,6 +288,9 @@ function Bridge.Calls.SetSpeaker(player_source, enabled, provider)
         return false
     end
     local selected = provider or resolve_call_provider()
+    if selected == "pma" then
+        return SkyPhonePmaCalls.Set(tonumber(player_source), "speakers", enabled)
+    end
     local resource_name = call_provider_resources[selected]
     if (selected ~= "yaca" and selected ~= "saltychat")
         or GetResourceState(resource_name) ~= "started"
@@ -255,6 +321,10 @@ end
 
 function Bridge.Calls.SetMuted(player_source, enabled, provider)
     local selected = provider or resolve_call_provider()
+    if selected == "pma" then
+        return SkyPhonePmaCalls.Set(tonumber(player_source), "muted", enabled)
+    end
+    if selected == "saltychat" then return set_salty_muted(tonumber(player_source), enabled == true) end
     if selected ~= "yaca" or GetResourceState("yaca-voice") ~= "started" then
         return false
     end
@@ -310,4 +380,22 @@ function Bridge.Radio.SetPlayerSpeaker(player_source, enabled)
         return false
     end
     return true
+end
+
+function Bridge.Radio.DisconnectPlayer(player_source)
+    local selected = resolve_radio_provider()
+    local ok, err = pcall(function()
+        if selected == "pma" then
+            exports["pma-voice"]:setPlayerRadio(tonumber(player_source), 0)
+        elseif selected == "saltychat" then
+            exports.saltychat:SetPlayerRadioSpeaker(tonumber(player_source), false)
+            exports.saltychat:SetPlayerRadioChannel(tonumber(player_source), "", true)
+            exports.saltychat:SetPlayerRadioChannel(tonumber(player_source), "", false)
+        elseif selected == "yaca" then
+            exports["yaca-voice"]:setPlayerRadioChannel(tonumber(player_source), 1, "0")
+            exports["yaca-voice"]:setPlayerRadioChannel(tonumber(player_source), 2, "0")
+        end
+    end)
+    if not ok then Bridge.Debug("error", "[sky_phone] Radio disconnect failed: %s", tostring(err)) end
+    return ok
 end

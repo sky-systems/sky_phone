@@ -42,6 +42,9 @@ export const usePicstagramStore = defineStore('picstagram', {
     saved: [] as PicstagramPost[],
     searchPosts: [] as PicstagramPost[],
     searchProfiles: [] as PicstagramProfile[],
+    searchRevision: 0,
+    searchLoading: false,
+    searchError: false,
     stories: [] as PicstagramStory[],
     storyViewers: [] as PicstagramStoryViewer[],
     viewedProfile: null as PicstagramProfile | null,
@@ -144,16 +147,21 @@ export const usePicstagramStore = defineStore('picstagram', {
       return true
     },
     async search(search: string): Promise<boolean> {
-      if (!search.trim()) {
-        this.searchPosts = []
-        this.searchProfiles = []
-        return true
-      }
+      const revision = ++this.searchRevision
+      this.searchLoading = true
+      this.searchError = false
       const response = await nuiCall<PicstagramSearchResult>(
         'picstagram:search',
         { search },
       )
-      if (!response.success || !response.data) return false
+      if (revision !== this.searchRevision) return false
+      this.searchLoading = false
+      if (!response.success || !response.data) {
+        this.searchProfiles = []
+        this.searchPosts = []
+        this.searchError = true
+        return false
+      }
       this.searchPosts = response.data.posts
       this.searchProfiles = response.data.profiles
       return true

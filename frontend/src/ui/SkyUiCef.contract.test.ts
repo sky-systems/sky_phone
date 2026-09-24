@@ -132,13 +132,13 @@ describe('Sky UI FiveM CEF contracts', () => {
 
   it('keeps variable profile color mixes behind Chrome 103 fallbacks', () => {
     expect(appProfileAuthSource).toMatch(
-      /\.app-profile-auth__card\s*\{[^}]*background:\s*var\(--panel, #20262c\);[^}]*background:\s*color-mix\(/s,
+      /\.app-profile-auth__card\s*\{[^}]*background:\s*var\(--sky-surface\);[^}]*background:\s*color-mix\(/s,
     )
     expect(appProfileAuthSource).toMatch(
       /\.app-profile-auth__mark\s*\{[^}]*background:\s*rgba\(255, 214, 62, 0\.14\);[^}]*background:\s*color-mix\(/s,
     )
     expect(appProfileAuthSource).toMatch(
-      /\.app-profile-auth__avatar\s*\{[^}]*background:\s*var\(--panel, #20262c\);[^}]*background:\s*color-mix\(/s,
+      /\.app-profile-auth__avatar\s*\{[^}]*background:\s*var\(--sky-surface\);[^}]*background:\s*color-mix\(/s,
     )
   })
 

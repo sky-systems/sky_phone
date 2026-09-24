@@ -19,7 +19,10 @@ const clientCalls = readFileSync(
   'utf8',
 )
 const clientNuiBridge = readFileSync(
-  new URL('../../sky_phone/source/client/nui_server_bridge.lua', import.meta.url),
+  new URL(
+    '../../sky_phone/source/client/nui_server_bridge.lua',
+    import.meta.url,
+  ),
   'utf8',
 )
 const phoneApp = readFileSync(
@@ -80,13 +83,13 @@ describe('voice provider contracts', () => {
     expect(config).toMatch(/Config\.Speaker\s*=\s*\{\s*Enabled\s*=\s*true,/)
     expect(sharedBridge).toContain('function Bridge.Speaker.IsEnabled()')
     expect(clientCalls).toContain(
-      'Bridge.Speaker.IsEnabled() and (selected == "yaca" or selected == "saltychat")',
+      'Bridge.Speaker.IsEnabled() and (selected == "yaca" or selected == "saltychat"',
     )
     expect(clientRadio).toContain(
       'Bridge.Speaker.IsEnabled() and resolve_provider() == "saltychat"',
     )
     expect(serverVoice).toContain(
-      'Bridge.Speaker.IsEnabled() and (selected == "yaca" or selected == "saltychat")',
+      'Bridge.Speaker.IsEnabled() and (selected == "yaca" or selected == "saltychat"',
     )
     expect(serverVoice).toContain(
       'Bridge.Speaker.IsEnabled() and resolve_radio_provider() == "saltychat"',
@@ -143,6 +146,15 @@ describe('voice provider contracts', () => {
     expect(serverVoice).toContain(
       'for _, candidate in ipairs({ "yaca", "pma", "saltychat" }) do',
     )
+  })
+
+  it('keeps PMA controls inside the phone and uses SaltyChat alive state for mute', () => {
+    expect(manifest).not.toContain('integrations/*.lua')
+    expect(config).not.toContain("shared_script '@sky_phone/")
+    expect(clientCalls).not.toContain('sky_phoneCallControls')
+    expect(serverVoice).not.toContain('sky_phoneCallControls')
+    expect(serverVoice).toContain('exports.saltychat:GetPlayerAlive(')
+    expect(serverVoice).toContain('exports.saltychat:SetPlayerAlive(')
   })
 
   it('passes Yaca radio volume arguments in the documented order', () => {

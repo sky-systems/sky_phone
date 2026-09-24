@@ -71,6 +71,7 @@ local CLIENT_CONFIG_KEYS = {
     Phone = true,
     Picstagram = true,
     Radio = true,
+    Realtime = true,
     Security = true,
     Sim = true,
     SkyRide = true,
@@ -447,7 +448,7 @@ local function sensitive_path(path)
         or normalized:find("secret", 1, true)
         or normalized:find("pepper", 1, true)
         or normalized == "password"
-        or normalized == "token"
+        or normalized:sub(-5) == "token"
         or normalized == "authorization"
         or normalized == "credential"
         or normalized == "connectionstring"
@@ -1662,6 +1663,26 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     end
 
     local candidate_config = deserialize_value(next_config)
+    local realtime = candidate_config.Realtime
+    local bounds = {
+        FrameRate = { 5, 30 }, VideoBitrateKbps = { 100, 5000 }, MaxVideoEdge = { 240, 1080 },
+        MaxViewers = { 1, 128 }, MaxBroadcasts = { 1, 32 }, MaxDurationMinutes = { 1, 240 },
+        NearbyDistance = { 1, 30 }, NearbyMaxSpeakers = { 0, 16 },
+    }
+    if type(realtime) ~= "table" or (realtime.Transport ~= "p2p" and realtime.Transport ~= "cloudflare")
+        or (realtime.ForceRelay and not realtime.TurnEnabled) then
+        return { success = false, error = "invalid_value" }
+    end
+    for key, range in pairs(bounds) do
+        local value = realtime[key]
+        if type(value) ~= "number" or value ~= value or value < range[1] or value > range[2]
+            or (key ~= "NearbyDistance" and value % 1 ~= 0) then
+            return { success = false, error = "invalid_value" }
+        end
+    end
+    for _, key in ipairs({ "Enabled", "VideoCalls", "Picstagram", "FlipTok", "NearbyAudio", "TurnEnabled", "ForceRelay" }) do
+        if type(realtime[key]) ~= "boolean" then return { success = false, error = "invalid_value" } end
+    end
     if not Bridge.VehicleKeys.IsSupported(candidate_config.Garage.VehicleKeySystem) then
         return { success = false, error = "invalid_value" }
     end

@@ -44,9 +44,11 @@ import {
   Volume2,
   X,
 } from 'lucide-vue-next'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import FaceTimeCall from '@/components/FaceTimeCall.vue'
+import { useRealtimeStore } from '@/features/realtime/store'
 import { useCallsStore } from '@/stores/calls'
 import { useEasyShareStore } from '@/stores/easyshare'
 import { useMessageMediaStore } from '@/stores/messageMedia'
@@ -76,6 +78,10 @@ const props = defineProps<{ locked?: boolean }>()
 const emit = defineEmits<{ unlock: [] }>()
 const phone = usePhoneStore()
 const calls = useCallsStore()
+const realtime = useRealtimeStore()
+const videoEnabled = computed(
+  () => realtime.config?.enabled && realtime.config.videoCalls,
+)
 const easyShare = useEasyShareStore()
 const mediaPicker = useMessageMediaStore()
 const messages = useMessagesStore()
@@ -107,6 +113,20 @@ const blockDialogOpened = ref(false)
 const blockTargetNumber = ref('')
 const callSpeakerPending = ref(false)
 const callMutePending = ref(false)
+const callVideoPending = ref(false)
+const callAnswerPending = ref(false)
+const incomingVideoCall = computed(
+  () =>
+    calls.activeCall?.video === true &&
+    calls.activeCall.state === 'ringing' &&
+    calls.activeCall.direction === 'incoming',
+)
+const canAcceptVideo = computed(() =>
+  Boolean(
+    videoEnabled.value &&
+      (incomingVideoCall.value || calls.activeCall?.videoIncoming),
+  ),
+)
 const tabs = [
   { id: 'recents', icon: Clock3 },
   { id: 'contacts', icon: ContactRound },
@@ -228,7 +248,9 @@ const activeCallLabel = computed(() => {
   if (call.state === 'ringing') {
     return phone.t(
       call.direction === 'incoming'
-        ? 'Apps.phone.incoming'
+        ? call.video
+          ? 'Realtime.incomingVideo'
+          : 'Apps.phone.incoming'
         : 'Apps.phone.calling',
     )
   }
@@ -424,9 +446,9 @@ async function openMessage(number: string): Promise<void> {
 }
 
 function triggerContactAction(action: ContactProfileAction): void {
-  if (action === 'call') {
+  if (action === 'call' || action === 'video') {
     if (selectedContact.value?.canCall === false) return
-    void startCall(selectedNumber.value)
+    void startCall(selectedNumber.value, action === 'video')
     return
   }
   if (action === 'message' && selectedContact.value?.canMessage !== false) {
@@ -434,20 +456,46 @@ function triggerContactAction(action: ContactProfileAction): void {
   }
 }
 
-async function startCall(number: string): Promise<void> {
+async function startCall(number: string, video = false): Promise<void> {
   error.value = ''
-  const response = await calls.dial(number)
+  const response = await calls.dial(number, video)
   if (!response.success) {
     error.value = phone.t(`Apps.phone.errors.${response.error ?? 'default'}`)
   }
 }
 
-async function answerCall(): Promise<void> {
+async function answerCall(video = false): Promise<void> {
+  if (callAnswerPending.value) return
   error.value = ''
-  const response = await calls.answer()
+  callAnswerPending.value = true
+  const response = await calls.answer(video)
+  callAnswerPending.value = false
   if (!response.success) {
     error.value = phone.t(`Apps.phone.errors.${response.error ?? 'default'}`)
   }
+}
+
+async function videoAction(
+  action: 'request' | 'accept' | 'decline' | 'stop',
+): Promise<void> {
+  if (callVideoPending.value) return
+  error.value = ''
+  callVideoPending.value = true
+  const response = await calls.videoAction(action)
+  callVideoPending.value = false
+  if (!response.success)
+    error.value = phone.t(`Apps.phone.errors.${response.error ?? 'default'}`)
+}
+function handleFaceTime(): void {
+  if (incomingVideoCall.value) void answerCall(true)
+  else
+    void videoAction(
+      calls.activeCall?.videoIncoming
+        ? 'accept'
+        : calls.activeCall?.video
+          ? 'stop'
+          : 'request',
+    )
 }
 
 async function toggleCallSpeaker(): Promise<void> {
@@ -677,11 +725,32 @@ function formatRecentDate(value: string): string {
   }).format(date)
 }
 
+async function openSharedContact(): Promise<void> {
+  const number = route.query.sharedContactNumber
+  if (props.locked || typeof number !== 'string') return
+  await calls.loadContacts()
+  if (route.query.sharedContactNumber !== number) return
+  tab.value = 'contacts'
+  openRecentDetail(number)
+  const query = { ...route.query }
+  delete query.sharedContactNumber
+  delete query.easyShareId
+  delete query.easyShareKind
+  delete query.easyShareLink
+  await router.replace({ path: route.path, query })
+}
+
+watch(
+  () => route.query.sharedContactNumber,
+  () => void openSharedContact(),
+)
+
 onMounted(async () => {
   if (props.locked) return
 
   window.addEventListener('keydown', handleKeypadKeyboard)
-  await calls.bootstrap()
+  await Promise.all([calls.bootstrap(), realtime.refreshConfig()])
+  await openSharedContact()
   const photoSelection = mediaPicker.consumeMany<ContactPhotoContext>(
     'phone:contact-photo',
   )
@@ -738,236 +807,345 @@ onBeforeUnmount(() => {
     <template v-if="calls.activeCall">
       <SkyProvider
         class="phone-active-call"
-        :class="{ 'phone-active-call--more': callMoreOpened }"
+        :class="{
+          'phone-active-call--more': callMoreOpened,
+          'phone-active-call--video':
+            calls.activeCall.video && calls.activeCall.state === 'connected',
+        }"
         component="section"
         dark
       >
-        <header class="phone-active-call__identity">
-          <div class="phone-active-call__status">
-            <span>P</span>
-            {{ activeCallStatus }}
-          </div>
-          <h1>
-            {{ contactNameFor(calls.activeCall.otherNumber) }}
-          </h1>
-          <p v-if="error" class="phone-active-call__error">{{ error }}</p>
-        </header>
-
-        <Transition name="call-panel" mode="out-in">
-          <div
-            v-if="callKeypadOpened"
-            key="keypad"
-            class="phone-in-call-keypad"
-          >
-            <div class="phone-in-call-keypad__grid">
-              <sky-glass
-                v-for="key in keypadKeys"
-                :key="key.digit"
-                component="button"
-                type="button"
-                @click="addInCallDigit(key.digit)"
-              >
-                <span>{{ key.digit }}</span>
-                <small>{{ key.letters }}</small>
-              </sky-glass>
+        <FaceTimeCall
+          v-if="
+            calls.activeCall.video && calls.activeCall.state === 'connected'
+          "
+          :name="contactNameFor(calls.activeCall.otherNumber)"
+          :avatar="activeCallContact?.avatar_url"
+          :status="activeCallStatus"
+          :error="error"
+          :locked="locked"
+          :speaker-pending="callSpeakerPending"
+          :mute-pending="callMutePending"
+          :video-pending="callVideoPending"
+          @speaker="toggleCallSpeaker"
+          @mute="toggleCallMute"
+          @end-video="videoAction('stop')"
+          @hangup="calls.hangup()"
+          @message="messageActiveCaller"
+          @unlock="emit('unlock')"
+        />
+        <template v-else>
+          <header class="phone-active-call__identity">
+            <div class="phone-active-call__status">
+              <span>P</span>
+              {{ activeCallStatus }}
             </div>
-            <div class="phone-in-call-keypad__footer">
-              <sky-button
-                glass
-                rounded
-                class="phone-in-call-keypad__end"
-                variant="danger"
-                @click="calls.hangup()"
-              >
-                <PhoneOff />
-              </sky-button>
-              <sky-button
-                glass
-                clear
-                class="phone-in-call-keypad__hide"
-                @click="callKeypadOpened = false"
-                >{{ phone.t('Apps.phone.hideKeypad') }}</sky-button
-              >
-            </div>
-          </div>
+            <h1>
+              {{ contactNameFor(calls.activeCall.otherNumber) }}
+            </h1>
+            <p v-if="calls.activeCall.video && !realtime.streams.size">
+              {{
+                phone.t(
+                  calls.activeCall.state === 'connected'
+                    ? 'Realtime.connecting'
+                    : 'Realtime.videoCall',
+                )
+              }}
+            </p>
+            <p v-if="error" class="phone-active-call__error">{{ error }}</p>
+            <p v-if="realtime.error && calls.activeCall.video" role="alert">
+              {{ phone.t('Realtime.errors.default') }}
+            </p>
+            <SkyGlass
+              v-if="calls.activeCall.videoIncoming"
+              class="phone-video-request"
+            >
+              <span class="phone-video-request__icon"
+                ><Video :size="24"
+              /></span>
+              <strong>{{ phone.t('Realtime.videoRequest') }}</strong>
+              <p>{{ phone.t('Realtime.videoConsent') }}</p>
+              <div class="phone-video-request__actions">
+                <SkyButton
+                  glass
+                  rounded
+                  :disabled="callVideoPending"
+                  @click="videoAction('decline')"
+                  ><Phone :size="18" />{{
+                    phone.t('Realtime.keepAudio')
+                  }}</SkyButton
+                >
+                <SkyButton
+                  rounded
+                  class="phone-video-request__accept"
+                  :disabled="callVideoPending"
+                  @click="videoAction('accept')"
+                  ><Video :size="18" />{{
+                    phone.t('Apps.phone.faceTime')
+                  }}</SkyButton
+                >
+              </div>
+            </SkyGlass>
+            <p
+              v-else-if="calls.activeCall.videoRequested"
+              class="phone-video-waiting"
+              role="status"
+            >
+              {{ phone.t('Realtime.videoWaiting') }}
+            </p>
+          </header>
 
-          <div
-            v-else-if="callMoreOpened"
-            key="more"
-            class="phone-call-more"
-            @click.self="callMoreOpened = false"
-          >
-            <div class="phone-call-more__list">
-              <sky-button
-                glass
-                class="phone-call-more__item phone-call-more__contact-card"
-                :disabled="!calls.activeCall.otherNumber"
-                @click="openCallContact"
-              >
-                <span class="phone-call-more__avatar">
-                  <span v-if="contactInitials(calls.activeCall.otherNumber)">
-                    {{ contactInitials(calls.activeCall.otherNumber) }}
+          <Transition name="call-panel" mode="out-in">
+            <div
+              v-if="callKeypadOpened"
+              key="keypad"
+              class="phone-in-call-keypad"
+            >
+              <div class="phone-in-call-keypad__grid">
+                <sky-glass
+                  v-for="key in keypadKeys"
+                  :key="key.digit"
+                  component="button"
+                  type="button"
+                  @click="addInCallDigit(key.digit)"
+                >
+                  <span>{{ key.digit }}</span>
+                  <small>{{ key.letters }}</small>
+                </sky-glass>
+              </div>
+              <div class="phone-in-call-keypad__footer">
+                <sky-button
+                  glass
+                  rounded
+                  class="phone-in-call-keypad__end"
+                  variant="danger"
+                  @click="calls.hangup()"
+                >
+                  <PhoneOff />
+                </sky-button>
+                <sky-button
+                  glass
+                  clear
+                  class="phone-in-call-keypad__hide"
+                  @click="callKeypadOpened = false"
+                  >{{ phone.t('Apps.phone.hideKeypad') }}</sky-button
+                >
+              </div>
+            </div>
+
+            <div
+              v-else-if="callMoreOpened"
+              key="more"
+              class="phone-call-more"
+              @click.self="callMoreOpened = false"
+            >
+              <div class="phone-call-more__list">
+                <sky-button
+                  glass
+                  class="phone-call-more__item phone-call-more__contact-card"
+                  :disabled="!calls.activeCall.otherNumber"
+                  @click="openCallContact"
+                >
+                  <span class="phone-call-more__avatar">
+                    <span v-if="contactInitials(calls.activeCall.otherNumber)">
+                      {{ contactInitials(calls.activeCall.otherNumber) }}
+                    </span>
+                    <UserRound v-else />
                   </span>
-                  <UserRound v-else />
-                </span>
-                <strong>{{
-                  phone.t(
-                    activeCallContact
-                      ? 'Apps.phone.contactCard'
-                      : 'Apps.phone.addToContacts',
-                  )
-                }}</strong>
-              </sky-button>
+                  <strong>{{
+                    phone.t(
+                      activeCallContact
+                        ? 'Apps.phone.contactCard'
+                        : 'Apps.phone.addToContacts',
+                    )
+                  }}</strong>
+                </sky-button>
 
-              <sky-button
-                glass
-                class="phone-call-more__item"
-                :disabled="!calls.activeCall.otherNumber"
-                @click="messageActiveCaller"
-              >
-                <MessageCircle />
-                <strong>{{ phone.t('Apps.phone.sendMessage') }}</strong>
-              </sky-button>
+                <sky-button
+                  glass
+                  class="phone-call-more__item"
+                  :disabled="!calls.activeCall.otherNumber"
+                  @click="messageActiveCaller"
+                >
+                  <MessageCircle />
+                  <strong>{{ phone.t('Apps.phone.sendMessage') }}</strong>
+                </sky-button>
 
-              <sky-button
-                glass
-                v-if="activeCallContact"
-                class="phone-call-more__item phone-call-more__item--danger"
-                @click="removeActiveCallerContact"
-              >
-                <Delete />
-                <strong>{{ phone.t('Apps.phone.removeContact') }}</strong>
-              </sky-button>
+                <sky-button
+                  glass
+                  v-if="activeCallContact"
+                  class="phone-call-more__item phone-call-more__item--danger"
+                  @click="removeActiveCallerContact"
+                >
+                  <Delete />
+                  <strong>{{ phone.t('Apps.phone.removeContact') }}</strong>
+                </sky-button>
 
-              <sky-button
-                glass
-                class="phone-call-more__item phone-call-more__item--danger"
-                :disabled="!calls.activeCall.otherNumber"
-                @click="confirmBlockNumber(calls.activeCall.otherNumber)"
-              >
-                <PhoneOff />
-                <strong>{{ phone.t('Apps.phone.blockCaller') }}</strong>
-              </sky-button>
+                <sky-button
+                  glass
+                  class="phone-call-more__item phone-call-more__item--danger"
+                  :disabled="!calls.activeCall.otherNumber"
+                  @click="confirmBlockNumber(calls.activeCall.otherNumber)"
+                >
+                  <PhoneOff />
+                  <strong>{{ phone.t('Apps.phone.blockCaller') }}</strong>
+                </sky-button>
+              </div>
             </div>
-          </div>
 
-          <div v-else key="actions" class="phone-active-call__actions">
-            <sky-button
-              glass
-              rounded
-              class="phone-call-action"
-              :class="{
-                'is-active': calls.activeCall.speakerEnabled,
-                'is-disabled':
-                  calls.activeCall.state !== 'connected' ||
-                  !calls.activeCall.speakerSupported,
-              }"
-              :disabled="
-                calls.activeCall.state !== 'connected' ||
-                !calls.activeCall.speakerSupported ||
-                callSpeakerPending
-              "
-              :aria-pressed="calls.activeCall.speakerEnabled === true"
-              @click="toggleCallSpeaker"
-            >
-              <Volume2 />
-              <span>{{ phone.t('Apps.phone.speaker') }}</span>
-            </sky-button>
-            <sky-button
-              glass
-              rounded
-              class="phone-call-action is-disabled"
-              disabled
-            >
-              <Video />
-              <span>{{ phone.t('Apps.phone.faceTime') }}</span>
-            </sky-button>
-            <sky-button
-              glass
-              rounded
-              class="phone-call-action"
-              :class="{
-                'is-active': calls.activeCall.muted,
-                'is-disabled':
-                  calls.activeCall.state !== 'connected' ||
-                  !calls.activeCall.muteSupported,
-              }"
-              :disabled="
-                calls.activeCall.state !== 'connected' ||
-                !calls.activeCall.muteSupported ||
-                callMutePending
-              "
-              :aria-busy="callMutePending || undefined"
-              :aria-pressed="calls.activeCall.muted === true"
-              @click="toggleCallMute"
-            >
-              <MicOff />
-              <span>{{ phone.t('Apps.phone.mute') }}</span>
-            </sky-button>
-
-            <div class="phone-call-action-anchor">
+            <div v-else key="actions" class="phone-active-call__actions">
               <sky-button
                 glass
                 rounded
                 class="phone-call-action"
+                :class="{
+                  'is-active': calls.activeCall.speakerEnabled,
+                  'is-disabled':
+                    calls.activeCall.state !== 'connected' ||
+                    !calls.activeCall.speakerSupported,
+                }"
+                :disabled="
+                  calls.activeCall.state !== 'connected' ||
+                  !calls.activeCall.speakerSupported ||
+                  callSpeakerPending
+                "
+                :aria-pressed="calls.activeCall.speakerEnabled === true"
+                :title="
+                  !calls.activeCall.speakerSupported
+                    ? phone.t('Apps.phone.errors.speaker_unsupported')
+                    : undefined
+                "
+                @click="toggleCallSpeaker"
+              >
+                <Volume2 />
+                <span>{{ phone.t('Apps.phone.speaker') }}</span>
+              </sky-button>
+              <sky-button
+                glass
+                rounded
+                class="phone-call-action"
+                :class="{
+                  'is-active': calls.activeCall.video && !incomingVideoCall,
+                  'phone-call-action--answer': canAcceptVideo,
+                }"
+                :disabled="
+                  !videoEnabled ||
+                  calls.activeCall.payphone ||
+                  callVideoPending ||
+                  callAnswerPending ||
+                  (!canAcceptVideo &&
+                    (calls.activeCall.state !== 'connected' ||
+                      calls.activeCall.videoRequested))
+                "
+                :aria-pressed="
+                  calls.activeCall.video === true && !incomingVideoCall
+                "
+                @click="handleFaceTime"
+              >
+                <Video />
+                <span>{{ phone.t('Apps.phone.faceTime') }}</span>
+              </sky-button>
+              <sky-button
+                glass
+                rounded
+                class="phone-call-action"
+                :class="{
+                  'is-active': calls.activeCall.muted,
+                  'is-disabled':
+                    calls.activeCall.state !== 'connected' ||
+                    !calls.activeCall.muteSupported,
+                }"
+                :disabled="
+                  calls.activeCall.state !== 'connected' ||
+                  !calls.activeCall.muteSupported ||
+                  callMutePending
+                "
+                :aria-busy="callMutePending || undefined"
+                :aria-pressed="calls.activeCall.muted === true"
+                :title="
+                  !calls.activeCall.muteSupported
+                    ? phone.t('Apps.phone.errors.mute_unsupported')
+                    : undefined
+                "
+                @click="toggleCallMute"
+              >
+                <MicOff />
+                <span>{{ phone.t('Apps.phone.mute') }}</span>
+              </sky-button>
+
+              <div class="phone-call-action-anchor">
+                <sky-button
+                  glass
+                  rounded
+                  class="phone-call-action"
+                  @click="
+                    locked ? emit('unlock') : (callMoreOpened = !callMoreOpened)
+                  "
+                >
+                  <LockKeyhole v-if="locked" />
+                  <MoreHorizontal v-else />
+                  <span>{{
+                    phone.t(
+                      locked ? 'HardwareButtons.unlock' : 'Apps.phone.more',
+                    )
+                  }}</span>
+                </sky-button>
+              </div>
+              <sky-button
+                glass
+                rounded
+                class="phone-call-action phone-call-action--end"
+                variant="danger"
                 @click="
-                  locked ? emit('unlock') : (callMoreOpened = !callMoreOpened)
+                  calls.activeCall.direction === 'incoming' &&
+                  calls.activeCall.state === 'ringing'
+                    ? calls.decline()
+                    : calls.hangup()
                 "
               >
-                <LockKeyhole v-if="locked" />
-                <MoreHorizontal v-else />
+                <PhoneOff />
                 <span>{{
-                  phone.t(locked ? 'HardwareButtons.unlock' : 'Apps.phone.more')
+                  phone.t(
+                    calls.activeCall.direction === 'incoming' &&
+                      calls.activeCall.state === 'ringing'
+                      ? 'Apps.phone.decline'
+                      : 'Apps.phone.hangup',
+                  )
                 }}</span>
               </sky-button>
-            </div>
-            <sky-button
-              glass
-              rounded
-              class="phone-call-action phone-call-action--end"
-              variant="danger"
-              @click="
-                calls.activeCall.direction === 'incoming' &&
-                calls.activeCall.state === 'ringing'
-                  ? calls.decline()
-                  : calls.hangup()
-              "
-            >
-              <PhoneOff />
-              <span>{{
-                phone.t(
+              <sky-button
+                glass
+                v-if="
                   calls.activeCall.direction === 'incoming' &&
-                    calls.activeCall.state === 'ringing'
-                    ? 'Apps.phone.decline'
-                    : 'Apps.phone.hangup',
-                )
-              }}</span>
-            </sky-button>
-            <sky-button
-              glass
-              v-if="
-                calls.activeCall.direction === 'incoming' &&
-                calls.activeCall.state === 'ringing'
-              "
-              rounded
-              class="phone-call-action phone-call-action--answer"
-              @click="answerCall"
-            >
-              <Phone />
-              <span>{{ phone.t('Apps.phone.answer') }}</span>
-            </sky-button>
-            <sky-button
-              glass
-              v-else
-              rounded
-              class="phone-call-action"
-              @click="openCallKeypad"
-            >
-              <Grid3X3 />
-              <span>{{ phone.t('Apps.phone.keypad') }}</span>
-            </sky-button>
-          </div>
-        </Transition>
+                  calls.activeCall.state === 'ringing'
+                "
+                rounded
+                class="phone-call-action phone-call-action--answer"
+                :disabled="callAnswerPending"
+                @click="answerCall(false)"
+              >
+                <Phone />
+                <span>{{
+                  phone.t(
+                    incomingVideoCall
+                      ? 'Realtime.answerAudio'
+                      : 'Apps.phone.answer',
+                  )
+                }}</span>
+              </sky-button>
+              <sky-button
+                glass
+                v-else
+                rounded
+                class="phone-call-action"
+                @click="openCallKeypad"
+              >
+                <Grid3X3 />
+                <span>{{ phone.t('Apps.phone.keypad') }}</span>
+              </sky-button>
+            </div>
+          </Transition>
+        </template>
       </SkyProvider>
     </template>
 
@@ -1048,7 +1226,9 @@ onBeforeUnmount(() => {
                   class="phone-profile-action"
                   :disabled="
                     viewingOwnCard ||
-                    ['video', 'mail'].includes(action.id) ||
+                    action.id === 'mail' ||
+                    (action.id === 'video' &&
+                      (!videoEnabled || selectedContact?.canCall === false)) ||
                     (action.id === 'call' &&
                       selectedContact?.canCall === false) ||
                     (action.id === 'message' &&
@@ -2301,7 +2481,7 @@ onBeforeUnmount(() => {
   border-radius: 16px;
   background: var(--sky-glass);
   box-shadow: var(--sky-shadow-glass);
-  color: #8e8e93;
+  color: var(--sky-muted);
 }
 
 .phone-contacts-search input {
@@ -2341,7 +2521,7 @@ onBeforeUnmount(() => {
 
 .phone-my-card small {
   margin-top: 2px;
-  color: #8e8e93;
+  color: var(--sky-muted);
   font-size: 12px;
 }
 
@@ -2354,7 +2534,7 @@ onBeforeUnmount(() => {
   margin: 0;
   padding-top: 4px;
   border-bottom: 1px solid rgba(142, 142, 147, 0.23);
-  color: #8e8e93;
+  color: var(--sky-muted);
   font-size: 13px;
   font-weight: 500;
 }
@@ -2401,7 +2581,7 @@ onBeforeUnmount(() => {
 }
 
 .phone-contact-name small {
-  color: #8e8e93;
+  color: var(--sky-muted);
   font-size: 10px;
   font-weight: 500;
 }
@@ -2730,7 +2910,7 @@ onBeforeUnmount(() => {
 
 .phone-recents-filter :deep(.sky-segmented-button) {
   border-radius: var(--sky-radius-pill);
-  color: #8e8e93;
+  color: var(--sky-muted);
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
@@ -2763,7 +2943,7 @@ onBeforeUnmount(() => {
   border-radius: 16px;
   background: var(--sky-glass);
   box-shadow: var(--sky-shadow-glass);
-  color: #8e8e93;
+  color: var(--sky-muted);
 }
 
 .phone-recents-search input {
@@ -2838,7 +3018,7 @@ onBeforeUnmount(() => {
 }
 
 .phone-recent-name--missed {
-  color: #ff453a;
+  color: var(--sky-danger);
 }
 
 .phone-recent-meta {
@@ -2848,14 +3028,14 @@ onBeforeUnmount(() => {
   overflow: hidden;
   max-width: 100%;
   margin-top: 2px;
-  color: #8e8e93;
+  color: var(--sky-muted);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .phone-recent-date {
-  color: #8e8e93;
+  color: var(--sky-muted);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -2915,7 +3095,7 @@ onBeforeUnmount(() => {
 
 .phone-contact-hero p {
   margin: 0;
-  color: #8e8e93;
+  color: var(--sky-muted);
   font-size: 14px;
 }
 
@@ -2995,7 +3175,7 @@ onBeforeUnmount(() => {
 }
 
 .phone-own-profile-card small {
-  color: #8e8e93;
+  color: var(--sky-muted);
   font-size: 11px;
 }
 
@@ -3051,7 +3231,7 @@ onBeforeUnmount(() => {
 .phone-history-copy small,
 .phone-history-row time,
 .phone-history-empty {
-  color: #8e8e93;
+  color: var(--sky-muted);
   font-size: 11px;
 }
 
@@ -3970,5 +4150,65 @@ onBeforeUnmount(() => {
     rgba(248, 248, 250, 0.94),
     rgba(222, 222, 227, 0.9)
   );
+}
+.phone-active-call > .facetime-call {
+  position: absolute;
+}
+.phone-video-request {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sky-space-2);
+  margin-top: var(--sky-space-6);
+  padding: var(--sky-space-4);
+  border-radius: var(--sky-radius-card);
+  background: var(--sky-glass);
+}
+.phone-video-request__icon {
+  display: grid;
+  place-items: center;
+  width: var(--sky-touch-target);
+  height: var(--sky-touch-target);
+  border-radius: var(--sky-radius-pill);
+  color: var(--sky-success);
+  background: var(--sky-success-soft);
+}
+.phone-video-request strong {
+  font-size: var(--sky-font-body);
+}
+.phone-video-request p {
+  margin: 0;
+  color: var(--sky-muted);
+  font-size: var(--sky-font-caption);
+  line-height: 1.4;
+}
+.phone-video-request__actions {
+  display: flex;
+  gap: var(--sky-space-2);
+  width: 100%;
+  margin-top: var(--sky-space-2);
+}
+.phone-video-request__actions .sky-button {
+  flex: 1;
+  gap: var(--sky-space-1);
+  min-width: 0;
+  height: auto;
+  min-height: var(--sky-touch-target);
+  padding: var(--sky-space-2);
+  white-space: normal;
+  font-size: var(--sky-font-caption);
+}
+.phone-video-request__accept {
+  background: var(--sky-success);
+  color: var(--sky-action-surface);
+}
+.phone-video-waiting {
+  color: var(--sky-muted);
+  font-size: var(--sky-font-caption);
+}
+.phone-recents-search input::placeholder,
+.phone-contacts-search input::placeholder {
+  color: var(--sky-muted);
+  opacity: 1;
 }
 </style>

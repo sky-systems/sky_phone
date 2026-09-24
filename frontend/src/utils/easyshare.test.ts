@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createRouter, createMemoryHistory } from 'vue-router'
 
 import type { EasySharePayload } from '@/types/easyshare'
 import {
@@ -7,6 +8,7 @@ import {
   easyShareDestinationAppIds,
   easyShareMusicTarget,
   easyShareRoute,
+  openEasySharePayload,
 } from '@/utils/easyshare'
 
 function payload(overrides: Partial<EasySharePayload>): EasySharePayload {
@@ -30,6 +32,38 @@ describe('EasyShare deep links', () => {
     expect(easyShareRoute(payload({ link })).path).toBe(path)
   })
 
+  it('selects an incoming contact by its canonical phone number', () => {
+    expect(
+      easyShareRoute(
+        payload({
+          appId: 'phone',
+          kind: 'contact',
+          id: 'self',
+          meta: { phoneNumber: '144 345 6011' },
+        }),
+      ).query.sharedContactNumber,
+    ).toBe('1443456011')
+  })
+  it('also supports existing contact history without metadata', () => {
+    expect(
+      easyShareRoute(
+        payload({ appId: 'phone', kind: 'contact', subtitle: '1443456011' }),
+      ).query.sharedContactNumber,
+    ).toBe('1443456011')
+  })
+  it('launches the same shared target again even while its app is open', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/apps/notes', component: {} }],
+    })
+    const note = payload({ id: 'received-note' })
+    await openEasySharePayload(router, note)
+    const first = router.currentRoute.value.query.easyShareLaunch
+    await openEasySharePayload(router, note)
+    expect(router.currentRoute.value.query.easyShareLaunch).not.toBe(first)
+    expect(router.currentRoute.value.query.easyShareId).toBe('received-note')
+  })
+
   it('falls back to the payload app and preserves share context', () => {
     expect(
       easyShareRoute(payload({ appId: 'calendar', id: 'event-1' })),
@@ -39,6 +73,12 @@ describe('EasyShare deep links', () => {
         easyShareId: 'event-1',
         easyShareKind: 'note',
         easyShareLink: '',
+        sharedContent: JSON.stringify({
+          title: 'Shared content',
+          body: 'Shared content',
+          kind: 'note',
+          items: [],
+        }),
       },
     })
   })
@@ -78,6 +118,37 @@ describe('EasyShare deep links', () => {
     })
   })
 
+  it('keeps chat snapshots separate from saved recipient copies', () => {
+    const note = payload({ id: 'sender-note', meta: { body: 'Text' } })
+    expect(JSON.parse(easyShareRoute(note).query.sharedContent).body).toBe(
+      'Shared content',
+    )
+    const received = payload({
+      id: 'recipient-note',
+      meta: {
+        received: { appId: 'notes', kind: 'note', id: 'recipient-note' },
+      },
+    })
+    expect(easyShareRoute(received).query.sharedContent).toBeUndefined()
+  })
+  it('preserves canonical location and music snapshots for chat links', () => {
+    const location = easyShareRoute(
+      payload({ appId: 'map', kind: 'location', meta: { x: 1, y: 2, z: 3 } }),
+    )
+    expect(JSON.parse(location.query.sharedLocation)).toMatchObject({
+      x: 1,
+      y: 2,
+      z: 3,
+    })
+    const playlist = easyShareRoute(
+      payload({
+        appId: 'music',
+        kind: 'playlist',
+        meta: { songs: [{ source: 'server', song_id: 'song' }] },
+      }),
+    )
+    expect(JSON.parse(playlist.query.sharedMusic).songs).toHaveLength(1)
+  })
   it('extracts a CrewLink invitation code from a shared deep link', () => {
     expect(
       easyShareCrewLinkInviteCode(

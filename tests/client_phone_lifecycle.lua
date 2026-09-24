@@ -272,4 +272,19 @@ test("resource stop cancels pending catalog retries and discards in-flight resul
     assert(#client.take_messages("phone:tones") == 0 and #client.timers == 0)
 end)
 
+test("death/cuffs reject direct opens, late authorization and NUI confirmation", function()
+    local client = new_client()
+    local reason = "player_cuffed"
+    Bridge.PlayerState = { GetBlockReason = function() return reason end }
+    assert(SkyPhoneClient.Toggle(true) == false)
+    client.events["sky_phone:device:open"](device("blocked"))
+    assert(#client.take_messages("app:open") == 0 and not SkyPhoneClient.GetState().open)
+    assert(not client.nui("ui:opened").success)
+    reason = nil
+    client.authorize(device("allowed"))
+    reason = "player_incapacitated"
+    client.events["sky_phone:client:forceClose"]()
+    assert(not SkyPhoneClient.GetState().open)
+end)
+
 assert(failures == 0, ("%s phone lifecycle tests failed"):format(failures))

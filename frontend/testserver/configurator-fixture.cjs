@@ -362,6 +362,7 @@ function sensitivePath(path) {
   const normalized = leaf.toLowerCase().replace(/[^a-z0-9]/g, '')
   return (
     normalized.includes('apikey') ||
+    normalized.endsWith('token') ||
     normalized.includes('secret') ||
     normalized.includes('pepper') ||
     [

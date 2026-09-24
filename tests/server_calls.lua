@@ -221,6 +221,28 @@ assert(caller_state.state == "connected" and caller_state.channel == 42, "connec
 assert(caller_state.muted and caller_state.muteSupported, "muted state must be projected for the caller")
 assert(caller_state.speakerEnabled and caller_state.speakerSupported, "speaker state must be projected for the caller")
 
+-- All three providers project capabilities and use the same authorized callbacks.
+SkyPhone.AllowOperation = function() return true end
+for _, provider in ipairs({ "pma", "saltychat", "yaca" }) do
+    call.voice_provider = provider
+    local payload = SkyPhoneCalls.GetForSource(10)
+    assert(payload.muteSupported and payload.speakerSupported, provider .. " controls must be available")
+    for _, action in ipairs({ "set-muted", "set-speaker" }) do
+        local callback = registered_callbacks["sky_phone:calls:" .. action]
+        assert(not callback(30, { id=call.id, enabled=true }).success, "Nonparticipants cannot control call audio")
+        assert(not callback(10, { id="wrong", enabled=true }).success, "Stale call IDs must be rejected")
+        assert(not callback(10, { id=call.id, enabled="true" }).success, "Audio state must be boolean")
+        assert(callback(10, { id=call.id, enabled=true }).success)
+        assert(callback(10, { id=call.id, enabled=false }).success)
+    end
+end
+Bridge.Calls.SetMuted = function() return false end
+assert(not registered_callbacks["sky_phone:calls:set-muted"](10, {id=call.id, enabled=true}).success)
+assert(not call.muted[10], "A provider failure cannot mark the UI muted")
+Bridge.Calls.SetMuted = function() return true end
+call.voice_provider="yaca"; call.muted[10]=true; call.speakers[10]=true
+client_events = {}
+
 local ended, end_error = SkyPhoneCalls.EndForSource(0)
 assert(not ended and end_error == "invalid_source", "invalid termination sources must be rejected")
 assert(SkyPhoneCalls.EndForSource(10), "authoritative source termination must end the call")

@@ -50,7 +50,7 @@ describe('VaultX crypto app contracts', () => {
     expect(source).toContain('<History')
     expect(source).toContain('<UserRound')
     expect(source).toMatch(
-      /\.sky-pill-navigation \.sky-segmented-button--active\)\s*\{\s*color:\s*#fff;/,
+      /\.sky-pill-navigation \.sky-segmented-button--active\)\s*\{\s*color:\s*var\(--sky-text\);/,
     )
   })
 
@@ -131,7 +131,7 @@ describe('VaultX crypto app contracts', () => {
       /\.auth-field :deep\(\.sky-field__input\)\s*\{[^}]*font-size:\s*16px;/s,
     )
     expect(source).toMatch(
-      /\.auth-submit\s*\{[^}]*background:\s*var\(--vault-mint\);[^}]*box-shadow:\s*none;/s,
+      /\.auth-submit\s*\{[^}]*background:\s*var\(--vault-action\);[^}]*box-shadow:\s*none;/s,
     )
     for (const selector of [
       'transfer-submit',
@@ -140,7 +140,7 @@ describe('VaultX crypto app contracts', () => {
     ]) {
       expect(source).toMatch(
         new RegExp(
-          `\\.${selector}\\s*\\{[^}]*background:\\s*var\\(--vault-mint\\);[^}]*box-shadow:\\s*none;`,
+          `\\.${selector}\\s*\\{[^}]*background:\\s*var\\(--vault-action\\);[^}]*box-shadow:\\s*none;`,
           's',
         ),
       )

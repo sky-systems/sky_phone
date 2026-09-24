@@ -41,15 +41,33 @@ export const useRadioStore = defineStore('radio', () => {
   let displayNameRequestId = 0
   let speakerRequestId = 0
   let volumeRequestId = 0
+  let connectionVersion = 0
 
   function apply(next: Partial<RadioData>): void {
     Object.assign(data, next)
   }
 
+  function forceDisconnect(reason?: string): void {
+    connectionVersion += 1
+    speakerRequestId += 1
+    speakerPending.value = false
+    isLoading.value = false
+    error.value = reason ?? ''
+    apply({
+      connected: false,
+      frequency: 0,
+      secondaryFrequency: 0,
+      members: [],
+      speakerEnabled: false,
+    })
+  }
+
   async function load(): Promise<void> {
+    const version = connectionVersion
     isLoading.value = true
     error.value = ''
     const response = await nuiCall<RadioData>('radio:get')
+    if (version !== connectionVersion) return
     if (response.success && response.data) apply(response.data)
     else error.value = response.error ?? 'request_failed'
     isLoading.value = false
@@ -59,12 +77,14 @@ export const useRadioStore = defineStore('radio', () => {
     frequency: number,
     secondaryFrequency: number,
   ): Promise<boolean> {
+    const version = ++connectionVersion
     isLoading.value = true
     error.value = ''
     const response = await nuiCall<Partial<RadioData>>('radio:connect', {
       frequency,
       secondaryFrequency,
     })
+    if (version !== connectionVersion) return false
     if (response.success && response.data) apply(response.data)
     else error.value = response.error ?? 'request_failed'
     isLoading.value = false
@@ -72,9 +92,11 @@ export const useRadioStore = defineStore('radio', () => {
   }
 
   async function disconnect(): Promise<void> {
+    const version = ++connectionVersion
     isLoading.value = true
     error.value = ''
     const response = await nuiCall('radio:disconnect')
+    if (version !== connectionVersion) return
     if (!response.success) {
       error.value = response.error ?? 'request_failed'
       isLoading.value = false
@@ -182,6 +204,7 @@ export const useRadioStore = defineStore('radio', () => {
     connect,
     data,
     disconnect,
+    forceDisconnect,
     error,
     isLoading,
     load,
