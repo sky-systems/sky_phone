@@ -118,7 +118,10 @@ function Bridge.Radio.Join(primary, secondary)
         voice:setActiveRadioChannel(1)
         voice:changeRadioFrequency(tostring(primary))
         if secondary > 0 and Bridge.Radio.SupportsSecondary() then
-            voice:setSecondaryRadioChannel(2)
+            -- YACA toggles an already selected secondary channel off.
+            if voice:getSecondaryRadioChannel() ~= 2 then
+                voice:setSecondaryRadioChannel(2)
+            end
             voice:changeRadioFrequencyRaw(2, tostring(secondary))
             voice:muteRadioChannelRaw(2, false)
         else
@@ -167,9 +170,9 @@ end
 function Bridge.Radio.SetVolume(volume)
     local selected = resolve_provider()
     if selected == "yaca" then
-        exports["yaca-voice"]:changeRadioChannelVolumeRaw(volume / 100, 1)
+        exports["yaca-voice"]:changeRadioChannelVolumeRaw(1, volume / 100)
         if Bridge.Radio.SupportsSecondary() then
-            exports["yaca-voice"]:changeRadioChannelVolumeRaw(volume / 100, 2)
+            exports["yaca-voice"]:changeRadioChannelVolumeRaw(2, volume / 100)
         end
     elseif selected == "pma" then
         exports["pma-voice"]:setRadioVolume(volume)

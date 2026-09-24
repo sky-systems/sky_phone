@@ -159,10 +159,10 @@ describe('voice provider contracts', () => {
 
   it('passes Yaca radio volume arguments in the documented order', () => {
     expect(clientRadio).toContain(
-      'changeRadioChannelVolumeRaw(volume / 100, 1)',
+      'changeRadioChannelVolumeRaw(1, volume / 100)',
     )
     expect(clientRadio).toContain(
-      'changeRadioChannelVolumeRaw(volume / 100, 2)',
+      'changeRadioChannelVolumeRaw(2, volume / 100)',
     )
   })
 
