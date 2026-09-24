@@ -1,450 +1,237 @@
-# ESX Events & Callbacks
+# Events and callbacks
 
-## Server Callbacks
+Signatures checked at the [pinned revision](reference-links.md); confirm them in the installed
+version before editing an adapter. Current implementations delegate to xLib.
 
-Server callbacks allow the client to request data from the server.
+| Side | API |
+| --- | --- |
+| Server registers client request | ESX.RegisterServerCallback(name, handler); compatibility handler receives source, reply callback, then request arguments |
+| Client invokes server | ESX.TriggerServerCallback(name, callback, ...) or ESX.AwaitServerCallback(name, ...) |
+| Client registers server request | ESX.RegisterClientCallback(name, handler) |
+| Server invokes client | ESX.TriggerClientCallback(player, name, callback, ...) or ESX.AwaitClientCallback(player, name, ...) |
 
-### Registering a Server Callback
+Keep callback style and return/await style distinct. Settle the compatibility reply on every
+normal rejection/success branch exactly once. Await yields the current scheduler coroutine;
+it does not block the entire server. Handle the actual provider's rejection/timeout contract.
+Client responses remain untrusted for permissions, prices, rewards and ownership.
+
+For raw network events capture a local copy of source before a yield or delayed callback.
+Preserve request-local identity and recheck session ownership if a later action could target a
+reconnected player. A callback parameter named source is local already; do not replace it
+with a later read of the global. Where AGENTS requires the Sky bridge, retain its Sky.Cb interface.
+
+ESX lifecycle event signatures differ by side and version. Inspect where the event is emitted,
+not only where another script happens to listen. Avoid creating a new network entrypoint for
+an internal loaded/job-changed notification. SecureNetEvent is a client origin filter, not a
+server authorization layer; validate mutations in server-owned services.
+
+[ESX callback implementations and CFX source lifetime evidence](reference-links.md).
+
+## Complete client request and server reply
+
+These direct ESX examples belong in an ESX adapter or standalone resource that actually uses ESX. When the applicable AGENTS requires the Sky bridge, preserve `Sky.Cb`, `Sky.FW` and `Sky_Jobs.PlayerCache` in feature code. Rename `example:` to the resource's own namespace. This read-only example exposes only the caller's view; it is not a purchase authorization.
 
 ```lua
--- SERVER
-ESX.RegisterServerCallback('myResource:getPlayerData', function(source, cb, additionalParam)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    if not xPlayer then return cb(nil) end
-    
-    local data = {
-        money = xPlayer.getMoney(),
-        job = xPlayer.job.name,
-        grade = xPlayer.job.grade,
-        param = additionalParam
-    }
-    
-    cb(data)
-end)
-```
-
-### Calling a Server Callback
-
-```lua
--- CLIENT
-ESX.TriggerServerCallback('myResource:getPlayerData', function(data)
-    if data then
-        print('Money:', data.money)
-        print('Job:', data.job)
+-- SERVER: registered once after the established ESX import.
+ESX.RegisterServerCallback("example:getSummary", function(src, cb, account_name)
+    if account_name ~= "bank" and account_name ~= "money" then
+        print("[example] getSummary rejected: unsupported account")
+        cb({ ok = false, error = "invalid_account" })
+        return
     end
-end, 'extraParam')
-```
 
-### Common Patterns
-
-```lua
--- Check if player can afford something
-ESX.RegisterServerCallback('shop:canAfford', function(source, cb, itemName)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    if not xPlayer then return cb(false) end
-    
-    local price = Config.Items[itemName].price
-    cb(xPlayer.getMoney() >= price)
-end)
-
--- CLIENT usage
-ESX.TriggerServerCallback('shop:canAfford', function(canAfford)
-    if canAfford then
-        -- Show buy menu
-    else
-        lib.notify({title = 'Shop', description = 'Not enough money', type = 'error'})
+    local x_player = ESX.GetPlayerFromId(src)
+    if not x_player then
+        print("[example] getSummary rejected: player is not loaded")
+        cb({ ok = false, error = "player_not_loaded" })
+        return
     end
-end, 'bread')
-```
 
-## Client Callbacks
-
-**WARNING**: Client callbacks should NEVER be used for sensitive operations! Client can fake any data.
-
-### Registering a Client Callback
-
-```lua
--- CLIENT
-ESX.RegisterClientCallback('myResource:getVehicleModel', function(cb, vehicle)
-    local model = GetEntityModel(vehicle)
-    cb(model)
-end)
-```
-
-### Calling a Client Callback (Server)
-
-```lua
--- SERVER
-ESX.TriggerClientCallback(source, 'myResource:getVehicleModel', function(model)
-    print('Vehicle model:', model)
-end, vehicleNetId)
-```
-
-## ESX Events
-
-### Client Events
-
-#### esx:playerLoaded
-
-Fired when player's character loads.
-
-```lua
--- CLIENT
-AddEventHandler('esx:playerLoaded', function(playerData)
-    ESX.PlayerData = playerData
-    print('Player loaded:', playerData.firstName, playerData.lastName)
-    
-    -- Initialize your resource
-    startClientScripts()
-end)
-```
-
-#### esx:updatePlayerData
-
-Fired when any PlayerData is updated.
-
-```lua
--- CLIENT
-AddEventHandler('esx:updatePlayerData', function(key, value)
-    ESX.PlayerData[key] = value
-    
-    if key == 'job' then
-        print('Job changed to:', value.name)
-    elseif key == 'money' then
-        print('Money updated:', value)
+    local account = x_player.getAccount(account_name)
+    if not account then
+        print("[example] getSummary rejected: account is not configured")
+        cb({ ok = false, error = "account_unavailable" })
+        return
     end
+
+    cb({ ok = true, balance = account.money, job = x_player.getJob().name })
 end)
 ```
 
-#### esx:setJob
-
-Fired when player's job changes.
-
 ```lua
--- CLIENT
-AddEventHandler('esx:setJob', function(job)
-    ESX.PlayerData.job = job
-    print('New job:', job.name, 'Grade:', job.grade)
-    
-    -- Start/stop job-specific systems
-    if job.name == 'police' then
-        startPoliceBlips()
-    else
-        stopPoliceBlips()
+-- CLIENT: the function receives the reply, not the immediate return value.
+ESX.TriggerServerCallback("example:getSummary", function(result)
+    if not result.ok then
+        print(("[example] getSummary rejected: %s"):format(result.error))
+        return
     end
-end)
+    print(("[example] bank display updated: %s"):format(result.balance))
+end, "bank")
 ```
 
-#### esx:setAccountMoney
-
-Fired when player's account money changes.
+For UI use, replace the diagnostic with the existing store update/localized error UI. The same route can be awaited **inside an existing yieldable coroutine**:
 
 ```lua
--- CLIENT
-AddEventHandler('esx:setAccountMoney', function(account)
-    print('Account updated:', account.name, account.money)
-end)
-```
-
-#### esx:addInventoryItem
-
-Fired when player receives an item.
-
-```lua
--- CLIENT
-AddEventHandler('esx:addInventoryItem', function(item, count)
-    print('Received:', count, 'x', item.label)
-end)
-```
-
-#### esx:removeInventoryItem
-
-Fired when player loses an item.
-
-```lua
--- CLIENT
-AddEventHandler('esx:removeInventoryItem', function(item, count)
-    print('Removed:', count, 'x', item.label)
-end)
-```
-
-#### esx:onPlayerDeath
-
-Fired when player dies.
-
-```lua
--- CLIENT
-AddEventHandler('esx:onPlayerDeath', function(data)
-    print('Player died')
-    print('Killer:', data.killerServerId)
-    
-    -- Respawn logic
-end)
-```
-
-#### esx:onPlayerSpawn
-
-Fired when player spawns.
-
-```lua
--- CLIENT
-AddEventHandler('esx:onPlayerSpawn', function()
-    print('Player spawned')
-end)
-```
-
-#### esx:playerPedChanged
-
-Fired when player ped changes (e.g., after model change).
-
-```lua
--- CLIENT
-local playerPed = PlayerPedId()
-
-AddEventHandler('esx:playerPedChanged', function(newPed)
-    playerPed = newPed
-    print('Ped changed:', newPed)
-end)
-```
-
-### Server Events
-
-#### esx:onPlayerJoined
-
-Fired when player connects (before character selection).
-
-```lua
--- SERVER
-AddEventHandler('esx:onPlayerJoined', function()
-    local _source = source
-    print('Player connected:', _source)
-end)
-```
-
-#### esx:playerLoaded
-
-Fired when player's character loads.
-
-```lua
--- SERVER
-AddEventHandler('esx:playerLoaded', function(playerId, xPlayer)
-    print('Player loaded:', xPlayer.getName())
-    
-    -- Give welcome bonus
-    if xPlayer.getMeta('firstTime') == nil then
-        xPlayer.addMoney(5000, 'Welcome bonus')
-        xPlayer.setMeta('firstTime', false)
-    end
-end)
-```
-
-#### esx:playerDropped
-
-Fired when player disconnects.
-
-```lua
--- SERVER
-AddEventHandler('esx:playerDropped', function(playerId, reason)
-    print('Player ' .. playerId .. ' left:', reason)
-end)
-```
-
-#### esx:setJob
-
-Fired when player's job changes (server-side).
-
-```lua
--- SERVER
-AddEventHandler('esx:setJob', function(playerId, job, lastJob)
-    local xPlayer = ESX.GetPlayerFromId(playerId)
-    if not xPlayer then return end
-    
-    print(xPlayer.getName() .. ' changed from ' .. lastJob.name .. ' to ' .. job.name)
-    
-    -- Log job change
-    MySQL.Async.execute('INSERT INTO job_changes (identifier, old_job, new_job) VALUES (@identifier, @old, @new)', {
-        ['@identifier'] = xPlayer.identifier,
-        ['@old'] = lastJob.name,
-        ['@new'] = job.name
-    })
-end)
-```
-
-## Secure Net Events
-
-Use SecureNetEvent for client events that should only be triggered by server.
-
-### Registering Secure Net Event
-
-```lua
--- CLIENT
-ESX.SecureNetEvent('myResource:giveReward', function(amount, reason)
-    -- Only server can trigger this
-    print('Received reward:', amount, reason)
-    
-    lib.notify({
-        title = 'Reward',
-        description = 'You received $' .. amount .. ' for ' .. reason,
-        type = 'success'
-    })
-end)
-```
-
-### Triggering Secure Net Event
-
-```lua
--- SERVER
-local xPlayer = ESX.GetPlayerFromId(source)
-xPlayer.triggerEvent('myResource:giveReward', 500, 'completing mission')
-```
-
-## Custom Events
-
-### Triggering Client Event from Server
-
-```lua
--- SERVER
-local xPlayer = ESX.GetPlayerFromId(source)
-xPlayer.triggerEvent('myResource:openMenu', menuData)
-
--- Or using TriggerClientEvent
-TriggerClientEvent('myResource:openMenu', source, menuData)
-
--- Or for multiple players
-local officers = ESX.GetExtendedPlayers('job', 'police')
-for i, xPlayer in ipairs(officers) do
-    xPlayer.triggerEvent('myResource:alert', 'Code 3 at Legion Square')
+local result = ESX.AwaitServerCallback("example:getSummary", "bank")
+if result.ok then
+    print(("[example] bank display updated: %s"):format(result.balance))
+else
+    print(("[example] getSummary rejected: %s"):format(result.error))
 end
 ```
 
-### Triggering Server Event from Client
+At the pinned revision, ESX delegates to `xLib.callback`/`.await` and `registerCompat`. A compatibility handler must call `cb(...)`; returning a table from the handler alone does not resolve its reply promise. The compatibility wrapper ignores duplicate replies, but the application should still reply exactly once. Await rejects on invalid callbacks/timeouts; handle that actual failure at the owning operation boundary, without translating it into success or adding broad retries. Callback style is asynchronous and does not pause the caller; await yields only that coroutine. Do not assume callback style has the same timeout delivery behavior as await. The configured xLib timeout is not a universal ESX constant.
+
+## Client callbacks are untrusted display data
+
+This example returns a local UI preference, deliberately not an amount, permission or entity authority:
 
 ```lua
--- CLIENT
-TriggerServerEvent('myResource:buyItem', 'bread')
+-- CLIENT: ui_preferences is the existing local presentation state.
+ESX.RegisterClientCallback("example:getDisplayMode", function(cb)
+    cb({ compact = ui_preferences.compact })
+end)
 ```
 
-### Receiving Custom Events
-
 ```lua
--- CLIENT
-RegisterNetEvent('myResource:openMenu')
-AddEventHandler('myResource:openMenu', function(menuData)
-    -- Open menu with data
+-- SERVER: target_source came from the server's existing interaction/session owner.
+ESX.TriggerClientCallback(target_source, "example:getDisplayMode", function(view)
+    if type(view) ~= "table" or type(view.compact) ~= "boolean" then
+        print("[example] display-mode response rejected: invalid shape")
+        return
+    end
+    print(("[example] client display mode: compact=%s"):format(view.compact))
 end)
 
--- SERVER
-RegisterNetEvent('myResource:buyItem')
-AddEventHandler('myResource:buyItem', function(itemName)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    if not xPlayer then return end
-    
-    -- Validate and process purchase
-    local price = Config.Items[itemName].price
-    if xPlayer.getMoney() >= price then
-        xPlayer.removeMoney(price, 'Bought ' .. itemName)
-        xPlayer.addInventoryItem(itemName, 1)
+-- Alternative, inside a yieldable coroutine:
+local view = ESX.AwaitClientCallback(target_source, "example:getDisplayMode")
+```
+
+The client compatibility handler receives `cb, ...`, without a server-style `source` argument. Validate the awaited result too. A valid shape does not make a client statement trustworthy. Do not use this for economy, ownership, proximity or anti-cheat decisions. When a callback needs an entity, a network ID and a local entity handle are different types; resolve it on the receiving side using verified native contracts. The former example incorrectly passed a network ID to `GetEntityModel` as a handle.
+
+## Client lifecycle events and payloads
+
+The following payloads are traced through the pinned producers/consumers in [the source map](reference-links.md#event-and-restoration-source-details). Other ESX versions or inventory/character providers can differ.
+
+| Event | Current payload and boundary |
+|---|---|
+| `esx:playerLoaded` | `(player_data, is_new, skin)` from server. The import/core owns `PlayerData`; loading the ped may still be in progress. |
+| `esx:onPlayerLogout` | No payload. Clear resource-owned character state and pending view work. |
+| `esx:setPlayerData` | Local `(key, value, previous)` from `ESX.SetPlayerData`; imports filter the invoking resource. This is the broad local data-change hook, except the special `loadout` path. |
+| `esx:updatePlayerData` | Network `(key, value)` consumed by core, which calls `SetPlayerData`. It is not a notification for every possible client data update. |
+| `esx:setJob` | `(job, previous_job)` from the server player class. Core uses the first argument to update its local job view. |
+| `esx:setAccountMoney` | `(account_record)` containing `name` and `money`; core updates the accounts array. |
+| `esx:addInventoryItem`, `esx:removeInventoryItem` | Default inventory: `(item_name, resulting_total_count, show_notification?)`; not an item record or amount added/removed. Loadout notification paths also use these names with a label, `false` count and `true` notification flag. |
+| `esx:onPlayerDeath` | Local death report table; also sent to server by the client and thus untrusted there. `killedByPlayer`, `victimCoords`, `deathCause`; player-kill path adds killer coordinates/distance/server/client IDs. |
+| `esx:onPlayerSpawn` | Local hook with no required payload in the inspected core; character/spawn providers own when it is emitted. |
+| `esx:playerPedChanged` | Local `(ped)` from the actions module. Invalidate cached entity handles when it changes. |
+
+Subscribe to state changes **and initialize from the already-loaded state**, so restarting a dependent resource works. Avoid writing ESX's own `PlayerData` again in every handler:
+
+```lua
+-- CLIENT, after @es_extended/imports.lua. This flag controls presentation only.
+local police_view_enabled = false
+
+local function apply_job_view(job)
+    local next_enabled = job.name == "police"
+    if next_enabled == police_view_enabled then
+        return -- Idempotent state transition, not an invalid-state guard.
+    end
+    police_view_enabled = next_enabled
+    print(("[example] police view enabled: %s"):format(next_enabled))
+    -- Start/stop this resource's actual view effects here; do not grant server permissions.
+end
+
+AddEventHandler("esx:playerLoaded", function(player_data)
+    apply_job_view(player_data.job)
+end)
+AddEventHandler("esx:setJob", apply_job_view)
+AddEventHandler("esx:onPlayerLogout", function()
+    police_view_enabled = false
+    -- Dispose the resource-owned view effects and invalidate pending character requests.
+end)
+
+if ESX.IsPlayerLoaded() then
+    apply_job_view(ESX.GetPlayerData().job)
+end
+```
+
+The established import already registers the network ESX lifecycle events. Use `AddEventHandler` for observation; do not expose an internal server notification with `RegisterNetEvent`. If initialization needs a ped, follow the provider's ped-ready lifecycle instead of assuming `playerLoaded` implies collision/model readiness.
+
+```lua
+-- CLIENT: observe resulting inventory totals, not fictional deltas.
+AddEventHandler("esx:addInventoryItem", function(item_name, total_count, notification_only)
+    if type(total_count) == "number" then
+        print(("[example] %s total: %s"):format(item_name, total_count))
     end
 end)
+AddEventHandler("esx:setAccountMoney", function(account)
+    print(("[example] account display updated: %s"):format(account.name))
+end)
 ```
 
-## Best Practices
+## Server lifecycle hooks
 
-1. **Always validate server-side**:
-   ```lua
-   -- BAD: Trust client data
-   RegisterNetEvent('shop:buy')
-   AddEventHandler('shop:buy', function(price)
-       local xPlayer = ESX.GetPlayerFromId(source)
-       xPlayer.removeMoney(price) -- Client controls price!
-   end)
-   
-   -- GOOD: Server validates
-   RegisterNetEvent('shop:buy')
-   AddEventHandler('shop:buy', function(itemName)
-       local xPlayer = ESX.GetPlayerFromId(source)
-       if not xPlayer then return end
-       
-       local price = Config.Items[itemName].price
-       if xPlayer.getMoney() >= price then
-           xPlayer.removeMoney(price, 'Bought ' .. itemName)
-           xPlayer.addInventoryItem(itemName, 1)
-       end
-   end)
-   ```
+| Event | Current payload |
+|---|---|
+| `esx:playerLoaded` | Local `(player_id, x_player, is_new)` after player creation. |
+| `esx:playerDropped` | Local `(player_id, reason)` during ESX cleanup; character logout also uses this cleanup path. |
+| `esx:setJob` | Local `(player_id, job, previous_job)`; do not use global `source` as the player ID. |
+| `esx:onPlayerJoined` | Framework entrypoint, not a generic connection hook: multichar uses local `(src, char, data)`, non-multichar uses a network event with caller `source`. Do not replay it from features. |
 
-2. **Use callbacks for data requests**:
-   ```lua
-   -- GOOD: Use callback
-   ESX.TriggerServerCallback('shop:canAfford', function(canAfford)
-       if canAfford then
-           -- Do something
-       end
-   end, 'bread')
-   
-   -- BAD: Use event
-   TriggerServerEvent('shop:checkAfford', 'bread')
-   RegisterNetEvent('shop:affordResult')
-   AddEventHandler('shop:affordResult', function(canAfford)
-       -- Client can fake this event
-   end)
-   ```
+```lua
+-- SERVER: per-session cache ownership only; no welcome reward.
+local session_jobs = {}
+AddEventHandler("esx:playerLoaded", function(player_id, x_player, is_new)
+    session_jobs[player_id] = x_player.getJob().name
+end)
+AddEventHandler("esx:setJob", function(player_id, job, previous_job)
+    session_jobs[player_id] = job.name
+end)
+AddEventHandler("esx:playerDropped", function(player_id, reason)
+    session_jobs[player_id] = nil
+end)
+for _, x_player in ipairs(ESX.GetExtendedPlayers()) do
+    session_jobs[x_player.source] = x_player.getJob().name
+end
+```
 
-3. **Use SecureNetEvent for important client events**:
-   ```lua
-   -- CLIENT
-   ESX.SecureNetEvent('police:giveArmor', function()
-       SetPedArmour(PlayerPedId(), 100)
-   end)
-   
-   -- SERVER (validated)
-   local xPlayer = ESX.GetPlayerFromId(source)
-   if xPlayer.job.name == 'police' then
-       xPlayer.triggerEvent('police:giveArmor')
-   end
-   ```
+Use the resource's existing cache, including `PlayerCache` where required; this illustrates lifecycle ownership, not a new cache requirement. Do not pay rewards merely because a hook ran. Persistent one-time rewards require a server-owned, atomically consumed eligibility record.
 
-4. **Always check for nil**:
-   ```lua
-   RegisterNetEvent('myResource:action')
-   AddEventHandler('myResource:action', function()
-       local xPlayer = ESX.GetPlayerFromId(source)
-       if not xPlayer then return end
-       
-       -- Safe to use xPlayer
-   end)
-   ```
+## Secure events and ordinary dispatch
 
-5. **Use proper event naming**:
-   ```lua
-   -- GOOD: Descriptive names
-   'myResource:openShopMenu'
-   'myResource:buyItem'
-   'myResource:sellItem'
-   
-   -- BAD: Vague names
-   'myResource:event1'
-   'myResource:action'
-   'openMenu'
-   ```
+`ESX.SecureNetEvent` registers a client net event and rejects the local empty-string `source` at this revision. It is a client origin filter. It cannot make a compromised client's state trusted or protect a server grant by itself.
 
-6. **Listen to ESX events for state changes**:
-   ```lua
-   -- CLIENT: React to job changes
-   AddEventHandler('esx:setJob', function(job)
-       if job.name == 'police' then
-           startPoliceFeatures()
-       else
-           stopPoliceFeatures()
-       end
-   end)
-   
-   -- Check on resource start too
-   CreateThread(function()
-       while not ESX.IsPlayerLoaded() do Wait(100) end
-       
-       if ESX.PlayerData.job.name == 'police' then
-           startPoliceFeatures()
-       end
-   end)
-   ```
+```lua
+-- CLIENT: presentation event only.
+ESX.SecureNetEvent("example:status", function(status)
+    print(("[example] server status: %s"):format(status))
+end)
+```
+
+```lua
+-- SERVER: all three dispatch forms are valid in their intended context.
+x_player.triggerEvent("example:status", "ready")
+TriggerClientEvent("example:status", x_player.source, "ready")
+ESX.TriggerClientEvent("example:status", { first_source, second_source }, "ready")
+```
+
+Use one form for one delivery, not all three together. For a plain client request, register the actual network boundary and derive the actor from `source`:
+
+```lua
+-- CLIENT
+TriggerServerEvent("example:requestStatus")
+
+-- SERVER
+RegisterNetEvent("example:requestStatus", function()
+    local src = source
+    local x_player = ESX.GetPlayerFromId(src)
+    if not x_player then
+        print("[example] status request rejected: player is not loaded")
+        return
+    end
+    x_player.triggerEvent("example:status", "ready")
+end)
+```
+
+An event request/result pair needs correlation when multiple requests can overlap; an existing callback transport already provides it. Neither transport is an authorization mechanism. For mutations, add the action-specific authority/rate/replay checks in the server service; do not copy a generic give-item or unchecked shop endpoint. Use `TriggerEvent` + `AddEventHandler` for local-only notifications.

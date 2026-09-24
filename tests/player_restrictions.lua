@@ -52,32 +52,25 @@ e.Config.Phone.BlockWhenDead, e.Config.Phone.BlockWhenCuffed = true, true
 e.metadata[1] = {}
 e.players[1] = { SaltyChat_IsAlive = false }
 assert(guard.GetBlockReason(1) == nil, "Salty mute must never count as death")
--- The Sky resources need not be started or expose any exports: replicated bags
--- remain readable after a phone restart. Fail if the phone tries a Sky export.
+-- Replicated framework status must remain readable after a phone restart
+-- without accessing resource exports.
 e.exports = setmetatable({}, { __index = function(_, resource)
     error("Player status must not access an export: " .. resource)
 end })
-for _, key in ipairs({ "skyAmbulanceDead", "dead", "isdead", "isDead", "skyAmbulanceKnockout" }) do
+for _, key in ipairs({ "dead", "isdead", "isDead" }) do
     e.players[1] = { [key] = true }
     assert(guard.GetBlockReason(1) == "player_incapacitated", key)
     e.players[1][key] = false
     assert(guard.GetBlockReason(1) == nil, key .. " must clear on revive")
 end
-for _, cuff_type in ipairs({ "cuffs", "zipties" }) do
-    e.players[1] = { skyCuffType = cuff_type }
-    assert(guard.GetBlockReason(1) == "player_cuffed", cuff_type)
-    -- Exact Sky police bag combination: isDead is also set for inventory blocking.
-    e.players[1] = { ishandcuffed = true, skyCuffType = cuff_type, isDead = true,
-        invBusy = true, inv_busy = true, busy = true, skyAmbulanceDead = false }
-    assert(guard.GetBlockReason(1) == "player_cuffed" and not guard.Get(1).dead,
-        "Sky police inventory flag must not count as medical death")
+for _, key in ipairs({ "ishandcuffed", "isHandcuffed", "handcuffed", "isCuffed" }) do
+    e.players[1] = { [key] = true }
+    assert(guard.GetBlockReason(1) == "player_cuffed", key)
     e.Config.Phone.BlockWhenCuffed = false
-    assert(guard.GetBlockReason(1) == nil, "Disabling cuffs must work while death restriction stays enabled")
-    for _, key in ipairs({ "skyAmbulanceDead", "dead", "isdead", "inlaststand", "skyAmbulanceKnockout" }) do
-        e.players[1][key] = true
-        assert(guard.GetBlockReason(1) == "player_incapacitated", "Medical death must still win: " .. key)
-        e.players[1][key] = false
-    end
+    assert(guard.GetBlockReason(1) == nil, "Disabling cuffs must leave death restrictions independent")
+    e.players[1].dead = true
+    assert(guard.GetBlockReason(1) == "player_incapacitated", "Medical death must still win")
+    e.players[1].dead = false
     e.health[1] = 0
     assert(guard.GetBlockReason(1) == "player_incapacitated", "Cuffs cannot mask native death")
     e.health[1] = 200
@@ -86,10 +79,10 @@ end
 e.players[1] = { ishandcuffed = true }
 e.net["sky_phone:player:status"]({ dead = false, cuffed = false, source = 2 })
 assert(guard.GetBlockReason(1) == "player_cuffed", "A clear report must not override a replicated cuff flag")
-for _, key in ipairs({ "ishandcuffed", "skyCuffType", "invBusy", "inv_busy", "busy", "isDead" }) do
+for _, key in ipairs({ "ishandcuffed", "invBusy", "inv_busy", "busy", "isDead" }) do
     e.players[1][key] = false
 end
-assert(guard.GetBlockReason(1) == nil, "Sky police clear-state sequence must unlock the phone")
+assert(guard.GetBlockReason(1) == nil, "Framework clear-state sequence must unlock the phone")
 e.players[1] = { invBusy = true, inv_busy = true, busy = true }
 assert(guard.GetBlockReason(1) == nil, "Inventory activity alone must not restrict calls/radio")
 e.players[1] = {}
@@ -129,9 +122,9 @@ end })
 c.Bridge.Framework.GetName = function() return "esx" end
 c.TriggerEvent("esx:onPlayerDeath")
 assert(c.Bridge.PlayerState.GetBlockReason() == "player_incapacitated", "Legacy ESX death must work without a medical bag")
-c.LocalPlayer.state.skyAmbulanceDead = false
-assert(c.Bridge.PlayerState.GetBlockReason() == nil, "A cleared Sky medical bag must supersede a stale ESX death event")
-for _, key in ipairs({ "skyAmbulanceDead", "dead", "isdead", "isDead", "skyAmbulanceKnockout" }) do
+c.TriggerEvent("esx:onPlayerSpawn")
+assert(c.Bridge.PlayerState.GetBlockReason() == nil, "The ESX spawn event must clear its death state")
+for _, key in ipairs({ "dead", "isdead", "isDead" }) do
     c.LocalPlayer.state[key] = true
     tick(c.threads[1])
     assert(c.report.dead and c.Bridge.PlayerState.GetBlockReason() == "player_incapacitated", key)
@@ -139,19 +132,19 @@ for _, key in ipairs({ "skyAmbulanceDead", "dead", "isdead", "isDead", "skyAmbul
     tick(c.threads[1])
     assert(not c.report.dead and c.Bridge.PlayerState.GetBlockReason() == nil, key .. " revive")
 end
-c.LocalPlayer.state = { ishandcuffed = true, skyCuffType = "cuffs", isDead = true, skyAmbulanceDead = false }
+c.LocalPlayer.state = { ishandcuffed = true }
 tick(c.threads[1])
-assert(c.report.cuffed and not c.report.dead, "Client must report cuffs separately from death for Sky police")
+assert(c.report.cuffed and not c.report.dead, "Client must report framework cuffs separately from death")
 assert(c.Bridge.PlayerState.GetBlockReason() == "player_cuffed")
 c.Config.Phone.BlockWhenCuffed = false
 assert(c.Bridge.PlayerState.GetBlockReason() == nil)
-for _, key in ipairs({ "ishandcuffed", "skyCuffType", "invBusy", "inv_busy", "busy", "isDead" }) do
+for _, key in ipairs({ "ishandcuffed", "invBusy", "inv_busy", "busy", "isDead" }) do
     c.LocalPlayer.state[key] = false
 end
 tick(c.threads[1]); assert(not c.report.cuffed and not c.report.dead)
 c.Config.Phone.BlockWhenCuffed = true
 native_dead = true; assert(c.Bridge.PlayerState.GetBlockReason() == "player_incapacitated")
-print("PASS client state: cuffs, state-change reports, native death and Sky revive")
+print("PASS client state: cuffs, state-change reports, native death and ESX revive")
 
 -- Execute each real framework server adapter against its documented player API.
 for _, name in ipairs({ "esx", "qb", "qbox" }) do
@@ -224,12 +217,11 @@ assert(r.disconnects == 1 and not get(1).data.connected and get(1).data.savedFre
 assert(join().error == "phone_not_owned")
 r.Config.Radio.RequirePhoneItem = false
 before = r.item_queries; assert(join().success); tick(r.threads[1]); assert(r.item_queries == before)
-r.players[1] = { skyAmbulanceDead = true, dead = true, isdead = true }
+r.players[1] = { dead = true, isdead = true }
 tick(r.threads[1]); assert(not get(1).data.connected)
 assert(join().error == "player_incapacitated")
 r.Config.Phone.BlockWhenDead = false; assert(join().success)
-r.players[1] = { skyAmbulanceDead = false, dead = false, isdead = false,
-    ishandcuffed = true, skyCuffType = "zipties", isDead = true }
+r.players[1] = { dead = false, isdead = false, ishandcuffed = true }
 r.Config.Phone.BlockWhenDead = true
 tick(r.threads[1]); assert(not get(1).data.connected)
 assert(join().error == "player_cuffed")

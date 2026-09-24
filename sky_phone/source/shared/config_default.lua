@@ -34,7 +34,7 @@ Config.Command = "phone"
 
 Config.Phone = {
     -- Applies to phone use, ringing/active calls (including video), streams and radio.
-    -- Sky ambulance/police state bags and ESX/Qbox/QBCore status are detected automatically (no Sky job exports).
+    -- ESX/Qbox/QBCore status and native death/handcuff checks are detected automatically.
     BlockWhenDead = true, -- includes unconscious/laststand; false permits phone/voice use while downed
     BlockWhenCuffed = true, -- false permits phone/voice use while handcuffed
     Item = "phone",

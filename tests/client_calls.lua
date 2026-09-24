@@ -5,6 +5,11 @@ local joined_channel = nil
 local leave_count = 0
 local callback_result = { success = true }
 local callback_requests = {}
+local game_timer = 1000
+
+function GetGameTimer()
+    return game_timer
+end
 
 Bridge = {
     Calls = {
@@ -83,8 +88,17 @@ net_events["sky_phone:call:state"]({
     state = "connected",
     direction = "incoming",
     channel = 42,
+    elapsedSeconds = 12,
 })
 assert(joined_channel == 42 and not focus_claim, "connected call must join voice and release attention focus")
+game_timer = 3500
+assert(SkyPhoneCalls.GetActive().elapsedSeconds == 14, "snapshots must advance from the received duration")
+game_timer = 6500
+SkyPhoneCalls.ReplayNui()
+assert(nui_messages[#nui_messages].data.elapsedSeconds == 17, "reopening NUI must replay the current duration")
+game_timer = 7500
+SkyPhoneCalls.ReplayNui()
+assert(nui_messages[#nui_messages].data.elapsedSeconds == 18, "repeated replays must not double-count elapsed time")
 success, error_code = SkyPhoneCalls.Answer()
 assert(not success and error_code == "call_not_found", "connected calls must not be answered twice")
 
@@ -97,6 +111,13 @@ assert(callback_requests[#callback_requests].name == "sky_phone:calls:hangup", "
 
 net_events["sky_phone:call:state"]({ id = "call-1", state = "ended" })
 assert(not SkyPhoneCalls.IsActive() and leave_count == 1, "ended call must clear state and leave voice")
+
+game_timer = 2147483148
+net_events["sky_phone:call:state"]({ id = "call-wrap", state = "connected", elapsedSeconds = 0 })
+game_timer = -2147482148
+assert(SkyPhoneCalls.GetActive().elapsedSeconds == 2, "duration must survive the signed game timer wrap")
+SkyPhoneCalls.Reset()
+assert(SkyPhoneCalls.GetActive() == nil, "reset must discard the call clock")
 
 print("Client call runtime tests passed")
 

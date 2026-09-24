@@ -1,29 +1,21 @@
 ---
 name: lua-basics
-description: Effective Lua programming for FiveM - functions, tables, variables, conditionals, error handling. Use when writing or reviewing Lua code for FiveM resources.
-author: germanfndez
-version: 1.0.0
-mcp-server: projecthub
+description: Diagnose or write FiveM Lua involving table semantics, scope, return values, errors or coroutine lifetimes. Use when these language details matter.
+metadata:
+  author: germanfndez
 ---
 
-# Lua Basics
+# Lua semantics for FiveM
 
-Best practices for writing effective Lua code in FiveM. This skill covers fundamental Lua patterns, performance optimizations, and code quality guidelines specifically for FiveM development.
+Use the deployed runtime's language contract. FiveM extends Lua; do not assume a standalone
+parser covers every extension. Verify relevant CFX APIs against official docs and pinned source,
+including context and yield behavior; see the [source map](reference-links.md).
 
-## When to use
+Follow the applicable `AGENTS.md` and resource style. When it requires the Sky bridge, keep
+four-space indent, double quotes, snake_case locals, no one-line aliases and no documented-API
+existence guards; player identity/job/duty use PlayerCache. Otherwise retain resource-owned adapters.
 
-- Writing or reviewing Lua code for FiveM resources.
-- Questions about Lua best practices, naming conventions, or code structure.
-- Optimizing Lua code for performance.
-- Need guidance on functions, tables, variables, conditionals, or error handling in Lua.
-
-## How to use
-
-Read individual rule files for detailed explanations and examples:
-
-- **rules/functions.md** — Function best practices: size, naming, parameters, exports, guard clauses.
-- **rules/tables.md** — Table operations: array indices, dereferencing, avoiding table.insert, iterations, array size.
-- **rules/variables.md** — Variable naming conventions: constants, locals, globals, enums vs booleans.
-- **rules/conditionals.md** — Conditional patterns: default values, boolean expressions, readability.
-- **rules/errors.md** — Error handling: assertions, pre-conditions, errors as values, fail loudly.
-- **rules/reference-links.md** — Official Lua and FiveM documentation resources.
+Read only the relevant topic: [functions and returns](functions.md), [tables](tables.md),
+[variables and lifetime](variables.md), [conditionals](conditionals.md), or
+[errors and asynchronous work](errors.md). Prefer correct ownership and measured work over
+unverified micro-optimization rules.

@@ -1,27 +1,33 @@
 # scalar
 
-Returns a single value (one row, one column). Use for COUNT, one field, etc.
+MySQL.scalar.await(sql, parameters) returns the first column of the first row, or nil when
+there is no value. Use it for a single field or aggregate, not as a row object.
 
-**Lua (Promise)**
+Preserve meaningful false/zero values; Lua zero is truthy. COUNT over no matches is usually
+zero rather than a missing row. Check null/type conversion at the installed driver boundary.
+Await rejection is distinct from an absent scalar.
+
+[Scalar docs](https://overextended.dev/docs/oxmysql/Functions/scalar), [source](sources.md).
+
+## Examples
+
+[Example setup](examples-setup.md); a count consumes a scalar, not `result.count`:
 
 ```lua
-local count = MySQL.scalar.await('SELECT COUNT(*) FROM `users` WHERE `group` = ?', { group })
-local name = MySQL.scalar.await('SELECT `username` FROM `users` WHERE `identifier` = ?', { identifier })
-```
+local sql = "SELECT COUNT(*) FROM example_notes WHERE owner = ?"
+local count = MySQL.scalar.await(sql, { owner_key })
+print(("Note count: %s"):format(count))
 
-**Lua (Callback)**
-
-```lua
-MySQL.scalar('SELECT `username` FROM `users` WHERE `identifier` = ?', { identifier }, function(name)
-  if name then print(name) end
+-- Callback alternative.
+MySQL.scalar(sql, { owner_key }, function(result)
+    print(("Note count: %s"):format(result))
 end)
 ```
 
-**JavaScript**
-
 ```js
-const count = await MySQL.scalar('SELECT COUNT(*) FROM `users` WHERE `group` = ?', [group]);
-const name = await MySQL.scalar('SELECT `username` FROM `users` WHERE `identifier` = ?', [identifier]);
+const count = await MySQL.scalar("SELECT COUNT(*) FROM example_notes WHERE owner = ?", [ownerKey]);
+console.log("Note count:", count);
 ```
 
-Reference: [scalar – coxdocs.dev](https://coxdocs.dev/oxmysql/Functions/scalar).
+For an optional field lookup, test Lua `value == nil` / JS `value == null` when absence is
+the distinction. An expression such as JS `value || fallback` also replaces legitimate zero.

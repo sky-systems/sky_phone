@@ -18,5 +18,10 @@ export default defineConfigWithVueTs(
   ]),
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
+  {
+    files: ['scripts/**/*.cjs'],
+    // These Node utilities are also loaded by the CommonJS publishing script.
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
   skipFormatting,
 )

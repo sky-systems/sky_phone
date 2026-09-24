@@ -58,6 +58,7 @@ export type PhoneCall = {
   channel?: number
   device?: { imei: string; name: string }
   direction: CallDirection
+  elapsedSeconds?: number
   id: string
   muted?: boolean
   muteSupported?: boolean

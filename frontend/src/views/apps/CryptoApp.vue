@@ -90,6 +90,8 @@ const account = useAccountStore()
 const easyShare = useEasyShareStore()
 const phone = usePhoneStore()
 let marketPreviewTimer: number | undefined
+let marketViewGeneration = 0
+let marketViewMounted = true
 const tab = ref<Tab>('portfolio')
 const authMode = ref<'login' | 'register'>('login')
 const activityFilter = ref<'all' | 'trades' | 'wallet'>('all')
@@ -666,7 +668,7 @@ watch(markets, (value) => {
   }
 })
 function scheduleDevelopmentMarketTick() {
-  if (!import.meta.env.DEV) return
+  if (!import.meta.env.DEV || !marketViewMounted) return
   marketPreviewTimer = window.setTimeout(
     async () => {
       await crypto.previewMarketTick()
@@ -675,11 +677,28 @@ function scheduleDevelopmentMarketTick() {
     4500 + Math.random() * 2500,
   )
 }
-onMounted(async () => {
-  await crypto.load()
+watch(
+  () => phone.isOpen,
+  async (open) => {
+    const generation = ++marketViewGeneration
+    if (!open) {
+      void crypto.watchMarkets(false)
+      return
+    }
+    const loaded = await crypto.load()
+    if (loaded && marketViewMounted && generation === marketViewGeneration) {
+      await crypto.watchMarkets(true)
+    }
+  },
+  { immediate: true },
+)
+onMounted(() => {
   scheduleDevelopmentMarketTick()
 })
 onUnmounted(() => {
+  marketViewMounted = false
+  marketViewGeneration++
+  void crypto.watchMarkets(false)
   if (marketPreviewTimer !== undefined) window.clearTimeout(marketPreviewTimer)
 })
 </script>

@@ -207,6 +207,99 @@ describe('calls store', () => {
     state: 'ringing',
   }
 
+  it.each([1, 1000])(
+    'counts connected seconds independently of server timestamps in units of %i',
+    (timestampScale) => {
+      vi.setSystemTime(new Date('2026-09-23T12:00:00Z'))
+      const calls = useCallsStore()
+      calls.applyCallState({
+        ...outgoingCall,
+        answeredAt: 1_790_201_000 * timestampScale,
+        elapsedSeconds: 3,
+        state: 'connected',
+      })
+
+      expect(calls.elapsedSeconds).toBe(3)
+      vi.advanceTimersByTime(5000)
+      expect(calls.elapsedSeconds).toBe(8)
+
+      vi.setSystemTime(new Date('2026-09-23T09:00:00Z'))
+      vi.advanceTimersByTime(2000)
+      expect(calls.elapsedSeconds).toBe(10)
+    },
+  )
+
+  it('starts at answer and preserves elapsed time across duplicate states and controls', async () => {
+    const calls = useCallsStore()
+    calls.applyCallState(outgoingCall)
+    vi.advanceTimersByTime(7000)
+    expect(calls.elapsedSeconds).toBe(0)
+
+    const connected: PhoneCall = {
+      ...outgoingCall,
+      elapsedSeconds: 0,
+      muteSupported: true,
+      speakerSupported: true,
+      state: 'connected',
+    }
+    calls.applyCallState(connected)
+    vi.advanceTimersByTime(2500)
+    calls.applyCallState({ ...connected })
+    vi.mocked(nuiCall).mockResolvedValueOnce({
+      success: true,
+      data: { muted: true },
+    })
+    await calls.setMuted(true)
+    vi.mocked(nuiCall).mockResolvedValueOnce({
+      success: true,
+      data: { speakerEnabled: true },
+    })
+    await calls.setSpeaker(true)
+    vi.advanceTimersByTime(500)
+    expect(calls.elapsedSeconds).toBe(3)
+
+    calls.applyCallState({ ...connected, elapsedSeconds: 2 })
+    expect(calls.elapsedSeconds).toBe(3)
+    vi.advanceTimersByTime(1000)
+    expect(calls.elapsedSeconds).toBe(4)
+    expect(vi.getTimerCount()).toBe(1)
+  })
+
+  it('resumes a replayed call and resets the clock for an ended or replaced call', () => {
+    const calls = useCallsStore()
+    calls.applyCallState({
+      ...outgoingCall,
+      elapsedSeconds: 75,
+      state: 'connected',
+    })
+    expect(calls.elapsedSeconds).toBe(75)
+    vi.advanceTimersByTime(1000)
+    expect(calls.elapsedSeconds).toBe(76)
+
+    calls.applyCallState({ ...outgoingCall, state: 'completed' })
+    vi.advanceTimersByTime(2000)
+    expect(calls.elapsedSeconds).toBe(0)
+    expect(vi.getTimerCount()).toBe(0)
+
+    calls.applyCallState({
+      ...outgoingCall,
+      id: 'next-call',
+      state: 'connected',
+      elapsedSeconds: 0,
+    })
+    vi.advanceTimersByTime(1000)
+    expect(calls.elapsedSeconds).toBe(1)
+    calls.applyCallState({
+      ...outgoingCall,
+      id: 'replacement-call',
+      state: 'connected',
+      elapsedSeconds: 0,
+    })
+    expect(calls.elapsedSeconds).toBe(0)
+    disposePinia(pinia)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('loops the supplied calling sound once across duplicate outgoing states', () => {
     const stop = vi.fn()
     vi.mocked(playPhoneMediaTone).mockReturnValueOnce(stop)

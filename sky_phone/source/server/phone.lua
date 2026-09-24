@@ -618,10 +618,32 @@ local function bootstrap(source, security, security_loaded)
     }
 end
 
+local device_network_revisions = {}
+
+local function send_device_snapshot(event_name, source, payload)
+    if not sessions[source] or sessions[source].token ~= payload.token then
+        Bridge.Debug("debug", "[sky_phone] Ignored a device snapshot from an expired session.")
+        return false
+    end
+    local revision = (device_network_revisions[source] or 0) + 1
+    device_network_revisions[source] = revision
+    payload.networkRevision = revision
+    if event_name == "sky_phone:device:open" then
+        -- A small ordered control message announces the session before the large
+        -- snapshot. Closing or invalidating it cancels a snapshot still in flight.
+        TriggerClientEvent("sky_phone:device:opening", source, revision, payload.token)
+    end
+    local sent = Bridge.Network.SendClient(event_name, source, payload)
+    if not sent and event_name == "sky_phone:device:open" then
+        TriggerClientEvent("sky_phone:device:error", source, "request_failed")
+    end
+    return sent
+end
+
 local function refresh_source(source)
     local payload = bootstrap(source)
     if payload then
-        TriggerClientEvent("sky_phone:device:updated", source, payload)
+        send_device_snapshot("sky_phone:device:updated", source, payload)
     end
 end
 
@@ -969,7 +991,9 @@ local function perform_phone_open(source, used_item)
         TriggerClientEvent("sky_phone:device:error", source, blocked)
         return false, blocked
     end
-    TriggerClientEvent("sky_phone:device:open", source, payload)
+    if not send_device_snapshot("sky_phone:device:open", source, payload) then
+        return false, "request_failed"
+    end
     return true
 end
 
@@ -1053,8 +1077,7 @@ function SkyPhone.OpenDeviceForCall(source, imei)
         TriggerClientEvent("sky_phone:device:error", source, blocked)
         return false, blocked
     end
-    TriggerClientEvent("sky_phone:device:open", source, payload)
-    return true
+    return send_device_snapshot("sky_phone:device:open", source, payload)
 end
 
 local registered_usable_items = {}
@@ -1121,6 +1144,7 @@ AddEventHandler("playerDropped", function()
     operation_attempts[source] = nil
     phone_open_in_progress[source] = nil
     character_device_cache[source] = nil
+    device_network_revisions[source] = nil
     preferred_device_imeis[source] = nil
 end)
 

@@ -1,124 +1,60 @@
-# Tables
+# Tables, sequences and ownership
 
-## Imply Array Indices
+Use `pairs` for maps and `ipairs` or numeric iteration for dense sequences. `ipairs` stops at
+the first nil. The default `#table` operator finds a border; it is not a reliable entry count
+for sparse tables or maps. Lua 5.4 documents O(log n) worst-case border lookup, not an O(n)
+scan. A `__len` metamethod can define other behavior.
 
-Other languages don't allow declaring an array with explicit indices. Unless the keys have important meaning that needs to be made clear to the reader, they should be implied.
+For a dense append, `items[#items + 1] = value` is clear. Use `table.insert` for positional
+insertion and `table.remove` when shifting a sequence is intended. Setting a middle element
+to nil creates a hole; it is not equivalent to removing and shifting. Maintain an explicit
+count only when the data representation requires it or profiling justifies it.
 
-**BAD:**
-```lua
-local myTable = {
-    [1] = "first index",
-    [2] = "second index",
-    [3] = "third index"
-}
-```
+Table assignment, arguments and returns share references in ordinary Lua. A shallow copy
+still shares nested tables; table equality normally compares identity. Compare the relevant
+nested content when a provider copied/serialized it. Reusing a scratch table across concurrent
+yielding requests can corrupt data; do not make reuse a universal optimization rule.
 
-**GOOD:**
-```lua
-local myTable = {
-    "first index",
-    "second index",
-    "third index"
-}
-```
+Dropping one reference permits collection only when the object is otherwise unreachable.
+Prefer bounded caches and lifecycle cleanup to redundant `value = nil` assignments at scope end.
 
-## Dereferencing
-
-### Prefer object access for constant keys, and array access for non-constant keys
+## Dense sequences and named keys
 
 ```lua
-local company = {
-    boss = "Sam"
-}
+local labels = { "first", "second", "third" }
+labels[#labels + 1] = "fourth"
+table.insert(labels, 2, "inserted") -- Shift later sequence elements.
+table.remove(labels, 2) -- Close the gap again.
+
+for index = 1, #labels do
+    print(index, labels[index])
+end
+
+local company = { boss = "Sam" }
+local field = "boss"
+print(company.boss) -- A constant key that is a valid identifier.
+print(company[field]) -- A computed key.
+company[field] = "Alex" -- Assign a map entry directly.
 ```
 
-**BAD:**
-```lua
-local boss = company["boss"]
-```
+Use implicit array indices for a dense literal unless explicit indices carry meaning.
+`table.insert(map, "key", value)` is not string-key assignment: its optional position must be
+an integer. Dot access is shorthand for a constant string key; brackets are also necessary
+for keys such as `record["display-name"]`.
 
-**GOOD:**
+For a map, iterate entries with `for key, value in pairs(map) do ... end`; its iteration order
+is not a sorting contract. `ipairs(labels)` also fits the dense sequence above. Pick the
+iteration form for the representation rather than claiming one is always faster.
+
+Extract a repeated lookup when it clarifies the expression:
+
 ```lua
 local boss = company.boss
+local diagnostic = boss .. ": " .. boss
 ```
 
-### Extract duplicate table dereferences into local variables
+That local is a snapshot of the lookup, so re-read it if intervening code can replace the value.
+For table-valued fields, the local still references the same nested table. Indexing can also
+invoke `__index`; changing lookup frequency can change behavior, not just runtime cost.
 
-This is both a readability and performance boost.
-
-**BAD:**
-```lua
-local concatenation = myTable["key"] .. myTable["key"]
-```
-
-**GOOD:**
-```lua
-local myTableValue = myTable["key"]
-local concatenation = myTableValue .. myTableValue
-```
-
-## Avoid table.insert()
-
-It has horrible performance. It should only be used if needing to insert into an array at a specific index that is not the last index.
-
-### Inserting at the end of a table
-
-**BAD:**
-```lua
-table.insert(myTable, "value")
-```
-
-**GOOD:**
-```lua
-myTable[#myTable + 1] = "value"
-```
-
-### Inserting/Overwriting a given key
-
-**BAD:**
-```lua
-table.insert(myTable, "key", "value")
-```
-
-**GOOD:**
-```lua
-myTable["key"] = "value"
-```
-
-## Use numeric for loops when iterating over an array
-
-This is a performance boost.
-
-**BAD:**
-```lua
-for k, v in pairs(myArray) do
-    print(k .. ", " .. v)
-end
-```
-
-**GOOD:**
-```lua
-for i=1, #myArray do
-    print(i .. ", " .. myArray[i])
-end
-```
-
-## Maintain your own array size variable
-
-There is a significant performance difference for large arrays as #array is an O(n) operation. Note that sometimes iterating through the entire array to find the size is preferable, but a common pattern of starting with an empty array and populating it in a loop should use an array size variable.
-
-**BAD:**
-```lua
-for i = 1, 100 do
-  myArray[#myArray+1] = i
-end
-```
-
-**GOOD:**
-```lua
-local myArraySize = 0
-for i = 1, 100 do
-  myArraySize += 1
-  myArray[myArraySize] = i
-end
-```
+See [Lua semantics and the pinned Cfx table implementation](reference-links.md).

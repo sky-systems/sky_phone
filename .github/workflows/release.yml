@@ -54,6 +54,7 @@ jobs:
       - name: Validate, test, and build frontend
         working-directory: frontend
         run: |
+          pnpm licenses:check
           pnpm lint
           pnpm test
           pnpm build
@@ -65,6 +66,8 @@ jobs:
           test -f sky_phone/fxmanifest.lua
           test -f sky_phone/source/html/index.html
           test -d sky_phone/source/html/assets
+          cmp LICENSE sky_phone/LICENSE
+          cmp THIRD_PARTY_NOTICES.md sky_phone/THIRD_PARTY_NOTICES.md
 
       - name: Validate repository contracts
         run: node .github/scripts/validate-repository.mjs
@@ -87,10 +90,16 @@ jobs:
         run: |
           set -euo pipefail
           archive="sky_phone-${GITHUB_REF_NAME}.zip"
+          source_commit=$(git rev-parse HEAD)
+          printf 'Source commit: %s\nSource: https://github.com/%s/tree/%s\nSource archive: https://github.com/%s/archive/%s.zip\n' \
+            "$source_commit" "$GITHUB_REPOSITORY" "$source_commit" "$GITHUB_REPOSITORY" "$source_commit" > sky_phone/SOURCE.txt
           zip -r "$archive" sky_phone
           unzip -t "$archive"
           unzip -Z1 "$archive" | grep -Fx "sky_phone/fxmanifest.lua"
           unzip -Z1 "$archive" | grep -Fx "sky_phone/source/html/index.html"
+          unzip -Z1 "$archive" | grep -Fx "sky_phone/LICENSE"
+          unzip -Z1 "$archive" | grep -Fx "sky_phone/THIRD_PARTY_NOTICES.md"
+          unzip -Z1 "$archive" | grep -Fx "sky_phone/SOURCE.txt"
           sha256sum "$archive" > "${archive}.sha256"
 
       - name: Upload workflow artifact

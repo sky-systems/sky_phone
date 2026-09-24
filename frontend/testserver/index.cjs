@@ -9327,6 +9327,10 @@ app.post('/api/:endpoint', (request, response) => {
     response.json({ success: true, data: advanceCryptoMarkets() })
     return
   }
+  if (endpoint === 'crypto:watch') {
+    response.json({ success: true, data: request.body.active ? cryptoOverview().markets : undefined })
+    return
+  }
   if (endpoint === 'crypto:login') {
     if (request.body.password !== cryptoPassword) {
       response.json({ success: false, error: 'invalid_credentials' })

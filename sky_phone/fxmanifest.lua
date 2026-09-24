@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '0.3.12'
+version '0.3.14'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -18,6 +18,8 @@ shared_scripts {
     'config/init.lua',
     'source/bridge/shared.lua',
     'source/shared/player_state.lua',
+    'source/bridge/network.lua',
+    'source/bridge/inventory.lua',
     'source/shared/imei.lua',
     'source/shared/sim_number.lua',
     'source/shared/custom_apps.lua',
@@ -36,6 +38,7 @@ client_scripts {
     'source/client/phone_configurator.lua',
     'source/bridge/client/framework.lua',
     'source/bridge/client/player_state.lua',
+    'source/bridge/client/inventory.lua',
     'source/bridge/client/vehiclekeys.lua',
     'source/bridge/client/housing.lua',
     'source/bridge/client/housing/*.lua',

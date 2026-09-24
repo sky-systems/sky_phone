@@ -16,10 +16,14 @@ export type CryptoMarket = {
   symbol: string
   treasuryAvailable: string
   updatedAt?: number
+  version?: number
 }
 
+export type CryptoMarketUpdate = Pick<CryptoMarket, 'id' | 'price'> &
+  Partial<CryptoMarket>
+
 export type CryptoMarketChangedData = {
-  markets: CryptoMarket[]
+  markets: CryptoMarketUpdate[]
   updatedAt: number
 }
 
