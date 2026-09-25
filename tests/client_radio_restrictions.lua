@@ -72,3 +72,73 @@ y.net["yaca:external:setRadioFrequency"](1, "0")
 y.net["yaca:external:setRadioFrequency"](2, "0")
 assert(requests == 1, "Yaca leave confirmations must not start recursive disconnects")
 print("PASS Yaca: frequency echoes are idempotent during join, after approval and after forced leave")
+
+-- Public YACA v3.4.0 exports: apps/yaca-client/src/yaca/radio.ts.
+-- The volume export takes (channel, volume); selecting the same secondary channel toggles it off.
+local function yaca_bridge_fixture(allow_secondary)
+    local state = {
+        enabled = false,
+        active = 1,
+        secondary = -1,
+        frequencies = { [1] = "0", [2] = "0" },
+        muted = {},
+        volumes = { [1] = 1, [2] = 1 },
+    }
+    local voice = {
+        isEnabled = function() return true end,
+        isRadioEnabled = function() return state.enabled end,
+        enableRadio = function(_, enabled) state.enabled = enabled end,
+        setActiveRadioChannel = function(_, channel) state.active = channel; return true end,
+        getSecondaryRadioChannel = function() return state.secondary end,
+        setSecondaryRadioChannel = function(_, channel)
+            state.secondary = state.secondary == channel and -1 or channel
+            return true
+        end,
+        changeRadioFrequency = function(_, frequency) state.frequencies[state.active] = frequency end,
+        changeRadioFrequencyRaw = function(_, channel, frequency) state.frequencies[channel] = frequency end,
+        muteRadioChannelRaw = function(_, channel, muted) state.muted[channel] = muted end,
+        changeRadioChannelVolumeRaw = function(_, channel, volume)
+            if state.volumes[channel] == nil then return false end
+            state.volumes[channel] = math.max(0, math.min(1, volume))
+            return true
+        end,
+    }
+    local environment = setmetatable({
+        Config = { Radio = { VoiceProvider = "yaca", AllowSecondary = allow_secondary } },
+        Bridge = {
+            Radio = {},
+            PlayerState = { GetBlockReason = function() end },
+            Debug = function() end,
+        },
+        exports = { ["yaca-voice"] = voice },
+        GetResourceState = function(resource) return resource == "yaca-voice" and "started" or "missing" end,
+        AddEventHandler = function() end,
+        Wait = function() end,
+    }, { __index = _G })
+    assert(loadfile("sky_phone/source/bridge/client/radio.lua", "t", environment))()
+    return environment.Bridge.Radio, state
+end
+
+local yaca_radio, yaca_state = yaca_bridge_fixture(true)
+assert(yaca_radio.Join(150, 160) and yaca_state.enabled)
+assert(yaca_state.frequencies[1] == "150" and yaca_state.frequencies[2] == "160")
+for _, volume in ipairs({ 35, 0, 100 }) do
+    yaca_radio.SetVolume(volume)
+    assert(yaca_state.volumes[1] == volume / 100, "YACA primary volume must follow the phone slider")
+    assert(yaca_state.volumes[2] == volume / 100, "YACA secondary volume must follow the phone slider")
+end
+assert(yaca_state.secondary == 2 and not yaca_state.muted[2])
+assert(yaca_radio.Join(151, 161))
+assert(yaca_state.secondary == 2, "reconnecting YACA must keep the secondary channel selected")
+assert(yaca_state.frequencies[1] == "151" and yaca_state.frequencies[2] == "161")
+yaca_radio.Leave()
+assert(not yaca_state.enabled and yaca_state.frequencies[1] == "0" and yaca_state.frequencies[2] == "0")
+assert(yaca_radio.Join(152, 162))
+assert(yaca_state.secondary == 2, "rejoining after leaving YACA must restore secondary transmission")
+
+local primary_radio, primary_state = yaca_bridge_fixture(false)
+assert(primary_radio.Join(150, 160))
+primary_radio.SetVolume(35)
+assert(primary_state.volumes[1] == 0.35 and primary_state.volumes[2] == 1)
+assert(primary_state.secondary == -1 and primary_state.frequencies[2] == "0" and primary_state.muted[2])
+print("PASS YACA bridge: slider volume, secondary reconnect, leave/rejoin and primary-only configuration")

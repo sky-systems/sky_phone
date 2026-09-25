@@ -112,6 +112,7 @@ local function ensure_control_thread()
             -- The camera owns its passthrough claim; reapplying the phone claim
             -- here would reset it and emit the same focus event every frame.
             local look_passthrough = game_input
+                and state.is_open
                 and not state.camera_active
                 and not state.cursor_disabled
                 and SkyPhoneFocus.IsHoldToLookPressed()
@@ -153,8 +154,12 @@ function SkyPhoneFocus.Resolve(state)
         -- Forward controls so disabled inputs remain readable while the NUI cursor owns focus.
         return { block_game = true, block_look = true, cursor = true, focused = true, game_input = false, keep_input = true }
     end
-    local game_input = state.is_open
-        and allows_game_input(state)
+    -- Incoming alerts must not interrupt driving, even when phone movement is disabled.
+    local notification_only = state.notification_focus
+        and not state.is_open
+        and not state.payphone_focus
+        and not state.sim_picker_open
+    local game_input = (notification_only or (state.is_open and allows_game_input(state)))
         and not state.camera_active
         and not state.text_input_focused
     local focused = state.is_open
