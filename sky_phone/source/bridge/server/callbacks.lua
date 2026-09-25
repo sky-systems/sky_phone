@@ -18,7 +18,13 @@ function Bridge.Callbacks.Register(name, callback)
     assert(type(name) == "string", "Callback name must be a string")
     assert(type(callback) == "function", "Callback handler must be a function")
     assert(not registered_callbacks[name], ("Callback '%s' is already registered"):format(name))
-    registered_callbacks[name] = SkyPhoneLog and SkyPhoneLog.WrapCallback(name, callback) or callback
+    local handler = SkyPhoneLog and SkyPhoneLog.WrapCallback(name, callback) or callback
+    registered_callbacks[name] = function(player_source, data)
+        if SkyPhoneCellular.RequiresSignal(name, data) and not SkyPhoneCellular.HasSignal(player_source) then
+            return { success = false, error = "no_signal" }
+        end
+        return handler(player_source, data)
+    end
     deferred_callbacks[name] = nil
 end
 

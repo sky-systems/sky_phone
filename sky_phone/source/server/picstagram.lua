@@ -801,8 +801,8 @@ Bridge.Callbacks.Register("sky_phone:picstagram:set-post-status", function(sourc
         return { success = false, error = "invalid_status" }
     end
     Bridge.Database.Query(
-        "UPDATE `sky_phone_picstagram_posts` SET `status` = ? WHERE `id` = ? AND `profile_id` = ?",
-        { target, data.id, profile.id }
+        "UPDATE `sky_phone_picstagram_posts` SET `status` = ? WHERE `id` = ? AND `profile_id` = ? AND `status` = ?",
+        { target, data.id, profile.id, current.status }
     )
     return { success = true }
 end)

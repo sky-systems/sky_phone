@@ -69,6 +69,7 @@ import AdminConfigValueEditor, {
 } from './AdminConfigValueEditor.vue'
 import AdminCustomToneManager from './AdminCustomToneManager.vue'
 import AdminWebhookManager from './AdminWebhookManager.vue'
+import AdminSocialManager from './AdminSocialManager.vue'
 
 type AdminTab =
   | 'overview'
@@ -79,6 +80,7 @@ type AdminTab =
   | 'messages'
   | 'calls'
   | 'moderation'
+  | 'social'
   | 'tones'
   | 'webhooks'
   | 'audit'
@@ -400,6 +402,7 @@ function configuratorSectionLabel(section: {
   id: string
   label: string
 }): string {
+  if (section.id === 'config:CellTowers') return phone.t('Cellular.group')
   if (section.id === 'config:Realtime') return phone.t('Realtime.settingsGroup')
   if (section.id === 'config:RealtimeSecrets')
     return phone.t('Realtime.credentialsGroup')
@@ -416,6 +419,16 @@ function configuratorDescription(
   structure?: AdminConfiguratorStructure,
   label?: string,
 ): string {
+  if (path.startsWith('CellTowers.')) {
+    const key =
+      path
+        .replace(/\[\d+\]/g, '')
+        .split('.')
+        .at(-1) ?? ''
+    return phone.t(
+      `Cellular.help.${['Enabled', 'Towers', 'OfflineApps', 'OnlineActions', 'Coords', 'Range'].includes(key) ? key : path.split('.')[1]}`,
+    )
+  }
   if (/^Realtime(?:Secrets)?(?:\.|$)/.test(path))
     return phone.t(`Realtime.help.${path.split('.').at(-1)}`)
   return describeConfiguratorValue(t, path, value, structure, label)
@@ -433,6 +446,14 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
+    ...['Enabled', 'Towers', 'OfflineApps', 'OnlineActions'].map((key) => [
+      `CellTowers.${key}`,
+      phone.t(`Cellular.labels.${key}`),
+    ]),
+    ...['Coords', 'Range'].map((key) => [
+      `CellTowers.Towers[].${key}`,
+      phone.t(`Cellular.labels.${key}`),
+    ]),
     ['Garage.VehicleKeySystem', t('configurator.vehicleKeySystemLabel')],
     [
       'Animations.WorldDisplayEnabled',
@@ -1013,11 +1034,13 @@ onBeforeUnmount(() => {
           <strong>{{
             tab === 'configurator'
               ? t('configurator.context')
-              : tab === 'webhooks'
-                ? t('webhooks.title')
-                : tab === 'tones'
-                  ? t('configurator.customTones.context')
-                  : admin.selectedPlayer?.name || t('editor.noSelection')
+              : tab === 'social'
+                ? t('social.title')
+                : tab === 'webhooks'
+                  ? t('webhooks.title')
+                  : tab === 'tones'
+                    ? t('configurator.customTones.context')
+                    : admin.selectedPlayer?.name || t('editor.noSelection')
           }}</strong>
         </div>
 
@@ -1123,6 +1146,15 @@ onBeforeUnmount(() => {
             @click="selectTab('calls')"
           >
             <PhoneCall :size="19" style="--admin-icon-size: 19" />
+          </button>
+          <button
+            type="button"
+            :class="{ 'is-active': tab === 'social' }"
+            :aria-label="t('tabs.social')"
+            :title="t('tabs.social')"
+            @click="selectTab('social')"
+          >
+            <MessageSquare :size="19" style="--admin-icon-size: 19" />
           </button>
           <button
             type="button"
@@ -1265,6 +1297,17 @@ onBeforeUnmount(() => {
             </div>
           </template>
 
+          <template v-else-if="tab === 'social'">
+            <div class="admin-panel-directory__header">
+              <div>
+                <h2>{{ t('tabs.social') }}</h2>
+              </div>
+              <MessageSquare :size="19" style="--admin-icon-size: 19" />
+            </div>
+            <div class="admin-panel-overview-directory">
+              <p class="admin-panel-webhook-help">{{ t('social.body') }}</p>
+            </div>
+          </template>
           <template v-else-if="tab === 'webhooks'">
             <div class="admin-panel-directory__header">
               <div>
@@ -1623,6 +1666,12 @@ onBeforeUnmount(() => {
           </section>
 
           <section
+            v-else-if="tab === 'social'"
+            class="admin-panel-editor__scroll"
+          >
+            <AdminSocialManager />
+          </section>
+          <section
             v-else-if="tab === 'webhooks'"
             class="admin-panel-editor__scroll"
           >
@@ -1740,7 +1789,10 @@ onBeforeUnmount(() => {
                       v-if="!configuratorFieldRepeatsSection(field)"
                       class="admin-panel-config-field__copy"
                     >
-                      <strong>{{ field.label }}</strong>
+                      <strong>{{
+                        configuratorEditorLabels.fieldNames?.[field.path] ??
+                        field.label
+                      }}</strong>
                       <small
                         :title="
                           configuratorDescription(

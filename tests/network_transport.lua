@@ -1,3 +1,4 @@
+SkyPhoneCellular = { RequiresSignal = function() return false end }
 local function new_network(server)
     local sent, events, timers, logs = {}, {}, {}, {}
     local packed_arguments, pack_count, forced_size, pack_failure, send_failure

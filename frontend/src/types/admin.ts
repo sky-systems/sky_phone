@@ -1,3 +1,17 @@
+export type AdminSocialPlatform =
+  | 'feather'
+  | 'fliptok'
+  | 'picstagram'
+  | 'weazel-news'
+export type AdminSocialPost = {
+  id: string
+  author: string
+  body: string
+  title?: string
+  createdAt: string
+}
+export type AdminSocialPosts = { items: AdminSocialPost[]; hasMore: boolean }
+
 export type AdminStats = {
   accounts: number
   activeDevices: number
@@ -142,6 +156,7 @@ export type AdminConfiguratorStructure =
       fields: Record<string, AdminConfiguratorStructure>
       kind: 'table'
       mutableKeys?: boolean
+      callbackKeys?: boolean
       template?: AdminConfiguratorStructure
     }
   | {

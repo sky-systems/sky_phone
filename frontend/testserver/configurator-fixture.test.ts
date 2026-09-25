@@ -41,6 +41,31 @@ const configSource = readFileSync(
   'utf8',
 )
 
+describe('Cell tower configuration', () => {
+  it('exposes editable mast positions, ranges and extensible offline rules', () => {
+    const field = loadConfiguratorSections()
+      .flatMap((section) => section.fields)
+      .find((entry) => entry.path === 'CellTowers')
+    const config = field?.value as {
+      Enabled: boolean
+      Towers: unknown[]
+      OfflineApps: Record<string, boolean>
+      OnlineActions: Record<string, boolean>
+    }
+    expect(config.Enabled).toBe(true)
+    expect(config.Towers).toHaveLength(18)
+    expect(config.OfflineApps.notes).toBe(true)
+    expect(config.OfflineApps.feather).toBe(false)
+    expect(config.OnlineActions['calls:dial']).toBe(true)
+    expect(field?.structure?.fields?.Towers?.template?.fields?.Coords).toEqual({
+      kind: 'vector',
+      vectorType: 'vector3',
+    })
+    expect(field?.structure?.fields?.OfflineApps?.mutableKeys).toBe(true)
+    expect(field?.structure?.fields?.OnlineActions?.mutableKeys).toBe(true)
+  })
+})
+
 describe('Garage vehicle key configuration', () => {
   it('exposes automatic key detection as an editable string', () => {
     const field = loadConfiguratorSections()
@@ -198,7 +223,7 @@ describe('admin configurator fixture', () => {
           root !== 'CustomTones',
       )
 
-    expect(sections).toHaveLength(49)
+    expect(sections).toHaveLength(50)
     expect(
       fields.reduce(
         (total, field) => total + countStructure(field.structure),

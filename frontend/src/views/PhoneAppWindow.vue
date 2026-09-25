@@ -6,6 +6,8 @@ import EasyShareContentPreview from '@/components/EasyShareContentPreview.vue'
 import CustomAppFrame from '@/components/CustomAppFrame.vue'
 import { getPhoneApp, isExternalPhoneApp } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
+import { SkyAppPage, SkyEmptyState } from '@/ui'
+import { appNeedsSignal } from '@/utils/cellular'
 import { getCustomAppFrameKey } from '@/utils/customAppLifecycle'
 import AppStoreApp from '@/views/apps/AppStoreApp.vue'
 
@@ -47,8 +49,14 @@ const launchStyle = computed(() => {
     }"
     :style="launchStyle"
   >
+    <SkyAppPage v-if="appNeedsSignal(app.id)" class="cellular-unavailable">
+      <SkyEmptyState
+        :title="phone.t('Cellular.noSignal')"
+        :body="phone.t('Cellular.onlineRequired')"
+      />
+    </SkyAppPage>
     <CustomAppFrame
-      v-if="isExternalPhoneApp(app)"
+      v-else-if="isExternalPhoneApp(app)"
       :key="getCustomAppFrameKey(app)"
       :app="app"
     />
@@ -61,3 +69,10 @@ const launchStyle = computed(() => {
     <EasyShareContentPreview />
   </div>
 </template>
+
+<style scoped>
+.cellular-unavailable {
+  justify-content: center;
+  padding: var(--sky-space-4);
+}
+</style>

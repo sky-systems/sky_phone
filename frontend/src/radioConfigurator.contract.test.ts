@@ -55,7 +55,9 @@ describe('radio configurator access contract', () => {
     expect(configuratorSource).toMatch(
       /entryDefault = radio_job_default,[\s\S]*?mutableKeys = true,[\s\S]*?valueType = type\(radio_job_default\)/,
     )
-    expect(configuratorSource).toContain('not key:match("^[a-z0-9_-]+$")')
+    expect(configuratorSource).toContain(
+      'not key:match(structure.callbackKeys and "^[%w_:%-]+$" or "^[a-z0-9_-]+$")',
+    )
   })
 
   it('shows a compact job-name input for both radio job tables', () => {

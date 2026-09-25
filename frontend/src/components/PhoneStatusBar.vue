@@ -3,6 +3,7 @@ import { PhoneCall } from 'lucide-vue-next'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import PhoneStatusIndicators from '@/components/PhoneStatusIndicators.vue'
 import { usePhoneStore } from '@/stores/phone'
+import { cellular } from '@/utils/cellular'
 
 const phone = usePhoneStore()
 const props = withDefaults(
@@ -77,16 +78,36 @@ onBeforeUnmount(() => {
     <button
       class="phone-status-bar__indicators"
       type="button"
-      :aria-label="phone.t('ControlCenter.open')"
+      :aria-label="
+        cellular.enabled && !cellular.hasSignal
+          ? phone.t('Cellular.noSignal') + '. ' + phone.t('ControlCenter.open')
+          : phone.t('ControlCenter.open')
+      "
       :aria-expanded="controlCenterOpened"
       :disabled="!interactive"
       @click.stop="interactive && emit('controlCenter')"
     >
+      <span
+        v-if="cellular.enabled && !cellular.hasSignal"
+        class="phone-no-signal"
+        role="status"
+        >{{ phone.t('Cellular.noSignal') }}</span
+      >
       <PhoneStatusIndicators
         :airplane-mode="phone.preferences.settings.airplaneMode"
-        :cellular-enabled="phone.preferences.settings.cellularEnabled"
+        :cellular-enabled="
+          phone.preferences.settings.cellularEnabled &&
+          (!cellular.enabled || cellular.hasSignal)
+        "
         :wifi-enabled="phone.preferences.settings.wifiEnabled"
       />
     </button>
   </header>
 </template>
+
+<style scoped>
+.phone-no-signal {
+  font-size: 11px;
+  white-space: nowrap;
+}
+</style>

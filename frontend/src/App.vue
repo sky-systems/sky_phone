@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { cellular, type CellularState } from '@/utils/cellular'
 import { kApp } from 'konsta/vue'
 import {
   computed,
@@ -61,6 +62,7 @@ import { useWidgetsStore } from '@/stores/widgets'
 import { isPhoneAppId, PHONE_APPS } from '@/config/apps'
 import { useNotesStore } from '@/stores/notes'
 import { useMemosStore } from '@/stores/memos'
+import { useMusicStore } from '@/stores/music'
 import { useWeatherStore } from '@/stores/weather'
 import { useEasyShareStore } from '@/stores/easyshare'
 import { useRadioStore } from '@/stores/radio'
@@ -105,6 +107,7 @@ type AppMessage = {
   openHome?: boolean
   type?: string
   data?:
+    | CellularState
     | CalendarReminderData
     | MailEventData
     | MarketplaceEventData
@@ -364,6 +367,7 @@ const appStore = useAppStoreStore()
 const widgets = useWidgetsStore()
 const notes = useNotesStore()
 const memos = useMemosStore()
+const music = useMusicStore()
 const weather = useWeatherStore()
 const easyShare = useEasyShareStore()
 const radio = useRadioStore()
@@ -578,6 +582,7 @@ function hydratePhone(payload: PhoneOpenPayload): void {
   clock.hydrate(payload.device?.data.alarms?.payload)
   games.hydrate(payload.device?.data.games?.payload)
   media.hydrate(payload.device?.data.media?.payload)
+  if (payload.cellular) Object.assign(cellular, payload.cellular)
   appStore.hydrate(payload.device?.data.apps?.payload, payload.disabledApps)
   widgets.hydrate(payload.device?.data.widgets?.payload)
 
@@ -829,10 +834,25 @@ function skyPicNotificationRoute(data: SkyPicNotificationData): string {
   return `/apps/skypic?${query.toString()}`
 }
 
+watch(
+  () => cellular.enabled && !cellular.hasSignal,
+  (offline) => {
+    if (
+      offline &&
+      music.isPlaying &&
+      music.currentTrack?.source === 'youtube'
+    ) {
+      void music.toggle()
+    }
+  },
+)
+
 function onMessage(event: MessageEvent<AppMessage>): void {
   if (!isTrustedRootMessageSource(event.source, window)) return
 
-  if (event.data?.type === 'radio:disconnected') {
+  if (event.data?.type === 'cellular:update' && event.data.data) {
+    Object.assign(cellular, event.data.data as CellularState)
+  } else if (event.data?.type === 'radio:disconnected') {
     const payload = event.data.data as { reason?: string } | undefined
     radio.forceDisconnect(payload?.reason)
   } else if (event.data?.type === 'admin:open') {

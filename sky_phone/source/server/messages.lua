@@ -314,7 +314,7 @@ local function notify_sim(sim_id, event_name, data)
     for _, device in ipairs(devices) do
         for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
             local source = tonumber(player_source) or player_source
-            if SkyPhone.FindDeviceSlots(source, device.imei)[1] then
+            if SkyPhoneCellular.HasSignal(source) and SkyPhone.FindDeviceSlots(source, device.imei)[1] then
                 local payload = {}
                 for key, value in pairs(data) do
                     payload[key] = value

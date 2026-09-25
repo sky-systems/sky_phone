@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import type { CellularState } from '@/utils/cellular'
 
 import type { AppLaunchOrigin, LaunchablePhoneAppId } from '@/types/apps'
 import type {
@@ -43,6 +44,7 @@ export type PasscodeResponseData = {
 }
 
 export type PhoneOpenPayload = {
+  cellular?: CellularState
   account?: DeviceBootstrap['account']
   device?: PhoneDevice
   disabledApps?: string[]
@@ -833,6 +835,23 @@ const citywarnFallbackLocales = {
 }
 
 const adminPanelFallbackLocales = {
+  social: {
+    title: 'Social media moderation',
+    body: 'Find and remove published posts from Feather, FlipTok, Picstagram and Weazel News. Every removal is recorded in the admin audit.',
+    platform: 'Platform',
+    search: 'Text, author or post ID',
+    searchButton: 'Search',
+    empty: 'No published posts found.',
+    mediaPost: 'Media post without a caption',
+    delete: 'Delete post',
+    confirmTitle: 'Delete this post?',
+    confirmBody:
+      'The post will no longer be available on the platform. This action is recorded in the admin audit.',
+    cancel: 'Cancel',
+    pagination: 'Post pages',
+    previous: 'Previous',
+    next: 'Next',
+  },
   webhooks: {
     categoryLabels: {
       Account: 'Sky Cloud account',
@@ -945,6 +964,7 @@ const adminPanelFallbackLocales = {
     webhooks: 'Webhooks',
     audit: 'Audit',
     configurator: 'Phone configurator',
+    social: 'Social media',
   },
   overview: {
     eyebrow: 'Server',
@@ -1446,6 +1466,7 @@ const adminPanelFallbackLocales = {
       reset_passcode: 'Passcode reset',
       change_number: 'Phone number changed',
       factory_reset: 'Phone factory reset',
+      delete_social_post: 'Social media post removed',
       save_configuration: 'Configuration saved',
       save_webhooks: 'Webhook settings saved',
       create_custom_tone: 'Custom tone added',
@@ -1454,6 +1475,7 @@ const adminPanelFallbackLocales = {
   },
   errors: {
     not_authorized: 'You do not have access to the admin panel.',
+    not_found: 'This post is no longer available.',
     rate_limited: 'Too many admin requests. Please wait.',
     player_unavailable: 'That player is no longer online.',
     device_not_owned: 'That phone no longer belongs to the selected player.',
@@ -1487,6 +1509,34 @@ const adminPanelFallbackLocales = {
 }
 
 const defaultLocales: LocaleTree = {
+  Cellular: {
+    noSignal: 'No signal',
+    onlineRequired:
+      "This app needs mobile reception. Move into a cell tower's coverage area.",
+    offlineAvailable: 'No signal. Offline functions remain available.',
+    group: 'Cell towers',
+    labels: {
+      Enabled: 'Enable cell towers',
+      Towers: 'Cell towers',
+      OfflineApps: 'Apps available without signal',
+      OnlineActions: 'Actions requiring signal',
+      Coords: 'Mast position',
+      Range: 'Coverage radius (metres)',
+    },
+    help: {
+      Enabled:
+        'Master switch: off provides full service everywhere; on enforces tower coverage for calls and online apps.',
+      Towers:
+        'Add or remove vec3 mast positions and their radius in metres. The strongest horizontal coverage wins. An empty list gives no reception when enabled.',
+      OfflineApps:
+        'Enabled entries remain usable without reception. New and unlisted apps require signal. Calls and Messages keep local lists available; sending is controlled separately.',
+      OnlineActions:
+        'These callback actions require signal even inside an offline app. Device controls and ending calls always remain available.',
+      Coords:
+        'World coordinates of the mast (vec3). Coverage uses X/Y; mast height does not reduce its radius.',
+      Range: 'Horizontal coverage radius in metres, between 1 and 50000.',
+    },
+  },
   Realtime: {
     description: 'Stream description',
     descriptionPlaceholder: 'Tell viewers what your stream is about…',
@@ -6851,6 +6901,7 @@ export const usePhoneStore = defineStore('phone', {
       return response
     },
     t(path: string, replacements: Record<string, string> = {}): string {
+      if (path.endsWith('.no_signal')) path = 'Cellular.noSignal'
       const translated = getByPath(this.locales, path)
       const english = getByPath(this.fallbackLocales, path)
       const emergencyFallback = getByPath(defaultLocales, path)

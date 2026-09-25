@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { cellular } from '@/utils/cellular'
 
 import type {
   MusicBootstrap,
@@ -472,6 +473,14 @@ export const useMusicStore = defineStore('music', {
         .filter((track): track is MusicTrack => Boolean(track))
     },
     async play(track: MusicTrack, queue?: MusicTrack[]): Promise<void> {
+      if (
+        track.source === 'youtube' &&
+        cellular.enabled &&
+        !cellular.hasSignal
+      ) {
+        this.playbackError = 'no_signal'
+        return
+      }
       bindAudioEvents()
       stopActiveMedia()
       const requestedGeneration = playbackGeneration
@@ -495,6 +504,11 @@ export const useMusicStore = defineStore('music', {
           await audio.play()
         } else if (track.source === 'youtube' && track.videoId) {
           await loadYouTubeTrack(track.videoId)
+          if (cellular.enabled && !cellular.hasSignal) {
+            stopActiveMedia()
+            this.isPlaying = false
+            this.playbackError = 'no_signal'
+          }
         } else {
           throw new Error('Track has no playable source.')
         }
@@ -520,6 +534,14 @@ export const useMusicStore = defineStore('music', {
         if (this.currentTrack.source === 'server') audio.pause()
         else youtubePlayer?.pauseVideo()
         this.isPlaying = false
+        return
+      }
+      if (
+        this.currentTrack.source === 'youtube' &&
+        cellular.enabled &&
+        !cellular.hasSignal
+      ) {
+        this.playbackError = 'no_signal'
         return
       }
       try {

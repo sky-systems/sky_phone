@@ -89,6 +89,7 @@ local function apply_disabled_apps(payload)
     end
     table.sort(disabled)
     payload.disabledApps = disabled
+    payload.cellular = SkyPhoneCellular.GetPayload()
 end
 
 local function send_admin_panel_open()

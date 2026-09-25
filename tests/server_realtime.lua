@@ -1,3 +1,5 @@
+local offline = {}
+SkyPhoneCellular = { HasSignal = function(source) return not offline[source] end }
 -- Run with Lua 5.4 from the repository root. No network or FiveM server required.
 local callbacks, handlers, threads, events, requests = {}, {}, {}, {}, {}
 local now, sequence = 100, 0
@@ -159,6 +161,22 @@ success(invoke("signal",1,{id=video.room.id,target=2,signal={type="offer",sdp="d
 assert(events[#events].name=="sky_phone:realtime:signal" and events[#events].src==2)
 assert(not invoke("join",3,{id=video.room.id}).success)
 success(invoke("leave",2,{id=video.room.id}));assert(not call.video)
+-- Losing reception removes viewers/nearby participants and stops a disconnected host.
+id = create("picstagram")
+join(2, id)
+offline[2], offline[5] = true, true
+buckets[5] = 0
+env.source = 5
+handlers["sky_phone:realtime:voice"]({ enabled = true, range = 10 })
+tick()
+assert(success(invoke("heartbeat", 1, { id = id })).viewers == 0)
+assert(not invoke("heartbeat", 2, { id = id }).success)
+assert(not invoke("heartbeat", 5, { id = id }).success, "Disconnected nearby participants must not be re-added")
+offline[1] = true
+tick()
+assert(not invoke("heartbeat", 1, { id = id }).success, "Broadcast must stop when its host loses reception")
+offline = {}
+
 -- The real profile adapters query SQL. Two users can finish that query together.
 env.Config.Realtime.MaxBroadcasts = 1
 env.SkyPhoneRealtime.Apps.picstagram.publicProfile = function(profile_id)

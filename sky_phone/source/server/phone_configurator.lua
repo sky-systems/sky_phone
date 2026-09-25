@@ -50,6 +50,7 @@ local CLIENT_CONFIG_KEYS = {
     Bridge = true,
     Calendar = true,
     Calls = true,
+    CellTowers = true,
     Command = true,
     CrewLink = true,
     Crypto = true,
@@ -303,7 +304,8 @@ local function merge_values(defaults, saved, path, excluded_paths)
         end
         return companies
     end
-    if path == "CityWarn.Publishers" then
+    if path == "CityWarn.Publishers" or path == "CellTowers.Towers"
+        or path == "CellTowers.OfflineApps" or path == "CellTowers.OnlineActions" then
         return copy_value(saved)
     end
     if radio_job_entry_default(path) ~= nil then
@@ -594,6 +596,25 @@ local function empty_structure(scope, path)
             },
         }
     end
+    if path == "CellTowers.OfflineApps" or path == "CellTowers.OnlineActions" then
+        return {
+            fields = {}, kind = "table", mutableKeys = true,
+            callbackKeys = path == "CellTowers.OnlineActions",
+            template = { kind = "value", valueType = "boolean" },
+        }
+    end
+    if path == "CellTowers.Towers" then
+        return {
+            items = {}, kind = "list",
+            template = {
+                kind = "table",
+                fields = {
+                    Coords = { kind = "vector", vectorType = "vector3" },
+                    Range = { kind = "value", valueType = "number" },
+                },
+            },
+        }
+    end
     if path == "Payphones.CustomLocations" then
         return {
             items = {},
@@ -691,6 +712,7 @@ local function company_definition_entry_default(company_id, configuration)
 end
 
 local function build_structure(value, scope, path)
+    if scope == "config" and path == "CellTowers.Towers" then return empty_structure(scope, path) end
     local value_type = type(value)
     if scope == "config" and path == "CityWarn.Publishers" and value_type == "table" then
         local template = {
@@ -727,7 +749,8 @@ local function build_structure(value, scope, path)
         return { kind = "optionalString" }
     end
     if scope == "config"
-        and path:match("^Radio%.LockedChannels%.%d+%.jobs$")
+        and (path:match("^Radio%.LockedChannels%.%d+%.jobs$")
+            or path == "CellTowers.OfflineApps" or path == "CellTowers.OnlineActions")
         and value_type == "table"
     then
         local fields = {}
@@ -738,6 +761,7 @@ local function build_structure(value, scope, path)
             fields = fields,
             kind = "table",
             mutableKeys = true,
+            callbackKeys = path == "CellTowers.OnlineActions",
             template = { kind = "value", valueType = "boolean" },
         }
     end
@@ -1132,7 +1156,7 @@ local function validate_locked_structure(structure, value)
             for key, child in pairs(value) do
                 if type(key) ~= "string"
                     or #key > 64
-                    or not key:match("^[a-z0-9_-]+$")
+                    or not key:match(structure.callbackKeys and "^[%w_:%-]+$" or "^[a-z0-9_-]+$")
                     or not validate_locked_structure(structure.template, child)
                 then
                     return false
@@ -1711,6 +1735,16 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     end
 
     local candidate_config = deserialize_value(next_config)
+    local cellular = candidate_config.CellTowers
+    if type(cellular.Enabled) ~= "boolean" or #cellular.Towers > 256 then
+        return { success = false, error = "invalid_value" }
+    end
+    for _, tower in ipairs(cellular.Towers) do
+        if type(tower.Range) ~= "number"
+            or not (tower.Range >= 1 and tower.Range <= 50000) then
+            return { success = false, error = "invalid_value" }
+        end
+    end
     local realtime = candidate_config.Realtime
     local bounds = {
         FrameRate = { 5, 30 }, VideoBitrateKbps = { 100, 5000 }, MaxVideoEdge = { 240, 1080 },

@@ -966,6 +966,45 @@ test("changed config groups converge for 60 clients despite delayed or missing d
     assert(reconnect.config.Apps.feather == false and reconnect.config.Phone.Keybind == false)
 end)
 
+test("cell towers, offline rules and master switch roundtrip through SQL and live clients", function()
+    local server = new_server()
+    local field = server.field("CellTowers")
+    assert(field.structure.fields.Towers.template.fields.Coords.vectorType == "vector3")
+    assert(field.structure.fields.OfflineApps.mutableKeys)
+    local settings = field.value
+    assert(#settings.Towers == 18 and settings.Enabled)
+    settings.Enabled = false
+    settings.Towers = { { Coords = { __skyType = "vector3", x = 4500, y = -5000, z = 50 }, Range = 900 } }
+    settings.OfflineApps["custom-offline"] = true
+    settings.OnlineActions["notes:custom-sync"] = true
+    assert(server.save({ change("CellTowers", settings) }).success)
+    local restarted = new_server(server.database)
+    local loaded = restarted.env.Config.CellTowers
+    assert(not loaded.Enabled and #loaded.Towers == 1 and loaded.Towers[1].Coords.x == 4500)
+    assert(loaded.OfflineApps["custom-offline"] and loaded.OnlineActions["notes:custom-sync"])
+    local client = new_client(restarted)
+    assert(not client.config.CellTowers.Enabled and #client.config.CellTowers.Towers == 1)
+    settings = restarted.field("CellTowers").value
+    settings.Enabled, settings.Towers = true, {}
+    assert(restarted.save({ change("CellTowers", settings) }).success)
+    assert(#new_server(server.database).env.Config.CellTowers.Towers == 0)
+end)
+
+test("cell tower invalid ranges and coordinates never reach SQL or clients", function()
+    for _, invalid in ipairs({ -1, 0, 50001, "1000" }) do
+        local server = new_server()
+        local settings = server.field("CellTowers").value
+        settings.Towers[1].Range = invalid
+        assert(not server.save({ change("CellTowers", settings) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+    local server = new_server()
+    local settings = server.field("CellTowers").value
+    settings.Towers[1].Coords.x = "invalid"
+    assert(not server.save({ change("CellTowers", settings) }).success)
+    assert(server.database.writes == 0)
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")

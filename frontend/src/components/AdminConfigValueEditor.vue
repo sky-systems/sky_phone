@@ -144,7 +144,10 @@ const canAddTableField = computed(() => {
     Object.prototype.hasOwnProperty.call(tableValue.value, key)
   )
     return false
-  return !tableStructure.value?.mutableKeys || /^[a-z0-9_-]+$/.test(key)
+  const pattern = tableStructure.value?.callbackKeys
+    ? /^[a-zA-Z0-9_:-]+$/
+    : /^[a-z0-9_-]+$/
+  return !tableStructure.value?.mutableKeys || pattern.test(key)
 })
 const canExtendTable = computed(
   () =>

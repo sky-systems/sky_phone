@@ -1,3 +1,5 @@
+SkyPhoneCellular = { HasSignal = function() return true end }
+
 local source_file = assert(io.open("sky_phone/source/server/companies.lua", "r"))
 local source_code = source_file:read("*a"):gsub("\r\n", "\n")
 source_file:close()
