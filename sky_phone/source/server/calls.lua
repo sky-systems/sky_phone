@@ -884,6 +884,7 @@ local function company_call_target(company_id, caller_source, caller_sim_id, exc
         local candidate_imei = candidate.imei
         if candidate_source and type(candidate_sim_id) == "string" and type(candidate_imei) == "string"
             and not player_blocked(candidate_source)
+            and SkyPhoneCellular.HasSignal(candidate_source)
             and candidate_source ~= caller_source and candidate_sim_id ~= caller_sim_id
             and (not excluded_sim_ids or not excluded_sim_ids[candidate_sim_id])
         then
@@ -1168,7 +1169,8 @@ local function lock_direct_target(caller_source, target, caller_sim_id)
         end
     end
     local callee_source = find_device_holder(target.imei)
-    if not callee_source or callee_source == caller_source or player_blocked(callee_source) then
+    if not callee_source or callee_source == caller_source or player_blocked(callee_source)
+        or not SkyPhoneCellular.HasSignal(callee_source) then
         return nil, "unavailable"
     end
     if active_by_source[callee_source] or active_by_sim[target.id] or dialing_by_sim[target.id] then
@@ -1183,8 +1185,9 @@ local function lock_direct_target(caller_source, target, caller_sim_id)
 end
 
 function SkyPhoneCalls.StartCompanyCall(source, company_id, customer_number)
+    if not SkyPhoneCellular.HasSignal(source) then return { success = false, error = "no_signal" } end
     local blocked = player_blocked(source)
-    if blocked then return false, blocked end
+    if blocked then return { success = false, error = blocked } end
     source = tonumber(source)
     if not source or type(company_id) ~= "string" then
         return { success = false, error = "invalid_request" }
@@ -1269,6 +1272,7 @@ function SkyPhoneCalls.StartCompanyCall(source, company_id, customer_number)
 end
 
 Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
+    if not SkyPhoneCellular.HasSignal(source) then return { success = false, error = "no_signal" } end
     local blocked = player_blocked(source)
     if blocked then return { success = false, error = blocked } end
     if not SkyPhone.AllowOperation(source, "call_dial", 15, 60) then
@@ -1573,6 +1577,7 @@ Bridge.Callbacks.Register("sky_phone:payphone:dial", function(source, data)
 end)
 
 Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
+    if not SkyPhoneCellular.HasSignal(source) then return { success = false, error = "no_signal" } end
     local blocked = player_blocked(source)
     if blocked then return { success = false, error = blocked } end
     local call = type(data) == "table" and calls[data.id] or nil
@@ -1597,6 +1602,8 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     local function still_ringing()
         return not call.ended and calls[call.id] == call and is_callee(call, source)
             and not player_blocked(source) and not player_blocked(call.caller_source)
+            and SkyPhoneCellular.HasSignal(source)
+            and (call.payphone or SkyPhoneCellular.HasSignal(call.caller_source))
     end
     local function reject(error_code)
         call.answering_source = nil
@@ -1949,13 +1956,16 @@ CreateThread(function()
             local callee_valid = not call.callee_source
                 or SkyPhone.FindDeviceSlots(call.callee_source, call.callee_device.imei)[1] ~= nil
             caller_valid = caller_valid and not player_blocked(call.caller_source)
+                and (call.payphone or SkyPhoneCellular.HasSignal(call.caller_source))
             callee_valid = callee_valid and not player_blocked(call.callee_source)
+                and (not call.callee_source or SkyPhoneCellular.HasSignal(call.callee_source))
             if not caller_valid then
                 calls_to_finish[call_id] = "disconnected"
             elseif call.ringing_targets then
                 local invalid_sources = {}
                 for target_source, target in pairs(call.ringing_targets) do
-                    if player_blocked(target_source) or not SkyPhone.FindDeviceSlots(target_source, target.device.imei)[1]
+                    if player_blocked(target_source) or not SkyPhoneCellular.HasSignal(target_source)
+                        or not SkyPhone.FindDeviceSlots(target_source, target.device.imei)[1]
                         or not SkyPhoneCompanies.CanAnswerCompanyCall(
                             target_source, call.company_id, target.device.imei, target.sim_id
                         )

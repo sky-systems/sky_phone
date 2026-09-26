@@ -5,6 +5,7 @@ import { isPhoneAppId } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
 import type { LaunchablePhoneAppId } from '@/types/apps'
 import { nuiCall } from '@/utils/nui'
+import { appNeedsSignal, cellular } from '@/utils/cellular'
 import { findCustomPhoneTone, playCustomPhoneTone } from '@/utils/customTones'
 import {
   DEFAULT_APP_NOTIFICATION_PREFERENCES,
@@ -302,6 +303,11 @@ export const useNotificationsStore = defineStore('notifications', () => {
   }
 
   function show(input: PhoneNotificationInput): string | null {
+    if (
+      appNeedsSignal(input.appId) ||
+      (input.appId === 'messages' && cellular.enabled && !cellular.hasSignal)
+    )
+      return null
     if (!isPhoneAppId(input.appId)) {
       console.error(`[Phone notifications] Unknown app: ${input.appId}`)
       return null

@@ -181,6 +181,57 @@ Config.AdminPanel = {
     ActivityLimit = 40,
 }
 
+
+-- Mobile coverage. Disabled means full service everywhere. Managed in /phonepanel.
+Config.CellTowers = {
+    Enabled = true,
+    Towers = {
+        { Coords = vector3(215.0, -920.0, 100.0), Range = 1600.0 }, -- Downtown / Pillbox
+        { Coords = vector3(-720.0, -850.0, 90.0), Range = 1400.0 }, -- Little Seoul / Vespucci
+        { Coords = vector3(-1350.0, -430.0, 110.0), Range = 1500.0 }, -- Del Perro / Rockford
+        { Coords = vector3(700.0, -1550.0, 90.0), Range = 1600.0 }, -- East LS / El Burro
+        { Coords = vector3(-850.0, -2450.0, 80.0), Range = 1700.0 }, -- Airport / La Puerta
+        { Coords = vector3(750.0, -2950.0, 70.0), Range = 1500.0 }, -- Port / Elysian Island
+        { Coords = vector3(650.0, 200.0, 150.0), Range = 1500.0 }, -- Vinewood / Mirror Park
+        { Coords = vector3(-450.0, 1000.0, 340.0), Range = 1600.0 }, -- Vinewood Hills
+        { Coords = vector3(-2900.0, 900.0, 60.0), Range = 1700.0 }, -- Chumash / west coast
+        { Coords = vector3(-2200.0, 2900.0, 100.0), Range = 1700.0 }, -- Zancudo
+        { Coords = vector3(500.0, 2700.0, 90.0), Range = 1700.0 }, -- Route 68 / Harmony
+        { Coords = vector3(1750.0, 3700.0, 70.0), Range = 1800.0 }, -- Sandy Shores
+        { Coords = vector3(2450.0, 4900.0, 80.0), Range = 1500.0 }, -- Grapeseed
+        { Coords = vector3(-100.0, 6250.0, 90.0), Range = 1800.0 }, -- Paleto Bay
+        { Coords = vector3(4450.0, -4500.0, 50.0), Range = 1050.0 }, -- Cayo airstrip / north dock
+        { Coords = vector3(5050.0, -4750.0, 65.0), Range = 1000.0 }, -- Cayo north / fields
+        { Coords = vector3(4900.0, -5350.0, 80.0), Range = 1000.0 }, -- Cayo main dock / centre
+        { Coords = vector3(5050.0, -5850.0, 65.0), Range = 950.0 }, -- Cayo compound / south
+    },
+    -- true: usable without reception. Unlisted/custom apps require signal.
+    -- Calls and Messages stay readable; transmitting actions are listed below.
+    OfflineApps = {
+        ["app-store"] = false, banking = false, billing = false,
+        calculator = true, calendar = true, camera = true, citymarkt = false,
+        citywarn = false, clock = true, companies = false, crewlink = false,
+        crypto = false, darkchat = false, feather = false, flare = false,
+        fliptok = false, garage = false, health = true, house = false,
+        ["local-pages"] = false, mail = false, map = true, memos = true,
+        memory = true, messages = true, minesweeper = true, music = true,
+        ["neon-drop"] = true, notes = true, ["number-merge"] = true,
+        phone = true, photos = true, picstagram = false, radio = true,
+        settings = true, ["sky-flappy"] = true, skypic = false, skyride = false,
+        snake = true, ["tower-stack"] = true, weather = false, ["weazel-news"] = false,
+    },
+    -- Exceptions to offline apps. Ending calls and device controls always work.
+    OnlineActions = {
+        ["calls:dial"] = true, ["calls:answer"] = true, ["calls:video"] = true,
+        ["messages:send"] = true, ["messages:media"] = true, ["messages:gifs"] = true,
+        ["account:login"] = true, ["account:register"] = true,
+        ["account:devices"] = true, ["account:remove-device"] = true,
+        ["media:import:sources"] = true, ["media:import:list"] = true,
+        ["media:import:commit"] = true, ["media:import:url"] = true,
+        ["music:add-youtube"] = true,
+    },
+}
+
 Config.Sim = {
     -- With SIM cards disabled, company calls and service requests use the automatic phone number too.
     Enabled = true, -- false: devices receive a persistent random number automatically; forced false for metadata-free inventories

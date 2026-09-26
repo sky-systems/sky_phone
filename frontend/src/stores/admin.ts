@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 
 import type {
   AdminAuditEntry,
+  AdminSocialPlatform,
+  AdminSocialPosts,
   AdminActivityResponse,
   AdminBootstrap,
   AdminCallActivity,
@@ -77,6 +79,20 @@ export const useAdminStore = defineStore('admin', {
     webhookDrafts: {} as Record<string, AdminWebhookChange>,
   }),
   actions: {
+    async loadSocialPosts(
+      platform: AdminSocialPlatform,
+      query: string,
+      page: number,
+    ) {
+      return nuiCall<AdminSocialPosts>('admin:social-posts', {
+        platform,
+        query,
+        page,
+      })
+    },
+    async deleteSocialPost(platform: AdminSocialPlatform, id: string) {
+      return nuiCall('admin:delete-social-post', { platform, id })
+    },
     async loadWebhooks(): Promise<boolean> {
       this.webhooksLoading = true
       try {

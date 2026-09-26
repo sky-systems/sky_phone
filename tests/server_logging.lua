@@ -325,6 +325,7 @@ Bridge.Network = { SendClient = function(...)
     TriggerClientEvent(...)
     return true
 end }
+SkyPhoneCellular = { RequiresSignal = function() return false end }
 dofile("sky_phone/source/bridge/server/callbacks.lua")
 Bridge.Callbacks.Register("sky_phone:messages:send", function() return { success = true, data = { body = "bridge" } } end)
 source = 8

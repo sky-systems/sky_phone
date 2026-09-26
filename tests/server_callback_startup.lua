@@ -1,3 +1,4 @@
+SkyPhoneCellular = { HasSignal = function() return true end, RequiresSignal = function() return false end, GetPayload = function() return { enabled = false, bars = 4, hasSignal = true } end }
 local function new_server(failing_module, yielding_module)
     local events, logs, timers = {}, {}, {}
     local queries = 0

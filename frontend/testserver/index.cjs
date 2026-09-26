@@ -1,4 +1,5 @@
 const { randomUUID } = require('node:crypto')
+const { socialPosts, deleteSocialPost } = require('./social-moderation-fixture.cjs')
 
 const cors = require('cors')
 const express = require('express')
@@ -5693,6 +5694,14 @@ app.post('/api/:endpoint', async (request, response, next) => {
   }
   if (endpoint === 'admin:bootstrap') {
     response.json({ success: true, data: adminMockBootstrap() })
+    return
+  }
+  if (endpoint === 'admin:social-posts') {
+    response.json(socialPosts(request.body))
+    return
+  }
+  if (endpoint === 'admin:delete-social-post') {
+    response.json(deleteSocialPost(request.body))
     return
   }
   if (endpoint === 'admin:configurator') {

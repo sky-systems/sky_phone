@@ -53,7 +53,10 @@ jobs:
           lua5.4 tests/client_sim.lua
 
       - name: Test Phone Configurator persistence and runtime sync
-        run: lua5.4 tests/phone_configurator.lua
+        run: |
+          lua5.4 tests/phone_configurator.lua
+          lua5.4 tests/cellular.lua
+          lua5.4 tests/server_admin_social.lua
 
       - name: Test realtime media and EasyShare receive flows
         run: |

@@ -427,12 +427,15 @@ function emptyStructure(scope, path) {
   }
   if (
     path === 'CrewLink.ExternalPingResources' ||
-    path === 'CustomApps.TrustedAdapters'
+    path === 'CustomApps.TrustedAdapters' ||
+    path === 'CellTowers.OfflineApps' ||
+    path === 'CellTowers.OnlineActions'
   ) {
     return {
       fields: {},
       kind: 'table',
       mutableKeys: true,
+      callbackKeys: path === 'CellTowers.OnlineActions',
       template: { kind: 'value', valueType: 'boolean' },
     }
   }
@@ -462,6 +465,19 @@ function emptyStructure(scope, path) {
           Title: { kind: 'value', valueType: 'string' },
         },
         kind: 'table',
+      },
+    }
+  }
+  if (path === 'CellTowers.Towers') {
+    return {
+      items: [],
+      kind: 'list',
+      template: {
+        kind: 'table',
+        fields: {
+          Coords: { kind: 'vector', vectorType: 'vector3' },
+          Range: { kind: 'value', valueType: 'number' },
+        },
       },
     }
   }
@@ -553,6 +569,8 @@ function companyDefinitionEntryDefault(definitions) {
 }
 
 function buildStructure(value, scope, path) {
+  if (scope === 'config' && path === 'CellTowers.Towers')
+    return emptyStructure(scope, path)
   if (scope === 'config' && path === 'CityWarn.Publishers') {
     const template = {
       kind: 'table',
@@ -587,7 +605,9 @@ function buildStructure(value, scope, path) {
   }
   if (
     scope === 'config' &&
-    /^Radio\.LockedChannels\.\d+\.jobs$/.test(path) &&
+    (/^Radio\.LockedChannels\.\d+\.jobs$/.test(path) ||
+      path === 'CellTowers.OfflineApps' ||
+      path === 'CellTowers.OnlineActions') &&
     value !== null &&
     typeof value === 'object' &&
     !Array.isArray(value)
@@ -601,6 +621,7 @@ function buildStructure(value, scope, path) {
       ),
       kind: 'table',
       mutableKeys: true,
+      callbackKeys: path === 'CellTowers.OnlineActions',
       template: { kind: 'value', valueType: 'boolean' },
     }
   }

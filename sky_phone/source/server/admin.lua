@@ -427,6 +427,79 @@ local function write_audit(actor_source, target_source, target_identifier, imei,
     end
 end
 
+
+-- Table/column names come only from this server-owned allowlist.
+local SOCIAL_CONTENT = {
+    feather = { posts = "sky_phone_feather_posts", profiles = "sky_phone_feather_profiles", body = "body" },
+    fliptok = { posts = "sky_phone_fliptok_videos", profiles = "sky_phone_fliptok_profiles", body = "caption" },
+    picstagram = { posts = "sky_phone_picstagram_posts", profiles = "sky_phone_picstagram_profiles", body = "caption" },
+    ["weazel-news"] = { posts = "sky_phone_weazel_articles" },
+}
+
+Bridge.Callbacks.Register("sky_phone:admin:social-posts", function(source, data)
+    local allowed, error_response = require_admin(source, "social_read", Config.AdminPanel.ReadRequestsPerMinute)
+    if not allowed then return error_response end
+    local platform = type(data) == "table" and SOCIAL_CONTENT[data.platform] or nil
+    local page = type(data) == "table" and data.page or nil
+    local query = type(data) == "table" and data.query or nil
+    if not platform or type(page) ~= "number" or page % 1 ~= 0 or page < 0 or page > 2000
+        or type(query) ~= "string" or #query > 100 then
+        return { success = false, error = "invalid_request" }
+    end
+    local search = "%" .. trim(query) .. "%"
+    local rows
+    if data.platform == "weazel-news" then
+        rows = Bridge.Database.Query([[
+            SELECT post.`id`, post.`title`, post.`excerpt` AS `body`,
+                post.`author_name` AS `author`, post.`created_at` AS `createdAt`
+            FROM `sky_phone_weazel_articles` post
+            WHERE post.`deleted_at` IS NULL AND post.`status` = 'published'
+                AND (post.`title` LIKE ? OR post.`author_name` LIKE ? OR post.`id` LIKE ?)
+            ORDER BY post.`created_at` DESC, post.`id` DESC LIMIT 51 OFFSET ?
+        ]], { search, search, search, page * 50 })
+    else
+        rows = Bridge.Database.Query(([[
+            SELECT post.`id`, LEFT(post.`%s`, 500) AS `body`, profile.`handle` AS `author`,
+                post.`created_at` AS `createdAt`
+            FROM `%s` post JOIN `%s` profile ON profile.`id` = post.`profile_id`
+            WHERE post.`status` = 'published'
+                AND (post.`%s` LIKE ? OR profile.`handle` LIKE ? OR post.`id` LIKE ?)
+            ORDER BY post.`created_at` DESC, post.`id` DESC LIMIT 51 OFFSET ?
+        ]]):format(platform.body, platform.posts, platform.profiles, platform.body),
+            { search, search, search, page * 50 })
+    end
+    local has_more = #rows > 50
+    if has_more then rows[51] = nil end
+    return { success = true, data = { items = rows, hasMore = has_more } }
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:delete-social-post", function(source, data)
+    local allowed, error_response = require_admin(source, "social_delete", Config.AdminPanel.ActionRequestsPerMinute)
+    if not allowed then return error_response end
+    local platform = type(data) == "table" and SOCIAL_CONTENT[data.platform] or nil
+    local id = type(data) == "table" and data.id or nil
+    if not platform or type(id) ~= "string" or #id ~= 36
+        or not id:match("^%x+%-%x+%-%x+%-%x+%-%x+$") then
+        return { success = false, error = "invalid_request" }
+    end
+    local result
+    if data.platform == "weazel-news" then
+        result = Bridge.Database.Query([[
+            UPDATE `sky_phone_weazel_articles`
+            SET `deleted_at` = CURRENT_TIMESTAMP, `deleted_by_identifier` = ?, `revision` = `revision` + 1
+            WHERE `id` = ? AND `deleted_at` IS NULL AND `status` = 'published'
+        ]], { Bridge.Framework.GetIdentifier(source), id })
+    else
+        result = Bridge.Database.Query(
+            ("UPDATE `%s` SET `status` = 'removed' WHERE `id` = ? AND `status` = 'published'"):format(platform.posts),
+            { id }
+        )
+    end
+    if affected_rows(result) ~= 1 then return { success = false, error = "not_found" } end
+    write_audit(source, nil, nil, nil, "delete_social_post", { platform = data.platform, postId = id })
+    return { success = true }
+end)
+
 local function load_audit()
     local limit = math.max(1, math.min(100, math.floor(tonumber(Config.AdminPanel.AuditLimit) or 40)))
     local rows = Bridge.Database.Query(([[

@@ -1,3 +1,4 @@
+SkyPhoneCellular = { HasSignal = function() return true end, RequiresSignal = function() return false end, GetPayload = function() return { enabled = false, bars = 4, hasSignal = true } end }
 -- Run from the repository root with Lua 5.4. Loads the complete calls module.
 local function fixture(routing)
     local state = {
@@ -10,6 +11,7 @@ local function fixture(routing)
         if state.hooks[name] then return state.hooks[name](...) end
     end
     local env = setmetatable({
+        SkyPhoneCellular = { HasSignal = function(source) return not (state.no_signal and state.no_signal[source]) end },
         Config = {
             Calls = { RingSeconds = 30, RecentPageSize = 50 },
             Companies = { CallRouting = { MaxAttempts = 3, RingSeconds = 10 } },
@@ -36,7 +38,15 @@ local function fixture(routing)
         GetCurrentResourceName = function() return "sky_phone" end,
         GetPlayerPed = function(source) return source end,
         GetPlayerRoutingBucket = function() return 0 end,
-        GetEntityCoords = function() return { x = 0, y = 0, z = 0 } end,
+        GetEntityCoords = function()
+            return setmetatable({ x = 0, y = 0, z = 0 }, {
+                __sub = function(left, right)
+                    return setmetatable({ x = left.x - right.x, y = left.y - right.y, z = left.z - right.z }, {
+                        __len = function(value) return math.sqrt(value.x^2 + value.y^2 + value.z^2) end,
+                    })
+                end,
+            })
+        end,
         vector3 = function(x, y, z) return { x = x, y = y, z = z } end,
     }, { __index = _G })
     state.env = env
@@ -623,6 +633,38 @@ test("missed and declined anonymous calls never reveal the caller in history", f
         local recents = state.callbacks["sky_phone:calls:recents"](6)
         assert(recents.data[1].status == reason and recents.data[1].other_number == "")
     end
+end)
+
+test("no reception rejects calls, skips unreachable employees and drops active mobile legs", function()
+    local state = fixture()
+    state.no_signal = { [1] = true }
+    local result = state.env.SkyPhoneCalls.StartCompanyCall(1, "police", "5550006")
+    assert(result.success == false and result.error == "no_signal", "Service call API must return a structured error")
+    assert(state.callbacks["sky_phone:calls:dial"](1, { phoneNumber = "5550006" }).error == "no_signal")
+    state.no_signal = { [2] = true }
+    local call = state.dial()
+    assert(state.event_count("sky_phone:call:incoming", 2) == 0)
+    assert(state.action("answer", 3, call.id).success)
+    state.no_signal[3] = true
+    state.tick()
+    assert(not state.active(1) and not state.active(3))
+    assert(#state.voice_stops > 0)
+
+    state = fixture()
+    state.no_signal = { [6] = true }
+    local unreachable = state.dial(1, "5550006")
+    assert(unreachable.state ~= "ringing")
+    assert(state.event_count("sky_phone:call:incoming", 6) == 0)
+
+    state = fixture()
+    state.no_signal = { [1] = true }
+    call = state.dial(1, "5550006", true)
+    assert(state.action("answer", 6, call.id).success)
+    state.tick()
+    assert(state.active(1) and state.active(6), "Payphones must not need mobile reception")
+    state.no_signal[6] = true
+    state.tick()
+    assert(not state.active(1) and not state.active(6), "Mobile payphone recipient still needs signal")
 end)
 
 test("caller ID privacy does not bypass blocked SIMs or alter payphone identity", function()

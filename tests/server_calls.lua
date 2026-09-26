@@ -1,3 +1,4 @@
+SkyPhoneCellular = { HasSignal = function() return true end, RequiresSignal = function() return false end, GetPayload = function() return { enabled = false, bars = 4, hasSignal = true } end }
 local registered_callbacks = {}
 local migration_callback = nil
 local client_events = {}

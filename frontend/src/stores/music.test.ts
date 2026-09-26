@@ -11,6 +11,7 @@ import {
 
 import type { MusicTrack } from '@/types/music'
 import { nuiCall } from '@/utils/nui'
+import { cellular } from '@/utils/cellular'
 
 vi.mock('@/utils/nui', () => ({ nuiCall: vi.fn() }))
 
@@ -114,6 +115,8 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
+  cellular.enabled = false
+  cellular.hasSignal = true
   setActivePinia(createPinia())
   fakeAudio.reset()
   fetchMock.mockReset()
@@ -128,6 +131,30 @@ afterEach(() => {
 })
 
 describe('music server playback', () => {
+  it('blocks YouTube playback and resume without reception while bundled tracks remain playable', async () => {
+    cellular.enabled = true
+    cellular.hasSignal = false
+    const music = useMusicStore()
+    const youtubeTrack: MusicTrack = {
+      id: 'remote',
+      artist: '',
+      title: 'Remote',
+      artwork: null,
+      source: 'youtube',
+      videoId: 'remote',
+    }
+    await music.play(youtubeTrack)
+    expect(music.playbackError).toBe('no_signal')
+    expect(music.isPlaying).toBe(false)
+    music.currentTrack = youtubeTrack
+    await music.toggle()
+    expect(music.isPlaying).toBe(false)
+    fetchMock.mockResolvedValue(audioResponse())
+    await music.play(track('offline'))
+    expect(music.isPlaying).toBe(true)
+    expect(music.playbackError).toBe('')
+  })
+
   it('loads CFX-NUI audio into a seekable Blob URL', async () => {
     fetchMock.mockResolvedValue(audioResponse())
     const music = useMusicStore()

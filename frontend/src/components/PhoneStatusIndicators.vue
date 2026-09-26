@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Plane } from 'lucide-vue-next'
+import { cellular } from '@/utils/cellular'
 
 withDefaults(
   defineProps<{
@@ -28,13 +29,40 @@ withDefaults(
       class="phone-status-indicators__signal"
       viewBox="0 0 20 16"
     >
-      <rect x="0" y="11" width="3.5" height="5" rx="1.75" />
-      <rect x="5.5" y="8" width="3.5" height="8" rx="1.75" />
-      <rect x="11" y="4" width="3.5" height="12" rx="1.75" />
-      <rect x="16.5" width="3.5" height="16" rx="1.75" opacity="0.42" />
+      <rect
+        x="0"
+        y="11"
+        width="3.5"
+        height="5"
+        rx="1.75"
+        :opacity="cellular.bars >= 1 ? 1 : 0.28"
+      />
+      <rect
+        x="5.5"
+        y="8"
+        width="3.5"
+        height="8"
+        rx="1.75"
+        :opacity="cellular.bars >= 2 ? 1 : 0.28"
+      />
+      <rect
+        x="11"
+        y="4"
+        width="3.5"
+        height="12"
+        rx="1.75"
+        :opacity="cellular.bars >= 3 ? 1 : 0.28"
+      />
+      <rect
+        x="16.5"
+        width="3.5"
+        height="16"
+        rx="1.75"
+        :opacity="cellular.bars >= 4 ? 1 : 0.28"
+      />
     </svg>
     <svg
-      v-if="wifiEnabled && !airplaneMode"
+      v-if="wifiEnabled && !airplaneMode && cellular.hasSignal"
       class="phone-status-indicators__wifi"
       viewBox="0 0 22 17"
       fill="none"

@@ -432,7 +432,9 @@ CreateThread(function()
         local now = os.time()
         for _, room in pairs(rooms) do
             local host = room.members[room.host]
-            if (Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(room.host))
+            if not SkyPhoneCellular.HasSignal(room.host) then
+                end_room(room, "no_signal")
+            elseif (Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(room.host))
                 or not Config.Realtime.Enabled or not host or now - host.at > 30
                 or now - room.created > Config.Realtime.MaxDurationMinutes * 60
                 or (room.kind == "call" and not call_for(room.host, room.callId)) then
@@ -440,6 +442,7 @@ CreateThread(function()
             else
                 for src, member in pairs(room.members) do
                     if Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(src) then remove_member(room, src, "player_restricted")
+                    elseif not SkyPhoneCellular.HasSignal(src) then remove_member(room, src, "no_signal")
                     elseif now - member.at > 30 then remove_member(room, src, "session_timeout")
                     elseif member.role == "nearby" then
                         local distance, gain = nearby_distance(src, room.host)
@@ -452,7 +455,8 @@ CreateThread(function()
                     for _, member in pairs(room.members) do if member.role == "nearby" then near_count = near_count + 1 end end
                     for src in pairs(voice_states) do
                         if near_count >= Config.Realtime.NearbyMaxSpeakers then break end
-                        if src ~= room.host and not room.members[src] and GetPlayerName(src) and nearby_distance(src, room.host) then
+                        if src ~= room.host and not room.members[src] and GetPlayerName(src)
+                            and SkyPhoneCellular.HasSignal(src) and nearby_distance(src, room.host) then
                             room.members[src] = new_member("nearby")
                             near_count = near_count + 1
                             TriggerClientEvent("sky_phone:realtime:nearby", src, { id = room.id, hostName = room.hostName })

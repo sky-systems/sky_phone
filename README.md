@@ -267,6 +267,7 @@ and numeric-keyed Lua tables use structured editors instead of raw JSON. Shipped
 editable but cannot be renamed, converted, or removed. Every list and table still accepts any number
 of additional rows; administrator-added rows remain removable. Company job keys are intentionally
 fully removable because `Config.Companies.Definitions` is a freely managed job collection.
+Cell tower entries and their offline app/action policies are also fully editable and removable.
 
 ESX and QBCore use the groups listed in `Config.CommandPermissions`. Qbox checks the configured ACE
 objects first and then its framework groups. The standard Qbox `permissions.cfg` grants the `admin`
@@ -275,6 +276,15 @@ shipped `phonepanel` permission list. Restart `sky_phone` after changing fixed p
 
 Media API keys and server peppers are never returned in plaintext to the NUI. Existing secrets are
 shown only as configured and are replaced only when an administrator enters a new value.
+
+### Cell towers and social moderation
+
+`Config.CellTowers.Enabled` switches the coverage simulation on or off. The defaults include 18
+virtual towers across Los Santos, mainland towns and Cayo Perico. Manage positions, ranges and
+app availability through **Phonepanel > Phone Configurator > Cell towers**.
+**Phonepanel > Social media** also lets authorized administrators find and remove Feather,
+FlipTok, Picstagram and Weazel News posts with confirmation and an audit entry.
+See [cell tower configuration and the default offline app list](CELL_TOWERS.md).
 
 ### Language
 
