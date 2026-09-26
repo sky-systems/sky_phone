@@ -163,6 +163,8 @@ Start the selected voice resource before Sky Phone.
 
 ## Quick installation
 
+> **Read this first:** [PHONE_INSTALLATION_IMPORTANT.md](PHONE_INSTALLATION_IMPORTANT.md) contains the required item, shop, startup-order, metadata, multi-device, and troubleshooting steps.
+
 1. Copy the resource into your FiveM resources directory.
 2. Keep the resource folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
@@ -348,6 +350,7 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
     stack = false,
     close = true,
     consume = 0,
+    client = { export = "sky_phone.UsePhoneItem" },
 },
 
 ["sky_phone_sim_registered"] = {
@@ -356,6 +359,7 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
     stack = false,
     close = true,
     consume = 0,
+    client = { export = "sky_phone.UseSimItem" },
 },
 
 ["sky_phone_sim_anonymous"] = {
@@ -364,10 +368,11 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
     stack = false,
     close = true,
     consume = 0,
+    client = { export = "sky_phone.UseSimItem" },
 },
 ```
 
-Do not configure an LB Phone client event or client export. Sky Phone registers the usable items through its server-side inventory adapter.
+Do not configure an LB Phone client event or client export. The shown Sky Phone exports are slot-aware and revalidate the selected item on the server. The server-side inventory registration remains as a fallback for item definitions without `client.export`; do not configure both handlers.
 
 **Restart the complete server after both changes**, then verify that using the `phone` item opens Sky Phone. Recheck the NPWD handler after updating or replacing ox_inventory, as an update may restore it.
 

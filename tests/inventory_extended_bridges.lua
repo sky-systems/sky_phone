@@ -201,9 +201,15 @@ local origen_items = {
     [9] = { name = "phone", slot = 9, amount = 1, metadata = {} },
 }
 local origen = {}
+local origen_get_items_calls = 0
+
+function origen:getItems()
+    origen_get_items_calls = origen_get_items_calls + 1
+    return origen_items
+end
 
 function origen:getInventoryItems()
-    return origen_items
+    error("legacy Origen reader must not be preferred")
 end
 
 function origen:setMetadata(_, slot, metadata)
@@ -231,10 +237,41 @@ reset_bridge("origen", "origen_inventory", origen)
 load_adapter("sky_phone/source/bridge/server/inventory/origen.lua")
 assert(Bridge.Inventory.SetSlotMetadata(24, 9, { imei = "444444444444444" }))
 assert_metadata(Bridge.Inventory.GetSlot(24, 9).metadata, "444444444444444")
+assert(origen_get_items_calls > 0, "Origen must prefer the canonical getItems export")
 assert(Bridge.Inventory.AddItem(24, "sim_registered", 1, 12, { sim_id = "test-sim", phone_number = "5550101" }))
 assert(Bridge.Inventory.GetSlot(24, 12).metadata.phone_number == "5550101")
 assert(Bridge.Inventory.RemoveItem(24, "sim_registered", 1, nil, { sim_id = "test-sim" }) == 1)
 assert(Bridge.Inventory.GetSlot(24, 12) == nil)
+
+local legacy_origen_items = {
+    [14] = { name = "phone", slot = 14, amount = 1, metadata = {} },
+}
+local legacy_origen = {}
+
+function legacy_origen:getInventoryItems()
+    return legacy_origen_items
+end
+
+function legacy_origen:setMetadata(_, slot, metadata)
+    legacy_origen_items[slot].metadata = metadata
+end
+
+function legacy_origen:canCarryItem()
+    return true
+end
+
+function legacy_origen:addItem()
+    return true
+end
+
+function legacy_origen:removeItem()
+    return true
+end
+
+reset_bridge("origen", "origen_inventory", legacy_origen)
+load_adapter("sky_phone/source/bridge/server/inventory/origen.lua")
+assert(Bridge.Inventory.GetSlot(26, 14).name == "phone",
+    "Origen must retain compatibility with the legacy getInventoryItems export")
 
 local tgiann_items = {
     [11] = { name = "phone", slot = 11, amount = 1, info = {} },

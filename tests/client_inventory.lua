@@ -17,7 +17,13 @@ local function setup(adapter, resources, framework)
         return true
     end
     exports = setmetatable({
-        ox_inventory = { displayMetadata = function(_, key, label) return record("ox", "*", key, label) end },
+        ox_inventory = {
+            displayMetadata = function(_, key, label) return record("ox", "*", key, label) end,
+            useItem = function(_, data, callback)
+                callback(state.ox_used_item or data)
+                return state.ox_result
+            end,
+        },
         ["tgiann-inventory"] = { DisplayItemMetadata = function(_, item, key, label) return record("tgiann", item, key, label) end },
         one_inventory = { ShowItemMetadata = function(_, key, label, item) return record("one", item, key, label) end },
     }, { __call = function(_, name, fn) state.exports[name] = fn end })
@@ -113,5 +119,15 @@ assert(state.exports.EjectSimFromSlot(3).error == "request_failed", "callback ti
 state.response = { success = true }
 state.events["sky_phone:sim:eject-item"](8)
 assert(state.request.slot == 8)
+
+state.ox_used_item = { name = "phone", slot = 4 }
+assert(state.exports.UsePhoneItem({}, { name = "phone", slot = 4 }))
+assert(state.ox_used_item.slot == 4, "ox_inventory must provide the selected phone slot to the verified use path")
+state.ox_used_item = { name = "sim_registered", slot = 5 }
+assert(state.exports.UseSimItem({}, { name = "sim_registered", slot = 5 }))
+assert(state.ox_used_item.slot == 5 and state.ox_used_item.name == "sim_registered",
+    "ox_inventory must provide the selected SIM slot and item name to the verified use path")
+assert(not state.exports.UsePhoneItem(nil), "phone item exports must reject invalid item data")
+assert(not state.exports.UseSimItem(nil), "SIM item exports must reject invalid item data")
 
 print("Client inventory tooltip and locale tests passed")

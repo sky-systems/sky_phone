@@ -3,6 +3,7 @@ if Bridge.Inventory.Name ~= "origen" then
 end
 
 local inventory = exports.origen_inventory
+local inventory_reader
 
 local function normalize(item)
     local normalized = Bridge.Inventory.NormalizeItem(item)
@@ -13,8 +14,39 @@ local function normalize(item)
 end
 
 local function get_inventory(source)
-    local items = inventory:getInventoryItems(source)
-    return type(items) == "table" and items or {}
+    local function read_inventory(method_name)
+        if method_name == "getItems" then
+            return inventory:getItems(source)
+        end
+        return inventory:getInventoryItems(source)
+    end
+
+    if inventory_reader then
+        local success, items = pcall(read_inventory, inventory_reader)
+        if success then
+            return type(items) == "table" and items or {}
+        end
+        inventory_reader = nil
+    end
+
+    local success, items = pcall(read_inventory, "getItems")
+    if success then
+        inventory_reader = "getItems"
+        return type(items) == "table" and items or {}
+    end
+
+    local legacy_success, legacy_items = pcall(read_inventory, "getInventoryItems")
+    if legacy_success then
+        inventory_reader = "getInventoryItems"
+        Bridge.Debug(
+            "warn",
+            "[sky_phone] Origen inventory is using the legacy getInventoryItems export; update the provider if it is removed."
+        )
+        return type(legacy_items) == "table" and legacy_items or {}
+    end
+
+    error(("[sky_phone] Origen inventory could not read player items through getItems or getInventoryItems: %s")
+        :format(tostring(legacy_items or items)))
 end
 
 function Bridge.Inventory.GetResourceName()

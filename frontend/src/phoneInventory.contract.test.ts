@@ -52,6 +52,22 @@ describe('phone inventory contracts', () => {
     )
   })
 
+  it('provides slot-aware client exports for ox item definitions', () => {
+    const clientInventory = readResourceFile(
+      'source/bridge/client/inventory.lua',
+    )
+    const phoneServer = readResourceFile('source/server/phone.lua')
+    const simServer = readResourceFile('source/server/sim.lua')
+
+    expect(clientInventory).toContain('exports("UsePhoneItem", use_phone_item)')
+    expect(clientInventory).toContain('exports("UseSimItem", use_sim_item)')
+    expect(clientInventory).toContain(
+      'exports.ox_inventory:useItem(data, function(used_item)',
+    )
+    expect(phoneServer).toContain('local function resolve_used_slot(')
+    expect(simServer).toContain('local function resolve_used_sim(')
+  })
+
   it('uses One Inventory slot ids and authoritative slot reads', () => {
     const adapter = readResourceFile(
       'source/bridge/server/inventory/one.lua',

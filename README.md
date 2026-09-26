@@ -175,6 +175,8 @@ Start the selected voice resource before Sky Phone.
 
 ## Quick installation
 
+> **Read this first:** [PHONE_INSTALLATION_IMPORTANT.md](sky_phone/PHONE_INSTALLATION_IMPORTANT.md) contains the required item, shop, startup-order, metadata, multi-device, and troubleshooting steps.
+
 1. Download and extract the latest published [Sky Phone release](https://github.com/sky-systems/sky_phone/releases/latest). Do not use GitHub's automatically generated "Source code" archives for a server installation because they do not contain the built frontend.
 2. Copy the included resource into your FiveM resources directory and keep its folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
@@ -417,6 +419,7 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
     stack = false,
     close = true,
     consume = 0,
+    client = { export = "sky_phone.UsePhoneItem" },
     buttons = {
         {
             label = "Eject SIM", -- Translate this static inventory label, e.g. "SIM entfernen".
@@ -433,6 +436,7 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
     stack = false,
     close = true,
     consume = 0,
+    client = { export = "sky_phone.UseSimItem" },
 },
 
 ["sky_phone_sim_anonymous"] = {
@@ -441,10 +445,11 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
     stack = false,
     close = true,
     consume = 0,
+    client = { export = "sky_phone.UseSimItem" },
 },
 ```
 
-Do not configure an LB Phone client event or client export. Sky Phone registers the usable items through its server-side inventory adapter.
+Do not configure an LB Phone client event or client export. The shown Sky Phone exports are slot-aware and revalidate the selected item on the server. The server-side inventory registration remains as a fallback for item definitions without `client.export`; do not configure both handlers.
 
 **Restart the complete server after both changes**, then verify that using the `phone` item opens Sky Phone. Recheck the NPWD handler after updating or replacing ox_inventory, as an update may restore it.
 
@@ -674,7 +679,7 @@ buttons = {
 },
 ```
 
-Origen's separate `displayMetadata(slot)` export opens its metadata viewer; it does not accept Ox's `displayMetadata(key, label)` arguments. Keep the existing phone use handler so using the item continues to open the phone. The bridge uses `getInventoryItems(source)` and the slot-before-info `addItem(source, item, amount, slot, info)` / `removeItem(source, item, amount, slot)` signatures from the [current export reference](https://docs.origennetwork.com/scripts/origen_inventory/exports), also used by the published [AK47 integration](https://github.com/MenanAk47/ak47_lib/blob/main/integration/server/inventory.lua).
+Origen's separate `displayMetadata(slot)` export opens its metadata viewer; it does not accept Ox's `displayMetadata(key, label)` arguments. Keep the existing phone use handler so using the item continues to open the phone. The bridge prefers the canonical `getItems(source)` export and keeps a fallback for legacy `getInventoryItems(source)`, while using the slot-before-info `addItem(source, item, amount, slot, info)` / `removeItem(source, item, amount, slot)` signatures from the [current export reference](https://docs.origennetwork.com/scripts/origen_inventory/exports), also used by the published [AK47 integration](https://github.com/MenanAk47/ak47_lib/blob/main/integration/server/inventory.lua).
 
 #### Other custom context menus
 
