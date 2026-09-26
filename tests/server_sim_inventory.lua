@@ -274,8 +274,11 @@ assert(eject(3).success, "exceptions must release the operation lock")
 -- Inserting/replacing a SIM still roundtrips through the usable item and picker.
 reset()
 sims.third = { id = "third", phone_number = "5550103", sim_type = "anonymous", is_virtual = 0 }
+sims.fourth = { id = "fourth", phone_number = "5550104", sim_type = "anonymous", is_virtual = 0 }
 items[12] = { name = "sim_anonymous", slot = 12, count = 1,
     metadata = { sim_id = "third", phone_number = "5550103" } }
+items[13] = { name = "sim_anonymous", slot = 13, count = 1,
+    metadata = { sim_id = "fourth", phone_number = "5550104" } }
 usable.sim_anonymous(21, items[12])
 expect_error(callbacks["sky_phone:sim:insert"](21, { imei = imei_b }), "confirmation_required")
 local load_device = SkyPhone.LoadDevice
@@ -287,6 +290,7 @@ assert(callbacks["sky_phone:sim:insert"](21, { imei = imei_b, confirmed = true }
 SkyPhone.LoadDevice = load_device
 assert(devices[imei_b].sim_id == "third" and items[8].metadata.phone_number == "5550103")
 assert(items[8].metadata.imei == imei_b and items[8].metadata.custom == "keep")
+assert(items[13].metadata.sim_id == "fourth", "using one of multiple SIMs must keep the other slot untouched")
 assert(#added == 1 and added[1].metadata.sim_id == "second" and added[1].metadata.firstname == "Test")
 assert(eject(8).success and #added == 2 and added[2].metadata.sim_id == "third")
 assert(items[8].metadata.phone_number == nil and devices[imei_b].sim_id == nil)

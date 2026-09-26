@@ -33,8 +33,44 @@ local function eject_sim_from_slot(slot, inventory_id)
     return response
 end
 
+local function run_ox_item_use(data, item_label)
+    if type(data) ~= "table" then
+        Bridge.Debug("warn", "[sky_phone] %s item export received invalid item data.", item_label)
+        return false
+    end
+
+    local verified_item
+    local completed, result = pcall(function()
+        return exports.ox_inventory:useItem(data, function(used_item)
+            verified_item = used_item
+            return used_item ~= nil
+        end)
+    end)
+    if not completed then
+        Bridge.Debug(
+            "error",
+            "[sky_phone] %s item export could not complete ox_inventory useItem: %s.",
+            item_label,
+            tostring(result)
+        )
+        return false
+    end
+
+    return verified_item ~= nil or result == true
+end
+
+local function use_phone_item(data)
+    return run_ox_item_use(data, "Phone")
+end
+
+local function use_sim_item(data)
+    return run_ox_item_use(data, "SIM")
+end
+
 exports("GetInventoryLabels", inventory_labels)
 exports("EjectSimFromSlot", eject_sim_from_slot)
+exports("UsePhoneItem", use_phone_item)
+exports("UseSimItem", use_sim_item)
 AddEventHandler("sky_phone:sim:eject-item", eject_sim_from_slot)
 
 local function register_metadata()

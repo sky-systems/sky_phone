@@ -417,6 +417,7 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
     stack = false,
     close = true,
     consume = 0,
+    client = { export = "sky_phone.UsePhoneItem" },
     buttons = {
         {
             label = "Eject SIM", -- Translate this static inventory label, e.g. "SIM entfernen".
@@ -433,6 +434,7 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
     stack = false,
     close = true,
     consume = 0,
+    client = { export = "sky_phone.UseSimItem" },
 },
 
 ["sky_phone_sim_anonymous"] = {
@@ -441,10 +443,11 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
     stack = false,
     close = true,
     consume = 0,
+    client = { export = "sky_phone.UseSimItem" },
 },
 ```
 
-Do not configure an LB Phone client event or client export. Sky Phone registers the usable items through its server-side inventory adapter.
+Do not configure an LB Phone client event or client export. The shown Sky Phone exports are slot-aware and revalidate the selected item on the server. The server-side inventory registration remains as a fallback for item definitions without `client.export`; do not configure both handlers.
 
 **Restart the complete server after both changes**, then verify that using the `phone` item opens Sky Phone. Recheck the NPWD handler after updating or replacing ox_inventory, as an update may restore it.
 
@@ -674,7 +677,7 @@ buttons = {
 },
 ```
 
-Origen's separate `displayMetadata(slot)` export opens its metadata viewer; it does not accept Ox's `displayMetadata(key, label)` arguments. Keep the existing phone use handler so using the item continues to open the phone. The bridge uses `getInventoryItems(source)` and the slot-before-info `addItem(source, item, amount, slot, info)` / `removeItem(source, item, amount, slot)` signatures from the [current export reference](https://docs.origennetwork.com/scripts/origen_inventory/exports), also used by the published [AK47 integration](https://github.com/MenanAk47/ak47_lib/blob/main/integration/server/inventory.lua).
+Origen's separate `displayMetadata(slot)` export opens its metadata viewer; it does not accept Ox's `displayMetadata(key, label)` arguments. Keep the existing phone use handler so using the item continues to open the phone. The bridge prefers the canonical `getItems(source)` export and keeps a fallback for legacy `getInventoryItems(source)`, while using the slot-before-info `addItem(source, item, amount, slot, info)` / `removeItem(source, item, amount, slot)` signatures from the [current export reference](https://docs.origennetwork.com/scripts/origen_inventory/exports), also used by the published [AK47 integration](https://github.com/MenanAk47/ak47_lib/blob/main/integration/server/inventory.lua). If the server logs missing `registerHook`, `SelectStash`, or `LoadInventory` exports from `origen_inventoryv2`, the Origen package is mixed or incompatible; reinstall one coherent provider version before troubleshooting Sky Phone.
 
 #### Other custom context menus
 
