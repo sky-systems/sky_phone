@@ -175,6 +175,8 @@ Start the selected voice resource before Sky Phone.
 
 ## Quick installation
 
+> **Read this first:** [PHONE_INSTALLATION_IMPORTANT.md](sky_phone/PHONE_INSTALLATION_IMPORTANT.md) contains the required item, shop, startup-order, metadata, multi-device, and troubleshooting steps.
+
 1. Download and extract the latest published [Sky Phone release](https://github.com/sky-systems/sky_phone/releases/latest). Do not use GitHub's automatically generated "Source code" archives for a server installation because they do not contain the built frontend.
 2. Copy the included resource into your FiveM resources directory and keep its folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.

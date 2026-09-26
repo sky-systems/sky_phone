@@ -163,6 +163,8 @@ Start the selected voice resource before Sky Phone.
 
 ## Quick installation
 
+> **Read this first:** [PHONE_INSTALLATION_IMPORTANT.md](PHONE_INSTALLATION_IMPORTANT.md) contains the required item, shop, startup-order, metadata, multi-device, and troubleshooting steps.
+
 1. Copy the resource into your FiveM resources directory.
 2. Keep the resource folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
