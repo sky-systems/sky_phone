@@ -138,31 +138,7 @@ Sky Phone supports multiple physical phones and SIM cards. For reliable per-item
 - Give each phone and SIM its own inventory slot.
 - Keep the item names and metadata field names unchanged after players already own items.
 
-The ox_inventory item export is important here: it passes the exact slot the player clicked. Without it, the generic fallback can depend on the installed inventory/framework bridge and may select the first available item on older or modified providers.
-
-## 6. Origen inventory and Origen Inventory V2
-
-The ticket examples use `origen_inventoryv2`. That is a real, separate Origen package/resource name. It must not be treated as an alias for the documented `origen_inventory` adapter.
-
-The current Sky Phone release supports the documented `origen_inventory` adapter. Its adapter lookup matches the resource name `origen_inventory`; it does not automatically turn a separately named `origen_inventoryv2` resource into a supported Phone adapter. This is why a server that runs only `origen_inventoryv2` can also show this Sky Phone error:
-
-```text
-[sky_phone] Inventory adapter 'nil' is missing required method 'GetSlotsWithItem'.
-```
-
-Do not rename the V2 folder, copy V1 files into it, or mix V1/V2 manifests and exports. The following errors from the customer ticket are provider startup errors from the Origen V2 package, not missing Sky Phone item exports:
-
-```text
-No such export registerHook in resource origen_inventory
-attempt to call a nil value (field 'SelectStash')
-attempt to call a nil value (field 'LoadInventory')
-```
-
-For the currently supported package, install one matching `origen_inventory` version, start it before `sky_phone`, and set `Config.Bridge.Inventory = "origen"` when automatic detection is not suitable. The public [Origen export reference](https://docs.origennetwork.com/scripts/origen_inventory/exports) is the contract used by this adapter.
-
-Origen Inventory V2 needs a separate adapter. We will not guess or alias it to V1 because the Phone must be able to read the exact item slot, preserve nested metadata, write metadata, add/remove the item in that slot, check capacity, and register item use. Those function names and argument/return contracts are not verified by the V1 documentation. If you need V2 support, provide the exact V2 version, `fxmanifest.lua`, and vendor export documentation so the V2 adapter can be implemented and contract-tested properly.
-
-## 7. QBCore-style inventories
+## 6. QBCore-style inventories
 
 For `qb-inventory`, `lj-inventory`, or another QBCore-style item table:
 
@@ -173,7 +149,7 @@ For `qb-inventory`, `lj-inventory`, or another QBCore-style item table:
 
 Use the item format documented for the installed inventory. Do not paste an ox_inventory `client.export` into a QBCore item table unless that inventory explicitly supports it.
 
-## 8. Final verification
+## 7. Final verification
 
 After the complete server restart:
 
