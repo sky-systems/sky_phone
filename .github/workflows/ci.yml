@@ -78,6 +78,7 @@ jobs:
 
       - name: Test editable player checks and radio restrictions
         run: |
+          lua5.4 tests/client_framework_status.lua
           lua5.4 tests/player_restrictions.lua
           lua5.4 tests/client_radio_restrictions.lua
 

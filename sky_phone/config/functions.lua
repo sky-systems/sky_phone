@@ -16,7 +16,8 @@ function PhoneFunctions.IsDead(context)
     -- SaltyChat_IsAlive is a voice mute flag, not a medical state.
     for _, data in ipairs({ context.state, context.framework }) do
         for _, key in ipairs({ "dead", "isDead", "isdead", "inlaststand", "isDowned", "unconscious" }) do
-            if data[key] == true or data[key] == 1 then return true end
+            local value = data[key]
+            if value == true or value == 1 then return true end
         end
     end
     return false
@@ -27,7 +28,8 @@ function PhoneFunctions.IsHandcuffed(context)
     if not context.isServer and IsPedCuffed(context.ped) then return true end
     for _, data in ipairs({ context.state, context.framework }) do
         for _, key in ipairs({ "ishandcuffed", "isHandcuffed", "handcuffed", "isCuffed" }) do
-            if data[key] == true or data[key] == 1 then return true end
+            local value = data[key]
+            if value == true or value == 1 then return true end
         end
     end
     return false
