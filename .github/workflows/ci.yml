@@ -110,6 +110,7 @@ jobs:
           lua5.4 tests/client_nui_server_bridge.lua
       - name: Test server startup and tone catalog recovery
         run: |
+          lua5.4 tests/database_migrations.lua
           lua5.4 tests/server_callback_startup.lua
           lua5.4 tests/client_phone_lifecycle.lua
           lua5.4 tests/server_world_display.lua

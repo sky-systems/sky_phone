@@ -238,3 +238,88 @@ Bridge.Database.Query = function()
 end
 Bridge.Database.Migrate("empty", {})
 print("database migration scoped metadata checks passed")
+
+local function check_column_pages(column_count, missing_column, changed_collation)
+    local rows = {}
+    local schema = { { name = "phone_bulk_0001", columns = {} } }
+    for index = 1, column_count do
+        local name = ("column_%04d"):format(index)
+        local table_index = math.floor((index - 1) / 8) + 1
+        local table_definition = schema[table_index]
+        if not table_definition then
+            table_definition = { name = ("phone_bulk_%04d"):format(table_index), columns = {} }
+            schema[table_index] = table_definition
+        end
+        table_definition.columns[#table_definition.columns + 1] = {
+            name = name, type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin",
+        }
+        if index ~= missing_column then
+            -- The adapter also accepts lowercase metadata field names.
+            rows[#rows + 1] = {
+                table_name = table_definition.name:upper(), column_name = name:upper(), character_set_name = "ascii",
+                collation_name = index == changed_collation and "ascii_general_ci" or "ascii_bin",
+            }
+        end
+    end
+
+    local offsets = {}
+    local operations = {}
+    local returned_columns = 0
+    Bridge = { Database = {}, Debug = function() end }
+    function Bridge.Database.Query(query, parameters)
+        if query:find("FROM INFORMATION_SCHEMA.TABLES", 1, true) then
+            local tables = {}
+            for _, table_definition in ipairs(schema) do
+                tables[#tables + 1] = { table_name = table_definition.name:upper() }
+            end
+            return tables
+        end
+        if query:find("FROM INFORMATION_SCHEMA.COLUMNS", 1, true) then
+            assert(#parameters == #schema, "column reads must remain table-scoped")
+            for index, table_definition in ipairs(schema) do
+                assert(parameters[index] == table_definition.name, "column pages changed the table scope")
+            end
+            assert_contains(query, "ORDER BY TABLE_NAME, ORDINAL_POSITION", "stable column page order")
+            local limit, offset = query:match("LIMIT (%d+) OFFSET (%d+)")
+            assert(limit and offset, "column metadata must be paginated")
+            limit, offset = tonumber(limit), tonumber(offset)
+            assert(limit <= 500, "column metadata page exceeded the result budget")
+            assert(offset == returned_columns, "column pages skipped or repeated metadata")
+            offsets[#offsets + 1] = offset
+            local page = {}
+            for index = offset + 1, math.min(offset + limit, #rows) do
+                page[#page + 1] = rows[index]
+            end
+            returned_columns = returned_columns + #page
+            return page
+        end
+        if query:find("FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS", 1, true) then
+            assert(returned_columns == #rows, "foreign key checks ran before all column pages were read")
+            return {}
+        end
+        assert(returned_columns == #rows, "DDL ran before all column pages were read")
+        operations[#operations + 1] = query
+        return {}
+    end
+
+    assert(loadfile(migration_path))()
+    Bridge.Database.Migrate("bulk", schema)
+    assert(returned_columns == #rows, "migration did not read all column metadata")
+    assert(#offsets == math.floor(#rows / 500) + 1, "unexpected column page count")
+    local expected_operations = (missing_column and 1 or 0) + (changed_collation and 1 or 0)
+    assert(#operations == expected_operations, "pagination introduced spurious schema changes")
+    if missing_column then
+        assert(find_operation(operations, ("ADD COLUMN `column_%04d`"):format(missing_column)),
+            "missing column after the first page was not created")
+    end
+    if changed_collation then
+        assert(find_operation(operations, ("MODIFY COLUMN `column_%04d`"):format(changed_collation)),
+            "collation change after the first page was not detected")
+    end
+end
+
+for _, count in ipairs({ 0, 1, 499, 500, 501, 1000, 1074 }) do
+    check_column_pages(count)
+end
+check_column_pages(1074, 1001, 1074)
+print("database migration bounded column page checks passed")
