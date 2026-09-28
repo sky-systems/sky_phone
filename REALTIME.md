@@ -28,6 +28,12 @@ SFU uploads the stream once and distributes it to viewers. `ForceRelay` requires
 
 All Realtime options and RealtimeSecrets fields are available in **/phonepanel**, including localized help, bounds, SQL persistence and credential masking. Secrets are excluded from client configuration.
 
+Use the Realtime and RealtimeSecrets detail sections and save with the checkmark.
+The voice provider is also available under **General → Framework & integrations**.
+SQL mode is enabled by default; Part 2 file edits are ignored in that mode. The
+[configuration and access guide](docs/phone-configurator.md) explains file mode,
+administrator ACE setup and which settings require a restart.
+
 Create an SFU application at **Cloudflare dashboard → Realtime → SFU** and copy **App ID / App Secret**. Create a TURN key at **Realtime → TURN** and copy **Token ID / API Token**. These are separate credential pairs. See the official [SFU API](https://developers.cloudflare.com/realtime/sfu/https-api/) and [TURN credentials guide](https://developers.cloudflare.com/realtime/turn/generate-credentials/).
 
 In SQL mode, enter credentials in /phonepanel. In file mode, edit feature options in `sky_phone/config/config.lua` but keep its credential placeholders empty. FiveM clients download config.lua, including blocks that execute only on the server. Set credentials through **non-replicated server.cfg convars** before starting the resource:

@@ -9,6 +9,8 @@ import {
 import { computed, ref } from 'vue'
 
 import type { AdminConfiguratorStructure } from '@/types/admin'
+import { SkyProvider } from '@/ui'
+import AdminConfigKeybind from './AdminConfigKeybind.vue'
 import {
   blankFromConfiguratorStructure,
   createMutableTableEntry,
@@ -1115,6 +1117,22 @@ function mapEntryStructure(
       </button>
     </form>
   </div>
+
+  <SkyProvider
+    v-else-if="
+      path === 'Phone.Keybind' || path === 'CrewLink.QuickPing.DefaultKey'
+    "
+    dark
+    :safe-areas="false"
+  >
+    <AdminConfigKeybind
+      :label="ariaLabel"
+      :model-value="modelValue"
+      :disabled="disabled"
+      :optional="path === 'Phone.Keybind'"
+      @update:model-value="emit('update:modelValue', $event)"
+    />
+  </SkyProvider>
 
   <span
     v-else-if="structure?.kind === 'optionalString'"

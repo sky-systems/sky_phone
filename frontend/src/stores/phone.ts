@@ -1007,6 +1007,145 @@ const adminPanelFallbackLocales = {
     ofDevices: '{count} of {total} devices',
   },
   configurator: {
+    general: {
+      title: 'General',
+      body: 'Set up devices, SIM cards and the controls players use every day. These are the same settings as in the detail sections; changes share one draft until you save.',
+      groups: {
+        device: 'Devices & SIM cards',
+        system: 'Framework & integrations',
+        usage: 'Phone use',
+        keys: 'Keyboard & commands',
+      },
+      metadataFree:
+        'The selected inventory cannot store per-item metadata. Unique phones and physical SIM cards are disabled automatically. Automatic inventory detection can apply the same restriction.',
+      fileOwned:
+        'Access groups, the Configurator switch and local custom tones remain in Part 1 of config.lua. They cannot be changed here.',
+      fields: {
+        Phone: {
+          Unique: {
+            label: 'One device per phone item',
+            description:
+              "On: each phone item has its own IMEI and data, which move with the item. Off: every phone item opens the character's persistent device. Requires inventory metadata when on. Test mode changes with a database backup and restart the resource.",
+          },
+          Item: {
+            label: 'Phone item',
+            description:
+              'Exact inventory item name. The item must exist in the selected inventory.',
+          },
+          DeviceName: {
+            label: 'Default device name',
+            description:
+              'Name for newly created phones. Existing device names stay unchanged.',
+          },
+          BlockWhenDead: {
+            label: 'Block phone while dead or unconscious',
+            description:
+              'Prevents phone use and phone voice features while the character is dead or downed.',
+          },
+          BlockWhenCuffed: {
+            label: 'Block phone while handcuffed',
+            description:
+              'Prevents phone use and phone voice features while the character is restrained.',
+          },
+          AllowMovement: {
+            label: 'Allow movement with phone open',
+            description:
+              'Keeps game movement active while the mobile phone is open.',
+          },
+          HoldToLook: {
+            Enabled: {
+              label: 'Hold to look around',
+              description:
+                'Hold the configured GTA control to hide the cursor and look around.',
+            },
+            Control: {
+              label: 'Look-around control ID',
+              description:
+                'GTA control index, not a keyboard key. Default 19 is INPUT_CHARACTER_WHEEL (usually Left Alt). Player GTA bindings determine the actual key.',
+            },
+          },
+          Keybind: {
+            label: 'Open phone key',
+            description:
+              'Server default for opening the phone. Turn off the switch to disable this shortcut.',
+          },
+          DevelopmentCommand: {
+            label: 'Enable phone command',
+            description:
+              'Allows the configured /phone command. Keep this off if players should only open phones through items and the shortcut.',
+          },
+        },
+        Sim: {
+          Enabled: {
+            label: 'Use physical SIM cards',
+            description:
+              'On: a physical SIM is required for calls and messages, but the phone can still open without one. Off: devices without a SIM receive a persistent automatic number. Metadata-free inventories force this off.',
+          },
+          NumberPrefix: {
+            label: 'Phone number prefix',
+            description:
+              'Optional digits at the beginning of newly generated numbers, for example 555. Existing numbers are not changed.',
+          },
+          NumberLength: {
+            label: 'Phone number length',
+            description:
+              'Total digits, including the prefix. Number display groups remain available in the SIM detail section.',
+          },
+        },
+        Bridge: {
+          Framework: {
+            label: 'Framework',
+            description:
+              'Choose the running framework, or auto for detection. Restart sky_phone after changing the framework.',
+          },
+          Inventory: {
+            label: 'Inventory',
+            description:
+              'Choose the active inventory adapter. Restart sky_phone after changing providers. Native ESX and hex cannot store unique phones or physical SIMs.',
+          },
+          Locale: {
+            label: 'Server language',
+            description:
+              'Default Phone language used for server text and new phones.',
+          },
+        },
+        Calls: {
+          VoiceProvider: {
+            label: 'Voice provider',
+            description:
+              'Choose the started voice resource. Restart sky_phone after changing voice providers.',
+          },
+        },
+        CrewLink: {
+          QuickPing: {
+            Enabled: {
+              label: 'Enable CrewLink quick ping',
+              description:
+                'Allows the quick-ping shortcut for eligible CrewLink users.',
+            },
+            DefaultKey: {
+              label: 'CrewLink quick-ping key',
+              description: 'Server default for sending a CrewLink ping.',
+            },
+          },
+        },
+        Command: {
+          label: 'Phone command',
+          description:
+            'Command name without /. Access to the admin panel is configured separately in Part 1.',
+        },
+      },
+    },
+    keybind: {
+      capture: 'Record key',
+      listening:
+        'Press one key. Escape cancels; Tab leaves capture. Special keys can also be selected from the list.',
+      cancel: 'Cancel capture',
+      unsupported:
+        'This key or combination cannot be mapped safely. Press a single key or choose its FiveM ID from the list.',
+      enabled: 'Shortcut enabled',
+      help: 'Saves a FiveM KEYBOARD ID, not the printed character. Restart sky_phone for changed defaults; existing player rebindings in FiveM Settings → Key Bindings take priority.',
+    },
     faceIdMaskWhitelistLabel: 'Allowed Face ID masks',
     faceIdMaskLabels: {
       Model: 'Ped model',
@@ -1021,6 +1160,7 @@ const adminPanelFallbackLocales = {
     mediaScope: 'media.lua',
     noResults: 'No matching settings',
     loading: 'Loading SQL configuration...',
+    retry: 'Retry',
     title: 'Phone configurator',
     body: 'Manage phone and media settings from the protected admin workspace.',
     disabledTitle: 'SQL configuration is not active',
@@ -1028,7 +1168,7 @@ const adminPanelFallbackLocales = {
       'Enable the configurator at the beginning of config.lua and restart sky_phone. Until then, file values remain active and editing is locked.',
     manualSave: 'Manual save',
     refreshNotice:
-      'Nothing is written automatically. The green check verifies config.lua and media.lua in SQL and refreshes the active server, client, media and UI configuration immediately.',
+      'Changes stay in the shared draft until you save with the checkmark. Saving validates and stores them in SQL. Restart sky_phone after changing frameworks, inventories, voice providers, device modes or keyboard defaults; existing player key bindings remain unchanged.',
     fieldCount: '{count} fields',
     secretConfigured: 'Secret configured · enter a replacement',
     invalidValue: 'Check the highlighted table or number value.',

@@ -6,20 +6,29 @@ Config = {}
 --[[
     Sky Phone configuration
 
-    General settings live in this file. Media providers and upload limits live
-    in config/media.lua, while translations remain in config/locales/*.lua.
-    Sections marked "SERVER ONLY" are guarded with IsDuplicityVersion(), so
-    passwords, API keys, migration settings, and server-owned locations are not
-    applied by game clients.
+    PART 1: Always file-owned. /phonepanel never changes these settings.
+    PART 2: Managed in /phonepanel while PhoneConfigurator.Enabled = true.
+            In that mode, editing Part 2 or media.lua has NO runtime effect,
+            including on first start: shipped ConfigDefaults + SQL are used.
+            With the Configurator disabled, these files supply active values.
+
+    Media providers live in config/media.lua; translations in config/locales/.
+    This file is downloaded by clients. IsDuplicityVersion() limits execution,
+    not file visibility. Keep private credentials in the panel or documented
+    server-only convars, never in this shared file.
 
     Keep option names unchanged. Restart sky_phone after editing this file.
 ]]
 
 
 -- =============================================================================
--- Core, framework and device
+-- PART 2 - PANEL-MANAGED SETTINGS / FILE MODE VALUES
+-- Enabled = true: edit /phonepanel > Phone Configurator > General (or a detail
+-- section), then save. Values below are used by the shipped-default build only.
+-- Enabled = false: edit this part and config/media.lua, then restart sky_phone.
 -- =============================================================================
 
+-- Core, framework and device
 Config.Bridge = {
     Framework = "auto", -- auto, esx, qbox, qb
     -- auto, ak47, codem, core, jaksam, jpr, lj, mf, one, origen, ox, ps, qb, qs, smx, tgiann, hex, esx
@@ -39,17 +48,16 @@ Config.Phone = {
     BlockWhenCuffed = true, -- false permits phone/voice use while handcuffed
     Item = "phone",
     Unique = true, -- true: data follows each phone item; false: one persistent phone per character; forced false for metadata-free inventories
-    Keybind = "F1", -- false disables the configurable phone key mapping
+    Keybind = "F1", -- default keyboard key; false disables it; existing player rebindings take priority
     OpenRequestsPerMinute = 20,
     AllowMovement = true, -- true: game input stays active while the mobile phone is open
     HoldToLook = {
         Enabled = true, -- hold the configured control to hide the cursor and look around; independent of AllowMovement
-        Control = 19, -- INPUT_CHARACTER_WHEEL (Left Alt by default)
+        Control = 19, -- INPUT_CHARACTER_WHEEL (Left Alt by default); a GTA control ID, not a keyboard key
     },
     DevelopmentCommand = true,
     DeviceName = "iFruit Phone",
 }
-
 
 -- Server-wide availability for bundled apps. Set an entry to false to hide it
 -- from every phone, the App Store and per-device app management.

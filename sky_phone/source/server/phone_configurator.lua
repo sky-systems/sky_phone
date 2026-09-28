@@ -17,6 +17,25 @@ local updated_at
 local updated_by_name
 local is_sequence
 
+-- Official Cfx KEYBOARD parameters; numeric GTA controls are a separate contract.
+local KEYBOARD_KEYS = {}
+for key in ([[BACK TAB RETURN PAUSE CAPITAL ESCAPE SPACE PAGEUP PRIOR PAGEDOWN NEXT END HOME
+LEFT UP RIGHT DOWN SYSRQ SNAPSHOT INSERT DELETE LWIN RWIN APPS MULTIPLY ADD SUBTRACT DECIMAL
+DIVIDE NUMPADEQUALS NUMPADENTER NUMLOCK SCROLL LSHIFT RSHIFT LCONTROL RCONTROL LMENU RMENU
+OEM_1 SEMICOLON EQUALS PLUS COMMA MINUS PERIOD SLASH OEM_2 OEM_3 GRAVE LBRACKET OEM_4
+OEM_5 BACKSLASH OEM_6 RBRACKET APOSTROPHE OEM_7 OEM_102 RAGE_EXTRA1 RAGE_EXTRA2 RAGE_EXTRA3
+RAGE_EXTRA4 CHATPAD_GREEN_SHIFT CHATPAD_ORANGE_SHIFT]]):gmatch("%S+") do
+    KEYBOARD_KEYS[key] = true
+end
+
+local function valid_keyboard_key(value)
+    if type(value) ~= "string" or #value > 32 then return false end
+    local key = value:upper()
+    if KEYBOARD_KEYS[key] or key:match("^[A-Z0-9]$") or key:match("^NUMPAD[0-9]$") then return true end
+    local function_key = tonumber(key:match("^F(%d+)$"))
+    return function_key ~= nil and function_key >= 1 and function_key <= 24 and key == "F" .. function_key
+end
+
 local FIXED_CONFIG_PATHS = {
     CommandPermissions = true,
     ["AdminPanel.AdminGroups"] = true,
@@ -1799,8 +1818,8 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         or not crew_blip.CategoryName:find("%S") or crew_blip.CategoryName:find("[%c~]")
         or type(crew_blip.Scale) ~= "number" or not (crew_blip.Scale >= 0.1 and crew_blip.Scale <= 5.0)
         or type(quick_ping) ~= "table" or type(quick_ping.Enabled) ~= "boolean"
-        or type(quick_ping.DefaultKey) ~= "string" or #quick_ping.DefaultKey > 32
-        or not quick_ping.DefaultKey:match("^[A-Z0-9_]+$")
+        or not valid_keyboard_key(quick_ping.DefaultKey)
+        or (candidate_config.Phone.Keybind ~= false and not valid_keyboard_key(candidate_config.Phone.Keybind))
     then
         return { success = false, error = "invalid_value" }
     end

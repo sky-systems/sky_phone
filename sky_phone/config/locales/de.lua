@@ -559,6 +559,122 @@ Locales["de"] = {
                 ofDevices = "{count} von {total} Geräten",
             },
             configurator = {
+                general = {
+                    title = "Allgemein",
+                    body = "Geräte, SIM-Karten und die wichtigsten Bedieneinstellungen an einem Ort. Die Detailansichten bearbeiten dieselben Werte; alle Änderungen bleiben bis zum Speichern im gemeinsamen Entwurf.",
+                    groups = {
+                        device = "Geräte & SIM-Karten",
+                        system = "Framework & Integrationen",
+                        usage = "Telefonnutzung",
+                        keys = "Tastatur & Befehle",
+                    },
+                    metadataFree = "Das gewählte Inventar speichert keine Metadaten pro Item. Einzelgeräte und physische SIM-Karten werden deshalb automatisch deaktiviert. Diese Einschränkung gilt auch bei entsprechender automatischer Inventarerkennung.",
+                    fileOwned = "Zugriffsgruppen, Configurator-Schalter und lokale eigene Töne bleiben in Teil 1 der config.lua. Sie können hier nicht geändert werden.",
+                    fields = {
+                        Phone = {
+                            Unique = {
+                                label = "Eigenes Gerät pro Telefon-Item",
+                                description = "An: Jedes Telefon-Item hat eine eigene IMEI und eigene Daten, die mit dem Item weitergegeben werden. Aus: Jedes Telefon öffnet das dauerhafte Gerät des Charakters. Benötigt eingeschaltet Inventar-Metadaten. Moduswechsel mit Datenbank-Backup testen und Ressource neu starten.",
+                            },
+                            Item = {
+                                label = "Telefon-Item",
+                                description = "Exakter Item-Name im gewählten Inventar. Das Item muss dort eingerichtet sein.",
+                            },
+                            DeviceName = {
+                                label = "Standard-Gerätename",
+                                description = "Name für neu erstellte Telefone. Bestehende Gerätenamen bleiben erhalten.",
+                            },
+                            BlockWhenDead = {
+                                label = "Telefon bei Tod oder Bewusstlosigkeit sperren",
+                                description = "Verhindert Telefonnutzung und Telefon-Sprachfunktionen bei toten oder bewusstlosen Charakteren.",
+                            },
+                            BlockWhenCuffed = {
+                                label = "Telefon mit Handschellen sperren",
+                                description = "Verhindert Telefonnutzung und Telefon-Sprachfunktionen bei gefesselten Charakteren.",
+                            },
+                            AllowMovement = {
+                                label = "Bewegung bei geöffnetem Telefon erlauben",
+                                description = "Lässt die Bewegungssteuerung im Spiel bei geöffnetem Mobiltelefon aktiv.",
+                            },
+                            HoldToLook = {
+                                Enabled = {
+                                    label = "Zum Umsehen gedrückt halten",
+                                    description = "Den konfigurierten GTA-Control gedrückt halten, um den Mauszeiger auszublenden und sich umzusehen.",
+                                },
+                                Control = {
+                                    label = "Control-ID zum Umsehen",
+                                    description = "GTA-Control-Index, keine Tastaturtaste. Standard 19 ist INPUT_CHARACTER_WHEEL (normalerweise linkes Alt). Die GTA-Belegung des Spielers bestimmt die tatsächliche Taste.",
+                                },
+                            },
+                            Keybind = {
+                                label = "Taste zum Telefonöffnen",
+                                description = "Server-Standard zum Öffnen des Telefons. Den Schalter ausschalten, um diesen Hotkey zu deaktivieren.",
+                            },
+                            DevelopmentCommand = {
+                                label = "Telefonbefehl aktivieren",
+                                description = "Erlaubt den konfigurierten /phone-Befehl. Ausschalten, wenn das Telefon nur über Item und Hotkey geöffnet werden soll.",
+                            },
+                        },
+                        Sim = {
+                            Enabled = {
+                                label = "Physische SIM-Karten verwenden",
+                                description = "An: Für Anrufe und Nachrichten wird eine physische SIM benötigt; das Telefon lässt sich auch ohne SIM öffnen. Aus: Geräte ohne SIM erhalten automatisch eine dauerhafte Nummer. Inventare ohne Metadaten deaktivieren diese Option.",
+                            },
+                            NumberPrefix = {
+                                label = "Vorwahl der Telefonnummer",
+                                description = "Optionale Ziffern am Anfang neu erzeugter Nummern, zum Beispiel 555. Bestehende Nummern bleiben unverändert.",
+                            },
+                            NumberLength = {
+                                label = "Länge der Telefonnummer",
+                                description = "Gesamte Anzahl der Ziffern einschließlich Vorwahl. Die Anzeigegruppen findest du weiter im SIM-Detailbereich.",
+                            },
+                        },
+                        Bridge = {
+                            Framework = {
+                                label = "Framework",
+                                description = "Laufendes Framework wählen oder mit auto automatisch erkennen lassen. Nach einem Wechsel sky_phone neu starten.",
+                            },
+                            Inventory = {
+                                label = "Inventar",
+                                description = "Aktiven Inventar-Adapter wählen. Nach einem Wechsel sky_phone neu starten. Native ESX und hex unterstützen keine Einzelgeräte oder physischen SIMs.",
+                            },
+                            Locale = {
+                                label = "Serversprache",
+                                description = "Standard-Sprache des Telefons für Servertexte und neue Telefone.",
+                            },
+                        },
+                        Calls = {
+                            VoiceProvider = {
+                                label = "Sprachsystem",
+                                description = "Die gestartete Voice-Ressource auswählen. Nach einem Wechsel sky_phone neu starten.",
+                            },
+                        },
+                        CrewLink = {
+                            QuickPing = {
+                                Enabled = {
+                                    label = "CrewLink-Schnellping aktivieren",
+                                    description = "Erlaubt berechtigten CrewLink-Nutzern den Schnellping per Taste.",
+                                },
+                                DefaultKey = {
+                                    label = "Taste für CrewLink-Schnellping",
+                                    description = "Server-Standard zum Senden eines CrewLink-Pings.",
+                                },
+                            },
+                        },
+                        Command = {
+                            label = "Telefonbefehl",
+                            description = "Befehlsname ohne /. Der Admin-Zugang wird getrennt in Teil 1 konfiguriert.",
+                        },
+                    },
+                },
+                keybind = {
+                    capture = "Taste erfassen",
+                    listening = "Eine Taste drücken. Escape bricht ab; Tab verlässt die Erfassung. Sondertasten lassen sich auch aus der Liste auswählen.",
+                    cancel = "Erfassung abbrechen",
+                    unsupported = "Diese Taste oder Kombination lässt sich nicht sicher zuordnen. Eine einzelne Taste drücken oder ihre FiveM-ID aus der Liste wählen.",
+                    enabled = "Hotkey aktiviert",
+                    help = "Speichert eine FiveM-KEYBOARD-ID, nicht das gedruckte Zeichen. Für geänderte Standards sky_phone neu starten; eigene Belegungen unter FiveM-Einstellungen → Tastenbelegung haben Vorrang.",
+                },
                 context = "Runtime-Konfiguration",
                 eyebrow = "Systemwerkzeug",
                 sections = "Konfiguration",
@@ -567,12 +683,13 @@ Locales["de"] = {
                 mediaScope = "media.lua",
                 noResults = "Keine passenden Einstellungen",
                 loading = "SQL-Konfiguration wird geladen...",
+                retry = "Erneut versuchen",
                 title = "Phone Configurator",
                 body = "Verwalte Handy- und Media-Einstellungen im geschützten Admin-Bereich.",
                 disabledTitle = "SQL-Konfiguration ist nicht aktiv",
                 disabledBody = "Aktiviere den Configurator am Anfang der config.lua und starte sky_phone neu. Bis dahin bleiben die Dateiwerte aktiv und die Bearbeitung gesperrt.",
                 manualSave = "Manuelles Speichern",
-                refreshNotice = "Nichts wird automatisch gespeichert. Der grüne Haken prüft config.lua und media.lua in SQL und aktualisiert die aktive Server-, Client-, Media- und UI-Konfiguration sofort intern.",
+                refreshNotice = "Änderungen bleiben bis zum Speichern über den Haken im gemeinsamen Entwurf. Speichern prüft und sichert sie in SQL. Nach einem Wechsel von Framework, Inventar, Sprachsystem, Gerätemodus oder Standardtasten sky_phone neu starten; eigene Tastenbelegungen der Spieler bleiben erhalten.",
                 fieldCount = "{count} Felder",
                 secretConfigured = "Secret gesetzt · Ersatzwert eingeben",
                 invalidValue = "Prüfe den markierten Tabellen- oder Zahlenwert.",

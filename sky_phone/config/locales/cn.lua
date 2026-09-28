@@ -559,6 +559,123 @@ Locales["cn"] = {
                 ofDevices = "{total} 台设备中的 {count} 台",
             },
             configurator = {
+                general = {
+                    title = "常规",
+                    body = "设置设备、SIM 卡和常用操作。这些设置与详细分类共用同一份草稿，保存前不会单独生效。",
+                    groups = {
+                        device = "设备与 SIM 卡",
+                        system = "框架与集成",
+                        usage = "手机使用",
+                        keys = "键盘与命令",
+                    },
+                    metadataFree = "所选背包不支持单个物品的元数据，独立手机和实体 SIM 卡将自动禁用。自动检测到这类背包时也会应用相同限制。",
+                    fileOwned = "访问权限组、配置器开关和本地提示音仍在 config.lua 的第 1 部分设置，无法在此修改。",
+                    fields = {
+                        Phone = {
+                            Unique = {
+                                label = "每个手机物品对应独立设备",
+                                description = "开启：每个物品拥有自己的 IMEI 和数据，并随物品转移。关闭：所有手机物品都打开该角色的固定设备。开启需要物品元数据。切换模式前请备份数据库、测试更改并重启资源。",
+                            },
+                            Item = {
+                                label = "手机物品",
+                                description = "背包中的准确物品名称，该物品必须已存在于所选背包中。",
+                            },
+                            DeviceName = {
+                                label = "默认设备名称",
+                                description = "新建手机使用的名称，已有设备名称保持不变。",
+                            },
+                            BlockWhenDead = {
+                                label = "死亡或昏迷时禁止使用",
+                                description = "角色死亡或昏迷时禁止使用手机及其语音功能。",
+                            },
+                            BlockWhenCuffed = {
+                                label = "被铐住时禁止使用",
+                                description = "角色受到束缚时禁止使用手机及其语音功能。",
+                            },
+                            AllowMovement = {
+                                label = "打开手机时允许移动",
+                                description = "打开手机时保持游戏移动操作可用。",
+                            },
+                            HoldToLook = {
+                                Enabled = {
+                                    label = "按住以环顾四周",
+                                    description = "按住配置的 GTA 控制键可隐藏光标并环顾四周。",
+                                },
+                                Control = {
+                                    label = "视角控制 ID",
+                                    description = "这是 GTA 控制索引，不是键盘按键。默认值 19 对应 INPUT_CHARACTER_WHEEL，通常为左 Alt。实际按键由玩家的 GTA 绑定决定。",
+                                },
+                            },
+                            Keybind = {
+                                label = "打开手机的按键",
+                                description = "服务器默认的手机快捷键，关闭开关可禁用。",
+                            },
+                            DevelopmentCommand = {
+                                label = "启用手机命令",
+                                description = "允许配置的 /phone 命令。如果只能通过物品和快捷键打开手机，请关闭此项。",
+                            },
+                        },
+                        Sim = {
+                            Enabled = {
+                                label = "使用实体 SIM 卡",
+                                description = "开启：通话和短信需要实体 SIM 卡，但无卡仍可打开手机。关闭：无 SIM 卡的设备自动获得固定号码。不支持元数据的背包会强制关闭此项。",
+                            },
+                            NumberPrefix = {
+                                label = "号码前缀",
+                                description = "新号码开头的可选数字，例如 555。不会更改已有号码。",
+                            },
+                            NumberLength = {
+                                label = "号码长度",
+                                description = "包括前缀在内的总位数。号码显示分组仍可在 SIM 详细设置中调整。",
+                            },
+                        },
+                        Bridge = {
+                            Framework = {
+                                label = "框架",
+                                description = "选择正在运行的框架，或选择 auto 自动检测。更改后请重启 sky_phone。",
+                            },
+                            Inventory = {
+                                label = "背包",
+                                description = "选择当前背包适配器，更改后重启 sky_phone。原生 ESX 和 hex 不支持独立手机或实体 SIM 卡。",
+                            },
+                            Locale = {
+                                label = "服务器语言",
+                                description = "服务器文本和新手机的默认语言。",
+                            },
+                        },
+                        Calls = {
+                            VoiceProvider = {
+                                label = "语音服务",
+                                description = "选择已启动的语音资源，更改后请重启 sky_phone。",
+                            },
+                        },
+                        CrewLink = {
+                            QuickPing = {
+                                Enabled = {
+                                    label = "启用 CrewLink 快速标记",
+                                    description = "允许符合条件的 CrewLink 用户使用快速标记快捷键。",
+                                },
+                                DefaultKey = {
+                                    label = "CrewLink 快速标记按键",
+                                    description = "发送 CrewLink 标记的服务器默认按键。",
+                                },
+                            },
+                        },
+                        Command = {
+                            label = "手机命令",
+                            description = "不含 / 的命令名称。管理面板访问权限在第 1 部分单独设置。",
+                        },
+                    },
+                },
+                keybind = {
+                    capture = "录入按键",
+                    listening = "按下一个按键。Escape 取消，Tab 退出录入。也可以从列表选择特殊按键。",
+                    cancel = "取消录入",
+                    unsupported = "无法可靠映射此按键或组合。请按单个按键，或从列表选择其 FiveM ID。",
+                    enabled = "启用快捷键",
+                    help = "保存 FiveM KEYBOARD ID，而不是显示的字符。更改默认值后请重启 sky_phone。玩家在 FiveM 设置中的个人按键绑定优先。",
+                },
+                retry = "重试",
                 context = "运行时配置",
                 eyebrow = "系统工具",
                 sections = "配置",
@@ -572,7 +689,7 @@ Locales["cn"] = {
                 disabledTitle = "SQL 配置未激活",
                 disabledBody = "请在 config.lua 开头启用配置器并重启 sky_phone。在此之前，文件值将保持有效且编辑将被锁定。",
                 manualSave = "手动保存",
-                refreshNotice = "不会自动保存。绿色对勾会验证 SQL 中的 config.lua 和 media.lua，并立即刷新当前生效的服务器、客户端、媒体和 UI 配置。",
+                refreshNotice = "更改会保留在共享草稿中，点击对勾后才会验证并保存到 SQL。更换框架、背包、语音服务、设备模式或默认按键后，请重启 sky_phone。玩家已有的个人按键绑定不会被覆盖。",
                 fieldCount = "{count} 字段",
                 secretConfigured = "密钥已配置 · 请输入替换值",
                 invalidValue = "请检查高亮显示的表格或数值。",

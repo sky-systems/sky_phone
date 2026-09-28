@@ -559,6 +559,123 @@ Locales["nl"] = {
                 ofDevices = "{count} van {total} apparaten",
             },
             configurator = {
+                general = {
+                    title = "Algemeen",
+                    body = "Stel apparaten, simkaarten en dagelijkse bediening in. Deze instellingen delen hetzelfde concept als de detailsecties totdat je opslaat.",
+                    groups = {
+                        device = "Apparaten en simkaarten",
+                        system = "Framework en integraties",
+                        usage = "Telefoongebruik",
+                        keys = "Toetsenbord en opdrachten",
+                    },
+                    metadataFree = "De geselecteerde inventaris ondersteunt geen metadata per item. Unieke telefoons en fysieke simkaarten worden automatisch uitgeschakeld, ook als deze inventaris automatisch wordt herkend.",
+                    fileOwned = "Toegangsgroepen, de configuratorschakelaar en lokale geluiden blijven in deel 1 van config.lua. Je kunt ze hier niet wijzigen.",
+                    fields = {
+                        Phone = {
+                            Unique = {
+                                label = "Eén apparaat per telefoonitem",
+                                description = "Aan: elk item heeft een eigen IMEI en gegevens die met het item meegaan. Uit: alle telefoonitems openen het vaste apparaat van het personage. Aan vereist metadata. Maak een databaseback-up, test de wijziging en herstart de resource.",
+                            },
+                            Item = {
+                                label = "Telefoonitem",
+                                description = "Exacte itemnaam. Het item moet in de geselecteerde inventaris bestaan.",
+                            },
+                            DeviceName = {
+                                label = "Standaard apparaatnaam",
+                                description = "Naam voor nieuwe telefoons. Bestaande namen blijven behouden.",
+                            },
+                            BlockWhenDead = {
+                                label = "Blokkeren bij dood of bewusteloosheid",
+                                description = "Blokkeert telefoongebruik en spraakfuncties wanneer het personage dood of bewusteloos is.",
+                            },
+                            BlockWhenCuffed = {
+                                label = "Blokkeren bij handboeien",
+                                description = "Blokkeert telefoongebruik en spraakfuncties wanneer het personage geboeid is.",
+                            },
+                            AllowMovement = {
+                                label = "Bewegen met geopende telefoon toestaan",
+                                description = "Houdt de bewegingsbediening actief terwijl de telefoon open is.",
+                            },
+                            HoldToLook = {
+                                Enabled = {
+                                    label = "Ingedrukt houden om rond te kijken",
+                                    description = "Houd de ingestelde GTA-bediening ingedrukt om de cursor te verbergen en rond te kijken.",
+                                },
+                                Control = {
+                                    label = "ID van de kijkbediening",
+                                    description = "GTA-bedieningsindex, geen toetsenbordtoets. Standaard 19 is INPUT_CHARACTER_WHEEL, meestal linker Alt. De GTA-toetsinstellingen van de speler bepalen de echte toets.",
+                                },
+                            },
+                            Keybind = {
+                                label = "Toets om telefoon te openen",
+                                description = "Standaardtoets van de server. Zet de schakelaar uit om deze sneltoets uit te schakelen.",
+                            },
+                            DevelopmentCommand = {
+                                label = "Telefoonopdracht inschakelen",
+                                description = "Staat de ingestelde /phone-opdracht toe. Zet dit uit als spelers alleen items en de sneltoets mogen gebruiken.",
+                            },
+                        },
+                        Sim = {
+                            Enabled = {
+                                label = "Fysieke simkaarten gebruiken",
+                                description = "Aan: bellen en berichten vereisen een fysieke simkaart; openen kan zonder. Uit: apparaten zonder simkaart krijgen een vast automatisch nummer. Inventarissen zonder metadata dwingen deze optie uit.",
+                            },
+                            NumberPrefix = {
+                                label = "Nummerprefix",
+                                description = "Optionele cijfers aan het begin van nieuwe nummers, bijvoorbeeld 555. Bestaande nummers veranderen niet.",
+                            },
+                            NumberLength = {
+                                label = "Nummerlengte",
+                                description = "Totaal aantal cijfers, inclusief prefix. Nummergroepering blijft in de SIM-detailsectie beschikbaar.",
+                            },
+                        },
+                        Bridge = {
+                            Framework = {
+                                label = "Framework",
+                                description = "Kies het actieve framework of auto voor detectie. Herstart sky_phone na een wijziging.",
+                            },
+                            Inventory = {
+                                label = "Inventaris",
+                                description = "Kies de actieve adapter en herstart sky_phone na wijzigingen. Native ESX en hex ondersteunen geen unieke telefoons of fysieke simkaarten.",
+                            },
+                            Locale = {
+                                label = "Servertaal",
+                                description = "Standaardtaal voor serverteksten en nieuwe telefoons.",
+                            },
+                        },
+                        Calls = {
+                            VoiceProvider = {
+                                label = "Spraakprovider",
+                                description = "Kies de gestarte spraakresource. Herstart sky_phone na een wijziging.",
+                            },
+                        },
+                        CrewLink = {
+                            QuickPing = {
+                                Enabled = {
+                                    label = "CrewLink-snelping inschakelen",
+                                    description = "Staat de snelpingtoets toe voor bevoegde CrewLink-gebruikers.",
+                                },
+                                DefaultKey = {
+                                    label = "CrewLink-snelpingtoets",
+                                    description = "Standaardtoets van de server om een CrewLink-ping te verzenden.",
+                                },
+                            },
+                        },
+                        Command = {
+                            label = "Telefoonopdracht",
+                            description = "Opdrachtnaam zonder /. Toegang tot het beheerpaneel wordt apart ingesteld in deel 1.",
+                        },
+                    },
+                },
+                keybind = {
+                    capture = "Toets vastleggen",
+                    listening = "Druk één toets in. Escape annuleert; Tab verlaat de opname. Speciale toetsen kun je ook uit de lijst kiezen.",
+                    cancel = "Opname annuleren",
+                    unsupported = "Deze toets of combinatie kan niet betrouwbaar worden gekoppeld. Druk één toets in of kies de FiveM-ID uit de lijst.",
+                    enabled = "Sneltoets ingeschakeld",
+                    help = "Slaat een FiveM KEYBOARD-ID op, niet het getoonde teken. Herstart sky_phone na gewijzigde standaardwaarden. Persoonlijke toewijzingen in de FiveM-toetsinstellingen blijven leidend.",
+                },
+                retry = "Opnieuw proberen",
                 context = "Runtime-configuratie",
                 eyebrow = "Systeemtool",
                 sections = "Configuratie",
@@ -572,7 +689,7 @@ Locales["nl"] = {
                 disabledTitle = "SQL-configuratie is niet actief",
                 disabledBody = "Activeer de configurator aan het begin van config.lua en herstart sky_phone. Tot die tijd blijven de bestandsinstellingen actief en is bewerken vergrendeld.",
                 manualSave = "Handmatig opslaan",
-                refreshNotice = "Er wordt niets automatisch opgeslagen. Het groene vinkje controleert config.lua en media.lua in SQL en ververst de actieve server-, client-, media- en UI-configuratie onmiddellijk.",
+                refreshNotice = "Wijzigingen blijven in het gedeelde concept totdat je ze met het vinkje opslaat. Ze worden gecontroleerd en in SQL bewaard. Herstart sky_phone na wijzigingen aan framework, inventaris, spraak, apparaatmodus of standaardtoetsen. Persoonlijke toetsinstellingen van spelers blijven behouden.",
                 fieldCount = "{count} velden",
                 secretConfigured = "Geheim geconfigureerd · voer een vervanging in",
                 invalidValue = "Controleer de gemarkeerde tabel- of numerieke waarde.",

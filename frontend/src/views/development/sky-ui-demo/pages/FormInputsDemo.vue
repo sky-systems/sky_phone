@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-import { SkyBlockTitle, SkyField, SkyList } from '@/ui'
+import { SkyBlock, SkyBlockTitle, SkyField, SkyKeyCapture, SkyList } from '@/ui'
+import {
+  KEYBOARD_MAPPING_KEYS,
+  keyboardMappingFromEvent,
+} from '@/utils/keyboardMapping'
 
 import SkyUiDemoPage from '../SkyUiDemoPage.vue'
 import demoIcon from '../assets/demo-icon.png'
@@ -106,6 +110,11 @@ const infoValues = reactive(initialValues())
 const name = ref('')
 const nameChanged = ref(false)
 const demoValue = ref('')
+const keyboardKey = ref('F1')
+const keyboardOptions = KEYBOARD_MAPPING_KEYS.map((value) => ({
+  value,
+  label: value,
+}))
 const nameError = computed(() =>
   nameChanged.value && !name.value.trim() ? 'Please specify your name' : '',
 )
@@ -113,6 +122,21 @@ const nameError = computed(() =>
 
 <template>
   <SkyUiDemoPage title="Form Inputs">
+    <SkyBlockTitle>Keyboard capture</SkyBlockTitle>
+    <SkyBlock>
+      <SkyKeyCapture
+        v-model="keyboardKey"
+        label="Keyboard key"
+        :options="keyboardOptions"
+        :resolve-key="keyboardMappingFromEvent"
+        :labels="{
+          capture: 'Record key',
+          listening: 'Press one key. Escape cancels; Tab leaves capture.',
+          cancel: 'Cancel capture',
+          unsupported: 'Choose one supported keyboard key.',
+        }"
+      />
+    </SkyBlock>
     <SkyBlockTitle>Default</SkyBlockTitle>
     <SkyList inset strong>
       <SkyField

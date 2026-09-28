@@ -54,7 +54,8 @@ import type {
   AdminDevice,
 } from '@/types/admin'
 import type { LaunchablePhoneAppDefinition } from '@/types/apps'
-import { SkyButton } from '@/ui'
+import { SkyButton, SkyProvider } from '@/ui'
+import { GENERAL_CONFIGURATOR_GROUPS } from '@/utils/adminConfiguratorGeneral'
 import {
   configuratorPathName,
   describeConfiguratorValue,
@@ -68,6 +69,7 @@ import AdminConfigValueEditor, {
   type AdminConfigEditorLabels,
 } from './AdminConfigValueEditor.vue'
 import AdminCustomToneManager from './AdminCustomToneManager.vue'
+import AdminGeneralSettings from './AdminGeneralSettings.vue'
 import AdminWebhookManager from './AdminWebhookManager.vue'
 import AdminSocialManager from './AdminSocialManager.vue'
 
@@ -293,6 +295,14 @@ const filteredConfiguratorSections = computed(() => {
   if (!needle) return sections
   return sections.filter(
     (section) =>
+      (section.id === 'config:general' &&
+        GENERAL_CONFIGURATOR_GROUPS.some((group) =>
+          group.paths.some((path) =>
+            `${path} ${t(`configurator.general.fields.${path}.label`)} ${t(`configurator.general.fields.${path}.description`)}`
+              .toLocaleLowerCase(phone.lang)
+              .includes(needle),
+          ),
+        )) ||
       section.label.toLocaleLowerCase(phone.lang).includes(needle) ||
       section.scope.includes(needle) ||
       section.fields.some(
@@ -402,6 +412,7 @@ function configuratorSectionLabel(section: {
   id: string
   label: string
 }): string {
+  if (section.id === 'config:general') return t('configurator.general.title')
   if (section.id === 'config:CellTowers') return phone.t('Cellular.group')
   if (section.id === 'config:Realtime') return phone.t('Realtime.settingsGroup')
   if (section.id === 'config:RealtimeSecrets')
@@ -1429,7 +1440,9 @@ onBeforeUnmount(() => {
                       : t('configurator.configScope')
                   }}</small>
                 </span>
-                <em>{{ configuratorSectionCount(section.fields) }}</em>
+                <em v-if="section.id !== 'config:general'">{{
+                  configuratorSectionCount(section.fields)
+                }}</em>
               </button>
               <div
                 v-if="!filteredConfiguratorSections.length"
@@ -1761,18 +1774,34 @@ onBeforeUnmount(() => {
                       {{ configuratorSectionLabel(activeConfiguratorSection) }}
                     </h2>
                   </div>
-                  <strong>{{
-                    t('configurator.fieldCount', {
-                      count: String(
-                        configuratorSectionCount(
-                          activeConfiguratorSection.fields,
+                  <strong
+                    v-if="activeConfiguratorSection.id !== 'config:general'"
+                    >{{
+                      t('configurator.fieldCount', {
+                        count: String(
+                          configuratorSectionCount(
+                            activeConfiguratorSection.fields,
+                          ),
                         ),
-                      ),
-                    })
-                  }}</strong>
+                      })
+                    }}</strong
+                  >
                 </header>
 
-                <div class="admin-panel-config-fields">
+                <SkyProvider
+                  v-if="activeConfiguratorSection.id === 'config:general'"
+                  dark
+                  :safe-areas="false"
+                >
+                  <AdminGeneralSettings
+                    :sections="admin.configurator.sections"
+                    :drafts="configuratorDrafts"
+                    :disabled="!admin.configurator.enabled || saving"
+                    :query="configuratorQuery"
+                    @update="updateConfiguratorField"
+                  />
+                </SkyProvider>
+                <div v-else class="admin-panel-config-fields">
                   <div
                     v-for="field in activeConfiguratorSection.fields"
                     :key="configuratorFieldKey(field)"
@@ -1836,7 +1865,7 @@ onBeforeUnmount(() => {
                       :aria-label="`${field.label} ${field.path}`"
                       :describe="configuratorDescription"
                       :labels="configuratorEditorLabels"
-                      :disabled="!admin.configurator.enabled"
+                      :disabled="!admin.configurator.enabled || saving"
                       :path="field.path"
                       :tab-label="configuratorSubtabLabel"
                       @update:model-value="
@@ -1899,6 +1928,12 @@ onBeforeUnmount(() => {
                 </div>
               </section>
             </template>
+            <div v-else class="admin-panel-config-error" role="alert">
+              <p>{{ errorText() }}</p>
+              <SkyButton inline large @click="selectTab('configurator')">
+                {{ t('configurator.retry') }}
+              </SkyButton>
+            </div>
           </section>
 
           <section
@@ -2892,6 +2927,8 @@ button:disabled {
 }
 
 .admin-panel-rail {
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2902,6 +2939,7 @@ button:disabled {
 }
 
 .admin-panel-rail button {
+  flex: none;
   width: calc(38 * var(--admin-unit));
   height: calc(38 * var(--admin-unit));
   display: grid;
@@ -4227,6 +4265,10 @@ button:disabled {
   background: #111311;
 }
 
+.admin-panel-config-error {
+  padding: var(--sky-space-4);
+}
+
 .admin-panel-config-workspace > header {
   min-height: calc(52 * var(--admin-unit));
   display: flex;
@@ -4251,7 +4293,7 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.admin-panel-config-workspace h2 {
+.admin-panel-config-workspace > header h2 {
   margin: 0;
   font-size: calc(13 * var(--admin-unit));
   font-weight: 600;

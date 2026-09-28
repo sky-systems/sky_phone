@@ -180,9 +180,9 @@ Start the selected voice resource before Sky Phone.
 1. Download and extract the latest published [Sky Phone release](https://github.com/sky-systems/sky_phone/releases/latest). Do not use GitHub's automatically generated "Source code" archives for a server installation because they do not contain the built frontend.
 2. Copy the included resource into your FiveM resources directory and keep its folder name `sky_phone`.
 3. Start `oxmysql`, your framework, inventory, and voice resource before Sky Phone.
-4. Review `sky_phone/config/config.lua` and `sky_phone/config/media.lua`.
+4. Choose the [configuration mode](#in-game-phone-configurator). SQL mode is enabled by default; change managed settings in `/phonepanel`, not in the Lua files.
 5. Add the required [inventory items and their images](#inventory-items). With **ox_inventory**, also remove the existing NPWD phone handler as described below.
-6. Add `ensure sky_phone` to `server.cfg`.
+6. Add the two Phone ACE grants below, verify administrator group membership, then add `ensure sky_phone` to `server.cfg`.
 7. Restart the server and watch the console for warnings.
 
 > [!WARNING]
@@ -192,6 +192,9 @@ Start the selected voice resource before Sky Phone.
 Example start order:
 
 ```cfg
+add_ace resource.sky_phone command.add_ace allow
+add_ace resource.sky_phone command.remove_ace allow
+
 ensure oxmysql
 ensure es_extended
 ensure ox_inventory
@@ -240,7 +243,21 @@ The files contain clearly separated sections for:
 
 Restart `sky_phone` after changing Lua configuration.
 
+Throughout this guide, `Config.*` paths identify the settings in both modes. With
+SQL mode enabled, edit those managed fields in the Configurator and save; Lua
+examples describe the corresponding file-mode values.
+
 ### In-game phone configurator
+
+`config/config.lua` is split into **Part 1: always file-owned** and **Part 2: panel-managed**.
+Part 1 contains the Configurator switch, fixed command permissions and local custom tones.
+When the Configurator is enabled, Part 2 and `media.lua` are replaced by shipped defaults plus
+saved SQL values; editing those files does not change the active configuration, even on first start.
+
+Start with **/phonepanel → Phone configurator → General**. Devices and SIM cards, framework and
+inventory, phone-use restrictions, hotkeys and commands are grouped there with explanations.
+Detail sections remain available and share the same draft. Physical SIM service and one-device-per-item
+identity are separate switches. Native ESX and hex inventories force both off because they lack metadata.
 
 Set the switch at the beginning of `config/config.lua` to use SQL-backed configuration:
 
@@ -255,14 +272,14 @@ The frontend build recreates this file from `config.lua` and the server-only `me
 the generated snapshot directly. Sky Phone creates the `sky_phone_configurator` table automatically,
 loads its saved values before framework and phone
 modules initialize, and exposes the editor through `/phonepanel`. Nothing autosaves: stage changes
-in the Phone Configurator tool and press the green check. Saving verifies both SQL payloads and then
-applies the new server, client, media, app, item, command, provider, animation, and UI values through
-Sky Phone's internal runtime refresh. It does not execute a resource restart command.
+in the Phone Configurator tool and press the checkmark. Saving validates and stores both SQL
+payloads, then broadcasts the current configuration through the existing runtime refresh.
+Restart after changing frameworks, inventory/voice providers, identity modes or keyboard defaults;
+the panel does not restart the resource or overwrite players' saved key bindings.
 
-Every configurable `Config.*` value from `config.lua`, including server-only sections, and every
-value from `Config.Media` is discovered automatically. The bootstrap switch and
-`Config.CommandPermissions` intentionally remain file-owned: the switch decides whether SQL
-configuration is loaded, while permissions must remain authoritative outside the panel. The fixed
+Part 2 of `config.lua`, including server-only sections, and `Config.Media` are discovered
+automatically. Part 1 remains file-owned: `PhoneConfigurator` selects SQL or file mode,
+`CommandPermissions` controls access, and `CustomTones` registers local audio files. The fixed
 permission table is never displayed or overwritten by the Phone Configurator, and its stable keys do
 not change when their commands are renamed in the panel. Lists, nested objects, vectors,
 and numeric-keyed Lua tables use structured editors instead of raw JSON. Shipped schema rows stay
@@ -271,10 +288,26 @@ of additional rows; administrator-added rows remain removable. Company job keys 
 fully removable because `Config.Companies.Definitions` is a freely managed job collection.
 Cell tower entries and their offline app/action policies are also fully editable and removable.
 
-ESX and QBCore use the groups listed in `Config.CommandPermissions`. Qbox checks the configured ACE
-objects first and then its framework groups. The standard Qbox `permissions.cfg` grants the `admin`
-ACE to `group.admin`, so an identifier assigned to `group.admin` can open `/phonepanel` with the
-shipped `phonepanel` permission list. Restart `sky_phone` after changing fixed permissions.
+Phone command access uses **ACE groups**, with the same convention as the Jobs resources:
+`admin` means `group.admin`; QBCore also grants `qbcore.admin`. Each protected action checks
+`sky_phone.<permission>` on the server. Framework roles and Qbox job/group fallbacks no longer
+grant Phone administration access. Keep player membership in your server/framework permission
+setup and restart `sky_phone` after changing the fixed group lists.
+
+Add both lines **before** `ensure sky_phone` in `server.cfg`:
+
+```cfg
+add_ace resource.sky_phone command.add_ace allow
+add_ace resource.sky_phone command.remove_ace allow
+```
+
+The phone registers its own ACE grants and removes its automatically created entries when it
+stops. It needs no `add_principal` / `remove_principal` capability. Grants for
+`resource.sky_base` do not apply to `resource.sky_phone`. Existing installations must verify
+their administrators' ACE membership when updating from the earlier framework-role checks.
+
+See the [configuration and access guide](docs/phone-configurator.md) for the file/SQL boundary,
+General page, permission migration, keyboard IDs, restart behavior and troubleshooting.
 
 Media API keys and server peppers are never returned in plaintext to the NUI. Existing secrets are
 shown only as configured and are replaced only when an administrator enters a new value.
@@ -302,7 +335,7 @@ Available locales:
 
 Regional codes resolve to their base language. The aliases `zh`, `cs`, `sr`, and `sv` select `cn`, `cz`, `rs`, and `se`.
 
-Select the language near the top of `config.lua`:
+In SQL mode, select the default language under **Phone configurator → General → Framework & integrations**, then save with the checkmark. In file mode, edit `Bridge.Locale` in Part 2 of `config.lua` and restart:
 
 ```lua
 Config.Bridge.Locale = "en"
@@ -325,6 +358,8 @@ Every locale uses the complete English structure as a fallback, so newly introdu
 
 ### Debug output
 
+In SQL mode, change `Bridge.Debug` in the Bridge detail section and save. In file mode, change the same value in Part 2 of `config.lua` and restart:
+
 ```lua
 Config.Bridge.Debug = false
 ```
@@ -342,17 +377,18 @@ update is available. A failed GitHub request is reported but does not prevent th
 
 Face ID is optional during device setup and can be enabled or disabled later under **Settings → Passcode & Security**. A device passcode is required as a fallback, and changing Face ID requires that passcode. The server binds Face ID to the character identifier returned by the framework at enrollment and checks it against the current holder of that physical phone. No camera or biometric data is collected. Changing the SIM or Sky Cloud account does not transfer the enrollment; removing the passcode, an admin passcode reset, or a factory reset clears it. The nullable enrollment column is added automatically by the runtime migration.
 
-Sky Phone ships with stable generated defaults in `Config.Server`:
+Sky Phone ships with four password/passcode pepper defaults under `Server`:
 
 ```lua
 Config.Server = {
     PasscodePepper = "...",
+    CrewLinkPasswordPepper = "...",
     FlipTokPasswordPepper = "...",
     PicstagramPasswordPepper = "...",
 }
 ```
 
-For a production server, replace them with your own long, random, different values before players create passcodes or social accounts.
+For a new production server, enter your own long, random, different values through **Phone configurator → Server** before players create passcodes or social accounts. Existing values are masked; leaving them unchanged preserves them. Back up the SQL configuration with the database.
 
 Important:
 
@@ -365,7 +401,7 @@ Sky Cloud logins are in-character credentials for the roleplay phone. Players mu
 real-world password. FlipTok and Picstagram passwords are stored as salted hashes using their
 configured peppers.
 
-The server-only block is evaluated only on the server. Because the project uses a customer-requested single configuration file that is also present in the client resource package, protect access to your distributed resource files if these values must remain strictly secret.
+The `IsDuplicityVersion()` block only controls execution. Clients still download `config.lua`, so private pepper values written into that file are exposed. Use the SQL Configurator for private peppers; file mode does not provide private pepper storage. Never put real account credentials in a shared configuration file or generated defaults.
 
 ## Inventory items
 
@@ -687,7 +723,7 @@ Custom client menus can call the same export, or dispatch the local event `Trigg
 
 ## Phone and SIM modes
 
-The two mode switches are independent:
+Set these independent switches under **Phone configurator → General → Devices & SIM cards** in SQL mode. In file mode, edit their values in Part 2 of `config.lua`:
 
 ```lua
 Config.Phone.Unique = true
@@ -724,7 +760,7 @@ A Sky Cloud account is optional. Devices without an account retain local setting
 
 ## Media and uploads
 
-Configure FiveManage in the server-only `sky_phone/config/media.lua` file:
+In SQL mode, enter FiveManage and GIPHY API keys in the **Media** detail section of the Phone Configurator and save. In file mode, edit the server-only `sky_phone/config/media.lua` and restart. The corresponding fields are:
 
 ```lua
 Config.Media.FiveManage.ApiKey = "your-fivemanage-v3-media-token"
@@ -837,7 +873,7 @@ Config.Payphones.CustomLocations = {
 
 ## Commands
 
-`Config.Phone.Keybind` defaults to `F1` and can be rebound in FiveM's key bindings. Set it to `false` to disable the phone hotkey.
+`Config.Phone.Keybind` defaults to `F1` and can be rebound in FiveM's key bindings. Set it to `false` to disable the phone hotkey. In **Phone configurator → General → Keyboard & commands**, select a key or click **Record key** and press it; CrewLink quick ping uses the same editor. Capture stores a validated FiveM KEYBOARD ID (German Ü is `OEM_1`), distinguishes NumPad keys, and rejects unsupported combinations. Escape cancels capture without closing the panel. Restart after changing server defaults; existing player bindings still take priority. Numeric GTA control fields, such as `Phone.HoldToLook.Control = 19`, use a different API and remain numeric.
 
 | Command | Where | Purpose |
 | --- | --- | --- |

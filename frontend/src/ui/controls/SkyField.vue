@@ -98,6 +98,7 @@ const props = withDefaults(
       | 'time'
       | 'url'
     value?: FieldValue
+    variant?: 'row' | 'control'
   }>(),
   {
     accept: undefined,
@@ -143,6 +144,7 @@ const props = withDefaults(
     tabindex: undefined,
     type: 'text',
     value: undefined,
+    variant: 'row',
   },
 )
 
@@ -257,6 +259,7 @@ function clear(): void {
         'sky-field--floating-raised': isFloatingRaised,
         'sky-field--has-label': Boolean(label || slots.label),
         'sky-field--inline': layout === 'inline',
+        'sky-field--control': variant === 'control',
         'sky-field--outline': outline,
         'sky-field--has-leading': Boolean(slots.leading),
         'sky-field--has-media': hasMedia,

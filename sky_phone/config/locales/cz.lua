@@ -559,6 +559,123 @@ Locales["cz"] = {
                 ofDevices = "{count} ze {total} zařízení",
             },
             configurator = {
+                general = {
+                    title = "Obecné",
+                    body = "Nastav zařízení, SIM karty a běžné ovládání. Tyto volby sdílejí stejný návrh s podrobnými sekcemi až do uložení.",
+                    groups = {
+                        device = "Zařízení a SIM karty",
+                        system = "Framework a integrace",
+                        usage = "Používání telefonu",
+                        keys = "Klávesnice a příkazy",
+                    },
+                    metadataFree = "Vybraný inventář neumí metadata jednotlivých předmětů. Unikátní telefony a fyzické SIM karty se automaticky vypnou, i když je inventář zjištěn automaticky.",
+                    fileOwned = "Přístupové skupiny, přepínač konfigurátoru a místní zvuky zůstávají v části 1 souboru config.lua. Zde je nelze měnit.",
+                    fields = {
+                        Phone = {
+                            Unique = {
+                                label = "Jedno zařízení na předmět telefonu",
+                                description = "Zapnuto: každý předmět má vlastní IMEI a data, která se přenášejí s ním. Vypnuto: předměty otevírají trvalé zařízení postavy. Zapnutí vyžaduje metadata. Zálohuj databázi, otestuj změnu režimu a restartuj resource.",
+                            },
+                            Item = {
+                                label = "Předmět telefonu",
+                                description = "Přesný název předmětu. Musí existovat ve vybraném inventáři.",
+                            },
+                            DeviceName = {
+                                label = "Výchozí název zařízení",
+                                description = "Název nových telefonů. Existující názvy se nemění.",
+                            },
+                            BlockWhenDead = {
+                                label = "Blokovat při smrti nebo bezvědomí",
+                                description = "Zakáže telefon a jeho hlasové funkce, když je postava mrtvá nebo v bezvědomí.",
+                            },
+                            BlockWhenCuffed = {
+                                label = "Blokovat v poutech",
+                                description = "Zakáže telefon a jeho hlasové funkce, když je postava spoutaná.",
+                            },
+                            AllowMovement = {
+                                label = "Povolit pohyb s otevřeným telefonem",
+                                description = "Zachová ovládání pohybu při otevřeném telefonu.",
+                            },
+                            HoldToLook = {
+                                Enabled = {
+                                    label = "Podržet pro rozhlížení",
+                                    description = "Podrž nastavený GTA ovladač pro skrytí kurzoru a rozhlížení.",
+                                },
+                                Control = {
+                                    label = "ID ovládání rozhlížení",
+                                    description = "Index ovládání GTA, nikoli klávesa. Výchozí 19 znamená INPUT_CHARACTER_WHEEL, obvykle levý Alt. Skutečnou klávesu určuje nastavení GTA hráče.",
+                                },
+                            },
+                            Keybind = {
+                                label = "Klávesa otevření telefonu",
+                                description = "Výchozí klávesa serveru. Vypnutím přepínače tuto zkratku zakážeš.",
+                            },
+                            DevelopmentCommand = {
+                                label = "Povolit příkaz telefonu",
+                                description = "Povolí nastavený příkaz /phone. Vypni, pokud se má telefon otevírat jen předmětem a klávesovou zkratkou.",
+                            },
+                        },
+                        Sim = {
+                            Enabled = {
+                                label = "Používat fyzické SIM karty",
+                                description = "Zapnuto: hovory a zprávy vyžadují fyzickou SIM, telefon lze otevřít i bez ní. Vypnuto: zařízení bez SIM dostanou trvalé automatické číslo. Inventáře bez metadat tuto volbu vynuceně vypnou.",
+                            },
+                            NumberPrefix = {
+                                label = "Předvolba čísla",
+                                description = "Volitelné číslice na začátku nových čísel, například 555. Existující čísla se nemění.",
+                            },
+                            NumberLength = {
+                                label = "Délka čísla",
+                                description = "Celkový počet číslic včetně předvolby. Skupiny zobrazení čísla zůstávají v podrobné sekci SIM.",
+                            },
+                        },
+                        Bridge = {
+                            Framework = {
+                                label = "Framework",
+                                description = "Vyber aktivní framework nebo auto pro detekci. Po změně restartuj sky_phone.",
+                            },
+                            Inventory = {
+                                label = "Inventář",
+                                description = "Vyber aktivní adaptér a po změně restartuj sky_phone. Nativní ESX a hex nepodporují unikátní telefony ani fyzické SIM.",
+                            },
+                            Locale = {
+                                label = "Jazyk serveru",
+                                description = "Výchozí jazyk serverových textů a nových telefonů.",
+                            },
+                        },
+                        Calls = {
+                            VoiceProvider = {
+                                label = "Poskytovatel hlasu",
+                                description = "Vyber spuštěný hlasový resource. Po změně restartuj sky_phone.",
+                            },
+                        },
+                        CrewLink = {
+                            QuickPing = {
+                                Enabled = {
+                                    label = "Povolit rychlý ping CrewLink",
+                                    description = "Povolí klávesovou zkratku rychlého pingu oprávněným uživatelům CrewLink.",
+                                },
+                                DefaultKey = {
+                                    label = "Klávesa rychlého pingu CrewLink",
+                                    description = "Výchozí klávesa serveru pro odeslání pingu CrewLink.",
+                                },
+                            },
+                        },
+                        Command = {
+                            label = "Příkaz telefonu",
+                            description = "Název příkazu bez /. Přístup k administračnímu panelu se nastavuje samostatně v části 1.",
+                        },
+                    },
+                },
+                keybind = {
+                    capture = "Zaznamenat klávesu",
+                    listening = "Stiskni jednu klávesu. Escape ruší; Tab opustí záznam. Speciální klávesy lze vybrat ze seznamu.",
+                    cancel = "Zrušit záznam",
+                    unsupported = "Tuto klávesu nebo kombinaci nelze spolehlivě přiřadit. Stiskni jednu klávesu nebo vyber její FiveM ID.",
+                    enabled = "Zkratka povolena",
+                    help = "Ukládá FiveM KEYBOARD ID, nikoli zobrazený znak. Po změně výchozích hodnot restartuj sky_phone. Vlastní přiřazení hráčů v nastavení FiveM mají přednost.",
+                },
+                retry = "Zkusit znovu",
                 context = "Konfigurace za běhu",
                 eyebrow = "Systémový nástroj",
                 sections = "Konfigurace",
@@ -572,7 +689,7 @@ Locales["cz"] = {
                 disabledTitle = "SQL konfigurace není aktivní",
                 disabledBody = "Aktivujte konfigurátor na začátku souboru config.lua a restartujte sky_phone. Do té doby zůstávají hodnoty ve souboru aktivní a úprava je uzamčena.",
                 manualSave = "Ruční uložení",
-                refreshNotice = "Nic se neukládá automaticky. Zelená fajfka ověří config.lua a media.lua v SQL a okamžitě obnoví aktivní serverovou, klientovou, mediální a UI konfiguraci.",
+                refreshNotice = "Změny zůstávají ve společném návrhu, dokud je neuložíš zaškrtnutím. Uložení je ověří a zapíše do SQL. Po změně frameworku, inventáře, hlasu, režimu zařízení nebo výchozích kláves restartuj sky_phone. Vlastní přiřazení kláves hráčů zůstanou zachována.",
                 fieldCount = "{count} polí",
                 secretConfigured = "Secret byl nastaven · zadejte náhradu",
                 invalidValue = "Zkontrolujte zvýrazněnou tabulku nebo číselnou hodnotu.",

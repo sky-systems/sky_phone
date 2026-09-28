@@ -1270,6 +1270,31 @@ label.sky-list-item__row {
   color: var(--sky-native-select-option-text, #000000);
 }
 
+/* A self-contained field for forms outside a list row. */
+.sky-field--control {
+  padding: 0 var(--sky-space-3);
+  border: 1px solid var(--sky-field-outline);
+  border-radius: var(--sky-radius-control);
+}
+
+.sky-field--control .sky-field__inner {
+  padding: 0;
+}
+
+.sky-field.sky-field--control .sky-field__control {
+  margin: 0;
+}
+
+.sky-field--control .sky-field__input {
+  min-height: var(--sky-touch-target);
+  padding-right: var(--sky-space-4);
+}
+
+.sky-field--control:focus-within {
+  border-color: var(--sky-app-accent);
+  outline: 1px solid var(--sky-app-accent);
+}
+
 .sky-field--floating-label.sky-field--outline:not(
     .sky-field--floating-raised
   ):not(.sky-field--inline)

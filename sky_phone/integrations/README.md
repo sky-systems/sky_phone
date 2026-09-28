@@ -23,7 +23,10 @@ The shared, editable checks live in `config/functions.lua`. See
 [Player checks and opening cancellation](PLAYER_CHECKS.md) to customize death,
 handcuffs or cancel phone opening with `PhoneFunctions.CanOpenPhone`.
 
-All three switches default to `true` in `config/config.lua` and `/phonepanel`:
+All three switches default to `true`. In SQL mode, use **Phone configurator →
+General → Phone use** for the two phone restrictions and the Radio detail section
+for the item requirement, then save. In file mode, edit Part 2 of `config/config.lua`
+and restart. The Lua hooks in `config/functions.lua` always remain file-owned.
 
 | Setting | Effect |
 | --- | --- |

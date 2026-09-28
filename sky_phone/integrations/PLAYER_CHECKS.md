@@ -18,7 +18,8 @@ branch and use only the phone's own documented third-party integrations.
 
 The existing **Block when dead** and **Block when cuffed** settings still decide
 whether these states block phone use. These settings remain configurable through
-the Phone Configurator. The functions are code hooks and are not stored in SQL.
+**Phone configurator → General → Phone use** in SQL mode, or Part 2 of
+`config/config.lua` in file mode. The functions are code hooks and are not stored in SQL.
 
 `CanOpenPhone` receives the player's server ID on the server and `nil` on the
 client. Keep its existing `GetBlockReason` check, then add your own synchronous

@@ -8,7 +8,8 @@
 /CLAUDE.md
 /CONTEXT.md
 /design-qa.md
-/docs/
+/docs/*
+!/docs/phone-configurator.md
 
 # Local history-rewrite and backup artifacts
 /.git-rewrite/

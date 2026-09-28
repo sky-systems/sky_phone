@@ -8,7 +8,10 @@ function source(path: string): string {
 
 const config = source('../../sky_phone/config/config.lua')
 const configDefault = source('../../sky_phone/source/shared/config_default.lua')
-const framework = source('../../sky_phone/source/bridge/server/framework.lua')
+const permissions = source(
+  '../../sky_phone/source/bridge/server/permissions.lua',
+)
+const manifest = source('../../sky_phone/fxmanifest.lua')
 const qbox = source('../../sky_phone/source/bridge/server/frameworks/qbox.lua')
 const configurator = source(
   '../../sky_phone/source/server/phone_configurator.lua',
@@ -49,9 +52,7 @@ describe('fixed server permissions', () => {
     ]) {
       expect(configurator).toContain(`["${path}"] = true`)
     }
-    expect(configurator).toContain(
-      'SKY PHONE: IN-GAME CONFIGURATOR ENABLED',
-    )
+    expect(configurator).toContain('SKY PHONE: IN-GAME CONFIGURATOR ENABLED')
     expect(configurator).toContain(
       '^1 Changes to config.lua and media.lua are ignored in this mode,^0',
     )
@@ -63,16 +64,16 @@ describe('fixed server permissions', () => {
     )
   })
 
-  it('authorizes Qbox through ACE before retaining framework group support', () => {
-    expect(framework).toContain(
-      'local groups = Config.CommandPermissions[permission]',
+  it('loads standalone ACE authorization for all frameworks without a Qbox job fallback', () => {
+    expect(manifest).toContain("'source/bridge/server/permissions.lua'")
+    expect(permissions).toContain('Config.CommandPermissions')
+    expect(permissions).toContain(
+      'IsPlayerAceAllowed(tostring(player_source), "sky_phone." .. permission)',
     )
-    expect(qbox).toContain(
-      'if IsPlayerAceAllowed(tostring(source), group) then',
-    )
-    expect(qbox.indexOf('IsPlayerAceAllowed')).toBeLessThan(
-      qbox.indexOf('exports.qbx_core:HasGroup'),
-    )
+    expect(qbox).not.toContain('HasAdminGroup')
+    expect(permissions).not.toContain('HasAdminGroup')
+    expect(permissions).not.toContain('exports.')
+    expect(permissions).not.toContain('TriggerEvent(')
   })
 
   it('uses stable permission identifiers for every protected operation', () => {

@@ -559,6 +559,123 @@ Locales["fr"] = {
                 ofDevices = "{count} sur {total} appareils",
             },
             configurator = {
+                general = {
+                    title = "Général",
+                    body = "Configurez les appareils, les cartes SIM et les commandes courantes. Ces réglages partagent le même brouillon que les sections détaillées jusqu’à l’enregistrement.",
+                    groups = {
+                        device = "Appareils et cartes SIM",
+                        system = "Framework et intégrations",
+                        usage = "Utilisation du téléphone",
+                        keys = "Clavier et commandes",
+                    },
+                    metadataFree = "L’inventaire sélectionné ne gère pas les métadonnées par objet. Les téléphones uniques et les cartes SIM physiques sont désactivés automatiquement, y compris lors de la détection automatique de cet inventaire.",
+                    fileOwned = "Les groupes d’accès, l’activation du configurateur et les sons locaux restent dans la partie 1 de config.lua et ne sont pas modifiables ici.",
+                    fields = {
+                        Phone = {
+                            Unique = {
+                                label = "Un appareil par objet téléphone",
+                                description = "Activé : chaque objet possède son IMEI et ses données, transférés avec lui. Désactivé : les objets ouvrent l’appareil permanent du personnage. Les métadonnées sont nécessaires à l’activation. Sauvegardez la base, testez le changement et redémarrez la ressource.",
+                            },
+                            Item = {
+                                label = "Objet téléphone",
+                                description = "Nom exact de l’objet dans l’inventaire sélectionné. Cet objet doit exister.",
+                            },
+                            DeviceName = {
+                                label = "Nom initial de l’appareil",
+                                description = "Nom des nouveaux téléphones. Les noms existants sont conservés.",
+                            },
+                            BlockWhenDead = {
+                                label = "Bloquer en cas de mort ou d’inconscience",
+                                description = "Empêche l’utilisation du téléphone et de ses fonctions vocales lorsque le personnage est mort ou inconscient.",
+                            },
+                            BlockWhenCuffed = {
+                                label = "Bloquer lorsque le personnage est menotté",
+                                description = "Empêche l’utilisation du téléphone et de ses fonctions vocales lorsque le personnage est entravé.",
+                            },
+                            AllowMovement = {
+                                label = "Autoriser les déplacements avec le téléphone ouvert",
+                                description = "Conserve les commandes de déplacement du jeu pendant l’utilisation du téléphone.",
+                            },
+                            HoldToLook = {
+                                Enabled = {
+                                    label = "Maintenir pour regarder autour de soi",
+                                    description = "Maintenez la commande GTA configurée pour masquer le curseur et regarder autour de vous.",
+                                },
+                                Control = {
+                                    label = "Identifiant de la commande de vue",
+                                    description = "Indice de commande GTA, pas une touche clavier. La valeur 19 correspond à INPUT_CHARACTER_WHEEL, généralement Alt gauche. Les raccourcis GTA du joueur déterminent la touche réelle.",
+                                },
+                            },
+                            Keybind = {
+                                label = "Touche d’ouverture du téléphone",
+                                description = "Touche par défaut du serveur pour ouvrir le téléphone. Désactivez l’interrupteur pour supprimer ce raccourci.",
+                            },
+                            DevelopmentCommand = {
+                                label = "Activer la commande du téléphone",
+                                description = "Autorise la commande /phone configurée. Désactivez-la pour limiter l’ouverture aux objets et au raccourci.",
+                            },
+                        },
+                        Sim = {
+                            Enabled = {
+                                label = "Utiliser des cartes SIM physiques",
+                                description = "Activé : une SIM physique est requise pour les appels et messages, mais le téléphone s’ouvre sans SIM. Désactivé : un numéro automatique permanent est attribué aux appareils sans SIM. Les inventaires sans métadonnées imposent la désactivation.",
+                            },
+                            NumberPrefix = {
+                                label = "Préfixe des numéros",
+                                description = "Chiffres facultatifs au début des nouveaux numéros, par exemple 555. Les numéros existants sont conservés.",
+                            },
+                            NumberLength = {
+                                label = "Longueur des numéros",
+                                description = "Nombre total de chiffres, préfixe compris. Les groupes d’affichage restent dans la section SIM détaillée.",
+                            },
+                        },
+                        Bridge = {
+                            Framework = {
+                                label = "Framework",
+                                description = "Sélectionnez le framework actif ou auto pour le détecter. Redémarrez sky_phone après le changement.",
+                            },
+                            Inventory = {
+                                label = "Inventaire",
+                                description = "Sélectionnez l’adaptateur actif et redémarrez sky_phone après le changement. Les inventaires natifs ESX et hex ne gèrent ni téléphones uniques ni SIM physiques.",
+                            },
+                            Locale = {
+                                label = "Langue du serveur",
+                                description = "Langue par défaut des textes serveur et des nouveaux téléphones.",
+                            },
+                        },
+                        Calls = {
+                            VoiceProvider = {
+                                label = "Service vocal",
+                                description = "Sélectionnez la ressource vocale démarrée. Redémarrez sky_phone après le changement.",
+                            },
+                        },
+                        CrewLink = {
+                            QuickPing = {
+                                Enabled = {
+                                    label = "Activer le ping rapide CrewLink",
+                                    description = "Autorise le raccourci de ping rapide pour les utilisateurs CrewLink éligibles.",
+                                },
+                                DefaultKey = {
+                                    label = "Touche du ping rapide CrewLink",
+                                    description = "Touche par défaut du serveur pour envoyer un ping CrewLink.",
+                                },
+                            },
+                        },
+                        Command = {
+                            label = "Commande du téléphone",
+                            description = "Nom de commande sans /. L’accès au panneau administrateur se configure séparément dans la partie 1.",
+                        },
+                    },
+                },
+                keybind = {
+                    capture = "Capturer une touche",
+                    listening = "Appuyez sur une touche. Échap annule ; Tab quitte la capture. Les touches spéciales sont aussi disponibles dans la liste.",
+                    cancel = "Annuler la capture",
+                    unsupported = "Cette touche ou combinaison ne peut pas être associée de façon fiable. Appuyez sur une seule touche ou sélectionnez son identifiant FiveM.",
+                    enabled = "Raccourci activé",
+                    help = "Enregistre un identifiant KEYBOARD FiveM, pas le caractère affiché. Redémarrez sky_phone après un changement des valeurs par défaut. Les raccourcis personnels des joueurs dans les paramètres FiveM restent prioritaires.",
+                },
+                retry = "Réessayer",
                 context = "Configuration d'exécution",
                 eyebrow = "Outil système",
                 sections = "Configuration",
@@ -572,7 +689,7 @@ Locales["fr"] = {
                 disabledTitle = "La configuration SQL n'est pas active",
                 disabledBody = "Activez le configurateur au début de config.lua et redémarrez sky_phone. D'ici là, les valeurs du fichier restent actives et l'édition est verrouillée.",
                 manualSave = "Sauvegarde manuelle",
-                refreshNotice = "Rien n'est enregistré automatiquement. La coche verte vérifie config.lua et media.lua dans SQL et actualise immédiatement la configuration active du serveur, du client, des médias et de l'UI.",
+                refreshNotice = "Les modifications restent dans le brouillon commun jusqu’à leur enregistrement avec la coche. Elles sont validées et stockées en SQL. Redémarrez sky_phone après un changement de framework, d’inventaire, de voix, de mode appareil ou de touches par défaut. Les raccourcis personnels des joueurs sont conservés.",
                 fieldCount = "Champs {count}",
                 secretConfigured = "Secret configuré · entrer un remplacement",
                 invalidValue = "Vérifiez la valeur du tableau ou du nombre mis en évidence.",

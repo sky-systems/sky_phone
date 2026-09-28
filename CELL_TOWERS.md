@@ -7,6 +7,11 @@ Manage **Phonepanel → Phone Configurator → Cell towers**. File mode uses
 settings in the existing configurator row. New defaults are added automatically.
 No database migration is needed.
 
+SQL mode is enabled by default. Save panel edits with the checkmark; editing Part 2
+of `config.lua` does not change SQL-managed coverage. See the
+[configuration and access guide](docs/phone-configurator.md) for both modes and
+the required administrator ACE setup.
+
 - `Enabled = true` enables coverage. Set it to `false` for full service everywhere.
 - `Towers` contains 18 virtual mast positions as `vector3` (the `vec3` type):
   eight in Los Santos, six along the mainland towns/coast, and four on Cayo Perico.
@@ -51,7 +56,7 @@ including their nearby audio participants, require reception.
 Weazel News posts by text/title, author or post ID. Results are paginated in
 groups of 50. Confirm a selected post to remove it.
 
-Every list/delete request checks the existing `phonepanel` permission and rate
+Every list/delete request checks the `sky_phone.phonepanel` ACE permission and rate
 limit on the server. Social posts use their existing `removed` status; Weazel
 articles use `deleted_at`, the administrator's identifier and an incremented
 revision. Removals appear in the existing admin audit. Accounts, original media

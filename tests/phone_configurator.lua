@@ -1005,6 +1005,48 @@ test("cell tower invalid ranges and coordinates never reach SQL or clients", fun
     assert(server.database.writes == 0)
 end)
 
+test("General device and SIM settings share the existing SQL and client configuration", function()
+    local server = new_server()
+    local phone, sim = server.field("Phone").value, server.field("Sim").value
+    phone.Unique, phone.Keybind, sim.Enabled = false, "OEM_1", false
+    assert(server.save({ change("Phone", phone), change("Sim", sim) }).success)
+    local restarted = new_server(server.database)
+    local client = new_client(restarted)
+    assert(client.config.Phone.Unique == false and client.config.Sim.Enabled == false)
+    assert(client.config.Phone.Keybind == "OEM_1")
+    assert(client.config.Phone.HoldToLook.Control == 19)
+end)
+
+test("only real Cfx keyboard IDs reach SQL, including OEM and numpad keys", function()
+    for _, key in ipairs({ "OEM_1", "OEM_3", "OEM_7", "NUMPADENTER", "DECIMAL", "F24", "RMENU", "f2" }) do
+        local server = new_server()
+        local phone, crew = server.field("Phone").value, server.field("CrewLink").value
+        phone.Keybind, crew.QuickPing.DefaultKey = key, key
+        assert(server.save({ change("Phone", phone), change("CrewLink", crew) }).success, key)
+        assert(new_client(new_server(server.database)).config.Phone.Keybind == key)
+    end
+    for _, key in ipairs({ "Ü", "ArrowUp", "Ctrl+K", "SPACEBAR", "F25", "F01", "OEM_99", "", "19" }) do
+        for _, path in ipairs({ "Phone", "CrewLink" }) do
+            local server = new_server()
+            local value = server.field(path).value
+            if path == "Phone" then value.Keybind = key else value.QuickPing.DefaultKey = key end
+            assert(not server.save({ change(path, value) }).success, key)
+            assert(server.database.writes == 0 and #server.broadcasts == 0)
+        end
+    end
+end)
+
+test("file-owned access groups and bootstrap settings cannot be written through the panel", function()
+    for _, path in ipairs({ "CommandPermissions", "PhoneConfigurator", "CustomTones" }) do
+        local server = new_server()
+        for _, section in ipairs(server.env.SkyPhoneConfigurator.GetAdminData().sections) do
+            for _, field in ipairs(section.fields) do assert(field.path ~= path) end
+        end
+        assert(not server.save({ change(path, {}) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")

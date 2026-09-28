@@ -114,9 +114,15 @@ playback depends on Discord supporting the uploaded video's codec.
 
 ## Phonepanel editor
 
-The **Webhooks** tab uses the existing `phonepanel` permission and requires
+The **Webhooks** tab uses the `sky_phone.phonepanel` ACE permission, configured
+through `CommandPermissions.phonepanel` in Part 1 of `config/config.lua`, and requires
 `Config.AdminPanel.Enabled`. Every read and save checks permission and rate limits
 on the server. It works independently of `Config.PhoneConfigurator.Enabled`.
+
+Follow the [installation guide](PHONE_INSTALLATION_IMPORTANT.md#3-check-sky-phone-configuration)
+for the Phone resource grants and administrator ACE membership. A framework role
+alone no longer grants access. The separate Webhooks SQL overrides continue to
+apply even when the main Phone Configurator is in file mode.
 
 - Edit the logging toggle, webhook name, avatar URL, queue limit and retry limit.
 - Edit the public app icons, Sky footer logo and maximum video attachment size.

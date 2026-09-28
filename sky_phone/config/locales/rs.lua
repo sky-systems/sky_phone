@@ -559,6 +559,123 @@ Locales["rs"] = {
                 ofDevices = "{count} од {total} уређаја",
             },
             configurator = {
+                general = {
+                    title = "Opšte",
+                    body = "Podesi uređaje, SIM kartice i svakodnevne kontrole. Ova podešavanja dele isti nacrt sa detaljnim odeljcima do čuvanja.",
+                    groups = {
+                        device = "Uređaji i SIM kartice",
+                        system = "Framework i integracije",
+                        usage = "Korišćenje telefona",
+                        keys = "Tastatura i komande",
+                    },
+                    metadataFree = "Izabrani inventar ne podržava metapodatke po predmetu. Jedinstveni telefoni i fizičke SIM kartice automatski se isključuju, čak i kada se inventar automatski prepozna.",
+                    fileOwned = "Grupe za pristup, prekidač konfiguratora i lokalni zvukovi ostaju u delu 1 datoteke config.lua. Ovde ih nije moguće menjati.",
+                    fields = {
+                        Phone = {
+                            Unique = {
+                                label = "Jedan uređaj po predmetu telefona",
+                                description = "Uključeno: svaki predmet ima svoj IMEI i podatke koji se prenose sa njim. Isključeno: predmeti otvaraju stalni uređaj lika. Uključivanje zahteva metapodatke. Napravi rezervnu kopiju baze, testiraj promenu režima i ponovo pokreni resurs.",
+                            },
+                            Item = {
+                                label = "Predmet telefona",
+                                description = "Tačan naziv predmeta. Mora da postoji u izabranom inventaru.",
+                            },
+                            DeviceName = {
+                                label = "Podrazumevani naziv uređaja",
+                                description = "Naziv novih telefona. Postojeći nazivi se ne menjaju.",
+                            },
+                            BlockWhenDead = {
+                                label = "Blokiraj tokom smrti ili nesvesti",
+                                description = "Sprečava korišćenje telefona i glasovnih funkcija dok je lik mrtav ili bez svesti.",
+                            },
+                            BlockWhenCuffed = {
+                                label = "Blokiraj dok je lik vezan",
+                                description = "Sprečava korišćenje telefona i glasovnih funkcija dok je lik sputan.",
+                            },
+                            AllowMovement = {
+                                label = "Dozvoli kretanje sa otvorenim telefonom",
+                                description = "Zadržava kontrole kretanja dok je telefon otvoren.",
+                            },
+                            HoldToLook = {
+                                Enabled = {
+                                    label = "Drži za razgledanje",
+                                    description = "Drži podešenu GTA kontrolu da sakriješ kursor i gledaš oko sebe.",
+                                },
+                                Control = {
+                                    label = "ID kontrole za razgledanje",
+                                    description = "Indeks GTA kontrole, ne taster. Podrazumevano 19 je INPUT_CHARACTER_WHEEL, obično levi Alt. GTA podešavanja igrača određuju stvarni taster.",
+                                },
+                            },
+                            Keybind = {
+                                label = "Taster za otvaranje telefona",
+                                description = "Podrazumevani taster servera. Isključi prekidač da onemogućiš ovu prečicu.",
+                            },
+                            DevelopmentCommand = {
+                                label = "Uključi komandu telefona",
+                                description = "Dozvoljava podešenu komandu /phone. Isključi ako telefon treba otvarati samo predmetom i prečicom.",
+                            },
+                        },
+                        Sim = {
+                            Enabled = {
+                                label = "Koristi fizičke SIM kartice",
+                                description = "Uključeno: pozivi i poruke zahtevaju fizičku SIM karticu, ali telefon može da se otvori bez nje. Isključeno: uređaji bez SIM kartice dobijaju stalni automatski broj. Inventari bez metapodataka obavezno isključuju ovu opciju.",
+                            },
+                            NumberPrefix = {
+                                label = "Prefiks broja",
+                                description = "Opcione cifre na početku novih brojeva, na primer 555. Postojeći brojevi se ne menjaju.",
+                            },
+                            NumberLength = {
+                                label = "Dužina broja",
+                                description = "Ukupan broj cifara sa prefiksom. Grupe prikaza ostaju dostupne u detaljima SIM podešavanja.",
+                            },
+                        },
+                        Bridge = {
+                            Framework = {
+                                label = "Framework",
+                                description = "Izaberi aktivni framework ili auto za prepoznavanje. Nakon promene ponovo pokreni sky_phone.",
+                            },
+                            Inventory = {
+                                label = "Inventar",
+                                description = "Izaberi aktivni adapter i ponovo pokreni sky_phone nakon promene. Osnovni ESX i hex ne podržavaju jedinstvene telefone ili fizičke SIM kartice.",
+                            },
+                            Locale = {
+                                label = "Jezik servera",
+                                description = "Podrazumevani jezik serverskih poruka i novih telefona.",
+                            },
+                        },
+                        Calls = {
+                            VoiceProvider = {
+                                label = "Glasovni servis",
+                                description = "Izaberi pokrenuti glasovni resurs. Ponovo pokreni sky_phone nakon promene.",
+                            },
+                        },
+                        CrewLink = {
+                            QuickPing = {
+                                Enabled = {
+                                    label = "Uključi brzi CrewLink ping",
+                                    description = "Dozvoljava prečicu za brzi ping ovlašćenim CrewLink korisnicima.",
+                                },
+                                DefaultKey = {
+                                    label = "Taster za brzi CrewLink ping",
+                                    description = "Podrazumevani taster servera za slanje CrewLink pinga.",
+                                },
+                            },
+                        },
+                        Command = {
+                            label = "Komanda telefona",
+                            description = "Naziv komande bez /. Pristup administratorskom panelu podešava se posebno u delu 1.",
+                        },
+                    },
+                },
+                keybind = {
+                    capture = "Zabeleži taster",
+                    listening = "Pritisni jedan taster. Escape otkazuje; Tab izlazi iz beleženja. Posebne tastere možeš izabrati i sa liste.",
+                    cancel = "Otkaži beleženje",
+                    unsupported = "Ovaj taster ili kombinacija ne može pouzdano da se mapira. Pritisni jedan taster ili izaberi njegov FiveM ID.",
+                    enabled = "Prečica uključena",
+                    help = "Čuva FiveM KEYBOARD ID, a ne prikazani znak. Ponovo pokreni sky_phone nakon promene podrazumevanih vrednosti. Lična podešavanja tastera igrača u FiveM podešavanjima imaju prednost.",
+                },
+                retry = "Pokušaj ponovo",
                 context = "Конфигурација у реалном времену",
                 eyebrow = "Системски алат",
                 sections = "Конфигурација",
@@ -572,7 +689,7 @@ Locales["rs"] = {
                 disabledTitle = "SQL конфигурација није активна",
                 disabledBody = "Активирај конфигуратор на почетку config.lua фајла и поново покрените sky_phone. До тада ће вредности из фајла остати активне, а уређивање ће бити закључано.",
                 manualSave = "Ручно чување",
-                refreshNotice = "Ништа се не чува аутоматски. Зелени знак потврде проверава config.lua и media.lua у SQL-у и одмах освежава активну серверску, клијентску, медијску и UI конфигурацију.",
+                refreshNotice = "Izmene ostaju u zajedničkom nacrtu dok ih ne sačuvaš kvačicom. Čuvanje ih proverava i upisuje u SQL. Ponovo pokreni sky_phone nakon promene frameworka, inventara, glasa, režima uređaja ili podrazumevanih tastera. Lična podešavanja tastera igrača ostaju sačuvana.",
                 fieldCount = "{count} поља",
                 secretConfigured = "Тајна је конфигурисана · унесите замену",
                 invalidValue = "Проверите означену табелу или бројчану вредност.",

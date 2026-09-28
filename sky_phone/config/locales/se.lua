@@ -559,6 +559,123 @@ Locales["se"] = {
                 ofDevices = "{count} av {total} enheter",
             },
             configurator = {
+                general = {
+                    title = "Allmänt",
+                    body = "Ställ in enheter, SIM-kort och vanliga kontroller. Inställningarna delar samma utkast som detaljsidorna tills du sparar.",
+                    groups = {
+                        device = "Enheter och SIM-kort",
+                        system = "Ramverk och integrationer",
+                        usage = "Telefonanvändning",
+                        keys = "Tangentbord och kommandon",
+                    },
+                    metadataFree = "Det valda inventariet stöder inte metadata per föremål. Unika telefoner och fysiska SIM-kort inaktiveras automatiskt, även när inventariet upptäcks automatiskt.",
+                    fileOwned = "Åtkomstgrupper, konfiguratorns reglage och lokala ljud finns kvar i del 1 av config.lua. De kan inte ändras här.",
+                    fields = {
+                        Phone = {
+                            Unique = {
+                                label = "En enhet per telefonföremål",
+                                description = "På: varje föremål har eget IMEI och data som följer med föremålet. Av: föremålen öppnar karaktärens permanenta enhet. På kräver metadata. Säkerhetskopiera databasen, testa lägesbytet och starta om resursen.",
+                            },
+                            Item = {
+                                label = "Telefonföremål",
+                                description = "Exakt föremålsnamn. Föremålet måste finnas i det valda inventariet.",
+                            },
+                            DeviceName = {
+                                label = "Enhetens standardnamn",
+                                description = "Namn på nya telefoner. Befintliga namn ändras inte.",
+                            },
+                            BlockWhenDead = {
+                                label = "Blockera vid död eller medvetslöshet",
+                                description = "Förhindrar telefonens användning och röstfunktioner när karaktären är död eller medvetslös.",
+                            },
+                            BlockWhenCuffed = {
+                                label = "Blockera med handbojor",
+                                description = "Förhindrar telefonens användning och röstfunktioner när karaktären är fasthållen.",
+                            },
+                            AllowMovement = {
+                                label = "Tillåt rörelse med öppen telefon",
+                                description = "Behåller spelets rörelsekontroller medan telefonen är öppen.",
+                            },
+                            HoldToLook = {
+                                Enabled = {
+                                    label = "Håll inne för att se dig omkring",
+                                    description = "Håll inne den inställda GTA-kontrollen för att dölja pekaren och se dig omkring.",
+                                },
+                                Control = {
+                                    label = "Kontroll-ID för att se sig omkring",
+                                    description = "GTA-kontrollindex, inte en tangent. Standardvärdet 19 är INPUT_CHARACTER_WHEEL, vanligtvis vänster Alt. Spelarens GTA-bindningar avgör den faktiska tangenten.",
+                                },
+                            },
+                            Keybind = {
+                                label = "Tangent för att öppna telefonen",
+                                description = "Serverns standardtangent. Stäng av reglaget för att inaktivera genvägen.",
+                            },
+                            DevelopmentCommand = {
+                                label = "Aktivera telefonkommandot",
+                                description = "Tillåter det inställda /phone-kommandot. Stäng av om telefonen bara ska öppnas via föremål och genvägen.",
+                            },
+                        },
+                        Sim = {
+                            Enabled = {
+                                label = "Använd fysiska SIM-kort",
+                                description = "På: samtal och meddelanden kräver ett fysiskt SIM-kort, men telefonen öppnas utan det. Av: enheter utan SIM får ett permanent automatiskt nummer. Inventarier utan metadata tvingar detta till av.",
+                            },
+                            NumberPrefix = {
+                                label = "Nummerprefix",
+                                description = "Valfria siffror i början av nya nummer, till exempel 555. Befintliga nummer ändras inte.",
+                            },
+                            NumberLength = {
+                                label = "Nummerlängd",
+                                description = "Totalt antal siffror inklusive prefix. Visningsgrupperna finns kvar i SIM-detaljerna.",
+                            },
+                        },
+                        Bridge = {
+                            Framework = {
+                                label = "Ramverk",
+                                description = "Välj det aktiva ramverket eller auto för automatisk identifiering. Starta om sky_phone efter ändringen.",
+                            },
+                            Inventory = {
+                                label = "Inventarium",
+                                description = "Välj aktiv adapter och starta om sky_phone efter ändringen. Inbyggda ESX och hex stöder inte unika telefoner eller fysiska SIM-kort.",
+                            },
+                            Locale = {
+                                label = "Serverspråk",
+                                description = "Standardspråk för servertexter och nya telefoner.",
+                            },
+                        },
+                        Calls = {
+                            VoiceProvider = {
+                                label = "Röstleverantör",
+                                description = "Välj den startade röstresursen. Starta om sky_phone efter ändringen.",
+                            },
+                        },
+                        CrewLink = {
+                            QuickPing = {
+                                Enabled = {
+                                    label = "Aktivera CrewLink-snabbping",
+                                    description = "Tillåter snabbping via tangent för behöriga CrewLink-användare.",
+                                },
+                                DefaultKey = {
+                                    label = "Tangent för CrewLink-snabbping",
+                                    description = "Serverns standardtangent för att skicka en CrewLink-ping.",
+                                },
+                            },
+                        },
+                        Command = {
+                            label = "Telefonkommando",
+                            description = "Kommandonamn utan /. Åtkomst till adminpanelen ställs in separat i del 1.",
+                        },
+                    },
+                },
+                keybind = {
+                    capture = "Registrera tangent",
+                    listening = "Tryck på en tangent. Escape avbryter; Tab lämnar registreringen. Specialtangenter kan också väljas i listan.",
+                    cancel = "Avbryt registrering",
+                    unsupported = "Tangenten eller kombinationen kan inte mappas tillförlitligt. Tryck på en enda tangent eller välj dess FiveM-ID.",
+                    enabled = "Genväg aktiverad",
+                    help = "Sparar ett FiveM KEYBOARD-ID, inte tecknet som visas. Starta om sky_phone efter ändrade standardvärden. Spelarnas egna bindningar i FiveM-inställningarna har företräde.",
+                },
+                retry = "Försök igen",
                 context = "Runtime-konfiguration",
                 eyebrow = "Systemverktyg",
                 sections = "Konfiguration",
@@ -572,7 +689,7 @@ Locales["se"] = {
                 disabledTitle = "SQL-konfigurationen är inte aktiv",
                 disabledBody = "Aktivera konfiguratorn i början av config.lua och starta om sky_phone. Tills dess förblir filvärdena aktiva och redigering är låst.",
                 manualSave = "Manuell sparning",
-                refreshNotice = "Ingenting sparas automatiskt. Den gröna bocken verifierar config.lua och media.lua i SQL och uppdaterar den aktiva server-, klient-, media- och UI-konfigurationen omedelbart.",
+                refreshNotice = "Ändringarna finns kvar i det gemensamma utkastet tills du sparar med bocken. De valideras och lagras i SQL. Starta om sky_phone efter ändringar av ramverk, inventarium, röst, enhetsläge eller standardtangenter. Spelarnas egna tangentbindningar behålls.",
                 fieldCount = "{count}-fält",
                 secretConfigured = "Hemlighetskod konfigurerad · ange ett ersättningsvärde",
                 invalidValue = "Kontrollera det markerade tabell- eller siffervärdet.",

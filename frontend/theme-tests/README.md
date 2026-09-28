@@ -27,6 +27,22 @@ The FaceTime regression in `realtime.pw.mjs` additionally connects two native br
 
 ## Review and extend
 
+`configurator.pw.mjs` covers the General page at 1280 px in English/light and
+1920 px in German/dark, shared General/detail drafts, key capture and cancellation,
+rejected combinations, save-error draft retention, save/reload, initial-load retry,
+and read-only file mode. OEM key events in this suite are synthetic; they do not
+verify a real German keyboard in FiveM CEF. For a focused run:
+
+```sh
+pnpm test:themes configurator.pw.mjs
+```
+
+Use fresh fixture servers after tests that mutate shared mock data. Setting
+`CI=1` prevents the suite from reusing already running development servers; stop
+those servers first if they occupy the same ports. Verify actual keyboard layouts,
+personal FiveM bindings and ACE revocation separately in game as described in the
+[configuration guide](../../docs/phone-configurator.md#source-verification-and-runtime-boundary).
+
 Reports and screenshots are written to `theme-test-results` and `playwright-report` (gitignored). Open the report with `pnpm exec playwright show-report`. CI attaches the reports when the Frontend job fails. Review skipped image/gradient areas in the screenshots. Fix colors with semantic Sky tokens; do not add an app-wide exclusion to hide a failure.
 
 The catalog test covers each app's initial visible screen, not every possible navigation state. Add representative forms, dialogs and deeper screens to `auth.pw.mjs`, `social.pw.mjs` or another `*.pw.mjs` scenario when introducing such flows. Keep fixture actions local and avoid external accounts or real media services.

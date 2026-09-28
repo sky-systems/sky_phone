@@ -14,6 +14,10 @@ Read this file before starting Sky Phone. Most reports that the phone item does 
 Start these resources before Sky Phone:
 
 ```cfg
+# Phone-owned ACE registration and cleanup; place before ensure sky_phone.
+add_ace resource.sky_phone command.add_ace allow
+add_ace resource.sky_phone command.remove_ace allow
+
 ensure oxmysql
 ensure es_extended       # or qbx_core / qb-core, use only your framework
 ensure ox_inventory      # or the one inventory configured for Sky Phone
@@ -25,12 +29,30 @@ Use only one framework and one active inventory provider. If more than one inven
 
 ## 3. Check Sky Phone configuration
 
-Open `sky_phone/config/config.lua` and verify:
+Check `Config.PhoneConfigurator.Enabled` in **Part 1** of `sky_phone/config/config.lua` first.
+It is enabled by default. With it enabled, use **/phonepanel → Phone configurator → General**;
+Part 2 and `config/media.lua` edits are ignored, including on first start. With it disabled,
+edit Part 2 / `media.lua` directly and restart. Verify these values in the active configuration:
 
 1. `Config.Bridge.Inventory` matches the inventory that is actually started.
 2. `Config.Phone.Item` exactly matches the item key in the inventory.
-3. `Config.Sim.RegisteredItem` and `Config.Sim.AnonymousItem` exactly match the two physical SIM item keys.
+3. If physical SIMs are enabled, `Config.Sim.RegisteredItem` and `Config.Sim.AnonymousItem` in the SIM detail section exactly match the two inventory item keys.
 4. The configured framework matches the resource that is actually running.
+
+Save panel changes with the checkmark. Restart after changing framework, inventory, voice,
+device identity modes or keyboard defaults. General and detail sections share one draft.
+
+**Admin access:** `Config.CommandPermissions` always remains in Part 1 and uses ACE group
+suffixes: `admin` means `group.admin` (QBCore also supports `qbcore.admin`). Give administrators
+membership through your normal server permission setup. A framework role or Qbox job named
+`admin` is not sufficient. Existing users updating from the earlier framework-role checks must
+verify ACE membership. The phone checks `sky_phone.phonepanel` for every protected panel action.
+The two resource grants above apply to `resource.sky_phone`; grants for another resource do not
+apply. No `add_principal` / `remove_principal` capability is required by the phone itself.
+
+If the panel is inaccessible, check the server console for a missing ACE setup message and
+run `test_ace group.admin sky_phone.phonepanel` plus a test for the actual player's identifier.
+Missing/empty configured lists deny player access. Restart after changing fixed permissions.
 
 For unique phones and physical SIM cards, use a metadata-capable inventory and keep the items non-stackable. The default mode is:
 
@@ -40,6 +62,33 @@ Config.Sim.Enabled = true
 ```
 
 Do not use native ESX inventory or `hex_4_inventory` for unique phones or physical SIM cards. Those inventory paths cannot persist per-item metadata, so Sky Phone disables those features automatically.
+
+### General page and keyboard defaults
+
+General groups devices/SIMs, framework/integrations, phone-use restrictions, and
+keyboard/commands. The switches are server-wide; the player's Settings app does
+not control them. Turning physical SIMs off gives devices without a SIM an
+automatic number; it does not disable the phone. Turning unique phones off makes
+phone items open one persistent device per character.
+
+For the phone shortcut and CrewLink quick ping, choose a key or click **Record key**
+and press it. The stored value is a FiveM KEYBOARD ID: German Ü becomes `OEM_1`, Ö
+becomes `OEM_3`, and Ä becomes `OEM_7`. Escape cancels recording; Tab leaves it.
+Use the selector for those keys. Key combinations are unsupported. GTA control
+fields such as `Phone.HoldToLook.Control = 19` stay numeric.
+
+Save with the checkmark and restart for changed defaults. Existing player bindings
+still take priority and can be changed under FiveM Settings → Key Bindings → FiveM.
+See the [full configuration and access guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/phone-configurator.md).
+
+### Keep configuration during updates
+
+Back up the database, including `sky_phone_configurator`, plus file-owned config,
+custom tones and other assets. Preserve all four `Server` peppers. Switching off
+the Configurator does not copy SQL values into Lua files; review file values first.
+Use the SQL Configurator for private peppers because clients download `config.lua`
+even when a block runs only on the server. Media keys belong in the panel in SQL
+mode, or in server-only `config/media.lua` in file mode.
 
 ## 4. ox_inventory: complete both required parts
 
@@ -57,7 +106,8 @@ Remove the complete NPWD handler if it exists. It can intercept the `phone` item
 
 ### 4.2 Define the items in the active `ox_inventory/data/items.lua`
 
-Use the exact item names from `config/config.lua`:
+Use the exact item names from the active Phone/SIM configuration (the panel in SQL
+mode, Part 2 of `config.lua` in file mode). These examples use the shipped names:
 
 ```lua
 ["phone"] = {
@@ -159,12 +209,15 @@ After the complete server restart:
 4. Watch the server console for Sky Phone inventory warnings.
 5. Open the phone again after reconnecting to confirm the metadata persisted.
 
-If the item still does nothing, temporarily set `Config.Bridge.Debug = true`, reproduce the issue once, and collect the relevant server-console and F8 lines. Disable debug mode afterward. Never send API keys, tokens, database passwords, or full player identifiers in a support ticket.
+If the item still does nothing, temporarily set `Bridge.Debug = true` in the Configurator's Bridge section and save. In file mode, edit Part 2 of `config.lua` and restart instead. Reproduce the issue once and collect the relevant server-console and F8 lines, then disable debug mode. Never send API keys, tokens, database passwords, or full player identifiers in a support ticket.
 
 Useful error directions:
 
 | Message or symptom                                   | Usually means                                                                                                        |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `/phonepanel` is denied | Check the two Phone resource grants, `CommandPermissions.phonepanel`, the player's ACE membership and explicit denies. |
+| Config file edits do not apply | SQL mode is enabled; change the corresponding panel field and save. Part 1 always remains file-owned. |
+| Changed shortcut still uses the old key | Restart for changed defaults, then review the player's own saved FiveM key binding. |
 | No phone item was found                              | Wrong item name, wrong inventory adapter, or the player does not own the configured item                             |
 | `phone_slot_missing` or `sim_slot_missing`           | The inventory did not return the selected slot or the item was changed before the server check                       |
 | `metadata_unsupported`                               | The active inventory cannot persist the required per-item metadata                                                   |

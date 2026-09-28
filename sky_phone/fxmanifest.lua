@@ -107,6 +107,7 @@ server_scripts {
     'source/bridge/server/vehiclekeys.lua',
     'source/server/phone_configurator.lua',
     'source/bridge/server/framework.lua',
+    'source/bridge/server/permissions.lua',
     'source/bridge/server/frameworks/*.lua',
     'source/bridge/server/player_state.lua',
     'source/bridge/server/housing.lua',

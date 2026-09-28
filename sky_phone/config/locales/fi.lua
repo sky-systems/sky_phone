@@ -559,6 +559,123 @@ Locales["fi"] = {
                 ofDevices = "{count}/{total} laitetta",
             },
             configurator = {
+                general = {
+                    title = "Yleiset",
+                    body = "Määritä laitteet, SIM-kortit ja tavalliset ohjaimet. Asetukset käyttävät samaa luonnosta kuin yksityiskohtaiset osiot tallennukseen asti.",
+                    groups = {
+                        device = "Laitteet ja SIM-kortit",
+                        system = "Framework ja integraatiot",
+                        usage = "Puhelimen käyttö",
+                        keys = "Näppäimistö ja komennot",
+                    },
+                    metadataFree = "Valittu inventaario ei tue esinekohtaisia metatietoja. Yksilölliset puhelimet ja fyysiset SIM-kortit poistetaan automaattisesti käytöstä myös silloin, kun inventaario tunnistetaan automaattisesti.",
+                    fileOwned = "Käyttöoikeusryhmät, konfiguraattorin kytkin ja paikalliset äänet pysyvät config.lua-tiedoston osassa 1. Niitä ei muuteta täällä.",
+                    fields = {
+                        Phone = {
+                            Unique = {
+                                label = "Yksi laite jokaista puhelinesinettä kohti",
+                                description = "Päällä: jokaisella esineellä on oma IMEI ja tiedot, jotka siirtyvät esineen mukana. Pois: esineet avaavat hahmon pysyvän laitteen. Päällä vaatii metatietoja. Varmuuskopioi tietokanta, testaa tilan vaihto ja käynnistä resurssi uudelleen.",
+                            },
+                            Item = {
+                                label = "Puhelinesine",
+                                description = "Esineen tarkka nimi. Sen on oltava valitussa inventaariossa.",
+                            },
+                            DeviceName = {
+                                label = "Laitteen oletusnimi",
+                                description = "Uusien puhelinten nimi. Nykyiset nimet eivät muutu.",
+                            },
+                            BlockWhenDead = {
+                                label = "Estä kuolleena tai tajuttomana",
+                                description = "Estää puhelimen ja puhetoimintojen käytön, kun hahmo on kuollut tai tajuton.",
+                            },
+                            BlockWhenCuffed = {
+                                label = "Estä käsiraudoissa",
+                                description = "Estää puhelimen ja puhetoimintojen käytön, kun hahmo on sidottu.",
+                            },
+                            AllowMovement = {
+                                label = "Salli liikkuminen puhelimen ollessa auki",
+                                description = "Pitää liikkumisohjaimet käytössä puhelimen ollessa auki.",
+                            },
+                            HoldToLook = {
+                                Enabled = {
+                                    label = "Pidä painettuna katsellaksesi ympärillesi",
+                                    description = "Pidä määritettyä GTA-ohjainta painettuna piilottaaksesi osoittimen ja katsoaksesi ympärillesi.",
+                                },
+                                Control = {
+                                    label = "Katseluohjaimen tunnus",
+                                    description = "GTA-ohjaimen indeksi, ei näppäin. Oletus 19 on INPUT_CHARACTER_WHEEL, yleensä vasen Alt. Pelaajan GTA-asetukset määräävät käytettävän näppäimen.",
+                                },
+                            },
+                            Keybind = {
+                                label = "Puhelimen avausnäppäin",
+                                description = "Palvelimen oletusnäppäin. Poista pikanäppäin käytöstä kytkimellä.",
+                            },
+                            DevelopmentCommand = {
+                                label = "Ota puhelinkomento käyttöön",
+                                description = "Sallii määritetyn /phone-komennon. Poista käytöstä, jos avaamisen pitää onnistua vain esineillä ja pikanäppäimellä.",
+                            },
+                        },
+                        Sim = {
+                            Enabled = {
+                                label = "Käytä fyysisiä SIM-kortteja",
+                                description = "Päällä: puhelut ja viestit vaativat fyysisen SIM-kortin, mutta puhelin avautuu ilman sitä. Pois: laitteet ilman SIM-korttia saavat pysyvän automaattisen numeron. Inventaario ilman metatietoja pakottaa tämän pois käytöstä.",
+                            },
+                            NumberPrefix = {
+                                label = "Numeron etuliite",
+                                description = "Valinnaiset numerot uusien numeroiden alussa, esimerkiksi 555. Nykyiset numerot eivät muutu.",
+                            },
+                            NumberLength = {
+                                label = "Numeron pituus",
+                                description = "Numeroiden kokonaismäärä etuliite mukaan lukien. Näytön numeroryhmittely on edelleen SIM-osion lisäasetuksissa.",
+                            },
+                        },
+                        Bridge = {
+                            Framework = {
+                                label = "Framework",
+                                description = "Valitse käytössä oleva framework tai auto automaattiseen tunnistukseen. Käynnistä sky_phone uudelleen muutoksen jälkeen.",
+                            },
+                            Inventory = {
+                                label = "Inventaario",
+                                description = "Valitse aktiivinen sovitin ja käynnistä sky_phone uudelleen muutoksen jälkeen. ESX:n oletusinventaario ja hex eivät tue yksilöllisiä puhelimia tai fyysisiä SIM-kortteja.",
+                            },
+                            Locale = {
+                                label = "Palvelimen kieli",
+                                description = "Palvelintekstien ja uusien puhelinten oletuskieli.",
+                            },
+                        },
+                        Calls = {
+                            VoiceProvider = {
+                                label = "Puhepalvelu",
+                                description = "Valitse käynnissä oleva puheresurssi. Käynnistä sky_phone uudelleen muutoksen jälkeen.",
+                            },
+                        },
+                        CrewLink = {
+                            QuickPing = {
+                                Enabled = {
+                                    label = "Ota CrewLink-pikaping käyttöön",
+                                    description = "Sallii pikapingin pikanäppäimen siihen oikeutetuille CrewLink-käyttäjille.",
+                                },
+                                DefaultKey = {
+                                    label = "CrewLink-pikapingin näppäin",
+                                    description = "Palvelimen oletusnäppäin CrewLink-pingin lähettämiseen.",
+                                },
+                            },
+                        },
+                        Command = {
+                            label = "Puhelinkomento",
+                            description = "Komennon nimi ilman merkkiä /. Hallintapaneelin käyttöoikeudet määritetään erikseen osassa 1.",
+                        },
+                    },
+                },
+                keybind = {
+                    capture = "Tallenna näppäin",
+                    listening = "Paina yhtä näppäintä. Escape peruu ja Tab poistuu tallennustilasta. Erikoisnäppäimen voi myös valita luettelosta.",
+                    cancel = "Peru näppäimen tallennus",
+                    unsupported = "Tätä näppäintä tai yhdistelmää ei voi tunnistaa luotettavasti. Paina yhtä näppäintä tai valitse sen FiveM-tunnus luettelosta.",
+                    enabled = "Pikanäppäin käytössä",
+                    help = "Tallentaa FiveM KEYBOARD -tunnuksen, ei näkyvää merkkiä. Käynnistä sky_phone uudelleen oletusten muuttamisen jälkeen. Pelaajien omat näppäinasetukset FiveM-asetuksissa ovat ensisijaisia.",
+                },
+                retry = "Yritä uudelleen",
                 context = "Ajon aikana tehtävä konfiguraatio",
                 eyebrow = "Järjestelmätyökalu",
                 sections = "Konfiguraatio",
@@ -572,7 +689,7 @@ Locales["fi"] = {
                 disabledTitle = "SQL-konfiguraatio ei ole aktiivinen",
                 disabledBody = "Ota konfiguraattori käyttöön config.lua-tiedoston alussa ja käynnistä sky_phone uudelleen. Siihen asti tiedostojen arvot pysyvät aktiivisina ja muokkaus on lukittu.",
                 manualSave = "Manuaalinen tallennus",
-                refreshNotice = "Mitään ei tallenneta automaattisesti. Vihreä valintamerkki tarkistaa SQL-tiedostojen config.lua ja media.lua tilanteen ja päivittää aktiivisen palvelin-, asiakas-, media- ja käyttöliittymäkonfiguraation välittömästi.",
+                refreshNotice = "Muutokset pysyvät yhteisessä luonnoksessa, kunnes tallennat ne valintamerkillä. Ne tarkistetaan ja tallennetaan SQL-tietokantaan. Käynnistä sky_phone uudelleen, kun vaihdat frameworkia, inventaariota, puhepalvelua, laitetilaa tai oletusnäppäimiä. Pelaajien omat näppäinasetukset säilyvät.",
                 fieldCount = "{count} kenttää",
                 secretConfigured = "Salasana määritetty · syötä korvaava arvo",
                 invalidValue = "Tarkista korostettu taulukko- tai numeerinen arvo.",

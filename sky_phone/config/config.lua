@@ -1,16 +1,25 @@
 --[[
     Sky Phone configuration
 
-    General settings live in this file. Media providers and upload limits live
-    in config/media.lua, while translations remain in config/locales/*.lua.
-    Sections marked "SERVER ONLY" are guarded with IsDuplicityVersion(), so
-    passwords, API keys, migration settings, and server-owned locations are not
-    applied by game clients.
+    PART 1: Always file-owned. /phonepanel never changes these settings.
+    PART 2: Managed in /phonepanel while PhoneConfigurator.Enabled = true.
+            In that mode, editing Part 2 or media.lua has NO runtime effect,
+            including on first start: shipped ConfigDefaults + SQL are used.
+            With the Configurator disabled, these files supply active values.
+
+    Media providers live in config/media.lua; translations in config/locales/.
+    This file is downloaded by clients. IsDuplicityVersion() limits execution,
+    not file visibility. Keep private credentials in the panel or documented
+    server-only convars, never in this shared file.
 
     Keep option names unchanged. Restart sky_phone after editing this file.
 ]]
 
 -- CONFIG_DEFAULT_EXCLUDE_START
+-- =============================================================================
+-- PART 1 - FILE-OWNED SETTINGS (never managed by /phonepanel; restart required)
+-- =============================================================================
+
 -- When enabled, the active configuration is loaded from SQL and managed through
 -- /phonepanel. Frontend builds snapshot the shipped defaults from config.lua and
 -- media.lua into source/shared/config_default.lua.
@@ -20,8 +29,15 @@ Config.PhoneConfigurator = {
 
 -- Fixed server permissions. These values remain authoritative even while the
 -- Phone Configurator is enabled and are intentionally not shown in its panel.
--- Group names use the active framework's permissions. On Qbox they also match
--- ACE objects such as "admin" from the standard permissions.cfg.
+-- Same ACE group convention as the Jobs resources: "admin" -> "group.admin".
+-- QBCore also registers "qbcore.admin". No framework-role or job fallback.
+-- The phone registers its own sky_phone.<permission> ACE objects. In server.cfg,
+-- BEFORE ensure sky_phone, add BOTH lines (remove_ace cleans up on resource stop):
+-- add_ace resource.sky_phone command.add_ace allow
+-- add_ace resource.sky_phone command.remove_ace allow
+-- No add_principal/remove_principal grants are needed: the server/framework owns
+-- player membership. Missing/empty lists deny player access. Restart after edits.
+-- Keep the permission keys below unchanged even if you rename a command in Part 2.
 Config.CommandPermissions = {
     phonepanel = { "god", "superadmin", "admin" },
     phonetestdata = { "god", "superadmin", "admin" },
@@ -29,43 +45,7 @@ Config.CommandPermissions = {
     picstagramverify = { "god", "superadmin", "admin" },
     picstagramadmin = { "god", "superadmin", "admin" },
 }
--- CONFIG_DEFAULT_EXCLUDE_END
 
--- =============================================================================
--- Core, framework and device
--- =============================================================================
-
-Config.Bridge = {
-    Framework = "auto", -- auto, esx, qbox, qb
-    -- auto, ak47, codem, core, jaksam, jpr, lj, mf, one, origen, ox, ps, qb, qs, smx, tgiann, hex, esx
-    -- Compatibility aliases: qb-inv -> qb, qbox -> ox
-    Inventory = "auto",
-    Locale = "en",
-    CallbackTimeout = 15000,
-    Debug = false, -- true: show debug/info output; warnings and errors are always shown
-}
-
-Config.Command = "phone"
-
-Config.Phone = {
-    -- Applies to phone use, ringing/active calls (including video), streams and radio.
-    -- ESX/Qbox/QBCore status and native death/handcuff checks are detected automatically.
-    BlockWhenDead = true, -- includes unconscious/laststand; false permits phone/voice use while downed
-    BlockWhenCuffed = true, -- false permits phone/voice use while handcuffed
-    Item = "phone",
-    Unique = true, -- true: data follows each phone item; false: one persistent phone per character; forced false for metadata-free inventories
-    Keybind = "F1", -- false disables the configurable phone key mapping
-    OpenRequestsPerMinute = 20,
-    AllowMovement = true, -- true: game input stays active while the mobile phone is open
-    HoldToLook = {
-        Enabled = true, -- hold the configured control to hide the cursor and look around; independent of AllowMovement
-        Control = 19, -- INPUT_CHARACTER_WHEEL (Left Alt by default)
-    },
-    DevelopmentCommand = true,
-    DeviceName = "iFruit Phone",
-}
-
--- CONFIG_DEFAULT_EXCLUDE_START
 -- Local custom sounds remain file-based even when the Phone Configurator is
 -- enabled. Copy each audio file into config/custom_tones, add one entry below,
 -- and restart sky_phone. Files are read and served by sky_phone itself; no URL
@@ -91,6 +71,44 @@ Config.CustomTones = {
     },
 }
 -- CONFIG_DEFAULT_EXCLUDE_END
+
+-- =============================================================================
+-- PART 2 - PANEL-MANAGED SETTINGS / FILE MODE VALUES
+-- Enabled = true: edit /phonepanel > Phone Configurator > General (or a detail
+-- section), then save. Values below are used by the shipped-default build only.
+-- Enabled = false: edit this part and config/media.lua, then restart sky_phone.
+-- =============================================================================
+
+-- Core, framework and device
+Config.Bridge = {
+    Framework = "auto", -- auto, esx, qbox, qb
+    -- auto, ak47, codem, core, jaksam, jpr, lj, mf, one, origen, ox, ps, qb, qs, smx, tgiann, hex, esx
+    -- Compatibility aliases: qb-inv -> qb, qbox -> ox
+    Inventory = "auto",
+    Locale = "en",
+    CallbackTimeout = 15000,
+    Debug = false, -- true: show debug/info output; warnings and errors are always shown
+}
+
+Config.Command = "phone"
+
+Config.Phone = {
+    -- Applies to phone use, ringing/active calls (including video), streams and radio.
+    -- ESX/Qbox/QBCore status and native death/handcuff checks are detected automatically.
+    BlockWhenDead = true, -- includes unconscious/laststand; false permits phone/voice use while downed
+    BlockWhenCuffed = true, -- false permits phone/voice use while handcuffed
+    Item = "phone",
+    Unique = true, -- true: data follows each phone item; false: one persistent phone per character; forced false for metadata-free inventories
+    Keybind = "F1", -- default keyboard key; false disables it; existing player rebindings take priority
+    OpenRequestsPerMinute = 20,
+    AllowMovement = true, -- true: game input stays active while the mobile phone is open
+    HoldToLook = {
+        Enabled = true, -- hold the configured control to hide the cursor and look around; independent of AllowMovement
+        Control = 19, -- INPUT_CHARACTER_WHEEL (Left Alt by default); a GTA control ID, not a keyboard key
+    },
+    DevelopmentCommand = true,
+    DeviceName = "iFruit Phone",
+}
 
 -- Server-wide availability for bundled apps. Set an entry to false to hide it
 -- from every phone, the App Store and per-device app management.
