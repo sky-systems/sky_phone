@@ -10,6 +10,7 @@
 /design-qa.md
 /docs/*
 !/docs/phone-configurator.md
+!/docs/inventory-setup.md
 
 # Local history-rewrite and backup artifacts
 /.git-rewrite/

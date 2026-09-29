@@ -92,6 +92,10 @@ mode, or in server-only `config/media.lua` in file mode.
 
 ## 4. ox_inventory: complete both required parts
 
+For another inventory, use the [Inventory Items & Setup guide](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items). It includes all 17 Phone adapters and their own item formats. Do not copy the following ox-only use handlers into TGIANN or another inventory.
+
+The ox adapter requires the server `ox_inventory:usedItem` event, introduced in upstream [2.38.0](https://github.com/overextended/ox_inventory/releases/tag/v2.38.0). Update older versions before testing this setup.
+
 ### 4.1 Remove old NPWD phone code
 
 Search the **whole `ox_inventory` resource**, not only `data/items.lua`, for an old handler similar to this:
@@ -197,7 +201,7 @@ For `qb-inventory`, `lj-inventory`, or another QBCore-style item table:
 - Physical SIM items must always be unique when physical SIMs are enabled.
 - Keep the configured item names exactly the same as in Sky Phone.
 
-Use the item format documented for the installed inventory. Do not paste an ox_inventory `client.export` into a QBCore item table unless that inventory explicitly supports it.
+Use the item format documented for the installed inventory. The `sky_phone.UsePhoneItem` and `sky_phone.UseSimItem` client exports are ox-only, even if another inventory accepts ox-style fields. Use the [inventory-specific guide](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items) for the correct native setup, including TGIANN's `hasMetadata` flag and Phonepanel adapter selection.
 
 ## 7. Final verification
 

@@ -91,7 +91,7 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | Layer | Supported options |
 | --- | --- |
 | **Frameworks** | ESX Legacy, QBCore, Qbox |
-| **Inventories** | ox_inventory, qb-inventory, lj-inventory, qs-inventory, codem-inventory, core_inventory, mf-inventory, smx-inventory, hex_4_inventory, and native ESX inventory |
+| **Inventories** | ak47_inventory, codem-inventory, core_inventory, jaksam_inventory, jpr-inventory, lj-inventory, mf-inventory, one_inventory, origen_inventory, ox_inventory, ps-inventory, qb-inventory, qs-inventory, smx-inventory, tgiann-inventory, hex_4_inventory, and native ESX inventory; see the inventory guide for framework and version limits |
 | **Calls** | YACA, PMA Voice, SaltyChat |
 | **Radio** | YACA, PMA Voice, SaltyChat |
 | **Housing** | RTX Housing, Quasar Housing, VMS Housing, RX Housing, NoLag Properties, SN Properties, ESX Property, qbx_properties |
@@ -125,19 +125,9 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
   - ESX Legacy (`es_extended`)
   - Qbox (`qbx_core`)
   - QBCore (`qb-core`)
-- One supported inventory path:
-  - `ox_inventory`
-  - `qb-inventory`
-  - `lj-inventory`
-  - `qs-inventory`
-  - `codem-inventory`
-  - `core_inventory`
-  - `mf-inventory`
-  - `smx-inventory`
-  - `hex_4_inventory`
-  - Native ESX inventory
+- One inventory from the [adapter and item setup guide](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items#inventory-selector), using its supported framework and version.
 
-`mf-inventory` and `smx-inventory` are supported with ESX. The native ESX and HEX adapters use count-based items, so Sky Phone automatically disables unique phones and physical SIM cards while either adapter is active.
+`mf-inventory` and `smx-inventory` require ESX. SMX stores metadata per character and item name, so it cannot represent independently transferable copies. Core and MF need the version checks described in the guide. The native ESX and HEX adapters use count-based items, so Sky Phone automatically disables unique phones and physical SIM cards while either adapter is active.
 
 ### Voice
 
@@ -376,6 +366,8 @@ configured peppers.
 The `IsDuplicityVersion()` block only controls execution. Clients still download `config.lua`, so private pepper values written into that file are exposed. Use the SQL Configurator for private peppers; file mode does not provide private pepper storage. Never put real account credentials in a shared configuration file or generated defaults.
 
 ## Inventory items
+
+**Use the [Inventory Items & Setup guide](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items)** for all 17 adapters: Phonepanel selection, item definitions, images, provider-specific setup, and version limits. TGIANN and other native adapters must not use the ox-only `sky_phone.UsePhoneItem` / `sky_phone.UseSimItem` handlers. The [source guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/inventory-setup.md) is also available in the repository.
 
 This resource includes an image for each default item in `config/images/`:
 

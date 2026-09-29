@@ -130,14 +130,14 @@ Snake advances one level every 10 points, cycles through six food appearances, a
 | `ps-inventory` (`ps`) | Yes | Yes | QBCore only; uses item `info` metadata |
 | `codem-inventory` (`codem`) | Yes | Yes | Full per-slot metadata |
 | `tgiann-inventory` (`tgiann`) | Yes | Yes | Per-slot metadata; item definitions must enable `hasMetadata` |
-| `core_inventory` (`core`) | Yes | Yes | Full per-slot metadata |
+| `core_inventory` (`core`) | Version-dependent | Version-dependent | Current provider APIs differ from the Phone 1.1.0 adapter; see the [Core setup limits](docs/inventory-setup.md#core-inventory) |
 | `jpr-inventory` (`jpr`) | Yes | Yes | QBCore only; uses item `info` metadata |
 | `origen_inventory` (`origen`) | Yes | Yes | Full per-slot metadata |
 | `ak47_inventory` (`ak47`) | Yes | Yes | Uses per-slot item `info` metadata |
 | `one_inventory` (`one`) | Yes | Yes | Full per-slot metadata |
 | `ox_inventory` (`ox`) | Yes | Yes | Full per-item phone and physical SIM metadata |
 | `mf-inventory` (`mf`) | Yes | Yes | ESX only |
-| `smx-inventory` (`smx`) | Yes | Yes | ESX only; one metadata record per configured item name through the player metadata bridge |
+| `smx-inventory` (`smx`) | Character / item name | Limited | ESX only; cannot preserve separate identities for multiple copies or arbitrary item trades; see [SMX limits](docs/inventory-setup.md#smx-inventory) |
 | `lj-inventory` (`lj`) | Yes | Yes | QBCore inventory with item `info` metadata |
 | `qb-inventory` (`qb`) | Yes | Yes | Uses item `info` metadata |
 | `hex_4_inventory` (`hex`) | **No metadata support** | **No, Unique Phones are not possible** | ESX only; Sky Phone automatically disables unique phones and physical SIM cards |
@@ -405,6 +405,8 @@ The `IsDuplicityVersion()` block only controls execution. Clients still download
 
 ## Inventory items
 
+**Start with the [Inventory Items & Setup guide](docs/inventory-setup.md).** It covers all 17 adapters with the correct Phonepanel value, item locations, complete templates or editor fields, images, version limits, and verification steps. In particular, TGIANN and other inventories must not use the ox-specific phone/SIM client exports.
+
 The release includes an image for each default item in `sky_phone/config/images/`:
 
 | Item | Image |
@@ -416,6 +418,8 @@ The release includes an image for each default item in `sky_phone/config/images/
 Copy these PNG files into your inventory's item image directory. For the default `ox_inventory` image path, use `ox_inventory/web/images/`. Other inventories use their own image directory; the QBCore-style definitions below already name the matching files. If you change an item name in `Config.Phone` or `Config.Sim`, give its image the same name expected by your inventory.
 
 ### ox_inventory
+
+Phone requires the server-side `ox_inventory:usedItem` event, introduced in upstream **2.38.0**. Older versions can close the inventory without completing Phone's item use. See the [ox version requirement](docs/inventory-setup.md#required-ox-version-contract) before troubleshooting item definitions.
 
 #### 1. Remove the NPWD phone handler (required)
 
@@ -485,7 +489,7 @@ Default entries in `ox_inventory/data/items.lua` for unique phones with physical
 },
 ```
 
-Do not configure an LB Phone client event or client export. The shown Sky Phone exports are slot-aware and revalidate the selected item on the server. The server-side inventory registration remains as a fallback for item definitions without `client.export`; do not configure both handlers.
+Do not configure an LB Phone client event or client export. The shown Sky Phone exports complete ox_inventory's own `useItem` flow; Phone then handles the server `ox_inventory:usedItem` event and revalidates the selected slot. Do not add a second usable-item callback or another event/export for the same action.
 
 **Restart the complete server after both changes**, then verify that using the `phone` item opens Sky Phone. Recheck the NPWD handler after updating or replacing ox_inventory, as an update may restore it.
 
@@ -538,7 +542,7 @@ sky_phone_sim_anonymous = {
 },
 ```
 
-For `tgiann-inventory`, set `hasMetadata = true`, `useable = true`, and `shouldClose = true` on all three item definitions. Follow the inventory's own item schema for the remaining adapters; the required behavior is always the same: a unique phone or physical SIM must occupy its own slot and its metadata table must survive moving, dropping, storing, and trading the item.
+For `tgiann-inventory`, select `tgiann` in Phonepanel and use the [complete TGIANN definitions](docs/inventory-setup.md#tgiann-inventory): all three need `hasMetadata = true`, `useable = true`, and `shouldClose = true`. Do not add the ox-only `sky_phone.UsePhoneItem` or `sky_phone.UseSimItem` use exports. Follow each inventory's own schema; unique phones and physical SIMs require separate item identities and persistent metadata. The guide calls out adapters that cannot provide that behavior.
 
 ### Unique Phones and metadata
 
@@ -702,7 +706,7 @@ CreateThread(registerSimButton)
 
 #### Origen button
 
-Merge this into the phone definition in `origen_inventory/data/items.lua`. Origen documents the [custom-item `buttons` field](https://docs.origennetwork.com/scripts/origen_inventory/custom); the client `action(slot)` form is shown in the **origen_inventory** tabs of Prodigy Studios' published [Notebook integration](https://docs.prodigyrp.net/civ/prp-notebook/installation) and [Drug Drops integration](https://docs.prodigyrp.net/crime/prp-drug-drops/installation.html). The example below follows those integrations.
+Merge this into the phone definition in `origen_inventory/config/items.lua`, the location in Origen's [current installation guide](https://docs.origennetwork.com/scripts/origen_inventory/installation). Follow the active item loader if your installed version differs. Origen documents the [custom-item `buttons` field](https://docs.origennetwork.com/scripts/origen_inventory/custom); the client `action(slot)` form is shown in the **origen_inventory** tabs of Prodigy Studios' published [Notebook integration](https://docs.prodigyrp.net/civ/prp-notebook/installation) and [Drug Drops integration](https://docs.prodigyrp.net/crime/prp-drug-drops/installation.html). The example below follows those integrations.
 
 ```lua
 buttons = {
