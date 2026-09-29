@@ -259,20 +259,28 @@ function Bridge.Database.Migrate(migration_name, schema)
             existing_tables[(row.TABLE_NAME or row.table_name):lower()] = true
         end
 
-        local columns = Bridge.Database.Query(([[
-            SELECT TABLE_NAME, COLUMN_NAME, CHARACTER_SET_NAME, COLLATION_NAME
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (%s)
-        ]]):format(placeholder_list), table_names)
-        for _, row in ipairs(columns) do
-            local table_name = (row.TABLE_NAME or row.table_name):lower()
-            local column_name = (row.COLUMN_NAME or row.column_name):lower()
-            existing_columns[table_name] = existing_columns[table_name] or {}
-            existing_columns[table_name][column_name] = {
-                character_set = row.CHARACTER_SET_NAME or row.character_set_name,
-                collation = row.COLLATION_NAME or row.collation_name,
-            }
-        end
+        -- Read every column in bounded pages before issuing any schema changes.
+        local column_offset = 0
+        local columns
+        repeat
+            columns = Bridge.Database.Query(([[
+                SELECT TABLE_NAME, COLUMN_NAME, CHARACTER_SET_NAME, COLLATION_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (%s)
+                ORDER BY TABLE_NAME, ORDINAL_POSITION
+                LIMIT 500 OFFSET %d
+            ]]):format(placeholder_list, column_offset), table_names)
+            for _, row in ipairs(columns) do
+                local table_name = (row.TABLE_NAME or row.table_name):lower()
+                local column_name = (row.COLUMN_NAME or row.column_name):lower()
+                existing_columns[table_name] = existing_columns[table_name] or {}
+                existing_columns[table_name][column_name] = {
+                    character_set = row.CHARACTER_SET_NAME or row.character_set_name,
+                    collation = row.COLLATION_NAME or row.collation_name,
+                }
+            end
+            column_offset = column_offset + #columns
+        until #columns < 500
     end
 
     local changed_columns = {}
