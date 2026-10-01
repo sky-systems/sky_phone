@@ -1290,6 +1290,13 @@ Locales["nl"] = {
                 },
             },
             customApps = {
+                accessDenied = "Deze app is niet beschikbaar. Controleer je toegang en de installatie en open de app opnieuw.",
+                installFailedTitle = "App kon niet worden geïnstalleerd",
+                installFailedBody = "De download is geweigerd. Controleer je banksaldo en toegang tot de app en probeer het opnieuw. Neem bij een lopende betaling contact op met het serverteam.",
+                rating = "Beoordeling",
+                size = "Grootte",
+                screenshot = "Appvoorbeeld {index}",
+                price = "$ {price}",
                 loading = "App openen...",
                 unavailableTitle = "App niet beschikbaar",
                 unavailableBody = "Deze aangepaste app kon niet worden geladen. Controleer of de resource is gestart en open de app opnieuw.",

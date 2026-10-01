@@ -39,6 +39,16 @@ local function remove_application(app_name, _resource_name)
     end
 
     local app_id = type(app_name) == "table" and app_name.name or app_name
+    if type(app_name) == "table" and app_name.uninstall ~= nil and type(app_name.uninstall) ~= "boolean" then
+        return false, "invalid_uninstall"
+    end
+    local record, record_error = client_bridge.GetProviderApp(owner_resource, app_id, {
+        [providers.seventeen] = true,
+    })
+    if not record then return false, record_error end
+    if type(app_name) == "table" and app_name.uninstall then
+        SendNUIMessage({ type = "custom-app:uninstall", data = { appId = app_id } })
+    end
     return client_bridge.RemoveProviderApp(owner_resource, app_id, {
         [providers.seventeen] = true,
     })

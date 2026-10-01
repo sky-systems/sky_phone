@@ -20,6 +20,7 @@ function compatibility.BuildYSeriesDefinition(app_data)
         ui = app_data.ui,
         bridgeMode = "legacy",
         icon = icon,
+        store = { allowedJobs = app_data.allowedJobs, disabledJobs = app_data.disabledJobs },
         defaultInstalled = app_data.defaultApp or false,
         removable = true,
         orientation = "portrait",

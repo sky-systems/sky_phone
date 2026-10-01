@@ -59,9 +59,11 @@ function compatibility.BuildLbDefinition(owner_resource, app_data)
         return nil, "invalid_app_data"
     end
 
-    local ui, ui_error = normalize_at_resource_url(owner_resource, app_data.ui, "ui")
-    if not ui then
-        return nil, ui_error
+    local ui
+    if app_data.ui ~= nil then
+        local ui_error
+        ui, ui_error = normalize_at_resource_url(owner_resource, app_data.ui, "ui")
+        if not ui then return nil, ui_error end
     end
 
     return {
@@ -72,6 +74,13 @@ function compatibility.BuildLbDefinition(owner_resource, app_data)
         developer = app_data.developer,
         category = app_data.game and "games" or "utilities",
         ui = ui,
+        launchMode = app_data.ui == nil and "action" or "frame",
+        store = {
+            price = app_data.price,
+            size = app_data.size,
+            screenshots = app_data.images,
+            disableInAppNotifications = app_data.disableInAppNotifications,
+        },
         assetResource = resolve_lb_asset_resource(owner_resource, app_data),
         bridgeMode = "legacy",
         icon = app_data.icon,

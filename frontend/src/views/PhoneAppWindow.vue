@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import EasyShareContentPreview from '@/components/EasyShareContentPreview.vue'
-import CustomAppFrame from '@/components/CustomAppFrame.vue'
+import CustomAppHost from '@/components/CustomAppHost.vue'
 import { getPhoneApp, isExternalPhoneApp } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
 import { SkyAppPage, SkyEmptyState } from '@/ui'
@@ -55,7 +55,7 @@ const launchStyle = computed(() => {
         :body="phone.t('Cellular.onlineRequired')"
       />
     </SkyAppPage>
-    <CustomAppFrame
+    <CustomAppHost
       v-else-if="isExternalPhoneApp(app)"
       :key="getCustomAppFrameKey(app)"
       :app="app"

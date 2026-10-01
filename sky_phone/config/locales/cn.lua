@@ -1290,6 +1290,13 @@ Locales["cn"] = {
                 },
             },
             customApps = {
+                accessDenied = "此应用不可用。请检查访问权限和安装状态，然后重新打开。",
+                installFailedTitle = "无法安装应用",
+                installFailedBody = "下载被拒绝。请检查银行余额和应用访问权限后重试。如果付款待处理，请联系服务器团队。",
+                rating = "评分",
+                size = "大小",
+                screenshot = "应用预览 {index}",
+                price = "$ {price}",
                 loading = "正在打开应用...",
                 unavailableTitle = "应用不可用",
                 unavailableBody = "无法加载此自定义应用。请检查其资源是否已启动，然后重新打开应用。",

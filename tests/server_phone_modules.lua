@@ -221,6 +221,9 @@ end
 Bridge.Framework.GetFirstname = function()
     return "Test"
 end
+Bridge.Framework.GetJob = function()
+    return { name = "police", grade = 2 }
+end
 Bridge.Framework.GetLastname = function()
     return "Player"
 end

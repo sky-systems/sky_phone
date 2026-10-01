@@ -27,7 +27,7 @@ local callback_groups = {
     crypto = [[
         bootstrap register login logout quote execute deposit withdraw update-profile recipient transfer watch
     ]],
-    ["custom-app"] = [[storage:get storage:set]],
+    ["custom-app"] = [[storage:get storage:set authorize install uninstall]],
     darkchat = [[
         bootstrap create-profile delete-profile update-profile start thread send media react
         message-action update-conversation add-contact remove-contact block report clear

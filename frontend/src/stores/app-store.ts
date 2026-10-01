@@ -32,6 +32,10 @@ import {
   type HomeArea,
 } from '@/utils/homeLayout'
 import { nuiCall } from '@/utils/nui'
+import {
+  getCustomAppAccessRequest,
+  isCustomAppJobAllowed,
+} from '@/utils/customAppAccess'
 
 const INSTALL_DURATION_MS = 3000
 
@@ -135,6 +139,7 @@ export const useAppStoreStore = defineStore('app-store', {
     ),
     hydrated: false,
     installingApps: {} as Partial<Record<LaunchablePhoneAppId, boolean>>,
+    installErrors: {} as Partial<Record<LaunchablePhoneAppId, string>>,
     launchCounts: {} as Partial<Record<LaunchablePhoneAppId, number>>,
   }),
   actions: {
@@ -172,6 +177,7 @@ export const useAppStoreStore = defineStore('app-store', {
         pendingInstallations.delete(this)
       }
       this.installingApps = {}
+      this.installErrors = {}
     },
     installApp(id: LaunchablePhoneAppId): void {
       if (!this.isAvailable(id)) return
@@ -194,17 +200,16 @@ export const useAppStoreStore = defineStore('app-store', {
 
       const app = getPhoneApp(id)
       const reportInstall = !installed && isExternalPhoneApp(app)
+      const sessionToken = phone.deviceSessionToken
       const token = Symbol(id)
       const installations =
         pendingInstallations.get(this) ??
         new Map<LaunchablePhoneAppId, PendingInstallation>()
       this.installingApps[id] = true
-      const timer = globalThis.setTimeout(() => {
+      delete this.installErrors[id]
+      const timer = globalThis.setTimeout(async () => {
         const pending = installations.get(id)
         if (!pending || pending.token !== token) return
-        installations.delete(id)
-        if (!installations.size) pendingInstallations.delete(this)
-
         const activePhone = usePhoneStore()
         if (
           !activePhone.isOpen ||
@@ -220,20 +225,77 @@ export const useAppStoreStore = defineStore('app-store', {
           delete this.installingApps[id]
           return
         }
-        if (reportInstall && !isExternalPhoneApp(getPhoneApp(id))) {
+        const currentApp = getPhoneApp(id)
+        if (
+          reportInstall &&
+          (!isExternalPhoneApp(currentApp) ||
+            !isExternalPhoneApp(app) ||
+            currentApp.ownerResource !== app.ownerResource)
+        ) {
           delete this.installingApps[id]
           console.error(
             `[Custom apps] Installation cancelled because ${id} is no longer registered.`,
           )
           return
         }
+        if (reportInstall && isExternalPhoneApp(app)) {
+          const response = await nuiCall('custom-app:install', {
+            ...getCustomAppAccessRequest(app, deviceImei, sessionToken),
+            expectedPrice: app.store?.price ?? 0,
+          })
+          // Closing/reopening even the same device cancels this local operation.
+          if (
+            installations.get(id)?.token !== token ||
+            !activePhone.isOpen ||
+            activePhone.device?.imei !== deviceImei ||
+            activePhone.deviceSessionToken !== sessionToken
+          )
+            return
+          if (!response.success) {
+            this.installErrors[id] = response.error ?? 'request_failed'
+            console.error(
+              `[Custom apps] Installation rejected for ${id}: ${this.installErrors[id]}`,
+            )
+            delete this.installingApps[id]
+            installations.delete(id)
+            return
+          }
+          const registeredApp = getPhoneApp(id)
+          if (
+            !isExternalPhoneApp(registeredApp) ||
+            registeredApp.ownerResource !== app.ownerResource ||
+            !this.isAvailable(id)
+          ) {
+            delete this.installingApps[id]
+            installations.delete(id)
+            console.error(
+              `[Custom apps] Installation cancelled because the registered app changed for ${id}.`,
+            )
+            return
+          }
+        }
+        installations.delete(id)
+        if (!installations.size) pendingInstallations.delete(this)
+        let saved = true
         if (this.isInstalled(id)) {
           this.restoreHomeApp(id)
         } else {
-          this.claimApp(id)
+          const persistence = this.claimApp(id)
+          if (reportInstall) saved = await persistence
         }
+        if (
+          !activePhone.isOpen ||
+          activePhone.device?.imei !== deviceImei ||
+          activePhone.deviceSessionToken !== sessionToken
+        )
+          return
         delete this.installingApps[id]
-        if (reportInstall) {
+        if (reportInstall && !saved) {
+          this.claimedApps = this.claimedApps.filter((appId) => appId !== id)
+          this.homeLayout = removeHomeApp(this.homeLayout, id)
+          this.installErrors[id] = 'request_failed'
+        }
+        if (reportInstall && saved) {
           void nuiCall('custom-app:lifecycle', {
             appId: id,
             event: 'install',
@@ -285,9 +347,18 @@ export const useAppStoreStore = defineStore('app-store', {
         : []
       this.uninstalledApps = Array.isArray(data?.uninstalledApps)
         ? data.uninstalledApps.filter((id): id is LaunchablePhoneAppId => {
-            if (typeof id !== 'string' || !isPhoneAppId(id)) return false
+            if (
+              typeof id !== 'string' ||
+              (!isPhoneAppId(id) && !isValidExternalPhoneAppId(id))
+            )
+              return false
             const app = getPhoneApp(id)
-            return !!app && isPhoneAppRemovable(app)
+            return (
+              (!app && supportsPersistedExternalApps) ||
+              (isExternalPhoneApp(app)
+                ? app.removable || supportsPersistedExternalApps
+                : !!app && isPhoneAppRemovable(app))
+            )
           })
         : []
       const installedIds = [
@@ -296,8 +367,7 @@ export const useAppStoreStore = defineStore('app-store', {
           ...this.claimedApps,
         ]),
       ].filter(
-        (id) =>
-          !this.uninstalledApps.includes(id) && this.isAvailable(id),
+        (id) => !this.uninstalledApps.includes(id) && this.isAvailable(id),
       )
       const removedLegacyDefaults = hasUninstalledBuiltinApp(
         data?.homeLayout,
@@ -353,7 +423,12 @@ export const useAppStoreStore = defineStore('app-store', {
       }
     },
     isAvailable(appId: LaunchablePhoneAppId): boolean {
-      return !isAppDisabled(appId, this.disabledApps)
+      const app = getPhoneApp(appId)
+      return (
+        !isAppDisabled(appId, this.disabledApps) &&
+        (!isExternalPhoneApp(app) ||
+          isCustomAppJobAllowed(app, usePhoneStore().player.job))
+      )
     },
     isInstalled(appId: LaunchablePhoneAppId): boolean {
       if (!this.isAvailable(appId)) return false
@@ -367,14 +442,17 @@ export const useAppStoreStore = defineStore('app-store', {
         : DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id)
     },
     reconcileCatalog(): void {
+      // Catalog registrations outlive device sessions. Hydration applies the
+      // latest catalog to the next opened device without saving the old one.
+      if (!this.hydrated || !usePhoneStore().isOpen) return
+
       const installedIds = [
         ...new Set([
           ...getDefaultInstalledIds(this.disabledApps),
           ...this.claimedApps,
         ]),
       ].filter(
-        (id) =>
-          !this.uninstalledApps.includes(id) && this.isAvailable(id),
+        (id) => !this.uninstalledApps.includes(id) && this.isAvailable(id),
       )
       const defaults = createDefaultHomeLayout(
         installedIds,
@@ -392,7 +470,7 @@ export const useAppStoreStore = defineStore('app-store', {
         }
       }
 
-      if (this.hydrated && previous !== JSON.stringify(this.homeLayout)) {
+      if (previous !== JSON.stringify(this.homeLayout)) {
         this.persist()
       }
     },
@@ -578,6 +656,39 @@ export const useAppStoreStore = defineStore('app-store', {
       }
 
       return true
+    },
+    async forceUninstall(appId: string): Promise<void> {
+      if (!isValidExternalPhoneAppId(appId)) return
+      const phone = usePhoneStore()
+      const imei = phone.device?.imei
+      if (!imei) {
+        console.error(
+          `[Custom apps] Permanent removal rejected for ${appId}: device_unavailable`,
+        )
+        return
+      }
+      await phone.flushDevicePersistence()
+      const generation = phone.persistenceGeneration
+      const snapshot = JSON.stringify(this.homeLayout)
+      const response = await nuiCall<{ payload: unknown; revision: number }>(
+        'custom-app:uninstall',
+        { appId, imei },
+      )
+      if (!response.success || !response.data) {
+        console.error(
+          `[Custom apps] Permanent removal failed for ${appId}: ${response.error ?? 'request_failed'}`,
+        )
+        return
+      }
+      if (
+        phone.isOpen &&
+        phone.device?.imei === imei &&
+        phone.persistenceGeneration === generation &&
+        JSON.stringify(this.homeLayout) === snapshot
+      ) {
+        phone.deviceRevisions.apps = response.data.revision
+        this.hydrate(response.data.payload, this.disabledApps)
+      }
     },
     persist(): Promise<boolean> {
       return usePhoneStore().saveDeviceNamespace('apps', {

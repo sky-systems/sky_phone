@@ -3,6 +3,7 @@ import { usePhoneStore } from '@/stores/phone'
 
 defineProps<{
   action: 'get' | 'installing' | 'open'
+  price?: number
 }>()
 
 const phone = usePhoneStore()
@@ -15,7 +16,13 @@ const phone = usePhoneStore()
     aria-hidden="true"
   >
     <template v-if="action === 'get'">
-      {{ phone.t('Apps.appStore.get') }}
+      {{
+        price
+          ? phone.t('Apps.customApps.price', {
+              price: price.toLocaleString(phone.lang),
+            })
+          : phone.t('Apps.appStore.get')
+      }}
     </template>
     <span
       v-else-if="action === 'installing'"

@@ -24,6 +24,8 @@ const lifecycleEndpoints = new Set([
   'camera:setZoom',
   'close',
   'custom-app:lifecycle',
+  'custom-app:authorize',
+  'custom-app:install',
   'device:notification-open',
   'notification:focus',
   'sim:picker-close',

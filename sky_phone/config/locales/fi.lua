@@ -1290,6 +1290,13 @@ Locales["fi"] = {
                 },
             },
             customApps = {
+                accessDenied = "Sovellus ei ole saatavilla. Tarkista käyttöoikeus ja asennus ja avaa se uudelleen.",
+                installFailedTitle = "Sovellusta ei voitu asentaa",
+                installFailedBody = "Lataus hylättiin. Tarkista pankkisaldosi ja sovelluksen käyttöoikeus ja yritä uudelleen. Jos maksu on kesken, ota yhteyttä palvelimen ylläpitoon.",
+                rating = "Arvio",
+                size = "Koko",
+                screenshot = "Sovelluksen esikatselu {index}",
+                price = "$ {price}",
                 loading = "Sovellus avataan...",
                 unavailableTitle = "Sovellus ei ole käytettävissä",
                 unavailableBody = "Tätä mukautettua sovellusta ei voitu ladata. Tarkista, onko resurssi käynnissä, ja avaa sovellus uudelleen.",

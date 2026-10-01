@@ -1290,6 +1290,13 @@ Locales["pt"] = {
                 },
             },
             customApps = {
+                accessDenied = "Esta aplicação está indisponível. Verifica o acesso e a instalação e volta a abri-la.",
+                installFailedTitle = "Não foi possível instalar a aplicação",
+                installFailedBody = "O download foi recusado. Verifica o saldo bancário e o acesso à aplicação e tenta novamente. Se houver um pagamento pendente, contacta a equipa do servidor.",
+                rating = "Avaliação",
+                size = "Tamanho",
+                screenshot = "Pré-visualização {index}",
+                price = "$ {price}",
                 loading = "Abrindo app...",
                 unavailableTitle = "App indisponível",
                 unavailableBody = "Este app personalizado não pôde ser carregado. Verifique se o recurso está iniciado e tente abrir o app novamente.",

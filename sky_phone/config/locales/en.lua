@@ -1290,6 +1290,13 @@ Locales["en"] = {
                 },
             },
             customApps = {
+                accessDenied = "This app is unavailable. Check your access and installation, then reopen it.",
+                installFailedTitle = "App could not be installed",
+                installFailedBody = "The download was rejected. Check your bank balance and app access, then try again. If a payment is pending, contact your server team.",
+                price = "$ {price}",
+                rating = "Rating",
+                size = "Size",
+                screenshot = "App preview {index}",
                 loading = "Opening app...",
                 unavailableTitle = "App unavailable",
                 unavailableBody = "This custom app could not be loaded. Check that its resource is started, then reopen the app.",

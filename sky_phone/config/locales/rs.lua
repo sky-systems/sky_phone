@@ -1290,6 +1290,13 @@ Locales["rs"] = {
                 },
             },
             customApps = {
+                accessDenied = "Ova aplikacija nije dostupna. Proveri pristup i instalaciju, pa je ponovo otvori.",
+                installFailedTitle = "Aplikacija nije mogla da se instalira",
+                installFailedBody = "Preuzimanje je odbijeno. Proveri stanje na bankovnom računu i pristup aplikaciji, pa pokušaj ponovo. Ako je plaćanje na čekanju, kontaktiraj tim servera.",
+                rating = "Ocena",
+                size = "Veličina",
+                screenshot = "Pregled aplikacije {index}",
+                price = "$ {price}",
                 loading = "Отварање апликације...",
                 unavailableTitle = "Апликација није доступна",
                 unavailableBody = "Ова прилагођена апликација није могла бити уцитирана. Проверите да ли је њена ресурсна единица покренута, а затим поново отворите апликацију.",

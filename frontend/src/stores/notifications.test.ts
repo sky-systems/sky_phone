@@ -7,6 +7,8 @@ import {
   type PhoneNotificationDevice,
 } from '@/stores/notifications'
 import { usePhoneStore } from '@/stores/phone'
+import { getPhoneApp, replaceExternalPhoneApps } from '@/config/apps'
+import { normalizeExternalPhoneApp } from '@/stores/app-catalog'
 import { nuiCall } from '@/utils/nui'
 import {
   DEFAULT_PHONE_PREFERENCES,
@@ -43,6 +45,35 @@ function openPhone(imei: string): void {
 }
 
 describe('notifications store', () => {
+  it('retains active-app notification history while suppressing ordinary banners', () => {
+    const app = normalizeExternalPhoneApp({
+      id: 'external-chat',
+      name: 'Chat',
+      ownerResource: 'example',
+      ui: 'https://cfx-nui-example/ui/index.html',
+      icon: 'https://cfx-nui-example/ui/icon.png',
+      store: { disableInAppNotifications: true },
+    })!
+    replaceExternalPhoneApps([app])
+    try {
+      openPhone('111')
+      const phone = usePhoneStore()
+      phone.activeCustomAppId = app.id
+      const notifications = useNotificationsStore()
+      const input = {
+        appId: getPhoneApp(app.id)!.id,
+        title: 'Chat',
+        text: 'Message',
+      }
+      expect(notifications.show(input)).toBeTruthy()
+      expect(notifications.current).toBeNull()
+      expect(notifications.lockScreenNotifications).toHaveLength(1)
+      expect(notifications.show({ ...input, critical: true })).toBeTruthy()
+      expect(notifications.current?.critical).toBe(true)
+    } finally {
+      replaceExternalPhoneApps([])
+    }
+  })
   beforeEach(() => {
     vi.useFakeTimers()
     vi.stubGlobal('window', {

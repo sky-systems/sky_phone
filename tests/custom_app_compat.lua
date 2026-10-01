@@ -31,6 +31,19 @@ assert(SkyPhoneCompatibility.BuildYSeriesDefinition == nil, "Quasar provider mus
 dofile("sky_phone/source/bridge/phones/shared/yseries.lua")
 assert(type(SkyPhoneCompatibility.BuildYSeriesDefinition) == "function", "YSeries provider must expose its mapper")
 
+dofile("sky_phone/source/shared/custom_apps.lua")
+local store = assert(SkyPhoneApps.NormalizeStoreOptions({ price = 500, screenshots = { "https://example.com/preview.png" }, allowedJobs = { "police" } }))
+assert(store.price == 500 and store.screenshots[1] == "https://example.com/preview.png" and store.allowedJobs.police == 0)
+assert(not SkyPhoneApps.NormalizeStoreOptions({ price = -1 }))
+assert(not SkyPhoneApps.NormalizeStoreOptions({ price = 1.5 }))
+assert(not SkyPhoneApps.NormalizeStoreOptions({ rating = 6 }))
+assert(not SkyPhoneApps.NormalizeStoreOptions({ screenshots = { false } }))
+local gradient = assert(SkyPhoneCompatibility.Build17MovDefinition({ name = "gradient", label = "Gradient", ui = "ui/index.html", iconBackground = { angle = 45, colors = { "#ff0000", "#0000ff" } }, job = { name = "police", grade = 2 }, rating = 4.5 }))
+assert(gradient.iconBackground == "linear-gradient(45deg,#ff0000,#0000ff)" and gradient.store.allowedJobs.police == 2 and gradient.store.rating == 4.5)
+assert(not SkyPhoneCompatibility.Build17MovDefinition({ name = "gradient", label = "Gradient", ui = "ui/index.html", iconBackground = { angle = 45, colors = { "url(evil)", "#ffffff" } } }))
+local high_store = assert(SkyPhoneCompatibility.BuildHighDefinition("high_app", "metadata", { externalUrl = "@high_app/ui/index.html", size = 2.5, preview = { "https://example.com/preview.png" }, inAppStore = false, preAdded = true, removable = true }, {}))
+assert(high_store.store.size == 2560 and high_store.store.inAppStore == false and high_store.defaultInstalled and high_store.removable)
+
 local lb_on_open_calls = 0
 local lb_on_use_calls = 0
 local lb_definition = assert(SkyPhoneCompatibility.BuildLbDefinition("lb_app", {

@@ -21,7 +21,7 @@ describe('AppStoreDetail contract', () => {
     expect(source).toContain("emit('action')")
     expect(source).toContain("emit('back')")
     expect(source).toContain("emit('share')")
-    expect(source).toContain('<AppStoreAction :action="action" />')
+    expect(source).toContain(':price="external?.store?.price"')
     expect(source).toContain(
       "'store-detail__action--icon': action === 'installing'",
     )

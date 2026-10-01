@@ -1290,6 +1290,13 @@ Locales["fr"] = {
                 },
             },
             customApps = {
+                accessDenied = "Cette application est indisponible. Vérifiez votre accès et son installation, puis rouvrez-la.",
+                installFailedTitle = "Impossible d’installer l’application",
+                installFailedBody = "Le téléchargement a été refusé. Vérifiez votre solde bancaire et votre accès à l’application, puis réessayez. Si un paiement est en attente, contactez l’équipe du serveur.",
+                rating = "Note",
+                size = "Taille",
+                screenshot = "Aperçu de l’application {index}",
+                price = "$ {price}",
                 loading = "Ouverture de l'application...",
                 unavailableTitle = "Application indisponible",
                 unavailableBody = "Cette application personnalisée n'a pas pu être chargée. Vérifiez que sa ressource est lancée, puis rouvrez l'application.",

@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { isPhoneAppId } from '@/config/apps'
+import { getPhoneApp, isExternalPhoneApp, isPhoneAppId } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
 import type { LaunchablePhoneAppId } from '@/types/apps'
 import { nuiCall } from '@/utils/nui'
@@ -333,6 +333,16 @@ export const useNotificationsStore = defineStore('notifications', () => {
       id: `notification-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     }
     remember(notification)
+    const app = getPhoneApp(input.appId)
+    if (
+      !input.critical &&
+      phone.isOpen &&
+      phone.activeCustomAppId === input.appId &&
+      (!input.device || input.device.imei === phone.device?.imei) &&
+      isExternalPhoneApp(app) &&
+      app.store?.disableInAppNotifications
+    )
+      return notification.id
     if (notification.device) {
       const isFirstForDevice = !deviceQueue.value.some(
         (pending) => pending.device?.imei === notification.device?.imei,

@@ -453,3 +453,68 @@ SkyPhoneApps.ReservedAppIds = RESERVED_APP_IDS
 SkyPhoneApps.ValidateAppId = validate_app_id
 SkyPhoneApps.ValidateLocalizedText = validate_localized_text
 SkyPhoneApps.ValidatePermissions = validate_permissions
+
+-- Shared display metadata and server policy validation. Client metadata never
+-- establishes a payment amount or job entitlement on the server.
+function SkyPhoneApps.NormalizeStoreOptions(value)
+    if value == nil then return {} end
+    if type(value) ~= "table" then return nil, "invalid_store_options" end
+    local options = {}
+    for _, field in ipairs({ "price", "size", "rating" }) do
+        local number = value[field]
+        if number ~= nil then
+            local maximum = field == "rating" and 5 or 2147483647
+            if type(number) ~= "number" or number ~= number or number < (field == "rating" and 1 or 0) or number > maximum
+                or (field == "price" and number ~= math.floor(number)) then
+                return nil, "invalid_" .. field
+            end
+            options[field] = number
+        end
+    end
+    for _, field in ipairs({ "inAppStore", "disableInAppNotifications" }) do
+        if value[field] ~= nil and type(value[field]) ~= "boolean" then
+            return nil, "invalid_" .. field
+        end
+        options[field] = value[field]
+    end
+    for _, field in ipairs({ "allowedJobs", "disabledJobs" }) do
+        if value[field] ~= nil then
+            if type(value[field]) ~= "table" then return nil, "invalid_" .. field end
+            local jobs = {}
+            local count = 0
+            for key, job in pairs(value[field]) do
+                local name, grade = key, job
+                if type(key) == "number" then name, grade = job, 0 end
+                if type(name) ~= "string" or #name == 0 or #name > 64
+                    or not name:match("^[%w_-]+$") or type(grade) ~= "number"
+                    or grade < 0 or grade > 9999 or grade ~= math.floor(grade) then
+                    return nil, "invalid_" .. field
+                end
+                jobs[name] = grade
+                count = count + 1
+                if count > 64 then return nil, "invalid_" .. field end
+            end
+            options[field] = jobs
+        end
+    end
+    if value.screenshots ~= nil then
+        local screenshots, error_code = validate_string_array(value.screenshots, "invalid_screenshots", 8, function(url)
+            if #url > 0 and #url <= 2048 and not url:find("[%c]") then return url end
+        end)
+        if not screenshots then return nil, error_code end
+        options.screenshots = screenshots
+    end
+    if value.banner ~= nil then
+        if type(value.banner) ~= "table" or type(value.banner.imageUrl) ~= "string"
+            or #value.banner.imageUrl > 2048 then return nil, "invalid_banner" end
+        options.banner = { imageUrl = value.banner.imageUrl }
+        local background = value.banner.background
+        if background ~= nil then
+            if type(background) ~= "string" or #background > 192 or background:find("[%c;{}]") then
+                return nil, "invalid_banner_background"
+            end
+            options.banner.background = background
+        end
+    end
+    return options
+end

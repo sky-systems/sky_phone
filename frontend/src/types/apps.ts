@@ -88,6 +88,18 @@ export type BuiltinPhoneAppDefinition = PhoneAppDefinitionBase & {
 
 export type CustomAppBridgeMode = 'legacy' | 'sky'
 
+export type CustomAppStoreOptions = {
+  price?: number
+  size?: number
+  rating?: number
+  screenshots?: string[]
+  banner?: { imageUrl: string; background?: string }
+  inAppStore?: boolean
+  disableInAppNotifications?: boolean
+  allowedJobs?: Record<string, number>
+  disabledJobs?: Record<string, number>
+}
+
 export type ExternalPhoneAppDefinition = PhoneAppDefinitionBase & {
   bridgeMode: CustomAppBridgeMode
   bundled: boolean
@@ -100,6 +112,8 @@ export type ExternalPhoneAppDefinition = PhoneAppDefinitionBase & {
   iconBackground?: string
   id: ExternalPhoneAppId
   kind: 'external'
+  launchMode?: 'frame' | 'action'
+  store?: CustomAppStoreOptions
   name: string
   orientation: 'landscape' | 'portrait'
   ownerResource: string

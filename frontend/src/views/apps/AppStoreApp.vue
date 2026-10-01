@@ -124,6 +124,7 @@ const catalog = computed(() =>
       return false
     }
     if (!appStore.isAvailable(app.id)) return false
+    if (isExternalPhoneApp(app) && app.store?.inAppStore === false) return false
 
     return !appStore.isInstalled(app.id)
   }).sort((a, b) => a.gridOrder - b.gridOrder),
@@ -227,9 +228,9 @@ function updateFeaturedSlide(): void {
 
 function scrollToFeatured(index: number): void {
   const scroller = featuredScroller.value
-  const card = scroller?.querySelectorAll<HTMLElement>(
-    '.store-browse-feature',
-  )[index]
+  const card = scroller?.querySelectorAll<HTMLElement>('.store-browse-feature')[
+    index
+  ]
   if (!scroller || !card) return
 
   scroller.scrollTo({ left: card.offsetLeft, behavior: 'smooth' })
@@ -549,7 +550,14 @@ watch(
               )}`"
               @click.stop="handleApp(dailyHighlights[0])"
             >
-              <AppStoreAction :action="appAction(dailyHighlights[0])" />
+              <AppStoreAction
+                :action="appAction(dailyHighlights[0])"
+                :price="
+                  isExternalPhoneApp(dailyHighlights[0])
+                    ? dailyHighlights[0].store?.price
+                    : undefined
+                "
+              />
             </button>
           </footer>
         </article>
@@ -623,7 +631,10 @@ watch(
               )}`"
               @click.stop="handleApp(app)"
             >
-              <AppStoreAction :action="appAction(app)" />
+              <AppStoreAction
+                :action="appAction(app)"
+                :price="isExternalPhoneApp(app) ? app.store?.price : undefined"
+              />
             </button>
           </footer>
         </article>
@@ -669,7 +680,12 @@ watch(
                 )}`"
                 @click.stop="handleApp(app)"
               >
-                <AppStoreAction :action="appAction(app)" />
+                <AppStoreAction
+                  :action="appAction(app)"
+                  :price="
+                    isExternalPhoneApp(app) ? app.store?.price : undefined
+                  "
+                />
               </button>
             </li>
           </ol>
@@ -719,7 +735,14 @@ watch(
             )}`"
             @click.stop="handleApp(finalHighlight)"
           >
-            <AppStoreAction :action="appAction(finalHighlight)" />
+            <AppStoreAction
+              :action="appAction(finalHighlight)"
+              :price="
+                isExternalPhoneApp(finalHighlight)
+                  ? finalHighlight.store?.price
+                  : undefined
+              "
+            />
           </button>
         </article>
       </section>
@@ -758,11 +781,7 @@ watch(
             </div>
             <div class="store-browse-feature__art" aria-hidden="true">
               <span></span>
-              <component
-                :is="app.icon"
-                :size="84"
-                :stroke-width="1.1"
-              />
+              <component :is="app.icon" :size="84" :stroke-width="1.1" />
               <img
                 class="phone-effect--filtered-media"
                 :src="app.iconImage"
@@ -784,8 +803,7 @@ watch(
                 type="button"
                 class="store-action-button"
                 :class="{
-                  'store-action-button--icon':
-                    appAction(app) === 'installing',
+                  'store-action-button--icon': appAction(app) === 'installing',
                   'store-action-button--get': appAction(app) === 'get',
                 }"
                 :disabled="appStore.installingApps[app.id]"
@@ -794,7 +812,12 @@ watch(
                 )}`"
                 @click="handleApp(app)"
               >
-                <AppStoreAction :action="appAction(app)" />
+                <AppStoreAction
+                  :action="appAction(app)"
+                  :price="
+                    isExternalPhoneApp(app) ? app.store?.price : undefined
+                  "
+                />
               </button>
             </footer>
           </article>
@@ -848,7 +871,9 @@ watch(
               />
               <span>
                 <strong>{{ getPhoneAppLabel(app, phone.t) }}</strong>
-                <small class="store-list__tagline">{{ appStoreTagline(app) }}</small>
+                <small class="store-list__tagline">{{
+                  appStoreTagline(app)
+                }}</small>
               </span>
             </button>
             <button
@@ -864,7 +889,10 @@ watch(
               )}`"
               @click="handleApp(app)"
             >
-              <AppStoreAction :action="appAction(app)" />
+              <AppStoreAction
+                :action="appAction(app)"
+                :price="isExternalPhoneApp(app) ? app.store?.price : undefined"
+              />
             </button>
           </article>
           <p v-if="shownApps.length === 0" class="store-empty">
@@ -906,7 +934,8 @@ watch(
                   type="button"
                   class="store-action-button"
                   :class="{
-                    'store-action-button--icon': appAction(app) === 'installing',
+                    'store-action-button--icon':
+                      appAction(app) === 'installing',
                     'store-action-button--get': appAction(app) === 'get',
                   }"
                   :disabled="appStore.installingApps[app.id]"
@@ -915,7 +944,12 @@ watch(
                   )}`"
                   @click="handleApp(app)"
                 >
-                  <AppStoreAction :action="appAction(app)" />
+                  <AppStoreAction
+                    :action="appAction(app)"
+                    :price="
+                      isExternalPhoneApp(app) ? app.store?.price : undefined
+                    "
+                  />
                 </button>
               </article>
             </div>
@@ -970,7 +1004,9 @@ watch(
                 />
                 <span>
                   <strong>{{ getPhoneAppLabel(app, phone.t) }}</strong>
-                  <small class="store-list__tagline">{{ appStoreTagline(app) }}</small>
+                  <small class="store-list__tagline">{{
+                    appStoreTagline(app)
+                  }}</small>
                 </span>
               </button>
               <button
@@ -986,7 +1022,12 @@ watch(
                 )}`"
                 @click="handleApp(app)"
               >
-                <AppStoreAction :action="appAction(app)" />
+                <AppStoreAction
+                  :action="appAction(app)"
+                  :price="
+                    isExternalPhoneApp(app) ? app.store?.price : undefined
+                  "
+                />
               </button>
             </article>
           </div>
@@ -1160,6 +1201,21 @@ watch(
         <SkyDialogButton strong @click="confirmUninstall">
           {{ phone.t('Apps.appStore.account.uninstall') }}
         </SkyDialogButton>
+      </template>
+    </SkyDialog>
+    <SkyDialog
+      :opened="Object.keys(appStore.installErrors).length > 0"
+      @backdropclick="appStore.installErrors = {}"
+      @escape="appStore.installErrors = {}"
+    >
+      <template #title>{{
+        phone.t('Apps.customApps.installFailedTitle')
+      }}</template>
+      <p>{{ phone.t('Apps.customApps.installFailedBody') }}</p>
+      <template #buttons>
+        <SkyDialogButton strong @click="appStore.installErrors = {}">{{
+          phone.t('Common.close')
+        }}</SkyDialogButton>
       </template>
     </SkyDialog>
   </SkyAppPage>

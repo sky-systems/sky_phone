@@ -1290,6 +1290,13 @@ Locales["pl"] = {
                 },
             },
             customApps = {
+                accessDenied = "Ta aplikacja jest niedostępna. Sprawdź dostęp i instalację, a następnie otwórz ją ponownie.",
+                installFailedTitle = "Nie udało się zainstalować aplikacji",
+                installFailedBody = "Pobieranie zostało odrzucone. Sprawdź saldo bankowe i dostęp do aplikacji, a następnie spróbuj ponownie. Jeśli płatność oczekuje, skontaktuj się z zespołem serwera.",
+                rating = "Ocena",
+                size = "Rozmiar",
+                screenshot = "Podgląd aplikacji {index}",
+                price = "$ {price}",
                 loading = "Otwieranie aplikacji...",
                 unavailableTitle = "Aplikacja niedostępna",
                 unavailableBody = "Nie udało się załadować tej niestandardowej aplikacji. Sprawdź, czy jej zasób jest uruchomiony, a następnie ponownie otwórz aplikację.",

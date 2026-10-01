@@ -134,12 +134,16 @@ local function normalize_policy(owner_resource, adapter_resource, definition)
         return nil, permissions_error
     end
 
+    local store, store_error = SkyPhoneApps.NormalizeStoreOptions(definition.store)
+    if not store then return nil, store_error end
+
     return {
         adapterResource = adapter_resource,
         bundled = false,
         id = definition.id,
         ownerResource = owner_resource,
         permissions = build_permission_set(permissions),
+        store = store,
     }
 end
 
@@ -317,6 +321,7 @@ local function get_custom_app_policy(app_id)
         id = policy.id,
         ownerResource = policy.ownerResource,
         permissions = permissions,
+        store = policy.store or {},
     }
 end
 

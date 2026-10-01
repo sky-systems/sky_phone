@@ -92,6 +92,12 @@ function compatibility.BuildHighDefinition(owner_resource, app_name, data, local
         bridgeMode = "legacy",
         icon = icon,
         iconBackground = type(data.icon) == "table" and data.icon.background or nil,
+        store = {
+            size = type(data.size) == "number" and data.size * 1024 or data.size,
+            screenshots = data.preview,
+            banner = data.banner,
+            inAppStore = data.inAppStore,
+        },
         defaultInstalled = data.preAdded or false,
         removable = data.removable ~= false,
         orientation = "portrait",

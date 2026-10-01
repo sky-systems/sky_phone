@@ -38,8 +38,9 @@ local callback_count = 0
 for _ in pairs(callbacks) do
     callback_count = callback_count + 1
 end
-assert(callback_count == 360, ("expected 360 NUI server callbacks, got %d"):format(callback_count))
+assert(callback_count == 363, ("expected 363 NUI server callbacks, got %d"):format(callback_count))
 for _, required in ipairs({
+    "custom-app:authorize", "custom-app:install", "custom-app:uninstall",
     "crypto:watch",
     "companies:dial-service-line",
     "fliptok:profiles",

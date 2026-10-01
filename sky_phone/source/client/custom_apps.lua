@@ -356,14 +356,21 @@ local function normalize_external_definition_value(owner_resource, adapter_resou
         end
     end
 
+    local action_app = definition.launchMode == "action"
+    if definition.launchMode ~= nil and definition.launchMode ~= "action" and definition.launchMode ~= "frame" then
+        return nil, "invalid_launch_mode"
+    end
+    if action_app and not is_callable(definition.onOpen) then
+        return nil, "invalid_action_handler"
+    end
     local ui, ui_error = normalize_asset_url(
         definition.ui,
         owner_resource,
         adapter_resource,
         asset_resource,
-        true
+        not action_app
     )
-    if not ui then
+    if not ui and not action_app then
         return nil, ui_error
     end
 
@@ -411,12 +418,25 @@ local function normalize_external_definition_value(owner_resource, adapter_resou
         return nil, "invalid_grid_order"
     end
 
-    local icon_background = validate_optional_text(definition.iconBackground, "invalid_icon_background", 64)
+    local icon_background = validate_optional_text(definition.iconBackground, "invalid_icon_background", 192)
     if definition.iconBackground ~= nil and not icon_background then
         return nil, "invalid_icon_background"
     end
     if icon_background and icon_background:find("[\r\n;{}]") then
         return nil, "invalid_icon_background"
+    end
+
+    local store, store_error = SkyPhoneApps.NormalizeStoreOptions(definition.store)
+    if not store then return nil, store_error end
+    for index, screenshot in ipairs(store.screenshots or {}) do
+        local normalized, screenshot_error = normalize_asset_url(screenshot, owner_resource, adapter_resource, asset_resource, true)
+        if not normalized then return nil, screenshot_error end
+        store.screenshots[index] = normalized
+    end
+    if store.banner then
+        local normalized, banner_error = normalize_asset_url(store.banner.imageUrl, owner_resource, adapter_resource, asset_resource, true)
+        if not normalized then return nil, banner_error end
+        store.banner.imageUrl = normalized
     end
 
     local bridge_mode = definition.bridgeMode or "legacy"
@@ -459,13 +479,15 @@ local function normalize_external_definition_value(owner_resource, adapter_resou
             iconBackground = icon_background,
             id = definition.id,
             kind = "external",
+            launchMode = action_app and "action" or "frame",
             name = resolve_localized_text(name),
             orientation = orientation,
             ownerResource = owner_resource,
             permissions = permissions,
             readyTimeoutMs = Config.CustomApps.ReadyTimeoutMs,
             removable = definition.removable ~= false,
-            ui = ui,
+            store = store,
+            ui = ui or "",
         },
         hooks = hooks,
         ownerResource = owner_resource,

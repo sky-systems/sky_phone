@@ -551,7 +551,7 @@ local function load_device_data(imei)
     local rows = Bridge.Database.Query([[
         SELECT `namespace`, `payload`, `revision`
         FROM `sky_phone_device_data`
-        WHERE `device_imei` = ?
+        WHERE `device_imei` = ? AND `namespace` <> 'customAppPurchases'
     ]], { imei })
     local data = {}
     for _, row in ipairs(rows) do
@@ -609,6 +609,7 @@ local function bootstrap(source, security, security_loaded)
         notes = SkyPhoneNotes.List(device.account_id, device.imei),
         memos = SkyPhoneMemos.List(device.account_id, device.imei),
         player = {
+            job = Bridge.Framework.GetJob(source),
             firstName = trim(Bridge.Framework.GetFirstname(source)) or "",
             lastName = trim(Bridge.Framework.GetLastname(source)) or "",
         },

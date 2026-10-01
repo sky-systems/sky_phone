@@ -43,6 +43,12 @@ export function getCustomAppFrameKey(app: ExternalPhoneAppDefinition): string {
       compatibility: app.compatibility,
       description: app.description,
       id: app.id,
+      launchMode: app.launchMode,
+      access: {
+        price: app.store?.price,
+        allowedJobs: app.store?.allowedJobs,
+        disabledJobs: app.store?.disabledJobs,
+      },
       name: app.name,
       orientation: app.orientation,
       ownerResource: app.ownerResource,

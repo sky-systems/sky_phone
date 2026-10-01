@@ -38,6 +38,7 @@ function compatibility.BuildQuasarDefinition(app_data)
         ui = iframe_url,
         bridgeMode = "legacy",
         icon = app_data.icon,
+        store = { price = app_data.price },
         defaultInstalled = app_data.defaultInstalled or false,
         removable = true,
         orientation = "portrait",

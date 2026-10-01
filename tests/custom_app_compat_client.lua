@@ -524,6 +524,23 @@ assert(mov_add_application({
 local mov_message_success, mov_message_error = mov_send_app_message("market", { type = "ping" })
 assert(not mov_message_success and mov_message_error == "app_not_active", "17mov message alias must preserve app state checks")
 assert(mov_remove_application("market"), "17mov RemoveApplication must use the provider alias")
+assert(mov_add_application({ name = "market", label = "Market", ui = "ui/index.html" }))
+assert(mov_remove_application({ name = "market", resourceName = "mov_app", uninstall = true }))
+local uninstall_seen = false
+for _, message in ipairs(nui_messages) do
+    if message.type == "custom-app:uninstall" and message.data.appId == "market" then uninstall_seen = true end
+end
+assert(uninstall_seen, "17mov permanent removal must request a persisted uninstall")
+invoking_resource = "lb_app"
+assert(lb_add_custom_app({ identifier = "action-only", name = "Action", defaultApp = true, onUse = function() end }),
+    "LB function-only apps must register without UI")
+local action_catalog = nui_messages[#nui_messages]
+local action_seen = false
+for _, app in ipairs(action_catalog.data.apps) do
+    if app.id == "action-only" then action_seen = app.launchMode == "action" and app.ui == "" end
+end
+assert(action_seen, "Function-only apps must reach the catalog as actions")
+assert(lb_remove_custom_app("action-only"))
 
 invoking_resource = "high_app"
 assert(high_add_application("bankingv2", {

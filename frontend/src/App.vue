@@ -883,6 +883,10 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     if (typeof activeAppId === 'string' && !isPhoneAppId(activeAppId)) {
       void router.push('/')
     }
+  } else if (event.data?.type === 'custom-app:uninstall') {
+    const data = event.data.data as CustomAppEventData | undefined
+    if (typeof data?.appId === 'string')
+      void appStore.forceUninstall(data.appId)
   } else if (event.data?.type === 'custom-app:message') {
     const data = event.data.data as CustomAppEventData | undefined
     if (typeof data?.appId === 'string') {

@@ -1836,6 +1836,22 @@ const defaultLocales: LocaleTree = {
   },
   AdminPanel: adminPanelFallbackLocales,
   Apps: {
+    customApps: {
+      loading: 'Loading app…',
+      close: 'Close',
+      unavailableTitle: 'App unavailable',
+      unavailableBody:
+        'This custom app could not be loaded. Reopen it after its resource is started.',
+      accessDenied:
+        'This app is unavailable. Check your access and installation, then reopen it.',
+      installFailedTitle: 'App could not be installed',
+      installFailedBody:
+        'The download was rejected. Check your bank balance and app access, then try again. If a payment is pending, contact your server team.',
+      price: '$ {price}',
+      rating: 'Rating',
+      size: 'Size',
+      screenshot: 'App preview {index}',
+    },
     citywarn: citywarnFallbackLocales,
     crypto: cryptoFallbackLocales,
     easyShare: {
@@ -6665,6 +6681,7 @@ export const usePhoneStore = defineStore('phone', {
     deviceRevisions: {} as Record<string, number>,
     deviceSessionToken: null as string | null,
     isOpen: false,
+    activeCustomAppId: null as string | null,
     lang: 'en',
     launchOrigin: null as AppLaunchOrigin | null,
     fallbackLocales: defaultLocales,
@@ -6694,6 +6711,7 @@ export const usePhoneStore = defineStore('phone', {
     close(): void {
       this.cameraLandscape = false
       this.isOpen = false
+      this.activeCustomAppId = null
     },
     setLocale(
       lang: string,

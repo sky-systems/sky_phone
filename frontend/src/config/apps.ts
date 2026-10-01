@@ -765,7 +765,7 @@ export function getPhoneAppLabel(
 export function isPhoneAppRemovable(app: PhoneAppDefinition): boolean {
   if (app.adminOnly) return false
   return app.kind === 'external'
-    ? app.removable && !app.defaultInstalled
+    ? app.removable
     : !DEFAULT_INSTALLED_PHONE_APP_IDS.has(app.id) &&
         !NON_REMOVABLE_PHONE_APP_IDS.has(app.id)
 }

@@ -1290,6 +1290,13 @@ Locales["se"] = {
                 },
             },
             customApps = {
+                accessDenied = "Appen är inte tillgänglig. Kontrollera åtkomst och installation och öppna den igen.",
+                installFailedTitle = "Appen kunde inte installeras",
+                installFailedBody = "Nedladdningen nekades. Kontrollera ditt banksaldo och åtkomst till appen och försök igen. Kontakta serverteamet om en betalning väntar.",
+                rating = "Betyg",
+                size = "Storlek",
+                screenshot = "Appförhandsvisning {index}",
+                price = "$ {price}",
                 loading = "Öppnar app...",
                 unavailableTitle = "Appen är inte tillgänglig",
                 unavailableBody = "Denna anpassade app kunde inte laddas. Kontrollera att dess resurs är startad och öppna sedan appen igen.",

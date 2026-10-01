@@ -18,6 +18,7 @@ import type {
   BuiltinPhoneAppId,
   ExternalPhoneAppDefinition,
   PhoneAppCategory,
+  CustomAppStoreOptions,
 } from '@/types/apps'
 
 const APP_CATEGORIES: ReadonlySet<PhoneAppCategory> = new Set([
@@ -64,11 +65,14 @@ function readOptionalString(
 function readIconBackground(value: unknown): string {
   if (typeof value !== 'string') return ''
   const normalized = value.trim()
-  if (!normalized || normalized.length > 64) return ''
+  if (!normalized || normalized.length > 192) return ''
 
   return ICON_BACKGROUND_HEX_PATTERN.test(normalized) ||
     ICON_BACKGROUND_NAMED_PATTERN.test(normalized) ||
-    ICON_BACKGROUND_FUNCTION_PATTERN.test(normalized)
+    ICON_BACKGROUND_FUNCTION_PATTERN.test(normalized) ||
+    /^linear-gradient\(-?\d+(?:\.\d+)?deg,(?:#[\da-f]{3,8},){1,7}#[\da-f]{3,8}\)$/i.test(
+      normalized,
+    )
     ? normalized
     : ''
 }
@@ -137,6 +141,56 @@ function readCompatibility(value: unknown): Record<string, unknown> {
   return (readCompatibilityValue(source) as Record<string, unknown>) ?? {}
 }
 
+function readStoreOptions(value: unknown): CustomAppStoreOptions {
+  const source = readRecord(value)
+  if (!source) return {}
+  const options: CustomAppStoreOptions = {}
+  for (const field of ['price', 'size', 'rating'] as const) {
+    const number = source[field]
+    if (
+      typeof number === 'number' &&
+      Number.isFinite(number) &&
+      number >= 0 &&
+      number <= 2147483647
+    ) {
+      if (field === 'rating' && (number < 1 || number > 5)) continue
+      if (field === 'price' && !Number.isInteger(number)) continue
+      options[field] = number
+    }
+  }
+  for (const field of ['inAppStore', 'disableInAppNotifications'] as const) {
+    if (typeof source[field] === 'boolean') options[field] = source[field]
+  }
+  for (const field of ['allowedJobs', 'disabledJobs'] as const) {
+    const jobs = readRecord(source[field])
+    if (!jobs) continue
+    options[field] = Object.fromEntries(
+      Object.entries(jobs).filter(
+        ([name, grade]) =>
+          /^[\w-]{1,64}$/.test(name) &&
+          typeof grade === 'number' &&
+          Number.isInteger(grade) &&
+          grade >= 0 &&
+          grade <= 9999,
+      ),
+    ) as Record<string, number>
+  }
+  if (Array.isArray(source.screenshots)) {
+    options.screenshots = source.screenshots
+      .slice(0, 8)
+      .map(readHttpsUrl)
+      .filter((url): url is string => url !== null)
+  }
+  const banner = readRecord(source.banner)
+  const imageUrl = readHttpsUrl(banner?.imageUrl)
+  if (imageUrl)
+    options.banner = {
+      imageUrl,
+      background: readIconBackground(banner?.background),
+    }
+  return options
+}
+
 export function normalizeExternalPhoneApp(
   value: unknown,
   fallbackOrder = 0,
@@ -147,7 +201,8 @@ export function normalizeExternalPhoneApp(
   const id = readRequiredString(source, 'id', 64)
   const name = readRequiredString(source, 'name', 64)
   const ownerResource = readRequiredString(source, 'ownerResource', 128)
-  const ui = readHttpsUrl(source.ui)
+  const actionApp = source.launchMode === 'action'
+  const ui = actionApp ? '' : readHttpsUrl(source.ui)
   const icon = readHttpsUrl(source.icon)
   if (
     !id ||
@@ -156,7 +211,7 @@ export function normalizeExternalPhoneApp(
     !name ||
     !ownerResource ||
     !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(ownerResource) ||
-    !ui ||
+    (!actionApp && !ui) ||
     !icon
   ) {
     return null
@@ -197,6 +252,8 @@ export function normalizeExternalPhoneApp(
     iconImage: icon,
     id,
     kind: 'external',
+    launchMode: actionApp ? 'action' : 'frame',
+    store: readStoreOptions(source.store),
     name,
     orientation: source.orientation === 'landscape' ? 'landscape' : 'portrait',
     ownerResource,
@@ -209,7 +266,7 @@ export function normalizeExternalPhoneApp(
         : 8000,
     removable: source.removable !== false,
     route: `/apps/${id}`,
-    ui,
+    ui: ui ?? '',
   }
 }
 

@@ -17,6 +17,7 @@ export type PhoneDevice = {
 export type PhonePlayerIdentity = {
   firstName: string
   lastName: string
+  job?: { name: string; grade: number }
 }
 
 export type PhoneNotificationDevicePayload = {

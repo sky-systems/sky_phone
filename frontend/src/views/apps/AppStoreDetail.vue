@@ -26,7 +26,13 @@ const emit = defineEmits<{
 const phone = usePhoneStore()
 const previews = ref<HTMLElement | null>(null)
 const activePreviewIndex = ref(0)
-const previewCount = 5
+const external = computed(() =>
+  isExternalPhoneApp(props.app) ? props.app : null,
+)
+const screenshots = computed(() => external.value?.store?.screenshots ?? [])
+const previewCount = computed(() =>
+  external.value ? screenshots.value.length : 5,
+)
 const previewScreens = [0, 1, 2, 3, 4] as const
 const appName = computed(() => getPhoneAppLabel(props.app, phone.t))
 const developer = computed(() =>
@@ -166,12 +172,12 @@ function updateActivePreview(): void {
           :disabled="action === 'installing'"
           @click="emit('action')"
         >
-          <AppStoreAction :action="action" />
+          <AppStoreAction :action="action" :price="external?.store?.price" />
         </button>
       </div>
     </section>
 
-    <dl class="store-detail__facts">
+    <dl v-if="!external" class="store-detail__facts">
       <div>
         <dt>
           {{ phone.t('Apps.appStore.details.ratings', { count: ratingCount }) }}
@@ -193,7 +199,35 @@ function updateActivePreview(): void {
       </div>
     </dl>
 
-    <section class="store-detail__whats-new">
+    <dl
+      v-else-if="external.store?.rating || external.store?.size"
+      class="store-detail__facts"
+    >
+      <div v-if="external.store?.rating">
+        <dt>{{ phone.t('Apps.customApps.rating') }}</dt>
+        <dd>{{ external.store.rating }}</dd>
+      </div>
+      <div v-if="external.store?.size">
+        <dt>{{ phone.t('Apps.customApps.size') }}</dt>
+        <dd>
+          {{
+            (external.store.size / 1024).toLocaleString(phone.lang, {
+              maximumFractionDigits: 2,
+            })
+          }}
+          MB
+        </dd>
+      </div>
+    </dl>
+    <img
+      v-if="external?.store?.banner"
+      class="store-detail__banner"
+      :src="external.store.banner.imageUrl"
+      :style="{ background: external.store.banner.background }"
+      alt=""
+    />
+
+    <section v-if="!external" class="store-detail__whats-new">
       <header>
         <h2>{{ phone.t('Apps.appStore.details.whatsNew') }}</h2>
         <ChevronRight :size="22" :stroke-width="2.4" aria-hidden="true" />
@@ -211,7 +245,7 @@ function updateActivePreview(): void {
       </p>
     </section>
 
-    <section class="store-detail__preview-section">
+    <section v-if="previewCount" class="store-detail__preview-section">
       <header>
         <h2>{{ phone.t('Apps.appStore.details.preview') }}</h2>
         <div class="store-detail__preview-navigation">
@@ -247,19 +281,31 @@ function updateActivePreview(): void {
         class="store-detail__previews"
         @scroll.passive="updateActivePreview"
       >
-        <AppStorePreviewCard
-          v-for="screen in previewScreens"
-          :key="screen"
-          :app-name="appName"
-          :features="previewFeatures"
-          :icon-image="app.iconImage"
-          :category-label="phone.t(`Home.groups.${app.category}`)"
-          :developer="developer"
-          :preview-image="previewImage"
-          :screen="screen"
-          :tagline="appTagline"
-          :visual="previewVisual"
+        <img
+          v-for="(screenshot, index) in screenshots"
+          :key="screenshot"
+          class="store-detail-preview store-detail__external-preview"
+          :src="screenshot"
+          :alt="
+            phone.t('Apps.customApps.screenshot', { index: String(index + 1) })
+          "
+          loading="lazy"
         />
+        <template v-if="!external">
+          <AppStorePreviewCard
+            v-for="screen in previewScreens"
+            :key="screen"
+            :app-name="appName"
+            :features="previewFeatures"
+            :icon-image="app.iconImage"
+            :category-label="phone.t(`Home.groups.${app.category}`)"
+            :developer="developer"
+            :preview-image="previewImage"
+            :screen="screen"
+            :tagline="appTagline"
+            :visual="previewVisual"
+          />
+        </template>
       </div>
     </section>
 
@@ -267,10 +313,12 @@ function updateActivePreview(): void {
       <h2>{{ phone.t('Apps.appStore.details.about') }}</h2>
       <p>
         {{
-          phone.t(`${detailCopyPrefix}.description`, {
-            app: appName,
-            category: phone.t(`Home.groups.${app.category}`),
-          })
+          external
+            ? external.description
+            : phone.t(`${detailCopyPrefix}.description`, {
+                app: appName,
+                category: phone.t(`Home.groups.${app.category}`),
+              })
         }}
       </p>
     </section>
@@ -278,6 +326,20 @@ function updateActivePreview(): void {
 </template>
 
 <style scoped>
+.store-detail__banner {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--sky-radius-card);
+}
+.store-detail__external-preview {
+  flex: 0 0 auto;
+  width: 220px;
+  height: 440px;
+  object-fit: contain;
+  border-radius: var(--sky-radius-card);
+  scroll-snap-align: start;
+}
 .store-detail {
   width: 100%;
   min-width: 0;

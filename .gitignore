@@ -9,6 +9,7 @@
 /CONTEXT.md
 /design-qa.md
 /docs/*
+!/docs/custom-app-registration-audit.md
 !/docs/phone-configurator.md
 !/docs/inventory-setup.md
 

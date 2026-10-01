@@ -135,6 +135,7 @@ server_scripts {
     'source/server/admin.lua',
     'source/server/lb_phone_migration.lua',
     'source/server/custom_app_storage.lua',
+    'source/server/custom_app_installations.lua',
     'source/server/payphones.lua',
     'source/server/calls.lua',
     'source/server/notifications.lua',

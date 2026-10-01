@@ -1290,6 +1290,13 @@ Locales["cz"] = {
                 },
             },
             customApps = {
+                accessDenied = "Tato aplikace není dostupná. Zkontrolujte přístup a instalaci a znovu ji otevřete.",
+                installFailedTitle = "Aplikaci nelze nainstalovat",
+                installFailedBody = "Stažení bylo zamítnuto. Zkontrolujte zůstatek v bance a přístup k aplikaci a zkuste to znovu. Pokud platba čeká na vyřízení, kontaktujte tým serveru.",
+                rating = "Hodnocení",
+                size = "Velikost",
+                screenshot = "Náhled aplikace {index}",
+                price = "$ {price}",
                 loading = "Otevírání aplikace...",
                 unavailableTitle = "Aplikace není k dispozici",
                 unavailableBody = "Tuto vlastní aplikaci nelze načíst. Zkontrolujte, zda je její zdroj spuštěn, a poté aplikaci znovu otevřete.",

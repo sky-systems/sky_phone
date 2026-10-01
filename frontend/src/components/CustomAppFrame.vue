@@ -143,7 +143,11 @@ const context = computed<SkyPhoneAppContextV1>(() => {
     appId: props.app.id,
     capabilities,
     ...(capabilities.includes('theme.read')
-      ? { colorScheme: phone.isDarkMode ? ('dark' as const) : ('light' as const) }
+      ? {
+          colorScheme: phone.isDarkMode
+            ? ('dark' as const)
+            : ('light' as const),
+        }
       : {}),
     ...(capabilities.includes('locale.read')
       ? {
@@ -457,6 +461,7 @@ function closeApp(): void {
 }
 
 onBeforeMount(() => {
+  phone.activeCustomAppId = props.app.id
   window.addEventListener('message', onFrameMessage)
   orientation.apply(props.app.orientation)
   void lifecycle.report('open', initialOpenRequest?.data)
@@ -474,6 +479,7 @@ onBeforeMount(() => {
 })
 
 onBeforeUnmount(() => {
+  if (phone.activeCustomAppId === props.app.id) phone.activeCustomAppId = null
   if (loadTimeout !== undefined) clearTimeout(loadTimeout)
   frameDocumentController?.abort()
   window.removeEventListener('message', onFrameMessage)

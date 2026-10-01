@@ -1290,6 +1290,13 @@ Locales["de"] = {
                 },
             },
             customApps = {
+                accessDenied = "Diese App ist nicht verfügbar. Prüfe deinen Zugriff und die Installation und öffne sie erneut.",
+                installFailedTitle = "App konnte nicht installiert werden",
+                installFailedBody = "Der Download wurde abgelehnt. Prüfe dein Bankguthaben und den App-Zugriff und versuche es erneut. Wende dich bei einer ausstehenden Zahlung an dein Serverteam.",
+                price = "$ {price}",
+                rating = "Bewertung",
+                size = "Größe",
+                screenshot = "App-Vorschau {index}",
                 loading = "App wird geöffnet...",
                 unavailableTitle = "App nicht verfügbar",
                 unavailableBody = "Diese benutzerdefinierte App konnte nicht geladen werden. Prüfe, ob die Ressource gestartet ist, und öffne die App erneut.",

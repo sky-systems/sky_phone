@@ -152,6 +152,62 @@ Bridge.Callbacks.Register("sky_phone:notifications:save", function(source, data)
     return { success = true }
 end)
 
+-- Provider removal also works with a closed phone, just like notification
+-- persistence. Ownership is rechecked after the database read.
+Bridge.Callbacks.Register("sky_phone:custom-app:uninstall", function(source, data)
+    if not SkyPhone.AllowOperation(source, "custom_app_uninstall", 30, 60) then
+        return { success = false, error = "rate_limited" }
+    end
+    if type(data) ~= "table" or not SkyPhoneImei.IsValid(data.imei)
+        or not SkyPhoneApps.ValidateAppId(data.appId) or SkyPhoneApps.ReservedAppIds[data.appId] then
+        return { success = false, error = "invalid_request" }
+    end
+    if #SkyPhone.FindDeviceSlots(source, data.imei) == 0 then
+        return { success = false, error = "device_not_owned" }
+    end
+    local identifier = Bridge.Framework.GetIdentifier(source)
+    if type(identifier) ~= "string" or identifier == "" then return { success = false, error = "player_unavailable" } end
+    local rows = Bridge.Database.Query([[
+        SELECT `payload`, `revision` FROM `sky_phone_device_data`
+        WHERE `device_imei` = ? AND `namespace` = 'apps' LIMIT 1
+    ]], { data.imei })
+    local payload = rows[1] and json.decode(rows[1].payload) or {}
+    if type(payload) ~= "table" or (payload.claimedApps ~= nil and type(payload.claimedApps) ~= "table")
+        or (payload.uninstalledApps ~= nil and type(payload.uninstalledApps) ~= "table") then
+        return { success = false, error = "invalid_device_data" }
+    end
+    local claimed = {}
+    for _, id in ipairs(payload.claimedApps or {}) do
+        if id ~= data.appId then claimed[#claimed + 1] = id end
+    end
+    payload.claimedApps = claimed
+    payload.homeLayout = payload.homeLayout or { version = 6 }
+    payload.uninstalledApps = payload.uninstalledApps or {}
+    local found = false
+    for _, id in ipairs(payload.uninstalledApps) do if id == data.appId then found = true end end
+    if not found then payload.uninstalledApps[#payload.uninstalledApps + 1] = data.appId end
+    if Bridge.Framework.GetIdentifier(source) ~= identifier or #SkyPhone.FindDeviceSlots(source, data.imei) == 0 then
+        return { success = false, error = "device_not_owned" }
+    end
+    local encoded = json.encode(payload)
+    if #encoded > max_device_data_bytes then return { success = false, error = "payload_too_large" } end
+    local revision = rows[1] and tonumber(rows[1].revision) or 0
+    local result
+    if not rows[1] then
+        result = Bridge.Database.Query([[
+            INSERT IGNORE INTO `sky_phone_device_data` (`device_imei`, `namespace`, `payload`, `revision`)
+            VALUES (?, 'apps', ?, 1)
+        ]], { data.imei, encoded })
+    else
+        result = Bridge.Database.Query([[
+            UPDATE `sky_phone_device_data` SET `payload` = ?, `revision` = `revision` + 1
+            WHERE `device_imei` = ? AND `namespace` = 'apps' AND `revision` = ?
+        ]], { encoded, data.imei, revision })
+    end
+    if affected_rows(result) ~= 1 then return { success = false, error = "conflict" } end
+    return { success = true, data = { payload = payload, revision = revision + 1 } }
+end)
+
 function SkyPhonePersistence.FactoryReset(imei)
     if not SkyPhoneImei.IsValid(imei) then
         return false, "invalid_request"
