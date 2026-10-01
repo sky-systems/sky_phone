@@ -90,11 +90,9 @@ for (const mode of ['light', 'dark']) {
     })
     expect(report.issues).toEqual([])
     await testInfo.attach(`external-store-${mode}`, {
-      body: await page
-        .locator('.phone-device')
-        .screenshot({
-          path: testInfo.outputPath(`external-store-${mode}.png`),
-        }),
+      body: await page.locator('.phone-device').screenshot({
+        path: testInfo.outputPath(`external-store-${mode}.png`),
+      }),
       contentType: 'image/png',
     })
     await detail.locator('.store-detail__action').click()
