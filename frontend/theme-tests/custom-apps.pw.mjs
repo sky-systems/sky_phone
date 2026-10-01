@@ -74,6 +74,16 @@ for (const mode of ['light', 'dark']) {
     )
     await expect(detail.locator('.store-detail__whats-new')).toHaveCount(0)
     await expect(detail.locator('.store-detail__action')).toHaveText('$ 500')
+    await expect
+      .poll(() =>
+        detail.evaluate((element) => {
+          let opacity = 1
+          for (let parent = element; parent; parent = parent.parentElement)
+            opacity *= Number(getComputedStyle(parent).opacity)
+          return opacity
+        }),
+      )
+      .toBe(1)
     const report = await page.evaluate(auditTheme, {
       selector: '.store-detail',
       mode,
