@@ -116,6 +116,8 @@ local function validate_request(source, data, operation)
     if type(data) ~= "table" or not SkyPhoneApps.HasPermission(data.appId, "device.storage") then
         return nil, nil, { success = false, error = "storage_not_allowed" }
     end
+    local allowed, access_error = SkyPhoneApps.CheckAppAccess(source, data.appId)
+    if not allowed then return nil, nil, { success = false, error = access_error } end
     if type(data.key) ~= "string"
         or #data.key == 0
         or #data.key > math.min(Config.CustomApps.MaximumStorageKeyLength, 64)
@@ -164,6 +166,11 @@ Bridge.Callbacks.Register("sky_phone:custom-app:storage:get", function(source, d
     end
 
     local row = read_row(session.imei, request.appId, request.key)
+    local allowed, access_error = SkyPhoneApps.CheckAppAccess(source, request.appId)
+    local active_session = SkyPhone.RequireSession(source)
+    if not allowed or active_session ~= session or not SkyPhoneApps.HasPermission(request.appId, "device.storage") then
+        return { success = false, error = access_error or "storage_not_allowed" }
+    end
     if not row then
         return { success = true, data = { exists = false, revision = 0 } }
     end
@@ -233,6 +240,11 @@ Bridge.Callbacks.Register("sky_phone:custom-app:storage:set", function(source, d
         ]], { session.imei, request.appId })
         local current_size = current and #current.payload or 0
         local next_total = (tonumber(totals[1] and totals[1].total) or 0) - current_size + #payload
+        local allowed, access_error = SkyPhoneApps.CheckAppAccess(source, request.appId)
+        local active_session = SkyPhone.RequireSession(source)
+        if not allowed or active_session ~= session or not SkyPhoneApps.HasPermission(request.appId, "device.storage") then
+            return { success = false, error = access_error or "storage_not_allowed" }
+        end
         if next_total > Config.CustomApps.MaximumStorageBytesPerApp then
             return { success = false, error = "storage_quota_exceeded" }
         end

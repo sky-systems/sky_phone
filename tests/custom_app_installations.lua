@@ -129,4 +129,19 @@ assert(install(1, request({ imei = "222", sessionToken = "second" })).error == "
 source_session = prior_session
 assert(coroutine.resume(thread))
 assert(debits == 1)
+reset()
+Config = { CustomApps = { Enabled = true, StorageRequestsPerMinute = 60, MaximumStorageKeyLength = 64 } }
+SkyPhoneApps.HasPermission = function() return true end
+dofile("sky_phone/source/server/custom_app_storage.lua")
+local storage_get = callbacks["sky_phone:custom-app:storage:get"]
+local storage_set = callbacks["sky_phone:custom-app:storage:set"]
+assert(storage_get(1, { appId = "dispatch", key = "state" }).error == "app_not_purchased",
+    "Direct storage calls must not bypass payment authorization")
+assert(storage_set(1, { appId = "dispatch", key = "state", value = {}, revision = 0 }).error == "app_not_purchased")
+policy.store = { allowedJobs = { police = 3 } }
+assert(storage_get(1, { appId = "dispatch", key = "state" }).error == "app_job_denied",
+    "Direct storage calls must use the current authoritative job")
+policy.store = {}
+assert(storage_get(1, { appId = "dispatch", key = "state" }).success,
+    "Unrestricted authorized storage retains its existing behavior")
 print("Custom app installation authority/payment tests passed")

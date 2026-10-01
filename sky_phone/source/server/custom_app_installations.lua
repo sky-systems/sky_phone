@@ -80,6 +80,25 @@ SkyPhoneApps.HasAppPurchase = function(imei, policy)
     return purchase ~= nil and purchase.ownerResource == policy.ownerResource and purchase.status == "paid"
 end
 
+function SkyPhoneApps.CheckAppAccess(source, app_id)
+    local policy = SkyPhoneApps.GetPolicy(app_id)
+    if not policy then return false, "app_policy_required" end
+    local session, session_error = SkyPhone.RequireSession(source)
+    if not session then return false, session_error.error end
+    local request = {
+        appId = app_id, ownerResource = policy.ownerResource,
+        imei = session.imei, sessionToken = session.token, requirePolicy = true,
+    }
+    local _, _, access_error = require_app_policy(source, request)
+    if access_error then return false, access_error.error end
+    if (policy.store.price or 0) > 0 and not SkyPhoneApps.HasAppPurchase(session.imei, policy) then
+        return false, "app_not_purchased"
+    end
+    local _, _, refreshed_error = require_app_policy(source, request)
+    if refreshed_error then return false, refreshed_error.error end
+    return true
+end
+
 Bridge.Callbacks.Register("sky_phone:custom-app:authorize", function(source, data)
     if not SkyPhone.AllowOperation(source, "custom_app_authorize", 120, 60) then
         return { success = false, error = "rate_limited" }

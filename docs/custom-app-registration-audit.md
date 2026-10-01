@@ -98,6 +98,9 @@ owner, unlocked device session/token, inventory ownership, job and balance.
 Neither NUI prices nor job fields choose the actual charge or permission result.
 Frames/actions wait for server authorization; local install claims and lifecycle
 hooks wait for the server install result and successful device persistence.
+Direct custom-app storage callbacks enforce the same current job/purchase policy
+and recheck it after database reads, so bypassing the frontend open check does
+not grant storage access.
 
 Purchases are retained per device/app/owner in the server-only
 `customAppPurchases` namespace of the existing `sky_phone_device_data` table.
