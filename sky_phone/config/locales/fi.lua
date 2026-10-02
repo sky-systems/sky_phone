@@ -1120,6 +1120,7 @@ Locales["fi"] = {
                 invalid_field = "Tämä konfigurointikenttä ei ole enää käytettävissä.",
                 invalid_value = "Konfiguraation arvo on virheellinen.",
                 invalid_company_configuration = "Yrityksen konfiguraatio on puutteellinen tai se sisältää päällekkäisen työn, palvelunumeron tai palvelutunnuksen.",
+                invalid_crypto_configuration = "Kryptomarkkinoiden tunnusten on oltava yksilöllisiä. Olemassa olevien markkinoiden yksikköasteikkojen tai liikkeeseen lasketun määrän muuttaminen edellyttää tietokannan migraatiota.",
                 account_not_found = "Tähän puhelimeen ei ole linkitetty iFruit-tiliä.",
                 invalid_phone_number = "Syötä puhelinnumero konfiguroidussa palvelimen muodossa.",
                 phone_number_unchanged = "Tämä SIM-kortti käyttää jo tätä puhelinnumeroa.",

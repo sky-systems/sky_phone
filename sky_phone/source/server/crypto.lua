@@ -1,9 +1,13 @@
 Bridge.Database.AfterMigration("sky_phone", function()
 
+SkyPhoneCrypto = {}
+
 local sessions = {}
 local market_viewers = {}
 local profile_locks = {}
 local exchange_lock = false
+local configuration_refresh_pending = false
+local refresh_crypto_runtime
 local markets = {}
 local market_order = {}
 local market_dynamics = {}
@@ -339,6 +343,31 @@ end
 
 local function ceil_div(value, divisor)
     return math.floor((value + divisor - 1) / divisor)
+end
+
+function SkyPhoneCrypto.ValidateConfiguration(configuration)
+    local crypto = configuration.Crypto
+    local configured_markets = {}
+    for _, market in ipairs(crypto.Markets) do
+        if configured_markets[market.Id] then
+            return false, ("Duplicate Crypto market ID '%s'."):format(market.Id)
+        end
+        configured_markets[market.Id] = market
+    end
+    local persisted = Bridge.Database.Query([[
+        SELECT `id`, `asset_scale`, `price_scale`, `issued_supply` FROM `sky_phone_crypto_markets`
+    ]], {})
+    for _, market in ipairs(persisted) do
+        local configured = configured_markets[market.id]
+        if tonumber(market.asset_scale) ~= crypto.AssetScale
+            or tonumber(market.price_scale) ~= crypto.PriceScale
+            or (configured and tonumber(market.issued_supply) ~= configured.IssuedSupply * crypto.AssetScale)
+        then
+            return false, ("Crypto market '%s' requires a database migration before changing its scale or supply.")
+                :format(market.id)
+        end
+    end
+    return true
 end
 
 local function initialize_markets()
@@ -829,6 +858,9 @@ local function with_exchange_lock(callback)
     exchange_lock = true
     local success, result = pcall(callback)
     exchange_lock = false
+    if configuration_refresh_pending then
+        refresh_crypto_runtime()
+    end
     if not success then
         error(result)
     end
@@ -1841,14 +1873,15 @@ local function start_crypto_schedulers()
     end)
 end
 
-local function refresh_crypto_runtime()
+refresh_crypto_runtime = function()
     if exchange_lock then
-        print("[sky_phone] Crypto runtime refresh skipped because the exchange is busy.")
+        configuration_refresh_pending = true
         return
     end
+    configuration_refresh_pending = false
     with_exchange_lock(function()
         if not persist_market_cache() then
-            return
+            error("[sky_phone] Could not persist Crypto market state before applying configuration.")
         end
         initialize_markets()
         load_market_cache()

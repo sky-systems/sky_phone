@@ -75,7 +75,8 @@ local function new_server(database, configure_defaults, defer_initialization)
                     return 0
                 end
                 if sql:find("UPDATE", 1, true) then
-                    assert(parameters[5] == 1 and parameters[6] == database.row.revision)
+                    assert(parameters[5] == 1)
+                    if parameters[6] ~= database.row.revision then return { affectedRows = 0 } end
                     database.writes = database.writes + 1
                     database.row = {
                         config_payload = parameters[1], media_payload = parameters[2],
@@ -89,6 +90,7 @@ local function new_server(database, configure_defaults, defer_initialization)
         },
     }
     environment.SkyPhoneCompanies = { ValidateConfiguration = function() return true end }
+    environment.SkyPhoneCrypto = { ValidateConfiguration = function() return true end }
     environment.TriggerEvent = function(name, revision)
         assert(name == "sky_phone:configurator:serverUpdated")
         updates[#updates + 1] = { revision = revision, config = copy(environment.Config) }
@@ -171,6 +173,29 @@ local function use_company_validation(server)
     local validation = source:sub(1, finish - 1):gsub('^Bridge.Database.AfterMigration%("sky_phone", function%(%)\n', '')
     load_script("source/shared/sim_number.lua", server.env)
     assert(load(validation, "@companies_validation", "t", server.env))()
+end
+
+local function use_crypto_validation(server)
+    local file = assert(io.open("sky_phone/source/server/crypto.lua", "r"))
+    local source = file:read("*a")
+    file:close()
+    local start = assert(source:find("function SkyPhoneCrypto.ValidateConfiguration(", 1, true))
+    local finish = assert(source:find("local function initialize_markets(", start, true))
+    assert(load(source:sub(start, finish - 1), "@crypto_validation", "t", server.env))()
+    local persisted = {}
+    for _, market in ipairs(server.env.Config.Crypto.Markets) do
+        persisted[#persisted + 1] = {
+            id = market.Id,
+            asset_scale = tostring(server.env.Config.Crypto.AssetScale),
+            price_scale = tostring(server.env.Config.Crypto.PriceScale),
+            issued_supply = tostring(market.IssuedSupply * server.env.Config.Crypto.AssetScale),
+        }
+    end
+    local query = server.env.Bridge.Database.Query
+    server.env.Bridge.Database.Query = function(sql, parameters)
+        if sql:find("FROM `sky_phone_crypto_markets`", 1, true) then return copy(persisted) end
+        return query(sql, parameters)
+    end
 end
 
 local failures = 0
@@ -1047,6 +1072,88 @@ test("file-owned access groups and bootstrap settings cannot be written through 
     end
 end)
 
+test("configured company services can be renamed, removed and cleared without restoring defaults", function()
+    local server = new_server()
+    use_company_validation(server)
+    local field = server.field("Companies.Definitions")
+    local structure = field.structure.fields.police.fields.Services
+    assert(structure.kind == "list" and #structure.items == 0 and structure.template)
+    local definitions = field.value
+    definitions.police.Services[1].Id = "police-custom-service"
+    assert(server.save({ change("Companies.Definitions", definitions) }).success)
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.Companies.Definitions.police.Services[1].Id == "police-custom-service")
+    definitions.police.Services = {}
+    assert(server.save({ change("Companies.Definitions", definitions) }).success)
+    restarted = new_server(server.database)
+    assert(#restarted.env.Config.Companies.Definitions.police.Services == 0)
+    assert(#restarted.field("Companies.Definitions").value.police.Services == 0)
+end)
+
+test("incompatible Crypto units, issued supply and duplicate IDs reject the entire save", function()
+    for _, setting in ipairs({ "AssetScale", "PriceScale", "IssuedSupply", "DuplicateId" }) do
+        local server = new_server()
+        use_crypto_validation(server)
+        local crypto = server.field("Crypto").value
+        if setting == "IssuedSupply" then
+            crypto.Markets[1].IssuedSupply = crypto.Markets[1].IssuedSupply + 1
+        elseif setting == "DuplicateId" then
+            crypto.Markets[2].Id = crypto.Markets[1].Id
+        else
+            crypto[setting] = crypto[setting] * 10
+        end
+        local phone = server.field("Phone").value
+        phone.AllowMovement = not phone.AllowMovement
+        local result = server.save({ change("Crypto", crypto), change("Phone", phone) })
+        assert(not result.success and result.error == "invalid_crypto_configuration", setting .. ": " .. tostring(result.error))
+        assert(server.database.writes == 0 and #server.broadcasts == 0 and #server.updates == 0)
+        local restarted = new_server(server.database)
+        assert(restarted.env.Config.Phone.AllowMovement ~= phone.AllowMovement)
+        assert(restarted.env.Config.Crypto.AssetScale == server.env.ConfigDefaults.Crypto.AssetScale)
+        assert(restarted.env.Config.Crypto.Markets[1].IssuedSupply == server.env.ConfigDefaults.Crypto.Markets[1].IssuedSupply)
+    end
+end)
+
+test("Crypto metadata and new markets still save and survive a restart", function()
+    local server = new_server()
+    use_crypto_validation(server)
+    local crypto = server.field("Crypto").value
+    crypto.Markets[1].Name = "Updated market"
+    local market = copy(crypto.Markets[1])
+    market.Id, market.Symbol = "new-market", "NEW"
+    crypto.Markets[#crypto.Markets + 1] = market
+    local result = server.save({ change("Crypto", crypto) })
+    assert(result.success, result.error)
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.Crypto.Markets[1].Name == "Updated market")
+    assert(restarted.env.Config.Crypto.Markets[#crypto.Markets].Id == "new-market")
+end)
+
+test("a save yielding during Crypto validation cannot overwrite a newer admin revision", function()
+    local server = new_server()
+    use_crypto_validation(server)
+    local query = server.env.Bridge.Database.Query
+    local concurrent_save = true
+    server.env.Bridge.Database.Query = function(sql, parameters)
+        if concurrent_save and sql:find("FROM `sky_phone_crypto_markets`", 1, true) then
+            concurrent_save = false
+            local phone = server.field("Phone").value
+            phone.AllowMovement = not phone.AllowMovement
+            assert(server.save({ change("Phone", phone) }).success)
+        end
+        return query(sql, parameters)
+    end
+    local apps = server.field("Apps").value
+    apps.feather = not apps.feather
+    local result = server.save({ change("Apps", apps) })
+    assert(not result.success and result.error == "revision_conflict")
+    assert(server.database.writes == 1 and #server.broadcasts == 1 and #server.updates == 1)
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.Phone.AllowMovement ~= server.env.ConfigDefaults.Phone.AllowMovement)
+    assert(restarted.env.Config.Apps.feather ~= apps.feather)
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")
+dofile("tests/server_crypto_network.lua")
