@@ -411,12 +411,132 @@ function SkyPhoneCompanies.ValidateConfiguration(configuration)
 end
 
 local function profile_configuration(definition)
+    local location = definition.Location
+    local services = {}
+    for index, service in ipairs(definition.Services or {}) do
+        services[service.Id] = {
+            title = service.Title,
+            description = service.Description or "",
+            price_text = service.Price or "",
+            requests_enabled = service.RequestsEnabled and 1 or 0,
+            sort_order = index,
+        }
+    end
     return {
         description = definition.Description or "",
         district = definition.District or "",
         location_label = definition.LocationLabel or definition.Address or "",
         address = definition.Address or "",
+        accepts_requests = definition.AcceptsRequests and 1 or 0,
+        services = services,
+        -- Match the DECIMAL(10,3) columns, including vector3 float precision.
+        location = location and {
+            x = tonumber(("%.3f"):format(location.x)),
+            y = tonumber(("%.3f"):format(location.y)),
+            z = tonumber(("%.3f"):format(location.z)),
+        } or false,
     }
+end
+
+local function service_configuration_changes(company_id, configured, previous, legacy)
+    local placeholders, parameters = {}, { company_id }
+    for service_id in pairs(configured) do
+        placeholders[#placeholders + 1] = "?"
+        parameters[#parameters + 1] = service_id
+    end
+    local condition = #placeholders > 0 and (" OR `id` IN (%s)"):format(table.concat(placeholders, ", ")) or ""
+    local rows = Bridge.Database.Query(([[
+        SELECT `id`, `company_id`, `title`, `description`, `price_text`, `requests_enabled`,
+            `sort_order`, `active`, `archived` FROM `sky_phone_company_services`
+        WHERE `company_id` = ?%s
+    ]]):format(condition), parameters)
+    local current = {}
+    for _, row in ipairs(rows) do
+        row.requests_enabled = database_boolean(row.requests_enabled) and 1 or 0
+        row.sort_order = tonumber(row.sort_order)
+        current[row.id] = row
+    end
+
+    local statements = {}
+    local changed = previous == nil
+    local fields = { "title", "description", "price_text", "requests_enabled", "sort_order" }
+    for service_id, service in pairs(configured) do
+        local row = current[service_id]
+        if row and row.company_id ~= company_id then
+            error(("[sky_phone] Default service ID '%s' collides with another company."):format(service_id))
+        end
+        if not row then
+            changed = true
+            statements[#statements + 1] = {
+                query = [[
+                    INSERT INTO `sky_phone_company_services`
+                        (`id`, `title`, `description`, `price_text`, `requests_enabled`, `sort_order`,
+                            `active`, `archived`, `company_id`)
+                    SELECT ?, ?, ?, ?, ?, ?, 1, 0, `company_id` FROM `sky_phone_company_profiles`
+                    WHERE `company_id` = ? AND `mutation_token` = ?
+                ]],
+                params = { service_id, service.title, service.description, service.price_text,
+                    service.requests_enabled, service.sort_order, company_id },
+            }
+        else
+            local before = previous and previous[service_id]
+            local stock = legacy[service_id] or {}
+            local set_parts, values = {}, {}
+            for _, field in ipairs(fields) do
+                if not before or before[field] ~= service[field] then
+                    changed = true
+                    if (previous or row[field] == stock[field]) and row[field] ~= service[field] then
+                        set_parts[#set_parts + 1] = ("service.`%s` = ?"):format(field)
+                        values[#values + 1] = service[field]
+                    end
+                end
+            end
+            -- An explicitly re-added service becomes public again. Unrelated saves
+            -- retain the manager's active/archived choice.
+            if previous and not before then
+                set_parts[#set_parts + 1] = "service.`active` = 1, service.`archived` = 0"
+            end
+            if #set_parts > 0 then
+                values[#values + 1] = service_id
+                values[#values + 1] = company_id
+                statements[#statements + 1] = {
+                    query = ([[
+                        UPDATE `sky_phone_company_services` service
+                        INNER JOIN `sky_phone_company_profiles` profile ON profile.`company_id` = service.`company_id`
+                        SET %s WHERE service.`id` = ? AND service.`company_id` = ? AND profile.`mutation_token` = ?
+                    ]]):format(table.concat(set_parts, ", ")),
+                    params = values,
+                }
+            end
+        end
+    end
+    for service_id, before in pairs(previous or legacy) do
+        if not configured[service_id] then
+            changed = true
+            local row = current[service_id]
+            if row and row.company_id == company_id and not database_boolean(row.archived) then
+                local removable = previous ~= nil
+                if not previous then
+                    removable = database_boolean(row.active)
+                    for _, field in ipairs(fields) do
+                        removable = removable and row[field] == before[field]
+                    end
+                end
+                if removable then
+                    statements[#statements + 1] = {
+                        query = [[
+                            UPDATE `sky_phone_company_services` service
+                            INNER JOIN `sky_phone_company_profiles` profile ON profile.`company_id` = service.`company_id`
+                            SET service.`active` = 0, service.`requests_enabled` = 0, service.`archived` = 1
+                            WHERE service.`id` = ? AND service.`company_id` = ? AND profile.`mutation_token` = ?
+                        ]],
+                        params = { service_id, company_id },
+                    }
+                end
+            end
+        end
+    end
+    return statements, changed
 end
 
 local function sync_profile_configuration(company_id, definition)
@@ -425,7 +545,8 @@ local function sync_profile_configuration(company_id, definition)
     local legacy = defaults and profile_configuration(defaults) or {}
     for _ = 1, 3 do
         local rows = Bridge.Database.Query([[
-            SELECT `description`, `district`, `location_label`, `address`, `config_profile`, `revision`
+            SELECT `description`, `district`, `location_label`, `address`,
+                `location_x`, `location_y`, `location_z`, `accepts_requests`, `config_profile`, `revision`
             FROM `sky_phone_company_profiles` WHERE `company_id` = ? LIMIT 1
         ]], { company_id })
         local row = rows[1]
@@ -442,34 +563,89 @@ local function sync_profile_configuration(company_id, definition)
         end
         local set_parts, parameters = {}, {}
         local configuration_changed = previous == nil
-        for _, field in ipairs({ "description", "district", "location_label", "address" }) do
-            if not previous or previous[field] ~= configured[field] then
+        row.accepts_requests = database_boolean(row.accepts_requests) and 1 or 0
+        for _, field in ipairs({ "description", "district", "location_label", "address", "accepts_requests" }) do
+            local has_previous = previous and previous[field] ~= nil
+            if not has_previous or previous[field] ~= configured[field] then
                 configuration_changed = true
                 -- On upgrade, only replace recognizable stock values. Once a
                 -- snapshot exists, an explicit admin change wins for that field.
-                if (previous or row[field] == legacy[field]) and row[field] ~= configured[field] then
+                if (has_previous or row[field] == legacy[field]) and row[field] ~= configured[field] then
                     set_parts[#set_parts + 1] = ("`%s` = ?"):format(field)
                     parameters[#parameters + 1] = configured[field]
                 end
             end
         end
+        local previous_location = previous and previous.location
+        local location_configuration_changed = previous_location == nil
+        local stock_location, location_changed = true, false
+        for _, axis in ipairs({ "x", "y", "z" }) do
+            local current_coordinate = tonumber(row["location_" .. axis])
+            local configured_coordinate = configured.location and configured.location[axis] or nil
+            local previous_coordinate = previous_location and previous_location[axis] or nil
+            local legacy_coordinate = legacy.location and legacy.location[axis] or nil
+            location_configuration_changed = location_configuration_changed
+                or previous_coordinate ~= configured_coordinate
+            stock_location = stock_location and current_coordinate == legacy_coordinate
+            location_changed = location_changed or current_coordinate ~= configured_coordinate
+        end
+        if location_configuration_changed then
+            configuration_changed = true
+            -- Location is one field: never combine configured and manager axes.
+            -- Older text-only snapshots have no location history; preserve custom points.
+            if location_changed and (previous_location ~= nil or stock_location) then
+                for _, axis in ipairs({ "x", "y", "z" }) do
+                    if configured.location then
+                        set_parts[#set_parts + 1] = ("`location_%s` = ?"):format(axis)
+                        parameters[#parameters + 1] = configured.location[axis]
+                    else
+                        set_parts[#set_parts + 1] = ("`location_%s` = NULL"):format(axis)
+                    end
+                end
+            end
+        end
+        local service_statements, services_changed = service_configuration_changes(
+            company_id, configured.services, previous and previous.services, legacy.services or {}
+        )
+        configuration_changed = configuration_changed or services_changed
         if not configuration_changed then
             return
         end
-        local profile_changed = #set_parts > 0
+        local profile_changed = #set_parts > 0 or #service_statements > 0
         set_parts[#set_parts + 1] = "`config_profile` = ?"
         parameters[#parameters + 1] = json.encode(configured)
         set_parts[#set_parts + 1] = "`revision` = `revision` + 1"
         set_parts[#set_parts + 1] = profile_changed and "`updated_at` = CURRENT_TIMESTAMP"
             or "`updated_at` = `updated_at`"
+        local mutation_token
+        if #service_statements > 0 then
+            mutation_token = uuid()
+            set_parts[#set_parts + 1] = "`mutation_token` = ?"
+            parameters[#parameters + 1] = mutation_token
+        end
         parameters[#parameters + 1] = company_id
         parameters[#parameters + 1] = tonumber(row.revision)
-        local result = Bridge.Database.Query(([[
+        local query = ([[
             UPDATE `sky_phone_company_profiles` SET %s WHERE `company_id` = ? AND `revision` = ?
-        ]]):format(table.concat(set_parts, ", ")), parameters)
-        local affected = type(result) == "table" and tonumber(result.affectedRows) or tonumber(result)
-        if affected == 1 then
-            return
+        ]]):format(table.concat(set_parts, ", "))
+        if mutation_token then
+            local statements = { { query = query, params = parameters } }
+            for _, statement in ipairs(service_statements) do
+                statement.params[#statement.params + 1] = mutation_token
+                statements[#statements + 1] = statement
+            end
+            if not Bridge.Database.Transaction(statements) then
+                error(("[sky_phone] Could not synchronize services for company '%s'."):format(company_id))
+            end
+            local committed = Bridge.Database.Query(
+                "SELECT `mutation_token` FROM `sky_phone_company_profiles` WHERE `company_id` = ? LIMIT 1",
+                { company_id }
+            )[1]
+            if committed and committed.mutation_token == mutation_token then return end
+        else
+            local result = Bridge.Database.Query(query, parameters)
+            local affected = type(result) == "table" and tonumber(result.affectedRows) or tonumber(result)
+            if affected == 1 then return end
         end
     end
     error(("[sky_phone] Could not synchronize configuration for company '%s'."):format(company_id))
@@ -533,28 +709,6 @@ local function seed_companies()
             })
         end
         sync_profile_configuration(company_id, definition)
-        for index, service in ipairs(definition.Services or {}) do
-            Bridge.Database.Query([[
-                INSERT IGNORE INTO `sky_phone_company_services`
-                    (`id`, `company_id`, `title`, `description`, `price_text`, `requests_enabled`, `active`, `sort_order`)
-                VALUES (?, ?, ?, ?, ?, ?, 1, ?)
-            ]], {
-                service.Id,
-                company_id,
-                service.Title,
-                service.Description or "",
-                service.Price or "",
-                service.RequestsEnabled and 1 or 0,
-                index,
-            })
-            local seeded = Bridge.Database.Query(
-                "SELECT `company_id` FROM `sky_phone_company_services` WHERE `id` = ? LIMIT 1",
-                { service.Id }
-            )
-            if not seeded[1] or seeded[1].company_id ~= company_id then
-                error(("[sky_phone] Default service ID '%s' collides with another company."):format(service.Id))
-            end
-        end
     end
 
 end

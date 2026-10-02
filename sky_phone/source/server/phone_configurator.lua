@@ -731,7 +731,10 @@ local function company_definition_entry_default(company_id, configuration)
 end
 
 local function build_structure(value, scope, path)
-    if scope == "config" and path == "CellTowers.Towers" then return empty_structure(scope, path) end
+    if scope == "config" and (path == "CellTowers.Towers"
+        or path:match("^Companies%.Definitions%.[^.]+%.Services$")) then
+        return empty_structure(scope, path)
+    end
     local value_type = type(value)
     if scope == "config" and path == "CityWarn.Publishers" and value_type == "table" then
         local template = {
@@ -1714,7 +1717,8 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     if not configurator_enabled then
         return { success = false, error = "configurator_disabled" }
     end
-    if tonumber(expected_revision) ~= revision then
+    expected_revision = tonumber(expected_revision)
+    if expected_revision ~= revision then
         return { success = false, error = "revision_conflict", data = SkyPhoneConfigurator.GetAdminData() }
     end
     if type(changes) ~= "table" or #changes < 1 or #changes > MAX_CHANGES then
@@ -1884,6 +1888,12 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         )
         return { success = false, error = "invalid_company_configuration" }
     end
+    local crypto_valid, crypto_error = SkyPhoneCrypto.ValidateConfiguration(candidate_config)
+    if not crypto_valid then
+        Bridge.Debug("warn", "[sky_phone] Rejected invalid Phone Configurator Crypto configuration: %s",
+            crypto_error, { always = true })
+        return { success = false, error = "invalid_crypto_configuration" }
+    end
 
     local config_encoded = encode_payload(next_config, "config")
     local media_encoded = encode_payload(next_media, "media")
@@ -1898,7 +1908,7 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         tostring(actor_identifier or ""):sub(1, 80),
         tostring(actor_name or ""):sub(1, 120),
         CONFIG_ROW_ID,
-        revision,
+        expected_revision,
     })
     if affected_rows(result) ~= 1 then
         local latest = Bridge.Database.Query(("SELECT `revision` FROM `%s` WHERE `id` = ? LIMIT 1"):format(TABLE_NAME), {
@@ -1908,11 +1918,11 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         return { success = false, error = "revision_conflict", data = SkyPhoneConfigurator.GetAdminData() }
     end
 
-    local expected_revision = revision + 1
+    local saved_revision = expected_revision + 1
     local persisted_row = read_stored_row()
     if persisted_row.config_payload ~= config_encoded
         or persisted_row.media_payload ~= media_encoded
-        or tonumber(persisted_row.revision) ~= expected_revision
+        or tonumber(persisted_row.revision) ~= saved_revision
     then
         error("[sky_phone] Phone configurator SQL verification failed after saving config and media payloads.")
     end
