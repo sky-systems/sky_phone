@@ -1120,6 +1120,7 @@ Locales["cz"] = {
                 invalid_field = "Toto konfigurační pole již není k dispozici.",
                 invalid_value = "Konfigurační hodnota je neplatná.",
                 invalid_company_configuration = "Konfigurace společnosti je neúplná nebo obsahuje duplicitní pracovní roli, servisní číslo nebo servisní ID.",
+                invalid_crypto_configuration = "ID kryptoměnových trhů musí být jedinečná. Změna měřítek jednotek nebo vydaného množství na stávajících trzích vyžaduje migraci databáze.",
                 account_not_found = "K tomuto telefonu není připojen žádný účet iFruit.",
                 invalid_phone_number = "Zadejte telefonní číslo ve skonfigurovaném formátu serveru.",
                 phone_number_unchanged = "Tato SIM karta již toto telefonní číslo používá.",

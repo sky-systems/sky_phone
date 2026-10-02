@@ -1120,6 +1120,7 @@ Locales["pl"] = {
                 invalid_field = "To pole konfiguracyjne jest już niedostępne.",
                 invalid_value = "Wartość konfiguracji jest nieprawidłowa.",
                 invalid_company_configuration = "Konfiguracja firmy jest niekompletna lub zawiera duplikaty pracy, numeru usługi lub identyfikatora usługi.",
+                invalid_crypto_configuration = "Identyfikatory rynków kryptowalut muszą być unikalne. Zmiana skali jednostek lub wyemitowanej podaży istniejących rynków wymaga migracji bazy danych.",
                 account_not_found = "Do tego telefonu nie jest przypisane żadne konto iFruit.",
                 invalid_phone_number = "Wprowadź numer telefonu w skonfigurowanym formacie serwera.",
                 phone_number_unchanged = "Ta karta SIM używa już tego numeru telefonu.",

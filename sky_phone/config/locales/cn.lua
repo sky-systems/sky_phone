@@ -1120,6 +1120,7 @@ Locales["cn"] = {
                 invalid_field = "该配置字段已失效。",
                 invalid_value = "配置值无效。",
                 invalid_company_configuration = "公司配置不完整，或包含重复的工作、服务号码或服务 ID。",
+                invalid_crypto_configuration = "加密货币市场 ID 必须唯一。更改现有市场的单位精度或发行总量需要进行数据库迁移。",
                 account_not_found = "此手机未关联 iFruit 账号。",
                 invalid_phone_number = "请输入符合服务器配置格式的电话号码。",
                 phone_number_unchanged = "此 SIM 卡已使用该电话号码。",

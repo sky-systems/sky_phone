@@ -1120,6 +1120,7 @@ Locales["se"] = {
                 invalid_field = "Detta konfigurationsfält är inte längre tillgängligt.",
                 invalid_value = "Ett konfigurationsvärde är ogiltigt.",
                 invalid_company_configuration = "Företagskonfigurationen är ofullständig eller innehåller ett dubblettjobb, ett dubblett-servicenummer eller ett dubblett-service-ID.",
+                invalid_crypto_configuration = "Kryptomarknadernas ID:n måste vara unika. Att ändra enhetsskalorna eller den utgivna mängden för befintliga marknader kräver en databasmigrering.",
                 account_not_found = "Inget iFruit-konto är länkat till denna telefon.",
                 invalid_phone_number = "Ange ett telefonnummer i det konfigurerade serverformatet.",
                 phone_number_unchanged = "Detta SIM-kort använder redan det telefonnumret.",
