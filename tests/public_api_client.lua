@@ -239,6 +239,10 @@ assert(calls.walkable == false and calls.flashlight == false and calls.selfie ==
 
 assert(registered_exports.SetPhoneGameInputEnabled(true))
 assert(calls.focus[1] == "creator_resource" and calls.focus[2] == true)
+assert(registered_exports.SetPhoneGameInputEnabled(nil))
+assert(calls.focus[1] == "creator_resource" and calls.focus[2] == nil)
+local invalid_focus, invalid_focus_error = registered_exports.SetPhoneGameInputEnabled("false")
+assert(not invalid_focus and invalid_focus_error == "invalid_focus_claim")
 invoking_resource = nil
 local focus_success, focus_error = registered_exports.SetPhoneGameInputEnabled(false)
 assert(not focus_success and focus_error == "resource_required")

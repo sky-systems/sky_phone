@@ -408,7 +408,21 @@ assert(external_success and external_error == nil and not nui_keep_input, "exter
 event_handlers["onClientResourceStop"]("custom_app")
 assert(nui_keep_input, "resource stop must restore configured phone movement")
 
+for _, allow_movement in ipairs({ false, true }) do
+    Config.Phone.AllowMovement = allow_movement
+    event_handlers["sky_phone:configurator:updated"]()
+    assert(SkyPhoneFocus.SetExternalGameInput("custom_app", false))
+    assert(not nui_keep_input, "custom-app typing must stop gameplay input")
+    assert(SkyPhoneFocus.SetExternalGameInput("other_app", nil))
+    assert(not nui_keep_input, "another resource must not release the typing claim")
+    SkyPhoneFocus.SetTextInputFocused(false)
+    assert(not nui_keep_input, "parent-document focus changes must not release iframe typing")
+    assert(SkyPhoneFocus.SetExternalGameInput("custom_app", nil))
+    assert(nui_keep_input == allow_movement, "leaving a custom text input must restore configured movement")
+end
+
 SkyPhoneFocus.SetPhone(false)
+assert(SkyPhoneFocus.SetExternalGameInput("custom_app", nil), "a late release after closing must succeed")
 external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", true)
 assert(not external_success and external_error == "phone_closed", "closed phones must reject external focus claims")
 

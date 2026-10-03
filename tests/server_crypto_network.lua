@@ -1,5 +1,5 @@
 local callbacks, events, threads, sent, rows = {}, {}, {}, {}, {}
-local viewers, balances_read, query_hook = {}, 0, nil
+local viewers, balances_read, query_hook, transaction_hook = {}, 0, nil, nil
 local env = setmetatable({ Config = {} }, { __index = _G })
 env.IsDuplicityVersion = function() return true end
 env.vector3 = function(x, y, z) return { x = x, y = y, z = z } end
@@ -24,11 +24,25 @@ env.Bridge = {
     end },
     Database = {
         AfterMigration = function(_, callback) callback() end,
-        Transaction = function() return true end,
+        Transaction = function(statements)
+            if transaction_hook then
+                local callback = transaction_hook
+                transaction_hook = nil
+                callback()
+            end
+            for _, statement in ipairs(statements) do
+                if statement.query:find("UPDATE `sky_phone_crypto_markets`", 1, true) then
+                    local params = statement.params
+                    local row = assert(rows[params[5]])
+                    row.price, row.version, row.status, row.updated_at = params[1], params[2], params[3], params[4]
+                end
+            end
+            return true
+        end,
         Query = function(sql, params)
             if query_hook then local callback = query_hook; query_hook = nil; callback() end
             if sql:find("INSERT INTO `sky_phone_crypto_markets`", 1, true) then
-                rows[params[1]] = { id = params[1], asset_scale = params[2], price_scale = params[3],
+                rows[params[1]] = rows[params[1]] or { id = params[1], asset_scale = params[2], price_scale = params[3],
                     issued_supply = params[4], price = params[5], version = 1, status = "active", updated_at = os.time() }
                 return {}
             end
@@ -96,4 +110,50 @@ query_hook = function() watch(11, { active = false }) end
 assert(watch(11, { active = true }).success)
 tick()
 assert(#sent == count, "a late watch response must not undo unsubscribe")
-print("Crypto subscription, payload and 60-player fan-out tests passed")
+
+-- Configurator events may arrive while the persistence transaction yields under the exchange lock.
+local original_market_count = #env.Config.Crypto.Markets
+local original_threads = #threads
+local first_market_id = env.Config.Crypto.Markets[1].Id
+local initial_version = rows[first_market_id].version
+transaction_hook = function()
+    local added = {}
+    for key, value in pairs(env.Config.Crypto.Markets[1]) do added[key] = value end
+    added.Id, added.Symbol, added.Name = "test-added", "ADD", "Added during persistence"
+    env.Config.Crypto.Markets[#env.Config.Crypto.Markets + 1] = added
+    for _ = 1, 3 do events["sky_phone:configurator:serverUpdated"]() end
+    assert(#threads == original_threads and rows[added.Id] == nil,
+        "busy refreshes must wait until the current transaction finishes")
+end
+local persistence = threads[1]
+local success, delay = coroutine.resume(persistence)
+assert(success and delay == 300000, tostring(delay))
+success, delay = coroutine.resume(persistence)
+assert(success, delay)
+assert(coroutine.status(persistence) == "dead", "refresh invalidates the old scheduler generation")
+assert(#threads == original_threads + 3, "coalesce busy refreshes into one scheduler restart")
+assert(rows["test-added"] and rows[first_market_id].version > initial_version,
+    "refresh must retain the just-persisted market state and initialize the new market")
+bootstrap = callbacks["sky_phone:crypto:bootstrap"](7)
+assert(bootstrap.success and #bootstrap.data.markets == original_market_count + 1)
+
+-- Even an operation that raises must release the lock and apply a queued refresh.
+ticker = threads[#threads]
+tick()
+tick()
+original_threads = #threads
+transaction_hook = function()
+    env.Config.Crypto.Markets[1].Name = "Latest configuration"
+    events["sky_phone:configurator:serverUpdated"]()
+    error("test persistence failure")
+end
+persistence = threads[#threads - 2]
+success, delay = coroutine.resume(persistence)
+assert(success and delay == 300000, tostring(delay))
+success, delay = coroutine.resume(persistence)
+assert(not success and tostring(delay):find("test persistence failure", 1, true),
+    "queued refresh must not hide the original operation failure")
+assert(#threads == original_threads + 3, "a failed operation must still release and refresh the exchange")
+bootstrap = callbacks["sky_phone:crypto:bootstrap"](7)
+assert(bootstrap.success and bootstrap.data.markets[1].name == "Latest configuration")
+print("Crypto subscription, payload, 60-player fan-out and deferred configuration tests passed")

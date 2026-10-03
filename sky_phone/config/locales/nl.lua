@@ -1120,6 +1120,7 @@ Locales["nl"] = {
                 invalid_field = "Dat configuratieveld is niet langer beschikbaar.",
                 invalid_value = "Een configuratiewaarde is ongeldig.",
                 invalid_company_configuration = "De bedrijfsconfiguratie is onvolledig of bevat een dubbele job, servicenummer of service-ID.",
+                invalid_crypto_configuration = "ID's van cryptomarkten moeten uniek zijn. Het wijzigen van de eenheidsschalen of de uitgegeven hoeveelheid van bestaande markten vereist een databasemigratie.",
                 account_not_found = "Er is geen iFruit-account gekoppeld aan deze telefoon.",
                 invalid_phone_number = "Voer een telefoonnummer in het geconfigureerde serverformaat in.",
                 phone_number_unchanged = "Deze SIM gebruikt dit telefoonnummer al.",

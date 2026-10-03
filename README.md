@@ -285,8 +285,17 @@ not change when their commands are renamed in the panel. Lists, nested objects, 
 and numeric-keyed Lua tables use structured editors instead of raw JSON. Shipped schema rows stay
 editable but cannot be renamed, converted, or removed. Every list and table still accepts any number
 of additional rows; administrator-added rows remain removable. Company job keys are intentionally
-fully removable because `Config.Companies.Definitions` is a freely managed job collection.
+fully removable because `Config.Companies.Definitions` is a freely managed job collection;
+each company's configured services can also be renamed, reordered, removed, or cleared.
 Cell tower entries and their offline app/action policies are also fully editable and removable.
+
+For Crypto, market IDs must be unique. Existing markets retain their issued supply and unit
+scales; changing `IssuedSupply`, `AssetScale`, or `PriceScale` requires a database migration.
+The Configurator rejects incompatible changes before saving any part of the draft. New markets
+and other market settings remain editable. Refreshes received during an exchange operation are
+applied after that operation releases the lock. Treasury cash, treasury inventory, and the initial
+market price seed new records; changing their configuration does not reset existing balances or
+the current traded price.
 
 Phone command access uses **ACE groups**, with the same convention as the Jobs resources:
 `admin` means `group.admin`; QBCore also grants `qbcore.admin`. Each protected action checks
@@ -966,12 +975,23 @@ Set each definition's `CoverUrl` to an HTTPS image URL in the configuration or P
 admin-managed; job members cannot change them through Companies. Previously uploaded job
 logos and covers are no longer used automatically.
 
-Changes to `Description`, `District`, `LocationLabel`, and `Address` in the Phone Configurator
-also update existing company profiles. Each profile stores the last applied configuration so
-manager edits survive unrelated panel saves and resource restarts; changing a field in the panel
-overrides that field only. On the first restart after this update, the automatic schema migration
-adds `config_profile` and replaces remaining stock profile texts with the configured values.
-Existing custom texts are preserved during this initial reconciliation.
+Changes to `Description`, `District`, `LocationLabel`, `Address`, `Location`, and `AcceptsRequests`
+in the Phone Configurator also update existing company profiles. Each profile stores the last applied
+configuration so manager edits survive unrelated panel saves and resource restarts; changing a field in the panel
+overrides that field only. `Location` replaces all three coordinates together, rounded to the
+database's three decimal places; removing it clears the stored coordinates.
+
+Configured service titles, descriptions, prices, request permissions, and order use the same
+field-level reconciliation. Removing or renaming a configured service archives its old SQL record
+so existing requests retain their service reference. Re-adding that ID makes it active again.
+Services created by managers and their active/archived choices survive unrelated panel saves.
+Profile and service changes share a revision-checked transaction so a failed write cannot leave
+the configuration snapshot ahead of the service records.
+
+On the first restart, remaining recognizable stock values are reconciled with the configuration,
+including profiles with older text-only `config_profile` snapshots. Existing custom profile and
+service values are preserved during this initial reconciliation. No manual SQL changes or
+Configurator reset are required.
 
 Opening hours use 24-hour `HH:MM` input. `ServiceLine.CanMessage` enables company SMS and defaults
 to `true` for new companies and the shipped service lines. On the first restart after this update,
@@ -1026,6 +1046,8 @@ The resource provides the compatibility aliases `lb-phone`, `17mov_Phone`, `high
 That means servers can replace LB Phone without giving up supported custom apps, while developers can build directly against Sky Phone for deeper lifecycle, permission, and storage integration.
 
 Start Sky Phone before the custom app resources and do not start the original phone resource for an alias at the same time. For example, an unchanged app using `exports["lb-phone"]:AddCustomApp(...)` must run with `sky_phone`, not with the original `lb-phone`, as the active provider. Two active providers expose the same FiveM export event and can send registrations to the wrong phone.
+
+Custom apps with text fields must report typing to the phone's focus owner; focus events inside an iframe do not reach the parent document. See [custom-app input focus](docs/custom-app-input.md) for the client export and cleanup contract.
 
 ## Frontend development
 

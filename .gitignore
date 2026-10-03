@@ -12,6 +12,7 @@
 !/docs/custom-app-registration-audit.md
 !/docs/phone-configurator.md
 !/docs/inventory-setup.md
+!/docs/custom-app-input.md
 
 # Local history-rewrite and backup artifacts
 /.git-rewrite/
