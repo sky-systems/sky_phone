@@ -1276,6 +1276,7 @@ local function client_payload()
     -- Public map presentation must reach clients even while their phone is closed.
     payload.CityWarn = {
         Enabled = stored_config.CityWarn.Enabled,
+        NotificationSound = stored_config.CityWarn.NotificationSound,
         Blip = copy_value(stored_config.CityWarn.Blip),
         CategoryColors = copy_value(stored_config.CityWarn.CategoryColors),
     }
@@ -1828,6 +1829,8 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         return { success = false, error = "invalid_value" }
     end
     if type(citywarn) ~= "table" or type(citywarn.Enabled) ~= "boolean" or type(blip) ~= "table"
+        or type(citywarn.NotificationSound) ~= "string" or #citywarn.NotificationSound > 2048
+        or not citywarn.NotificationSound:find("%S") or citywarn.NotificationSound:find("%c")
         or not integer_between(blip.Sprite, 0, 65535)
         or not integer_between(blip.Display, 0, 10)
         or not integer_between(blip.CategoryId, 12, 133)

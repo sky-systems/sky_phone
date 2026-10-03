@@ -94,6 +94,7 @@ export type CityWarnEventData = {
   alert?: CityWarnAlert
   alertId?: string
   kind?: CityWarnUpdateKind
+  notificationSound?: string
   severity?: CityWarnSeverity
   sourceLabel?: string
   text?: string

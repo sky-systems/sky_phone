@@ -9,6 +9,14 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains how to replace the CityWarn notification sound', () => {
+    expect(
+      configuratorDescriptionKey(
+        'CityWarn.NotificationSound',
+        'sounds/citywarn_alert.mp3',
+      ),
+    ).toBe('citywarnNotificationSound')
+  })
   it('explains the optional default-off nearby phone screen', () => {
     expect(
       configuratorDescriptionKey('Animations.WorldDisplayEnabled', false),

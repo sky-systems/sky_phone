@@ -1211,6 +1211,7 @@ const adminPanelFallbackLocales = {
       },
     },
     citywarnCategoryColors: 'Category colors',
+    citywarnNotificationSound: 'Warning notification sound',
     citywarnPublisherLabels: {
       MinimumGrade: 'Minimum job grade',
       MaximumSeverity: 'Highest warning level',
@@ -1230,6 +1231,8 @@ const adminPanelFallbackLocales = {
     descriptions: {
       citywarnPublishers:
         'Choose which jobs may publish CityWarn warnings. Enter the internal job name, for example mechanic, and click Add job. Set its permissions, then save with the green check.',
+      citywarnNotificationSound:
+        'Audio file for CityWarn notifications. Use a path relative to source/html (default: sounds/citywarn_alert.mp3) or a direct HTTPS audio URL. Save to apply to the next warning.',
       citywarnPublisher:
         'Permissions for the job {name}. This job must already exist on your server. If RequireDuty is enabled, employees must be on duty to publish.',
       citywarnPublisherMinimumGrade:

@@ -4,6 +4,7 @@ local allow_operation, allow_session, during_query = true, true, nil
 local broadcast
 
 Config = { CityWarn = {
+    NotificationSound = "sounds/citywarn_alert.mp3",
     Enabled = true, RequireDuty = true, PageSize = 1, MaximumActiveAlerts = 20,
     TitleMaxLength = 120, BodyMaxLength = 2000, InstructionsMaxLength = 2000, UpdateMaxLength = 2000,
     AreaLabelMaxLength = 120, MinimumRadius = 100, MaximumRadius = 10000,
@@ -144,6 +145,7 @@ assert(not denied.success and denied.error == "device_not_open", "publishing mus
 allow_session = true
 local first = publish()
 assert(broadcast.kind == "published" and broadcast.alertId == first.id)
+assert(broadcast.notificationSound == "sounds/citywarn_alert.mp3", "warnings must use the shipped emergency sound")
 local state = snapshot().data.alerts
 assert(#state == 1 and state[1].radius == 500 and state[1].remainingMs == 60000,
     "publishing must invalidate the previously empty cache")
@@ -156,12 +158,16 @@ assert(snapshot_queries == queries and state[1].remainingMs == 58000, "cache hit
 state[1].title = "Mutated response"
 assert(snapshot().data.alerts[1].title == "Test warning", "responses must not mutate the shared cache")
 
+Config.CityWarn.NotificationSound = "https://example.com/emergency.mp3"
+events["sky_phone:configurator:serverUpdated"]()
 local updated = callbacks["sky_phone:citywarn:update"](1, { id = first.id, revision = 1, message = "Update" })
 assert(updated.success and broadcast.kind == "update")
+assert(broadcast.notificationSound == Config.CityWarn.NotificationSound, "the next warning must use the panel's current sound")
 snapshot()
 assert(snapshot_queries == queries + 1, "updates must invalidate the cache")
 local resolved = callbacks["sky_phone:citywarn:resolve"](1, { id = first.id, revision = 2, message = "All clear" })
 assert(resolved.success and broadcast.kind == "resolved")
+assert(broadcast.notificationSound == Config.CityWarn.NotificationSound)
 assert(#snapshot().data.alerts == 0, "resolved warnings must disappear from authoritative snapshots")
 
 publish()
