@@ -259,8 +259,17 @@ function SkyPhoneFocus.SetTextInputFocused(active)
 end
 
 function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
-    if type(owner_resource) ~= "string" or owner_resource == "" or type(allow_game_input) ~= "boolean" then
+    if type(owner_resource) ~= "string" or owner_resource == ""
+        or (allow_game_input ~= nil and type(allow_game_input) ~= "boolean") then
         return false, "invalid_focus_claim"
+    end
+    if allow_game_input == nil then
+        if state.external_game_input_owner == owner_resource then
+            state.external_game_input = nil
+            state.external_game_input_owner = nil
+            SkyPhoneFocus.Reapply()
+        end
+        return true
     end
     if not state.is_open then
         return false, "phone_closed"

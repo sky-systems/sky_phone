@@ -114,7 +114,7 @@ local function is_api_ready()
 end
 
 local function set_phone_game_input_enabled(enabled)
-    if type(enabled) ~= "boolean" then
+    if enabled ~= nil and type(enabled) ~= "boolean" then
         return false, "invalid_focus_claim"
     end
 

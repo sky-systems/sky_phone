@@ -1027,6 +1027,8 @@ That means servers can replace LB Phone without giving up supported custom apps,
 
 Start Sky Phone before the custom app resources and do not start the original phone resource for an alias at the same time. For example, an unchanged app using `exports["lb-phone"]:AddCustomApp(...)` must run with `sky_phone`, not with the original `lb-phone`, as the active provider. Two active providers expose the same FiveM export event and can send registrations to the wrong phone.
 
+Custom apps with text fields must report typing to the phone's focus owner; focus events inside an iframe do not reach the parent document. See [custom-app input focus](docs/custom-app-input.md) for the client export and cleanup contract.
+
 ## Frontend development
 
 Customers installing a release do not need to build the frontend.
