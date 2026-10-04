@@ -1260,7 +1260,18 @@ function mapEntryStructure(
   overflow-x: auto;
   padding: calc(6 * var(--admin-unit)) calc(7 * var(--admin-unit)) 0;
   background: #0c0e0d;
+  scrollbar-color: var(--admin-muted) transparent;
   scrollbar-width: thin;
+}
+
+.config-structured-editor__tabs::-webkit-scrollbar {
+  display: block;
+  height: calc(6 * var(--admin-unit));
+}
+
+.config-structured-editor__tabs::-webkit-scrollbar-thumb {
+  border-radius: calc(3 * var(--admin-unit));
+  background: var(--admin-muted);
 }
 
 .config-structured-editor .config-structured-editor__tabs > button {
