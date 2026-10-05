@@ -272,9 +272,10 @@ function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
     end
     if allow_game_input == nil then
         if state.external_game_input_owner == owner_resource then
+            local previous_focus = SkyPhoneFocus.Resolve(state)
             state.external_game_input = nil
             state.external_game_input_owner = nil
-            SkyPhoneFocus.Reapply()
+            SkyPhoneFocus.Reapply(previous_focus)
         end
         return true
     end
@@ -282,9 +283,10 @@ function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
         return false, "phone_closed"
     end
 
+    local previous_focus = SkyPhoneFocus.Resolve(state)
     state.external_game_input = allow_game_input
     state.external_game_input_owner = owner_resource
-    SkyPhoneFocus.Reapply()
+    SkyPhoneFocus.Reapply(previous_focus)
     return true
 end
 

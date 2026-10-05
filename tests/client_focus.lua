@@ -408,24 +408,32 @@ assert(nui_keep_input, "leaving a text input must restore configured phone movem
 assert(nui_focus_calls == focus_calls_before_typing,
     "leaving a custom app input must not refocus the phone document")
 
+local focus_calls_before_external = nui_focus_calls
 local external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", true)
 assert(external_success and external_error == nil and nui_keep_input, "external movement claim must apply")
 external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", false)
 assert(external_success and external_error == nil and not nui_keep_input, "external typing claim must apply")
+assert(nui_focus_calls == focus_calls_before_external,
+    "custom-app typing claims must not refocus the phone document")
 event_handlers["onClientResourceStop"]("custom_app")
 assert(nui_keep_input, "resource stop must restore configured phone movement")
 
 for _, allow_movement in ipairs({ false, true }) do
     Config.Phone.AllowMovement = allow_movement
     event_handlers["sky_phone:configurator:updated"]()
+    local focus_calls_before_custom_input = nui_focus_calls
     assert(SkyPhoneFocus.SetExternalGameInput("custom_app", false))
     assert(not nui_keep_input, "custom-app typing must stop gameplay input")
+    assert(nui_focus_calls == focus_calls_before_custom_input,
+        "entering a custom-app input must preserve iframe focus")
     assert(SkyPhoneFocus.SetExternalGameInput("other_app", nil))
     assert(not nui_keep_input, "another resource must not release the typing claim")
     SkyPhoneFocus.SetTextInputFocused(false)
     assert(not nui_keep_input, "parent-document focus changes must not release iframe typing")
     assert(SkyPhoneFocus.SetExternalGameInput("custom_app", nil))
     assert(nui_keep_input == allow_movement, "leaving a custom text input must restore configured movement")
+    assert(nui_focus_calls == focus_calls_before_custom_input,
+        "leaving a custom-app input must preserve phone focus")
 end
 
 SkyPhoneFocus.SetPhone(false)
