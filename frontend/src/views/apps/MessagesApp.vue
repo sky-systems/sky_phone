@@ -219,7 +219,7 @@ const activeServiceLine = computed(
   () => activeContact.value?.source === 'company',
 )
 const activeContactEmail = computed(() =>
-  normalizeMailAddress(activeContact.value?.email ?? ''),
+  normalizeMailAddress(activeContact.value?.email ?? '', phone.mailDomain),
 )
 const inboxMenuItems = computed(() => [
   {

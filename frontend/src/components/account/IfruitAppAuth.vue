@@ -35,7 +35,7 @@ const pending = ref(false)
 const error = ref('')
 
 const canSubmit = computed(() => {
-  const normalized = normalizeMailAddress(email.value)
+  const normalized = normalizeMailAddress(email.value, phone.mailDomain)
   const passwordValid =
     password.value.length >= 6 && password.value.length <= 64
   return Boolean(
@@ -71,7 +71,7 @@ function errorMessage(key?: string): string {
 
 async function submit(): Promise<void> {
   if (!canSubmit.value || pending.value) return
-  const normalized = normalizeMailAddress(email.value)
+  const normalized = normalizeMailAddress(email.value, phone.mailDomain)
   if (!normalized) return
 
   pending.value = true

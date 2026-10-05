@@ -90,6 +90,7 @@ local function apply_disabled_apps(payload)
     table.sort(disabled)
     payload.disabledApps = disabled
     payload.cellular = SkyPhoneCellular.GetPayload()
+    payload.mailDomain = Config.Mail.Domain:lower()
 end
 
 local function send_admin_panel_open()

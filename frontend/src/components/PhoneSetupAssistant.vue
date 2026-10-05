@@ -97,7 +97,9 @@ const displayName = computed(() => {
     .join(' ')
   return name || phone.t('Setup.ownerFallback')
 })
-const normalizedAccountEmail = computed(() => normalizeMailAddress(email.value))
+const normalizedAccountEmail = computed(() =>
+  normalizeMailAddress(email.value, phone.mailDomain),
+)
 const accountInitial = computed(() =>
   (email.value.trim()[0] ?? displayName.value[0] ?? 'S').toUpperCase(),
 )
@@ -466,7 +468,7 @@ function skipSetupForDevelopment(): void {
                 <small>{{ phone.t('Setup.cloud.accountPreview') }}</small>
                 <strong
                   >{{ email || phone.t('Setup.cloud.addressPlaceholder')
-                  }}<em>@ifruit.com</em></strong
+                  }}<em>@{{ phone.mailDomain }}</em></strong
                 >
               </div>
               <Check v-if="normalizedAccountEmail" :size="17" />
@@ -485,7 +487,9 @@ function skipSetupForDevelopment(): void {
                 @input="updateAccountName"
               >
                 <template #trailing>
-                  <span class="setup-cloud-suffix">@ifruit.com</span>
+                  <span class="setup-cloud-suffix"
+                    >@{{ phone.mailDomain }}</span
+                  >
                 </template>
               </SkyField>
               <SkyField

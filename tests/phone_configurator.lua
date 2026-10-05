@@ -336,6 +336,20 @@ test("unsupported service-line routing and invalid timing reject the entire Conf
     end
 end)
 
+test("mail domain survives SQL reload and reaches connected and new phones", function()
+    local server = new_server()
+    local client = new_client(server)
+    local mail = server.field("Mail").value
+    mail.Domain = "city-mail.test"
+    assert(server.save({ change("Mail", mail) }).success)
+    client.sync(server.broadcasts[1])
+    assert(server.env.Config.Mail.Domain == "city-mail.test")
+    assert(client.config.Mail.Domain == "city-mail.test")
+    local restarted = new_server(server.database)
+    assert(restarted.field("Mail").value.Domain == "city-mail.test")
+    assert(new_client(restarted).config.Mail.Domain == "city-mail.test")
+end)
+
 test("MSK garage selection survives SQL reload and reaches connected phones", function()
     local server = new_server()
     local client = new_client(server)

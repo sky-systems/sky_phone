@@ -9,6 +9,7 @@ import type {
 } from '@/types/device'
 import { clampPage } from '@/utils/pages'
 import { cloneJsonData } from '@/utils/clone'
+import { DEFAULT_MAIL_DOMAIN } from '@/utils/mail'
 import {
   EMPTY_CUSTOM_PHONE_TONES,
   isCustomTonePreferenceId,
@@ -51,6 +52,7 @@ export type PhoneOpenPayload = {
   fallbackLocales?: LocaleTree
   lang?: string
   locales?: LocaleTree
+  mailDomain?: string
   memos?: DeviceBootstrap['memos']
   notes?: DeviceBootstrap['notes']
   phoneNumberFormat?: DeviceBootstrap['phoneNumberFormat']
@@ -5681,13 +5683,13 @@ const defaultLocales: LocaleTree = {
       registerLink: 'Register',
       loginTitle: 'iFruit Mail',
       loginBody: 'Sign in to use your shared iFruit mailbox.',
-      registerBody: 'Choose your new @ifruit.com address.',
+      registerBody: 'Choose your new @{domain} address.',
       localPart: 'Email address',
       email: 'Email',
       password: 'Password',
       confirmPassword: 'Confirm password',
       accountEyebrow: 'Your Sky Cloud account',
-      emailPlaceholder: 'name@ifruit.com',
+      emailPlaceholder: 'name@{domain}',
       passwordPlaceholder: 'Enter password',
       passwordWarning:
         'Use an in-character password. Do not reuse a real-world password.',
@@ -5710,7 +5712,7 @@ const defaultLocales: LocaleTree = {
       compose: 'New Message',
       recipients: 'To',
       recipientHint: 'Separate up to 10 addresses with commas.',
-      recipientPlaceholder: 'name@ifruit.com',
+      recipientPlaceholder: 'name@{domain}',
       subject: 'Subject',
       subjectPlaceholder: "What's this about?",
       body: 'Message',
@@ -6686,6 +6688,7 @@ export const usePhoneStore = defineStore('phone', {
     launchOrigin: null as AppLaunchOrigin | null,
     fallbackLocales: defaultLocales,
     locales: defaultLocales,
+    mailDomain: DEFAULT_MAIL_DOMAIN,
     preferences: cloneJsonData(DEFAULT_PHONE_PREFERENCES),
     persistenceGeneration: 0,
     persistenceSession: ++nextPersistenceSession,
@@ -6766,6 +6769,7 @@ export const usePhoneStore = defineStore('phone', {
       this.lang = intlLocaleCodes[lang] ?? lang
       this.fallbackLocales = payload.fallbackLocales ?? defaultLocales
       this.locales = payload.locales ?? this.fallbackLocales
+      if (payload.mailDomain) this.mailDomain = payload.mailDomain
       if (payload.device) this.hydrateDevice(payload.device)
       this.reconcileCustomTonePreferences()
       if (payload.player) this.player = payload.player
