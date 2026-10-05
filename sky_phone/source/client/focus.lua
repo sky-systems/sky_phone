@@ -178,7 +178,7 @@ function SkyPhoneFocus.Resolve(state)
     }
 end
 
-function SkyPhoneFocus.Reapply()
+function SkyPhoneFocus.Reapply(previous_focus)
     if state.look_passthrough and (
         not hold_to_look_enabled
         or not state.is_open
@@ -190,7 +190,13 @@ function SkyPhoneFocus.Reapply()
         state.look_passthrough = false
     end
     local focus = SkyPhoneFocus.Resolve(state)
-    SetNuiFocus(focus.focused, focus.cursor)
+    -- Reclaiming identical NUI focus while a text field is active can move
+    -- keyboard focus from a custom app iframe back to the phone document.
+    if not previous_focus
+        or previous_focus.focused ~= focus.focused
+        or previous_focus.cursor ~= focus.cursor then
+        SetNuiFocus(focus.focused, focus.cursor)
+    end
     SetNuiFocusKeepInput(focus.keep_input)
     block_game = focus.block_game == true
     block_look = focus.block_look == true
@@ -251,11 +257,12 @@ function SkyPhoneFocus.SetSimPicker(active)
 end
 
 function SkyPhoneFocus.SetTextInputFocused(active)
+    local previous_focus = SkyPhoneFocus.Resolve(state)
     state.text_input_focused = active == true
     if state.text_input_focused then
         state.look_passthrough = false
     end
-    SkyPhoneFocus.Reapply()
+    SkyPhoneFocus.Reapply(previous_focus)
 end
 
 function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
