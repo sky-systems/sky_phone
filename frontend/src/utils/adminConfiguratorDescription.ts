@@ -131,6 +131,7 @@ export function configuratorDescriptionKey(
   )
   if (citywarnBlip) return `citywarnBlip${citywarnBlip[1]}`
   if (path === 'CityWarn.Publishers') return 'citywarnPublishers'
+  if (path === 'CityWarn.NotificationSound') return 'citywarnNotificationSound'
   const citywarnPublisher = path.match(
     /^CityWarn\.Publishers\.[^.]+(?:\.(MinimumGrade|MaximumSeverity|CityWide|Categories)(?:\[\d+\]|\.\d+)?)?$/,
   )

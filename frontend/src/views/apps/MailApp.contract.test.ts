@@ -332,7 +332,9 @@ describe('MailApp contact compose deep-link contract', () => {
       "if (!authenticated.value || route.query.compose !== '1') return",
     )
     expect(consumeRequest).toContain("typeof route.query.to === 'string'")
-    expect(consumeRequest).toContain('normalizeMailAddress(route.query.to)')
+    expect(consumeRequest).toContain(
+      'normalizeMailAddress(route.query.to, phone.mailDomain)',
+    )
     expect(consumeRequest).toContain(
       "beginCompose({ body: '', recipients: [requestedRecipient], subject: '' })",
     )

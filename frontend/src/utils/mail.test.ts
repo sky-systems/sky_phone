@@ -4,6 +4,7 @@ import type { MailMessage } from '@/types/mail'
 import {
   buildForwardDraft,
   buildReplyDraft,
+  DEFAULT_MAIL_DOMAIN,
   filterMailAddressInput,
   filterMailRecipientInput,
   mailPlainText,
@@ -43,21 +44,46 @@ describe('mail addresses', () => {
   })
 
   it('normalizes local parts and the iFruit domain', () => {
-    expect(normalizeMailAddress(' Sky.User ')).toBe('sky.user@ifruit.com')
-    expect(normalizeMailAddress('sky.user@ifruit.com')).toBe(
+    expect(normalizeMailAddress(' Sky.User ', DEFAULT_MAIL_DOMAIN)).toBe(
       'sky.user@ifruit.com',
     )
+    expect(
+      normalizeMailAddress('sky.user@ifruit.com', DEFAULT_MAIL_DOMAIN),
+    ).toBe('sky.user@ifruit.com')
   })
 
   it('rejects invalid addresses and deduplicates recipients', () => {
-    expect(normalizeMailAddress('ab')).toBeNull()
-    expect(normalizeMailAddress('.user')).toBeNull()
-    expect(normalizeMailAddress('user@example.com')).toBeNull()
-    expect(parseMailRecipients('Alex, alex@ifruit.com; Jamie')).toEqual([
-      'alex@ifruit.com',
-      'jamie@ifruit.com',
-    ])
+    expect(normalizeMailAddress('ab', DEFAULT_MAIL_DOMAIN)).toBeNull()
+    expect(normalizeMailAddress('.user', DEFAULT_MAIL_DOMAIN)).toBeNull()
+    expect(
+      normalizeMailAddress('user@example.com', DEFAULT_MAIL_DOMAIN),
+    ).toBeNull()
+    expect(
+      parseMailRecipients('Alex, alex@ifruit.com; Jamie', DEFAULT_MAIL_DOMAIN),
+    ).toEqual(['alex@ifruit.com', 'jamie@ifruit.com'])
   })
+
+  it.each(['city.example', 'city-mail.test', 'Mail.City.Example'])(
+    'uses the configured %s domain for accounts and recipients',
+    (domain) => {
+      const suffix = domain.toLowerCase()
+      expect(normalizeMailAddress(' Sky.User ', domain)).toBe(
+        `sky.user@${suffix}`,
+      )
+      expect(
+        normalizeMailAddress(`SKY.USER@${domain.toUpperCase()}`, domain),
+      ).toBe(`sky.user@${suffix}`)
+      expect(
+        parseMailRecipients(`Alex, alex@${suffix}; Jamie`, domain),
+      ).toEqual([`alex@${suffix}`, `jamie@${suffix}`])
+      expect(normalizeMailAddress('sky.user@ifruit.com', domain)).toBeNull()
+      expect(
+        normalizeMailAddress(`sky.user@other.${suffix}`, domain),
+      ).toBeNull()
+      expect(normalizeMailAddress(`sky@user@${suffix}`, domain)).toBeNull()
+      expect(parseMailRecipients(`Alex; jamie@ifruit.com`, domain)).toBeNull()
+    },
+  )
 })
 
 describe('mail compose helpers', () => {

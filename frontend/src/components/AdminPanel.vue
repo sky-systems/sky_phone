@@ -542,6 +542,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
       ],
     ),
     ['CityWarn.CategoryColors', t('configurator.citywarnCategoryColors')],
+    ['CityWarn.NotificationSound', t('configurator.citywarnNotificationSound')],
     ...Object.keys(DEFAULT_CITYWARN_COLORS).map((category) => [
       `CityWarn.CategoryColors.${category}`,
       phone.t(`Apps.citywarn.categories.${category}`),

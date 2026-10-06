@@ -14,9 +14,14 @@ import {
   DEFAULT_PHONE_PREFERENCES,
   type PhonePreferencesV1,
 } from '@/utils/preferences'
-import { playPhoneVibration } from '@/utils/tones'
+import {
+  playPhoneMediaTone,
+  playPhoneTone,
+  playPhoneVibration,
+} from '@/utils/tones'
 
 vi.mock('@/utils/tones', () => ({
+  playPhoneMediaTone: vi.fn(() => vi.fn()),
   playPhoneTone: vi.fn(() => vi.fn()),
   playPhoneVibration: vi.fn(() => vi.fn()),
 }))
@@ -80,13 +85,87 @@ describe('notifications store', () => {
       matchMedia: vi.fn(() => ({ matches: false })),
     })
     setActivePinia(createPinia())
-    vi.mocked(nuiCall).mockClear()
+    vi.clearAllMocks()
   })
 
   afterEach(() => {
     vi.clearAllTimers()
     vi.useRealTimers()
     vi.unstubAllGlobals()
+  })
+
+  it.each([
+    { critical: false, persistent: false, volume: 35 },
+    { critical: true, persistent: false, volume: 70 },
+    { critical: true, persistent: true, volume: 70 },
+  ])(
+    'plays the CityWarn sound with its existing alert policy: %o',
+    (policy) => {
+      const phone = usePhoneStore()
+      phone.preferences.settings.notificationSound = 'soft'
+      phone.preferences.settings.notificationVolume = 35
+      phone.preferences.settings.ringtoneVolume = 70
+      const stop = vi.fn()
+      vi.mocked(playPhoneMediaTone).mockReturnValueOnce(stop)
+      const notifications = useNotificationsStore()
+      const id = notifications.show({
+        appId: 'citywarn',
+        critical: policy.critical,
+        persistent: policy.persistent,
+        soundUrl: 'sounds/citywarn_alert.mp3',
+        title: 'CityWarn',
+        text: 'Avoid the area',
+      })
+
+      expect(playPhoneMediaTone).toHaveBeenCalledWith(
+        'sounds/citywarn_alert.mp3',
+        policy.volume,
+        policy.persistent,
+      )
+      expect(playPhoneTone).not.toHaveBeenCalled()
+      notifications.dismiss(id!)
+      expect(stop).toHaveBeenCalledOnce()
+    },
+  )
+
+  it('uses a configured CityWarn URL and keeps ordinary notification sounds', () => {
+    const phone = usePhoneStore()
+    phone.preferences.settings.notificationSound = 'signal'
+    const notifications = useNotificationsStore()
+    const id = notifications.show({
+      appId: 'citywarn',
+      soundUrl: 'https://example.com/emergency.mp3',
+      title: 'CityWarn',
+      text: 'Warning',
+    })
+    expect(playPhoneMediaTone).toHaveBeenCalledWith(
+      'https://example.com/emergency.mp3',
+      phone.preferences.settings.notificationVolume,
+      false,
+    )
+    notifications.dismiss(id!)
+    notifications.show({ appId: 'mail', title: 'Mail', text: 'Message' })
+    expect(playPhoneTone).toHaveBeenCalledWith(
+      'signal',
+      phone.preferences.settings.notificationVolume,
+      false,
+    )
+  })
+
+  it('vibrates instead of playing CityWarn audio when both volumes are muted', () => {
+    const phone = usePhoneStore()
+    phone.preferences.settings.notificationVolume = 0
+    phone.preferences.settings.ringtoneVolume = 0
+    useNotificationsStore().show({
+      appId: 'citywarn',
+      critical: true,
+      persistent: true,
+      soundUrl: 'sounds/citywarn_alert.mp3',
+      title: 'CityWarn',
+      text: 'Extreme warning',
+    })
+    expect(playPhoneVibration).toHaveBeenCalledWith('notification', true)
+    expect(playPhoneMediaTone).not.toHaveBeenCalled()
   })
 
   it('shows one simultaneous preview per notifying phone', () => {

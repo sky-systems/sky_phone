@@ -10,6 +10,7 @@ local function new_client()
 
     Config = {
         Bridge = { Locale = "en" },
+        Mail = { Domain = "ifruit.com" },
         Phone = { Keybind = false, DevelopmentCommand = false },
         TestData = { Enabled = false },
         AdminPanel = { Enabled = false },
@@ -114,6 +115,30 @@ local function test(name, callback)
         print("FAIL " .. name .. ": " .. tostring(message))
     end
 end
+
+test("file-based mail domain reaches initial opens and NUI reloads", function()
+    local client = new_client()
+    Config.PhoneConfigurator = { Enabled = false }
+    Config.Mail.Domain = "City-Mail.Test"
+    client.events["sky_phone:device:open"](device("file-config"))
+    assert(client.take_messages("app:open")[1].data.mailDomain == "city-mail.test")
+    assert(client.nui("ui:opened").success)
+    client.nui("ui:ready", { protocolVersion = 1 })
+    assert(client.take_messages("app:open")[1].data.mailDomain == "city-mail.test")
+end)
+
+test("Phonepanel mail domain changes reach an open phone and its next session", function()
+    local client = new_client()
+    client.authorize(device("panel-config"))
+    Config.Mail.Domain = "city.example"
+    client.events["sky_phone:configurator:updated"]()
+    assert(client.take_messages("device:updated")[1].data.mailDomain == "city.example")
+    SkyPhoneClient.Toggle(false)
+    Config.Mail.Domain = "mail.example"
+    client.events["sky_phone:configurator:updated"]()
+    client.events["sky_phone:device:open"](device("next-session"))
+    assert(client.take_messages("app:open")[1].data.mailDomain == "mail.example")
+end)
 
 test("latent device snapshots respect close, invalidation, switching and overtaking updates", function()
     local client = new_client()

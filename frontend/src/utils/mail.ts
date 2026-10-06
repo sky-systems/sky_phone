@@ -1,6 +1,6 @@
 import type { MailComposeDraft, MailMessage } from '@/types/mail'
 
-export const MAIL_DOMAIN = 'ifruit.com'
+export const DEFAULT_MAIL_DOMAIN = 'ifruit.com'
 export const MAIL_MAX_RECIPIENTS = 10
 export const MAIL_ADDRESS_INPUT_MAX_LENGTH = 64
 export const MAIL_RECIPIENT_INPUT_MAX_LENGTH =
@@ -18,11 +18,15 @@ export function filterMailRecipientInput(value: string): string {
     .slice(0, MAIL_RECIPIENT_INPUT_MAX_LENGTH)
 }
 
-export function normalizeMailAddress(value: string): string | null {
+export function normalizeMailAddress(
+  value: string,
+  domain: string,
+): string | null {
+  domain = domain.toLocaleLowerCase('en-US')
   const normalized = value.trim().toLocaleLowerCase('en-US')
   const localPart = normalized.includes('@')
-    ? normalized.endsWith(`@${MAIL_DOMAIN}`)
-      ? normalized.slice(0, -MAIL_DOMAIN.length - 1)
+    ? normalized.endsWith(`@${domain}`)
+      ? normalized.slice(0, -domain.length - 1)
       : ''
     : normalized
 
@@ -35,10 +39,13 @@ export function normalizeMailAddress(value: string): string | null {
     return null
   }
 
-  return `${localPart}@${MAIL_DOMAIN}`
+  return `${localPart}@${domain}`
 }
 
-export function parseMailRecipients(value: string): string[] | null {
+export function parseMailRecipients(
+  value: string,
+  domain: string,
+): string[] | null {
   const parts = value
     .split(/[;,]/)
     .map((part) => part.trim())
@@ -48,7 +55,7 @@ export function parseMailRecipients(value: string): string[] | null {
   const recipients: string[] = []
   const seen = new Set<string>()
   for (const part of parts) {
-    const email = normalizeMailAddress(part)
+    const email = normalizeMailAddress(part, domain)
     if (!email) return null
     if (!seen.has(email)) {
       seen.add(email)

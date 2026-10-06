@@ -42,7 +42,7 @@ local function normalize_email(value)
     email = email:lower()
     local local_part = email
     if email:find("@", 1, true) then
-        local_part = email:match("^([^@]+)@" .. Config.Mail.Domain:gsub("%.", "%%.") .. "$")
+        local_part = email:match("^([^@]+)@" .. Config.Mail.Domain:lower():gsub("(%W)", "%%%1") .. "$")
     end
     if not local_part
         or #local_part < Config.Mail.LocalPartMinLength
@@ -52,7 +52,7 @@ local function normalize_email(value)
     then
         return nil
     end
-    return local_part .. "@" .. Config.Mail.Domain
+    return local_part .. "@" .. Config.Mail.Domain:lower()
 end
 
 local function valid_password(value)

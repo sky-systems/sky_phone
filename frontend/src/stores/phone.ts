@@ -9,6 +9,7 @@ import type {
 } from '@/types/device'
 import { clampPage } from '@/utils/pages'
 import { cloneJsonData } from '@/utils/clone'
+import { DEFAULT_MAIL_DOMAIN } from '@/utils/mail'
 import {
   EMPTY_CUSTOM_PHONE_TONES,
   isCustomTonePreferenceId,
@@ -51,6 +52,7 @@ export type PhoneOpenPayload = {
   fallbackLocales?: LocaleTree
   lang?: string
   locales?: LocaleTree
+  mailDomain?: string
   memos?: DeviceBootstrap['memos']
   notes?: DeviceBootstrap['notes']
   phoneNumberFormat?: DeviceBootstrap['phoneNumberFormat']
@@ -1211,6 +1213,7 @@ const adminPanelFallbackLocales = {
       },
     },
     citywarnCategoryColors: 'Category colors',
+    citywarnNotificationSound: 'Warning notification sound',
     citywarnPublisherLabels: {
       MinimumGrade: 'Minimum job grade',
       MaximumSeverity: 'Highest warning level',
@@ -1230,6 +1233,8 @@ const adminPanelFallbackLocales = {
     descriptions: {
       citywarnPublishers:
         'Choose which jobs may publish CityWarn warnings. Enter the internal job name, for example mechanic, and click Add job. Set its permissions, then save with the green check.',
+      citywarnNotificationSound:
+        'Audio file for CityWarn notifications. Use a path relative to source/html (default: sounds/citywarn_alert.mp3) or a direct HTTPS audio URL. Save to apply to the next warning.',
       citywarnPublisher:
         'Permissions for the job {name}. This job must already exist on your server. If RequireDuty is enabled, employees must be on duty to publish.',
       citywarnPublisherMinimumGrade:
@@ -5681,13 +5686,13 @@ const defaultLocales: LocaleTree = {
       registerLink: 'Register',
       loginTitle: 'iFruit Mail',
       loginBody: 'Sign in to use your shared iFruit mailbox.',
-      registerBody: 'Choose your new @ifruit.com address.',
+      registerBody: 'Choose your new @{domain} address.',
       localPart: 'Email address',
       email: 'Email',
       password: 'Password',
       confirmPassword: 'Confirm password',
       accountEyebrow: 'Your Sky Cloud account',
-      emailPlaceholder: 'name@ifruit.com',
+      emailPlaceholder: 'name@{domain}',
       passwordPlaceholder: 'Enter password',
       passwordWarning:
         'Use an in-character password. Do not reuse a real-world password.',
@@ -5710,7 +5715,7 @@ const defaultLocales: LocaleTree = {
       compose: 'New Message',
       recipients: 'To',
       recipientHint: 'Separate up to 10 addresses with commas.',
-      recipientPlaceholder: 'name@ifruit.com',
+      recipientPlaceholder: 'name@{domain}',
       subject: 'Subject',
       subjectPlaceholder: "What's this about?",
       body: 'Message',
@@ -6686,6 +6691,7 @@ export const usePhoneStore = defineStore('phone', {
     launchOrigin: null as AppLaunchOrigin | null,
     fallbackLocales: defaultLocales,
     locales: defaultLocales,
+    mailDomain: DEFAULT_MAIL_DOMAIN,
     preferences: cloneJsonData(DEFAULT_PHONE_PREFERENCES),
     persistenceGeneration: 0,
     persistenceSession: ++nextPersistenceSession,
@@ -6766,6 +6772,7 @@ export const usePhoneStore = defineStore('phone', {
       this.lang = intlLocaleCodes[lang] ?? lang
       this.fallbackLocales = payload.fallbackLocales ?? defaultLocales
       this.locales = payload.locales ?? this.fallbackLocales
+      if (payload.mailDomain) this.mailDomain = payload.mailDomain
       if (payload.device) this.hydrateDevice(payload.device)
       this.reconcileCustomTonePreferences()
       if (payload.player) this.player = payload.player

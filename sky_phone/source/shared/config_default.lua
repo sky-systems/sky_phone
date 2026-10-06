@@ -1261,6 +1261,9 @@ Config.Crypto = {
 
 Config.CityWarn = {
     Enabled = true,
+    -- Audio path relative to source/html, or a direct HTTPS audio URL.
+    -- Managed under CityWarn in /phonepanel; file mode requires a resource restart.
+    NotificationSound = "sounds/citywarn_alert.mp3",
     -- #RRGGBB colors shared by GTA blips, radius areas and the CityWarn app.
     CategoryColors = {
         public_safety = "#d97706",

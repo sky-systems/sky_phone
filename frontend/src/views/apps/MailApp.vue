@@ -217,7 +217,7 @@ const canMoveMessage = computed(
 )
 const canSend = computed(
   () =>
-    Boolean(parseMailRecipients(recipientText.value)) &&
+    Boolean(parseMailRecipients(recipientText.value, phone.mailDomain)) &&
     Boolean(subject.value.trim() || mailPlainText(body.value)) &&
     body.value.length <= 20000 &&
     !submitting.value,
@@ -804,7 +804,7 @@ async function consumeContactComposeRequest(): Promise<void> {
   if (!authenticated.value || route.query.compose !== '1') return
   const requestedRecipient =
     typeof route.query.to === 'string'
-      ? normalizeMailAddress(route.query.to)
+      ? normalizeMailAddress(route.query.to, phone.mailDomain)
       : null
   if (requestedRecipient) {
     beginCompose({ body: '', recipients: [requestedRecipient], subject: '' })
@@ -818,7 +818,7 @@ async function closeCompose(): Promise<void> {
 }
 
 async function sendMessage(): Promise<void> {
-  const recipients = parseMailRecipients(recipientText.value)
+  const recipients = parseMailRecipients(recipientText.value, phone.mailDomain)
   if (!recipients || !canSend.value) {
     showToast(errorText('invalid_message'))
     return
@@ -1018,6 +1018,7 @@ onBeforeUnmount(() => {
               authMode === 'login'
                 ? 'Apps.mail.loginBody'
                 : 'Apps.mail.registerBody',
+              { domain: phone.mailDomain },
             )
           }}
         </p>
@@ -1062,10 +1063,16 @@ onBeforeUnmount(() => {
               :maxlength="MAIL_ADDRESS_INPUT_MAX_LENGTH"
               pattern="[A-Za-z0-9@._-]*"
               spellcheck="false"
-              :placeholder="phone.t('Apps.mail.emailPlaceholder')"
+              :placeholder="
+                phone.t('Apps.mail.emailPlaceholder', {
+                  domain: phone.mailDomain,
+                })
+              "
               @input="updateAuthEmail"
             />
-            <small v-if="authMode === 'register'">@ifruit.com</small>
+            <small v-if="authMode === 'register'"
+              >@{{ phone.mailDomain }}</small
+            >
           </div>
         </label>
         <label class="mail-auth__field">
@@ -1700,7 +1707,11 @@ onBeforeUnmount(() => {
             :maxlength="MAIL_RECIPIENT_INPUT_MAX_LENGTH"
             pattern="[A-Za-z0-9@._,; -]*"
             spellcheck="false"
-            :placeholder="phone.t('Apps.mail.recipientPlaceholder')"
+            :placeholder="
+              phone.t('Apps.mail.recipientPlaceholder', {
+                domain: phone.mailDomain,
+              })
+            "
             @input="updateRecipientText"
           />
         </label>

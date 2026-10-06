@@ -1017,7 +1017,9 @@ onBeforeUnmount(() => {
               @clear="accountEmail = ''"
             >
               <template v-if="accountMode === 'register'" #trailing>
-                <span class="settings-account-suffix">@ifruit.com</span>
+                <span class="settings-account-suffix"
+                  >@{{ phone.mailDomain }}</span
+                >
               </template>
             </SkyField>
             <SkyField
