@@ -1048,6 +1048,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
         critical: alert.severity === 'danger' || alert.severity === 'extreme',
         persistent: alert.severity === 'extreme',
         route: `/apps/citywarn?alertId=${encodeURIComponent(alert.id)}`,
+        soundUrl: data.notificationSound,
         subtitle: data.sourceLabel ?? alert.sourceLabel,
         text:
           data.text ??

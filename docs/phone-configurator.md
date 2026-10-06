@@ -39,6 +39,25 @@ file values before switching modes. Saved SQL values remain available when SQL
 mode is enabled again. In file mode the Configurator displays settings read-only;
 the other authorized Phonepanel tools remain available when `AdminPanel.Enabled` is on.
 
+### CityWarn notification sound
+
+CityWarn uses the bundled `sounds/citywarn_alert.mp3` emergency sound, independently
+of the handset's ordinary notification tone. In `/phonepanel` → Phone configurator
+→ CityWarn → General, edit **Warning notification sound** and save. The next
+CityWarn notification uses the new sound; the setting survives resource restarts.
+
+With `Config.PhoneConfigurator.Enabled = false`, set
+`Config.CityWarn.NotificationSound` in `config/config.lua` and restart the resource.
+Use a direct HTTPS audio URL or a path relative to `source/html`, for example
+`sounds/custom-alert.mp3`. Local files must be shipped with the NUI: place them in
+`frontend/public/sounds` before building, or in `source/html/sounds` in a packaged
+resource. Keep custom files when updating or rebuilding the resource.
+
+The existing notification volume, mute and critical-alert rules still apply.
+Extreme alerts repeat until dismissed; other alerts stop when their banner closes.
+Existing SQL configurations receive the new default automatically when the setting
+is absent. No manual SQL migration is required.
+
 ### Credentials and backups
 
 In SQL mode, use the Media, Server and RealtimeSecrets detail sections for their
@@ -209,6 +228,21 @@ For logs, enable `Bridge.Debug` in the active configuration owner, reproduce onc
 then disable it. Remove keys, tokens and full player identifiers before sharing logs.
 
 ## Source verification and runtime boundary
+
+CityWarn audio transport was checked against Cfx revision
+`e34d12cd9a39cc223548a5be1ab09f60e9183051` on 2026-10-03:
+[TriggerClientEvent documentation](https://docs.fivem.net/docs/scripting-reference/runtimes/lua/functions/TriggerClientEvent/),
+[SendNUIMessage documentation](https://docs.fivem.net/docs/scripting-reference/runtimes/lua/functions/SendNUIMessage/),
+[scheduler.lua](https://github.com/citizenfx/fivem/blob/e34d12cd9a39cc223548a5be1ab09f60e9183051/data/shared/citizen/scripting/lua/scheduler.lua),
+[ServerResources.cpp](https://github.com/citizenfx/fivem/blob/e34d12cd9a39cc223548a5be1ab09f60e9183051/code/components/citizen-server-impl/src/ServerResources.cpp),
+and [ResourceUIScripting.cpp](https://github.com/citizenfx/fivem/blob/e34d12cd9a39cc223548a5be1ab09f60e9183051/code/components/nui-resources/src/ResourceUIScripting.cpp).
+The server packs the event arguments with MessagePack; target `-1` broadcasts
+reliably to all connected clients. The existing client handler forwards the
+configured audio path as JSON through `SendNUIMessage` to the resource's NUI frame.
+These event-driven calls have no pointer/out parameters or OneSync entity RPC;
+no per-frame work was added. The Lua NUI wrapper discards the native boolean
+result. Playback uses the existing HTML audio player, not a GTA engine native.
+The deployed artifact revision and live FiveM audio behavior remain unverified.
 
 Inspected Cfx revision: `e60d29ac2d6e894e20ba78d5fdf3c190d976fd2a`.
 The deployed client/server artifact revision was not identified; this is source

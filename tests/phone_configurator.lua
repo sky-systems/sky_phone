@@ -611,12 +611,50 @@ test("existing CityWarn SQL rows receive new blip defaults without resetting sav
     local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
     stored.CityWarn.Blip = nil
     stored.CityWarn.CategoryColors = nil
+    stored.CityWarn.NotificationSound = nil
     stored.CityWarn.Enabled = false
     local restarted = new_server(server.database)
     assert(restarted.env.Config.CityWarn.Enabled == false)
+    assert(restarted.env.Config.CityWarn.NotificationSound == "sounds/citywarn_alert.mp3")
     assert(restarted.env.Config.CityWarn.Blip.Sprite == 161)
     assert(restarted.env.Config.CityWarn.Blip.RadiusEnabled == true)
     assert(restarted.env.Config.CityWarn.CategoryColors.evacuation == "#0891b2")
+end)
+
+test("CityWarn sound defaults, panel edits and SQL restarts stay aligned", function()
+    local server = new_server()
+    local field = server.field("CityWarn")
+    assert(field.structure.fields.NotificationSound.kind == "value")
+    assert(field.structure.fields.NotificationSound.valueType == "string")
+    assert(field.value.NotificationSound == "sounds/citywarn_alert.mp3")
+    assert(server.env.Config.CityWarn.NotificationSound == field.value.NotificationSound)
+    local client = new_client(server)
+    for _, sound in ipairs({ "https://example.com/emergency.mp3", "sounds/custom-alert.ogg" }) do
+        field.value.NotificationSound = sound
+        local result = server.save({ change("CityWarn", field.value) })
+        assert(result.success, tostring(result.error))
+        client.sync(server.broadcasts[#server.broadcasts])
+        assert(client.config.CityWarn.NotificationSound == sound)
+        local restarted = new_server(server.database)
+        assert(restarted.env.Config.CityWarn.NotificationSound == sound)
+        assert(restarted.field("CityWarn").value.NotificationSound == sound)
+        assert(new_client(restarted).config.CityWarn.NotificationSound == sound)
+    end
+end)
+
+test("invalid CityWarn sound values cannot be persisted or broadcast", function()
+    for _, sound in ipairs({
+        false, 42, "", "   ", "bad\nsound.mp3", string.rep("a", 2049),
+        "http://example.com/alert.mp3", "file:///alert.mp3", "data:audio/mpeg;base64,AA==",
+        "//example.com/alert.mp3", "/sounds/alert.mp3", "https:///alert.mp3", "https://",
+        " https://example.com/alert.mp3", "https://example.com/alert.mp3 ",
+    }) do
+        local server = new_server()
+        local citywarn = server.field("CityWarn").value
+        citywarn.NotificationSound = sound
+        assert(not server.save({ change("CityWarn", citywarn) }).success)
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
 end)
 
 test("existing CityWarn sprites survive upgrades while short titles become the default", function()
