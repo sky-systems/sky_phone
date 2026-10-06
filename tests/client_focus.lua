@@ -4,6 +4,7 @@ local firing_disabled = false
 local event_handlers = {}
 local nui_callbacks = {}
 local nui_focus = nil
+local nui_focus_calls = 0
 local nui_keep_input = nil
 local pressed_controls = {}
 local disabled_pressed_controls = {}
@@ -47,6 +48,7 @@ function RegisterNUICallback(callback_name, callback)
 end
 
 function SetNuiFocus(focused, cursor)
+    nui_focus_calls = nui_focus_calls + 1
     nui_focus = { focused = focused, cursor = cursor }
 end
 
@@ -396,17 +398,29 @@ assert(
 SkyPhoneFocus.SetPhone(false)
 SkyPhoneFocus.SetPhone(true)
 assert(nui_focus.cursor, "closing the phone must clear the previous no-focus claim")
+local text_input_focus_calls = nui_focus_calls
 SkyPhoneFocus.SetTextInputFocused(true)
 assert(not nui_keep_input, "runtime text focus must stop game-input passthrough")
+assert(nui_focus_calls == text_input_focus_calls, "typing must preserve the focused input instead of refocusing the root phone frame")
 SkyPhoneFocus.SetTextInputFocused(false)
 assert(nui_keep_input, "leaving a text input must restore configured phone movement")
+assert(nui_focus_calls == text_input_focus_calls, "leaving text input must only restore game-input passthrough")
 
 local external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", true)
 assert(external_success and external_error == nil and nui_keep_input, "external movement claim must apply")
 external_success, external_error = SkyPhoneFocus.SetExternalGameInput("custom_app", false)
 assert(external_success and external_error == nil and not nui_keep_input, "external typing claim must apply")
+assert(nui_focus_calls == text_input_focus_calls, "custom-app typing must preserve the nested iframe focus")
 event_handlers["onClientResourceStop"]("custom_app")
 assert(nui_keep_input, "resource stop must restore configured phone movement")
+assert(nui_focus_calls == text_input_focus_calls, "releasing an external claim must preserve the current phone focus")
+
+SkyPhoneFocus.BeginNuiHydration()
+SkyPhoneFocus.Reapply()
+assert(nui_focus_calls == text_input_focus_calls + 1, "CEF hydration must reclaim the phone frame even when the logical focus is unchanged")
+assert(nui_focus.focused and nui_focus.cursor and nui_keep_input, "CEF hydration must restore the open phone input policy")
+SkyPhoneFocus.Reapply()
+assert(nui_focus_calls == text_input_focus_calls + 1, "unchanged input policy must preserve browser focus after hydration")
 
 for _, allow_movement in ipairs({ false, true }) do
     Config.Phone.AllowMovement = allow_movement

@@ -35,6 +35,8 @@ local block_game = false
 local block_look = false
 local game_input = false
 local control_thread_active = false
+local applied_nui_focus = nil
+local applied_nui_cursor = nil
 
 local function refresh_focus_configuration()
     local hold_to_look_config = Config.Phone.HoldToLook
@@ -190,7 +192,12 @@ function SkyPhoneFocus.Reapply()
         state.look_passthrough = false
     end
     local focus = SkyPhoneFocus.Resolve(state)
-    SetNuiFocus(focus.focused, focus.cursor)
+    -- SetNuiFocus refocuses the outer frame, which blurs nested custom-app inputs.
+    if focus.focused ~= applied_nui_focus or focus.cursor ~= applied_nui_cursor then
+        SetNuiFocus(focus.focused, focus.cursor)
+        applied_nui_focus = focus.focused
+        applied_nui_cursor = focus.cursor
+    end
     SetNuiFocusKeepInput(focus.keep_input)
     block_game = focus.block_game == true
     block_look = focus.block_look == true
@@ -206,6 +213,8 @@ end
 
 function SkyPhoneFocus.BeginNuiHydration()
     -- Browser-owned focus claims cannot survive a CEF reload.
+    applied_nui_focus = nil
+    applied_nui_cursor = nil
     state.notification_focus = false
     state.look_passthrough = false
     state.text_input_focused = false
@@ -301,6 +310,8 @@ function SkyPhoneFocus.Reset()
     game_input = false
     SetNuiFocusKeepInput(false)
     SetNuiFocus(false, false)
+    applied_nui_focus = false
+    applied_nui_cursor = false
 end
 
 AddEventHandler("sky_phone:client:setSuspended", function(suspended)
