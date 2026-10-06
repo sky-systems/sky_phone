@@ -35,6 +35,8 @@ local block_game = false
 local block_look = false
 local game_input = false
 local control_thread_active = false
+local applied_nui_focus = nil
+local applied_nui_cursor = nil
 
 local function refresh_focus_configuration()
     local hold_to_look_config = Config.Phone.HoldToLook
@@ -178,7 +180,7 @@ function SkyPhoneFocus.Resolve(state)
     }
 end
 
-function SkyPhoneFocus.Reapply(previous_focus)
+function SkyPhoneFocus.Reapply()
     if state.look_passthrough and (
         not hold_to_look_enabled
         or not state.is_open
@@ -190,12 +192,11 @@ function SkyPhoneFocus.Reapply(previous_focus)
         state.look_passthrough = false
     end
     local focus = SkyPhoneFocus.Resolve(state)
-    -- Reclaiming identical NUI focus while a text field is active can move
-    -- keyboard focus from a custom app iframe back to the phone document.
-    if not previous_focus
-        or previous_focus.focused ~= focus.focused
-        or previous_focus.cursor ~= focus.cursor then
+    -- SetNuiFocus refocuses the outer frame, which blurs nested custom-app inputs.
+    if focus.focused ~= applied_nui_focus or focus.cursor ~= applied_nui_cursor then
         SetNuiFocus(focus.focused, focus.cursor)
+        applied_nui_focus = focus.focused
+        applied_nui_cursor = focus.cursor
     end
     SetNuiFocusKeepInput(focus.keep_input)
     block_game = focus.block_game == true
@@ -212,6 +213,8 @@ end
 
 function SkyPhoneFocus.BeginNuiHydration()
     -- Browser-owned focus claims cannot survive a CEF reload.
+    applied_nui_focus = nil
+    applied_nui_cursor = nil
     state.notification_focus = false
     state.look_passthrough = false
     state.text_input_focused = false
@@ -257,12 +260,11 @@ function SkyPhoneFocus.SetSimPicker(active)
 end
 
 function SkyPhoneFocus.SetTextInputFocused(active)
-    local previous_focus = SkyPhoneFocus.Resolve(state)
     state.text_input_focused = active == true
     if state.text_input_focused then
         state.look_passthrough = false
     end
-    SkyPhoneFocus.Reapply(previous_focus)
+    SkyPhoneFocus.Reapply()
 end
 
 function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
@@ -272,10 +274,9 @@ function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
     end
     if allow_game_input == nil then
         if state.external_game_input_owner == owner_resource then
-            local previous_focus = SkyPhoneFocus.Resolve(state)
             state.external_game_input = nil
             state.external_game_input_owner = nil
-            SkyPhoneFocus.Reapply(previous_focus)
+            SkyPhoneFocus.Reapply()
         end
         return true
     end
@@ -283,10 +284,9 @@ function SkyPhoneFocus.SetExternalGameInput(owner_resource, allow_game_input)
         return false, "phone_closed"
     end
 
-    local previous_focus = SkyPhoneFocus.Resolve(state)
     state.external_game_input = allow_game_input
     state.external_game_input_owner = owner_resource
-    SkyPhoneFocus.Reapply(previous_focus)
+    SkyPhoneFocus.Reapply()
     return true
 end
 
@@ -310,6 +310,8 @@ function SkyPhoneFocus.Reset()
     game_input = false
     SetNuiFocusKeepInput(false)
     SetNuiFocus(false, false)
+    applied_nui_focus = false
+    applied_nui_cursor = false
 end
 
 AddEventHandler("sky_phone:client:setSuspended", function(suspended)
