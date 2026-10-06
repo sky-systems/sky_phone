@@ -107,6 +107,18 @@ function TriggerClientEvent(name, target, data)
     broadcast = data
 end
 
+local default_sound = Config.CityWarn.NotificationSound
+for _, sound in ipairs({
+    "http://example.com/alert.mp3", "file:///alert.mp3", "data:audio/mpeg;base64,AA==",
+    "//example.com/alert.mp3", "/sounds/alert.mp3", "https:///alert.mp3", "https://",
+    " https://example.com/alert.mp3", "https://example.com/alert.mp3 ",
+}) do
+    Config.CityWarn.NotificationSound = sound
+    local success, failure = pcall(dofile, "sky_phone/source/server/citywarn.lua")
+    assert(not success and tostring(failure):find("NotificationSound", 1, true),
+        "file-mode CityWarn must reject unsupported notification sound sources")
+end
+Config.CityWarn.NotificationSound = default_sound
 dofile("sky_phone/source/server/citywarn.lua")
 local function bootstrap() return callbacks["sky_phone:citywarn:bootstrap"](1).data end
 local defaults = bootstrap().mapBlip

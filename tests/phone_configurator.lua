@@ -643,7 +643,12 @@ test("CityWarn sound defaults, panel edits and SQL restarts stay aligned", funct
 end)
 
 test("invalid CityWarn sound values cannot be persisted or broadcast", function()
-    for _, sound in ipairs({ false, 42, "", "   ", "bad\nsound.mp3", string.rep("a", 2049) }) do
+    for _, sound in ipairs({
+        false, 42, "", "   ", "bad\nsound.mp3", string.rep("a", 2049),
+        "http://example.com/alert.mp3", "file:///alert.mp3", "data:audio/mpeg;base64,AA==",
+        "//example.com/alert.mp3", "/sounds/alert.mp3", "https:///alert.mp3", "https://",
+        " https://example.com/alert.mp3", "https://example.com/alert.mp3 ",
+    }) do
         local server = new_server()
         local citywarn = server.field("CityWarn").value
         citywarn.NotificationSound = sound
