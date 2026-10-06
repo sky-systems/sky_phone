@@ -32,6 +32,14 @@ end
 if type(config.Enabled) ~= "boolean" or type(config.RequireDuty) ~= "boolean" then
     error("[sky_phone] CityWarn Enabled and RequireDuty must be booleans.")
 end
+if type(config.NotificationSound) ~= "string" or #config.NotificationSound > 2048
+    or not config.NotificationSound:find("%S") or config.NotificationSound:find("%c")
+    or config.NotificationSound:match("^[/\\]")
+    or config.NotificationSound:match("^%s") or config.NotificationSound:match("%s$")
+    or (config.NotificationSound:match("^[%a][%w+.-]*:")
+        and not config.NotificationSound:lower():match("^https://[^/%s?#]+%S*$")) then
+    error("[sky_phone] Config.CityWarn.NotificationSound must be a relative NUI audio path or HTTPS URL (up to 2048 bytes).")
+end
 require_integer_config("PageSize", 1, 100)
 require_integer_config("MaximumActiveAlerts", 1, 1000)
 require_integer_config("TitleMaxLength", 1, 120)
@@ -440,6 +448,7 @@ local function broadcast(kind, alert)
         alert = alert,
         alertId = alert.id,
         kind = kind,
+        notificationSound = config.NotificationSound,
         severity = alert.severity,
         sourceLabel = alert.sourceLabel,
     })

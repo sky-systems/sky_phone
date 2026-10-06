@@ -13,6 +13,7 @@ import {
   type PhonePreferencesV1,
 } from '@/utils/preferences'
 import {
+  playPhoneMediaTone,
   playPhoneTone,
   playPhoneVibration,
   type PhoneToneId,
@@ -31,6 +32,7 @@ export type PhoneNotificationInput = {
   persistent?: boolean
   route?: string
   sound?: PhoneToneId
+  soundUrl?: string
   subtitle?: string
   text: string
   title: string
@@ -194,12 +196,13 @@ export const useNotificationsStore = defineStore('notifications', () => {
         preferences.settings.notificationVolume === 0 &&
         preferences.settings.ringtoneVolume === 0
       const selectedSound = preferences.settings.notificationSound
-      const customSound = notification.sound
-        ? undefined
-        : findCustomPhoneTone(
-            phone.customTones.notificationSounds,
-            selectedSound,
-          )
+      const customSound =
+        notification.sound || notification.soundUrl
+          ? undefined
+          : findCustomPhoneTone(
+              phone.customTones.notificationSounds,
+              selectedSound,
+            )
       const volume = notification.critical
         ? preferences.settings.ringtoneVolume
         : preferences.settings.notificationVolume
@@ -207,20 +210,26 @@ export const useNotificationsStore = defineStore('notifications', () => {
         notification.id,
         alertsMuted
           ? playPhoneVibration('notification', !!notification.persistent)
-          : customSound
-            ? playCustomPhoneTone(
-                customSound,
+          : notification.soundUrl
+            ? playPhoneMediaTone(
+                notification.soundUrl,
                 volume,
                 !!notification.persistent,
               )
-            : playPhoneTone(
-                notification.sound ??
-                  (isBuiltInNotificationSoundId(selectedSound)
-                    ? selectedSound
-                    : 'chime'),
-                volume,
-                !!notification.persistent,
-              ),
+            : customSound
+              ? playCustomPhoneTone(
+                  customSound,
+                  volume,
+                  !!notification.persistent,
+                )
+              : playPhoneTone(
+                  notification.sound ??
+                    (isBuiltInNotificationSoundId(selectedSound)
+                      ? selectedSound
+                      : 'chime'),
+                  volume,
+                  !!notification.persistent,
+                ),
       )
     }
 
