@@ -32,6 +32,114 @@ async function register(page, mode, options = {}) {
 }
 
 for (const mode of ['light', 'dark']) {
+  test(`external status icons follow the reported background: ${mode}`, async ({
+    page,
+  }) => {
+    await page.route('https://apps.example.test/index.html*', (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: '<!doctype html><html><body style="margin:0;background:#94171e;min-height:100vh"></body></html>',
+      }),
+    )
+    await page.route('**/api/custom-app:authorize', (route) =>
+      route.fulfill({ json: { success: true } }),
+    )
+    await register(page, mode, {
+      bridgeMode: 'legacy',
+      defaultInstalled: true,
+    })
+    await page.evaluate(async () => {
+      const { default: router } = await import('/src/router/index.ts')
+      await router.push('/apps/test-external')
+    })
+    await expect(page.locator('.custom-app-frame')).toBeVisible()
+    const body = page.frameLocator('.custom-app-frame').locator('body')
+    const status = page.locator('.phone-status-bar')
+    await body.evaluate(() => {
+      window.parent.postMessage(
+        {
+          type: 'sky-phone-app:status-bar-background',
+          appId: 'test-external',
+          protocolVersion: 1,
+          background: getComputedStyle(document.body).backgroundColor,
+        },
+        '*',
+      )
+    })
+    await expect(status).toHaveCSS('color', 'rgb(255, 255, 255)')
+    await page.evaluate(async () => {
+      const { useCallsStore } = await import('/src/stores/calls.ts')
+      const { usePhoneStore } = await import('/src/stores/phone.ts')
+      const now = Math.floor(Date.now() / 1000)
+      useCallsStore().applyCallState({
+        id: 'status-bar-retained-stage',
+        direction: 'outgoing',
+        state: 'connected',
+        otherNumber: '5550102',
+        startedAt: now,
+        answeredAt: now,
+      })
+      usePhoneStore().close()
+    })
+    await expect(page.locator('.custom-app-frame')).toHaveCount(1)
+    await page.evaluate(async () => {
+      const { usePhoneStore } = await import('/src/stores/phone.ts')
+      usePhoneStore().isOpen = true
+    })
+    await expect(status).toHaveCSS('color', 'rgb(255, 255, 255)')
+    await page.evaluate(async () => {
+      const { useCallsStore } = await import('/src/stores/calls.ts')
+      useCallsStore().activeCall = null
+    })
+    await page.evaluate(async (mode) => {
+      const { usePhoneStore } = await import('/src/stores/phone.ts')
+      usePhoneStore().preferences.settings.appearanceMode =
+        mode === 'light' ? 'dark' : 'light'
+    }, mode)
+    await expect(status).toHaveCSS('color', 'rgb(255, 255, 255)')
+    await body.evaluate(() => {
+      document.body.style.background = '#fff'
+      window.parent.postMessage(
+        {
+          type: 'sky-phone-app:status-bar-background',
+          appId: 'test-external',
+          protocolVersion: 1,
+          background: getComputedStyle(document.body).backgroundColor,
+        },
+        '*',
+      )
+    })
+    await expect(status).toHaveCSS('color', 'rgb(17, 17, 17)')
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: 'sky-phone-app:status-bar-background',
+          appId: 'test-external',
+          protocolVersion: 1,
+          background: '#94171e',
+        },
+        '*',
+      )
+      return new Promise((resolve) => requestAnimationFrame(resolve))
+    })
+    await expect(status).toHaveCSS('color', 'rgb(17, 17, 17)')
+    await page.evaluate(async () => {
+      const { default: router } = await import('/src/router/index.ts')
+      await router.push('/apps/phone')
+    })
+    await expect(page.locator('.custom-app-frame')).toHaveCount(0)
+    await expect(status).toHaveCSS(
+      'color',
+      mode === 'light' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+    )
+    expect(
+      await page.evaluate(async () => {
+        const { usePhoneStore } = await import('/src/stores/phone.ts')
+        return usePhoneStore().customAppStatusBar
+      }),
+    ).toBeNull()
+  })
+
   test(`external metadata and installation errors: ${mode}`, async ({
     page,
   }, testInfo) => {

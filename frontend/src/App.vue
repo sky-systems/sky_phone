@@ -2177,11 +2177,15 @@ onBeforeUnmount(() => {
                         route.name === 'development-realtime' &&
                         route.params.scene === 'call') ||
                       phone.appStatusBarLight === true ||
+                      (phone.customAppStatusBar?.appId === activeAppId &&
+                        phone.customAppStatusBar.light === true) ||
                       WHITE_STATUS_BAR_APP_IDS.has(activeAppId) ||
                       (activeAppId === 'phone' && calls.activeCall !== null),
                     'phone-app--status-dark':
                       !lockedCallVisible &&
-                      DARK_STATUS_BAR_APP_IDS.has(activeAppId),
+                      (DARK_STATUS_BAR_APP_IDS.has(activeAppId) ||
+                        (phone.customAppStatusBar?.appId === activeAppId &&
+                          phone.customAppStatusBar.light === false)),
                     'phone-app--setup': setupRequired,
                     [`phone-app--${phone.preferences.settings.graphicsMode}`]: true,
                     'phone-app--unlocking': isUnlocking,

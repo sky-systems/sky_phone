@@ -5,7 +5,14 @@ import {
   SkyButton as kButton,
   SkySpinner as kPreloader,
 } from '@/ui'
-import { computed, onBeforeMount, onBeforeUnmount, ref, watch } from 'vue'
+import {
+  computed,
+  onBeforeMount,
+  onBeforeUnmount,
+  reactive,
+  ref,
+  watch,
+} from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getPhoneApp, isExternalPhoneApp } from '@/config/apps'
@@ -45,6 +52,7 @@ import {
   writeLbPhoneStorage,
 } from '@/utils/lbPhoneAppBridge'
 import { cloneJsonData } from '@/utils/clone'
+import { customAppStatusBarLight } from '@/utils/customAppStatusBar'
 import { nuiCall } from '@/utils/nui'
 import type { PhoneCall } from '@/types/phone'
 
@@ -64,6 +72,11 @@ const frame = ref<HTMLIFrameElement | null>(null)
 const frameLoaded = ref(false)
 const frameUnavailable = ref(false)
 const skyBridgeReady = ref(false)
+const statusBarLight = ref<boolean | null>(null)
+const statusBarState = reactive({
+  appId: props.app.id,
+  light: null as boolean | null,
+})
 const lbFrameDocument = ref<string | null>(null)
 let loadTimeout: ReturnType<typeof setTimeout> | undefined
 let frameDocumentController: AbortController | undefined
@@ -390,6 +403,18 @@ function onFrameMessage(event: MessageEvent): void {
     return
   }
 
+  if (message.type === 'sky-phone-app:status-bar-background') {
+    const light = customAppStatusBarLight(message.background)
+    if (light === null && message.background !== null) {
+      console.error(
+        `[Custom apps] Rejected invalid opaque status-bar background from ${props.app.id}.`,
+      )
+      return
+    }
+    statusBarLight.value = light
+    return
+  }
+
   if (message.type === LB_PHONE_STORAGE_MESSAGE_TYPE) {
     try {
       if (
@@ -462,6 +487,7 @@ function closeApp(): void {
 
 onBeforeMount(() => {
   phone.activeCustomAppId = props.app.id
+  phone.customAppStatusBar = statusBarState
   window.addEventListener('message', onFrameMessage)
   orientation.apply(props.app.orientation)
   void lifecycle.report('open', initialOpenRequest?.data)
@@ -479,7 +505,11 @@ onBeforeMount(() => {
 })
 
 onBeforeUnmount(() => {
-  if (phone.activeCustomAppId === props.app.id) phone.activeCustomAppId = null
+  if (phone.activeCustomAppId === props.app.id) {
+    phone.activeCustomAppId = null
+  }
+  if (phone.customAppStatusBar === statusBarState)
+    phone.customAppStatusBar = null
   if (loadTimeout !== undefined) clearTimeout(loadTimeout)
   frameDocumentController?.abort()
   window.removeEventListener('message', onFrameMessage)
@@ -488,6 +518,17 @@ onBeforeUnmount(() => {
 })
 
 watch(context, sendContext, { deep: true })
+watch(
+  [statusBarLight, frameReady, frameUnavailable, () => phone.isOpen],
+  () => {
+    if (phone.customAppStatusBar === statusBarState) {
+      statusBarState.light =
+        phone.isOpen && frameReady.value && !frameUnavailable.value
+          ? statusBarLight.value
+          : null
+    }
+  },
+)
 watch(lbSettings, sendLbSettings, { deep: true })
 watch(
   () => props.app.orientation,

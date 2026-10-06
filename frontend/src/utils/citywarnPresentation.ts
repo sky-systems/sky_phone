@@ -7,6 +7,7 @@ import type {
   CityWarnCategory,
   CityWarnMapBlip,
 } from '@/types/citywarn'
+import { colorLuminance } from '@/utils/colorContrast'
 
 export function parseCityWarnMapBlip(value: unknown): CityWarnMapBlip {
   const settings =
@@ -51,12 +52,7 @@ export function cityWarnColorStyle(color: string): Record<string, string> {
   const channels = [1, 3, 5].map((offset) =>
     parseInt(color.slice(offset, offset + 2), 16),
   )
-  const luminance = channels.reduce((sum, channel, index) => {
-    const value = channel / 255
-    const linear =
-      value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
-    return sum + linear * [0.2126, 0.7152, 0.0722][index]!
-  }, 0)
+  const luminance = colorLuminance(channels)
   const foreground = luminance > 0.179 ? '#000000' : '#ffffff'
   return {
     '--category': color,

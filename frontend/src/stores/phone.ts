@@ -6679,6 +6679,7 @@ export const usePhoneStore = defineStore('phone', {
   state: () => ({
     cameraLandscape: false,
     appStatusBarLight: null as boolean | null,
+    customAppStatusBar: null as { appId: string; light: boolean | null } | null,
     currentPage: 1,
     customTones: cloneJsonData(EMPTY_CUSTOM_PHONE_TONES),
     customTonesLoaded: false,
