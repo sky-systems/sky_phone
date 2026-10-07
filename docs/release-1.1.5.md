@@ -12,7 +12,7 @@
 These steps cover upgrading from 1.1.4. For older installations, also apply the intervening release instructions.
 
 1. Back up the installed resource, retained configuration and custom files under `source/`, including `source/html/sounds`.
-2. Replace `fxmanifest.lua`, `SOURCE.txt`, `README.md`, `integrations/README.md` and the complete `source/` directory from the 1.1.5 release ZIP, then restore your custom files. The new shared `source/bridge/yaca.lua` must be installed together with the manifest that loads it. Preserve existing configuration and locale overrides.
+2. Replace `fxmanifest.lua`, `SOURCE.txt`, `README.md`, `RELEASE_NOTES.md`, `integrations/README.md` and the complete `source/` directory from the 1.1.5 release ZIP, then restore your custom files. The new shared `source/bridge/yaca.lua` must be installed together with the manifest that loads it. Preserve existing configuration and locale overrides.
 3. Keep the intended voice resource running before Phone. Yaca requires its normal `yaca-voice` resource name; choose `yaca`, `yaca-voice` or `auto` through your existing Phone configuration/Configurator. No Yaca patch or forced Yaca upgrade is needed for this change.
 4. Run `refresh`, then `restart sky_phone` in the server console so FiveM reloads the manifest. Restart resources that register external Phone apps afterward, or use a full server restart in the normal startup order.
 5. With two players on a Yaca test server, accept and end a mobile/payphone call, check mute and speaker audio, reconnect both radio frequencies and move the volume slider. If using realtime microphone capture, check speaking, microphone mute/disable and Phone/provider restarts before updating players.
@@ -24,8 +24,8 @@ No configuration, Configurator, SQL, item, locale, custom asset or mandatory dep
 - `fxmanifest.lua` — version 1.1.5 and the shared Yaca bridge entry.
 - `SOURCE.txt` — release source-commit reference.
 - `README.md` and `integrations/README.md` — voice compatibility documentation.
+- `RELEASE_NOTES.md` — current update instructions, with the older 1.1.1 notes retained.
 - `source/bridge/yaca.lua` — new shared provider compatibility bridge.
 - `source/bridge/server/voice.lua`, `source/bridge/client/radio.lua`, `source/client/realtime.lua` — adapter changes.
-- `source/html/` — rebuilt NUI entry points and generated assets; install the complete `source/` directory as above.
 
-There are no shipped removals or renames outside generated `source/html/` assets. Configuration, locales, SQL, LICENSE and THIRD_PARTY_NOTICES keep their contents. Repository tests and audit sources are not included in the deployable resource folder.
+The CI resource package was compared against the published 1.1.4 ZIP. The rebuilt NUI files are byte-identical; there are no shipped removals or renames. Configuration, locales, SQL, assets, LICENSE and THIRD_PARTY_NOTICES keep their contents. Repository tests and audit sources are not included in the deployable resource folder.
