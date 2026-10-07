@@ -851,7 +851,9 @@ Supported values:
 - `pma` or `pma-voice`
 - `saltychat` or `salty`
 
-YACA supports calls, payphone calls, provider-backed speaker mode, and real microphone mute. SaltyChat supports provider-backed speaker mode. PMA Voice keeps speaker and mute controls unavailable.
+YACA supports calls, payphone calls, provider-backed speaker mode, and real microphone mute. SaltyChat and PMA Voice also support speaker and microphone mute controls.
+
+Phone adapts to the official YACA API families from 1.0.0 through 3.6.0, including releases without `isEnabled` and the reversed radio-volume arguments in 3.3.0. See the [YACA compatibility evidence and limitations](https://github.com/sky-systems/sky_phone/blob/dev/docs/yaca-voice-compatibility.md).
 
 ### Radio
 

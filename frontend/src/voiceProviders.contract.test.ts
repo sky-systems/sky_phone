@@ -49,9 +49,16 @@ const serverVoice = readFileSync(
   new URL('../../sky_phone/source/bridge/server/voice.lua', import.meta.url),
   'utf8',
 )
+const yacaBridge = readFileSync(
+  new URL('../../sky_phone/source/bridge/yaca.lua', import.meta.url),
+  'utf8',
+)
 
 describe('voice provider contracts', () => {
   it('loads the provider bridges before their call and radio consumers', () => {
+    expect(manifest.indexOf("'source/bridge/yaca.lua'")).toBeLessThan(
+      manifest.indexOf("'source/bridge/client/calls.lua'"),
+    )
     expect(manifest.indexOf("'source/bridge/client/calls.lua'")).toBeLessThan(
       manifest.indexOf("'source/client/payphones.lua'"),
     )
@@ -120,18 +127,15 @@ describe('voice provider contracts', () => {
   })
 
   it('keeps calls compatible with Yaca releases before the server status export', () => {
-    expect(serverVoice).toContain('is_missing_yaca_status_export')
-    expect(serverVoice).toContain('normalized:find("no such export", 1, true)')
-    expect(serverVoice).toContain('warned_about_legacy_yaca_status')
-    expect(serverVoice).toContain(
+    expect(yacaBridge).toContain('Bridge.Yaca.GetOptionalExport("isEnabled")')
+    expect(yacaBridge).toContain('normalized:find("no such export "')
+    expect(yacaBridge).toContain('warned_about_legacy_yaca_status')
+    expect(yacaBridge).toContain(
       'using legacy compatibility because yaca-voice is started',
     )
-    expect(serverVoice).toMatch(
-      /if is_missing_yaca_status_export\(enabled\) then[\s\S]*?return true/,
-    )
-    expect(serverVoice).toMatch(
-      /if success then\s+return enabled == true\s+end/,
-    )
+    expect(serverVoice).toContain('Bridge.Yaca.IsEnabled()')
+    expect(yacaBridge).toContain('if enabled == true or enabled == 1 then')
+    expect(yacaBridge).toContain('if enabled == false or enabled == 0 then')
   })
 
   it('supports explicit automatic call-provider discovery on client and server', () => {

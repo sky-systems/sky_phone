@@ -18,46 +18,6 @@ local radio_provider_aliases = {
     ["pma-voice"] = "pma",
     salty = "saltychat",
 }
-local warned_about_legacy_yaca_status = false
-
-local function is_missing_yaca_status_export(error_message)
-    local normalized = tostring(error_message):lower()
-    return normalized:find("isenabled", 1, true) ~= nil
-        and normalized:find("no such export", 1, true) ~= nil
-end
-
-local function yaca_is_enabled()
-    if GetResourceState("yaca-voice") ~= "started" then
-        return false
-    end
-
-    local success, enabled = pcall(function()
-        return exports["yaca-voice"]:isEnabled()
-    end)
-    if success then
-        return enabled == true
-    end
-    if is_missing_yaca_status_export(enabled) then
-        if not warned_about_legacy_yaca_status then
-            warned_about_legacy_yaca_status = true
-            Bridge.Debug(
-                "warn",
-                "[sky_phone] Yaca does not expose the server isEnabled status; using legacy compatibility because yaca-voice is started.",
-                { always = true }
-            )
-        end
-        return true
-    end
-
-    Bridge.Debug(
-        "error",
-        "[sky_phone] Yaca could not report its availability: %s",
-        tostring(enabled),
-        { always = true }
-    )
-    return false
-end
-
 local function resolve_call_provider()
     local configured = tostring(Config.Calls.VoiceProvider or "")
     if configured == "auto" then
@@ -102,7 +62,7 @@ end
 
 function Bridge.Calls.IsAvailable()
     local selected = resolve_call_provider()
-    return selected ~= nil and (selected ~= "yaca" or yaca_is_enabled())
+    return selected ~= nil and (selected ~= "yaca" or Bridge.Yaca.IsEnabled())
 end
 
 function Bridge.Calls.SupportsSpeaker()
@@ -181,7 +141,7 @@ function Bridge.Calls.Start(identifier, player_handles, channel)
         return SkyPhonePmaCalls.Start(identifier, player_handles, channel), selected
     end
     if selected == "yaca" then
-        if not yaca_is_enabled() then
+        if not Bridge.Yaca.IsEnabled() then
             return false, selected
         end
         local caller_source = tonumber(player_handles[1])

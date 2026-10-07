@@ -103,11 +103,12 @@ function Bridge.Radio.Join(primary, secondary)
     local selected = resolve_provider()
     if selected == "yaca" then
         local voice = exports["yaca-voice"]
-        if not voice:isEnabled() then
+        if not Bridge.Yaca.IsEnabled() then
             Bridge.Debug("error", "[sky_phone] Yaca is started but its voice system is disabled.")
             return false
         end
-        if not voice:isRadioEnabled() then
+        local radio_enabled_export = Bridge.Yaca.GetOptionalExport("isRadioEnabled")
+        if not radio_enabled_export or not radio_enabled_export(voice) then
             voice:enableRadio(true)
             Wait(100)
         end
@@ -115,20 +116,23 @@ function Bridge.Radio.Join(primary, secondary)
             Bridge.Radio.Leave()
             return false
         end
-        voice:setActiveRadioChannel(1)
+        local select_channel = Bridge.Yaca.GetOptionalExport("setActiveRadioChannel")
+            or voice.changeActiveRadioChannel
+        select_channel(voice, 1)
         voice:changeRadioFrequency(tostring(primary))
         if secondary > 0 and Bridge.Radio.SupportsSecondary() then
             -- YACA toggles an already selected secondary channel off.
-            if voice:getSecondaryRadioChannel() ~= 2 then
-                voice:setSecondaryRadioChannel(2)
+            local select_secondary = Bridge.Yaca.GetOptionalExport("setSecondaryRadioChannel")
+            if select_secondary and voice:getSecondaryRadioChannel() ~= 2 then
+                select_secondary(voice, 2)
             end
             voice:changeRadioFrequencyRaw(2, tostring(secondary))
-            voice:muteRadioChannelRaw(2, false)
         else
             voice:changeRadioFrequencyRaw(2, "0")
-            voice:muteRadioChannelRaw(2, true)
         end
-        voice:setActiveRadioChannel(1)
+        -- Joining a frequency resets its server-owned mute state. Early Yaca
+        -- mute exports toggle instead of accepting an explicit boolean.
+        select_channel(voice, 1)
         return true
     end
 
@@ -170,6 +174,15 @@ end
 function Bridge.Radio.SetVolume(volume)
     local selected = resolve_provider()
     if selected == "yaca" then
+        local version = tostring(GetResourceMetadata("yaca-voice", "version", 0) or ""):gsub("^v", "")
+        -- Only Yaca 3.3.0 reversed this public export; 3.3.1 restored it.
+        if version == "3.3.0" then
+            exports["yaca-voice"]:changeRadioChannelVolumeRaw(volume / 100, 1)
+            if Bridge.Radio.SupportsSecondary() then
+                exports["yaca-voice"]:changeRadioChannelVolumeRaw(volume / 100, 2)
+            end
+            return
+        end
         exports["yaca-voice"]:changeRadioChannelVolumeRaw(1, volume / 100)
         if Bridge.Radio.SupportsSecondary() then
             exports["yaca-voice"]:changeRadioChannelVolumeRaw(2, volume / 100)
