@@ -85,6 +85,7 @@ jobs:
 
       - name: Test service-line routing and call lifecycle
         run: |
+          lua5.4 tests/server_voice.lua
           lua5.4 tests/server_calls.lua
           lua5.4 tests/server_calls_ring_all.lua
           lua5.4 tests/companies_call_availability_spec.lua

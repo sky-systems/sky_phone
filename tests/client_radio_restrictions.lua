@@ -75,7 +75,8 @@ print("PASS Yaca: frequency echoes are idempotent during join, after approval an
 
 -- Public YACA v3.4.0 exports: apps/yaca-client/src/yaca/radio.ts.
 -- The volume export takes (channel, volume); selecting the same secondary channel toggles it off.
-local function yaca_bridge_fixture(allow_secondary)
+local function yaca_bridge_fixture(allow_secondary, version)
+    version = version or "3.4.0"
     local state = {
         enabled = false,
         active = 1,
@@ -94,15 +95,30 @@ local function yaca_bridge_fixture(allow_secondary)
             state.secondary = state.secondary == channel and -1 or channel
             return true
         end,
-        changeRadioFrequency = function(_, frequency) state.frequencies[state.active] = frequency end,
-        changeRadioFrequencyRaw = function(_, channel, frequency) state.frequencies[channel] = frequency end,
-        muteRadioChannelRaw = function(_, channel, muted) state.muted[channel] = muted end,
+        changeRadioFrequency = function(_, frequency)
+            state.frequencies[state.active] = frequency
+            state.muted[state.active] = false
+        end,
+        changeRadioFrequencyRaw = function(_, channel, frequency)
+            state.frequencies[channel] = frequency
+            if frequency ~= "0" then state.muted[channel] = false end
+        end,
+        muteRadioChannelRaw = function() error("joins must not invoke the old toggle-only mute export") end,
         changeRadioChannelVolumeRaw = function(_, channel, volume)
+            if version == "3.3.0" or version == "v3.3.0" then channel, volume = volume, channel end
             if state.volumes[channel] == nil then return false end
             state.volumes[channel] = math.max(0, math.min(1, volume))
             return true
         end,
     }
+    if version == "1.0.0" or version == "2.2.1" then
+        voice.isEnabled = nil
+        voice.changeActiveRadioChannel = voice.setActiveRadioChannel
+        voice.setActiveRadioChannel = nil
+        voice.getSecondaryRadioChannel = nil
+        voice.setSecondaryRadioChannel = nil
+    end
+    if version == "1.0.0" then voice.isRadioEnabled = nil end
     local environment = setmetatable({
         Config = { Radio = { VoiceProvider = "yaca", AllowSecondary = allow_secondary } },
         Bridge = {
@@ -112,9 +128,14 @@ local function yaca_bridge_fixture(allow_secondary)
         },
         exports = { ["yaca-voice"] = voice },
         GetResourceState = function(resource) return resource == "yaca-voice" and "started" or "missing" end,
+        GetResourceMetadata = function(resource, key, index)
+            assert(resource == "yaca-voice" and key == "version" and index == 0)
+            return version
+        end,
         AddEventHandler = function() end,
         Wait = function() end,
     }, { __index = _G })
+    assert(loadfile("sky_phone/source/bridge/yaca.lua", "t", environment))()
     assert(loadfile("sky_phone/source/bridge/client/radio.lua", "t", environment))()
     return environment.Bridge.Radio, state
 end
@@ -140,5 +161,16 @@ local primary_radio, primary_state = yaca_bridge_fixture(false)
 assert(primary_radio.Join(150, 160))
 primary_radio.SetVolume(35)
 assert(primary_state.volumes[1] == 0.35 and primary_state.volumes[2] == 1)
-assert(primary_state.secondary == -1 and primary_state.frequencies[2] == "0" and primary_state.muted[2])
+assert(primary_state.secondary == -1 and primary_state.frequencies[2] == "0")
+for _, version in ipairs({ "1.0.0", "2.2.1", "3.3.0", "v3.3.0", "3.3.1", "3.6.0" }) do
+    local radio, state = yaca_bridge_fixture(true, version)
+    assert(radio.Join(150, 160) and state.enabled and state.active == 1, version)
+    assert(state.frequencies[1] == "150" and state.frequencies[2] == "160", version)
+    assert(not state.muted[2], "secondary reception must not be toggled off on old Yaca: " .. version)
+    radio.SetVolume(35)
+    assert(state.volumes[1] == 0.35 and state.volumes[2] == 0.35, "Yaca volume export order: " .. version)
+    assert(radio.Join(151, 161), version)
+    radio.Leave()
+    assert(not state.enabled and state.frequencies[1] == "0" and state.frequencies[2] == "0", version)
+end
 print("PASS YACA bridge: slider volume, secondary reconnect, leave/rejoin and primary-only configuration")
