@@ -6,6 +6,7 @@ local SERVER_CAPABILITIES = {
         calls = {
             audio = true,
             company = true,
+            externalControl = true,
             video = false,
         },
         customApps = {
@@ -109,6 +110,8 @@ exports(
 
 exports("GetActiveCallBySource", bind("SkyPhoneCalls", "GetForSource"))
 exports("GetActiveCallById", bind("SkyPhoneCalls", "GetById"))
+exports("AnswerCallForSource", bind("SkyPhoneCalls", "AnswerForSource"))
+exports("SetCallAvailabilityForSource", bind("SkyPhoneCompanies", "SetCallAvailabilityForSource"))
 exports("IsPlayerInCall", bind("SkyPhoneCalls", "IsActiveForSource"))
 exports("EndCallForSource", bind("SkyPhoneCalls", "EndForSource"))
 exports("TerminateCallForSource", bind("SkyPhoneCalls", "TerminateForSource"))

@@ -10,7 +10,7 @@ local code = block("local function uuid()", "local function iso_time(")
     .. block("function SkyPhoneCompanies.CanUseServiceDevice(device)", "local function membership(")
     .. block("local function request_access(", "local function can_handle_request(")
     .. block('Bridge.Callbacks.Register("sky_phone:companies:create-request"', 'Bridge.Callbacks.Register("sky_phone:companies:cancel-request"')
-    .. block('Bridge.Callbacks.Register("sky_phone:companies:set-call-availability"', 'AddEventHandler("playerDropped"')
+    .. block('function SkyPhoneCompanies.SetCallAvailabilityForSource(', 'AddEventHandler("playerDropped"')
     .. "\nreturn { request_access = request_access, current_device = current_device }"
 
 local function fixture(sim_enabled, registered)
@@ -29,6 +29,7 @@ local function fixture(sim_enabled, registered)
             Companies = { SubjectMaxLength = 120, RequestBodyMaxLength = 2000, MaximumRequestMedia = 3, MaximumOpenRequestsPerSim = 5 },
         },
         SkyPhoneCompanies = {},
+        SkyPhoneDeviceDirectory = { GetOnlineBySource = function() return { imei = device.imei } end },
         SkyPhone = {
             RequireSession = function() return { imei = device.imei } end,
             LoadDevice = function() return device end,
@@ -42,7 +43,8 @@ local function fixture(sim_enabled, registered)
         emit_request_change = noop,
         notify_company = noop,
         notification_payload = noop,
-        Bridge = { Database = {}, Framework = {}, Callbacks = { Register = function(name, callback) callbacks[name] = callback end } },
+        Bridge = { Debug = noop, PlayerState = { GetBlockReason = function() return nil end },
+            Database = {}, Framework = {}, Callbacks = { Register = function(name, callback) callbacks[name] = callback end } },
     }, { __index = _G })
     function env.work_context() return { callAvailable = env.call_availability[1] ~= nil } end
     function env.SkyPhoneCompanies.ClearCallAvailability(player) env.call_availability[player] = nil end
