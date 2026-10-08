@@ -2,6 +2,7 @@ SkyPhoneCellular = { HasSignal = function() return true end, RequiresSignal = fu
 local registered_callbacks = {}
 local migration_callback = nil
 local client_events = {}
+local server_events = {}
 local transactions = {}
 local stopped_calls = {}
 local speaker_enabled = true
@@ -132,6 +133,10 @@ function TriggerClientEvent(name, target, payload)
         payload = payload,
         target = target,
     }
+end
+
+function TriggerEvent(name, target, payload)
+    server_events[#server_events + 1] = { name = name, target = target, payload = payload }
 end
 
 assert(loadfile("sky_phone/source/server/calls.lua"))()

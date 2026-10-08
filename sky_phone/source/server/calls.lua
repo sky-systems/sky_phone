@@ -182,7 +182,7 @@ local function call_payload(call, source, state, channel)
 end
 
 local function call_snapshot(call, source)
-    local state = call.answered_at and "connected" or "ringing"
+    local state = call.answered_at and not call.answering_source and "connected" or "ringing"
     local channel = state == "connected" and call.channel or nil
     local payload, outgoing = call_payload(call, source, state, channel)
     payload.caller = {
@@ -203,6 +203,7 @@ local function call_snapshot(call, source)
         source = callee_source,
     }
     payload.companyId = call.company_id
+    payload.serviceCall = call.company_service_call == true
     payload.payphone = call.payphone ~= nil
     payload.video = call.video == true
     return payload
@@ -232,6 +233,9 @@ local function send_state(call, source, state, channel)
         return
     end
     TriggerClientEvent("sky_phone:call:state", source, payload)
+    local snapshot = call_snapshot(call, source)
+    snapshot.state = state
+    TriggerEvent("sky_phone:server:callChanged", source, snapshot)
 end
 
 local function notify_recents(device, source)
@@ -952,6 +956,7 @@ local function ring_callee(call, target)
     local payload = call_payload(call, source, "ringing")
     payload.device = { imei = device.imei, name = device.device_name }
     TriggerClientEvent("sky_phone:call:incoming", source, payload)
+    TriggerEvent("sky_phone:server:callChanged", source, call_snapshot(call, source))
 end
 
 local function schedule_no_answer(call)
@@ -1576,7 +1581,11 @@ Bridge.Callbacks.Register("sky_phone:payphone:dial", function(source, data)
     }
 end)
 
-Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
+function SkyPhoneCalls.AnswerForSource(source, data)
+    if not is_player_source(source) then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid player source for call acceptance.")
+        return { success = false, error = "invalid_source" }
+    end
     if not SkyPhoneCellular.HasSignal(source) then return { success = false, error = "no_signal" } end
     local blocked = player_blocked(source)
     if blocked then return { success = false, error = blocked } end
@@ -1726,7 +1735,9 @@ Bridge.Callbacks.Register("sky_phone:calls:answer", function(source, data)
     send_state(call, call.callee_source, "connected", call.channel)
     log_call(call, "answered", "connected", source)
     return { success = true, data = call_payload(call, source, "connected", call.channel) }
-end)
+end
+
+Bridge.Callbacks.Register("sky_phone:calls:answer", SkyPhoneCalls.AnswerForSource)
 
 function SkyPhoneCalls.StopVideo(id)
     local call = calls[id]

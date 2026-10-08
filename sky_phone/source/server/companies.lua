@@ -3518,10 +3518,10 @@ Bridge.Callbacks.Register("sky_phone:companies:publish-announcement", function(s
     return { success = true, data = company_mutation_payload(source, member.company_id) }
 end)
 
-Bridge.Callbacks.Register("sky_phone:companies:set-call-availability", function(source, data)
-    local allowed, rate_error = allow_mutation(source, "set_call_availability", "CallAvailability")
-    if not allowed then
-        return rate_error
+function SkyPhoneCompanies.SetCallAvailabilityForSource(source, data)
+    if type(source) ~= "number" or source <= 0 or source % 1 ~= 0 then
+        Bridge.Debug("error", "[sky_phone] Rejected invalid player source for call availability.")
+        return { success = false, error = "invalid_source" }
     end
     if type(data) ~= "table" or type(data.available) ~= "boolean"
         or (data.dispatcher ~= nil and type(data.dispatcher) ~= "boolean")
@@ -3537,9 +3537,18 @@ Bridge.Callbacks.Register("sky_phone:companies:set-call-availability", function(
     if not member or not member.definition.ServiceLine.CanCall then
         return { success = false, error = "not_authorized" }
     end
-    local device, device_error = current_device(source, true)
+    local blocked = Bridge.PlayerState.GetBlockReason(source)
+    if blocked then return { success = false, error = blocked } end
+    local identity, identity_error = SkyPhoneDeviceDirectory.GetOnlineBySource(source)
+    if not identity then return { success = false, error = identity_error } end
+    local device = SkyPhone.LoadDevice(identity.imei)
     if not device then
-        return device_error
+        Bridge.Debug("error", "[sky_phone] Equipped service device could not be loaded.")
+        return { success = false, error = "request_failed" }
+    end
+    if not device.sim_id then return { success = false, error = "no_sim" } end
+    if not SkyPhoneCompanies.CanUseServiceDevice(device) then
+        return { success = false, error = "anonymous_sim" }
     end
     call_availability[source] = {
         company_id = member.company_id,
@@ -3548,6 +3557,18 @@ Bridge.Callbacks.Register("sky_phone:companies:set-call-availability", function(
         dispatcher = data.dispatcher == true,
     }
     return { success = true, data = { context = work_context(source) } }
+end
+
+Bridge.Callbacks.Register("sky_phone:companies:set-call-availability", function(source, data)
+    local allowed, rate_error = allow_mutation(source, "set_call_availability", "CallAvailability")
+    if not allowed then
+        return rate_error
+    end
+    if type(data) == "table" and data.available == true then
+        local session, session_error = SkyPhone.RequireSession(source)
+        if not session then return session_error end
+    end
+    return SkyPhoneCompanies.SetCallAvailabilityForSource(source, data)
 end)
 
 AddEventHandler("playerDropped", function()

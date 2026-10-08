@@ -16,7 +16,7 @@ local code = block("function SkyPhoneCompanies.ClearCallAvailability(source)", "
     .. block("local function call_member(source)", "local function profile_row(")
     .. block("CreateThread(function()\n    while true do\n        Wait(1000)", "local function company_summary(")
     .. block("local function work_context(source)", "local function notify_sim(")
-    .. block('Bridge.Callbacks.Register("sky_phone:companies:set-call-availability"', 'AddEventHandler("playerDropped"')
+    .. block('function SkyPhoneCompanies.SetCallAvailabilityForSource(', 'AddEventHandler("playerDropped"')
 
 local function fixture()
     local jobs, devices, slots, sessions, callbacks = {}, {}, {}, {}, {}
@@ -25,6 +25,7 @@ local function fixture()
     local env = setmetatable({
         Config = { Companies = { Enabled = true }, Sim = { Enabled = true } },
         SkyPhoneCompanies = {},
+        SkyPhoneDeviceDirectory = {},
         definitions = {
             mechanic = { ServiceLine = { CanCall = true, MinimumGrade = 1 } },
             taxi = { ServiceLine = { CanCall = true, MinimumGrade = 0 } },
@@ -33,6 +34,8 @@ local function fixture()
         call_availability = {},
         round_robin_positions = {},
         Bridge = {
+            Debug = function() end,
+            PlayerState = { GetBlockReason = function() return nil end },
             Framework = {},
             Database = { Query = function() return {} end },
             Callbacks = { Register = function(name, callback) callbacks[name] = callback end },
@@ -58,6 +61,11 @@ local function fixture()
     end
     function env.SkyPhone.FindDeviceSlots(player, imei)
         return slots[player] and slots[player][imei] or {}
+    end
+    function env.SkyPhoneDeviceDirectory.GetOnlineBySource(player)
+        local imei = "device-" .. player
+        if not slots[player] or not slots[player][imei] then return nil, "device_not_equipped" end
+        return { imei = imei }
     end
     function env.Wait(milliseconds)
         assert(milliseconds == 1000)
@@ -264,6 +272,25 @@ assert(state.set_availability(8, { available = true, dispatcher = true }).error 
 assert(state.env.call_availability[8] == nil)
 
 -- Exercise the actual call selector and rerouting with prioritized company targets.
+state = fixture()
+state.ready(8)
+state.sessions[8] = nil
+state.env.SkyPhoneCompanies.ClearCallAvailability(8)
+response = state.env.SkyPhoneCompanies.SetCallAvailabilityForSource(8, { available = true, dispatcher = true })
+assert(response.success and state.env.call_availability[8].dispatcher,
+    "Server enrollment must work with an equipped phone while its UI is closed")
+assert(state.set_availability(8, { available = true }).error == "no_session",
+    "The native phone callback must retain its session requirement")
+assert(state.env.SkyPhoneCompanies.SetCallAvailabilityForSource("8", { available = true }).error == "invalid_source")
+state.env.Bridge.PlayerState.GetBlockReason = function() return "player_dead" end
+assert(state.env.SkyPhoneCompanies.SetCallAvailabilityForSource(8, { available = true }).error == "player_dead")
+assert(state.env.SkyPhoneCompanies.SetCallAvailabilityForSource(8, { available = false }).success,
+    "Blocked employees must still be able to leave call duty")
+state.env.Bridge.PlayerState.GetBlockReason = function() return nil end
+state.slots[8] = nil
+assert(not state.env.SkyPhoneCompanies.SetCallAvailabilityForSource(8, { available = true }).success)
+assert(state.env.call_availability[8] == nil)
+
 local calls_file = assert(io.open("sky_phone/source/server/calls.lua", "r"))
 local calls_source = calls_file:read("*a"):gsub("\r\n", "\n")
 calls_file:close()

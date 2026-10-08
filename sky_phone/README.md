@@ -563,6 +563,8 @@ Players may also add public YouTube video links to their personal music library.
 
 ### Calls
 
+Trusted server integrations can answer incoming calls and manage company call readiness through the [server call API](integrations/CALL_API.md).
+
 ```lua
 Config.Calls.VoiceProvider = "pma"
 ```

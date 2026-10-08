@@ -4,7 +4,7 @@ local function fixture(routing)
     local state = {
         callbacks = {}, handlers = {}, timers = {}, events = {}, devices = {},
         ready = {}, owned = {}, flight = {}, hidden = {}, rows = {}, entries = {},
-        voice_starts = {}, voice_stops = {}, hooks = {}, threads = {},
+        voice_starts = {}, voice_stops = {}, hooks = {}, threads = {}, server_events = {},
     }
     local noop = function() end
     local function hook(name, ...)
@@ -34,6 +34,10 @@ local function fixture(routing)
         Wait = function() coroutine.yield() end,
         TriggerClientEvent = function(name, source, payload)
             state.events[#state.events + 1] = { name = name, source = source, payload = payload }
+        end,
+        TriggerEvent = function(name, source, payload)
+            state.server_events[#state.server_events + 1] = { name = name, source = source, payload = payload }
+            hook("event", name, source, payload)
         end,
         GetCurrentResourceName = function() return "sky_phone" end,
         GetPlayerPed = function(source) return source end,
@@ -213,6 +217,7 @@ local function fixture(routing)
         return result.data
     end
     function state.active(source) return env.SkyPhoneCalls.IsActiveForSource(source) end
+    state.calls = env.SkyPhoneCalls
     function state.event_count(name, source, status)
         local count = 0
         for _, event in ipairs(state.events) do
@@ -234,6 +239,42 @@ local function test(name, callback)
     callback()
     print("PASS ring_all: " .. name)
 end
+
+test("public server answer keeps recipient authority and emits confirmed lifecycle snapshots", function()
+    local state = fixture()
+    local call = state.dial()
+    assert(state.callbacks["sky_phone:calls:answer"] == state.calls.AnswerForSource)
+    for _, source in ipairs({ "2", 0, -1, 2.5, 6, 1 }) do
+        assert(not state.calls.AnswerForSource(source, { id = call.id }).success)
+    end
+    assert(#state.voice_starts == 0)
+    local incoming = 0
+    for _, event in ipairs(state.server_events) do
+        assert(event.name == "sky_phone:server:callChanged")
+        if event.payload.direction == "incoming" then
+            assert(event.payload.serviceCall and event.payload.id == call.id and event.payload.state == "ringing")
+            incoming = incoming + 1
+        end
+    end
+    assert(incoming == 3, "Each ring-all recipient must receive a server lifecycle event")
+    state.fail_voice = true
+    assert(state.calls.AnswerForSource(2, { id = call.id }).error == "voice_unavailable")
+    for _, event in ipairs(state.server_events) do assert(event.payload.state ~= "connected") end
+    state.fail_voice = false
+    state.hooks.event = function(_, source, payload)
+        if payload.state == "connected" then
+            assert(state.rows[call.id].status == "connected", "Connected events require persisted phone acceptance")
+            assert(state.calls.GetForSource(source).id == call.id)
+        end
+    end
+    assert(state.calls.AnswerForSource(3, { id = call.id }).success)
+    assert(state.calls.GetForSource(3).state == "connected" and not state.active(2))
+    assert(not state.calls.AnswerForSource(2, { id = call.id }).success)
+    assert(state.calls.EndForSource(3))
+    local terminal = state.server_events[#state.server_events]
+    assert(terminal.source == 3 and terminal.payload.state == "completed" and terminal.payload.serviceCall)
+    assert(not state.calls.GetById(call.id) and not state.active(1) and not state.active(3))
+end)
 
 test("cancelled device opening cannot trigger an incoming call overlay", function()
     for _, number in ipairs({ "911", "5550006" }) do
@@ -292,6 +333,11 @@ test("competing answers during yielding permission, inventory, voice and SQL cal
         local answer = coroutine.create(function() result = state.action("answer", 3, call.id) end)
         assert(coroutine.resume(answer))
         assert(coroutine.status(answer) == "suspended", phase)
+        if phase == "transaction" then
+            local pending = state.calls.GetForSource(3)
+            assert(pending.state == "ringing" and pending.channel == nil,
+                "Public snapshots must not confirm a connection before SQL acceptance completes")
+        end
         assert(not state.action("answer", 2, call.id).success, phase)
         assert(not state.action("answer", 3, call.id).success, phase)
         local ok, err = coroutine.resume(answer)

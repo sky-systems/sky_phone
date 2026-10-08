@@ -111,6 +111,10 @@ SkyPhoneDeviceDirectory = {
     end,
 }
 SkyPhoneCalls = {
+    AnswerForSource = function(source, data)
+        service_calls.answer = { source, data }
+        return { success = true }
+    end,
     EndForSource = function(source)
         service_calls.end_source = source
         return true
@@ -129,6 +133,12 @@ SkyPhoneCalls = {
         return true
     end,
 }
+SkyPhoneCompanies = {
+    SetCallAvailabilityForSource = function(source, data)
+        service_calls.availability = { source, data }
+        return { success = true }
+    end,
+}
 SkyPhoneNotifications = {
     Send = function(target, notification)
         service_calls.notification = { target, notification }
@@ -143,6 +153,7 @@ assert(registered_exports.IsApiReady() == true)
 local capabilities = registered_exports.GetApiCapabilities()
 assert(capabilities.ready and capabilities.side == "server")
 assert(capabilities.features.deviceDirectory and capabilities.features.calls.video == false)
+assert(capabilities.features.calls.externalControl)
 assert(capabilities.features.customApps.enabled and capabilities.features.customApps.external)
 assert(capabilities.features.notifications.customApps)
 assert(capabilities.features.notifications.system == false)
@@ -178,6 +189,10 @@ assert(registered_exports.GetStoredSimByPhoneNumber("1234567").simId == "sim-1")
 assert(registered_exports.GetActiveCallBySource(10).source == 10)
 assert(registered_exports.GetActiveCallById("call-id").id == "call-id")
 assert(registered_exports.IsPlayerInCall(10))
+assert(registered_exports.AnswerCallForSource(10, { id = "call-id" }).success)
+assert(service_calls.answer[1] == 10 and service_calls.answer[2].id == "call-id")
+assert(registered_exports.SetCallAvailabilityForSource(10, { available = true, dispatcher = true }).success)
+assert(service_calls.availability[1] == 10 and service_calls.availability[2].dispatcher)
 assert(registered_exports.EndCallForSource(10))
 assert(service_calls.end_source == 10)
 assert(registered_exports.TerminateCallForSource(10))
