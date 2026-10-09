@@ -457,6 +457,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
+    ['Phone.DisabledControls', t('configurator.phoneDisabledControlsLabel')],
     ...['Enabled', 'Towers', 'OfflineApps', 'OnlineActions'].map((key) => [
       `CellTowers.${key}`,
       phone.t(`Cellular.labels.${key}`),

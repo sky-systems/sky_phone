@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 
-function generalLocale(language) {
+function configuratorLocale(language) {
   const source = readFileSync(
     new URL(`../../sky_phone/config/locales/${language}.lua`, import.meta.url),
     'utf8',
   )
   const body = source
     .split('            configurator = {')[1]
-    .split('                context = ')[0]
+    .split(/\r?\n            },/)[0]
   return JSON.parse(
     `{${body
       .replace(/^(\s*)(\w+) = /gm, '$1"$2": ')
@@ -32,9 +32,17 @@ async function openConfigurator(page, mode = 'dark', language = 'en') {
       )
       window.postMessage({ type: 'admin:open' }, '*')
     },
-    { mode, language, locale: generalLocale(language) },
+    { mode, language, locale: configuratorLocale(language) },
   )
   await page.locator('.admin-panel-rail__configurator').click()
+  await page
+    .locator('.admin-panel-config-sections button')
+    .filter({
+      has: page.locator('strong', {
+        hasText: language === 'de' ? /^Allgemein$/ : /^General$/,
+      }),
+    })
+    .click()
   await expect(page.locator('.admin-general-settings')).toBeVisible()
 }
 
@@ -269,6 +277,82 @@ test('General and detail views share edits; key capture cancels, validates OEM k
     page.locator('[data-config-path="Phone.Keybind"]').getByRole('combobox'),
   ).toHaveValue('OEM_1')
 })
+
+for (const language of ['en', 'de']) {
+  test(`phone control filters can be cleared, added and saved in ${language}`, async ({
+    page,
+  }, testInfo) => {
+    let configuration
+    await page.route('**/admin:configurator', async (route) => {
+      configuration ??= (await (await route.fetch()).json()).data
+      await route.fulfill({ json: { success: true, data: configuration } })
+    })
+    await page.route('**/admin:save-configurator', async (route) => {
+      const payload = route.request().postDataJSON()
+      expect(payload.changes).toHaveLength(1)
+      expect(payload.changes[0].path).toBe('Phone')
+      configuration.sections
+        .flatMap((section) => section.fields)
+        .find((field) => field.path === 'Phone').value =
+        payload.changes[0].value
+      configuration.revision += 1
+      await route.fulfill({ json: { success: true, data: configuration } })
+    })
+    async function openControls() {
+      await openConfigurator(page, 'dark', language)
+      await page
+        .locator('.admin-panel-config-sections button')
+        .filter({ has: page.locator('strong', { hasText: /^Phone$/ }) })
+        .click()
+      await page
+        .getByRole('tab', {
+          name:
+            language === 'de'
+              ? /Blockierte GTA-Steuerungen/
+              : /Blocked GTA controls/,
+        })
+        .click()
+      return page.getByRole('tabpanel')
+    }
+    let editor = await openControls()
+    await expect(editor.getByRole('spinbutton')).toHaveCount(11)
+    await expect(editor).not.toContainText('AdminPanel.configurator')
+    await expect(editor).toContainText(
+      language === 'de' ? 'Waffenwechsel' : 'weapon switching',
+    )
+    await page
+      .locator('.admin-panel-window')
+      .screenshot({ path: testInfo.outputPath('blocked-controls.png') })
+    for (let index = 0; index < 11; index += 1) {
+      await editor.locator('.config-structured-editor__remove').first().click()
+    }
+    await expect(editor.getByRole('spinbutton')).toHaveCount(0)
+    await editor
+      .getByRole('button', {
+        name: language === 'de' ? 'Zeile hinzufügen' : 'Add row',
+      })
+      .click()
+    await editor.getByRole('spinbutton').fill('22')
+    await editor.getByRole('spinbutton').press('Tab')
+    const save = page.getByRole('button', { name: 'Save changes', exact: true })
+    await save.click()
+    await expect(save).toBeDisabled()
+    editor = await openControls()
+    await expect(editor.getByRole('spinbutton')).toHaveCount(1)
+    await expect(editor.getByRole('spinbutton')).toHaveValue('22')
+    await editor.locator('.config-structured-editor__remove').click()
+    await save.click()
+    await expect(save).toBeDisabled()
+    editor = await openControls()
+    await expect(editor.getByRole('spinbutton')).toHaveCount(0)
+    await editor
+      .getByRole('button', {
+        name: language === 'de' ? 'Zeile hinzufügen' : 'Add row',
+      })
+      .click()
+    await expect(editor.getByRole('spinbutton')).toHaveValue('0')
+  })
+}
 
 test('a failed configurator request can be retried', async ({ page }) => {
   await page.route('**/admin:configurator', (route) =>

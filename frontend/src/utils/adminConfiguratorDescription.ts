@@ -103,6 +103,9 @@ export function configuratorDescriptionKey(
 ): string {
   if (path === 'Phone.BlockWhenDead') return 'phoneBlockWhenDead'
   if (path === 'Phone.BlockWhenCuffed') return 'phoneBlockWhenCuffed'
+  if (path === 'Phone.DisabledControls') return 'phoneDisabledControls'
+  if (/^Phone\.DisabledControls(?:\[\d+\]|\.\d+)$/.test(path))
+    return 'phoneDisabledControl'
   if (path === 'Radio.RequirePhoneItem') return 'radioRequirePhoneItem'
   if (path === 'Calls.VoiceProvider') return 'callsVoiceProvider'
   if (path === 'Speaker.Enabled') return 'phoneSpeaker'
