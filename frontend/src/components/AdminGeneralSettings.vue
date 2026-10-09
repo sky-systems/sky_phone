@@ -228,8 +228,8 @@ const metadataFree = computed(() => {
 <style scoped>
 .admin-general-settings {
   display: grid;
-  gap: var(--sky-space-6);
-  padding: var(--sky-space-4);
+  gap: calc(18 * var(--admin-unit));
+  padding: calc(12 * var(--admin-unit));
   min-width: 0;
 }
 .admin-general-settings__intro,
@@ -241,26 +241,5 @@ const metadataFree = computed(() => {
 }
 .admin-general-settings :deep(.sky-settings-group) {
   margin: 0;
-}
-.admin-general-settings :deep(.sky-settings-group__title) {
-  margin-top: 0;
-}
-.admin-general-settings
-  :deep(.sky-settings-row--custom .sky-settings-row__frame) {
-  flex-wrap: wrap;
-}
-.admin-general-settings
-  :deep(.sky-settings-row--custom .sky-settings-row__content),
-.admin-general-settings
-  :deep(.sky-settings-row--custom .sky-settings-row__accessory) {
-  flex: 1 1 240px;
-}
-.admin-general-settings :deep(.sky-settings-row__trailing),
-.admin-general-settings :deep(.sky-settings-row__trailing > *) {
-  width: 100%;
-  min-width: 0;
-}
-.admin-general-settings :deep(.sky-settings-row__description) {
-  white-space: normal;
 }
 </style>

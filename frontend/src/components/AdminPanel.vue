@@ -1791,7 +1791,10 @@ onBeforeUnmount(() => {
 
                 <SkyProvider
                   v-if="activeConfiguratorSection.id === 'config:general'"
+                  class="admin-panel-form"
                   dark
+                  density="compact"
+                  accent="var(--admin-accent)"
                   :safe-areas="false"
                 >
                   <AdminGeneralSettings
@@ -2726,6 +2729,13 @@ onBeforeUnmount(() => {
   --admin-green: var(--admin-accent);
   --admin-green-soft: color-mix(in srgb, var(--admin-green) 9%, transparent);
   --admin-toggle-on: #63d471;
+  --admin-field-background: #121412;
+  --admin-input-background: #1b1e1b;
+  --admin-toggle-track: #393d39;
+  --admin-toggle-thumb: #c7ccc7;
+  --admin-toggle-thumb-checked: #f4f7f4;
+  --admin-field-columns: minmax(calc(220 * var(--admin-unit)), 0.9fr)
+    minmax(calc(210 * var(--admin-unit)), 1.1fr);
   --admin-row-hover: linear-gradient(
     90deg,
     #1a1c1b 0%,
@@ -4306,17 +4316,36 @@ button:disabled {
   background: #0b0d0c;
 }
 
+.admin-panel-form {
+  --sky-density-unit: var(--admin-unit);
+  --sky-form-columns: var(--admin-field-columns);
+  --sky-text: var(--admin-text);
+  --sky-muted: var(--admin-muted);
+  --sky-surface: var(--admin-field-background);
+  --sky-surface-shade: var(--admin-input-background);
+  --sky-hairline: #0b0d0c;
+  --sky-pressed: var(--admin-row-hover);
+  --sky-field-outline: rgba(255, 255, 255, 0.07);
+  --sky-radius-card: 0px;
+  --sky-radius-control: calc(4 * var(--admin-unit));
+  --sky-font-caption: calc(8 * var(--admin-unit));
+  --sky-space-2: calc(8 * var(--admin-unit));
+  --sky-toggle-track: var(--admin-toggle-track);
+  --sky-toggle-checked-background: var(--admin-toggle-on);
+  --sky-toggle-thumb-color: var(--admin-toggle-thumb);
+  --sky-toggle-thumb-checked-color: var(--admin-toggle-thumb-checked);
+  --sky-native-select-option-background: var(--admin-input-background);
+  --sky-native-select-option-text: var(--admin-text);
+}
+
 .admin-panel-config-field {
   min-height: calc(51 * var(--admin-unit));
   display: grid;
-  grid-template-columns: minmax(calc(220 * var(--admin-unit)), 0.9fr) minmax(
-      calc(210 * var(--admin-unit)),
-      1.1fr
-    );
+  grid-template-columns: var(--admin-field-columns);
   align-items: center;
   gap: calc(14 * var(--admin-unit));
   padding: calc(8 * var(--admin-unit)) calc(12 * var(--admin-unit));
-  background: #121412;
+  background: var(--admin-field-background);
 }
 
 .admin-panel-config-field.is-structured {
@@ -4375,7 +4404,7 @@ button:disabled {
   border-radius: calc(4 * var(--admin-unit));
   outline: calc(1 * var(--admin-unit)) solid rgba(255, 255, 255, 0.07);
   color: var(--admin-text);
-  background: #1b1e1b;
+  background: var(--admin-input-background);
   font: inherit;
   font-size: calc(10 * var(--admin-unit));
 }
@@ -4440,7 +4469,7 @@ button:disabled {
   position: absolute;
   inset: 0;
   border-radius: calc(999 * var(--admin-unit));
-  background: #393d39;
+  background: var(--admin-toggle-track);
   transition: background 150ms ease;
 }
 
@@ -4452,7 +4481,7 @@ button:disabled {
   width: calc(12 * var(--admin-unit));
   height: calc(12 * var(--admin-unit));
   border-radius: 50%;
-  background: #c7ccc7;
+  background: var(--admin-toggle-thumb);
   transition: transform 150ms ease;
 }
 
@@ -4462,7 +4491,7 @@ button:disabled {
 
 .admin-panel-config-toggle input:checked + i::after {
   transform: translateX(calc(14 * var(--admin-unit)));
-  background: #f4f7f4;
+  background: var(--admin-toggle-thumb-checked);
 }
 
 .admin-panel-config-toggle input:disabled + i {

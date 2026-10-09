@@ -40,9 +40,11 @@ async function openConfigurator(page, mode = 'dark', language = 'en') {
 
 for (const [mode, language, width, height] of [
   ['light', 'en', 1280, 800],
+  ['dark', 'en', 1360, 860],
   ['dark', 'de', 1920, 1080],
+  ['dark', 'en', 2560, 1440],
 ]) {
-  test(`General page remains readable at ${width} in ${mode}/${language}`, async ({
+  test(`General matches panel controls at ${width} in ${mode}/${language}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height })
@@ -61,6 +63,43 @@ for (const [mode, language, width, height] of [
       ),
     ).toBe(true)
     await page.screenshot({ path: testInfo.outputPath('general.png') })
+    await page.locator('.admin-panel-window').screenshot({
+      path: testInfo.outputPath('general-panel.png'),
+    })
+    const generalStyle = await general.evaluate((element) => {
+      const title = getComputedStyle(
+        element.querySelector('.sky-settings-row__title'),
+      )
+      const description = getComputedStyle(
+        element.querySelector('.sky-settings-row__description'),
+      )
+      const field = getComputedStyle(
+        element.querySelector('.sky-field--control'),
+      )
+      const input = getComputedStyle(element.querySelector('.sky-field__input'))
+      const toggle = getComputedStyle(
+        element.querySelector('.sky-toggle--checked .sky-toggle__track'),
+      )
+      return {
+        titleSize: title.fontSize,
+        titleWeight: title.fontWeight,
+        descriptionSize: description.fontSize,
+        fieldRadius: field.borderRadius,
+        fieldBackground: field.backgroundColor,
+        fieldSize: input.fontSize,
+        toggleWidth: toggle.width,
+        toggleHeight: toggle.height,
+        toggleBackground: toggle.backgroundColor,
+        groupRadius: getComputedStyle(
+          element.querySelector('.sky-settings-group__list'),
+        ).borderRadius,
+      }
+    })
+    for (const toggle of await general.getByRole('switch').all()) {
+      const bounds = await toggle.boundingBox()
+      expect(bounds.width).toBeGreaterThanOrEqual(44)
+      expect(bounds.height).toBeGreaterThanOrEqual(44)
+    }
     const keys = general.locator('[data-config-path="Phone.Keybind"]')
     await keys.scrollIntoViewIfNeeded()
     await page.screenshot({ path: testInfo.outputPath('keys.png') })
@@ -68,6 +107,42 @@ for (const [mode, language, width, height] of [
       const bounds = await button.boundingBox()
       expect(bounds.height).toBeGreaterThanOrEqual(44)
     }
+    await page
+      .locator('.admin-panel-config-sections button')
+      .filter({ has: page.locator('strong', { hasText: /^Companies$/ }) })
+      .click()
+    const panelStyle = await page
+      .locator('.admin-panel-config-fields')
+      .evaluate((element) => {
+        const title = getComputedStyle(
+          element.querySelector('.admin-panel-config-field__copy strong'),
+        )
+        const description = getComputedStyle(
+          element.querySelector('.admin-panel-config-field__copy small'),
+        )
+        const field = getComputedStyle(
+          element.querySelector('.admin-panel-config-field > input'),
+        )
+        const toggle = getComputedStyle(
+          element.querySelector('.admin-panel-config-toggle input:checked + i'),
+        )
+        return {
+          titleSize: title.fontSize,
+          titleWeight: title.fontWeight,
+          descriptionSize: description.fontSize,
+          fieldRadius: field.borderRadius,
+          fieldBackground: field.backgroundColor,
+          fieldSize: field.fontSize,
+          toggleWidth: toggle.width,
+          toggleHeight: toggle.height,
+          toggleBackground: toggle.backgroundColor,
+        }
+      })
+    const { groupRadius, ...generalControls } = generalStyle
+    expect(generalControls).toEqual(panelStyle)
+    expect(parseFloat(groupRadius)).toBeLessThanOrEqual(
+      parseFloat(panelStyle.fieldRadius),
+    )
   })
 }
 

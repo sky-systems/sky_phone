@@ -11,6 +11,7 @@ const props = withDefaults(
     accentSoft?: string
     component?: string
     dark?: boolean
+    density?: 'compact' | 'regular'
     safeAreas?: boolean
   }>(),
   {
@@ -18,6 +19,7 @@ const props = withDefaults(
     accentSoft: '',
     component: 'div',
     dark: false,
+    density: 'regular',
     safeAreas: true,
   },
 )
@@ -46,6 +48,7 @@ const themeStyle = computed<CSSProperties | undefined>(() => {
     class="sky-ui-provider"
     :class="{
       'sky-ui-provider--dark': dark,
+      'sky-ui-provider--compact': density === 'compact',
       'sky-ui-provider--no-safe-areas': !safeAreas,
       'sky-safe-areas': safeAreas,
     }"
