@@ -41,6 +41,22 @@ const configSource = readFileSync(
   'utf8',
 )
 
+describe('Phone control configuration', () => {
+  it('exposes removable numeric weapon filters through the existing list editor', () => {
+    const field = loadConfiguratorSections()
+      .flatMap((section) => section.fields)
+      .find((entry) => entry.path === 'Phone')
+    const controls = (field?.value as { DisabledControls: number[] })
+      .DisabledControls
+    expect(controls).toEqual([14, 15, 16, 17, 37, 99, 100, 115, 116, 261, 262])
+    expect(field?.structure?.fields?.DisabledControls).toEqual({
+      kind: 'list',
+      items: [],
+      template: { kind: 'value', valueType: 'number' },
+    })
+  })
+})
+
 describe('Cell tower configuration', () => {
   it('exposes editable mast positions, ranges and extensible offline rules', () => {
     const field = loadConfiguratorSections()

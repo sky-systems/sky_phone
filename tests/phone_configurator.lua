@@ -233,6 +233,52 @@ test("early runtime requests wait for the stored configuration during resource s
     assert(server.runtime().revision == server.database.row.revision)
 end)
 
+test("phone control filters can be extended, shortened and cleared through SQL and connected client snapshots", function()
+    local server = new_server()
+    local client = new_client(server)
+    local field = server.field("Phone")
+    local controls = field.structure.fields.DisabledControls
+    assert(controls.kind == "list" and #controls.items == 0, "all control entries must be removable")
+    assert(controls.template.valueType == "number")
+    assert(#field.value.DisabledControls == 11 and field.value.DisabledControls[5] == 37)
+    local settings = field.value
+    for _, value in ipairs({ { 14, 15, 16, 17, 37, 99, 100, 115, 116, 261, 262, 22 }, { 0, 360 }, {} }) do
+        settings.DisabledControls = value
+        assert(server.save({ change("Phone", settings) }).success)
+        client.sync(server.broadcasts[#server.broadcasts])
+        assert(#client.config.Phone.DisabledControls == #value)
+        server = new_server(server.database)
+        local restored = new_client(server).config.Phone.DisabledControls
+        assert(#restored == #value, "restart must not re-add removed defaults")
+        for index, control in ipairs(value) do assert(restored[index] == control) end
+        local schema = server.field("Phone").structure.fields.DisabledControls
+        assert(schema.kind == "list" and #schema.items == 0 and schema.template.valueType == "number")
+    end
+end)
+
+test("existing SQL configurations acquire default weapon filters without changing movement settings", function()
+    local server = new_server()
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.Phone.DisabledControls = nil
+    stored.Phone.AllowMovement = false
+    local restarted = new_server(server.database)
+    local phone = new_client(restarted).config.Phone
+    assert(#phone.DisabledControls == 11 and phone.DisabledControls[5] == 37)
+    assert(phone.AllowMovement == false and restarted.database.writes == 0)
+end)
+
+test("invalid phone control filters never reach SQL or client broadcasts", function()
+    for _, value in ipairs({ "37", { "37" }, { 37.5 }, { -1 }, { 361 }, { 37, 37 }, { [2] = 37 }, { key = 37 } }) do
+        local server = new_server()
+        local settings = server.field("Phone").value
+        settings.DisabledControls = value
+        local result = server.save({ change("Phone", settings) })
+        assert(not result.success, "invalid control lists must be rejected")
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+        assert(#server.env.Config.Phone.DisabledControls == 11)
+    end
+end)
+
 test("Face ID mask whitelist can be created, edited and cleared through SQL and live clients", function()
     local server = new_server()
     local client = new_client(server)

@@ -323,7 +323,7 @@ local function merge_values(defaults, saved, path, excluded_paths)
         end
         return companies
     end
-    if path == "CityWarn.Publishers" or path == "CellTowers.Towers"
+    if path == "Phone.DisabledControls" or path == "CityWarn.Publishers" or path == "CellTowers.Towers"
         or path == "CellTowers.OfflineApps" or path == "CellTowers.OnlineActions" then
         return copy_value(saved)
     end
@@ -546,6 +546,13 @@ local function empty_structure(scope, path)
     if scope ~= "config" then
         return nil
     end
+    if path == "Phone.DisabledControls" then
+        return {
+            items = {},
+            kind = "list",
+            template = { kind = "value", valueType = "number" },
+        }
+    end
     if path == "Security.FaceIdMaskWhitelist" then
         return {
             items = {},
@@ -731,7 +738,7 @@ local function company_definition_entry_default(company_id, configuration)
 end
 
 local function build_structure(value, scope, path)
-    if scope == "config" and (path == "CellTowers.Towers"
+    if scope == "config" and (path == "Phone.DisabledControls" or path == "CellTowers.Towers"
         or path:match("^Companies%.Definitions%.[^.]+%.Services$")) then
         return empty_structure(scope, path)
     end
@@ -1796,6 +1803,22 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     local blip = citywarn and citywarn.Blip
     local function integer_between(value, minimum, maximum)
         return type(value) == "number" and value % 1 == 0 and value >= minimum and value <= maximum
+    end
+    local disabled_controls = candidate_config.Phone.DisabledControls
+    if type(disabled_controls) ~= "table" or (next(disabled_controls) and not is_sequence(disabled_controls))
+        or #disabled_controls > 361 then
+        Bridge.Debug("warn", "[sky_phone] Rejected Phone.DisabledControls: expected a sequential control ID list.",
+            { always = true })
+        return { success = false, error = "invalid_value" }
+    end
+    local seen_controls = {}
+    for index, control in ipairs(disabled_controls) do
+        if not integer_between(control, 0, 360) or seen_controls[control] then
+            Bridge.Debug("warn", "[sky_phone] Rejected Phone.DisabledControls entry %d: expected a unique control ID (0-360).",
+                index, { always = true })
+            return { success = false, error = "invalid_value" }
+        end
+        seen_controls[control] = true
     end
     local face_id_masks = candidate_config.Security.FaceIdMaskWhitelist
     if type(face_id_masks) ~= "table" or (next(face_id_masks) and not is_sequence(face_id_masks))

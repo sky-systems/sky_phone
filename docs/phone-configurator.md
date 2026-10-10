@@ -211,6 +211,25 @@ indices**, a different API. They remain numeric fields. For example, `19` means
 `INPUT_CHARACTER_WHEEL` (normally Left Alt); it is not a keyboard virtual-key code.
 Do not paste `OEM_1` or a browser key code into those fields.
 
+## Blocking GTA controls while using the phone
+
+Open `/phonepanel` → Phone configurator → **Phone** → **Blocked GTA controls**.
+`Phone.DisabledControls` accepts one unique GTA control ID (0-360) per row.
+Add, edit or remove entries, then save with the checkmark; changes apply to open
+phones immediately. In file mode, edit `Config.Phone.DisabledControls` and restart.
+
+The defaults block the weapon wheel and weapon switching:
+`14, 15, 16, 17, 37, 99, 100, 115, 116, 261, 262`. Walking and driving remain
+available with `Phone.AllowMovement = true`. An empty list disables these extra
+filters; existing attack protection remains. `AllowMovement = false` continues
+to block all game input. Closed-phone notifications and the camera retain their
+own input rules.
+
+Use [GTA control IDs](https://docs.fivem.net/docs/game-references/controls/),
+not FiveM keyboard mapper names. A separate resource using its own key mapping
+or reading disabled controls must handle its own blocking; disabling a GTA action
+does not disable that resource's command.
+
 ## Troubleshooting
 
 | Symptom | Check |
@@ -228,6 +247,40 @@ For logs, enable `Bridge.Debug` in the active configuration owner, reproduce onc
 then disable it. Remove keys, tokens and full player identifiers before sharing logs.
 
 ## Source verification and runtime boundary
+
+Phone control filtering was checked against Cfx revision
+`0105063b0394b1b9d085c917a8dc9c9abf0a620f` on 2026-10-09.
+[DISABLE_CONTROL_ACTION](https://github.com/citizenfx/natives/blob/master/PAD/DisableControlAction.md)
+is a client native taking an integer input group, an integer control ID and a
+boolean, with no return/out parameters. It must run each frame. Phone uses group
+0 in its existing focus worker and stops that worker when its last focus claim ends.
+The new list is validated and cached on configuration changes.
+
+[codegen_out_lua.lua](https://github.com/citizenfx/fivem/blob/0105063b0394b1b9d085c917a8dc9c9abf0a620f/ext/natives/codegen_out_lua.lua)
+(`printNative`),
+[natives_loader.lua](https://github.com/citizenfx/fivem/blob/0105063b0394b1b9d085c917a8dc9c9abf0a620f/data/shared/citizen/scripting/lua/natives_loader.lua),
+[LuaScriptNatives.cpp](https://github.com/citizenfx/fivem/blob/0105063b0394b1b9d085c917a8dc9c9abf0a620f/code/components/citizen-scripting-lua/src/LuaScriptNatives.cpp)
+(`Lua_GetNativeHandler`, `Lua_InvokeNativeHandler`, `Lua_DoInvokeNative`,
+`LuaScriptNativeContext::PushArgument`) and
+[ScriptEngine.cpp](https://github.com/citizenfx/fivem/blob/0105063b0394b1b9d085c917a8dc9c9abf0a620f/code/components/scripting-gta/src/ScriptEngine.cpp)
+(`CallNativeHandlerUniversal`, `CallNativeHandlerRage`) trace the generated Lua/OAL
+wrapper to GTA's native handler. Integer arguments and booleans are pushed with
+their native representations; there is no OneSync RPC. GTA's PAD implementation
+is outside the public Cfx source. This revision was not identified as the
+deployed client revision.
+
+Local ESX verification on 2026-10-09 restarted the built/copied Phone resource
+with experimental OAL enabled. The authorized phone was opened through its public
+API. All eleven default weapon controls were disabled across 120 sampled frames;
+sprint, jump, movement axes, steering, acceleration, braking and handbrake stayed
+enabled. After closing, each control returned to its measured pre-open state
+(some controls were already disabled before the test). Both managed probes ended
+with zero running threads/timers, the phone session closed and the temporary phone
+item removed. The CEF panel showed the compact 10-pixel setting titles and default
+control list. A bounded NUI capture recorded no JavaScript/network errors.
+This verifies local control flags, not physical mouse/controller input or a
+customer's separate radial script. Qbox deployment bytes were checked, but its
+runtime was not exercised.
 
 CityWarn audio transport was checked against Cfx revision
 `e34d12cd9a39cc223548a5be1ab09f60e9183051` on 2026-10-03:

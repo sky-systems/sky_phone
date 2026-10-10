@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 
-function generalLocale(language) {
+function configuratorLocale(language) {
   const source = readFileSync(
     new URL(`../../sky_phone/config/locales/${language}.lua`, import.meta.url),
     'utf8',
   )
   const body = source
     .split('            configurator = {')[1]
-    .split('                context = ')[0]
+    .split(/\r?\n            },/)[0]
   return JSON.parse(
     `{${body
       .replace(/^(\s*)(\w+) = /gm, '$1"$2": ')
@@ -32,17 +32,27 @@ async function openConfigurator(page, mode = 'dark', language = 'en') {
       )
       window.postMessage({ type: 'admin:open' }, '*')
     },
-    { mode, language, locale: generalLocale(language) },
+    { mode, language, locale: configuratorLocale(language) },
   )
   await page.locator('.admin-panel-rail__configurator').click()
+  await page
+    .locator('.admin-panel-config-sections button')
+    .filter({
+      has: page.locator('strong', {
+        hasText: language === 'de' ? /^Allgemein$/ : /^General$/,
+      }),
+    })
+    .click()
   await expect(page.locator('.admin-general-settings')).toBeVisible()
 }
 
 for (const [mode, language, width, height] of [
   ['light', 'en', 1280, 800],
+  ['dark', 'en', 1360, 860],
   ['dark', 'de', 1920, 1080],
+  ['dark', 'en', 2560, 1440],
 ]) {
-  test(`General page remains readable at ${width} in ${mode}/${language}`, async ({
+  test(`General matches panel controls at ${width} in ${mode}/${language}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height })
@@ -61,6 +71,43 @@ for (const [mode, language, width, height] of [
       ),
     ).toBe(true)
     await page.screenshot({ path: testInfo.outputPath('general.png') })
+    await page.locator('.admin-panel-window').screenshot({
+      path: testInfo.outputPath('general-panel.png'),
+    })
+    const generalStyle = await general.evaluate((element) => {
+      const title = getComputedStyle(
+        element.querySelector('.sky-settings-row__title'),
+      )
+      const description = getComputedStyle(
+        element.querySelector('.sky-settings-row__description'),
+      )
+      const field = getComputedStyle(
+        element.querySelector('.sky-field--control'),
+      )
+      const input = getComputedStyle(element.querySelector('.sky-field__input'))
+      const toggle = getComputedStyle(
+        element.querySelector('.sky-toggle--checked .sky-toggle__track'),
+      )
+      return {
+        titleSize: title.fontSize,
+        titleWeight: title.fontWeight,
+        descriptionSize: description.fontSize,
+        fieldRadius: field.borderRadius,
+        fieldBackground: field.backgroundColor,
+        fieldSize: input.fontSize,
+        toggleWidth: toggle.width,
+        toggleHeight: toggle.height,
+        toggleBackground: toggle.backgroundColor,
+        groupRadius: getComputedStyle(
+          element.querySelector('.sky-settings-group__list'),
+        ).borderRadius,
+      }
+    })
+    for (const toggle of await general.getByRole('switch').all()) {
+      const bounds = await toggle.boundingBox()
+      expect(bounds.width).toBeGreaterThanOrEqual(44)
+      expect(bounds.height).toBeGreaterThanOrEqual(44)
+    }
     const keys = general.locator('[data-config-path="Phone.Keybind"]')
     await keys.scrollIntoViewIfNeeded()
     await page.screenshot({ path: testInfo.outputPath('keys.png') })
@@ -68,6 +115,42 @@ for (const [mode, language, width, height] of [
       const bounds = await button.boundingBox()
       expect(bounds.height).toBeGreaterThanOrEqual(44)
     }
+    await page
+      .locator('.admin-panel-config-sections button')
+      .filter({ has: page.locator('strong', { hasText: /^Companies$/ }) })
+      .click()
+    const panelStyle = await page
+      .locator('.admin-panel-config-fields')
+      .evaluate((element) => {
+        const title = getComputedStyle(
+          element.querySelector('.admin-panel-config-field__copy strong'),
+        )
+        const description = getComputedStyle(
+          element.querySelector('.admin-panel-config-field__copy small'),
+        )
+        const field = getComputedStyle(
+          element.querySelector('.admin-panel-config-field > input'),
+        )
+        const toggle = getComputedStyle(
+          element.querySelector('.admin-panel-config-toggle input:checked + i'),
+        )
+        return {
+          titleSize: title.fontSize,
+          titleWeight: title.fontWeight,
+          descriptionSize: description.fontSize,
+          fieldRadius: field.borderRadius,
+          fieldBackground: field.backgroundColor,
+          fieldSize: field.fontSize,
+          toggleWidth: toggle.width,
+          toggleHeight: toggle.height,
+          toggleBackground: toggle.backgroundColor,
+        }
+      })
+    const { groupRadius, ...generalControls } = generalStyle
+    expect(generalControls).toEqual(panelStyle)
+    expect(parseFloat(groupRadius)).toBeLessThanOrEqual(
+      parseFloat(panelStyle.fieldRadius),
+    )
   })
 }
 
@@ -194,6 +277,82 @@ test('General and detail views share edits; key capture cancels, validates OEM k
     page.locator('[data-config-path="Phone.Keybind"]').getByRole('combobox'),
   ).toHaveValue('OEM_1')
 })
+
+for (const language of ['en', 'de']) {
+  test(`phone control filters can be cleared, added and saved in ${language}`, async ({
+    page,
+  }, testInfo) => {
+    let configuration
+    await page.route('**/admin:configurator', async (route) => {
+      configuration ??= (await (await route.fetch()).json()).data
+      await route.fulfill({ json: { success: true, data: configuration } })
+    })
+    await page.route('**/admin:save-configurator', async (route) => {
+      const payload = route.request().postDataJSON()
+      expect(payload.changes).toHaveLength(1)
+      expect(payload.changes[0].path).toBe('Phone')
+      configuration.sections
+        .flatMap((section) => section.fields)
+        .find((field) => field.path === 'Phone').value =
+        payload.changes[0].value
+      configuration.revision += 1
+      await route.fulfill({ json: { success: true, data: configuration } })
+    })
+    async function openControls() {
+      await openConfigurator(page, 'dark', language)
+      await page
+        .locator('.admin-panel-config-sections button')
+        .filter({ has: page.locator('strong', { hasText: /^Phone$/ }) })
+        .click()
+      await page
+        .getByRole('tab', {
+          name:
+            language === 'de'
+              ? /Blockierte GTA-Steuerungen/
+              : /Blocked GTA controls/,
+        })
+        .click()
+      return page.getByRole('tabpanel')
+    }
+    let editor = await openControls()
+    await expect(editor.getByRole('spinbutton')).toHaveCount(11)
+    await expect(editor).not.toContainText('AdminPanel.configurator')
+    await expect(editor).toContainText(
+      language === 'de' ? 'Waffenwechsel' : 'weapon switching',
+    )
+    await page
+      .locator('.admin-panel-window')
+      .screenshot({ path: testInfo.outputPath('blocked-controls.png') })
+    for (let index = 0; index < 11; index += 1) {
+      await editor.locator('.config-structured-editor__remove').first().click()
+    }
+    await expect(editor.getByRole('spinbutton')).toHaveCount(0)
+    await editor
+      .getByRole('button', {
+        name: language === 'de' ? 'Zeile hinzufügen' : 'Add row',
+      })
+      .click()
+    await editor.getByRole('spinbutton').fill('22')
+    await editor.getByRole('spinbutton').press('Tab')
+    const save = page.getByRole('button', { name: 'Save changes', exact: true })
+    await save.click()
+    await expect(save).toBeDisabled()
+    editor = await openControls()
+    await expect(editor.getByRole('spinbutton')).toHaveCount(1)
+    await expect(editor.getByRole('spinbutton')).toHaveValue('22')
+    await editor.locator('.config-structured-editor__remove').click()
+    await save.click()
+    await expect(save).toBeDisabled()
+    editor = await openControls()
+    await expect(editor.getByRole('spinbutton')).toHaveCount(0)
+    await editor
+      .getByRole('button', {
+        name: language === 'de' ? 'Zeile hinzufügen' : 'Add row',
+      })
+      .click()
+    await expect(editor.getByRole('spinbutton')).toHaveValue('0')
+  })
+}
 
 test('a failed configurator request can be retried', async ({ page }) => {
   await page.route('**/admin:configurator', (route) =>

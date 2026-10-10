@@ -12,6 +12,7 @@ local triggered_events = {}
 local control_threads = {}
 local radio_controls = { 81, 82, 83, 84, 85, 332, 333 }
 local driving_controls = { 59, 60, 63, 64, 71, 72, 76 }
+local weapon_controls = { 14, 15, 16, 17, 37, 99, 100, 115, 116, 261, 262 }
 
 local function assert_phone_radio_controls_blocked()
     for _, control in ipairs(radio_controls) do
@@ -25,6 +26,7 @@ end
 Config = {
     Phone = {
         AllowMovement = true,
+        DisabledControls = weapon_controls,
         HoldToLook = { Enabled = true, Control = 19 },
     },
 }
@@ -108,6 +110,14 @@ event_handlers["sky_phone:configurator:updated"]()
 assert(not SkyPhoneFocus.IsHoldToLookPressed(), "disabled HoldToLook must reject every control state")
 Config.Phone.HoldToLook.Enabled = true
 Config.Phone.HoldToLook.Control = 19
+event_handlers["sky_phone:configurator:updated"]()
+
+for _, invalid in ipairs({ "37", { 37, 37 }, { 37.5 }, { -1 }, { 361 }, { "37" }, { [2] = 37 }, { key = 37 } }) do
+    Config.Phone.DisabledControls = invalid
+    local ok, reason = pcall(event_handlers["sky_phone:configurator:updated"])
+    assert(not ok and tostring(reason):find("Config.Phone.DisabledControls", 1, true), "invalid control lists must fail visibly")
+end
+Config.Phone.DisabledControls = weapon_controls
 event_handlers["sky_phone:configurator:updated"]()
 
 local function resolve(overrides)
@@ -494,6 +504,23 @@ assert(frame() == 1, "opening and repeated focus claims must share one control w
 disabled_controls = {}
 assert(frame() == 1 and disabled_controls[24], "attacks must remain blocked on every active frame")
 assert_phone_radio_controls_blocked()
+for _, control in ipairs(weapon_controls) do
+    assert(disabled_controls[control], ("phone scrolling must block weapon control %d"):format(control))
+end
+assert(not disabled_controls[21] and not disabled_controls[22], "weapon filtering must preserve sprint and jump")
+
+Config.Phone.DisabledControls = { 22, 71 }
+event_handlers["sky_phone:configurator:updated"]()
+disabled_controls = {}
+assert(frame() == 1 and disabled_controls[22] and disabled_controls[71], "saved custom controls must apply to the existing worker")
+assert(not disabled_controls[14] and not disabled_controls[37], "removed weapon filters must take effect immediately")
+Config.Phone.DisabledControls = {}
+event_handlers["sky_phone:configurator:updated"]()
+disabled_controls = {}
+assert(frame() == 1 and disabled_controls[24], "clearing extra filters must preserve attack protection")
+assert(not disabled_controls[22] and not disabled_controls[71] and not disabled_controls[37], "empty control lists must release extra filters")
+Config.Phone.DisabledControls = weapon_controls
+event_handlers["sky_phone:configurator:updated"]()
 disabled_controls = {}
 assert(frame() == 1, "phone scrolling must keep one input worker")
 assert_phone_radio_controls_blocked()
@@ -519,6 +546,9 @@ event_count = #triggered_events
 for _ = 1, 5 do frame() end
 assert(#triggered_events == event_count, "camera passthrough must not reapply phone focus every frame")
 assert(nui_focus.focused and not nui_focus.cursor and nui_keep_input, "camera focus must remain owned by the camera")
+disabled_controls = {}
+frame()
+assert(not disabled_controls[37], "phone-only configured controls must not override camera input rules")
 pressed_controls[19] = false
 event_handlers["sky_phone:client:setCameraFocus"]({ active = false, nuiFocused = true })
 
@@ -555,6 +585,9 @@ for _, allow_movement in ipairs({ false, true }) do
         assert_phone_radio_controls_blocked()
         assert(not disabled_controls[30] and not disabled_controls[31], "CityWarn must preserve walking")
         assert(disabled_controls[24] and firing_disabled, "dismissing CityWarn must not fire a weapon")
+        for _, control in ipairs(weapon_controls) do
+            assert(not disabled_controls[control], "closed-phone notifications must not apply phone-only control filters")
+        end
     end
 
     pressed_controls[19] = true

@@ -354,3 +354,56 @@ label.sky-settings-row__title {
 .sky-settings-group__list > .sky-field--inline .sky-field__info {
   grid-column: 1 / -1;
 }
+
+/* Compact forms share the surrounding panel's palette and design unit. */
+.sky-ui-provider--compact .sky-settings-group__title {
+  margin: 0 0 calc(8 * var(--sky-density-unit));
+  color: var(--sky-text);
+  font-size: calc(10 * var(--sky-density-unit));
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.sky-ui-provider--compact .sky-settings-group__list > li + li::before {
+  right: 0;
+  left: 0;
+  transform: none;
+}
+
+.sky-ui-provider--compact .sky-settings-row__frame {
+  min-height: calc(51 * var(--sky-density-unit));
+  display: grid;
+  grid-template-columns: var(--sky-form-columns, minmax(0, 1fr) minmax(0, 1fr));
+  gap: calc(14 * var(--sky-density-unit));
+  padding: calc(8 * var(--sky-density-unit)) calc(12 * var(--sky-density-unit));
+}
+
+.sky-ui-provider--compact .sky-settings-row__frame:hover {
+  background: var(--sky-pressed);
+}
+
+.sky-ui-provider--compact .sky-settings-row__content {
+  gap: calc(3 * var(--sky-density-unit));
+}
+
+.sky-ui-provider--compact .sky-settings-row__title {
+  font-size: calc(10 * var(--sky-density-unit));
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.sky-ui-provider--compact .sky-settings-row__description {
+  font-size: calc(8 * var(--sky-density-unit));
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.sky-ui-provider--compact .sky-settings-row__accessory {
+  justify-content: flex-start;
+}
+
+.sky-ui-provider--compact .sky-settings-row__trailing,
+.sky-ui-provider--compact .sky-settings-row__trailing > * {
+  width: 100%;
+  min-width: 0;
+}

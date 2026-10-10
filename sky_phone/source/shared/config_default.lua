@@ -51,6 +51,10 @@ Config.Phone = {
     Keybind = "F1", -- default keyboard key; false disables it; existing player rebindings take priority
     OpenRequestsPerMinute = 20,
     AllowMovement = true, -- true: game input stays active while the mobile phone is open
+    -- Extra GTA control IDs blocked while the phone is open (0-360, no duplicates).
+    -- Defaults prevent scrolling/TAB from selecting weapons. {} disables extra filters.
+    -- Attacks remain blocked; notifications and the camera keep their own input rules.
+    DisabledControls = { 14, 15, 16, 17, 37, 99, 100, 115, 116, 261, 262 },
     HoldToLook = {
         Enabled = true, -- hold the configured control to hide the cursor and look around; independent of AllowMovement
         Control = 19, -- INPUT_CHARACTER_WHEEL (Left Alt by default); a GTA control ID, not a keyboard key
