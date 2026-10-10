@@ -1,5 +1,7 @@
 local callbacks, handlers, items, devices, sims, added, calls, writes, flags, session, usable
 local imei_a, imei_b = "123456789012345", "223456789012345"
+dofile("sky_phone/source/shared/sim_number.lua")
+local normalize_number = SkyPhoneSimNumber.Normalize
 
 local function copy(value)
     if type(value) ~= "table" then return value end
@@ -77,6 +79,20 @@ local function reset()
             Query = function(query, parameters)
                 if query:find("INNER JOIN", 1, true) then return 0 end -- startup virtual-SIM cleanup
                 if query:find("SELECT *", 1, true) then return { copy(sims[parameters[1]]) } end
+                if query:find("SELECT `id`", 1, true) then
+                    for _, sim in pairs(sims) do
+                        if sim.phone_number == parameters[1] and sim.id ~= parameters[2] then
+                            return { { id = sim.id } }
+                        end
+                    end
+                    return {}
+                end
+                if query:find("SET `phone_number`", 1, true) then
+                    local sim = sims[parameters[2]]
+                    if flags.number_claim_failure or sim.phone_number ~= parameters[3] then return 0 end
+                    sim.phone_number = parameters[1]
+                    return { affectedRows = 1 }
+                end
                 if query:find("SET `sim_id` = NULL", 1, true) then
                     if flags.during_claim then flags.during_claim() end
                     local device = devices[parameters[1]]
@@ -113,14 +129,26 @@ local function reset()
             return session
         end,
         RefreshDevice = function(imei) calls.refreshed = imei end,
+        GetEquippedPhoneNumber = function()
+            calls.cached_number = sims.first.phone_number
+            return calls.cached_number
+        end,
+    }
+    SkyPhoneDeviceDirectory = {
+        GetOnlineBySource = function(source)
+            if source ~= 21 then return nil, "invalid_source" end
+            if flags.device_error then return nil, flags.device_error end
+            return { imei = imei_a, simId = devices[imei_a].sim_id }
+        end,
     }
     SkyPhoneCompanies = {
-        IsServiceNumber = function() return false end,
+        IsServiceNumber = function(number) return number == flags.service_number end,
         ClearCallAvailability = function() calls.cleared = true end,
     }
     SkyPhoneCalls = { EndForSim = function(id, reason) calls.ended, calls.reason = id, reason end }
     SkyPhoneImei = { IsValid = function(imei) return type(imei) == "string" and #imei == 15 and imei:match("^%d+$") ~= nil end }
     SkyPhoneSimNumber = {
+        Normalize = normalize_number,
         ValidateConfiguration = function() return true end,
         Format = function(number) return number:sub(1, 3) .. "-" .. number:sub(4) end,
     }
@@ -295,4 +323,45 @@ assert(#added == 1 and added[1].metadata.sim_id == "second" and added[1].metadat
 assert(eject(8).success and #added == 2 and added[2].metadata.sim_id == "third")
 assert(items[8].metadata.phone_number == nil and devices[imei_b].sim_id == nil)
 
-print("Server inventory SIM ejection tests passed")
+-- External number changes reuse the SIM update and refresh the equipped device.
+reset()
+local changed, number = SkyPhoneSim.ChangeNumberForSource(21, "555-0103")
+assert(changed and number == "5550103")
+assert(sims.first.phone_number == number and items[3].metadata.phone_number == number)
+assert(items[3].metadata.formatted_number == "555-0103" and items[3].metadata.custom == "keep")
+assert(items[3].metadata.imei == imei_a and items[3].metadata.sim_id == "first")
+assert(sims.second.phone_number == "5550102" and items[8].metadata.phone_number == "5550102")
+assert(calls.ended == "first" and calls.reason == "number_changed" and calls.cleared)
+assert(calls.cached_number == number and calls.refreshed == imei_a)
+
+for _, case in ipairs({
+    { value = "5550102", error = "phone_number_taken" },
+    { value = "5550101", error = "phone_number_unchanged" },
+    { value = "abc", error = "invalid_phone_number" },
+    { value = "5550103", flag = "service_number", flag_value = "5550103", error = "invalid_phone_number" },
+    { value = "5550103", flag = "metadata_failure", flag_value = true, error = "metadata_unsupported" },
+    { value = "5550103", flag = "number_claim_failure", flag_value = true, error = "phone_number_taken" },
+    { value = "5550103", flag = "device_error", flag_value = "device_not_equipped", error = "device_not_equipped" },
+}) do
+    reset()
+    if case.flag then flags[case.flag] = case.flag_value end
+    local success, change_error = SkyPhoneSim.ChangeNumberForSource(21, case.value)
+    assert(not success and change_error == case.error, "expected " .. case.error)
+    assert(sims.first.phone_number == "5550101" and items[3].metadata.phone_number == "5550101")
+    assert(calls.ended == nil and calls.refreshed == nil and calls.cached_number == nil)
+end
+
+reset()
+devices[imei_a].sim_id = nil
+local no_sim, no_sim_error = SkyPhoneSim.ChangeNumberForSource(21, "5550103")
+assert(not no_sim and no_sim_error == "no_sim")
+local invalid_source, source_error = SkyPhoneSim.ChangeNumberForSource(nil, "5550103")
+assert(not invalid_source and source_error == "invalid_source")
+
+reset()
+Config.Phone.Unique = false
+Config.Sim.Enabled = false
+assert(SkyPhoneSim.ChangeNumberForSource(21, "5550103"), "automatic SIMs also support number changes")
+assert(#writes == 0 and sims.first.phone_number == "5550103")
+
+print("Server inventory SIM ejection and number-change tests passed")
