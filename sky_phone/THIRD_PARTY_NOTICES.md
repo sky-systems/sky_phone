@@ -3999,7 +3999,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### source-map-js@1.2.1
+### source-map-js@1.2.2
 
 Declared license: `BSD-3-Clause`
 
