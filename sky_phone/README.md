@@ -565,6 +565,8 @@ Players may also add public YouTube video links to their personal music library.
 
 Trusted server integrations can answer incoming calls and manage company call readiness through the [server call API](integrations/CALL_API.md).
 
+Trusted server integrations can change the equipped phone's number through the [server number API](integrations/NUMBER_API.md).
+
 ```lua
 Config.Calls.VoiceProvider = "pma"
 ```
