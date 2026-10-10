@@ -3413,6 +3413,85 @@ label.sky-list-item__row {
   white-space: nowrap;
 }
 
+.sky-ui-provider--compact {
+  --sky-density-unit: 1px;
+  --sky-toggle-shift: calc(14 * var(--sky-density-unit));
+}
+
+[dir='rtl'] .sky-ui-provider--compact,
+.sky-ui-provider--compact[dir='rtl'] {
+  --sky-toggle-shift: calc(-14 * var(--sky-density-unit));
+}
+
+.sky-ui-provider--compact .sky-field--control {
+  padding: 0 calc(9 * var(--sky-density-unit));
+  background: var(--sky-surface-shade);
+}
+
+.sky-ui-provider--compact .sky-field__input,
+.sky-ui-provider--compact .sky-button,
+.sky-ui-provider--compact .sky-toggle__label {
+  font-size: calc(10 * var(--sky-density-unit));
+  line-height: 1.5;
+}
+
+.sky-ui-provider--compact .sky-button {
+  min-height: var(--sky-touch-target);
+  border-radius: var(--sky-radius-control);
+  background: var(--sky-surface-shade);
+}
+
+.sky-ui-provider--compact .sky-toggle {
+  min-width: var(--sky-touch-target);
+  min-height: var(--sky-touch-target);
+}
+
+.sky-ui-provider--compact .sky-toggle__track {
+  width: calc(32 * var(--sky-density-unit));
+  height: calc(18 * var(--sky-density-unit));
+  background: var(--sky-toggle-track);
+}
+
+.sky-ui-provider--compact .sky-toggle__thumb-side,
+.sky-ui-provider--compact .sky-toggle__thumb-bg,
+.sky-ui-provider--compact .sky-toggle__thumb-shadow,
+.sky-ui-provider--compact .sky-toggle__thumb {
+  display: none;
+}
+
+.sky-ui-provider--compact .sky-toggle__thumb-wrap {
+  width: calc(12 * var(--sky-density-unit));
+  height: calc(12 * var(--sky-density-unit));
+  top: calc(3 * var(--sky-density-unit));
+  inset-inline-start: calc(3 * var(--sky-density-unit));
+  background: var(--sky-toggle-thumb-color, #ffffff);
+  box-shadow: none;
+  transform: none;
+}
+
+.sky-ui-provider--compact
+  .sky-toggle:not(.sky-toggle--disabled):not(.sky-toggle--readonly):active
+  .sky-toggle__thumb-wrap {
+  background: var(--sky-toggle-thumb-color, #ffffff);
+  transform: none;
+}
+
+.sky-ui-provider--compact .sky-toggle--checked .sky-toggle__track {
+  background: var(--sky-toggle-checked-background, var(--sky-app-accent));
+}
+
+.sky-ui-provider--compact
+  .sky-toggle.sky-toggle--checked
+  .sky-toggle__thumb-wrap,
+.sky-ui-provider--compact
+  .sky-toggle.sky-toggle--checked:not(.sky-toggle--disabled):not(
+    .sky-toggle--readonly
+  ):active
+  .sky-toggle__thumb-wrap {
+  background: var(--sky-toggle-thumb-checked-color, #ffffff);
+  transform: translateX(var(--sky-toggle-shift));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sky-button,
   .sky-breadcrumbs-collapsed,

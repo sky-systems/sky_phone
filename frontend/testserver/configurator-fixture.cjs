@@ -403,6 +403,13 @@ function maskValue(value, path) {
 
 function emptyStructure(scope, path) {
   if (scope !== 'config') return undefined
+  if (path === 'Phone.DisabledControls') {
+    return {
+      items: [],
+      kind: 'list',
+      template: { kind: 'value', valueType: 'number' },
+    }
+  }
   if (path === 'Security.FaceIdMaskWhitelist') {
     return {
       items: [],
@@ -569,7 +576,10 @@ function companyDefinitionEntryDefault(definitions) {
 }
 
 function buildStructure(value, scope, path) {
-  if (scope === 'config' && path === 'CellTowers.Towers')
+  if (
+    scope === 'config' &&
+    (path === 'Phone.DisabledControls' || path === 'CellTowers.Towers')
+  )
     return emptyStructure(scope, path)
   if (scope === 'config' && path === 'CityWarn.Publishers') {
     const template = {

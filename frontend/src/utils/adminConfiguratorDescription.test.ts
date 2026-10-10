@@ -9,6 +9,16 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains phone control filters and their numeric GTA IDs', () => {
+    expect(configuratorDescriptionKey('Phone.DisabledControls', [])).toBe(
+      'phoneDisabledControls',
+    )
+    for (const entry of ['[1]', '.1']) {
+      expect(
+        configuratorDescriptionKey(`Phone.DisabledControls${entry}`, 37),
+      ).toBe('phoneDisabledControl')
+    }
+  })
   it('explains how to replace the CityWarn notification sound', () => {
     expect(
       configuratorDescriptionKey(

@@ -12,6 +12,7 @@ local blocked_phone_radio_controls = {
     333, -- INPUT_RADIO_WHEEL_LR
 }
 local focused_control_groups = { 0, 1, 2 }
+local configured_disabled_controls = {}
 local hold_to_look_enabled = false
 local hold_to_look_control
 local state = {
@@ -39,6 +40,25 @@ local applied_nui_focus = nil
 local applied_nui_cursor = nil
 
 local function refresh_focus_configuration()
+    local controls = Config.Phone.DisabledControls
+    if type(controls) ~= "table" or #controls > 361 then
+        error("[sky_phone] Config.Phone.DisabledControls must be a list of unique GTA control IDs (0-360).")
+    end
+    local next_controls, seen, count = {}, {}, 0
+    for index, control in pairs(controls) do
+        if type(index) ~= "number" or index % 1 ~= 0 or index < 1 or index > #controls
+            or type(control) ~= "number" or control % 1 ~= 0 or control < 0 or control > 360
+            or seen[control] then
+            error("[sky_phone] Config.Phone.DisabledControls must be a list of unique GTA control IDs (0-360).")
+        end
+        next_controls[index] = math.floor(control)
+        seen[control] = true
+        count = count + 1
+    end
+    if count ~= #controls then
+        error("[sky_phone] Config.Phone.DisabledControls must be a sequential list without gaps.")
+    end
+
     local hold_to_look_config = Config.Phone.HoldToLook
     local enabled = type(hold_to_look_config) == "table" and hold_to_look_config.Enabled == true
     local control = enabled and tonumber(hold_to_look_config.Control) or nil
@@ -52,6 +72,7 @@ local function refresh_focus_configuration()
 
     hold_to_look_enabled = enabled
     hold_to_look_control = control
+    configured_disabled_controls = next_controls
     state.allow_movement = Config.Phone.AllowMovement == true
 end
 
@@ -90,6 +111,11 @@ end
 function SkyPhoneFocus.ApplyGameInputControls(block_look)
     for _, control in ipairs(blocked_phone_controls) do
         DisableControlAction(0, control, true)
+    end
+    if state.is_open and not state.camera_active then
+        for _, control in ipairs(configured_disabled_controls) do
+            DisableControlAction(0, control, true)
+        end
     end
     if block_look then
         for _, control in ipairs(blocked_phone_look_controls) do
