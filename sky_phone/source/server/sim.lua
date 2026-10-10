@@ -237,6 +237,27 @@ function SkyPhoneSim.ChangeNumber(source, imei, sim_id, value)
     return true, number
 end
 
+function SkyPhoneSim.ChangeNumberForSource(source, value)
+    local device, device_error = SkyPhoneDeviceDirectory.GetOnlineBySource(source)
+    if not device then
+        return false, device_error
+    end
+    if not device.simId then
+        return false, "no_sim"
+    end
+
+    local changed, number_or_error = SkyPhoneSim.ChangeNumber(source, device.imei, device.simId, value)
+    if not changed then
+        return false, number_or_error
+    end
+
+    SkyPhoneCompanies.ClearCallAvailability(source)
+    SkyPhoneCalls.EndForSim(device.simId, "number_changed")
+    SkyPhone.GetEquippedPhoneNumber(source)
+    SkyPhone.RefreshDevice(device.imei)
+    return true, number_or_error
+end
+
 local function resolve_used_sim(source, used_item, item_name)
     local slot_id = used_item and (used_item.slot or used_item.id)
     local slot = slot_id and Bridge.Inventory.GetSlot(source, slot_id) or nil

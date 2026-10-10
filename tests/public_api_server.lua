@@ -73,6 +73,8 @@ assert(invalid_format == nil and invalid_format_error == "invalid_phone_number")
 assert(registered_exports.IsApiReady() == false)
 local unavailable, unavailable_error = registered_exports.GetEquippedPhoneNumber(10)
 assert(unavailable == nil and unavailable_error == "api_not_ready")
+local unready_change, unready_change_error = registered_exports.ChangePhoneNumber(10, "7654321")
+assert(unready_change == nil and unready_change_error == "api_not_ready")
 
 SkyPhone = {
     GetEquippedPhoneNumber = function(player)
@@ -108,6 +110,12 @@ SkyPhoneDeviceDirectory = {
     end,
     GetStoredSimByPhoneNumber = function(number)
         return { phoneNumber = number, simId = "sim-1" }
+    end,
+}
+SkyPhoneSim = {
+    ChangeNumberForSource = function(source, number)
+        service_calls.change_number = { source, number }
+        return true, number
     end,
 }
 SkyPhoneCalls = {
@@ -153,6 +161,7 @@ assert(registered_exports.IsApiReady() == true)
 local capabilities = registered_exports.GetApiCapabilities()
 assert(capabilities.ready and capabilities.side == "server")
 assert(capabilities.features.deviceDirectory and capabilities.features.calls.video == false)
+assert(capabilities.features.phoneNumberChange)
 assert(capabilities.features.calls.externalControl)
 assert(capabilities.features.customApps.enabled and capabilities.features.customApps.external)
 assert(capabilities.features.notifications.customApps)
@@ -165,6 +174,9 @@ assert(registered_exports.GetEquippedPhoneNumber(10) == "1234567")
 assert(service_calls.player == 10)
 assert(registered_exports.GetSourceFromPhoneNumber("1234567") == 10)
 assert(service_calls.number == "1234567")
+local changed, changed_number = registered_exports.ChangePhoneNumber(10, "7654321")
+assert(changed and changed_number == "7654321")
+assert(service_calls.change_number[1] == 10 and service_calls.change_number[2] == "7654321")
 assert(registered_exports.AddCustomAppPolicy({ id = "creator-app" }))
 assert(service_calls.custom_app.name == "AddCustomAppPolicy")
 assert(registered_exports.SendAppMessage(10, "creator-app", { type = "refresh" }))

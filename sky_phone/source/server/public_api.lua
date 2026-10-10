@@ -21,6 +21,7 @@ local SERVER_CAPABILITIES = {
             system = false,
         },
         phoneNumberLookup = true,
+        phoneNumberChange = true,
     },
     ready = false,
     side = "server",
@@ -83,6 +84,7 @@ exports("IsApiReady", is_api_ready)
 
 exports("GetEquippedPhoneNumber", bind("SkyPhone", "GetEquippedPhoneNumber"))
 exports("GetSourceFromPhoneNumber", bind("SkyPhone", "GetSourceFromNumber"))
+exports("ChangePhoneNumber", bind("SkyPhoneSim", "ChangeNumberForSource"))
 
 exports("GetOnlineDeviceBySource", bind("SkyPhoneDeviceDirectory", "GetOnlineBySource"))
 exports(
@@ -132,6 +134,7 @@ exports("UpdateCustomAppPolicyFromAdapter", custom_app_api.UpdateCustomAppPolicy
 Bridge.Database.AfterMigration("sky_phone", function()
     local required_services = {
         SkyPhone,
+        SkyPhoneSim,
         SkyPhoneCalls,
         SkyPhoneDeviceDirectory,
         SkyPhoneNotifications,
