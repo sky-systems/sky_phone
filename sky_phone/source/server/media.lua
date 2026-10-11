@@ -23,12 +23,6 @@ local function diagnostic_text(value, maximum_length)
     return tostring(value or "unknown"):gsub("[\r\n]", " "):sub(1, maximum_length)
 end
 
-local function media_debug(message, ...)
-    local arguments = { ... }
-    arguments[#arguments + 1] = { notice = true }
-    Bridge.Debug("debug", "[sky_phone][media-debug] " .. message, table.unpack(arguments))
-end
-
 local function http_request(url, method, body, headers, timeout_ms)
     local request = promise.new()
     local settled = false
@@ -109,7 +103,11 @@ end
 
 local function request_presigned_url()
     local api_key = SkyPhoneMediaProviderConfig.FiveManageApiKey()
-    media_debug("Starting FiveManage presigned upload request (api-key=%s).", api_key ~= "" and "present" or "missing")
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Starting FiveManage presigned upload request (api-key=%s).",
+        api_key ~= "" and "present" or "missing"
+    )
     if api_key == "" then
         Bridge.Debug(
             "error",
@@ -126,7 +124,7 @@ local function request_presigned_url()
         { ["Authorization"] = api_key },
         tonumber(config.RequestTimeoutMs) or 10000
     )
-    media_debug("FiveManage presigned upload request returned HTTP %s.", tostring(response.status))
+    Bridge.Debug("debug", "[sky_phone][media-debug] FiveManage presigned upload request returned HTTP %s.", tostring(response.status))
     if response.status == 401 or response.status == 403 then
         Bridge.Debug(
             "error",
@@ -174,7 +172,7 @@ local function request_presigned_url()
         )
         return nil, "media_provider_failed"
     end
-    media_debug("FiveManage returned a valid presigned upload URL (host=%s).", provider_host)
+    Bridge.Debug("debug", "[sky_phone][media-debug] FiveManage returned a valid presigned upload URL (host=%s).", provider_host)
     return presigned_url
 end
 
@@ -305,8 +303,9 @@ function SkyPhoneMedia.ResolveOwnedMedia(source, media_id, media_type)
 end
 
 local function upload_result(source, correlation_id, success, error_code, media)
-    media_debug(
-        "Sending upload result (source=%s, correlation=%s, success=%s, error=%s, media=%s).",
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Sending upload result (source=%s, correlation=%s, success=%s, error=%s, media=%s).",
         tostring(source),
         diagnostic_text(correlation_id, 80),
         tostring(success),
@@ -365,8 +364,9 @@ local function verify_remote_upload(state, remote_id, uploaded_url)
         )
         return nil, "invalid_upload"
     end
-    media_debug(
-        "Accepting the direct FiveManage upload response (type=%s, size=%s).",
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Accepting the direct FiveManage upload response (type=%s, size=%s).",
         tostring(state.media_type),
         tostring(state.size_bytes)
     )
@@ -661,8 +661,9 @@ RegisterNetEvent("sky_phone:media:request-upload", function(data)
     data = type(data) == "table" and data or {}
     local correlation_id = data.correlationId
     local media_type = data.mediaType
-    media_debug(
-        "Server received upload request (source=%s, correlation=%s, type=%s).",
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Server received upload request (source=%s, correlation=%s, type=%s).",
         tostring(src),
         diagnostic_text(correlation_id, 80),
         diagnostic_text(media_type, 20)
@@ -703,8 +704,9 @@ RegisterNetEvent("sky_phone:media:request-upload", function(data)
         upload_result(src, correlation_id, false, error_response.error)
         return
     end
-    media_debug(
-        "Upload request session resolved (source=%s, correlation=%s, owner=%s).",
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Upload request session resolved (source=%s, correlation=%s, owner=%s).",
         tostring(src),
         diagnostic_text(correlation_id, 80),
         owner.account_id and "account" or "device"
@@ -747,8 +749,9 @@ RegisterNetEvent("sky_phone:media:request-upload", function(data)
     SetTimeout(tonumber(Config.Media.UploadSessionTimeoutMs) or 60000, function()
         expire_upload(request_id)
     end)
-    media_debug(
-        "Sending upload-ready to client (source=%s, correlation=%s, type=%s).",
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Sending upload-ready to client (source=%s, correlation=%s, type=%s).",
         tostring(src),
         diagnostic_text(correlation_id, 80),
         tostring(media_type)
@@ -781,8 +784,9 @@ RegisterNetEvent("sky_phone:media:complete-upload", function(data)
         )
         return
     end
-    media_debug(
-        "Server received upload completion (source=%s, correlation=%s, remote-id=%s, url=%s).",
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Server received upload completion (source=%s, correlation=%s, remote-id=%s, url=%s).",
         tostring(src),
         diagnostic_text(state.correlation_id, 80),
         type(data.remoteId) == "string" and "present" or "missing",
@@ -859,8 +863,9 @@ RegisterNetEvent("sky_phone:media:complete-upload", function(data)
         upload_result(src, state.correlation_id, false, "request_failed")
         return
     end
-    media_debug(
-        "Media upload completed successfully (source=%s, correlation=%s, media-id=%s).",
+    Bridge.Debug(
+        "debug",
+        "[sky_phone][media-debug] Media upload completed successfully (source=%s, correlation=%s, media-id=%s).",
         tostring(src),
         diagnostic_text(state.correlation_id, 80),
         tostring(media_id)

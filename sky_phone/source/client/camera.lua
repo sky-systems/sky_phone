@@ -532,8 +532,7 @@ RegisterNUICallback("media:requestUpload", function(data, cb)
         "debug",
         "[sky_phone][media-debug] NUI requested an upload (correlation=%s, type=%s).",
         tostring(data.correlationId),
-        tostring(data.mediaType),
-        { notice = true }
+        tostring(data.mediaType)
     )
     TriggerServerEvent("sky_phone:media:request-upload", data)
     cb({ success = true })
@@ -550,8 +549,7 @@ RegisterNUICallback("media:completeUpload", function(data, cb)
         tostring(data.correlationId),
         type(data.remoteId) == "string" and "present" or "missing",
         type(data.url) == "string" and "present" or "missing",
-        type(data.originalUrl) == "string" and "present" or "missing",
-        { notice = true }
+        type(data.originalUrl) == "string" and "present" or "missing"
     )
     TriggerServerEvent("sky_phone:media:complete-upload", data)
     cb({ success = true })
@@ -645,8 +643,7 @@ RegisterNetEvent("sky_phone:media:upload-ready", function(data)
         "[sky_phone][media-debug] Client received upload-ready (correlation=%s, type=%s, presigned-url=%s).",
         tostring(type(data) == "table" and data.correlationId),
         tostring(type(data) == "table" and data.mediaType),
-        type(data) == "table" and type(data.presignedUrl) == "string" and "present" or "missing",
-        { notice = true }
+        type(data) == "table" and type(data.presignedUrl) == "string" and "present" or "missing"
     )
     SendNUIMessage({ type = "media:uploadReady", data = data })
 end)
@@ -657,8 +654,7 @@ RegisterNetEvent("sky_phone:media:upload-result", function(data)
         "[sky_phone][media-debug] Client received upload-result (correlation=%s, success=%s, error=%s).",
         tostring(type(data) == "table" and data.correlationId),
         tostring(type(data) == "table" and data.success),
-        tostring(type(data) == "table" and data.error),
-        { notice = true }
+        tostring(type(data) == "table" and data.error)
     )
     SendNUIMessage({ type = "media:uploadResult", data = data })
 end)
