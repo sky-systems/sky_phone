@@ -22,6 +22,7 @@ local SERVER_CAPABILITIES = {
         },
         phoneNumberLookup = true,
         phoneNumberChange = true,
+        phoneNumberValidation = true,
     },
     ready = false,
     side = "server",
@@ -85,6 +86,10 @@ exports("IsApiReady", is_api_ready)
 exports("GetEquippedPhoneNumber", bind("SkyPhone", "GetEquippedPhoneNumber"))
 exports("GetSourceFromPhoneNumber", bind("SkyPhone", "GetSourceFromNumber"))
 exports("ChangePhoneNumber", bind("SkyPhoneSim", "ChangeNumberForSource"))
+exports("ValidatePhoneNumberChange", function(source, number)
+    if not api_ready then return false, "api_not_ready" end
+    return SkyPhoneSim.ValidateNumberChangeForSource(source, number)
+end)
 
 exports("GetOnlineDeviceBySource", bind("SkyPhoneDeviceDirectory", "GetOnlineBySource"))
 exports(

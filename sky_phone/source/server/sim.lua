@@ -176,7 +176,7 @@ end
 
 SkyPhoneSim.PrepareDevice = prepare_device
 
-function SkyPhoneSim.ChangeNumber(source, imei, sim_id, value)
+local function validate_number_change(sim_id, value)
     local number = SkyPhoneSimNumber.Normalize(value)
     if not number or SkyPhoneCompanies.IsServiceNumber(number) then
         return false, "invalid_phone_number"
@@ -197,6 +197,28 @@ function SkyPhoneSim.ChangeNumber(source, imei, sim_id, value)
     if existing[1] then
         return false, "phone_number_taken"
     end
+
+    return true, number, sim
+end
+
+function SkyPhoneSim.ValidateNumberChangeForSource(source, value)
+    local device, device_error = SkyPhoneDeviceDirectory.GetOnlineBySource(source)
+    if not device then
+        return false, device_error
+    end
+    if not device.simId then
+        return false, "no_sim"
+    end
+    local valid, number_or_error = validate_number_change(device.simId, value)
+    return valid, number_or_error
+end
+
+function SkyPhoneSim.ChangeNumber(source, imei, sim_id, value)
+    local valid, number_or_error, sim = validate_number_change(sim_id, value)
+    if not valid then
+        return false, number_or_error
+    end
+    local number = number_or_error
 
     local phone_slot
     if Config.Phone.Unique ~= false then

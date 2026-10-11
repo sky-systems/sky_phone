@@ -320,6 +320,26 @@ assert(eject(8).success and #added == 2 and added[2].metadata.sim_id == "third")
 assert(items[8].metadata.phone_number == nil and devices[imei_b].sim_id == nil)
 
 -- External number changes reuse the SIM update and refresh the equipped device.
+for _, case in ipairs({
+    { value = "555-0103", number = "5550103" },
+    { value = "0298822", number = "0298822" },
+    { value = "5550102", error = "phone_number_taken" },
+    { value = "5550101", error = "phone_number_unchanged" },
+    { value = "abc", error = "invalid_phone_number" },
+    { value = "5550103", flag = "service_number", flag_value = "5550103", error = "invalid_phone_number" },
+    { value = "5550103", flag = "device_error", flag_value = "device_not_equipped", error = "device_not_equipped" },
+}) do
+    reset()
+    if case.flag then flags[case.flag] = case.flag_value end
+    local valid, result = SkyPhoneSim.ValidateNumberChangeForSource(21, case.value)
+    assert(valid == (case.error == nil) and result == (case.error or case.number))
+    assert(#writes == 0 and sims.first.phone_number == "5550101" and items[3].metadata.phone_number == "5550101")
+    assert(calls.ended == nil and calls.refreshed == nil and calls.cached_number == nil and not calls.cleared)
+end
+reset()
+devices[imei_a].sim_id = nil
+local valid_without_sim, sim_error = SkyPhoneSim.ValidateNumberChangeForSource(21, "5550103")
+assert(valid_without_sim == false and sim_error == "no_sim")
 reset()
 local changed, number = SkyPhoneSim.ChangeNumberForSource(21, "555-0103")
 assert(changed and number == "5550103")
