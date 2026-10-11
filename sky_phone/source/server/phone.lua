@@ -726,11 +726,7 @@ function SkyPhone.GetEquippedPhoneNumber(player)
 end
 
 function SkyPhone.GetSourceFromNumber(phone_number)
-    local normalized = SkyPhoneSimNumber.Normalize(
-        phone_number,
-        Config.Sim.NumberLength,
-        Config.Sim.NumberPrefix
-    )
+    local normalized = SkyPhoneSimNumber.Normalize(phone_number)
     if not normalized then
         return nil
     end
@@ -749,12 +745,7 @@ function SkyPhone.GetSourceFromNumber(phone_number)
 end
 
 function SkyPhone.FormatNumber(phone_number)
-    return SkyPhoneSimNumber.Format(
-        phone_number,
-        Config.Sim.NumberGroups,
-        Config.Sim.NumberLength,
-        Config.Sim.NumberPrefix
-    )
+    return SkyPhoneSimNumber.Format(phone_number, Config.Sim.NumberGroups)
 end
 
 function SkyPhone.RequireDeviceSession(source)

@@ -159,12 +159,7 @@ function SkyPhoneCompatibilityClient.RemoveProviderApp(owner_resource, app_id, a
 end
 
 function SkyPhoneCompatibilityClient.FormatNumber(phone_number)
-    return SkyPhoneSimNumber.Format(
-        phone_number,
-        Config.Sim.NumberGroups,
-        Config.Sim.NumberLength,
-        Config.Sim.NumberPrefix
-    )
+    return SkyPhoneSimNumber.Format(phone_number, Config.Sim.NumberGroups)
 end
 
 AddEventHandler("sky_phone:client:customAppRemoved", function(owner_resource, app_id)

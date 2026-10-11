@@ -102,7 +102,7 @@ local function resolve_message_recipient(value)
     if service_line then
         return service_line.number, service_line
     end
-    return SkyPhoneSimNumber.Normalize(value, Config.Sim.NumberLength, Config.Sim.NumberPrefix), nil
+    return SkyPhoneSimNumber.Normalize(value), nil
 end
 
 local function shared_contact(device, contact_id)
@@ -131,11 +131,7 @@ local function shared_contact(device, contact_id)
     end
     local name = trim(contact.name)
     local organization = trim(contact.organization)
-    local number = SkyPhoneSimNumber.Normalize(
-        contact.phone_number,
-        Config.Sim.NumberLength,
-        Config.Sim.NumberPrefix
-    )
+    local number = SkyPhoneSimNumber.Normalize(contact.phone_number)
     if not name or name == "" or #name > Config.Calls.ContactNameMaxLength
         or (organization and #organization > Config.Calls.ContactNameMaxLength) or not number
     then

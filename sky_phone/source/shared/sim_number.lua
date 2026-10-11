@@ -1,4 +1,4 @@
-SkyPhoneSimNumber = {}
+SkyPhoneSimNumber = { MaximumLength = 24 }
 
 function SkyPhoneSimNumber.ValidateConfiguration(length, prefix)
     if type(length) ~= "number" or length ~= math.floor(length) or length < 1 or length > 24 then
@@ -13,15 +13,12 @@ function SkyPhoneSimNumber.ValidateConfiguration(length, prefix)
     return true
 end
 
-function SkyPhoneSimNumber.Normalize(value, length, prefix)
+function SkyPhoneSimNumber.Normalize(value)
     if type(value) ~= "string" and type(value) ~= "number" then
         return nil
     end
-    if not SkyPhoneSimNumber.ValidateConfiguration(length, prefix) then
-        return nil
-    end
     local number = tostring(value):gsub("%D", "")
-    if #number ~= length or number:sub(1, #prefix) ~= prefix then
+    if number == "" or #number > SkyPhoneSimNumber.MaximumLength then
         return nil
     end
     return number
@@ -61,15 +58,19 @@ function SkyPhoneSimNumber.FromEntropy(entropy, length, prefix)
     return number
 end
 
-function SkyPhoneSimNumber.Format(value, groups, length, prefix)
-    local number = SkyPhoneSimNumber.Normalize(value, length, prefix)
+function SkyPhoneSimNumber.Format(value, groups)
+    local number = SkyPhoneSimNumber.Normalize(value)
     if not number then
         return tostring(value or "")
     end
     local formatted = {}
     local offset = 1
     for _, group_length in ipairs(groups) do
-        formatted[#formatted + 1] = number:sub(offset, offset + group_length - 1)
+        local group = number:sub(offset, offset + group_length - 1)
+        if group == "" then
+            break
+        end
+        formatted[#formatted + 1] = group
         offset = offset + group_length
     end
     if offset <= #number then

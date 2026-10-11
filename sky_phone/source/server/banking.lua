@@ -121,11 +121,7 @@ Bridge.Callbacks.Register("sky_phone:banking:transfer", function(source, data)
         return error_response
     end
     local amount = valid_amount(data and data.amount)
-    local number = SkyPhoneSimNumber.Normalize(
-        data and data.phoneNumber,
-        Config.Sim.NumberLength,
-        Config.Sim.NumberPrefix
-    )
+    local number = SkyPhoneSimNumber.Normalize(data and data.phoneNumber)
     if not amount or not number then
         return { success = false, error = "invalid_request" }
     end

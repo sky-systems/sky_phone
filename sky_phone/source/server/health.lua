@@ -174,11 +174,7 @@ Bridge.Callbacks.Register("sky_phone:health:save-profile", function(source, data
         return { success = false, error = "invalid_request" }
     end
     if emergency_phone ~= "" then
-        emergency_phone = SkyPhoneSimNumber.Normalize(
-            emergency_phone,
-            Config.Sim.NumberLength,
-            Config.Sim.NumberPrefix
-        )
+        emergency_phone = SkyPhoneSimNumber.Normalize(emergency_phone)
         if not emergency_phone then
             return { success = false, error = "invalid_phone_number" }
         end

@@ -4,7 +4,9 @@
 
 The caller must authorize the action and handle its payment and result. This is a server export, with no client network event. Phone resolves the equipped device and SIM itself; callers cannot choose an arbitrary IMEI or SIM. The phone UI may be closed. Unique inventory phones and character phones with automatic SIMs are supported.
 
-The existing SIM change validates the configured length/prefix, rejects company service numbers, occupied or unchanged numbers, preserves the SIM identity and other item metadata, and verifies the metadata write. A conflicting SQL update restores the previous item metadata. On success Phone clears dispatcher availability, ends calls for that SIM, refreshes the equipped-number cache, and updates an active device session.
+Number changes and internal lookups accept digit strings with 1 to 24 digits, independently of `Sim.NumberLength` and `Sim.NumberPrefix`. For example, `"0298822"` stays `"0298822"`, including its leading zero. Display separators are removed before storage and comparison; number groups are presentation only. Pass strings to preserve leading zeroes. New SIM generation still uses the configured length and prefix.
+
+The SIM change rejects company service numbers, occupied or unchanged numbers, preserves the SIM identity and other item metadata, and verifies the metadata write. A conflicting SQL update restores the previous item metadata. On success Phone clears dispatcher availability, ends calls for that SIM, refreshes the equipped-number cache, and updates an active device session. Calls, contacts, messages, transfers and the shared `NormalizePhoneNumber` export use the same format-independent normalization. Display formatting never truncates a longer number.
 
 Errors include `invalid_source`, `player_unavailable`, `device_not_equipped`, `no_sim`, `invalid_phone_number`, `phone_number_taken`, `phone_number_unchanged`, and `metadata_unsupported`. Update consuming adapters together with Phone and restart both resources. No configuration, locale or SQL migration is required.
 

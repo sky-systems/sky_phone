@@ -701,7 +701,7 @@ Bridge.Callbacks.Register("sky_phone:contacts:save", function(source, data)
     local notes = trim(data.notes) or ""
     local organization = trim(data.organization) or ""
     local email = normalize_contact_email(data.email)
-    local number = SkyPhoneSimNumber.Normalize(data.phoneNumber, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+    local number = SkyPhoneSimNumber.Normalize(data.phoneNumber)
     local avatar_media_id = tonumber(data.avatarMediaId) or 0
     if not name or name == "" or #name > Config.Calls.ContactNameMaxLength
         or #notes > Config.Calls.ContactNotesMaxLength
@@ -1231,7 +1231,7 @@ function SkyPhoneCalls.StartCompanyCall(source, company_id, customer_number)
         return { success = false, error = "airplane_mode" }
     end
 
-    local number = SkyPhoneSimNumber.Normalize(customer_number, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+    local number = SkyPhoneSimNumber.Normalize(customer_number)
     if not number or SkyPhoneCompanies.IsServiceNumber(number) then
         return { success = false, error = "invalid_number" }
     end
@@ -1317,7 +1317,7 @@ Bridge.Callbacks.Register("sky_phone:calls:dial", function(source, data)
         and SkyPhoneCompanies.GetServiceLineForCompany(data.company)
         or SkyPhoneCompanies.GetServiceLine(data.phoneNumber)
     local number = service_line and service_line.number
-        or SkyPhoneSimNumber.Normalize(data.phoneNumber, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+        or SkyPhoneSimNumber.Normalize(data.phoneNumber)
     if not number then
         dial_locks[source] = nil
         return { success = false, error = "invalid_number" }
@@ -1491,7 +1491,7 @@ Bridge.Callbacks.Register("sky_phone:payphone:dial", function(source, data)
 
     local service_line = SkyPhoneCompanies.GetServiceLine(data.phoneNumber)
     local number = service_line and service_line.number
-        or SkyPhoneSimNumber.Normalize(data.phoneNumber, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+        or SkyPhoneSimNumber.Normalize(data.phoneNumber)
     if not number then
         return { success = false, error = "invalid_number" }
     end
@@ -1902,11 +1902,7 @@ Bridge.Callbacks.Register("sky_phone:calls:block", function(source, data)
     if not scope.device.sim_id then
         return { success = false, error = "no_sim" }
     end
-    local number = type(data) == "table" and SkyPhoneSimNumber.Normalize(
-        data.phoneNumber,
-        Config.Sim.NumberLength,
-        Config.Sim.NumberPrefix
-    ) or nil
+    local number = type(data) == "table" and SkyPhoneSimNumber.Normalize(data.phoneNumber) or nil
     if not number then
         return { success = false, error = "invalid_number" }
     end

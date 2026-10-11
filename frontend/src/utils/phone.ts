@@ -1,6 +1,7 @@
 import type { PhoneNumberFormat } from '@/types/phone'
 
 export const PHONE_NUMBER_LENGTH = 10
+export const PHONE_NUMBER_MAX_LENGTH = 24
 const DEFAULT_PHONE_NUMBER_FORMAT: PhoneNumberFormat = {
   groups: [3, 3, 4],
   length: PHONE_NUMBER_LENGTH,
@@ -14,7 +15,7 @@ export function configurePhoneNumberFormat(value?: PhoneNumberFormat): void {
     typeof length !== 'number' ||
     !Number.isInteger(length) ||
     length < 1 ||
-    length > 24 ||
+    length > PHONE_NUMBER_MAX_LENGTH ||
     !Array.isArray(groups) ||
     groups.length === 0 ||
     groups.some((group) => !Number.isInteger(group) || group < 1)
@@ -31,13 +32,13 @@ export function configurePhoneNumberFormat(value?: PhoneNumberFormat): void {
 
 export function normalizePhoneNumber(value: string): string | null {
   const digits = value.replace(/\D/g, '')
-  return digits.length === phoneNumberFormat.length ? digits : null
+  return digits.length > 0 && digits.length <= PHONE_NUMBER_MAX_LENGTH
+    ? digits
+    : null
 }
 
 export function formatPhoneNumber(value: string | number): string {
-  const digits = String(value)
-    .replace(/\D/g, '')
-    .slice(0, phoneNumberFormat.length)
+  const digits = String(value).replace(/\D/g, '')
   const formatted: string[] = []
   let offset = 0
 
