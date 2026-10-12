@@ -14,7 +14,7 @@ local function new_client(options)
 
     env.Config = {
         Bridge = { Locale = "en" },
-        Garage = { Valet = {
+        Garage = { VehicleImages = options.vehicle_images, Valet = {
             SpawnDistance = 110.0, ArrivalDistance = 14.0, DriveSpeed = 20.0,
             DrivingStyle = 786603, TimeoutSeconds = 180,
         } },
@@ -78,7 +78,13 @@ local function new_client(options)
             return { success = true }
         end },
     }
-    env.joaat = function(value) return value end
+    env.joaat = function(value)
+        return (options.model_hashes or {})[value] or value
+    end
+    env.GetAllVehicleModels = function()
+        test.model_list_reads = (test.model_list_reads or 0) + 1
+        return options.vehicle_models or {}
+    end
     env.PlayerPedId = function() return 1 end
     env.IsModelInCdimage = function() return 1 end
     env.IsModelAVehicle = function() return 1 end
@@ -296,6 +302,48 @@ assert(vehicles[1].fuel == 70 and vehicles[2].fuel == 20 and vehicles[3].fuel ==
 assert(msk_overview.fuel_config_reads == 1, "read MSK fuel config once per overview")
 for _, vehicle in ipairs(vehicles) do assert(vehicle.mskFuel == nil, "keep provider data out of NUI") end
 
+local image_models = { "SULTAN", "adder", "custom_car" }
+local image_options = {
+    vehicle_images = { Enabled = true, UrlTemplate = "https://cdn.sky-systems.net/vehicles/{model}.png" },
+    vehicle_models = image_models,
+    model_hashes = { SULTAN = 970598228, adder = -1216765807, custom_car = 123 },
+    overview = {
+        { model = 970598228 }, { model = -1216765807 }, { model = "3078201489" },
+        { model = 123 }, { model = 404 }, { model = nil },
+        { model = 970598228, imageUrl = "https://example.com/overridden-sultan.png" },
+    },
+}
+local image_client = new_client(image_options)
+local image_vehicles = image_client.overview()
+assert(image_vehicles[1].imageUrl == "https://cdn.sky-systems.net/vehicles/sultan.png",
+    "stored hashes must resolve to lowercase spawn names for CDN images")
+assert(image_vehicles[2].imageUrl == "https://cdn.sky-systems.net/vehicles/adder.png"
+    and image_vehicles[3].imageUrl == image_vehicles[2].imageUrl,
+    "signed hashes and unsigned numeric strings must resolve to the same model")
+assert(image_vehicles[4].imageUrl == "https://cdn.sky-systems.net/vehicles/custom_car.png",
+    "registered custom vehicles must use their actual spawn name")
+assert(image_vehicles[5].imageUrl == nil and image_vehicles[6].imageUrl == nil,
+    "unresolved or absent models must keep the existing placeholder")
+assert(image_vehicles[7].imageUrl == "https://example.com/overridden-sultan.png",
+    "server-provided model overrides must retain priority")
+assert(image_client.model_list_reads == 1, "resolve the model catalog at most once per overview")
+
+image_options.overview = { { model = 404 } }
+image_options.model_hashes.new_car = 404
+image_models[#image_models + 1] = "new_car"
+assert(image_client.overview()[1].imageUrl == "https://cdn.sky-systems.net/vehicles/new_car.png",
+    "reopening the garage must include newly registered vehicle models")
+
+for _, image_config in ipairs({
+    { Enabled = false, UrlTemplate = "https://cdn.sky-systems.net/vehicles/{model}.png" },
+    { Enabled = true, UrlTemplate = "" },
+    { Enabled = true, UrlTemplate = "https://example.com/fixed.png" },
+}) do
+    local disabled_images = new_client({ vehicle_images = image_config, overview = { { model = 970598228 } } })
+    assert(disabled_images.overview()[1].imageUrl == nil and not disabled_images.model_list_reads,
+        "disabled or unconfigured images must retain placeholders without reading the model catalog")
+end
+
 local grant = { name = "wasabi", resource = "wasabi_carlock", plate = "VALET" }
 local with_keys = new_client({ key_grant = grant, completion_delay = 1000 })
 with_keys.advance(3400)
@@ -312,4 +360,4 @@ broken_keys.advance(4400)
 assert(broken_keys.state.status == "delivered" and broken_keys.entities[2],
     "client export failures must not delete a server-confirmed delivery")
 
-print("Client garage valet tests passed (15 scenarios)")
+print("Client garage valet and vehicle image tests passed")
