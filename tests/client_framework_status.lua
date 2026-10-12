@@ -10,7 +10,7 @@ local function new_client(loaded)
     local e = setmetatable({}, { __index = _G })
     e.Config = { Bridge = { Framework = "esx" } }
     e.Bridge = { Framework = {} }
-    e.handlers, e.reads, e.exports_read = {}, 0, 0
+    e.handlers, e.reads, e.exports_read, e.qb_reads = {}, 0, 0, 0
     e.loaded, e.invoker = loaded, "es_extended"
     e.player = { dead = false, job = { name = "police" }, inventory = { { name = "phone", count = 1 } },
         loadout = {}, custom = { restricted = false } }
@@ -32,9 +32,15 @@ local function new_client(loaded)
                 GetPlayerData = function() e.reads = e.reads + 1; return copy(e.player) end,
             }
         end },
-        qbx_core = { GetPlayerData = function() return { metadata = e.qb_metadata } end },
+        qbx_core = { GetPlayerData = function()
+            e.qb_reads = e.qb_reads + 1
+            return { metadata = copy(e.qb_metadata) }
+        end },
         ["qb-core"] = { GetCoreObject = function()
-            return { Functions = { GetPlayerData = function() return { metadata = e.qb_metadata } end } }
+            return { Functions = { GetPlayerData = function()
+                e.qb_reads = e.qb_reads + 1
+                return { metadata = copy(e.qb_metadata) }
+            end } }
         end },
     }
     assert(loadfile("sky_phone/source/bridge/client/framework.lua", "t", e))()
@@ -90,10 +96,47 @@ assert(e.Bridge.Framework.GetStatusData().character == "new" and e.reads == 2 an
 e.Config.Bridge.Framework = "qbox"
 e.qb_metadata = { inlaststand = true }
 e.emit("sky_phone:configurator:updated")
-assert(e.Bridge.Framework.GetStatusData() == e.qb_metadata)
+for _ = 1, 100 do assert(e.Bridge.Framework.GetStatusData().inlaststand) end
+assert(e.qb_reads == 1, "Qbox status polling must seed its player snapshot only once")
+e.invoker = "qbx_core"
+e.emit("QBCore:Player:SetPlayerData", { metadata = { isdead = true } })
+assert(e.Bridge.Framework.GetStatusData().isdead and e.qb_reads == 1)
+e.emit("onClientResourceStop", "qb-core")
+e.emit("onClientResourceStart", "qb-core")
+assert(e.Bridge.Framework.GetStatusData().isdead and e.qb_reads == 1, "an inactive QB provider must not reset Qbox status")
+e.invoker = "another_resource"
+e.emit("QBCore:Player:SetPlayerData", { metadata = { isdead = false } })
+assert(e.Bridge.Framework.GetStatusData().isdead, "only Qbox or its server owns status replacements")
+e.invoker = nil
+e.emit("QBCore:Player:SetPlayerData", { metadata = { isdead = false, ishancuffed = true } })
+assert(e.Bridge.Framework.GetStatusData().isdead == false and e.Bridge.Framework.GetStatusData().ishancuffed)
+e.emit("QBCore:Client:OnPlayerUnload")
+assert(next(e.Bridge.Framework.GetStatusData()) == nil and e.qb_reads == 1, "logout cannot refill stale Qbox metadata")
+e.emit("QBCore:Client:OnPlayerLoaded")
+assert(e.Bridge.Framework.GetStatusData().inlaststand and e.qb_reads == 2)
+e.emit("onClientResourceStop", "qbx_core")
+assert(next(e.Bridge.Framework.GetStatusData()) == nil and e.qb_reads == 2)
+e.qb_metadata = { isdead = false, restarted = true }
+e.emit("onClientResourceStart", "qbx_core")
+assert(e.Bridge.Framework.GetStatusData().restarted and e.qb_reads == 3)
 e.Config.Bridge.Framework = "qb"
 e.emit("sky_phone:configurator:updated")
-assert(e.Bridge.Framework.GetStatusData() == e.qb_metadata)
+for _ = 1, 100 do assert(e.Bridge.Framework.GetStatusData().restarted) end
+assert(e.qb_reads == 4, "QBCore status polling must seed its player snapshot only once")
+e.invoker = "qb-core"
+e.emit("QBCore:Player:SetPlayerData", { metadata = { isdead = true } })
+assert(e.Bridge.Framework.GetStatusData().isdead and e.qb_reads == 4)
+e.emit("onClientResourceStop", "qbx_core")
+e.emit("onClientResourceStart", "qbx_core")
+assert(e.Bridge.Framework.GetStatusData().isdead and e.qb_reads == 4, "an inactive Qbox provider must not reset QB status")
+e.emit("QBCore:Client:OnPlayerUnload")
+assert(next(e.Bridge.Framework.GetStatusData()) == nil and e.qb_reads == 4)
+e.emit("QBCore:Client:OnPlayerLoaded")
+assert(e.Bridge.Framework.GetStatusData().restarted and e.qb_reads == 5)
+e.emit("onClientResourceStop", "qb-core")
+assert(next(e.Bridge.Framework.GetStatusData()) == nil)
+e.emit("onClientResourceStart", "qb-core")
+assert(e.Bridge.Framework.GetStatusData().restarted and e.qb_reads == 6)
 e.Config.Bridge.Framework = "esx"
 e.emit("sky_phone:configurator:updated")
 assert(e.Bridge.Framework.GetStatusData().character == "new" and e.reads == 3)

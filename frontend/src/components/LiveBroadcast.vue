@@ -59,6 +59,8 @@ const validMessage = computed(
 )
 const t = (key: string) => phone.t(`Realtime.${key}`)
 let timer: number | undefined
+let disposed = false
+let refreshPending = false
 async function open(id?: string): Promise<void> {
   opened.value = true
   if (id) {
@@ -95,12 +97,20 @@ watch(
 )
 onMounted(async () => {
   await realtime.refreshConfig()
+  if (disposed) return
   timer = window.setInterval(async () => {
-    if (opened.value && !current.value)
-      entries.value = await realtime.list(props.app)
+    if (!opened.value || current.value || refreshPending) return
+    refreshPending = true
+    try {
+      const result = await realtime.list(props.app)
+      if (!disposed && opened.value && !current.value) entries.value = result
+    } finally {
+      refreshPending = false
+    }
   }, 10000)
 })
 onBeforeUnmount(() => {
+  disposed = true
   clearInterval(timer)
   if (opened.value && current.value) realtime.stop()
 })

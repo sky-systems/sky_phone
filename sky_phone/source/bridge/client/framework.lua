@@ -2,6 +2,7 @@ local framework_name
 local esx
 local qb
 local esx_player_data
+local qb_metadata
 
 local function resolve_framework()
     local configured = Config.Bridge.Framework
@@ -35,6 +36,7 @@ local function refresh_framework()
     esx = nil
     qb = nil
     esx_player_data = nil
+    qb_metadata = nil
 end
 
 refresh_framework()
@@ -58,6 +60,29 @@ end)
 RegisterNetEvent("esx:onPlayerLogout", function()
     if framework_name == "esx" then
         esx_player_data = {}
+    end
+end)
+
+-- Qbox's playerdata module and QBCore publish complete replacements on this
+-- event. Seed once after a Phone restart instead of serializing them every poll.
+RegisterNetEvent("QBCore:Player:SetPlayerData", function(player_data)
+    if framework_name ~= "qbox" and framework_name ~= "qb" then return end
+    local owner = framework_name == "qbox" and "qbx_core" or "qb-core"
+    local invoker = GetInvokingResource()
+    if invoker and invoker ~= owner then return end
+    qb_metadata = type(player_data) == "table" and player_data.metadata or nil
+    qb_metadata = qb_metadata or {}
+end)
+
+RegisterNetEvent("QBCore:Client:OnPlayerUnload", function()
+    if framework_name == "qbox" or framework_name == "qb" then
+        qb_metadata = {}
+    end
+end)
+
+RegisterNetEvent("QBCore:Client:OnPlayerLoaded", function()
+    if framework_name == "qbox" or framework_name == "qb" then
+        qb_metadata = nil
     end
 end)
 
@@ -94,6 +119,10 @@ AddEventHandler("onClientResourceStop", function(resource)
     if resource == "es_extended" then
         esx = nil
         esx_player_data = {}
+    elseif (framework_name == "qbox" and resource == "qbx_core")
+        or (framework_name == "qb" and resource == "qb-core") then
+        qb = nil
+        qb_metadata = {}
     end
 end)
 
@@ -101,6 +130,10 @@ AddEventHandler("onClientResourceStart", function(resource)
     if resource == "es_extended" then
         esx = nil
         esx_player_data = nil
+    elseif (framework_name == "qbox" and resource == "qbx_core")
+        or (framework_name == "qb" and resource == "qb-core") then
+        qb = nil
+        qb_metadata = nil
     end
 end)
 
@@ -145,12 +178,18 @@ function Bridge.Framework.GetStatusData()
         end
         return esx_player_data
     elseif framework_name == "qbox" then
-        local data = exports.qbx_core:GetPlayerData()
-        return data and data.metadata or {}
+        if not qb_metadata then
+            local data = exports.qbx_core:GetPlayerData()
+            qb_metadata = data and data.metadata or {}
+        end
+        return qb_metadata
     elseif framework_name == "qb" then
-        qb = qb or exports["qb-core"]:GetCoreObject()
-        local data = qb.Functions.GetPlayerData()
-        return data and data.metadata or {}
+        if not qb_metadata then
+            qb = qb or exports["qb-core"]:GetCoreObject()
+            local data = qb.Functions.GetPlayerData()
+            qb_metadata = data and data.metadata or {}
+        end
+        return qb_metadata
     end
     return {}
 end
