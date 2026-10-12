@@ -9,15 +9,16 @@
 - Reuse unchanged mirrored-screen pixels and stop JPEG header decoding once dimensions are known. Keep the existing delivery cadence, quality, input/scroll updates and animated canvas/video/CSS capture.
 - Update QB/Qbox restriction metadata from framework events instead of fetching complete PlayerData on every poll. Preserve login, logout, provider restart and immediate status updates.
 - Respect `Config.Bridge.Debug` for routine media-upload progress on the server and client. Warnings and errors remain visible. Align the new Japanese number-change error with the accepted number format.
+- Update Vue to 3.5.42 and patch the transitive selector parser, shell quoting and development-server query parser. Rebuild the NUI and regenerate matching third-party notices; the existing `nanoid` override remains intact.
 
 ## Update instructions
 
 These steps cover upgrading from 1.1.6. For older installations, also apply the intervening release instructions.
 
 1. Back up the installed resource and database. Preserve configuration, translations, server peppers, custom hooks and custom files under `source/`, including `source/html/sounds`.
-2. Stop `sky_phone` and resources registering Phone apps. Replace `fxmanifest.lua`, `SOURCE.txt`, `README.md`, `LOGGING.md`, `RELEASE_NOTES.md`, `integrations/NUMBER_API.md` and the complete `source/` directory from **sky_phone-1.1.7.zip**, then restore custom files. Keep the folder named `sky_phone`; install the rebuilt NUI together with the Lua changes.
+2. Schedule maintenance and have players disconnect before stopping `sky_phone` and resources registering Phone apps. Replace `fxmanifest.lua`, `SOURCE.txt`, `README.md`, `LOGGING.md`, `RELEASE_NOTES.md`, `THIRD_PARTY_NOTICES.md`, `integrations/NUMBER_API.md` and the complete `source/` directory from **sky_phone-1.1.7.zip**, then restore custom files. Keep the folder named `sky_phone`; install the rebuilt NUI together with the Lua changes.
 3. Update `config/init.lua` and the bundled English/German locales. Add `config/locales/ja.lua` to use Japanese, or install all sixteen bundled locale files while preserving custom translations. No existing configuration default changes. In SQL mode select `ja` under **Phone configurator → General → Framework & integrations**; in file mode set `Config.Bridge.Locale = "ja"`. Do not reset saved Phonepanel configuration.
-4. Run `refresh`, then `restart sky_phone` so FiveM reloads the manifest. Restart consuming integrations and app resources afterward in their normal startup order. Preflight consumers must check API readiness and `features.phoneNumberValidation`, preserve numbers as strings and handle the final authoritative change result. See [NUMBER_API.md](https://github.com/sky-systems/sky_phone/blob/1.1.7/sky_phone/integrations/NUMBER_API.md).
+4. With players still disconnected, run `refresh`, then `restart sky_phone` so FiveM reloads the manifest. Restart consuming integrations and app resources afterward in their normal startup order, then reconnect clients. Avoid unloading the streamed Phone prop during active gameplay. Preflight consumers must check API readiness and `features.phoneNumberValidation`, preserve numbers as strings and handle the final authoritative change result. See [NUMBER_API.md](https://github.com/sky-systems/sky_phone/blob/1.1.7/sky_phone/integrations/NUMBER_API.md).
 5. Verify opening/closing the phone, configured locale selection and short/long numbers with leading zeroes. If used, check occupied/reserved-number rejection, media uploads with the existing debug flag disabled/enabled, CrewLink reopen behavior and multiplayer screen mirroring.
 
 There is no SQL schema migration, new inventory item, new custom asset requirement or mandatory dependency upgrade. The public API version stays `1.0.0`; the preflight export and capability are additive. Preflight reserves no number and does not replace the final change.
@@ -28,7 +29,7 @@ Relative to the installed `sky_phone` directory:
 
 - `fxmanifest.lua` — version `1.1.7`.
 - `SOURCE.txt` — generated source-commit reference.
-- `README.md`, `LOGGING.md`, `RELEASE_NOTES.md` — locale, logging and update documentation.
+- `README.md`, `LOGGING.md`, `RELEASE_NOTES.md`, `THIRD_PARTY_NOTICES.md` — locale, logging, update documentation and regenerated dependency notices.
 - `config/init.lua`, `config/locales/en.lua`, `config/locales/de.lua` — locale alias registration and number-change feedback.
 - `config/locales/ja.lua` — new complete Japanese locale.
 - `integrations/NUMBER_API.md` — format-independent numbers and read-only preflight.
@@ -38,6 +39,10 @@ No files are removed or renamed outside `source/html/`. Generated NUI filenames 
 
 ## Validation boundary
 
-The combined changes passed automated Lua/frontend contracts and browser/theme tests. The number-change and normal open-phone performance paths have separately recorded local ESX/OAL evidence. Both manual performance captures stayed around 0.08 ms per Phone tick in an already-light ESX workload; they do not demonstrate a general FPS or high-resmon improvement. Live QB/Qbox gameplay, production-size CrewLink groups, many mirrored screens and multiplayer call audio remain outside those results.
+Validation passed 74 Lua specifications, 1,897 frontend tests, 77 browser-mock actions and 50 browser/theme tests, plus typecheck, lint, license and repository checks. The final 1.1.7 build matched all 563 deployed files on ESX and Qbox; the local ESX client remained connected through a restart with the Phone closed, then loaded the new NUI bundle and opened Home and Settings with OAL enabled. The number-change and normal open-phone performance paths have separately recorded local ESX/OAL evidence. Both manual performance captures stayed around 0.08 ms per Phone tick in an already-light ESX workload; they do not demonstrate a general FPS or high-resmon improvement. Live QB/Qbox gameplay, production-size CrewLink groups, many mirrored screens and multiplayer call audio remain outside those results.
+
+Dependency auditing retains one unpatched [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) through the development ESLint/glob tooling. That path processes repository glob patterns and is absent from the deployed Phone runtime.
+
+A local GTA b3570 client crashed shortly after a live resource restart logged unloading `sky_phone_prop.ytyp`. All seventeen Phone-prop files are unchanged from 1.1.6, and no Phone Lua script error was recorded. This is an observed hot-reload limitation, not proof of its exact engine cause; use the maintenance/reconnection procedure above. The GTA engine implementation is outside the inspected public Cfx source.
 
 [All changes since 1.1.6](https://github.com/sky-systems/sky_phone/compare/1.1.6...1.1.7)

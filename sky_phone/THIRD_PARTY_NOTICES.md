@@ -462,7 +462,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### @babel/parser@7.29.8
+### @babel/parser@7.29.9
 
 Declared license: `MIT`
 
@@ -618,7 +618,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### @jridgewell/sourcemap-codec@1.5.5
+### @jridgewell/sourcemap-codec@1.6.0
 
 Declared license: `MIT`
 
@@ -1692,7 +1692,7 @@ Project: <https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/t
     SOFTWARE
 ```
 
-### @vue/compiler-core@3.5.40
+### @vue/compiler-core@3.5.42
 
 Declared license: `MIT`
 
@@ -1724,7 +1724,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### @vue/compiler-dom@3.5.40
+### @vue/compiler-dom@3.5.42
 
 Declared license: `MIT`
 
@@ -1756,7 +1756,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### @vue/compiler-sfc@3.5.40
+### @vue/compiler-sfc@3.5.42
 
 Declared license: `MIT`
 
@@ -1788,7 +1788,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### @vue/compiler-ssr@3.5.40
+### @vue/compiler-ssr@3.5.42
 
 Declared license: `MIT`
 
@@ -1950,7 +1950,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### @vue/reactivity@3.5.40
+### @vue/reactivity@3.5.42
 
 Declared license: `MIT`
 
@@ -1982,7 +1982,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### @vue/runtime-core@3.5.40
+### @vue/runtime-core@3.5.42
 
 Declared license: `MIT`
 
@@ -2014,7 +2014,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### @vue/runtime-dom@3.5.40
+### @vue/runtime-dom@3.5.42
 
 Declared license: `MIT`
 
@@ -2046,7 +2046,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### @vue/server-renderer@3.5.40
+### @vue/server-renderer@3.5.42
 
 Declared license: `MIT`
 
@@ -2078,7 +2078,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### @vue/shared@3.5.40
+### @vue/shared@3.5.42
 
 Declared license: `MIT`
 
@@ -3371,7 +3371,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### nanoid@3.3.18
+### nanoid@3.3.20
 
 Declared license: `MIT`
 
@@ -3522,7 +3522,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### postcss@8.5.25
+### postcss@8.5.29
 
 Declared license: `MIT`
 
@@ -4453,7 +4453,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### vue@3.5.40
+### vue@3.5.42
 
 Declared license: `MIT`
 
