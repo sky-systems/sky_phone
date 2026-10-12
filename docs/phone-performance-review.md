@@ -51,6 +51,20 @@ MCP's 64 MiB report limit; it was analyzed locally using the same current
 completed scopes are reported here. Inclusive times overlap and must not be
 summed as CPU percentages or equated to resmon/FPS.
 
+The restarted candidate was also recorded with 1,000 frames / 452,441 events
+over 18.029 seconds. Its completed Phone tick averaged **0.086059 ms** (999
+calls, 85.973 ms total, 2.358 ms maximum), compared with **0.081175 ms** before.
+The focus worker averaged 0.055737 ms versus 0.053466 ms before. Both normal
+open/scroll captures therefore remain around 0.08 ms per Phone tick; these
+samples do not demonstrate a reduction for this already-light ESX workload.
+Client reconnection, manually performed interactions and capture duration differ,
+so this is not a controlled equal-input benchmark.
+
+An apparent 16.608 ms camera-focus event in the second trace contains a
+**16.577 ms `(profiler gc)`** scope. The trace attributes this isolated outlier
+to profiler collection, not expensive camera/input code. The ordinary focus
+worker was not changed by this PR. Both raw captures remain private and unchanged.
+
 An earlier 1,000-frame idle server capture measured 36.053 ms inclusive Phone
 resource scope time across 61.879 seconds. It included startup/activity from
 other resources, so it is context rather than a controlled before/after test.
@@ -65,15 +79,30 @@ captures. Qbox/QBCore caching is source/spec-tested, not Qbox/QBCore gameplay pr
 
 - All 74 repository Lua specs passed; affected CrewLink/world-display/framework
   specs were rerun with the final Lua patch. All 278 Lua files pass syntax checks.
-- Frontend suite: 261 files / 1,887 tests passed, plus license tests and 77 browser
+- Final frontend suite: 261 files / 1,888 tests passed, plus license tests and 77 browser
   mock endpoints/stateful actions.
 - Type checking with `vue-tsc --build --noEmit`, lint, and repository policy passed.
 - Five actual-browser world-display tests passed, including scroll offset,
   live-video capture, spectator isolation and executable/URL rejection.
 - Full browser/theme suite: all 50 tests passed, including every registered app
   in light/dark and the new world-display regression.
-- Production build, copy parity and restarted-runtime checks are being finalized;
-  their exact results are recorded in the PR validation.
+- `build_copy.bat -DryRun` and `build_frontend.bat` passed. The latter performed
+  the production build, notice/default generation and copy to ESX and Qbox.
+  Each deployment had 562/562 files with identical source SHA-256 hashes.
+- The local test checkout composed performance code `4cf3d30e` with already
+  deployed number-change fixes `4115c6e4` from PR #133 (local merge `bf376498`).
+  This preserves that test-server feature; PR #134 itself is based only on `dev`.
+- Restarted ESX Phone: manifest OAL `yes`, server `IsApiReady()` true, phone
+  reopened through its existing public export, client open/data-loaded true.
+  Startup's error-level configurator banner is informational; no Phone client
+  script errors appeared in the checked log tail.
+- A bounded real-server task verified eight shared-promise waiters and rejection
+  propagation. It reached `completed` with zero timers/running threads after
+  cleanup. This verifies the Cfx primitive, not a many-player SQL benchmark.
+- PR #134 CI at `4cf3d30e`: Repository policy, Frontend, CodeQL, Dependency review
+  and Pull request policy passed. Its test-resource artifact was inspected for
+  one `sky_phone` root, manifest/NUI/notices and the committed performance Lua
+  contents. Build/package/copy evidence remains distinct from gameplay proof.
 
 ## Platform/source evidence
 
