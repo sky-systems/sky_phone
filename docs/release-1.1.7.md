@@ -37,12 +37,4 @@ Relative to the installed `sky_phone` directory:
 
 No files are removed or renamed outside `source/html/`. Generated NUI filenames are replaced by the rebuilt bundle. Tests, frontend source and review reports remain outside the deployable resource.
 
-## Validation boundary
-
-Validation passed 74 Lua specifications, 1,897 frontend tests, 77 browser-mock actions and 50 browser/theme tests, plus typecheck, lint, license and repository checks. The final 1.1.7 build matched all 563 deployed files on ESX and Qbox; the local ESX client remained connected through a restart with the Phone closed, then loaded the new NUI bundle and opened Home and Settings with OAL enabled. The number-change and normal open-phone performance paths have separately recorded local ESX/OAL evidence. Both manual performance captures stayed around 0.08 ms per Phone tick in an already-light ESX workload; they do not demonstrate a general FPS or high-resmon improvement. Live QB/Qbox gameplay, production-size CrewLink groups, many mirrored screens and multiplayer call audio remain outside those results.
-
-Dependency auditing retains one unpatched [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) through the development ESLint/glob tooling. That path processes repository glob patterns and is absent from the deployed Phone runtime.
-
-A local GTA b3570 client crashed shortly after a live resource restart logged unloading `sky_phone_prop.ytyp`. All seventeen Phone-prop files are unchanged from 1.1.6, and no Phone Lua script error was recorded. This is an observed hot-reload limitation, not proof of its exact engine cause; use the maintenance/reconnection procedure above. The GTA engine implementation is outside the inspected public Cfx source.
-
 [All changes since 1.1.6](https://github.com/sky-systems/sky_phone/compare/1.1.6...1.1.7)
