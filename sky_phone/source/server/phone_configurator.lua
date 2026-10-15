@@ -453,6 +453,7 @@ local function apply_runtime_configuration()
     else
         Config.Media = runtime_media
     end
+    SkyPhoneLocales.Resolve(Config.Bridge.Locale)
 end
 
 local function humanize(value)
