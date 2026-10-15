@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { onBeforeUnmount, ref, onMounted, computed, watch, nextTick } from 'vue'
 import { Radio, Eye, Send, SwitchCamera, Mic, MicOff, X } from 'lucide-vue-next'
 import { usePhoneStore } from '@/stores/phone'
@@ -118,7 +120,7 @@ onBeforeUnmount(() => {
 <template>
   <slot v-if="enabled && !hideTrigger" name="trigger" :open="open">
     <SkyButton clear inline class="live-entry" @click="open()"
-      ><Radio :size="18" />{{ t('live') }}</SkyButton
+      ><SkyIcon :icon="Radio" :size="18" />{{ t('live') }}</SkyButton
     >
   </slot>
   <SkySheet
@@ -181,7 +183,7 @@ onBeforeUnmount(() => {
             icon-only
             :aria-label="t(current.role === 'host' ? 'endLive' : 'leave')"
             @click="close"
-            ><X :size="22"
+            ><SkyIcon :icon="X" :size="22"
           /></SkyButton>
         </header>
         <div class="live-broadcast__badges">
@@ -189,7 +191,7 @@ onBeforeUnmount(() => {
             ><span></span>{{ t('live') }}</span
           >
           <SkyGlass class="live-broadcast__viewers"
-            ><Eye :size="15" /><span>{{ current.viewers }}</span
+            ><SkyIcon :icon="Eye" :size="15" /><span>{{ current.viewers }}</span
             ><span class="live-broadcast__sr">{{
               t('viewers')
             }}</span></SkyGlass
@@ -224,7 +226,7 @@ onBeforeUnmount(() => {
                 icon-only
                 :aria-label="t('flip')"
                 @click="realtime.flip"
-                ><SwitchCamera :size="21"
+                ><SkyIcon :icon="SwitchCamera" :size="21"
               /></SkyButton>
               <SkyButton
                 glass
@@ -283,7 +285,7 @@ onBeforeUnmount(() => {
                   :aria-label="t('send')"
                   :disabled="sending || !validMessage"
                   @click="send"
-                  ><Send :size="20" /></SkyButton
+                  ><SkyIcon :icon="Send" :size="20" /></SkyButton
               ></template>
             </SkyMessagebar>
           </SkyGlass>
@@ -301,7 +303,7 @@ onBeforeUnmount(() => {
             icon-only
             :aria-label="phone.t('Common.close')"
             @click="close"
-            ><X :size="20"
+            ><SkyIcon :icon="X" :size="20"
           /></SkyButton>
         </header>
         <div class="live-broadcast__directory">
@@ -448,7 +450,7 @@ onBeforeUnmount(() => {
 }
 .live-broadcast__top > .sky-button {
   flex-shrink: 0;
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 .live-broadcast__badges {
   display: flex;
@@ -530,10 +532,10 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 .live-broadcast__controls .sky-button {
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 .live-broadcast__controls .sky-button[aria-pressed='true'] {
-  color: var(--sky-danger);
+  color: var(--sky-button-text, #ffffff);
 }
 .live-broadcast__chat {
   height: 22cqh;

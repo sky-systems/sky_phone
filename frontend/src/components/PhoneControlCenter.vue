@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { kGlass, kRange } from 'konsta/vue'
+import { SkyButton, SkyGlass, SkyIcon, SkyRange } from '@/ui'
+
 import {
   BellOff,
   Bluetooth,
@@ -79,35 +80,7 @@ type SliderDrag = {
 }
 let sliderDrag: SliderDrag | null = null
 
-const inactiveGlassColors = {
-  bgIos: 'bg-[rgba(72,72,74,0.58)]',
-  shadowIos: 'shadow-ios-dark-glass',
-}
-const focusColors = computed(() =>
-  phone.preferences.settings.focusMode
-    ? {
-        bgIos: 'bg-[#5e5ce6]',
-        shadowIos: 'shadow-ios-dark-glass',
-      }
-    : inactiveGlassColors,
-)
 const alertsMuted = computed(() => volume.value === 0)
-const alertMuteColors = computed(() =>
-  alertsMuted.value
-    ? {
-        bgIos: 'bg-white',
-        shadowIos: 'shadow-ios-light-glass',
-      }
-    : inactiveGlassColors,
-)
-const flashlightColors = computed(() =>
-  flashlightActive.value
-    ? {
-        bgIos: 'bg-white',
-        shadowIos: 'shadow-ios-light-glass',
-      }
-    : inactiveGlassColors,
-)
 const brightnessStyle = computed<CSSProperties>(() => ({
   '--control-level': `${brightness.value}%`,
 }))
@@ -398,22 +371,20 @@ onBeforeUnmount(() => {
       aria-modal="true"
       :aria-label="phone.t('ControlCenter.label')"
     >
-      <button
+      <SkyButton
+        variant="content"
         class="control-center__backdrop"
         type="button"
         tabindex="-1"
         :aria-label="phone.t('ControlCenter.close')"
         @click="emit('close')"
-      ></button>
+      ></SkyButton>
 
       <div ref="panel" class="control-center__panel" tabindex="-1">
         <div class="control-center__top-grid">
-          <k-glass
-            class="control-center__connectivity"
-            :colors="inactiveGlassColors"
-            :highlight="false"
-          >
-            <button
+          <SkyGlass class="control-center__connectivity" :highlight="false">
+            <SkyButton
+              variant="content"
               type="button"
               class="control-center__connectivity-button"
               :class="{
@@ -424,9 +395,10 @@ onBeforeUnmount(() => {
               :aria-pressed="phone.preferences.settings.airplaneMode"
               @click="togglePreference('airplaneMode')"
             >
-              <Plane aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="Plane" aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="control-center__connectivity-button"
               :class="{
@@ -437,9 +409,10 @@ onBeforeUnmount(() => {
               :aria-pressed="phone.preferences.settings.cellularEnabled"
               @click="togglePreference('cellularEnabled')"
             >
-              <Signal aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="Signal" aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="control-center__connectivity-button"
               :class="{
@@ -450,9 +423,10 @@ onBeforeUnmount(() => {
               :aria-pressed="phone.preferences.settings.wifiEnabled"
               @click="togglePreference('wifiEnabled')"
             >
-              <Wifi aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="Wifi" aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="control-center__connectivity-button"
               :class="{
@@ -463,15 +437,11 @@ onBeforeUnmount(() => {
               :aria-pressed="phone.preferences.settings.bluetoothEnabled"
               @click="togglePreference('bluetoothEnabled')"
             >
-              <Bluetooth aria-hidden="true" />
-            </button>
-          </k-glass>
+              <SkyIcon :icon="Bluetooth" aria-hidden="true" />
+            </SkyButton>
+          </SkyGlass>
 
-          <k-glass
-            class="control-center__media"
-            :colors="inactiveGlassColors"
-            :highlight="false"
-          >
+          <SkyGlass class="control-center__media" :highlight="false">
             <div class="control-center__media-copy">
               <span>{{ phone.t('ControlCenter.media') }}</span>
               <strong>{{
@@ -482,15 +452,17 @@ onBeforeUnmount(() => {
               }}</small>
             </div>
             <div class="control-center__media-controls">
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 :disabled="!music.currentTrack"
                 :aria-label="phone.t('ControlCenter.previous')"
                 @click="music.previous"
               >
-                <SkipBack aria-hidden="true" />
-              </button>
-              <button
+                <SkyIcon :icon="SkipBack" aria-hidden="true" />
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 :disabled="!music.currentTrack && !music.allTracks.length"
                 :aria-label="
@@ -500,31 +472,37 @@ onBeforeUnmount(() => {
                 "
                 @click="music.toggle"
               >
-                <Pause v-if="music.isPlaying" aria-hidden="true" />
-                <Play v-else aria-hidden="true" />
-              </button>
-              <button
+                <SkyIcon
+                  :icon="Pause"
+                  v-if="music.isPlaying"
+                  aria-hidden="true"
+                />
+                <SkyIcon :icon="Play" v-else aria-hidden="true" />
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 :disabled="!music.currentTrack"
                 :aria-label="phone.t('ControlCenter.next')"
                 @click="music.next"
               >
-                <SkipForward aria-hidden="true" />
-              </button>
+                <SkyIcon :icon="SkipForward" aria-hidden="true" />
+              </SkyButton>
             </div>
-          </k-glass>
+          </SkyGlass>
         </div>
 
         <div class="control-center__middle-grid">
           <div class="control-center__round-control">
-            <k-glass
+            <SkyButton
+              glass
+              inline
               component="button"
               type="button"
               class="control-center__round-button"
               :class="{
                 'control-center__round-button--light': alertsMuted,
               }"
-              :colors="alertMuteColors"
               :aria-label="
                 phone.t(
                   alertsMuted
@@ -535,27 +513,27 @@ onBeforeUnmount(() => {
               :aria-pressed="alertsMuted"
               @click="toggleAlertMute"
             >
-              <BellOff aria-hidden="true" />
-            </k-glass>
+              <SkyIcon :icon="BellOff" aria-hidden="true" />
+            </SkyButton>
           </div>
 
           <div class="control-center__round-control">
-            <k-glass
+            <SkyButton
+              glass
+              inline
               component="button"
               type="button"
               class="control-center__round-button"
-              :colors="inactiveGlassColors"
               :disabled="easySharePending || !phone.device?.sim"
               :aria-label="phone.t('ControlCenter.easyShareContact')"
               @click="shareOwnContact"
             >
-              <RadioTower aria-hidden="true" />
-            </k-glass>
+              <SkyIcon :icon="RadioTower" aria-hidden="true" />
+            </SkyButton>
           </div>
 
-          <k-glass
+          <SkyGlass
             class="control-center__slider control-center__slider--brightness"
-            :colors="inactiveGlassColors"
             :highlight="false"
             :style="brightnessStyle"
             @pointerdown="startSliderDrag('brightness', $event)"
@@ -564,7 +542,7 @@ onBeforeUnmount(() => {
               class="control-center__slider-level"
               aria-hidden="true"
             ></span>
-            <k-range
+            <SkyRange
               class="control-center__range"
               :value="brightness"
               :min="10"
@@ -573,16 +551,16 @@ onBeforeUnmount(() => {
               @input="updateBrightness"
               @change="saveBrightness"
             />
-            <Sun
+            <SkyIcon
+              :icon="Sun"
               class="control-center__slider-icon"
               fill="currentColor"
               aria-hidden="true"
             />
-          </k-glass>
+          </SkyGlass>
 
-          <k-glass
+          <SkyGlass
             class="control-center__slider control-center__slider--volume"
-            :colors="inactiveGlassColors"
             :highlight="false"
             :style="volumeStyle"
             @pointerdown="startSliderDrag('volume', $event)"
@@ -591,7 +569,7 @@ onBeforeUnmount(() => {
               class="control-center__slider-level"
               aria-hidden="true"
             ></span>
-            <k-range
+            <SkyRange
               class="control-center__range"
               :value="volume"
               :min="0"
@@ -600,25 +578,31 @@ onBeforeUnmount(() => {
               @input="updateVolume"
               @change="saveVolume"
             />
-            <Volume2
+            <SkyIcon
+              :icon="Volume2"
               class="control-center__slider-icon"
               fill="currentColor"
               aria-hidden="true"
             />
-          </k-glass>
+          </SkyGlass>
 
-          <k-glass
+          <SkyButton
+            glass
+            inline
             component="button"
             type="button"
             class="control-center__focus-button"
-            :colors="focusColors"
+            :class="{
+              'control-center__focus-button--active':
+                phone.preferences.settings.focusMode,
+            }"
             :aria-label="phone.t('ControlCenter.focus')"
             :aria-pressed="phone.preferences.settings.focusMode"
             @click="togglePreference('focusMode')"
           >
-            <Moon aria-hidden="true" />
+            <SkyIcon :icon="Moon" aria-hidden="true" />
             <span>{{ phone.t('ControlCenter.focus') }}</span>
-          </k-glass>
+          </SkyButton>
         </div>
 
         <nav
@@ -626,7 +610,9 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('ControlCenter.quickActions')"
         >
           <div class="control-center__quick-action">
-            <k-glass
+            <SkyButton
+              glass
+              inline
               component="button"
               type="button"
               class="control-center__quick-button"
@@ -634,53 +620,55 @@ onBeforeUnmount(() => {
                 'control-center__quick-button--flashlight-active':
                   flashlightActive,
               }"
-              :colors="flashlightColors"
               :disabled="flashlightPending"
               :aria-label="phone.t('ControlCenter.flashlight')"
               :aria-pressed="flashlightActive"
               @click="toggleFlashlight"
             >
-              <Flashlight aria-hidden="true" />
-            </k-glass>
+              <SkyIcon :icon="Flashlight" aria-hidden="true" />
+            </SkyButton>
             <span>{{ phone.t('ControlCenter.flashlight') }}</span>
           </div>
           <div class="control-center__quick-action">
-            <k-glass
+            <SkyButton
+              glass
+              inline
               component="button"
               type="button"
               class="control-center__quick-button"
-              :colors="inactiveGlassColors"
               :aria-label="phone.t('ControlCenter.timer')"
               @click="openTimer"
             >
-              <TimerReset aria-hidden="true" />
-            </k-glass>
+              <SkyIcon :icon="TimerReset" aria-hidden="true" />
+            </SkyButton>
             <span>{{ phone.t('ControlCenter.timer') }}</span>
           </div>
           <div class="control-center__quick-action">
-            <k-glass
+            <SkyButton
+              glass
+              inline
               component="button"
               type="button"
               class="control-center__quick-button"
-              :colors="inactiveGlassColors"
               :aria-label="phone.t('ControlCenter.camera')"
               @click="openApp('/apps/camera')"
             >
-              <Camera aria-hidden="true" />
-            </k-glass>
+              <SkyIcon :icon="Camera" aria-hidden="true" />
+            </SkyButton>
             <span>{{ phone.t('ControlCenter.camera') }}</span>
           </div>
           <div class="control-center__quick-action">
-            <k-glass
+            <SkyButton
+              glass
+              inline
               component="button"
               type="button"
               class="control-center__quick-button"
-              :colors="inactiveGlassColors"
               :aria-label="phone.t('ControlCenter.calculator')"
               @click="openApp('/apps/calculator')"
             >
-              <Calculator aria-hidden="true" />
-            </k-glass>
+              <SkyIcon :icon="Calculator" aria-hidden="true" />
+            </SkyButton>
             <span>{{ phone.t('ControlCenter.calculator') }}</span>
           </div>
         </nav>
@@ -700,6 +688,27 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.control-center {
+  --sky-glass-background: rgba(58, 62, 72, 0.6);
+  --sky-glass-fallback: rgba(48, 52, 62, 0.9);
+  --sky-button-glass-background: rgba(58, 62, 72, 0.6);
+  --sky-button-glass-fallback: rgba(48, 52, 62, 0.9);
+}
+.control-center__focus-button--active {
+  --sky-glass-background: #5e5ce6;
+  --sky-glass-fallback: #5e5ce6;
+  --sky-button-glass-background: #5e5ce6;
+  --sky-button-glass-fallback: #5e5ce6;
+}
+.control-center__round-button--light,
+.control-center__quick-button--flashlight-active {
+  --sky-glass-background: #fff;
+  --sky-glass-fallback: #fff;
+  --sky-button-glass-background: #fff;
+  --sky-button-glass-fallback: #fff;
+  --sky-button-text: #17171c;
+}
+
 .control-center {
   position: absolute;
   z-index: 95;
@@ -933,7 +942,7 @@ onBeforeUnmount(() => {
 }
 
 .control-center__round-button--light {
-  color: #ff453a;
+  color: var(--sky-button-text, #ffffff);
 }
 
 .control-center__focus-button {
@@ -1044,7 +1053,7 @@ onBeforeUnmount(() => {
 }
 
 .control-center__quick-button.control-center__quick-button--flashlight-active {
-  color: #bf5af2 !important;
+  color: var(--sky-button-text, #ffffff) !important;
 }
 
 .control-center__slider--brightness .control-center__slider-icon {

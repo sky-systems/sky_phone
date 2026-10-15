@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import {
   SkyBlockTitle as kBlockTitle,
-  SkyButton as kButton,
   SkyField as kListInput,
   SkyLink as kLink,
   SkyList as kList,
@@ -95,7 +96,7 @@ function toggleWeekday(weekday: number): void {
               :aria-label="phone.t('Common.cancel')"
               @click="emit('cancel')"
             >
-              <X aria-hidden="true" />
+              <SkyIcon :icon="X" aria-hidden="true" />
             </k-link>
           </template>
           <template #right>
@@ -107,7 +108,7 @@ function toggleWeekday(weekday: number): void {
               :aria-label="phone.t('Common.save')"
               @click="save"
             >
-              <Check aria-hidden="true" />
+              <SkyIcon :icon="Check" aria-hidden="true" />
             </k-link>
           </template>
         </k-navbar>
@@ -133,7 +134,8 @@ function toggleWeekday(weekday: number): void {
               @click="toggleWeekday(weekday)"
             >
               <template #after>
-                <Check
+                <SkyIcon
+                  :icon="Check"
                   v-if="draft.weekdays.includes(weekday)"
                   class="w-5 h-5 text-primary"
                 />
@@ -161,13 +163,13 @@ function toggleWeekday(weekday: number): void {
               <template #after>
                 <span class="clock-sound-selection">
                   {{ phone.t(`Apps.clock.alarm.sounds.${draft.sound}`) }}
-                  <ChevronRight aria-hidden="true" />
+                  <SkyIcon :icon="ChevronRight" aria-hidden="true" />
                 </span>
               </template>
             </k-list-item>
           </k-list>
 
-          <k-button
+          <SkyButton
             v-if="alarm"
             large
             rounded
@@ -176,7 +178,7 @@ function toggleWeekday(weekday: number): void {
             @click="emit('delete')"
           >
             {{ phone.t('Apps.clock.alarm.delete') }}
-          </k-button>
+          </SkyButton>
         </k-scroll-area>
       </template>
     </section>

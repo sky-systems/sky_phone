@@ -1051,7 +1051,7 @@ onBeforeUnmount(() => {
           type="button"
           @click="workActionsOpened = true"
         >
-          <MoreHorizontal :size="24" />
+          <SkyIcon :icon="MoreHorizontal" :size="24" />
         </SkyLink>
       </template>
     </SkyNavbar>
@@ -1108,10 +1108,10 @@ onBeforeUnmount(() => {
         :title="phone.t('Apps.companies.states.directoryError')"
         :body="errorText(companies.directoryError)"
       >
-        <template #icon><CircleAlert :size="34" /></template>
+        <template #icon><SkyIcon :icon="CircleAlert" :size="34" /></template>
         <template #actions>
           <SkyButton rounded @click="companies.loadCompanies(directoryFilters)">
-            <RefreshCw :size="16" />
+            <SkyIcon :icon="RefreshCw" :size="16" />
             {{ phone.t('Apps.companies.tryAgain') }}
           </SkyButton>
         </template>
@@ -1133,7 +1133,7 @@ onBeforeUnmount(() => {
           )
         "
       >
-        <template #icon><Building2 :size="36" /></template>
+        <template #icon><SkyIcon :icon="Building2" :size="36" /></template>
         <template v-if="filtersActive" #actions>
           <SkyButton rounded @click="resetDirectoryFilters">
             {{ phone.t('Apps.companies.directory.resetFilters') }}
@@ -1234,7 +1234,7 @@ onBeforeUnmount(() => {
         :title="phone.t('Apps.companies.states.requestsError')"
         :body="errorText(companies.myRequestsError)"
       >
-        <template #icon><CircleAlert :size="34" /></template>
+        <template #icon><SkyIcon :icon="CircleAlert" :size="34" /></template>
         <template #actions>
           <SkyButton rounded @click="companies.loadMyRequests(requestList)">
             {{ phone.t('Apps.companies.tryAgain') }}
@@ -1250,7 +1250,7 @@ onBeforeUnmount(() => {
         "
         :body="phone.t('Apps.companies.states.noRequestsBody')"
       >
-        <template #icon><ClipboardList :size="36" /></template>
+        <template #icon><SkyIcon :icon="ClipboardList" :size="36" /></template>
         <template v-if="requestList === 'open'" #actions>
           <SkyButton rounded @click="selectTab('directory')">
             {{ phone.t('Apps.companies.requests.findCompany') }}
@@ -1271,7 +1271,7 @@ onBeforeUnmount(() => {
         >
           <template #media>
             <span class="company-request-icon"
-              ><ClipboardList :size="19"
+              ><SkyIcon :icon="ClipboardList" :size="19"
             /></span>
           </template>
           <template #after>
@@ -1321,7 +1321,7 @@ onBeforeUnmount(() => {
         :title="phone.t('Apps.companies.states.workError')"
         :body="errorText(companies.workContextError)"
       >
-        <template #icon><CircleAlert :size="34" /></template>
+        <template #icon><SkyIcon :icon="CircleAlert" :size="34" /></template>
         <template #actions>
           <SkyButton rounded @click="selectTab('work')">
             {{ phone.t('Apps.companies.tryAgain') }}
@@ -1333,7 +1333,9 @@ onBeforeUnmount(() => {
         :title="phone.t('Apps.companies.work.notAuthorized')"
         :body="phone.t('Apps.companies.work.notAuthorizedBody')"
       >
-        <template #icon><BriefcaseBusiness :size="38" /></template>
+        <template #icon
+          ><SkyIcon :icon="BriefcaseBusiness" :size="38"
+        /></template>
       </SkyEmptyState>
       <template v-else-if="companies.workContext && workCompany">
         <SkyCard class="work-identity-card">
@@ -1393,7 +1395,9 @@ onBeforeUnmount(() => {
               :title="phone.t('Apps.companies.work.takeCalls')"
               :subtitle="phone.t('Apps.companies.work.takeCallsBody')"
             >
-              <template #media><PhoneCall :size="20" /></template>
+              <template #media
+                ><SkyIcon :icon="PhoneCall" :size="20"
+              /></template>
               <template #after>
                 <SkyToggle
                   :checked="companies.workContext.callAvailable"
@@ -1410,7 +1414,7 @@ onBeforeUnmount(() => {
               :title="phone.t('Apps.companies.work.dispatch')"
               :text="phone.t('Apps.companies.work.dispatchBody')"
             >
-              <template #media><Headset :size="20" /></template>
+              <template #media><SkyIcon :icon="Headset" :size="20" /></template>
               <template #after>
                 <SkyToggle
                   :checked="companies.workContext.callDispatcher"
@@ -1440,7 +1444,7 @@ onBeforeUnmount(() => {
               "
               @click="openServiceLineDialer"
             >
-              <template #media><Phone :size="20" /></template>
+              <template #media><SkyIcon :icon="Phone" :size="20" /></template>
             </SkyListItem>
             <SkyListItem
               v-if="companies.workContext.role === 'manager'"
@@ -1451,7 +1455,9 @@ onBeforeUnmount(() => {
               :subtitle="phone.t('Apps.companies.manager.subtitle')"
               @click="openManager"
             >
-              <template #media><Settings2 :size="20" /></template>
+              <template #media
+                ><SkyIcon :icon="Settings2" :size="20"
+              /></template>
             </SkyListItem>
           </SkyList>
         </section>
@@ -1499,7 +1505,7 @@ onBeforeUnmount(() => {
         :title="phone.t('Apps.companies.states.profileError')"
         :body="errorText(companies.directoryError)"
       >
-        <template #icon><CircleAlert :size="34" /></template>
+        <template #icon><SkyIcon :icon="CircleAlert" :size="34" /></template>
         <template #actions>
           <SkyButton rounded @click="goBack">
             {{ phone.t('Apps.companies.back') }}
@@ -1532,7 +1538,8 @@ onBeforeUnmount(() => {
                 activeCompany.categoryName,
               )
             }}
-            <BadgeCheck
+            <SkyIcon
+              :icon="BadgeCheck"
               v-if="activeCompany.verified"
               :size="15"
               :aria-label="phone.t('Apps.companies.verified')"
@@ -1557,7 +1564,7 @@ onBeforeUnmount(() => {
         </SkyBlock>
 
         <SkyCard v-if="activeCompany.announcement" class="company-announcement">
-          <Megaphone :size="20" />
+          <SkyIcon :icon="Megaphone" :size="20" />
           <span>
             <strong>{{
               phone.t('Apps.companies.profile.announcement')
@@ -1575,13 +1582,13 @@ onBeforeUnmount(() => {
             :title="activeCompany.location.label"
             :subtitle="`${activeCompany.location.address} · ${activeCompany.location.district}`"
           >
-            <template #media><MapPin :size="20" /></template>
+            <template #media><SkyIcon :icon="MapPin" :size="20" /></template>
           </SkyListItem>
           <SkyListItem
             v-else
             :title="phone.t('Apps.companies.profile.noLocation')"
           >
-            <template #media><MapPin :size="20" /></template>
+            <template #media><SkyIcon :icon="MapPin" :size="20" /></template>
           </SkyListItem>
         </SkyList>
 
@@ -1599,7 +1606,7 @@ onBeforeUnmount(() => {
                 : `${hours.opensAt}–${hours.closesAt}`
             "
           >
-            <template #media><Clock3 :size="19" /></template>
+            <template #media><SkyIcon :icon="Clock3" :size="19" /></template>
           </SkyListItem>
           <SkyListItem
             v-if="!activeCompany.hours.length"
@@ -1632,7 +1639,9 @@ onBeforeUnmount(() => {
             :disabled="!activeCompany.canCall || !activeCompany.phoneNumber"
             @click="callNumber(activeCompany.phoneNumber)"
           >
-            <Phone :size="17" />{{ phone.t('Apps.companies.profile.call') }}
+            <SkyIcon :icon="Phone" :size="17" />{{
+              phone.t('Apps.companies.profile.call')
+            }}
           </SkyButton>
           <SkyButton
             rounded
@@ -1640,7 +1649,7 @@ onBeforeUnmount(() => {
             :disabled="!activeCompany.canMessage || !activeCompany.phoneNumber"
             @click="messageCompany(activeCompany)"
           >
-            <MessageCircle :size="17" />{{
+            <SkyIcon :icon="MessageCircle" :size="17" />{{
               phone.t('Apps.companies.profile.message')
             }}
           </SkyButton>
@@ -1650,19 +1659,23 @@ onBeforeUnmount(() => {
             :disabled="!activeCompany.location"
             @click="setRoute(activeCompany)"
           >
-            <MapPin :size="17" />{{ phone.t('Apps.companies.profile.route') }}
+            <SkyIcon :icon="MapPin" :size="17" />{{
+              phone.t('Apps.companies.profile.route')
+            }}
           </SkyButton>
           <SkyButton
             rounded
             :disabled="!activeCompany.acceptsRequests"
             @click="openRequestComposer(activeCompany)"
           >
-            <ClipboardList :size="17" />{{
+            <SkyIcon :icon="ClipboardList" :size="17" />{{
               phone.t('Apps.companies.profile.request')
             }}
           </SkyButton>
           <SkyButton rounded outline @click="shareCompany(activeCompany)">
-            <Share2 :size="17" />{{ phone.t('Apps.easyShare.share') }}
+            <SkyIcon :icon="Share2" :size="17" />{{
+              phone.t('Apps.easyShare.share')
+            }}
           </SkyButton>
         </SkySurface>
       </template>
@@ -1682,7 +1695,7 @@ onBeforeUnmount(() => {
           :title="phone.t('Apps.companies.states.requestError')"
           :body="errorText(companies.requestError)"
         >
-          <template #icon><CircleAlert :size="34" /></template>
+          <template #icon><SkyIcon :icon="CircleAlert" :size="34" /></template>
           <template #actions>
             <SkyButton rounded @click="goBack">
               {{ phone.t('Apps.companies.back') }}
@@ -1734,7 +1747,7 @@ onBeforeUnmount(() => {
             }}</SkyBlockTitle>
             <div class="request-timeline">
               <div v-for="event in companies.request.events" :key="event.id">
-                <span><Check :size="12" /></span>
+                <span><SkyIcon :icon="Check" :size="12" /></span>
                 <p>
                   <strong>{{ eventLabel(event) }}</strong>
                   <small>{{ formatDate(event.createdAt) }}</small>
@@ -1787,7 +1800,9 @@ onBeforeUnmount(() => {
             rounded
             @click="callRequestParty"
           >
-            <Phone :size="16" />{{ phone.t('Apps.companies.requests.call') }}
+            <SkyIcon :icon="Phone" :size="16" />{{
+              phone.t('Apps.companies.requests.call')
+            }}
           </SkyButton>
           <SkyButton
             v-if="companies.request.actions.canCancel"
@@ -1796,7 +1811,9 @@ onBeforeUnmount(() => {
             class="is-danger"
             @click="cancelDialogOpened = true"
           >
-            <X :size="16" />{{ phone.t('Apps.companies.requests.cancel') }}
+            <SkyIcon :icon="X" :size="16" />{{
+              phone.t('Apps.companies.requests.cancel')
+            }}
           </SkyButton>
         </div>
         <SkyMessagebar
@@ -1818,7 +1835,7 @@ onBeforeUnmount(() => {
                 type="button"
                 @click="sendThreadMessage"
               >
-                <Send :size="22" />
+                <SkyIcon :icon="Send" :size="22" />
               </SkyLink>
             </SkyToolbarPane>
           </template>
@@ -1832,7 +1849,7 @@ onBeforeUnmount(() => {
       class="companies-content manager-screen"
     >
       <SkyCard class="manager-intro">
-        <Settings2 :size="24" />
+        <SkyIcon :icon="Settings2" :size="24" />
         <span>
           <strong>{{ workCompany.name }}</strong>
           <span>{{
@@ -1935,7 +1952,7 @@ onBeforeUnmount(() => {
           :disabled="companies.mutating"
           @click="useCurrentLocation"
         >
-          <Compass :size="16" />{{
+          <SkyIcon :icon="Compass" :size="16" />{{
             phone.t('Apps.companies.manager.useCurrentLocation')
           }}
         </SkyButton>
@@ -2068,13 +2085,15 @@ onBeforeUnmount(() => {
             class="manager-remove"
             @click="removeService(index)"
           >
-            <Trash2 :size="15" />{{
+            <SkyIcon :icon="Trash2" :size="15" />{{
               phone.t('Apps.companies.manager.removeService')
             }}
           </SkyButton>
         </SkyCard>
         <SkyButton outline rounded class="manager-save" @click="addService">
-          <Plus :size="16" />{{ phone.t('Apps.companies.manager.addService') }}
+          <SkyIcon :icon="Plus" :size="16" />{{
+            phone.t('Apps.companies.manager.addService')
+          }}
         </SkyButton>
         <SkyButton
           rounded
@@ -2114,7 +2133,7 @@ onBeforeUnmount(() => {
           :disabled="companies.mutating"
           @click="publishAnnouncement"
         >
-          <Megaphone :size="16" />{{
+          <SkyIcon :icon="Megaphone" :size="16" />{{
             phone.t('Apps.companies.manager.publish')
           }}
         </SkyButton>
@@ -2142,7 +2161,7 @@ onBeforeUnmount(() => {
           @click="selectTab('directory')"
         >
           <span class="companies-navigation__item">
-            <SkyIcon :size="20"><Compass :size="20" /></SkyIcon>
+            <SkyIcon :size="20"><SkyIcon :icon="Compass" :size="20" /></SkyIcon>
             <span>{{ phone.t('Apps.companies.tabs.directory') }}</span>
           </span>
         </SkySegmentedButton>
@@ -2153,7 +2172,9 @@ onBeforeUnmount(() => {
         >
           <span class="companies-navigation__item">
             <span class="companies-tab-icon">
-              <SkyIcon :size="20"><ClipboardList :size="20" /></SkyIcon>
+              <SkyIcon :size="20"
+                ><SkyIcon :icon="ClipboardList" :size="20"
+              /></SkyIcon>
               <SkyBadge v-if="companies.customerUnreadCount">{{
                 companies.customerUnreadCount
               }}</SkyBadge>
@@ -2168,7 +2189,9 @@ onBeforeUnmount(() => {
         >
           <span class="companies-navigation__item">
             <span class="companies-tab-icon">
-              <SkyIcon :size="20"><BriefcaseBusiness :size="20" /></SkyIcon>
+              <SkyIcon :size="20"
+                ><SkyIcon :icon="BriefcaseBusiness" :size="20"
+              /></SkyIcon>
               <SkyBadge v-if="companies.workUnreadCount">{{
                 companies.workUnreadCount
               }}</SkyBadge>
@@ -2192,7 +2215,7 @@ onBeforeUnmount(() => {
           class="companies-sheet__content"
         >
           <header>
-            <span><ClipboardList :size="23" /></span>
+            <span><SkyIcon :icon="ClipboardList" :size="23" /></span>
             <div>
               <small>{{ activeCompany.name }}</small>
               <h2>{{ phone.t('Apps.companies.composer.title') }}</h2>
@@ -2204,7 +2227,7 @@ onBeforeUnmount(() => {
               type="button"
               @click="requestSheetOpened = false"
             >
-              <X :size="19" />
+              <SkyIcon :icon="X" :size="19" />
             </SkyLink>
           </header>
           <SkyProgress
@@ -2271,7 +2294,7 @@ onBeforeUnmount(() => {
             />
           </SkyList>
           <SkyCard class="composer-contact-card">
-            <Phone :size="18" />
+            <SkyIcon :icon="Phone" :size="18" />
             <span>
               <strong>{{ phone.t('Apps.companies.composer.contact') }}</strong>
               <span v-if="canUseServiceRequests && phone.device?.sim">
@@ -2292,7 +2315,7 @@ onBeforeUnmount(() => {
             :disabled="requestMedia.length >= 3"
             @click="chooseRequestMedia"
           >
-            <ImagePlus :size="17" />
+            <SkyIcon :icon="ImagePlus" :size="17" />
             {{
               phone.t('Apps.companies.composer.addPhotos', {
                 count: String(requestMedia.length),
@@ -2310,7 +2333,7 @@ onBeforeUnmount(() => {
                 :aria-label="phone.t('Apps.companies.composer.removePhoto')"
                 @click="removeRequestMedia(media.id)"
               >
-                <X :size="13" />
+                <SkyIcon :icon="X" :size="13" />
               </SkyButton>
             </span>
           </div>
@@ -2384,7 +2407,7 @@ onBeforeUnmount(() => {
           class="companies-sheet__content service-line-sheet__content"
         >
           <header>
-            <span><PhoneCall :size="23" /></span>
+            <span><SkyIcon :icon="PhoneCall" :size="23" /></span>
             <div>
               <small>{{ workCompany.name }}</small>
               <h2>{{ phone.t('Apps.companies.work.dialServiceLine') }}</h2>
@@ -2396,7 +2419,7 @@ onBeforeUnmount(() => {
               type="button"
               @click="closeServiceLineDialer"
             >
-              <X :size="19" />
+              <SkyIcon :icon="X" :size="19" />
             </SkyLink>
           </header>
           <p class="service-line-sheet__body">
@@ -2424,7 +2447,9 @@ onBeforeUnmount(() => {
             :disabled="!canDialServiceLine"
             @click="dialServiceLine"
           >
-            <Phone :size="18" />{{ phone.t('Apps.companies.work.callNow') }}
+            <SkyIcon :icon="Phone" :size="18" />{{
+              phone.t('Apps.companies.work.callNow')
+            }}
           </SkyButton>
         </section>
       </SkySheet>
@@ -2439,7 +2464,7 @@ onBeforeUnmount(() => {
       >
         <section v-if="assignmentSheetOpened" class="companies-sheet__content">
           <header>
-            <span><UsersRound :size="23" /></span>
+            <span><SkyIcon :icon="UsersRound" :size="23" /></span>
             <div>
               <h2>{{ phone.t('Apps.companies.assignment.title') }}</h2>
             </div>
@@ -2450,7 +2475,7 @@ onBeforeUnmount(() => {
               type="button"
               @click="assignmentSheetOpened = false"
             >
-              <X :size="19" />
+              <SkyIcon :icon="X" :size="19" />
             </SkyLink>
           </header>
           <SkyEmptyState v-if="companies.membersLoading" compact>
@@ -2465,7 +2490,8 @@ onBeforeUnmount(() => {
               :subtitle="`${member.role} · ${phone.t(`Apps.companies.assignment.${member.online ? 'online' : 'offline'}`)}`"
             >
               <template #media
-                ><span class="member-avatar"><UserRound :size="18" /></span
+                ><span class="member-avatar"
+                  ><SkyIcon :icon="UserRound" :size="18" /></span
               ></template>
               <template #after>
                 <SkyRadio
@@ -3080,7 +3106,7 @@ onBeforeUnmount(() => {
 
 .request-thread-actions .is-danger,
 .manager-remove {
-  color: var(--company-red);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .request-thread-dock--actions-only {
@@ -3301,7 +3327,7 @@ onBeforeUnmount(() => {
   min-width: 24px;
   height: 24px;
   padding: 0;
-  color: white;
+  color: var(--sky-button-text, #ffffff);
   background: rgba(15, 23, 42, 0.82);
 }
 

@@ -25,8 +25,8 @@ describe('GalleryApp import action', () => {
     expect(headerActions).toContain('gallery-header-tool--icon')
     expect(headerActions).toContain('<SkyButton')
     expect(headerActions).toContain('clear')
-    expect(headerActions).toContain(
-      '<Download :size="21" aria-hidden="true" />',
+    expect(headerActions.replace(/\s+/g, ' ')).toContain(
+      '<SkyIcon :icon="Download" :size="21" aria-hidden="true" />',
     )
     expect(headerActions).toContain(
       ':aria-label="phone.t(\'Apps.photos.import.action\')"',
@@ -61,9 +61,15 @@ describe('GalleryApp import action', () => {
     expect(source).toContain('<SkyTabBar')
     expect(source).toContain('class="gallery-filter-tabbar"')
     expect(source).toContain('icons')
-    expect(source).toContain('<Images :size="21" />')
-    expect(source).toContain('<Image :size="21" />')
-    expect(source).toContain('<Video :size="21" />')
+    expect(source.replace(/\s+/g, ' ')).toContain(
+      '<SkyIcon :icon="Images" :size="21" />',
+    )
+    expect(source.replace(/\s+/g, ' ')).toContain(
+      '<SkyIcon :icon="Image" :size="21" />',
+    )
+    expect(source.replace(/\s+/g, ' ')).toContain(
+      '<SkyIcon :icon="Video" :size="21" />',
+    )
     expect(source).toContain('<SkyTabButton')
     expect(source).toContain(':active="filter === \'all\'"')
     expect(source).toContain(':active="filter === \'photo\'"')
@@ -73,7 +79,9 @@ describe('GalleryApp import action', () => {
   })
 
   it('opens an accessible sort menu from the large header', () => {
-    expect(headerActions).toContain('<ListFilter')
+    expect(headerActions.replace(/\s+/g, ' ')).toContain(
+      '<SkyIcon :icon="ListFilter"',
+    )
     expect(headerActions).toContain('aria-haspopup="menu"')
     expect(headerActions).toContain(':aria-expanded="sortMenuOpened"')
     expect(headerActions).toContain('@click="openSortMenu"')
@@ -121,7 +129,7 @@ describe('GalleryApp import action', () => {
       /\.gallery-selection-action\s*\{[^}]*width:\s*48px;[^}]*flex:\s*0 0 48px;/s,
     )
     expect(source).toMatch(
-      /\.gallery-selection-action :deep\(\.sky-button\)\s*\{[^}]*color:\s*var\(--sky-text\);/s,
+      /\.gallery-selection-action :deep\(\.sky-button\)\s*\{[^}]*color:\s*var\(--sky-button-text, #ffffff\);/s,
     )
     expect(source).toContain("kind: 'media'")
     expect(source).toContain("nuiCall('gallery:delete-many'")
@@ -135,7 +143,7 @@ describe('GalleryApp import action', () => {
       "'Apps.photos.photo'\n            : 'Apps.photos.video'",
     )
     expect(source).toContain("nuiCall<FavoriteResult>('gallery:favorite'")
-    expect(source).toContain('<Heart')
+    expect(source.replace(/\s+/g, ' ')).toContain('<SkyIcon :icon="Heart"')
     expect(source).toContain('gallery-detail-toolbar')
     expect(source).toContain('<SkyToolbarPane class="gallery-detail-action">')
     expect(source).toMatch(
@@ -177,7 +185,7 @@ describe('GalleryApp import action', () => {
     )
     expect(source).not.toContain('<ZoomIn')
     expect(source).not.toContain('<ZoomOut')
-    expect(source).not.toContain('<RotateCcw')
+    expect(source).not.toContain('<SkyIcon :icon="RotateCcw"')
   })
 
   it('uses complete local media fixtures when no browser API port is set', () => {

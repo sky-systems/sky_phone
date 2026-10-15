@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   SkyBlock,
   SkyButton,
@@ -255,7 +257,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.clock.add')"
             @click="openAlarmEditor()"
           >
-            <Plus aria-hidden="true" />
+            <SkyIcon :icon="Plus" aria-hidden="true" />
           </sky-link>
         </template>
         <template #right>
@@ -301,10 +303,11 @@ onBeforeUnmount(() => {
               :aria-label="phone.t('Apps.clock.alarm.delete')"
               @click="clock.deleteAlarm(alarm.id)"
             >
-              <Minus aria-hidden="true" />
+              <SkyIcon :icon="Minus" aria-hidden="true" />
             </sky-button>
 
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="clock-alarm-copy"
               @click="openAlarmEditor(alarm.id)"
@@ -313,9 +316,10 @@ onBeforeUnmount(() => {
               <span class="clock-alarm-subtitle">{{
                 alarmSubtitle(alarm)
               }}</span>
-            </button>
+            </SkyButton>
 
-            <ChevronRight
+            <SkyIcon
+              :icon="ChevronRight"
               v-if="alarmsEditing"
               class="clock-alarm-chevron"
               aria-hidden="true"
@@ -437,7 +441,7 @@ onBeforeUnmount(() => {
               :aria-label="phone.t('Common.reset')"
               @click="clock.resetTimer()"
             >
-              <X aria-hidden="true" />
+              <SkyIcon :icon="X" aria-hidden="true" />
             </sky-button>
             <sky-button
               rounded
@@ -457,8 +461,12 @@ onBeforeUnmount(() => {
                   : clock.pauseTimer(now)
               "
             >
-              <Play v-if="clock.timerStartedAt === null" aria-hidden="true" />
-              <Pause v-else aria-hidden="true" />
+              <SkyIcon
+                :icon="Play"
+                v-if="clock.timerStartedAt === null"
+                aria-hidden="true"
+              />
+              <SkyIcon :icon="Pause" v-else aria-hidden="true" />
             </sky-button>
           </div>
 
@@ -479,7 +487,7 @@ onBeforeUnmount(() => {
               <template #after>
                 <span class="clock-sound-selection">
                   {{ phone.t(`Apps.clock.alarm.sounds.${clock.timerSound}`) }}
-                  <ChevronRight aria-hidden="true" />
+                  <SkyIcon :icon="ChevronRight" aria-hidden="true" />
                 </span>
               </template>
             </sky-list-item>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   SkyButton,
   SkyDialog,
@@ -1025,7 +1027,8 @@ onBeforeUnmount(() => {
       </header>
 
       <div class="mail-auth__segment" role="tablist">
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           role="tab"
           :aria-selected="authMode === 'login'"
@@ -1033,8 +1036,9 @@ onBeforeUnmount(() => {
           @click="authMode = 'login'"
         >
           {{ phone.t('Apps.mail.login') }}
-        </button>
-        <button
+        </SkyButton>
+        <SkyButton
+          variant="content"
           type="button"
           role="tab"
           :aria-selected="authMode === 'register'"
@@ -1042,7 +1046,7 @@ onBeforeUnmount(() => {
           @click="authMode = 'register'"
         >
           {{ phone.t('Apps.mail.registerLink') }}
-        </button>
+        </SkyButton>
       </div>
 
       <form class="mail-auth__form" @submit.prevent="submitAuth">
@@ -1053,7 +1057,7 @@ onBeforeUnmount(() => {
             )
           }}</span>
           <div>
-            <Mail :size="18" />
+            <SkyIcon :icon="Mail" :size="18" />
             <input
               :value="authEmail"
               autocomplete="username"
@@ -1078,7 +1082,7 @@ onBeforeUnmount(() => {
         <label class="mail-auth__field">
           <span>{{ phone.t('Apps.mail.password') }}</span>
           <div>
-            <ShieldCheck :size="18" />
+            <SkyIcon :icon="ShieldCheck" :size="18" />
             <input
               type="password"
               :value="authPassword"
@@ -1093,7 +1097,7 @@ onBeforeUnmount(() => {
         <label v-if="authMode === 'register'" class="mail-auth__field">
           <span>{{ phone.t('Apps.mail.confirmPassword') }}</span>
           <div>
-            <ShieldCheck :size="18" />
+            <SkyIcon :icon="ShieldCheck" :size="18" />
             <input
               type="password"
               :value="authConfirm"
@@ -1104,7 +1108,12 @@ onBeforeUnmount(() => {
           </div>
         </label>
 
-        <button class="mail-auth__submit" type="submit" :disabled="submitting">
+        <SkyButton
+          variant="content"
+          class="mail-auth__submit"
+          type="submit"
+          :disabled="submitting"
+        >
           <sky-spinner v-if="submitting" />
           <template v-else>
             {{
@@ -1113,9 +1122,9 @@ onBeforeUnmount(() => {
               )
             }}
           </template>
-        </button>
+        </SkyButton>
         <p v-if="authMode === 'register'" class="mail-auth__warning">
-          <ShieldCheck :size="17" />
+          <SkyIcon :icon="ShieldCheck" :size="17" />
           {{ phone.t('Apps.mail.passwordWarning') }}
         </p>
       </form>
@@ -1141,7 +1150,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.logout')"
             @click="signOut"
           >
-            <LogOut :size="20" />
+            <SkyIcon :icon="LogOut" :size="20" />
           </sky-link>
         </template>
         <template #right>
@@ -1161,50 +1170,62 @@ onBeforeUnmount(() => {
 
       <main class="mail-folders">
         <div class="mail-folders__card">
-          <button
+          <SkyButton
+            variant="content"
             class="mail-folder-row"
             type="button"
             :disabled="editingMailboxes"
             @click="openFolder('inbox')"
           >
-            <span class="mail-folder-row__icon"><Inbox :size="22" /></span>
+            <span class="mail-folder-row__icon"
+              ><SkyIcon :icon="Inbox" :size="22"
+            /></span>
             <strong>{{ phone.t('Apps.mail.inbox') }}</strong>
             <span>{{ mail.counts.unread || '' }}</span>
-            <ChevronRight :size="19" />
-          </button>
-          <button
+            <SkyIcon :icon="ChevronRight" :size="19" />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             class="mail-folder-row"
             type="button"
             :disabled="editingMailboxes"
             @click="openFolder('sent')"
           >
-            <span class="mail-folder-row__icon"><Send :size="21" /></span>
+            <span class="mail-folder-row__icon"
+              ><SkyIcon :icon="Send" :size="21"
+            /></span>
             <strong>{{ phone.t('Apps.mail.sent') }}</strong>
             <span>{{ folderCount('sent') }}</span>
-            <ChevronRight :size="19" />
-          </button>
-          <button
+            <SkyIcon :icon="ChevronRight" :size="19" />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             class="mail-folder-row"
             type="button"
             :disabled="editingMailboxes"
             @click="openFolder('drafts')"
           >
-            <span class="mail-folder-row__icon"><FileText :size="21" /></span>
+            <span class="mail-folder-row__icon"
+              ><SkyIcon :icon="FileText" :size="21"
+            /></span>
             <strong>{{ phone.t('Apps.mail.drafts') }}</strong>
             <span>{{ folderCount('drafts') }}</span>
-            <ChevronRight :size="19" />
-          </button>
-          <button
+            <SkyIcon :icon="ChevronRight" :size="19" />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             class="mail-folder-row"
             type="button"
             :disabled="editingMailboxes"
             @click="openFolder('trash')"
           >
-            <span class="mail-folder-row__icon"><Trash2 :size="21" /></span>
+            <span class="mail-folder-row__icon"
+              ><SkyIcon :icon="Trash2" :size="21"
+            /></span>
             <strong>{{ phone.t('Apps.mail.trash') }}</strong>
             <span>{{ folderCount('trash') }}</span>
-            <ChevronRight :size="19" />
-          </button>
+            <SkyIcon :icon="ChevronRight" :size="19" />
+          </SkyButton>
           <template v-for="mailbox in mail.mailboxes" :key="mailbox.id">
             <div
               v-if="editingMailboxes"
@@ -1219,23 +1240,26 @@ onBeforeUnmount(() => {
                 "
                 @click="requestMailboxDelete(mailbox)"
               >
-                <Trash2 :size="18" />
+                <SkyIcon :icon="Trash2" :size="18" />
               </sky-button>
               <strong>{{ mailbox.name }}</strong>
               <span>{{ mailbox.count || '' }}</span>
               <span aria-hidden="true" />
             </div>
-            <button
+            <SkyButton
+              variant="content"
               v-else
               class="mail-folder-row"
               type="button"
               @click="openFolder(mailboxFolderKey(mailbox.id))"
             >
-              <span class="mail-folder-row__icon"><Folder :size="21" /></span>
+              <span class="mail-folder-row__icon"
+                ><SkyIcon :icon="Folder" :size="21"
+              /></span>
               <strong>{{ mailbox.name }}</strong>
               <span>{{ mailbox.count || '' }}</span>
-              <ChevronRight :size="19" />
-            </button>
+              <SkyIcon :icon="ChevronRight" :size="19" />
+            </SkyButton>
           </template>
         </div>
       </main>
@@ -1258,7 +1282,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.mail.newMailbox')"
           @click="beginMailboxCreate"
         >
-          <template #icon><Folder :size="21" /></template>
+          <template #icon><SkyIcon :icon="Folder" :size="21" /></template>
         </sky-fab>
         <sky-fab
           v-else
@@ -1268,7 +1292,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.mail.compose')"
           @click="beginCompose()"
         >
-          <template #icon><SquarePen :size="22" /></template>
+          <template #icon><SkyIcon :icon="SquarePen" :size="22" /></template>
         </sky-fab>
       </sky-toolbar>
     </div>
@@ -1309,7 +1333,7 @@ onBeforeUnmount(() => {
               :aria-label="phone.t('Apps.mail.emptyTrash')"
               @click="emptyTrashOpened = true"
             >
-              <Trash2 :size="19" />
+              <SkyIcon :icon="Trash2" :size="19" />
             </sky-link>
             <sky-link
               class="mail-navbar__select"
@@ -1338,14 +1362,15 @@ onBeforeUnmount(() => {
             @pointerup="endMailSwipe(item, $event)"
           >
             <span class="mail-row-action mail-row-action--read">
-              <MailCheck :size="22" />
+              <SkyIcon :icon="MailCheck" :size="22" />
               <small>{{ phone.t('Apps.mail.markRead') }}</small>
             </span>
             <span class="mail-row-action mail-row-action--delete">
-              <Trash2 :size="21" />
+              <SkyIcon :icon="Trash2" :size="21" />
               <small>{{ phone.t('Apps.mail.delete') }}</small>
             </span>
-            <button
+            <SkyButton
+              variant="content"
               class="mail-row"
               :class="{
                 'mail-row--unread': item.folder === 'inbox' && !item.is_read,
@@ -1360,14 +1385,18 @@ onBeforeUnmount(() => {
                 class="mail-row__unread"
               />
               <span v-if="selecting" class="mail-row__selection">
-                <Check v-if="isMailSelected(item)" :size="14" />
+                <SkyIcon :icon="Check" v-if="isMailSelected(item)" :size="14" />
               </span>
               <span
                 class="mail-avatar"
                 :class="{ 'mail-avatar--draft': mail.folder === 'drafts' }"
                 :style="senderStyle(itemTitle(item))"
               >
-                <FileText v-if="mail.folder === 'drafts'" :size="20" />
+                <SkyIcon
+                  :icon="FileText"
+                  v-if="mail.folder === 'drafts'"
+                  :size="20"
+                />
                 <template v-else>{{
                   senderInitials(itemTitle(item))
                 }}</template>
@@ -1382,17 +1411,22 @@ onBeforeUnmount(() => {
                 </span>
                 <span class="mail-row__preview">{{ itemPreview(item) }}</span>
               </span>
-              <ChevronRight :size="17" class="mail-row__chevron" />
-            </button>
+              <SkyIcon
+                :icon="ChevronRight"
+                :size="17"
+                class="mail-row__chevron"
+              />
+            </SkyButton>
           </div>
-          <button
+          <SkyButton
+            variant="content"
             v-if="mail.hasMore"
             class="mail-load-more"
             type="button"
             @click="mail.loadFolder(mail.folder, mail.search, true)"
           >
             {{ phone.t('Apps.mail.loadMore') }}
-          </button>
+          </SkyButton>
         </template>
         <div
           v-else
@@ -1403,7 +1437,7 @@ onBeforeUnmount(() => {
             <h2>{{ phone.t('Apps.mail.noMail') }}</h2>
           </template>
           <template v-else>
-            <Mail :size="38" />
+            <SkyIcon :icon="Mail" :size="38" />
             <h2>
               {{
                 phone.t(
@@ -1441,13 +1475,13 @@ onBeforeUnmount(() => {
           :aria-pressed="true"
           @click="openMailFilters"
         >
-          <template #icon><ListFilter :size="21" /></template>
+          <template #icon><SkyIcon :icon="ListFilter" :size="21" /></template>
           <template #text>
             <span class="mail-filter-fab__copy">
               <small>{{ phone.t('Apps.mail.filteredBy') }}</small>
               <strong>
                 {{ activeFilterSummary }}
-                <ChevronDown :size="15" />
+                <SkyIcon :icon="ChevronDown" :size="15" />
               </strong>
             </span>
           </template>
@@ -1463,7 +1497,7 @@ onBeforeUnmount(() => {
           :aria-pressed="false"
           @click="openMailFilters"
         >
-          <template #icon><ListFilter :size="21" /></template>
+          <template #icon><SkyIcon :icon="ListFilter" :size="21" /></template>
         </sky-fab>
         <sky-searchbar
           :model-value="mail.search"
@@ -1480,7 +1514,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.mail.compose')"
           @click="beginCompose()"
         >
-          <template #icon><SquarePen :size="21" /></template>
+          <template #icon><SkyIcon :icon="SquarePen" :size="21" /></template>
         </sky-fab>
       </sky-toolbar>
       <sky-toolbar
@@ -1504,7 +1538,7 @@ onBeforeUnmount(() => {
             @click="deleteSelectedMessages"
           >
             <sky-spinner v-if="deletingSelected" />
-            <Trash2 v-else :size="18" />
+            <SkyIcon :icon="Trash2" v-else :size="18" />
             {{ phone.t('Apps.mail.deleteSelected') }}
           </sky-link>
         </sky-toolbar-pane>
@@ -1534,7 +1568,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.compose')"
             @click="beginCompose()"
           >
-            <SquarePen :size="20" />
+            <SkyIcon :icon="SquarePen" :size="20" />
           </sky-link>
         </template>
       </sky-navbar>
@@ -1579,7 +1613,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.easyShare.share')"
             @click="shareMessage"
           >
-            <Share2 :size="20" />
+            <SkyIcon :icon="Share2" :size="20" />
           </sky-link>
           <sky-link
             component="button"
@@ -1588,7 +1622,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.reply')"
             @click="composeReply(false)"
           >
-            <Reply :size="20" />
+            <SkyIcon :icon="Reply" :size="20" />
           </sky-link>
           <sky-link
             component="button"
@@ -1597,7 +1631,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.replyAll')"
             @click="composeReply(true)"
           >
-            <ReplyAll :size="20" />
+            <SkyIcon :icon="ReplyAll" :size="20" />
           </sky-link>
           <sky-link
             component="button"
@@ -1606,7 +1640,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.forward')"
             @click="composeForward"
           >
-            <Forward :size="20" />
+            <SkyIcon :icon="Forward" :size="20" />
           </sky-link>
           <sky-link
             v-if="canMoveMessage && !selectedMessage.trashed_at"
@@ -1616,7 +1650,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.moveToMailbox')"
             @click="mailboxMoveOpened = true"
           >
-            <Folder :size="20" />
+            <SkyIcon :icon="Folder" :size="20" />
           </sky-link>
           <sky-link
             v-if="selectedMessage.trashed_at"
@@ -1626,7 +1660,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.restore')"
             @click="mutateSelected('mail:restore')"
           >
-            <RotateCcw :size="20" />
+            <SkyIcon :icon="RotateCcw" :size="20" />
           </sky-link>
           <sky-link
             v-else
@@ -1637,7 +1671,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.moveToTrash')"
             @click="mutateSelected('mail:trash')"
           >
-            <Trash2 :size="20" />
+            <SkyIcon :icon="Trash2" :size="20" />
           </sky-link>
           <sky-link
             v-if="selectedMessage.trashed_at"
@@ -1648,7 +1682,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.deleteForever')"
             @click="mutateSelected('mail:delete-forever')"
           >
-            <Trash2 :size="20" />
+            <SkyIcon :icon="Trash2" :size="20" />
           </sky-link>
           <sky-link
             v-else
@@ -1658,7 +1692,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.mail.markUnread')"
             @click="mutateSelected('mail:set-read', { read: false })"
           >
-            <MailOpen :size="20" />
+            <SkyIcon :icon="MailOpen" :size="20" />
           </sky-link>
         </sky-toolbar-pane>
       </sky-toolbar>
@@ -1679,7 +1713,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Common.cancel')"
             @click="closeCompose"
           >
-            <X :size="21" />
+            <SkyIcon :icon="X" :size="21" />
           </sky-link>
         </template>
         <template #right>
@@ -1691,7 +1725,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Common.send')"
             @click="sendMessage"
           >
-            <Send :size="20" />
+            <SkyIcon :icon="Send" :size="20" />
           </sky-link>
         </template>
       </sky-navbar>
@@ -1769,7 +1803,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Common.cancel')"
           @click="cancelMailboxCreate"
         >
-          <X :size="20" />
+          <SkyIcon :icon="X" :size="20" />
         </sky-button>
         <h2>{{ phone.t('Apps.mail.newMailbox') }}</h2>
         <sky-button
@@ -1783,7 +1817,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Common.save')"
           @click="createMailbox"
         >
-          <Check :size="20" />
+          <SkyIcon :icon="Check" :size="20" />
         </sky-button>
       </header>
 
@@ -1805,7 +1839,7 @@ onBeforeUnmount(() => {
           <h3>{{ phone.t('Apps.mail.mailboxLocation') }}</h3>
           <div class="mail-mailbox-create__location-row">
             <span>{{ mail.accountEmail }}</span>
-            <ChevronRight :size="18" aria-hidden="true" />
+            <SkyIcon :icon="ChevronRight" :size="18" aria-hidden="true" />
           </div>
         </section>
       </form>
@@ -1835,7 +1869,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Common.done')"
           @click="applyMailFilters"
         >
-          <Check :size="22" />
+          <SkyIcon :icon="Check" :size="22" />
         </sky-link>
       </header>
 
@@ -1851,9 +1885,10 @@ onBeforeUnmount(() => {
               :aria-pressed="draftMailFilters.read === 'unread'"
               @click="toggleDraftReadFilter('unread')"
             >
-              <Mail :size="20" />
+              <SkyIcon :icon="Mail" :size="20" />
               <span>{{ phone.t('Apps.mail.filterUnreadLabel') }}</span>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="draftMailFilters.read === 'unread'"
                 :size="20"
                 class="mail-filter-row__check"
@@ -1867,9 +1902,10 @@ onBeforeUnmount(() => {
               :aria-pressed="draftMailFilters.read === 'read'"
               @click="toggleDraftReadFilter('read')"
             >
-              <MailOpen :size="20" />
+              <SkyIcon :icon="MailOpen" :size="20" />
               <span>{{ phone.t('Apps.mail.filterReadLabel') }}</span>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="draftMailFilters.read === 'read'"
                 :size="20"
                 class="mail-filter-row__check"
@@ -1889,9 +1925,10 @@ onBeforeUnmount(() => {
               :aria-pressed="draftMailFilters.address === 'to-me'"
               @click="toggleDraftAddressFilter('to-me')"
             >
-              <Inbox :size="20" />
+              <SkyIcon :icon="Inbox" :size="20" />
               <span>{{ phone.t('Apps.mail.filterToMe') }}</span>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="draftMailFilters.address === 'to-me'"
                 :size="20"
                 class="mail-filter-row__check"
@@ -1905,9 +1942,10 @@ onBeforeUnmount(() => {
               :aria-pressed="draftMailFilters.address === 'from-me'"
               @click="toggleDraftAddressFilter('from-me')"
             >
-              <Send :size="20" />
+              <SkyIcon :icon="Send" :size="20" />
               <span>{{ phone.t('Apps.mail.filterFromMe') }}</span>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="draftMailFilters.address === 'from-me'"
                 :size="20"
                 class="mail-filter-row__check"
@@ -1930,9 +1968,10 @@ onBeforeUnmount(() => {
               :aria-pressed="draftMailFilters.direction === 'inbox'"
               @click="toggleDraftDirectionFilter('inbox')"
             >
-              <Inbox :size="20" />
+              <SkyIcon :icon="Inbox" :size="20" />
               <span>{{ phone.t('Apps.mail.filterReceived') }}</span>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="draftMailFilters.direction === 'inbox'"
                 :size="20"
                 class="mail-filter-row__check"
@@ -1946,9 +1985,10 @@ onBeforeUnmount(() => {
               :aria-pressed="draftMailFilters.direction === 'sent'"
               @click="toggleDraftDirectionFilter('sent')"
             >
-              <Send :size="20" />
+              <SkyIcon :icon="Send" :size="20" />
               <span>{{ phone.t('Apps.mail.filterSent') }}</span>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="draftMailFilters.direction === 'sent'"
                 :size="20"
                 class="mail-filter-row__check"
@@ -1968,9 +2008,10 @@ onBeforeUnmount(() => {
               :aria-pressed="draftMailFilters.today"
               @click="draftMailFilters.today = !draftMailFilters.today"
             >
-              <CalendarDays :size="20" />
+              <SkyIcon :icon="CalendarDays" :size="20" />
               <span>{{ phone.t('Apps.mail.filterToday') }}</span>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="draftMailFilters.today"
                 :size="20"
                 class="mail-filter-row__check"
@@ -2013,8 +2054,12 @@ onBeforeUnmount(() => {
         variant="secondary"
         @click="moveMessageToDefaultMailbox"
       >
-        <Inbox v-if="selectedMessage.folder === 'inbox'" :size="18" />
-        <Send v-else :size="18" />
+        <SkyIcon
+          :icon="Inbox"
+          v-if="selectedMessage.folder === 'inbox'"
+          :size="18"
+        />
+        <SkyIcon :icon="Send" v-else :size="18" />
         <span>{{ phone.t(`Apps.mail.${selectedMessage.folder}`) }}</span>
       </sky-button>
       <sky-button
@@ -2025,7 +2070,7 @@ onBeforeUnmount(() => {
         variant="secondary"
         @click="moveMessageToMailbox(mailbox)"
       >
-        <Folder :size="18" />
+        <SkyIcon :icon="Folder" :size="18" />
         <span>{{ mailbox.name }}</span>
       </sky-button>
     </div>
@@ -2124,7 +2169,7 @@ button {
   width: auto;
   min-width: var(--sky-touch-target);
   padding: 0 var(--sky-space-3);
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   font-size: 15px;
 }
 
@@ -2275,7 +2320,7 @@ button {
   min-height: var(--sky-touch-target);
   border-radius: 50%;
   background: var(--mail-blue);
-  color: #fff;
+  color: var(--sky-button-text, #ffffff);
 }
 
 .mail-filters__navbar :deep(.mail-filters__done.sky-link:focus-visible) {
@@ -2452,7 +2497,7 @@ button {
   border: 0;
   padding: 4px 0;
   background: transparent;
-  color: #fff;
+  color: var(--sky-button-text, #ffffff);
   font-size: 12px;
 }
 
@@ -2466,7 +2511,7 @@ button {
   min-width: 0;
   min-height: var(--sky-touch-target);
   padding: 0 var(--sky-space-3);
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   font-size: 15px;
 }
 
@@ -2879,11 +2924,11 @@ button {
 }
 
 .mail-navbar :deep(.sky-link) {
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .mail-navbar :deep(.sky-navbar-back-link) {
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .mail-navbar :deep(.sky-link:disabled) {
@@ -2961,7 +3006,7 @@ button {
 
 .mail-action-bar :deep(.sky-link) {
   position: relative;
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .mail-action-bar :deep(.sky-link::after) {
@@ -2973,7 +3018,7 @@ button {
   border-radius: 7px;
   background: #2c2c2ef5;
   box-shadow: 0 6px 18px #0009;
-  color: #fff;
+  color: var(--sky-button-text, #ffffff);
   content: attr(aria-label);
   font-size: 9px;
   font-weight: 600;
@@ -3002,7 +3047,7 @@ button {
   }
 
   .mail-action-bar :deep(.sky-link:hover) {
-    color: #fff;
+    color: var(--sky-button-text, #ffffff);
   }
 
   .mail-action-bar :deep(.mail-action-bar__danger:hover) {

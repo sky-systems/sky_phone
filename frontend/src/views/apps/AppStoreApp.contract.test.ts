@@ -71,7 +71,9 @@ describe('AppStoreApp Sky navigation contract', () => {
     )
     expect(source).toContain('<SkyEmptyState')
     expect(source).toContain("phone.t('Apps.appStore.search.noResultsBody')")
-    expect(source).toContain('<Search :size="38"')
+    expect(source.replace(/\s+/g, ' ')).toContain(
+      '<SkyIcon :icon="Search" :size="38"',
+    )
     expect(source).toMatch(
       /\.store-search__empty\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;/s,
     )
@@ -112,7 +114,7 @@ describe('AppStoreApp Sky navigation contract', () => {
     expect(source).toContain('@pointermove="moveProfileDrag"')
     expect(source).toContain('@pointerup="endProfileDrag"')
     expect(source).toContain('profileDragOffset.value >= 72')
-    expect(source).not.toContain('<X :size="20"')
+    expect(source).not.toContain('<SkyIcon :icon="X" :size="20"')
   })
 
   it('opens App Store details from app and game lists without replacing direct actions', () => {
@@ -175,9 +177,7 @@ describe('AppStoreApp Sky navigation contract', () => {
     expect(source).toMatch(
       /button:not\(\.store-ranking__detail-link\):not\([\s\S]*?\.store-list__detail-link[\s\S]*?:hover[\s\S]*?brightness\(1\.08\)[\s\S]*?translateY\(-1px\)/,
     )
-    expect(source).toContain(
-      '.store-list--browse article:hover',
-    )
+    expect(source).toContain('.store-list--browse article:hover')
     expect(source).toMatch(
       /button\.store-action-button--get:not\(\.store-list__detail-link\):hover\s*\{[^}]*background:\s*var\(--sky-app-accent-soft\);[^}]*filter:\s*none;[^}]*transform:\s*none;/s,
     )
@@ -255,27 +255,27 @@ describe('AppStoreApp Sky navigation contract', () => {
     expect(source).toContain(
       '.store-ranking li > button:not(.store-ranking__detail-link)',
     )
-    expect(source).toMatch(
+    expect(source.replace(/\s+/g, ' ')).toMatch(
       /\.store-ranking li > button:not\(\.store-ranking__detail-link\),[\s\S]*?min-width:\s*68px;/,
     )
     expect(source).not.toContain('.store-ranking__detail-link:hover')
-    expect(source).toContain(
-      'button:not(.store-ranking__detail-link):not(',
-    )
+    expect(source).toContain('button:not(.store-ranking__detail-link):not(')
   })
 
   it('keeps App Store actions compatible with the FiveM CEF target', () => {
     expect(source.match(/class="store-action-button"/g)).toHaveLength(8)
     expect(source).not.toContain("appAction(app) !== 'open'")
     expect(source).toContain("appAction(app) === 'installing'")
-    expect(source).toContain("'store-action-button--get': appAction(app) === 'get'")
+    expect(source).toContain(
+      "'store-action-button--get': appAction(app) === 'get'",
+    )
     expect(source).toContain(
       '> button.store-action-button--get:not(.store-browse-feature__details),',
     )
-    expect(source).toMatch(
+    expect(source.replace(/\s+/g, ' ')).toMatch(
       /\.store-ranking li > button\.store-action-button--get:not\(\.store-ranking__detail-link\),[\s\S]*?\.store-list article > button\.store-action-button--get:not\(\.store-list__detail-link\)\s*\{[^}]*width:\s*56px;[^}]*min-width:\s*56px;[^}]*min-height:\s*32px;[^}]*height:\s*32px;[^}]*font-size:\s*11px;[^}]*font-weight:\s*850;/s,
     )
-    expect(source).toMatch(
+    expect(source.replace(/\s+/g, ' ')).toMatch(
       /\.store-ranking li > button\.store-action-button--icon:not\(\.store-ranking__detail-link\),[\s\S]*?\.store-list article > button\.store-action-button--icon:not\(\.store-list__detail-link\)\s*\{[^}]*width:\s*56px;[^}]*min-width:\s*56px;[^}]*min-height:\s*32px;[^}]*height:\s*32px;/s,
     )
     expect(source).not.toContain(':has(')
@@ -304,7 +304,9 @@ describe('AppStoreApp Sky navigation contract', () => {
     expect(source).toContain('function handleFeaturedWheel(event: WheelEvent)')
     expect(source).toContain('event.preventDefault()')
     expect(source).toContain('v-for="(app, index) in featuredCandidates"')
-    expect(source).toContain(":class=\"{ 'is-active': featuredSlide === index }\"")
+    expect(source).toContain(
+      ':class="{ \'is-active\': featuredSlide === index }"',
+    )
     expect(source).toContain('@click="scrollToFeatured(index)"')
     expect(source).not.toContain('globalThis.setInterval')
     expect(source).toMatch(

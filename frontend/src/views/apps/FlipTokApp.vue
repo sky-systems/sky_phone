@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import ProfileSuggestions from '@/components/ProfileSuggestions.vue'
 import LiveProfileStrip from '@/components/LiveProfileStrip.vue'
 import { useLiveProfiles } from '@/features/realtime/useLiveProfiles'
@@ -1925,18 +1927,20 @@ onBeforeUnmount(() => {
 
     <template v-else-if="tab === 'feed'">
       <header class="feed-header">
-        <button
+        <SkyButton
+          variant="content"
           :class="{ active: store.mode === 'following' }"
           @click="changeMode('following')"
         >
           {{ t('following') }}
-        </button>
-        <button
+        </SkyButton>
+        <SkyButton
+          variant="content"
           :class="{ active: store.mode === 'for-you' }"
           @click="changeMode('for-you')"
         >
           {{ t('forYou') }}
-        </button>
+        </SkyButton>
       </header>
       <SkyLink
         component="button"
@@ -1945,7 +1949,7 @@ onBeforeUnmount(() => {
         :aria-label="t('discover')"
         @click="tab = 'discover'"
       >
-        <Search />
+        <SkyIcon :icon="Search" />
       </SkyLink>
       <main class="video-feed">
         <article
@@ -2016,19 +2020,21 @@ onBeforeUnmount(() => {
               video.media_type !== 'photo' && handleVideoDoubleClick(video)
             "
           />
-          <button
+          <SkyButton
+            variant="content"
             v-if="playbackFailedIds.has(video.id)"
             type="button"
             class="video-playback-fallback"
             :aria-label="`${t('errors.video_not_found')} ${phone.t('Common.start')}`"
             @click.stop="retryPlayback(video)"
           >
-            <TriangleAlert />
+            <SkyIcon :icon="TriangleAlert" />
             <strong>{{ t('errors.video_not_found') }}</strong>
             <span>{{ phone.t('Common.start') }}</span>
-          </button>
+          </SkyButton>
           <Transition name="double-like">
-            <Heart
+            <SkyIcon
+              :icon="Heart"
               v-if="likedPulseId === video.id"
               class="double-like-heart"
               fill="currentColor"
@@ -2036,12 +2042,14 @@ onBeforeUnmount(() => {
           </Transition>
           <section class="video-copy">
             <div class="creator-line">
-              <button
+              <SkyButton
+                variant="content"
                 class="creator-link"
                 @click="openProfile(video.profile_id)"
               >
-                <strong>@{{ video.handle }}</strong></button
-              ><Check
+                <strong>@{{ video.handle }}</strong></SkyButton
+              ><SkyIcon
+                :icon="Check"
                 v-if="video.verified"
                 class="verified"
                 :aria-label="t('verified')"
@@ -2052,18 +2060,19 @@ onBeforeUnmount(() => {
                 v-for="(part, index) in textParts(video.caption)"
                 :key="`${video.id}-${index}`"
               >
-                <button
+                <SkyButton
+                  variant="content"
                   v-if="part.kind !== 'text'"
                   class="caption-link"
                   @click="openTextLink(part)"
                 >
                   {{ part.value }}
-                </button>
+                </SkyButton>
                 <template v-else>{{ part.value }}</template>
               </template>
             </p>
             <div class="sound">
-              <Music2 />{{
+              <SkyIcon :icon="Music2" />{{
                 video.music_title ||
                 (video.music_url && !video.music_track
                   ? t('customSound')
@@ -2080,7 +2089,8 @@ onBeforeUnmount(() => {
           </section>
           <aside class="video-actions">
             <div class="video-profile-action">
-              <button
+              <SkyButton
+                variant="content"
                 class="avatar"
                 :class="{ 'realtime-live-avatar': liveFor(video.profile_id) }"
                 :aria-label="
@@ -2092,8 +2102,9 @@ onBeforeUnmount(() => {
               >
                 <img v-if="video.avatar_url" :src="video.avatar_url" alt="" />
                 <template v-else>{{ initials(video.display_name) }}</template>
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 v-if="
                   !video.is_owner &&
                   (!video.is_following || followFeedbackIds.has(video.id))
@@ -2108,10 +2119,14 @@ onBeforeUnmount(() => {
                 :disabled="video.is_following || followPendingIds.has(video.id)"
                 @click.stop="followFromFeed(video)"
               >
-                <Check v-if="video.is_following" /><Plus v-else />
-              </button>
+                <SkyIcon :icon="Check" v-if="video.is_following" /><SkyIcon
+                  :icon="Plus"
+                  v-else
+                />
+              </SkyButton>
             </div>
-            <button
+            <SkyButton
+              variant="content"
               :class="{
                 liked: video.is_liked,
                 'reaction-pop':
@@ -2123,16 +2138,17 @@ onBeforeUnmount(() => {
               }"
               @click="reactWithPulse(video, 'like')"
             >
-              <Heart fill="currentColor" /><span>{{
+              <SkyIcon :icon="Heart" fill="currentColor" /><span>{{
                 compactCount(video.like_count)
               }}</span>
-            </button>
-            <button @click="openComments(video)">
-              <MessageCircle fill="currentColor" /><span>{{
+            </SkyButton>
+            <SkyButton variant="content" @click="openComments(video)">
+              <SkyIcon :icon="MessageCircle" fill="currentColor" /><span>{{
                 compactCount(video.comment_count)
               }}</span>
-            </button>
-            <button
+            </SkyButton>
+            <SkyButton
+              variant="content"
               :class="{
                 saved: video.is_saved,
                 'reaction-pop':
@@ -2144,18 +2160,26 @@ onBeforeUnmount(() => {
               }"
               @click="reactWithPulse(video, 'save')"
             >
-              <Bookmark fill="currentColor" /><span>{{ t('save') }}</span>
-            </button>
-            <button @click="shareVideo(video)">
-              <Share2 /><span>{{ compactCount(video.share_count) }}</span>
-            </button>
-            <button :aria-label="t('more')" @click="openActions(video)">
-              <MoreHorizontal />
-            </button>
+              <SkyIcon :icon="Bookmark" fill="currentColor" /><span>{{
+                t('save')
+              }}</span>
+            </SkyButton>
+            <SkyButton variant="content" @click="shareVideo(video)">
+              <SkyIcon :icon="Share2" /><span>{{
+                compactCount(video.share_count)
+              }}</span>
+            </SkyButton>
+            <SkyButton
+              variant="content"
+              :aria-label="t('more')"
+              @click="openActions(video)"
+            >
+              <SkyIcon :icon="MoreHorizontal" />
+            </SkyButton>
           </aside>
         </article>
         <div v-if="!store.feed.length" class="empty-feed">
-          <Video /><strong>{{ t('emptyFeed') }}</strong
+          <SkyIcon :icon="Video" /><strong>{{ t('emptyFeed') }}</strong
           ><span>{{ t('emptyFeedBody') }}</span>
         </div>
       </main>
@@ -2201,7 +2225,8 @@ onBeforeUnmount(() => {
           </SkyChip>
         </div>
         <div class="video-grid">
-          <button
+          <SkyButton
+            variant="content"
             v-for="video in store.searchResults"
             :key="video.id"
             @click="openDiscoveredVideo(video)"
@@ -2216,8 +2241,12 @@ onBeforeUnmount(() => {
                 ($event.target as HTMLVideoElement).currentTime =
                   video.cover_time_ms / 1000
               "
-            /><span><Play />{{ compactCount(video.view_count) }}</span>
-          </button>
+            /><span
+              ><SkyIcon :icon="Play" />{{
+                compactCount(video.view_count)
+              }}</span
+            >
+          </SkyButton>
         </div>
       </SkyScrollArea>
     </template>
@@ -2241,12 +2270,15 @@ onBeforeUnmount(() => {
           <p>
             <strong
               >{{ activity.display_name }}
-              <Check v-if="activity.verified" class="verified" /></strong
+              <SkyIcon
+                :icon="Check"
+                v-if="activity.verified"
+                class="verified" /></strong
             ><span>{{ t(`activityKinds.${activity.kind}`) }}</span>
           </p>
         </article>
         <div v-if="!store.activities.length" class="light-empty">
-          <Bell /><strong>{{ t('noActivity') }}</strong>
+          <SkyIcon :icon="Bell" /><strong>{{ t('noActivity') }}</strong>
         </div>
       </SkyScrollArea>
     </template>
@@ -2270,7 +2302,7 @@ onBeforeUnmount(() => {
               :aria-label="t('editProfile')"
               @click="editProfile"
             >
-              <Pencil />
+              <SkyIcon :icon="Pencil" />
             </SkyLink>
             <SkyLink
               component="button"
@@ -2278,7 +2310,7 @@ onBeforeUnmount(() => {
               :aria-label="phone.t('Apps.easyShare.shareProfile')"
               @click="shareCurrentProfile"
             >
-              <Share2 />
+              <SkyIcon :icon="Share2" />
             </SkyLink>
           </div>
         </template>
@@ -2309,18 +2341,30 @@ onBeforeUnmount(() => {
         </SkyButton>
         <h1>
           {{ currentProfile.display_name }}
-          <Check v-if="currentProfile.verified" class="verified" />
+          <SkyIcon
+            :icon="Check"
+            v-if="currentProfile.verified"
+            class="verified"
+          />
         </h1>
         <p class="handle">@{{ currentProfile.handle }}</p>
         <div class="profile-stats">
-          <button type="button" @click="openConnections('following')">
+          <SkyButton
+            variant="content"
+            type="button"
+            @click="openConnections('following')"
+          >
             <strong>{{ currentProfile.following }}</strong
             ><span>{{ t('following') }}</span>
-          </button>
-          <button type="button" @click="openConnections('followers')">
+          </SkyButton>
+          <SkyButton
+            variant="content"
+            type="button"
+            @click="openConnections('followers')"
+          >
             <strong>{{ currentProfile.followers }}</strong
             ><span>{{ t('followers') }}</span>
-          </button>
+          </SkyButton>
           <div>
             <strong>{{ currentProfile.video_count }}</strong
             ><span>{{ t('videos') }}</span>
@@ -2346,7 +2390,8 @@ onBeforeUnmount(() => {
           </template>
         </div>
         <div class="profile-video-grid">
-          <button
+          <SkyButton
+            variant="content"
             v-for="video in store.profileVideos"
             :key="video.id"
             @click="openDiscoveredVideo(video)"
@@ -2363,8 +2408,12 @@ onBeforeUnmount(() => {
                   video.cover_time_ms / 1000
               "
             />
-            <span><Play />{{ compactCount(video.view_count) }}</span>
-          </button>
+            <span
+              ><SkyIcon :icon="Play" />{{
+                compactCount(video.view_count)
+              }}</span
+            >
+          </SkyButton>
         </div>
       </SkyScrollArea>
     </template>
@@ -2392,20 +2441,21 @@ onBeforeUnmount(() => {
           class="main-tab"
           @click="openFeedTab"
         >
-          <Home /><small>{{ t('home') }}</small>
+          <SkyIcon :icon="Home" /><small>{{ t('home') }}</small>
         </SkySegmentedButton>
         <SkySegmentedButton
           :active="tab === 'discover'"
           class="main-tab"
           @click="tab = 'discover'"
         >
-          <Compass /><small>{{ t('discover') }}</small>
+          <SkyIcon :icon="Compass" /><small>{{ t('discover') }}</small>
         </SkySegmentedButton>
         <SkySegmentedButton
           class="main-tab main-tab--create"
           @click="composeOpen = true"
         >
-          <span class="create-icon" aria-hidden="true"><Plus /></span
+          <span class="create-icon" aria-hidden="true"
+            ><SkyIcon :icon="Plus" /></span
           ><small>{{ t('create') }}</small>
         </SkySegmentedButton>
         <SkySegmentedButton
@@ -2413,14 +2463,14 @@ onBeforeUnmount(() => {
           class="main-tab"
           @click="tab = 'activity'"
         >
-          <Bell /><small>{{ t('activity') }}</small>
+          <SkyIcon :icon="Bell" /><small>{{ t('activity') }}</small>
         </SkySegmentedButton>
         <SkySegmentedButton
           :active="tab === 'profile'"
           class="main-tab"
           @click="openOwnProfile"
         >
-          <UserRound /><small>{{ t('profile') }}</small>
+          <SkyIcon :icon="UserRound" /><small>{{ t('profile') }}</small>
         </SkySegmentedButton>
       </SkySegmented>
     </SkyPillNavigation>
@@ -2456,7 +2506,7 @@ onBeforeUnmount(() => {
         />
         <template v-else>
           <header class="compose-intro">
-            <span><Video /></span>
+            <span><SkyIcon :icon="Video" /></span>
             <div>
               <strong>{{ t('createTitle') }}</strong>
               <p>{{ t('createBody') }}</p>
@@ -2464,19 +2514,37 @@ onBeforeUnmount(() => {
           </header>
           <SkyGlass v-if="!selectedMedia" class="media-picker">
             <header>
-              <ImagePlus /><strong>{{ t('chooseMedia') }}</strong>
+              <SkyIcon :icon="ImagePlus" /><strong>{{
+                t('chooseMedia')
+              }}</strong>
               <span>{{ t('chooseMediaHint') }}</span>
             </header>
             <div class="media-source-grid">
-              <button type="button" @click="chooseVideo('camera')">
-                <Camera /><strong>{{ t('recordVideo') }}</strong>
-              </button>
-              <button type="button" @click="chooseVideo('photos')">
-                <Video /><strong>{{ t('chooseVideo') }}</strong>
-              </button>
-              <button type="button" @click="choosePhotoSlideshow('photos')">
-                <ImagePlus /><strong>{{ t('photoSlideshow') }}</strong>
-              </button>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="chooseVideo('camera')"
+              >
+                <SkyIcon :icon="Camera" /><strong>{{
+                  t('recordVideo')
+                }}</strong>
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="chooseVideo('photos')"
+              >
+                <SkyIcon :icon="Video" /><strong>{{ t('chooseVideo') }}</strong>
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="choosePhotoSlideshow('photos')"
+              >
+                <SkyIcon :icon="ImagePlus" /><strong>{{
+                  t('photoSlideshow')
+                }}</strong>
+              </SkyButton>
             </div>
           </SkyGlass>
           <SkyGlass v-else class="media-preview">
@@ -2509,7 +2577,7 @@ onBeforeUnmount(() => {
                   :aria-label="t('previousPhoto')"
                   @click="moveComposerPhoto(-1)"
                 >
-                  <ChevronLeft />
+                  <SkyIcon :icon="ChevronLeft" />
                 </SkyButton>
                 <SkyButton
                   glass
@@ -2523,7 +2591,7 @@ onBeforeUnmount(() => {
                   :aria-label="t('nextPhoto')"
                   @click="moveComposerPhoto(1)"
                 >
-                  <ChevronRight />
+                  <SkyIcon :icon="ChevronRight" />
                 </SkyButton>
                 <span class="compose-photo-preview__count">
                   {{ composerPhotoIndex + 1 }} / {{ selectedMediaItems.length }}
@@ -2563,7 +2631,7 @@ onBeforeUnmount(() => {
                     : chooseVideo('camera')
                 "
               >
-                <Camera />{{ t('camera') }}
+                <SkyIcon :icon="Camera" />{{ t('camera') }}
               </SkyButton>
             </div>
             <audio
@@ -2622,8 +2690,13 @@ onBeforeUnmount(() => {
             </label>
           </SkyGlass>
           <SkyGlass v-if="selectedMedia" class="editor-card">
-            <button class="sound-picker" type="button" @click="openMusicSheet">
-              <span><Music2 />{{ t('sounds') }}</span>
+            <SkyButton
+              variant="content"
+              class="sound-picker"
+              type="button"
+              @click="openMusicSheet"
+            >
+              <span><SkyIcon :icon="Music2" />{{ t('sounds') }}</span>
               <strong>{{
                 selectedMusic
                   ? `${selectedMusic.title} · ${selectedMusic.artist}`
@@ -2633,8 +2706,8 @@ onBeforeUnmount(() => {
                       ? t('customSound')
                       : t('originalOnly')
               }}</strong>
-              <ChevronDown />
-            </button>
+              <SkyIcon :icon="ChevronDown" />
+            </SkyButton>
             <label>
               <span
                 >{{ t('originalVolume') }}
@@ -2738,7 +2811,8 @@ onBeforeUnmount(() => {
       </SkyNavbar>
       <SkyScrollArea padded class="profile-edit__body">
         <section class="profile-photo-editor">
-          <button
+          <SkyButton
+            variant="content"
             class="profile-photo-trigger"
             type="button"
             :aria-label="t('changePhoto')"
@@ -2757,9 +2831,9 @@ onBeforeUnmount(() => {
               }}</template>
             </span>
             <span class="profile-photo-trigger__badge" aria-hidden="true">
-              <Camera />
+              <SkyIcon :icon="Camera" />
             </span>
-          </button>
+          </SkyButton>
           <SkyLink
             class="profile-photo-change"
             @click="profilePhotoSheetOpen = true"
@@ -2842,7 +2916,8 @@ onBeforeUnmount(() => {
               class="comment-thread"
             >
               <article class="comment-row">
-                <button
+                <SkyButton
+                  variant="content"
                   class="comment-avatar"
                   type="button"
                   @click="openProfile(thread.comment.profile_id)"
@@ -2855,16 +2930,21 @@ onBeforeUnmount(() => {
                   <template v-else>{{
                     initials(thread.comment.display_name)
                   }}</template>
-                </button>
+                </SkyButton>
                 <div class="comment-content">
                   <header>
-                    <button
+                    <SkyButton
+                      variant="content"
                       type="button"
                       @click="openProfile(thread.comment.profile_id)"
                     >
                       {{ thread.comment.display_name }}
-                      <Check v-if="thread.comment.verified" class="verified" />
-                    </button>
+                      <SkyIcon
+                        :icon="Check"
+                        v-if="thread.comment.verified"
+                        class="verified"
+                      />
+                    </SkyButton>
                     <time
                       :datetime="
                         new Date(thread.comment.created_at).toISOString()
@@ -2878,22 +2958,28 @@ onBeforeUnmount(() => {
                       v-for="(part, index) in textParts(thread.comment.body)"
                       :key="`${thread.comment.id}-${index}`"
                     >
-                      <button
+                      <SkyButton
+                        variant="content"
                         v-if="part.kind !== 'text'"
                         class="caption-link"
                         type="button"
                         @click="openTextLink(part)"
                       >
                         {{ part.value }}
-                      </button>
+                      </SkyButton>
                       <template v-else>{{ part.value }}</template>
                     </template>
                   </p>
                   <footer>
-                    <button type="button" @click="startReply(thread.comment)">
-                      <Reply />{{ t('reply') }}
-                    </button>
-                    <button
+                    <SkyButton
+                      variant="content"
+                      type="button"
+                      @click="startReply(thread.comment)"
+                    >
+                      <SkyIcon :icon="Reply" />{{ t('reply') }}
+                    </SkyButton>
+                    <SkyButton
+                      variant="content"
                       type="button"
                       :class="{
                         liked: thread.comment.is_liked,
@@ -2902,17 +2988,19 @@ onBeforeUnmount(() => {
                       }"
                       @click="reactCommentWithPulse(thread.comment)"
                     >
-                      <Heart
+                      <SkyIcon
+                        :icon="Heart"
                         :fill="
                           thread.comment.is_liked ? 'currentColor' : 'none'
                         "
                       />
                       {{ compactCount(thread.comment.like_count) }}
-                    </button>
+                    </SkyButton>
                   </footer>
                 </div>
               </article>
-              <button
+              <SkyButton
+                variant="content"
                 v-if="thread.replies.length"
                 type="button"
                 class="replies-toggle"
@@ -2928,30 +3016,36 @@ onBeforeUnmount(() => {
                         count: String(thread.replies.length),
                       })
                 }}
-              </button>
+              </SkyButton>
               <article
                 v-for="reply in thread.replies"
                 v-show="expandedCommentThreads.has(thread.comment.id)"
                 :key="reply.id"
                 class="comment-row comment-row--reply"
               >
-                <button
+                <SkyButton
+                  variant="content"
                   class="comment-avatar"
                   type="button"
                   @click="openProfile(reply.profile_id)"
                 >
                   <img v-if="reply.avatar_url" :src="reply.avatar_url" alt="" />
                   <template v-else>{{ initials(reply.display_name) }}</template>
-                </button>
+                </SkyButton>
                 <div class="comment-content">
                   <header>
-                    <button
+                    <SkyButton
+                      variant="content"
                       type="button"
                       @click="openProfile(reply.profile_id)"
                     >
                       {{ reply.display_name }}
-                      <Check v-if="reply.verified" class="verified" />
-                    </button>
+                      <SkyIcon
+                        :icon="Check"
+                        v-if="reply.verified"
+                        class="verified"
+                      />
+                    </SkyButton>
                     <time :datetime="new Date(reply.created_at).toISOString()">
                       {{ formatTimestamp(reply.created_at) }}
                     </time>
@@ -2963,10 +3057,15 @@ onBeforeUnmount(() => {
                     {{ reply.body }}
                   </p>
                   <footer>
-                    <button type="button" @click="startReply(thread.comment)">
-                      <Reply />{{ t('reply') }}
-                    </button>
-                    <button
+                    <SkyButton
+                      variant="content"
+                      type="button"
+                      @click="startReply(thread.comment)"
+                    >
+                      <SkyIcon :icon="Reply" />{{ t('reply') }}
+                    </SkyButton>
+                    <SkyButton
+                      variant="content"
                       type="button"
                       :class="{
                         liked: reply.is_liked,
@@ -2974,10 +3073,11 @@ onBeforeUnmount(() => {
                       }"
                       @click="reactCommentWithPulse(reply)"
                     >
-                      <Heart
+                      <SkyIcon
+                        :icon="Heart"
                         :fill="reply.is_liked ? 'currentColor' : 'none'"
                       />{{ compactCount(reply.like_count) }}
-                    </button>
+                    </SkyButton>
                   </footer>
                 </div>
               </article>
@@ -2995,13 +3095,14 @@ onBeforeUnmount(() => {
               <span>{{
                 t('replyingTo', { handle: `@${replyingTo.handle}` })
               }}</span>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 :aria-label="t('cancelReply')"
                 @click="cancelReply"
               >
-                <X />
-              </button>
+                <SkyIcon :icon="X" />
+              </SkyButton>
             </div>
             <SkyMessagebar
               v-model="commentBody"
@@ -3020,7 +3121,7 @@ onBeforeUnmount(() => {
                   type="submit"
                   :aria-label="phone.t('Common.send')"
                 >
-                  <Send />
+                  <SkyIcon :icon="Send" />
                 </SkyLink>
               </template>
             </SkyMessagebar>
@@ -3094,7 +3195,10 @@ onBeforeUnmount(() => {
               @click="reportReason = reason"
             >
               <template #after
-                ><Check v-if="reportReason === reason" class="selection-check"
+                ><SkyIcon
+                  :icon="Check"
+                  v-if="reportReason === reason"
+                  class="selection-check"
               /></template>
             </SkyListItem>
           </SkyList>
@@ -3147,7 +3251,8 @@ onBeforeUnmount(() => {
               @click="chooseMusicTrack('')"
             >
               <template #after
-                ><Check
+                ><SkyIcon
+                  :icon="Check"
                   v-if="!musicTrack && !customMusicUrl"
                   class="selection-check"
               /></template>
@@ -3164,7 +3269,8 @@ onBeforeUnmount(() => {
               @click="chooseMusicTrack(track.id)"
             >
               <template #after
-                ><Check
+                ><SkyIcon
+                  :icon="Check"
                   v-if="musicTrack === track.id"
                   class="selection-check"
                 /><span v-else>{{ track.artist }}</span></template
@@ -3176,12 +3282,13 @@ onBeforeUnmount(() => {
           </p>
           <section class="custom-sound-editor">
             <header>
-              <span><Link2 /></span>
+              <span><SkyIcon :icon="Link2" /></span>
               <div>
                 <strong>{{ t('customSound') }}</strong>
                 <p>{{ t('customSoundHint') }}</p>
               </div>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="customMusicUrl && !musicTrack"
                 class="selection-check"
               />
@@ -3271,7 +3378,7 @@ onBeforeUnmount(() => {
               :title="t('chooseFromGallery')"
               @click="openProfileMedia('photos')"
             >
-              <template #media><ImagePlus /></template>
+              <template #media><SkyIcon :icon="ImagePlus" /></template>
             </SkyListItem>
             <SkyListItem
               link
@@ -3280,7 +3387,7 @@ onBeforeUnmount(() => {
               :title="t('takePhoto')"
               @click="openProfileMedia('camera')"
             >
-              <template #media><Camera /></template>
+              <template #media><SkyIcon :icon="Camera" /></template>
             </SkyListItem>
             <SkyListItem
               v-if="selectedProfilePhoto || profileDraft.avatarMediaId"
@@ -3292,7 +3399,7 @@ onBeforeUnmount(() => {
               :title="t('removePhoto')"
               @click="removeProfilePhoto"
             >
-              <template #media><Trash2 /></template>
+              <template #media><SkyIcon :icon="Trash2" /></template>
             </SkyListItem>
           </SkyList>
           <SkyButton large rounded tonal @click="profilePhotoSheetOpen = false">
@@ -3323,7 +3430,8 @@ onBeforeUnmount(() => {
               :title="t(`accountTypes.${option}`)"
               @click="chooseAccountType(option)"
               ><template #after
-                ><Check
+                ><SkyIcon
+                  :icon="Check"
                   v-if="profileDraft.accountType === option"
                   class="selection-check" /></template></SkyListItem></SkyList
           ><SkyButton
@@ -3377,7 +3485,8 @@ onBeforeUnmount(() => {
             :text="`@${profile.handle}`"
           >
             <template #media>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="connection-profile"
                 :aria-label="profile.display_name"
@@ -3393,7 +3502,7 @@ onBeforeUnmount(() => {
                     {{ initials(profile.display_name) }}
                   </span>
                 </span>
-              </button>
+              </SkyButton>
             </template>
             <template #after>
               <SkyButton
@@ -3411,7 +3520,9 @@ onBeforeUnmount(() => {
           </SkyListItem>
         </SkyList>
         <div v-else class="light-empty connections-empty">
-          <UsersRound /><strong>{{ t('noConnections') }}</strong>
+          <SkyIcon :icon="UsersRound" /><strong>{{
+            t('noConnections')
+          }}</strong>
         </div>
       </SkyScrollArea>
     </section>
@@ -4028,7 +4139,7 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #ddd;
   background: #fff;
   padding: 13px;
-  color: #0a84ff;
+  color: var(--sky-button-text, #ffffff);
 }
 .action-sheet .danger {
   color: #ff3b30;
@@ -4154,7 +4265,7 @@ onBeforeUnmount(() => {
 .profile-screen :deep(button) {
   border: 1px solid #3a3a3c;
   background: #1c1c1e;
-  color: #f5f5f7;
+  color: var(--sky-button-text, #ffffff);
 }
 .compose-screen,
 .profile-edit {
@@ -4230,7 +4341,7 @@ onBeforeUnmount(() => {
   min-height: 42px;
 }
 .compose-actions :deep(button:disabled) {
-  color: #8e8e93 !important;
+  color: var(--sky-button-text, #ffffff) !important;
   background: #1c1c1e !important;
   opacity: 0.62;
 }
@@ -4274,7 +4385,7 @@ onBeforeUnmount(() => {
 .comments-sheet > header button {
   display: grid;
   place-items: center;
-  color: #f5f5f7;
+  color: var(--sky-button-text, #ffffff);
   background: #2c2c2e;
 }
 .comments-list p span {
@@ -4538,7 +4649,7 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 .danger-button {
-  color: #ff453a !important;
+  color: var(--sky-button-text, #ffffff) !important;
 }
 .profile-video-grid {
   display: grid;
@@ -4827,7 +4938,7 @@ onBeforeUnmount(() => {
 
 .profile-avatar {
   background: var(--sky-surface-variant);
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .profile-stats {
@@ -6140,7 +6251,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--sky-hairline);
   border-radius: var(--sky-radius-control);
   background: var(--sky-surface);
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   box-shadow: var(--sky-shadow-thumb);
 }
 

@@ -81,8 +81,8 @@ describe('Springboard page swipe contract', () => {
     expect(mainCss).toMatch(
       /\.springboard-edit-done\s*\{[^}]*top:\s*14px;[^}]*right:\s*28px;[^}]*width:\s*58px;[^}]*height:\s*30px;/s,
     )
-    expect(viewSource).toContain(
-      '<Check :size="20" :stroke-width="3" aria-hidden="true" />',
+    expect(viewSource.replace(/\s+/g, ' ')).toContain(
+      '<SkyIcon :icon="Check" :size="20" :stroke-width="3" aria-hidden="true" />',
     )
   })
 

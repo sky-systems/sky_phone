@@ -5,6 +5,10 @@ import { getPhoneApp, isExternalPhoneApp, isPhoneAppId } from '@/config/apps'
 import { usePhoneStore } from '@/stores/phone'
 import type { LaunchablePhoneAppId } from '@/types/apps'
 import { nuiCall } from '@/utils/nui'
+import {
+  isNotificationTimestamp,
+  readNotificationTimestamp,
+} from '@/utils/notificationTime'
 import { appNeedsSignal, cellular } from '@/utils/cellular'
 import { findCustomPhoneTone, playCustomPhoneTone } from '@/utils/customTones'
 import {
@@ -39,12 +43,13 @@ export type PhoneNotificationInput = {
 }
 
 export type PhoneNotification = PhoneNotificationInput & {
+  createdAt?: number
   id: string
 }
 
 type PersistedPhoneNotification = Pick<
   PhoneNotification,
-  'appId' | 'id' | 'route' | 'subtitle' | 'text' | 'title'
+  'appId' | 'createdAt' | 'id' | 'route' | 'subtitle' | 'text' | 'title'
 >
 
 type PersistedNotificationsV1 = {
@@ -88,8 +93,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   function persist(imei: string): void {
     const items = (lockScreenQueues.value[imei] ?? []).map(
-      ({ appId, id, route, subtitle, text, title }) => ({
+      ({ appId, createdAt, id, route, subtitle, text, title }) => ({
         appId,
+        ...(createdAt !== undefined ? { createdAt } : {}),
         id,
         ...(route ? { route } : {}),
         ...(subtitle ? { subtitle } : {}),
@@ -135,6 +141,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
             !isPhoneAppId(item.appId) ||
             typeof item?.text !== 'string' ||
             typeof item?.title !== 'string' ||
+            (item.createdAt !== undefined &&
+              !isNotificationTimestamp(item.createdAt)) ||
             (item.route !== undefined &&
               (typeof item.route !== 'string' ||
                 (item.route !== `/apps/${item.appId}` &&
@@ -148,6 +156,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
           }
           stored.push({
             appId: item.appId,
+            createdAt: readNotificationTimestamp(item),
             id: item.id,
             ...(item.route ? { route: item.route } : {}),
             ...(item.subtitle ? { subtitle: item.subtitle } : {}),
@@ -337,9 +346,11 @@ export const useNotificationsStore = defineStore('notifications', () => {
         : queue.value
       for (const notification of [...pending]) dismiss(notification.id)
     }
+    const createdAt = Date.now()
     const notification: PhoneNotification = {
       ...input,
-      id: `notification-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      createdAt,
+      id: `notification-${createdAt}-${Math.random().toString(36).slice(2, 9)}`,
     }
     remember(notification)
     const app = getPhoneApp(input.appId)

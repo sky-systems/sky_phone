@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import ProfileSuggestions from '@/components/ProfileSuggestions.vue'
 import LiveProfileStrip from '@/components/LiveProfileStrip.vue'
 import { useLiveProfiles } from '@/features/realtime/useLiveProfiles'
@@ -1025,7 +1027,8 @@ onBeforeUnmount(() => {
         <SkyScrollArea with-tabbar class="ps-screen ps-post-detail">
           <article class="ps-post-card">
             <header class="ps-post-header">
-              <button
+              <SkyButton
+                variant="content"
                 class="ps-author"
                 @click="openAvatar(selectedPost.profile_id)"
               >
@@ -1047,14 +1050,15 @@ onBeforeUnmount(() => {
                 <span
                   ><strong
                     >{{ selectedPost.display_name }}
-                    <Check
+                    <SkyIcon
+                      :icon="Check"
                       v-if="selectedPost.verified"
                       class="ps-verified" /></strong
                   ><small v-if="selectedPost.location">{{
                     selectedPost.location
                   }}</small></span
                 >
-              </button>
+              </SkyButton>
               <SkyLink
                 component="button"
                 icon-only
@@ -1062,7 +1066,7 @@ onBeforeUnmount(() => {
                 :aria-label="t('more')"
                 @click="showPostActions($event, selectedPost)"
               >
-                <MoreHorizontal />
+                <SkyIcon :icon="MoreHorizontal" />
               </SkyLink>
             </header>
             <div class="ps-carousel-shell">
@@ -1097,7 +1101,7 @@ onBeforeUnmount(() => {
                   :disabled="(carouselIndexes[selectedPost.id] ?? 0) === 0"
                   @click="moveCarousel(selectedPost, -1)"
                 >
-                  <ChevronLeft />
+                  <SkyIcon :icon="ChevronLeft" />
                 </SkyButton>
                 <SkyButton
                   glass
@@ -1110,7 +1114,7 @@ onBeforeUnmount(() => {
                   "
                   @click="moveCarousel(selectedPost, 1)"
                 >
-                  <ChevronRight />
+                  <SkyIcon :icon="ChevronRight" />
                 </SkyButton>
                 <div class="ps-dots">
                   <span
@@ -1125,7 +1129,8 @@ onBeforeUnmount(() => {
             </div>
             <div class="ps-post-actions">
               <div>
-                <button
+                <SkyButton
+                  variant="content"
                   :class="{
                     active: selectedPost.is_liked,
                     'reaction-pop':
@@ -1137,18 +1142,25 @@ onBeforeUnmount(() => {
                   }"
                   @click="reactWithPulse(selectedPost, 'like')"
                 >
-                  <Heart
+                  <SkyIcon
+                    :icon="Heart"
                     :fill="selectedPost.is_liked ? 'currentColor' : 'none'"
                   />
                   <span>{{ count(selectedPost.like_count) }}</span>
-                </button>
-                <button @click="openComments(selectedPost)">
-                  <MessageCircle />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
+                  @click="openComments(selectedPost)"
+                >
+                  <SkyIcon :icon="MessageCircle" />
                   <span>{{ count(selectedPost.comment_count) }}</span>
-                </button>
-                <button @click="sharePost(selectedPost)"><Share2 /></button>
+                </SkyButton>
+                <SkyButton variant="content" @click="sharePost(selectedPost)"
+                  ><SkyIcon :icon="Share2"
+                /></SkyButton>
               </div>
-              <button
+              <SkyButton
+                variant="content"
                 :class="{
                   active: selectedPost.is_saved,
                   'reaction-pop':
@@ -1160,16 +1172,18 @@ onBeforeUnmount(() => {
                 }"
                 @click="reactWithPulse(selectedPost, 'save')"
               >
-                <Bookmark
+                <SkyIcon
+                  :icon="Bookmark"
                   :fill="selectedPost.is_saved ? 'currentColor' : 'none'"
                 />
-              </button>
+              </SkyButton>
             </div>
             <div class="ps-post-copy">
               <p v-if="selectedPost.caption">
                 <b>@{{ selectedPost.handle }}</b> {{ selectedPost.caption }}
               </p>
-              <button
+              <SkyButton
+                variant="content"
                 v-if="selectedPost.comments_enabled"
                 @click="openComments(selectedPost)"
               >
@@ -1178,7 +1192,7 @@ onBeforeUnmount(() => {
                     count: count(selectedPost.comment_count),
                   })
                 }}
-              </button>
+              </SkyButton>
               <time>{{ relativeTime(selectedPost.created_at) }}</time>
             </div>
           </article>
@@ -1193,7 +1207,7 @@ onBeforeUnmount(() => {
               icon-only
               :aria-label="t('newPost')"
               @click="beginPostCompose"
-              ><Plus
+              ><SkyIcon :icon="Plus"
             /></SkyLink>
           </template>
           <template #right>
@@ -1203,7 +1217,9 @@ onBeforeUnmount(() => {
               :aria-label="t('activity')"
               @click="showTab('activity')"
               ><span class="ps-badge-anchor"
-                ><Bell /><b v-if="unreadCount">{{ unreadCount }}</b></span
+                ><SkyIcon :icon="Bell" /><b v-if="unreadCount">{{
+                  unreadCount
+                }}</b></span
               ></SkyLink
             >
           </template>
@@ -1211,7 +1227,11 @@ onBeforeUnmount(() => {
         <SkyScrollArea with-tabbar class="ps-screen ps-feed">
           <div class="ps-stories" :aria-label="t('stories')">
             <LiveProfileStrip :entries="liveEntries" @join="joinLive" />
-            <button class="ps-story-add" @click="beginStoryCompose">
+            <SkyButton
+              variant="content"
+              class="ps-story-add"
+              @click="beginStoryCompose"
+            >
               <span class="ps-story-ring ps-story-ring--add"
                 ><span class="ps-avatar"
                   ><img
@@ -1221,10 +1241,11 @@ onBeforeUnmount(() => {
                   /><template v-else>{{
                     initials(store.profile?.display_name ?? '')
                   }}</template></span
-                ><Plus /></span
+                ><SkyIcon :icon="Plus" /></span
               ><small>{{ t('yourStory') }}</small>
-            </button>
-            <button
+            </SkyButton>
+            <SkyButton
+              variant="content"
               v-for="group in storyGroups"
               :key="group.stories[0].profile_id"
               @click="
@@ -1248,10 +1269,10 @@ onBeforeUnmount(() => {
                   }}</template></span
                 ></span
               ><small>{{ group.handle }}</small>
-            </button>
+            </SkyButton>
           </div>
           <div v-if="!store.feed.length" class="ps-empty">
-            <Images /><strong>{{ t('emptyFeed') }}</strong
+            <SkyIcon :icon="Images" /><strong>{{ t('emptyFeed') }}</strong
             ><span>{{ t('emptyFeedBody') }}</span
             ><SkyButton rounded @click="showTab('explore')">{{
               t('discoverPeople')
@@ -1263,7 +1284,11 @@ onBeforeUnmount(() => {
             class="ps-post-card"
           >
             <header class="ps-post-header">
-              <button class="ps-author" @click="openAvatar(post.profile_id)">
+              <SkyButton
+                variant="content"
+                class="ps-author"
+                @click="openAvatar(post.profile_id)"
+              >
                 <span
                   class="ps-avatar ps-avatar--small"
                   :class="{ 'realtime-live-avatar': liveFor(post.profile_id) }"
@@ -1277,10 +1302,13 @@ onBeforeUnmount(() => {
                 ><span
                   ><strong
                     >{{ post.display_name }}
-                    <Check v-if="post.verified" class="ps-verified" /></strong
+                    <SkyIcon
+                      :icon="Check"
+                      v-if="post.verified"
+                      class="ps-verified" /></strong
                   ><small v-if="post.location">{{ post.location }}</small></span
                 >
-              </button>
+              </SkyButton>
               <SkyLink
                 component="button"
                 icon-only
@@ -1288,7 +1316,7 @@ onBeforeUnmount(() => {
                 :aria-label="t('more')"
                 @click="showPostActions($event, post)"
               >
-                <MoreHorizontal />
+                <SkyIcon :icon="MoreHorizontal" />
               </SkyLink>
             </header>
             <div class="ps-carousel-shell">
@@ -1321,7 +1349,7 @@ onBeforeUnmount(() => {
                   :disabled="(carouselIndexes[post.id] ?? 0) === 0"
                   @click="moveCarousel(post, -1)"
                 >
-                  <ChevronLeft />
+                  <SkyIcon :icon="ChevronLeft" />
                 </SkyButton>
                 <SkyButton
                   glass
@@ -1333,7 +1361,7 @@ onBeforeUnmount(() => {
                   "
                   @click="moveCarousel(post, 1)"
                 >
-                  <ChevronRight />
+                  <SkyIcon :icon="ChevronRight" />
                 </SkyButton>
                 <div class="ps-dots">
                   <span
@@ -1348,7 +1376,8 @@ onBeforeUnmount(() => {
             </div>
             <div class="ps-post-actions">
               <div>
-                <button
+                <SkyButton
+                  variant="content"
                   :class="{
                     active: post.is_liked,
                     'reaction-pop':
@@ -1360,14 +1389,20 @@ onBeforeUnmount(() => {
                   }"
                   @click="reactWithPulse(post, 'like')"
                 >
-                  <Heart :fill="post.is_liked ? 'currentColor' : 'none'" />
-                  <span>{{ count(post.like_count) }}</span></button
-                ><button @click="openComments(post)">
-                  <MessageCircle />
-                  <span>{{ count(post.comment_count) }}</span></button
-                ><button @click="sharePost(post)"><Share2 /></button>
+                  <SkyIcon
+                    :icon="Heart"
+                    :fill="post.is_liked ? 'currentColor' : 'none'"
+                  />
+                  <span>{{ count(post.like_count) }}</span></SkyButton
+                ><SkyButton variant="content" @click="openComments(post)">
+                  <SkyIcon :icon="MessageCircle" />
+                  <span>{{ count(post.comment_count) }}</span></SkyButton
+                ><SkyButton variant="content" @click="sharePost(post)"
+                  ><SkyIcon :icon="Share2"
+                /></SkyButton>
               </div>
-              <button
+              <SkyButton
+                variant="content"
                 :class="{
                   active: post.is_saved,
                   'reaction-pop':
@@ -1379,17 +1414,24 @@ onBeforeUnmount(() => {
                 }"
                 @click="reactWithPulse(post, 'save')"
               >
-                <Bookmark :fill="post.is_saved ? 'currentColor' : 'none'" />
-              </button>
+                <SkyIcon
+                  :icon="Bookmark"
+                  :fill="post.is_saved ? 'currentColor' : 'none'"
+                />
+              </SkyButton>
             </div>
             <div class="ps-post-copy">
               <p v-if="post.caption">
                 <b>@{{ post.handle }}</b> {{ post.caption }}
               </p>
-              <button v-if="post.comments_enabled" @click="openComments(post)">
+              <SkyButton
+                variant="content"
+                v-if="post.comments_enabled"
+                @click="openComments(post)"
+              >
                 {{
                   t('viewComments', { count: count(post.comment_count) })
-                }}</button
+                }}</SkyButton
               ><time>{{ relativeTime(post.created_at) }}</time>
             </div>
           </article>
@@ -1426,7 +1468,8 @@ onBeforeUnmount(() => {
             @retry="store.search(search)"
           />
           <div class="ps-grid">
-            <button
+            <SkyButton
+              variant="content"
               v-for="post in search ? store.searchPosts : store.explore"
               :key="post.id"
               @click="openPost(post)"
@@ -1441,12 +1484,13 @@ onBeforeUnmount(() => {
                 :src="post.media[0].url"
                 alt=""
               /><span v-if="post.media.length > 1"
-                ><Images />{{ post.media.length }}</span
-              ><Video
+                ><SkyIcon :icon="Images" />{{ post.media.length }}</span
+              ><SkyIcon
+                :icon="Video"
                 v-else-if="post.media[0]?.media_type === 'video'"
                 class="ps-grid-video"
               />
-            </button>
+            </SkyButton>
           </div>
           <div
             v-if="
@@ -1456,7 +1500,7 @@ onBeforeUnmount(() => {
             "
             class="ps-empty"
           >
-            <Search /><strong>{{ t('noResults') }}</strong
+            <SkyIcon :icon="Search" /><strong>{{ t('noResults') }}</strong
             ><span>{{ t('noResultsBody') }}</span>
           </div>
         </SkyScrollArea>
@@ -1527,13 +1571,14 @@ onBeforeUnmount(() => {
                     playsinline
                   />
                   <img v-else :src="currentComposeMedia.url" alt="" />
-                  <button
+                  <SkyButton
+                    variant="content"
                     class="ps-selection-remove"
                     :aria-label="t('remove')"
                     @click="removeComposeMedia(currentComposeMedia.id)"
                   >
-                    <X />
-                  </button>
+                    <SkyIcon :icon="X" />
+                  </SkyButton>
                 </div>
                 <template v-if="selectedMedia.length > 1">
                   <SkyButton
@@ -1545,7 +1590,7 @@ onBeforeUnmount(() => {
                     :disabled="composePreviewIndex === 0"
                     @click="moveComposePreview(-1)"
                   >
-                    <ChevronLeft />
+                    <SkyIcon :icon="ChevronLeft" />
                   </SkyButton>
                   <SkyButton
                     glass
@@ -1556,7 +1601,7 @@ onBeforeUnmount(() => {
                     :disabled="composePreviewIndex === selectedMedia.length - 1"
                     @click="moveComposePreview(1)"
                   >
-                    <ChevronRight />
+                    <SkyIcon :icon="ChevronRight" />
                   </SkyButton>
                   <span class="ps-selection-counter">
                     {{ composePreviewIndex + 1 }}/{{ selectedMedia.length }}
@@ -1575,12 +1620,12 @@ onBeforeUnmount(() => {
                 <span
                   v-if="currentComposeMedia.mediaType === 'video'"
                   class="ps-video-preview-badge"
-                  ><Video />{{ t('video') }}</span
+                  ><SkyIcon :icon="Video" />{{ t('video') }}</span
                 >
               </div>
               <template v-else>
                 <div class="ps-create-intro">
-                  <span><ImagePlus /></span
+                  <span><SkyIcon :icon="ImagePlus" /></span
                   ><strong>{{
                     t(composeKind === 'post' ? 'newPost' : 'newStory')
                   }}</strong>
@@ -1595,30 +1640,42 @@ onBeforeUnmount(() => {
                   </p>
                 </div>
                 <div class="ps-source-grid">
-                  <button @click="openComposeMedia('photos', 'photo')">
-                    <Images /><span
+                  <SkyButton
+                    variant="content"
+                    @click="openComposeMedia('photos', 'photo')"
+                  >
+                    <SkyIcon :icon="Images" /><span
                       ><strong>{{ t('photo') }}</strong
                       ><small>{{ t('gallery') }}</small></span
                     >
-                  </button>
-                  <button @click="openComposeMedia('camera', 'photo')">
-                    <Camera /><span
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
+                    @click="openComposeMedia('camera', 'photo')"
+                  >
+                    <SkyIcon :icon="Camera" /><span
                       ><strong>{{ t('photo') }}</strong
                       ><small>{{ t('camera') }}</small></span
                     >
-                  </button>
-                  <button @click="openComposeMedia('photos', 'video')">
-                    <Video /><span
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
+                    @click="openComposeMedia('photos', 'video')"
+                  >
+                    <SkyIcon :icon="Video" /><span
                       ><strong>{{ t('video') }}</strong
                       ><small>{{ t('gallery') }}</small></span
                     >
-                  </button>
-                  <button @click="openComposeMedia('camera', 'video')">
-                    <Camera /><span
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
+                    @click="openComposeMedia('camera', 'video')"
+                  >
+                    <SkyIcon :icon="Camera" /><span
                       ><strong>{{ t('video') }}</strong
                       ><small>{{ t('camera') }}</small></span
                     >
-                  </button>
+                  </SkyButton>
                 </div>
               </template>
               <SkyButton
@@ -1629,7 +1686,7 @@ onBeforeUnmount(() => {
                 class="ps-change-selection"
                 @click="changeComposeSelection"
               >
-                <Images />{{ t('changePhotos') }}
+                <SkyIcon :icon="Images" />{{ t('changePhotos') }}
               </SkyButton>
             </SkyCard>
             <div class="ps-compose-fields">
@@ -1654,7 +1711,7 @@ onBeforeUnmount(() => {
                 v-model="location"
                 :label="t('location')"
                 :placeholder="t('locationPlaceholder')"
-                ><template #media><MapPin /></template
+                ><template #media><SkyIcon :icon="MapPin" /></template
               ></SkyField>
               <label v-if="composeKind === 'post'" class="ps-toggle-row"
                 ><span
@@ -1675,10 +1732,11 @@ onBeforeUnmount(() => {
               icon-only
               :aria-label="t('moderation')"
               @click="openModeration"
-              ><ShieldAlert /></SkyLink></template
+              ><SkyIcon :icon="ShieldAlert" /></SkyLink></template
         ></SkyNavbar>
         <SkyScrollArea with-tabbar class="ps-screen ps-activity">
-          <button
+          <SkyButton
+            variant="content"
             v-for="activity in store.activities"
             :key="activity.id"
             class="ps-activity-row"
@@ -1698,7 +1756,10 @@ onBeforeUnmount(() => {
             ><span
               ><strong
                 >{{ activity.display_name }}
-                <Check v-if="activity.verified" class="ps-verified" /></strong
+                <SkyIcon
+                  :icon="Check"
+                  v-if="activity.verified"
+                  class="ps-verified" /></strong
               ><small
                 >{{ t(`activityKinds.${activity.kind}`) }} ·
                 {{ relativeTime(activity.created_at) }}</small
@@ -1722,9 +1783,9 @@ onBeforeUnmount(() => {
                 >{{ t('decline') }}</SkyButton
               >
             </div>
-          </button>
+          </SkyButton>
           <div v-if="!store.activities.length" class="ps-empty">
-            <Bell /><strong>{{ t('noActivity') }}</strong>
+            <SkyIcon :icon="Bell" /><strong>{{ t('noActivity') }}</strong>
           </div>
         </SkyScrollArea>
       </template>
@@ -1742,7 +1803,7 @@ onBeforeUnmount(() => {
               :aria-label="t('newPost')"
               @click="beginPostCompose"
             >
-              <Plus />
+              <SkyIcon :icon="Plus" />
             </SkyLink>
             <SkyLink
               v-else
@@ -1751,12 +1812,13 @@ onBeforeUnmount(() => {
               :aria-label="phone.t('Common.back')"
               @click="goBackFromProfile"
             >
-              <ChevronLeft />
+              <SkyIcon :icon="ChevronLeft" />
             </SkyLink>
           </template>
           <template #title>
             <span class="ps-profile-navbar-title">
-              <LockKeyhole
+              <SkyIcon
+                :icon="LockKeyhole"
                 v-if="currentProfile?.private"
                 :aria-label="t('privateProfileSetting')"
               />
@@ -1769,7 +1831,7 @@ onBeforeUnmount(() => {
               icon-only
               :aria-label="t('more')"
               @click="showProfileActions"
-              ><MoreHorizontal /></SkyLink></template
+              ><SkyIcon :icon="MoreHorizontal" /></SkyLink></template
         ></SkyNavbar>
         <SkyScrollArea
           v-if="currentProfile"
@@ -1794,21 +1856,30 @@ onBeforeUnmount(() => {
               }}</template></SkyButton
             >
             <div class="ps-profile-stats">
-              <button>
+              <SkyButton variant="content">
                 <strong>{{ count(currentProfile.post_count) }}</strong
-                ><small>{{ t('posts') }}</small></button
-              ><button @click="openConnections('followers')">
+                ><small>{{ t('posts') }}</small></SkyButton
+              ><SkyButton
+                variant="content"
+                @click="openConnections('followers')"
+              >
                 <strong>{{ count(currentProfile.followers) }}</strong
-                ><small>{{ t('followers') }}</small></button
-              ><button @click="openConnections('following')">
+                ><small>{{ t('followers') }}</small></SkyButton
+              ><SkyButton
+                variant="content"
+                @click="openConnections('following')"
+              >
                 <strong>{{ count(currentProfile.following) }}</strong
                 ><small>{{ t('following') }}</small>
-              </button>
+              </SkyButton>
             </div>
             <div class="ps-profile-copy">
               <strong
                 >{{ currentProfile.display_name }}
-                <Check v-if="currentProfile.verified" class="ps-verified"
+                <SkyIcon
+                  :icon="Check"
+                  v-if="currentProfile.verified"
+                  class="ps-verified"
               /></strong>
               <p>{{ currentProfile.bio || t('emptyBio') }}</p>
             </div>
@@ -1843,7 +1914,9 @@ onBeforeUnmount(() => {
             </div>
           </section>
           <div v-if="currentProfile.locked" class="ps-empty ps-private">
-            <LockKeyhole /><strong>{{ t('privateProfile') }}</strong
+            <SkyIcon :icon="LockKeyhole" /><strong>{{
+              t('privateProfile')
+            }}</strong
             ><span>{{ t('privateProfileBody') }}</span>
           </div>
           <template v-else>
@@ -1852,7 +1925,8 @@ onBeforeUnmount(() => {
               role="tablist"
               :aria-label="t('posts')"
             >
-              <button
+              <SkyButton
+                variant="content"
                 role="tab"
                 :aria-selected="profileSection === 'all'"
                 :class="{ active: profileSection === 'all' }"
@@ -1860,9 +1934,10 @@ onBeforeUnmount(() => {
                 :title="t('allPosts')"
                 @click="profileSection = 'all'"
               >
-                <Grid3X3 />
-              </button>
-              <button
+                <SkyIcon :icon="Grid3X3" />
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 role="tab"
                 :aria-selected="profileSection === 'videos'"
                 :class="{ active: profileSection === 'videos' }"
@@ -1870,9 +1945,10 @@ onBeforeUnmount(() => {
                 :title="t('videos')"
                 @click="profileSection = 'videos'"
               >
-                <Video />
-              </button>
-              <button
+                <SkyIcon :icon="Video" />
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 role="tab"
                 :aria-selected="profileSection === 'tagged'"
                 :class="{ active: profileSection === 'tagged' }"
@@ -1880,11 +1956,12 @@ onBeforeUnmount(() => {
                 :title="t('taggedPosts')"
                 @click="profileSection = 'tagged'"
               >
-                <UserRound />
-              </button>
+                <SkyIcon :icon="UserRound" />
+              </SkyButton>
             </div>
             <div class="ps-grid">
-              <button
+              <SkyButton
+                variant="content"
                 v-for="post in profileGrid"
                 :key="post.id"
                 @click="openPost(post)"
@@ -1899,12 +1976,13 @@ onBeforeUnmount(() => {
                   :src="post.media[0].url"
                   alt=""
                 /><span v-if="post.media.length > 1"
-                  ><Images />{{ post.media.length }}</span
-                ><Video
+                  ><SkyIcon :icon="Images" />{{ post.media.length }}</span
+                ><SkyIcon
+                  :icon="Video"
                   v-else-if="post.media[0]?.media_type === 'video'"
                   class="ps-grid-video"
                 />
-              </button>
+              </SkyButton>
             </div>
           </template>
         </SkyScrollArea>
@@ -1923,14 +2001,14 @@ onBeforeUnmount(() => {
             class="ps-nav-button"
             @click="showTab('home')"
           >
-            <Home /><small>{{ t('home') }}</small>
+            <SkyIcon :icon="Home" /><small>{{ t('home') }}</small>
           </SkySegmentedButton>
           <SkySegmentedButton
             :active="tab === 'explore'"
             class="ps-nav-button"
             @click="showTab('explore')"
           >
-            <Compass /><small>{{ t('explore') }}</small>
+            <SkyIcon :icon="Compass" /><small>{{ t('explore') }}</small>
           </SkySegmentedButton>
           <SkySegmentedButton
             :active="tab === 'activity'"
@@ -1938,7 +2016,9 @@ onBeforeUnmount(() => {
             @click="showTab('activity')"
           >
             <span class="ps-badge-anchor"
-              ><Bell /><b v-if="unreadCount">{{ unreadCount }}</b></span
+              ><SkyIcon :icon="Bell" /><b v-if="unreadCount">{{
+                unreadCount
+              }}</b></span
             ><small>{{ t('activity') }}</small>
           </SkySegmentedButton>
           <SkySegmentedButton
@@ -1946,7 +2026,7 @@ onBeforeUnmount(() => {
             class="ps-nav-button"
             @click="showTab('profile')"
           >
-            <UserRound /><small>{{ t('profile') }}</small>
+            <SkyIcon :icon="UserRound" /><small>{{ t('profile') }}</small>
           </SkySegmentedButton>
         </SkySegmented>
       </SkyPillNavigation>
@@ -1964,13 +2044,19 @@ onBeforeUnmount(() => {
       <section class="ps-comments-sheet">
         <header>
           <strong>{{ t('comments') }}</strong
-          ><button :aria-label="t('share')" @click="shareCommentPost">
-            <Share2 />
-          </button>
+          ><SkyButton
+            variant="content"
+            :aria-label="t('share')"
+            @click="shareCommentPost"
+          >
+            <SkyIcon :icon="Share2" />
+          </SkyButton>
         </header>
         <div class="ps-comments-list">
           <div v-if="!store.comments.length" class="ps-empty">
-            <MessageCircle /><strong>{{ t('noComments') }}</strong>
+            <SkyIcon :icon="MessageCircle" /><strong>{{
+              t('noComments')
+            }}</strong>
           </div>
           <div
             v-for="thread in commentThreads"
@@ -1978,7 +2064,8 @@ onBeforeUnmount(() => {
             class="ps-comment-thread"
           >
             <article class="ps-comment-row">
-              <button
+              <SkyButton
+                variant="content"
                 class="ps-avatar ps-avatar--comment"
                 @click="openProfile(thread.comment.profile_id)"
               >
@@ -1989,32 +2076,44 @@ onBeforeUnmount(() => {
                 /><template v-else>{{
                   initials(thread.comment.display_name)
                 }}</template>
-              </button>
+              </SkyButton>
               <div class="ps-comment-copy">
                 <header>
-                  <button @click="openProfile(thread.comment.profile_id)">
+                  <SkyButton
+                    variant="content"
+                    @click="openProfile(thread.comment.profile_id)"
+                  >
                     {{ thread.comment.display_name }}
-                    <Check
+                    <SkyIcon
+                      :icon="Check"
                       v-if="thread.comment.verified"
-                      class="ps-verified"
-                    /></button
+                      class="ps-verified" /></SkyButton
                   ><time>{{ relativeTime(thread.comment.created_at) }}</time>
                 </header>
                 <p>{{ thread.comment.body }}</p>
                 <footer>
-                  <button @click="startReply(thread.comment)">
-                    <Reply />{{ t('reply') }}</button
-                  ><button
+                  <SkyButton
+                    variant="content"
+                    @click="startReply(thread.comment)"
+                  >
+                    <SkyIcon :icon="Reply" />{{ t('reply') }}</SkyButton
+                  ><SkyButton
+                    variant="content"
                     v-if="thread.comment.is_owner"
                     @click="store.removeComment(thread.comment.id)"
                   >
-                    <Trash2 />{{ t('remove') }}</button
-                  ><button v-else @click="reportComment(thread.comment)">
+                    <SkyIcon :icon="Trash2" />{{ t('remove') }}</SkyButton
+                  ><SkyButton
+                    variant="content"
+                    v-else
+                    @click="reportComment(thread.comment)"
+                  >
                     {{ t('report') }}
-                  </button>
+                  </SkyButton>
                 </footer>
               </div>
-              <button
+              <SkyButton
+                variant="content"
                 class="ps-comment-like"
                 :class="{
                   active: thread.comment.is_liked,
@@ -2022,12 +2121,14 @@ onBeforeUnmount(() => {
                 }"
                 @click="reactComment(thread.comment)"
               >
-                <Heart
+                <SkyIcon
+                  :icon="Heart"
                   :fill="thread.comment.is_liked ? 'currentColor' : 'none'"
                 /><small>{{ thread.comment.like_count || '' }}</small>
-              </button>
+              </SkyButton>
             </article>
-            <button
+            <SkyButton
+              variant="content"
               v-if="thread.replies.length"
               class="ps-comment-replies-toggle"
               @click="toggleCommentThread(thread.comment.id)"
@@ -2041,14 +2142,15 @@ onBeforeUnmount(() => {
                   { count: count(thread.replies.length) },
                 )
               }}
-            </button>
+            </SkyButton>
             <template v-if="expandedCommentThreads.has(thread.comment.id)">
               <article
                 v-for="reply in thread.replies"
                 :key="reply.id"
                 class="ps-comment-row ps-comment-row--reply"
               >
-                <button
+                <SkyButton
+                  variant="content"
                   class="ps-avatar ps-avatar--reply"
                   @click="openProfile(reply.profile_id)"
                 >
@@ -2059,15 +2161,18 @@ onBeforeUnmount(() => {
                   /><template v-else>{{
                     initials(reply.display_name)
                   }}</template>
-                </button>
+                </SkyButton>
                 <div class="ps-comment-copy">
                   <header>
-                    <button @click="openProfile(reply.profile_id)">
+                    <SkyButton
+                      variant="content"
+                      @click="openProfile(reply.profile_id)"
+                    >
                       {{ reply.display_name }}
-                      <Check
+                      <SkyIcon
+                        :icon="Check"
                         v-if="reply.verified"
-                        class="ps-verified"
-                      /></button
+                        class="ps-verified" /></SkyButton
                     ><time>{{ relativeTime(reply.created_at) }}</time>
                   </header>
                   <p>
@@ -2077,19 +2182,25 @@ onBeforeUnmount(() => {
                     {{ reply.display_body }}
                   </p>
                   <footer>
-                    <button @click="startReply(reply)">
-                      <Reply />{{ t('reply') }}</button
-                    ><button
+                    <SkyButton variant="content" @click="startReply(reply)">
+                      <SkyIcon :icon="Reply" />{{ t('reply') }}</SkyButton
+                    ><SkyButton
+                      variant="content"
                       v-if="reply.is_owner"
                       @click="store.removeComment(reply.id)"
                     >
-                      <Trash2 />{{ t('remove') }}</button
-                    ><button v-else @click="reportComment(reply)">
+                      <SkyIcon :icon="Trash2" />{{ t('remove') }}</SkyButton
+                    ><SkyButton
+                      variant="content"
+                      v-else
+                      @click="reportComment(reply)"
+                    >
                       {{ t('report') }}
-                    </button>
+                    </SkyButton>
                   </footer>
                 </div>
-                <button
+                <SkyButton
+                  variant="content"
                   class="ps-comment-like"
                   :class="{
                     active: reply.is_liked,
@@ -2097,10 +2208,11 @@ onBeforeUnmount(() => {
                   }"
                   @click="reactComment(reply)"
                 >
-                  <Heart
+                  <SkyIcon
+                    :icon="Heart"
                     :fill="reply.is_liked ? 'currentColor' : 'none'"
                   /><small>{{ reply.like_count || '' }}</small>
-                </button>
+                </SkyButton>
               </article>
             </template>
           </div>
@@ -2113,9 +2225,13 @@ onBeforeUnmount(() => {
             <span>{{
               t('replyingTo', { handle: `@${replyingTo.handle}` })
             }}</span
-            ><button :aria-label="t('cancel')" @click="replyingTo = null">
-              <X />
-            </button>
+            ><SkyButton
+              variant="content"
+              :aria-label="t('cancel')"
+              @click="replyingTo = null"
+            >
+              <SkyIcon :icon="X" />
+            </SkyButton>
           </div>
           <SkyMessagebar
             v-model="commentBody"
@@ -2123,8 +2239,12 @@ onBeforeUnmount(() => {
             :placeholder="t(replyingTo ? 'replyPlaceholder' : 'addComment')"
             @keydown.enter.prevent="submitComment"
             ><template #right
-              ><button :disabled="!commentBody.trim()" @click="submitComment">
-                <Send /></button></template
+              ><SkyButton
+                variant="content"
+                :disabled="!commentBody.trim()"
+                @click="submitComment"
+              >
+                <SkyIcon :icon="Send" /></SkyButton></template
           ></SkyMessagebar>
         </div>
       </section>
@@ -2140,11 +2260,17 @@ onBeforeUnmount(() => {
       <div class="ps-sheet-handle" />
       <section class="ps-edit-sheet">
         <header>
-          <button @click="profileEditOpen = false">{{ t('cancel') }}</button
+          <SkyButton variant="content" @click="profileEditOpen = false">{{
+            t('cancel')
+          }}</SkyButton
           ><strong>{{ t('editProfile') }}</strong
-          ><button class="ps-save-link" @click="saveProfile">
+          ><SkyButton
+            variant="content"
+            class="ps-save-link"
+            @click="saveProfile"
+          >
             {{ t('done') }}
-          </button>
+          </SkyButton>
         </header>
         <div class="ps-edit-avatar">
           <span class="ps-avatar ps-avatar--edit"
@@ -2161,14 +2287,18 @@ onBeforeUnmount(() => {
           ><strong>{{ t('avatar') }}</strong>
           <div>
             <SkyButton small rounded tonal @click="openAvatarMedia('photos')"
-              ><Images />{{ t('gallery') }}</SkyButton
+              ><SkyIcon :icon="Images" />{{ t('gallery') }}</SkyButton
             ><SkyButton small rounded tonal @click="openAvatarMedia('camera')"
-              ><Camera />{{ t('camera') }}</SkyButton
+              ><SkyIcon :icon="Camera" />{{ t('camera') }}</SkyButton
             >
           </div>
-          <button class="ps-danger-link" @click="clearAvatarSelection">
+          <SkyButton
+            variant="content"
+            class="ps-danger-link"
+            @click="clearAvatarSelection"
+          >
             {{ t('removeAvatar') }}
-          </button>
+          </SkyButton>
         </div>
         <div class="ps-edit-fields">
           <SkyList inset strong class="ps-edit-field-list">
@@ -2192,8 +2322,8 @@ onBeforeUnmount(() => {
           </SkyList>
           <section class="ps-privacy-control">
             <span class="ps-privacy-control__icon">
-              <LockKeyhole v-if="profileDraft.private" />
-              <UserRound v-else />
+              <SkyIcon :icon="LockKeyhole" v-if="profileDraft.private" />
+              <SkyIcon :icon="UserRound" v-else />
             </span>
             <div>
               <strong>{{
@@ -2225,12 +2355,17 @@ onBeforeUnmount(() => {
       <section class="ps-connections-sheet">
         <header>
           <span
-            ><UsersRound /><strong>{{ t(connectionsMode) }}</strong></span
-          ><button @click="connectionsOpen = false"><X /></button>
+            ><SkyIcon :icon="UsersRound" /><strong>{{
+              t(connectionsMode)
+            }}</strong></span
+          ><SkyButton variant="content" @click="connectionsOpen = false"
+            ><SkyIcon :icon="X"
+          /></SkyButton>
         </header>
         <div>
           <article v-for="profile in store.connections" :key="profile.id">
-            <button
+            <SkyButton
+              variant="content"
               class="ps-connection-profile"
               @click="openConnectionProfile(profile)"
             >
@@ -2245,9 +2380,12 @@ onBeforeUnmount(() => {
               ><span
                 ><strong
                   >{{ profile.display_name }}
-                  <Check v-if="profile.verified" class="ps-verified" /></strong
+                  <SkyIcon
+                    :icon="Check"
+                    v-if="profile.verified"
+                    class="ps-verified" /></strong
                 ><small>@{{ profile.handle }}</small></span
-              ></button
+              ></SkyButton
             ><SkyButton
               v-if="!profile.is_owner"
               small
@@ -2266,7 +2404,9 @@ onBeforeUnmount(() => {
             >
           </article>
           <div v-if="!store.connections.length" class="ps-empty">
-            <UsersRound /><strong>{{ t('noConnections') }}</strong>
+            <SkyIcon :icon="UsersRound" /><strong>{{
+              t('noConnections')
+            }}</strong>
           </div>
         </div>
       </section>
@@ -2299,7 +2439,8 @@ onBeforeUnmount(() => {
           ><span
             ><strong>@{{ selectedStory.handle }}</strong
             ><small>{{ relativeTime(selectedStory.created_at) }}</small></span
-          ><button @click="selectedStory = null"><X /></button
+          ><SkyButton variant="content" @click="selectedStory = null"
+            ><SkyIcon :icon="X" /></SkyButton
         ></SkyGlass>
         <video
           v-if="selectedStory.media_type === 'video'"
@@ -2309,18 +2450,26 @@ onBeforeUnmount(() => {
           playsinline
         /><img v-else :src="selectedStory.url" alt="" />
         <p v-if="selectedStory.body">{{ selectedStory.body }}</p>
-        <button class="ps-story-nav ps-story-nav--left" @click="nextStory(-1)">
-          <ChevronLeft /></button
-        ><button class="ps-story-nav ps-story-nav--right" @click="nextStory(1)">
-          <ChevronRight />
-        </button>
+        <SkyButton
+          variant="content"
+          class="ps-story-nav ps-story-nav--left"
+          @click="nextStory(-1)"
+        >
+          <SkyIcon :icon="ChevronLeft" /></SkyButton
+        ><SkyButton
+          variant="content"
+          class="ps-story-nav ps-story-nav--right"
+          @click="nextStory(1)"
+        >
+          <SkyIcon :icon="ChevronRight" />
+        </SkyButton>
         <div class="ps-story-actions">
           <SkyButton
             v-if="selectedStory.is_owner"
             rounded
             tonal
             @click="showStoryViewers(selectedStory)"
-            ><Eye />{{
+            ><SkyIcon :icon="Eye" />{{
               t('seenBy', { count: count(selectedStory.view_count) })
             }}</SkyButton
           ><SkyButton
@@ -2328,7 +2477,7 @@ onBeforeUnmount(() => {
             rounded
             tonal
             @click="removeSelectedStory"
-            ><Trash2 />{{ t('removeStory') }}</SkyButton
+            ><SkyIcon :icon="Trash2" />{{ t('removeStory') }}</SkyButton
           ><SkyButton v-else rounded tonal @click="reportSelectedStory">{{
             t('report')
           }}</SkyButton>
@@ -2346,12 +2495,16 @@ onBeforeUnmount(() => {
       <section class="ps-connections-sheet">
         <header>
           <span
-            ><Eye /><strong>{{ t('storyViewers') }}</strong></span
-          ><button @click="storyViewersOpen = false"><X /></button>
+            ><SkyIcon :icon="Eye" /><strong>{{
+              t('storyViewers')
+            }}</strong></span
+          ><SkyButton variant="content" @click="storyViewersOpen = false"
+            ><SkyIcon :icon="X"
+          /></SkyButton>
         </header>
         <div>
           <article v-for="viewer in store.storyViewers" :key="viewer.id">
-            <button class="ps-connection-profile">
+            <SkyButton variant="content" class="ps-connection-profile">
               <span class="ps-avatar"
                 ><img
                   v-if="viewer.avatar_url"
@@ -2364,7 +2517,7 @@ onBeforeUnmount(() => {
                 ><strong>{{ viewer.display_name }}</strong
                 ><small>@{{ viewer.handle }}</small></span
               >
-            </button>
+            </SkyButton>
           </article>
         </div>
       </section></SkySheet
@@ -2382,7 +2535,9 @@ onBeforeUnmount(() => {
           <strong>{{
             t('reportTarget', { target: reportTarget?.label ?? '' })
           }}</strong
-          ><button @click="reportOpen = false"><X /></button>
+          ><SkyButton variant="content" @click="reportOpen = false"
+            ><SkyIcon :icon="X"
+          /></SkyButton>
         </header>
         <SkyList inset strong
           ><SkyListItem
@@ -2394,7 +2549,8 @@ onBeforeUnmount(() => {
             :title="t(`reportReasons.${reason}`)"
             @click="reportReason = reason"
             ><template #after
-              ><Check
+              ><SkyIcon
+                :icon="Check"
                 v-if="reportReason === reason"
                 class="ps-selection-check" /></template></SkyListItem></SkyList
         ><SkyField
@@ -2419,10 +2575,12 @@ onBeforeUnmount(() => {
       <section class="ps-moderation-sheet">
         <header>
           <strong>{{ t('moderation') }}</strong
-          ><button @click="moderationOpen = false"><X /></button>
+          ><SkyButton variant="content" @click="moderationOpen = false"
+            ><SkyIcon :icon="X"
+          /></SkyButton>
         </header>
         <div v-if="!store.reports.length" class="ps-empty">
-          <ShieldAlert /><strong>{{ t('noReports') }}</strong>
+          <SkyIcon :icon="ShieldAlert" /><strong>{{ t('noReports') }}</strong>
         </div>
         <SkyCard
           v-for="report in store.reports"
@@ -2768,7 +2926,7 @@ button {
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--sky-surface-variant);
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   font-size: 14px;
   font-weight: 750;
 }
@@ -2932,7 +3090,7 @@ button {
   height: 44px;
   min-height: 44px;
   padding: 0;
-  color: white;
+  color: var(--sky-button-text, #ffffff);
   transform: translateY(-50%);
 }
 .ps-carousel-button:disabled {
@@ -3057,7 +3215,7 @@ button {
 .ps-publish-link {
   min-width: 52px;
   justify-content: flex-end;
-  color: var(--ps-accent) !important;
+  color: var(--sky-button-text, #ffffff) !important;
   font-size: 13px;
   font-weight: 750;
 }
@@ -3760,7 +3918,7 @@ button {
   padding: 7px 0;
   border: 0;
   background: transparent;
-  color: var(--ps-accent);
+  color: var(--sky-button-text, #ffffff);
 }
 .ps-save-link {
   font-weight: 750;

@@ -30,8 +30,8 @@ describe('SkyDropdown', () => {
     expect(component).toContain('item.destructive')
     expect(component).toContain('item.disabled')
     expect(component).toContain('item.separatorBefore')
-    expect(component).toContain('<Check')
-    expect(component).toContain('<ChevronRight')
+    expect(component).toMatch(/<SkyIcon\s+:icon="Check"/)
+    expect(component).toMatch(/<SkyIcon\s+:icon="ChevronRight"/)
   })
 
   it('keeps menu rows touch-friendly with visible interaction feedback', () => {

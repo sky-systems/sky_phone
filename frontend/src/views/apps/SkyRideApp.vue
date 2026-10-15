@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Bell,
   BriefcaseBusiness,
@@ -55,7 +57,6 @@ import {
   SkyBlockHeader as kBlockHeader,
   SkyBlockTitle as kBlockTitle,
   SkyButton,
-  SkyButton as kButton,
   SkyCard as kCard,
   SkyChip as kChip,
   SkyDialog as kDialog,
@@ -613,12 +614,12 @@ onBeforeUnmount(() => {
       :content-wrap="false"
       class="skyride-unavailable"
     >
-      <CarFront :size="36" aria-hidden="true" />
+      <SkyIcon :icon="CarFront" :size="36" aria-hidden="true" />
       <strong>{{ phone.t('Apps.skyride.unavailable') }}</strong>
       <p>{{ errorText(skyride.error) }}</p>
-      <k-button rounded @click="skyride.bootstrap()">
+      <SkyButton rounded @click="skyride.bootstrap()">
         {{ phone.t('Apps.skyride.tryAgain') }}
-      </k-button>
+      </SkyButton>
     </k-card>
 
     <template v-else>
@@ -651,7 +652,7 @@ onBeforeUnmount(() => {
                   <h1>{{ phone.t('Apps.skyride.whereTo') }}</h1>
                 </div>
                 <span class="skyride-heading__icon" aria-hidden="true">
-                  <Navigation :size="20" aria-hidden="true" />
+                  <SkyIcon :icon="Navigation" :size="20" aria-hidden="true" />
                 </span>
               </k-block-header>
 
@@ -670,7 +671,9 @@ onBeforeUnmount(() => {
                   :subtitle="locationLabel(destination)"
                   @click="openLocationPicker('destination')"
                 >
-                  <template #media><MapPin :size="19" /></template>
+                  <template #media
+                    ><SkyIcon :icon="MapPin" :size="19"
+                  /></template>
                 </k-list-item>
               </k-list>
 
@@ -679,7 +682,7 @@ onBeforeUnmount(() => {
                   phone.t('Apps.skyride.quickDestinations')
                 }}</k-block-title>
                 <k-block class="skyride-quick-grid">
-                  <k-button
+                  <SkyButton
                     v-for="location in skyride.quickLocations.slice(0, 4)"
                     :key="location.id ?? location.label"
                     large
@@ -694,10 +697,10 @@ onBeforeUnmount(() => {
                       aria-hidden="true"
                     />
                     <span>{{ locationLabel(location) }}</span>
-                  </k-button>
+                  </SkyButton>
                 </k-block>
 
-                <k-button
+                <SkyButton
                   large
                   rounded
                   class="skyride-primary"
@@ -707,9 +710,13 @@ onBeforeUnmount(() => {
                   <k-preloader v-if="skyride.isActionPending" />
                   <template v-else>
                     {{ phone.t('Apps.skyride.viewRides') }}
-                    <ChevronRight :size="18" aria-hidden="true" />
+                    <SkyIcon
+                      :icon="ChevronRight"
+                      :size="18"
+                      aria-hidden="true"
+                    />
                   </template>
-                </k-button>
+                </SkyButton>
               </template>
 
               <template v-else>
@@ -752,14 +759,19 @@ onBeforeUnmount(() => {
                   >
                     <template #media>
                       <span class="skyride-service-icon">
-                        <CarFront :size="22" aria-hidden="true" />
+                        <SkyIcon
+                          :icon="CarFront"
+                          :size="22"
+                          aria-hidden="true"
+                        />
                       </span>
                     </template>
                     <template #after>
                       <strong>{{
                         formatMoney(option.price, option.currency)
                       }}</strong>
-                      <Check
+                      <SkyIcon
+                        :icon="Check"
                         v-if="selectedQuoteId === option.quoteId"
                         :size="16"
                       />
@@ -773,7 +785,11 @@ onBeforeUnmount(() => {
                 >
                   <div class="skyride-fare-card__heading">
                     <span class="skyride-fare-card__icon">
-                      <CircleDollarSign :size="19" aria-hidden="true" />
+                      <SkyIcon
+                        :icon="CircleDollarSign"
+                        :size="19"
+                        aria-hidden="true"
+                      />
                     </span>
                     <div>
                       <small>{{ phone.t('Apps.skyride.fare') }}</small>
@@ -838,20 +854,20 @@ onBeforeUnmount(() => {
                         @input="updateCustomFareInput"
                       />
                     </k-list>
-                    <k-button
+                    <SkyButton
                       small
                       rounded
                       :disabled="skyride.isActionPending"
                       @click="applyCustomFare"
                     >
                       {{ phone.t('Apps.skyride.applyCustomFare') }}
-                    </k-button>
+                    </SkyButton>
                   </div>
                 </k-card>
                 <p class="skyride-player-driver-notice">
                   {{ phone.t('Apps.skyride.playerDriverNotice') }}
                 </p>
-                <k-button
+                <SkyButton
                   large
                   rounded
                   class="skyride-primary"
@@ -863,9 +879,13 @@ onBeforeUnmount(() => {
                   <k-preloader v-if="skyride.isActionPending" />
                   <template v-else>
                     {{ phone.t('Apps.skyride.requestRide') }}
-                    <ChevronRight :size="18" aria-hidden="true" />
+                    <SkyIcon
+                      :icon="ChevronRight"
+                      :size="18"
+                      aria-hidden="true"
+                    />
                   </template>
-                </k-button>
+                </SkyButton>
               </template>
             </template>
 
@@ -878,7 +898,12 @@ onBeforeUnmount(() => {
                   <k-preloader
                     v-if="skyride.activeRide.status === 'searching'"
                   />
-                  <CheckCircle2 v-else :size="22" aria-hidden="true" />
+                  <SkyIcon
+                    :icon="CheckCircle2"
+                    v-else
+                    :size="22"
+                    aria-hidden="true"
+                  />
                 </span>
                 <div>
                   <small>{{ phone.t('Apps.skyride.rideStatus') }}</small>
@@ -904,12 +929,22 @@ onBeforeUnmount(() => {
                     :src="skyride.activeRide.driver.avatarUrl"
                     alt=""
                   />
-                  <UserRound v-else :size="22" aria-hidden="true" />
+                  <SkyIcon
+                    :icon="UserRound"
+                    v-else
+                    :size="22"
+                    aria-hidden="true"
+                  />
                 </div>
                 <div class="skyride-person-card__body">
                   <strong>{{ skyride.activeRide.driver.name }}</strong>
                   <span>
-                    <Star :size="13" fill="currentColor" aria-hidden="true" />
+                    <SkyIcon
+                      :icon="Star"
+                      :size="13"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    />
                     {{
                       skyride.activeRide.driver.rating.toLocaleString(
                         phone.lang,
@@ -920,7 +955,7 @@ onBeforeUnmount(() => {
                   <b>{{ skyride.activeRide.driver.vehicle.plate }}</b>
                 </div>
                 <div class="skyride-contact-actions">
-                  <k-button
+                  <SkyButton
                     small
                     rounded
                     outline
@@ -928,17 +963,21 @@ onBeforeUnmount(() => {
                     :aria-label="phone.t('Apps.skyride.call')"
                     @click="callActiveContact"
                   >
-                    <Phone :size="17" aria-hidden="true" />
-                  </k-button>
-                  <k-button
+                    <SkyIcon :icon="Phone" :size="17" aria-hidden="true" />
+                  </SkyButton>
+                  <SkyButton
                     small
                     rounded
                     outline
                     :aria-label="phone.t('Apps.skyride.message')"
                     @click="openMessages"
                   >
-                    <MessageCircle :size="17" aria-hidden="true" />
-                  </k-button>
+                    <SkyIcon
+                      :icon="MessageCircle"
+                      :size="17"
+                      aria-hidden="true"
+                    />
+                  </SkyButton>
                 </div>
               </k-card>
 
@@ -954,7 +993,7 @@ onBeforeUnmount(() => {
                 </div>
                 <i></i>
                 <div class="skyride-route-stop">
-                  <MapPin :size="18" aria-hidden="true" />
+                  <SkyIcon :icon="MapPin" :size="18" aria-hidden="true" />
                   <div>
                     <small>{{ phone.t('Apps.skyride.destination') }}</small>
                     <strong>{{
@@ -978,11 +1017,11 @@ onBeforeUnmount(() => {
               </k-card>
 
               <div class="skyride-active-actions">
-                <k-button rounded outline @click="setRideWaypoint">
-                  <Navigation :size="17" aria-hidden="true" />
+                <SkyButton rounded outline @click="setRideWaypoint">
+                  <SkyIcon :icon="Navigation" :size="17" aria-hidden="true" />
                   {{ phone.t('Apps.skyride.navigate') }}
-                </k-button>
-                <k-button
+                </SkyButton>
+                <SkyButton
                   v-if="canCancelRide"
                   rounded
                   variant="danger"
@@ -990,10 +1029,10 @@ onBeforeUnmount(() => {
                   @click="cancelDialogOpened = true"
                 >
                   {{ phone.t('Apps.skyride.cancelRide') }}
-                </k-button>
+                </SkyButton>
               </div>
               <k-block class="skyride-safety-note">
-                <ShieldCheck :size="18" aria-hidden="true" />
+                <SkyIcon :icon="ShieldCheck" :size="18" aria-hidden="true" />
                 <span>{{ phone.t('Apps.skyride.safetyNote') }}</span>
               </k-block>
             </template>
@@ -1005,7 +1044,7 @@ onBeforeUnmount(() => {
                 class="skyride-driver-status__icon"
                 :class="{ 'is-online': skyride.driverOnline }"
               >
-                <Power :size="21" aria-hidden="true" />
+                <SkyIcon :icon="Power" :size="21" aria-hidden="true" />
               </div>
               <div>
                 <strong>{{
@@ -1031,7 +1070,9 @@ onBeforeUnmount(() => {
 
             <template v-if="skyride.activeRide">
               <k-card :content-wrap="false" class="skyride-ride-status-card">
-                <span class="skyride-status-icon"><CarFront :size="22" /></span>
+                <span class="skyride-status-icon"
+                  ><SkyIcon :icon="CarFront" :size="22"
+                /></span>
                 <div>
                   <small>{{ phone.t('Apps.skyride.rideStatus') }}</small>
                   <h1>{{ statusLabel(skyride.activeRide.status) }}</h1>
@@ -1055,13 +1096,18 @@ onBeforeUnmount(() => {
                     :src="skyride.activeRide.passenger.avatarUrl"
                     alt=""
                   />
-                  <UserRound v-else :size="22" aria-hidden="true" />
+                  <SkyIcon
+                    :icon="UserRound"
+                    v-else
+                    :size="22"
+                    aria-hidden="true"
+                  />
                 </div>
                 <div class="skyride-person-card__body">
                   <small>{{ phone.t('Apps.skyride.passenger') }}</small>
                   <strong>{{ skyride.activeRide.passenger.name }}</strong>
                   <span
-                    ><Star :size="13" fill="currentColor" />
+                    ><SkyIcon :icon="Star" :size="13" fill="currentColor" />
                     {{
                       skyride.activeRide.passenger.rating.toLocaleString(
                         phone.lang,
@@ -1070,18 +1116,22 @@ onBeforeUnmount(() => {
                   >
                 </div>
                 <div class="skyride-contact-actions">
-                  <k-button
+                  <SkyButton
                     small
                     rounded
                     outline
                     :disabled="!skyride.activeRide.passenger.phoneNumber"
                     @click="callActiveContact"
                   >
-                    <Phone :size="17" aria-hidden="true" />
-                  </k-button>
-                  <k-button small rounded outline @click="openMessages">
-                    <MessageCircle :size="17" aria-hidden="true" />
-                  </k-button>
+                    <SkyIcon :icon="Phone" :size="17" aria-hidden="true" />
+                  </SkyButton>
+                  <SkyButton small rounded outline @click="openMessages">
+                    <SkyIcon
+                      :icon="MessageCircle"
+                      :size="17"
+                      aria-hidden="true"
+                    />
+                  </SkyButton>
                 </div>
               </k-card>
               <k-card :content-wrap="false" class="skyride-trip-card">
@@ -1096,7 +1146,7 @@ onBeforeUnmount(() => {
                 </div>
                 <i></i>
                 <div class="skyride-route-stop">
-                  <MapPin :size="18" />
+                  <SkyIcon :icon="MapPin" :size="18" />
                   <div>
                     <small>{{ phone.t('Apps.skyride.destination') }}</small
                     ><strong>{{
@@ -1119,11 +1169,11 @@ onBeforeUnmount(() => {
                 </div>
               </k-card>
               <div class="skyride-driver-actions">
-                <k-button rounded outline @click="setRideWaypoint">
-                  <Navigation :size="17" />
+                <SkyButton rounded outline @click="setRideWaypoint">
+                  <SkyIcon :icon="Navigation" :size="17" />
                   {{ phone.t('Apps.skyride.navigate') }}
-                </k-button>
-                <k-button
+                </SkyButton>
+                <SkyButton
                   v-if="driverAction"
                   rounded
                   :disabled="skyride.isActionPending"
@@ -1133,14 +1183,14 @@ onBeforeUnmount(() => {
                   <template v-else>{{
                     phone.t(`Apps.skyride.driver.actions.${driverAction}`)
                   }}</template>
-                </k-button>
+                </SkyButton>
               </div>
             </template>
 
             <template v-else>
               <div class="skyride-driver-metrics">
                 <k-card :content-wrap="false">
-                  <CircleDollarSign :size="19" />
+                  <SkyIcon :icon="CircleDollarSign" :size="19" />
                   <strong>{{
                     formatMoney(
                       skyride.profile.earningsToday ?? 0,
@@ -1150,7 +1200,7 @@ onBeforeUnmount(() => {
                   <span>{{ phone.t('Apps.skyride.driver.today') }}</span>
                 </k-card>
                 <k-card :content-wrap="false">
-                  <Star :size="19" />
+                  <SkyIcon :icon="Star" :size="19" />
                   <strong>{{
                     skyride.profile.rating.toLocaleString(phone.lang)
                   }}</strong>
@@ -1171,7 +1221,7 @@ onBeforeUnmount(() => {
                 >
                   <div class="skyride-request-card__top">
                     <span class="skyride-service-icon"
-                      ><CarFront :size="20"
+                      ><SkyIcon :icon="CarFront" :size="20"
                     /></span>
                     <div>
                       <strong>{{
@@ -1185,21 +1235,25 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="skyride-request-route">
                     <span>{{ locationLabel(request.pickup) }}</span>
-                    <ChevronRight :size="15" />
+                    <SkyIcon :icon="ChevronRight" :size="15" />
                     <span>{{ locationLabel(request.destination) }}</span>
                   </div>
-                  <k-button
+                  <SkyButton
                     rounded
                     :disabled="skyride.isActionPending"
                     @click="acceptRide(request)"
                   >
                     {{ phone.t('Apps.skyride.driver.accept') }}
-                  </k-button>
+                  </SkyButton>
                 </k-card>
               </div>
               <k-card v-else :content-wrap="false" class="skyride-empty-card">
-                <Power v-if="!skyride.driverOnline" :size="28" />
-                <Clock3 v-else :size="28" />
+                <SkyIcon
+                  :icon="Power"
+                  v-if="!skyride.driverOnline"
+                  :size="28"
+                />
+                <SkyIcon :icon="Clock3" v-else :size="28" />
                 <strong>{{
                   phone.t(
                     `Apps.skyride.driver.${skyride.driverOnline ? 'noRequests' : 'goOnline'}`,
@@ -1224,7 +1278,7 @@ onBeforeUnmount(() => {
               component="header"
               class="skyride-screen-title"
             >
-              <History :size="25" aria-hidden="true" />
+              <SkyIcon :icon="History" :size="25" aria-hidden="true" />
               <div>
                 <h1>{{ phone.t('Apps.skyride.rides') }}</h1>
                 <p>{{ phone.t('Apps.skyride.ridesBody') }}</p>
@@ -1242,7 +1296,7 @@ onBeforeUnmount(() => {
                 <template #header>
                   <div class="skyride-history-card__header">
                     <span class="skyride-service-icon"
-                      ><CarFront :size="19"
+                      ><SkyIcon :icon="CarFront" :size="19"
                     /></span>
                     <div>
                       <strong>{{
@@ -1257,7 +1311,7 @@ onBeforeUnmount(() => {
                 </template>
                 <div class="skyride-history-route">
                   <span>{{ locationLabel(ride.pickup) }}</span
-                  ><ChevronRight :size="15" /><span>{{
+                  ><SkyIcon :icon="ChevronRight" :size="15" /><span>{{
                     locationLabel(ride.destination)
                   }}</span>
                 </div>
@@ -1270,7 +1324,7 @@ onBeforeUnmount(() => {
                         phone.t('Apps.skyride.ride')
                       }}</span>
                       <span class="skyride-history-card__distance">
-                        <Route :size="13" aria-hidden="true" />
+                        <SkyIcon :icon="Route" :size="13" aria-hidden="true" />
                         {{ formatRideDistance(ride.distanceMeters) }}
                       </span>
                     </div>
@@ -1282,7 +1336,7 @@ onBeforeUnmount(() => {
               </k-card>
             </k-block>
             <k-card v-else :content-wrap="false" class="skyride-empty-card"
-              ><History :size="29" /><strong>{{
+              ><SkyIcon :icon="History" :size="29" /><strong>{{
                 phone.t('Apps.skyride.noRides')
               }}</strong>
               <p>{{ phone.t('Apps.skyride.noRidesBody') }}</p></k-card
@@ -1297,7 +1351,7 @@ onBeforeUnmount(() => {
               component="header"
               class="skyride-screen-title"
             >
-              <Bell :size="25" />
+              <SkyIcon :icon="Bell" :size="25" />
               <div>
                 <h1>{{ phone.t('Apps.skyride.activity') }}</h1>
                 <p>{{ phone.t('Apps.skyride.activityBody') }}</p>
@@ -1320,12 +1374,12 @@ onBeforeUnmount(() => {
               >
                 <template #media
                   ><span class="skyride-activity-icon"
-                    ><CheckCircle2 :size="18" /></span
+                    ><SkyIcon :icon="CheckCircle2" :size="18" /></span
                 ></template>
               </k-list-item>
             </k-list>
             <k-card v-else :content-wrap="false" class="skyride-empty-card"
-              ><Bell :size="29" /><strong>{{
+              ><SkyIcon :icon="Bell" :size="29" /><strong>{{
                 phone.t('Apps.skyride.noActivity')
               }}</strong>
               <p>{{ phone.t('Apps.skyride.noActivityBody') }}</p></k-card
@@ -1340,7 +1394,7 @@ onBeforeUnmount(() => {
               component="header"
               class="skyride-screen-title"
             >
-              <MessageCircle :size="25" />
+              <SkyIcon :icon="MessageCircle" :size="25" />
               <div>
                 <h1>{{ phone.t('Apps.skyride.messages') }}</h1>
                 <p>{{ phone.t('Apps.skyride.messagesBody') }}</p>
@@ -1356,38 +1410,38 @@ onBeforeUnmount(() => {
                   v-if="activeContact.avatarUrl"
                   :src="activeContact.avatarUrl"
                   alt=""
-                /><UserRound v-else :size="22" />
+                /><SkyIcon :icon="UserRound" v-else :size="22" />
               </div>
               <div>
                 <strong>{{ activeContact.name }}</strong
                 ><span
-                  ><Star :size="13" fill="currentColor" />
+                  ><SkyIcon :icon="Star" :size="13" fill="currentColor" />
                   {{ activeContact.rating.toLocaleString(phone.lang) }}</span
                 >
               </div>
-              <ChevronRight :size="18" />
+              <SkyIcon :icon="ChevronRight" :size="18" />
             </k-card>
             <k-block v-if="activeContact" class="skyride-contact-buttons">
-              <k-button
+              <SkyButton
                 rounded
                 :disabled="!activeContact.phoneNumber"
                 @click="callActiveContact"
-                ><Phone :size="17" />
-                {{ phone.t('Apps.skyride.call') }}</k-button
+                ><SkyIcon :icon="Phone" :size="17" />
+                {{ phone.t('Apps.skyride.call') }}</SkyButton
               >
-              <k-button rounded @click="openMessages"
-                ><MessageCircle :size="17" />
-                {{ phone.t('Apps.skyride.openMessages') }}</k-button
+              <SkyButton rounded @click="openMessages"
+                ><SkyIcon :icon="MessageCircle" :size="17" />
+                {{ phone.t('Apps.skyride.openMessages') }}</SkyButton
               >
             </k-block>
             <k-card v-else :content-wrap="false" class="skyride-empty-card"
-              ><MessageCircle :size="29" /><strong>{{
+              ><SkyIcon :icon="MessageCircle" :size="29" /><strong>{{
                 phone.t('Apps.skyride.noMessages')
               }}</strong>
               <p>{{ phone.t('Apps.skyride.noMessagesBody') }}</p>
-              <k-button rounded @click="openMessages">{{
+              <SkyButton rounded @click="openMessages">{{
                 phone.t('Apps.skyride.openMessages')
-              }}</k-button></k-card
+              }}</SkyButton></k-card
             >
           </section>
         </template>
@@ -1395,7 +1449,8 @@ onBeforeUnmount(() => {
         <template v-else>
           <section class="skyride-section-screen skyride-profile">
             <div class="skyride-profile-hero">
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="skyride-profile-avatar skyride-profile-avatar--editable"
                 :aria-label="phone.t('Apps.skyride.editProfile')"
@@ -1405,12 +1460,12 @@ onBeforeUnmount(() => {
                   v-if="skyride.profile.avatarUrl"
                   :src="skyride.profile.avatarUrl"
                   alt=""
-                /><UserRound v-else :size="32" />
-                <span><Pencil :size="13" /></span>
-              </button>
+                /><SkyIcon :icon="UserRound" v-else :size="32" />
+                <span><SkyIcon :icon="Pencil" :size="13" /></span>
+              </SkyButton>
               <h1>{{ skyride.profile.name }}</h1>
               <span
-                ><Star :size="15" fill="currentColor" />
+                ><SkyIcon :icon="Star" :size="15" fill="currentColor" />
                 {{ skyride.profile.rating.toLocaleString(phone.lang) }}</span
               >
             </div>
@@ -1443,25 +1498,29 @@ onBeforeUnmount(() => {
                 :title="phone.t('Apps.skyride.editProfile')"
                 :subtitle="phone.t('Apps.skyride.editProfileBody')"
                 @click="openProfileEditor"
-                ><template #media><Pencil :size="18" /></template
+                ><template #media
+                  ><SkyIcon :icon="Pencil" :size="18" /></template
               ></k-list-item>
               <k-list-item
                 :title="phone.t('Apps.skyride.paymentMethod')"
                 :after="
                   paymentMethodLabel(skyride.profile.defaultPaymentMethod)
                 "
-                ><template #media><CircleDollarSign :size="18" /></template
+                ><template #media
+                  ><SkyIcon :icon="CircleDollarSign" :size="18" /></template
               ></k-list-item>
               <k-list-item
                 :title="phone.t('Apps.skyride.safety')"
                 :subtitle="phone.t('Apps.skyride.safetyBody')"
-                ><template #media><ShieldCheck :size="18" /></template
+                ><template #media
+                  ><SkyIcon :icon="ShieldCheck" :size="18" /></template
               ></k-list-item>
               <k-list-item
                 v-if="skyride.driverEligible"
                 :title="phone.t('Apps.skyride.driverMode')"
                 :subtitle="phone.t('Apps.skyride.driverModeBody')"
-                ><template #media><CarFront :size="18" /></template
+                ><template #media
+                  ><SkyIcon :icon="CarFront" :size="18" /></template
                 ><template #after
                   ><k-toggle
                     :checked="mode === 'driver'"
@@ -1473,7 +1532,7 @@ onBeforeUnmount(() => {
               ></k-list-item>
             </k-list>
             <k-block class="skyride-member-note"
-              ><Sparkles :size="17" /><span>{{
+              ><SkyIcon :icon="Sparkles" :size="17" /><span>{{
                 phone.t('Apps.skyride.memberSince', {
                   date: formatDate(skyride.profile.memberSince),
                 })
@@ -1527,14 +1586,14 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Common.close')"
             @click="closeProfileEditor"
           >
-            <X :size="20" />
+            <SkyIcon :icon="X" :size="20" />
           </SkyButton>
         </div>
 
         <div class="skyride-profile-editor__avatar">
           <div class="skyride-profile-avatar">
             <img v-if="profileAvatarUrl" :src="profileAvatarUrl" alt="" />
-            <UserRound v-else :size="32" />
+            <SkyIcon :icon="UserRound" v-else :size="32" />
           </div>
           <strong>{{ phone.t('Apps.skyride.profilePhoto') }}</strong>
           <div>
@@ -1543,14 +1602,16 @@ onBeforeUnmount(() => {
               class="skyride-profile-media-button"
               @click="openProfileMedia('photos')"
             >
-              <Images :size="17" /> {{ phone.t('Apps.skyride.gallery') }}
+              <SkyIcon :icon="Images" :size="17" />
+              {{ phone.t('Apps.skyride.gallery') }}
             </SkyButton>
             <SkyButton
               rounded
               class="skyride-profile-media-button"
               @click="openProfileMedia('camera')"
             >
-              <Camera :size="17" /> {{ phone.t('Apps.skyride.camera') }}
+              <SkyIcon :icon="Camera" :size="17" />
+              {{ phone.t('Apps.skyride.camera') }}
             </SkyButton>
           </div>
         </div>
@@ -1571,7 +1632,7 @@ onBeforeUnmount(() => {
             :title="phone.t('Apps.skyride.removeProfilePhoto')"
             @activate="removeProfileAvatar"
           >
-            <template #leading><Trash2 :size="18" /></template>
+            <template #leading><SkyIcon :icon="Trash2" :size="18" /></template>
           </SkySettingsRow>
         </SkySettingsGroup>
 
@@ -1625,7 +1686,7 @@ onBeforeUnmount(() => {
             class="skyride-sheet__close"
             :aria-label="phone.t('Common.close')"
             @click="locationTarget = null"
-            ><X :size="20"
+            ><SkyIcon :icon="X" :size="20"
           /></k-link>
         </div>
         <k-list inset strong class="skyride-sheet-list">
@@ -1634,7 +1695,7 @@ onBeforeUnmount(() => {
             :title="phone.t('Apps.skyride.currentLocation')"
             :subtitle="phone.t('Apps.skyride.useGps')"
             @click="useCurrentLocation"
-            ><template #media><Crosshair :size="19" /></template
+            ><template #media><SkyIcon :icon="Crosshair" :size="19" /></template
           ></k-list-item>
         </k-list>
         <k-block-title class="skyride-sheet-section-title">{{
@@ -1665,14 +1726,16 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Apps.skyride.rateRide')"
       >
         <div class="skyride-sheet__handle" aria-hidden="true"></div>
-        <div class="skyride-rating__success"><CheckCircle2 :size="30" /></div>
+        <div class="skyride-rating__success">
+          <SkyIcon :icon="CheckCircle2" :size="30" />
+        </div>
         <h2>{{ phone.t('Apps.skyride.rideComplete') }}</h2>
         <p>{{ phone.t('Apps.skyride.rateRideBody') }}</p>
         <div
           class="skyride-rating-stars"
           :aria-label="phone.t('Apps.skyride.rating')"
         >
-          <k-button
+          <SkyButton
             v-for="value in 5"
             :key="value"
             small
@@ -1686,14 +1749,14 @@ onBeforeUnmount(() => {
             "
             @click="rating = value"
           >
-            <Star :size="28" fill="currentColor" />
-          </k-button>
+            <SkyIcon :icon="Star" :size="28" fill="currentColor" />
+          </SkyButton>
         </div>
         <span class="skyride-rating-label">{{
           phone.t('Apps.skyride.tip')
         }}</span>
         <div class="skyride-tip-options">
-          <k-button
+          <SkyButton
             v-for="value in [0, 5, 10, 20]"
             :key="value"
             small
@@ -1704,7 +1767,7 @@ onBeforeUnmount(() => {
               value === 0
                 ? phone.t('Apps.skyride.noTip')
                 : formatMoney(value, ratingRide.currency)
-            }}</k-button
+            }}</SkyButton
           >
         </div>
         <k-list inset strong
@@ -1717,14 +1780,14 @@ onBeforeUnmount(() => {
             maxlength="180"
             @input="updateRatingComment"
         /></k-list>
-        <k-button
+        <SkyButton
           large
           rounded
           :disabled="rating < 1 || skyride.isActionPending"
           @click="submitRating"
           ><k-preloader v-if="skyride.isActionPending" /><template v-else>{{
             phone.t('Apps.skyride.submitRating')
-          }}</template></k-button
+          }}</template></SkyButton
         >
         <k-link @click="dismissRating">{{
           phone.t('Apps.skyride.notNow')
@@ -2943,11 +3006,11 @@ button.skyride-profile-avatar--editable {
   min-width: 34px;
   height: 34px;
   padding: 2px;
-  color: var(--ride-border);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .skyride-rating-star.is-active {
-  color: var(--ride-accent);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .skyride-tip-options {

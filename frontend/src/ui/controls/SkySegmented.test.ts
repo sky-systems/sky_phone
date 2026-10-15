@@ -204,7 +204,7 @@ describe('SkySegmented navigation', () => {
       /\.sky-segmented--navbar \.sky-segmented-button\s*\{[^}]*min-height:\s*var\(--sky-touch-target, 44px\)[^}]*padding:\s*0 8px[^}]*font-size:\s*15px[^}]*font-weight:\s*500/s,
     )
     expect(controls).toMatch(
-      /\.sky-segmented--navbar \.sky-segmented__highlight\s*\{[^}]*top:\s*5px[^}]*bottom:\s*5px[^}]*background:\s*#ffffff/s,
+      /\.sky-segmented--navbar \.sky-segmented__highlight\s*\{[^}]*top:\s*5px[^}]*bottom:\s*5px[^}]*background:\s*var\(--sky-action-glass-highlight\)/s,
     )
     expect(controls).toMatch(
       /\.sky-app-page--dark \.sky-segmented--navbar \.sky-segmented__highlight\s*\{[^}]*background:\s*var\(--sky-segmented-strong-highlight\)/s,
@@ -213,7 +213,7 @@ describe('SkySegmented navigation', () => {
       /\.sky-segmented--navbar\.sky-segmented--strong\s*\.sky-segmented-button:not\(\.sky-segmented-button--active\)\s*\{[^}]*color:\s*inherit;/s,
     )
     expect(controls).toMatch(
-      /\.sky-segmented--navbar \.sky-segmented-button--active\s*\{[^}]*color:\s*var\(--sky-text\);/s,
+      /\.sky-segmented--navbar \.sky-segmented-button--active\s*\{[^}]*color:\s*var\(--sky-action-glass-text, #ffffff\);/s,
     )
   })
 

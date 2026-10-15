@@ -53,7 +53,7 @@ const demo = useSkyUiDemoContext()
                 icon-only
                 @click="popupOpened = false"
               >
-                <SkyIcon :size="20"><X /></SkyIcon>
+                <SkyIcon :size="20"><SkyIcon :icon="X" /></SkyIcon>
               </SkyLink>
             </template>
           </SkyNavbar>

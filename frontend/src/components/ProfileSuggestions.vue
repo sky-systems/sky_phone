@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { ChevronRight, Check } from 'lucide-vue-next'
 import { SkyButton, SkyGlass, SkySpinner } from '@/ui'
 import { usePhoneStore } from '@/stores/phone'
@@ -49,6 +51,7 @@ const phone = usePhoneStore()
         class="profile-suggestions__row"
       >
         <SkyButton
+          variant="content"
           clear
           rounded
           icon-only
@@ -68,6 +71,7 @@ const phone = usePhoneStore()
           /><span v-else>{{ profile.display_name.slice(0, 1) }}</span>
         </SkyButton>
         <SkyButton
+          variant="content"
           clear
           class="profile-suggestions__name"
           @click="emit('profile', profile.id)"
@@ -75,9 +79,12 @@ const phone = usePhoneStore()
           <span
             ><strong
               >{{ profile.display_name
-              }}<Check v-if="profile.verified" :size="14" /></strong
+              }}<SkyIcon
+                :icon="Check"
+                v-if="profile.verified"
+                :size="14" /></strong
             ><small>@{{ profile.handle }}</small></span
-          ><ChevronRight :size="18" />
+          ><SkyIcon :icon="ChevronRight" :size="18" />
         </SkyButton>
       </div>
     </SkyGlass>

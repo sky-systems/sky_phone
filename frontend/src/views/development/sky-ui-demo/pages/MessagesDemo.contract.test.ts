@@ -23,8 +23,12 @@ describe('MessagesDemo Konsta parity', () => {
   })
 
   it('keeps the camera and send actions at 20px and 28px', () => {
-    expect(source).toContain('<SkyIcon :size="20"><Camera /></SkyIcon>')
-    expect(source).toContain('<SkyIcon :size="28"><CircleArrowUp /></SkyIcon>')
+    expect(source).toContain(
+      '<SkyIcon :size="20"><SkyIcon :icon="Camera" /></SkyIcon>',
+    )
+    expect(source).toMatch(
+      /<SkyIcon\s+:size="28">\s*<SkyIcon\s+:icon="CircleArrowUp"\s*\/>\s*<\/SkyIcon>/,
+    )
     expect(source.match(/component="button"/g)).toHaveLength(2)
   })
 })

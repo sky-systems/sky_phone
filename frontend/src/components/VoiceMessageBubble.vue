@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import { Pause, Play } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 
@@ -103,7 +105,8 @@ onBeforeUnmount(() => audio.value?.pause())
 
 <template>
   <div class="voice-message" :class="{ 'voice-message--failed': failed }">
-    <button
+    <SkyButton
+      variant="content"
       type="button"
       class="voice-message__play"
       :disabled="loading"
@@ -115,9 +118,14 @@ onBeforeUnmount(() => audio.value?.pause())
       @click="togglePlayback"
     >
       <span v-if="loading" class="voice-message__loader" />
-      <Pause v-else-if="playing" :size="16" fill="currentColor" />
-      <Play v-else :size="16" fill="currentColor" />
-    </button>
+      <SkyIcon
+        :icon="Pause"
+        v-else-if="playing"
+        :size="16"
+        fill="currentColor"
+      />
+      <SkyIcon :icon="Play" v-else :size="16" fill="currentColor" />
+    </SkyButton>
     <div class="voice-message__content">
       <div class="voice-message__timeline">
         <div class="voice-message__waveform" aria-hidden="true">

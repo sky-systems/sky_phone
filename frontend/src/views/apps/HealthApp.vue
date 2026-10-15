@@ -259,10 +259,12 @@ onBeforeUnmount(() => {
         :title="phone.t('Apps.health.errorTitle')"
         tone="danger"
       >
-        <template #icon><HeartPulse :size="30" /></template>
+        <template #icon><SkyIcon :icon="HeartPulse" :size="30" /></template>
         <template #actions>
           <SkyButton rounded tonal @click="health.load">
-            <RefreshCw :size="17" />{{ phone.t('Apps.health.tryAgain') }}
+            <SkyIcon :icon="RefreshCw" :size="17" />{{
+              phone.t('Apps.health.tryAgain')
+            }}
           </SkyButton>
         </template>
       </SkyEmptyState>
@@ -280,7 +282,7 @@ onBeforeUnmount(() => {
             />
           </svg>
           <div class="health-hero__content">
-            <Footprints :size="25" aria-hidden="true" />
+            <SkyIcon :icon="Footprints" :size="25" aria-hidden="true" />
             <strong id="health-step-value">{{
               formatNumber(today?.steps ?? 0)
             }}</strong>
@@ -298,17 +300,17 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.health.snapshot')"
         >
           <div>
-            <MapPin :size="20" aria-hidden="true" />
+            <SkyIcon :icon="MapPin" :size="20" aria-hidden="true" />
             <strong>{{ formatDistance(today?.distanceMeters ?? 0) }}</strong>
             <span>{{ phone.t('Apps.health.distance') }}</span>
           </div>
           <div>
-            <Timer :size="20" aria-hidden="true" />
+            <SkyIcon :icon="Timer" :size="20" aria-hidden="true" />
             <strong>{{ formatMinutes(today?.activeSeconds ?? 0) }}</strong>
             <span>{{ phone.t('Apps.health.active') }}</span>
           </div>
           <div>
-            <Flame :size="20" aria-hidden="true" />
+            <SkyIcon :icon="Flame" :size="20" aria-hidden="true" />
             <strong>{{
               phone.t('Apps.health.kilocalories', {
                 count: formatNumber(today?.energyKcal ?? 0),
@@ -379,14 +381,14 @@ onBeforeUnmount(() => {
         <div class="health-list health-trend-summary">
           <div class="health-list__row">
             <span class="health-list__icon">
-              <ChartNoAxesColumnIncreasing :size="21" />
+              <SkyIcon :icon="ChartNoAxesColumnIncreasing" :size="21" />
             </span>
             <span>{{ phone.t('Apps.health.trends.dailyAverage') }}</span>
             <strong>{{ formatNumber(dailyAverage) }}</strong>
           </div>
           <div class="health-list__row">
             <span class="health-list__icon health-list__icon--orange">
-              <MapPin :size="21" />
+              <SkyIcon :icon="MapPin" :size="21" />
             </span>
             <span>{{ phone.t('Apps.health.distance') }}</span>
             <strong>{{
@@ -400,7 +402,7 @@ onBeforeUnmount(() => {
           </div>
           <div class="health-list__row">
             <span class="health-list__icon health-list__icon--orange">
-              <Timer :size="21" />
+              <SkyIcon :icon="Timer" :size="21" />
             </span>
             <span>{{ phone.t('Apps.health.trends.activeTime') }}</span>
             <strong>{{
@@ -432,7 +434,9 @@ onBeforeUnmount(() => {
 
       <template v-else>
         <section class="health-medical-hero">
-          <span class="health-medical-mark"><HeartPulse :size="40" /></span>
+          <span class="health-medical-mark"
+            ><SkyIcon :icon="HeartPulse" :size="40"
+          /></span>
           <div>
             <strong>{{ medicalId?.playerName }}</strong>
             <span>{{ phone.t('Apps.health.medicalId.resident') }}</span>
@@ -444,7 +448,8 @@ onBeforeUnmount(() => {
             <h2>{{ phone.t('Apps.health.medicalId.emergencyInformation') }}</h2>
             <ul class="health-form">
               <li class="health-blood-type-field">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   aria-haspopup="dialog"
                   :aria-expanded="bloodTypePickerOpened"
@@ -452,8 +457,8 @@ onBeforeUnmount(() => {
                 >
                   <span>{{ phone.t('Apps.health.medicalId.bloodType') }}</span>
                   <strong>{{ medicalDraft.bloodType || '—' }}</strong>
-                  <ChevronDown :size="17" aria-hidden="true" />
-                </button>
+                  <SkyIcon :icon="ChevronDown" :size="17" aria-hidden="true" />
+                </SkyButton>
               </li>
               <SkyField
                 v-model="medicalDraft.allergies"
@@ -538,7 +543,7 @@ onBeforeUnmount(() => {
             <h2>{{ phone.t('Apps.health.medicalId.emergencyContact') }}</h2>
             <div class="health-contact">
               <span class="health-contact__avatar"
-                ><UserRound :size="27"
+                ><SkyIcon :icon="UserRound" :size="27"
               /></span>
               <div>
                 <strong>{{
@@ -547,14 +552,15 @@ onBeforeUnmount(() => {
                 }}</strong>
                 <span>{{ medicalId?.emergencyRelation }}</span>
               </div>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 :aria-label="phone.t('Apps.health.medicalId.callContact')"
                 :disabled="!medicalId?.emergencyPhone"
                 @click="dial(medicalId?.emergencyPhone ?? '')"
               >
-                <Phone :size="22" />
-              </button>
+                <SkyIcon :icon="Phone" :size="22" />
+              </SkyButton>
             </div>
           </section>
 
@@ -565,7 +571,7 @@ onBeforeUnmount(() => {
             variant="danger"
             @click="dial(overview.emergencyNumber)"
           >
-            <Phone :size="20" />{{
+            <SkyIcon :icon="Phone" :size="20" />{{
               phone.t('Apps.health.medicalId.emergencyCall')
             }}
           </SkyButton>
@@ -596,7 +602,8 @@ onBeforeUnmount(() => {
           @click="selectBloodType(option.value)"
         >
           <span>{{ option.label }}</span>
-          <Check
+          <SkyIcon
+            :icon="Check"
             v-if="medicalDraft.bloodType === option.value"
             :size="18"
             aria-hidden="true"
@@ -629,7 +636,9 @@ onBeforeUnmount(() => {
           @click="selectTab('today')"
         >
           <span class="health-navigation__item">
-            <SkyIcon :size="20"><Activity :size="20" /></SkyIcon>
+            <SkyIcon :size="20"
+              ><SkyIcon :icon="Activity" :size="20"
+            /></SkyIcon>
             <span>{{ phone.t('Apps.health.tabs.today') }}</span>
           </span>
         </SkySegmentedButton>
@@ -640,7 +649,7 @@ onBeforeUnmount(() => {
         >
           <span class="health-navigation__item">
             <SkyIcon :size="20"
-              ><ChartNoAxesColumnIncreasing :size="20"
+              ><SkyIcon :icon="ChartNoAxesColumnIncreasing" :size="20"
             /></SkyIcon>
             <span>{{ phone.t('Apps.health.tabs.trends') }}</span>
           </span>
@@ -650,7 +659,9 @@ onBeforeUnmount(() => {
           @click="selectTab('medicalId')"
         >
           <span class="health-navigation__item">
-            <SkyIcon :size="20"><ContactRound :size="20" /></SkyIcon>
+            <SkyIcon :size="20"
+              ><SkyIcon :icon="ContactRound" :size="20"
+            /></SkyIcon>
             <span>{{ phone.t('Apps.health.tabs.medicalId') }}</span>
           </span>
         </SkySegmentedButton>

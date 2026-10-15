@@ -109,7 +109,9 @@ describe('SkyPic frontend contract', () => {
   })
 
   it('renders every visible streak as an accessible Flame icon', () => {
-    expect(viewSource.match(/<Flame/g)?.length).toBeGreaterThanOrEqual(4)
+    expect(
+      viewSource.match(/<SkyIcon\s+:icon="Flame"/g)?.length,
+    ).toBeGreaterThanOrEqual(4)
     expect(viewSource).toContain("t('profile.streaks') +")
     expect(viewSource).toContain('class="sp-navbar-streak"')
     expect(viewSource).toContain('class="sp-profile-streak-stat"')

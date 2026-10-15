@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { Radio } from 'lucide-vue-next'
 import { SkyButton, SkyCard, SkyField, SkyList } from '@/ui'
@@ -38,7 +40,7 @@ async function start(): Promise<void> {
 </script>
 <template>
   <SkyCard class="live-setup">
-    <Radio class="live-setup__icon" :size="32" />
+    <SkyIcon :icon="Radio" class="live-setup__icon" :size="32" />
     <strong>{{ phone.t('Realtime.goLive') }}</strong>
     <p>{{ phone.t('Realtime.microphoneHelp') }}</p>
     <SkyList>

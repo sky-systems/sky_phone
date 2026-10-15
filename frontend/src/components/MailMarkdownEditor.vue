@@ -138,7 +138,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           :aria-pressed="editor.isActive('bold')"
           @click="editor.chain().focus().toggleBold().run()"
         >
-          <SkyIcon :size="20"><Bold /></SkyIcon>
+          <SkyIcon :size="20"><SkyIcon :icon="Bold" /></SkyIcon>
         </SkyButton>
         <SkyButton
           class="mail-editor__tool"
@@ -151,7 +151,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           :aria-pressed="editor.isActive('italic')"
           @click="editor.chain().focus().toggleItalic().run()"
         >
-          <SkyIcon :size="20"><Italic /></SkyIcon>
+          <SkyIcon :size="20"><SkyIcon :icon="Italic" /></SkyIcon>
         </SkyButton>
         <SkyButton
           class="mail-editor__tool"
@@ -164,7 +164,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           :aria-pressed="editor.isActive('bulletList')"
           @click="editor.chain().focus().toggleBulletList().run()"
         >
-          <SkyIcon :size="20"><List /></SkyIcon>
+          <SkyIcon :size="20"><SkyIcon :icon="List" /></SkyIcon>
         </SkyButton>
         <SkyButton
           class="mail-editor__tool"
@@ -177,7 +177,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           :aria-pressed="editor.isActive('orderedList')"
           @click="editor.chain().focus().toggleOrderedList().run()"
         >
-          <SkyIcon :size="20"><ListOrdered /></SkyIcon>
+          <SkyIcon :size="20"><SkyIcon :icon="ListOrdered" /></SkyIcon>
         </SkyButton>
         <SkyButton
           class="mail-editor__tool"
@@ -190,7 +190,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           :aria-pressed="editor.isActive('blockquote')"
           @click="editor.chain().focus().toggleBlockquote().run()"
         >
-          <SkyIcon :size="20"><Quote /></SkyIcon>
+          <SkyIcon :size="20"><SkyIcon :icon="Quote" /></SkyIcon>
         </SkyButton>
         <SkyButton
           class="mail-editor__tool"
@@ -200,7 +200,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           :aria-label="labels.undo"
           @click="editor.chain().focus().undo().run()"
         >
-          <SkyIcon :size="20"><Undo2 /></SkyIcon>
+          <SkyIcon :size="20"><SkyIcon :icon="Undo2" /></SkyIcon>
         </SkyButton>
         <SkyButton
           class="mail-editor__tool"
@@ -210,7 +210,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           :aria-label="labels.redo"
           @click="editor.chain().focus().redo().run()"
         >
-          <SkyIcon :size="20"><Redo2 /></SkyIcon>
+          <SkyIcon :size="20"><SkyIcon :icon="Redo2" /></SkyIcon>
         </SkyButton>
       </SkyToolbarPane>
     </SkyToolbar>
@@ -257,7 +257,7 @@ onBeforeUnmount(() => editor.value?.destroy())
   flex: 1 1 0;
   border-radius: 0;
   background: transparent;
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .mail-editor__tool--active {

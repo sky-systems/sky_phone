@@ -259,7 +259,7 @@ describe('Sky UI Konsta 5.3 parity contracts', () => {
     const overlays = readFileSync(`${uiDirectory}/overlays.css`, 'utf8')
 
     expect(controls).toMatch(
-      /\.sky-button\s*\{[^}]*height:\s*34px[^}]*min-height:\s*34px[^}]*padding:\s*4px 8px/s,
+      /\.sky-button:where\(:not\(\.sky-button--content\)\)\s*\{[^}]*height:\s*34px[^}]*min-height:\s*34px[^}]*padding:\s*4px 8px/s,
     )
     expect(controls).toMatch(
       /\.sky-button--small\s*\{[^}]*height:\s*28px[^}]*min-height:\s*28px[^}]*padding-inline:\s*8px/s,

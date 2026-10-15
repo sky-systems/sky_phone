@@ -6145,7 +6145,14 @@ const defaultLocales: LocaleTree = {
       notificationVolume: 'Notification Volume',
       ringtone: 'Ringtone',
       notificationSound: 'Notification Sound',
+      lockScreenDateFormat: 'Lock Screen Date',
+      lockScreenDateFormatDescription:
+        'Choose how the date appears on the Lock Screen.',
+      lockScreenDateFormats: { short: 'Abbreviated', long: 'Full' },
       graphicsMode: 'Graphics Mode',
+      glassBlur: 'Glass Blur',
+      glassBlurDescription:
+        'Adjust background blur on glass surfaces. Available in Ultimate mode on compatible clients.',
       performanceMode: 'Performance Mode',
       performanceModeDescription:
         'Blur-free glass simulation for better CEF performance',
@@ -6533,6 +6540,17 @@ const defaultLocales: LocaleTree = {
     use: 'Use',
   },
   Notifications: {
+    preview: {
+      notification: 'Notification',
+      message: 'Text message',
+      mail: 'Email',
+      call: 'Phone call',
+      invoice: 'New invoice',
+      company: 'Company notification',
+      event: 'Calendar event',
+    },
+    center: 'Notification Center',
+    removeAll: 'Clear All Notifications',
     clearAll: 'Clear All',
     clear: 'Clear',
     now: 'now',

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   ChevronLeft,
   Pause,
@@ -219,7 +221,8 @@ onBeforeUnmount(() => {
         "
         @click="toggleSound"
       >
-        <Volume2 v-if="neon.soundEnabled" :size="18" /><VolumeX
+        <SkyIcon :icon="Volume2" v-if="neon.soundEnabled" :size="18" /><SkyIcon
+          :icon="VolumeX"
           v-else
           :size="18"
         />
@@ -255,25 +258,31 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <div class="neon-how">
-        <Zap :size="17" />
+        <SkyIcon :icon="Zap" :size="17" />
         <p>
           <strong>{{ phone.t('Apps.neonDrop.howToTitle') }}</strong
           >{{ phone.t('Apps.neonDrop.howToBody') }}
         </p>
       </div>
-      <button type="button" class="neon-primary" @click="startGame">
-        <Play :size="17" fill="currentColor" />{{
+      <SkyButton
+        variant="content"
+        type="button"
+        class="neon-primary"
+        @click="startGame"
+      >
+        <SkyIcon :icon="Play" :size="17" fill="currentColor" />{{
           phone.t(game ? 'Apps.neonDrop.newGame' : 'Apps.neonDrop.start')
         }}
-      </button>
-      <button
+      </SkyButton>
+      <SkyButton
+        variant="content"
         v-if="game?.status === 'paused'"
         type="button"
         class="neon-secondary"
         @click="neon.resume()"
       >
         {{ phone.t('Apps.neonDrop.resume') }}
-      </button>
+      </SkyButton>
     </section>
 
     <section v-else-if="game" class="neon-game">
@@ -286,7 +295,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.neonDrop.backToMenu')"
           @click="neon.showMenu()"
         >
-          <ChevronLeft :size="19" />
+          <SkyIcon :icon="ChevronLeft" :size="19" />
         </SkyButton>
         <div>
           <span>{{ phone.t('Apps.neonDrop.score') }}</span
@@ -304,11 +313,12 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.neonDrop.pause')"
           @click="togglePause"
         >
-          <Pause
+          <SkyIcon
+            :icon="Pause"
             v-if="game.status === 'playing'"
             :size="16"
             fill="currentColor"
-          /><Play v-else :size="16" fill="currentColor" />
+          /><SkyIcon :icon="Play" v-else :size="16" fill="currentColor" />
         </SkyButton>
       </div>
 
@@ -352,27 +362,47 @@ onBeforeUnmount(() => {
       <p class="neon-hint">{{ phone.t('Apps.neonDrop.gameHint') }}</p>
 
       <div v-if="game.status === 'paused'" class="neon-overlay">
-        <Pause :size="30" />
+        <SkyIcon :icon="Pause" :size="30" />
         <h2>{{ phone.t('Apps.neonDrop.paused') }}</h2>
-        <button type="button" class="neon-primary" @click="neon.resume()">
-          {{ phone.t('Apps.neonDrop.resume') }}</button
-        ><button type="button" class="neon-secondary" @click="neon.showMenu()">
+        <SkyButton
+          variant="content"
+          type="button"
+          class="neon-primary"
+          @click="neon.resume()"
+        >
+          {{ phone.t('Apps.neonDrop.resume') }}</SkyButton
+        ><SkyButton
+          variant="content"
+          type="button"
+          class="neon-secondary"
+          @click="neon.showMenu()"
+        >
           {{ phone.t('Apps.neonDrop.mainMenu') }}
-        </button>
+        </SkyButton>
       </div>
       <div v-if="game.status === 'over'" class="neon-overlay">
-        <Trophy :size="33" /><span>{{
+        <SkyIcon :icon="Trophy" :size="33" /><span>{{
           phone.t('Apps.neonDrop.gameOver')
         }}</span>
         <h2>{{ game.score }} {{ phone.t('Apps.neonDrop.points') }}</h2>
         <p>{{ game.lines }} {{ phone.t('Apps.neonDrop.lines') }}</p>
-        <button type="button" class="neon-primary" @click="startGame">
-          <RotateCcw :size="16" />{{
+        <SkyButton
+          variant="content"
+          type="button"
+          class="neon-primary"
+          @click="startGame"
+        >
+          <SkyIcon :icon="RotateCcw" :size="16" />{{
             phone.t('Apps.neonDrop.playAgain')
-          }}</button
-        ><button type="button" class="neon-secondary" @click="neon.showMenu()">
+          }}</SkyButton
+        ><SkyButton
+          variant="content"
+          type="button"
+          class="neon-secondary"
+          @click="neon.showMenu()"
+        >
           {{ phone.t('Apps.neonDrop.mainMenu') }}
-        </button>
+        </SkyButton>
       </div>
     </section>
   </main>
@@ -422,12 +452,12 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 1px solid #7cf6e72d;
   border-radius: 12px;
-  color: #fff;
+  color: var(--sky-button-text, #ffffff);
   background: #ffffff0d;
 }
 .neon-header .sky-button--glass,
 .neon-toolbar .sky-button--glass {
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 .neon-menu {
   height: calc(100% - 54px);

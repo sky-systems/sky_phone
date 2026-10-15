@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Bomb,
   ChevronLeft,
@@ -209,7 +211,10 @@ onBeforeUnmount(() => {
         <span>{{ phone.t('Apps.minesweeper.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.minesweeper.name') }}</h1>
       </div>
-      <SkyButton glass icon-only rounded
+      <SkyButton
+        glass
+        icon-only
+        rounded
         type="button"
         :aria-label="
           phone.t(
@@ -220,16 +225,26 @@ onBeforeUnmount(() => {
         "
         @click="toggleSound"
       >
-        <Volume2 v-if="minesweeper.soundEnabled" :size="18" aria-hidden="true" />
-        <VolumeX v-else :size="18" aria-hidden="true" />
+        <SkyIcon
+          :icon="Volume2"
+          v-if="minesweeper.soundEnabled"
+          :size="18"
+          aria-hidden="true"
+        />
+        <SkyIcon :icon="VolumeX" v-else :size="18" aria-hidden="true" />
       </SkyButton>
     </header>
 
     <section v-if="minesweeper.menuOpen" class="minesweeper-menu">
       <div class="minesweeper-hero" aria-hidden="true">
         <span></span><span></span><span class="minesweeper-hero__one">1</span>
-        <span></span><span class="minesweeper-hero__mine"><Bomb :size="27" /></span><span></span>
-        <span class="minesweeper-hero__two">2</span><span></span><span class="minesweeper-hero__flag"><Flag :size="24" fill="currentColor" /></span>
+        <span></span
+        ><span class="minesweeper-hero__mine"
+          ><SkyIcon :icon="Bomb" :size="27" /></span
+        ><span></span> <span class="minesweeper-hero__two">2</span><span></span
+        ><span class="minesweeper-hero__flag"
+          ><SkyIcon :icon="Flag" :size="24" fill="currentColor"
+        /></span>
       </div>
 
       <div class="minesweeper-intro">
@@ -237,34 +252,47 @@ onBeforeUnmount(() => {
         <p>{{ phone.t('Apps.minesweeper.chooseBody') }}</p>
       </div>
 
-      <button
+      <SkyButton
+        variant="content"
         v-if="game && game.status !== 'lost' && game.status !== 'won'"
         type="button"
         class="minesweeper-resume"
         @click="minesweeper.resumeGame"
       >
         {{ phone.t('Apps.minesweeper.resume') }}
-        <small>{{ phone.t(`Apps.minesweeper.difficulties.${game.difficulty}`) }} · {{ formatTime(minesweeper.elapsedMs) }}</small>
-      </button>
+        <small
+          >{{ phone.t(`Apps.minesweeper.difficulties.${game.difficulty}`) }} ·
+          {{ formatTime(minesweeper.elapsedMs) }}</small
+        >
+      </SkyButton>
 
       <div class="minesweeper-difficulties">
-        <button
+        <SkyButton
+          variant="content"
           v-for="difficulty in difficulties"
           :key="difficulty"
           type="button"
           @click="minesweeper.start(difficulty)"
         >
           <span class="minesweeper-difficulty__size">
-            {{ MINESWEEPER_DIFFICULTIES[difficulty].width }}×{{ MINESWEEPER_DIFFICULTIES[difficulty].height }}
+            {{ MINESWEEPER_DIFFICULTIES[difficulty].width }}×{{
+              MINESWEEPER_DIFFICULTIES[difficulty].height
+            }}
           </span>
-          <strong>{{ phone.t(`Apps.minesweeper.difficulties.${difficulty}`) }}</strong>
+          <strong>{{
+            phone.t(`Apps.minesweeper.difficulties.${difficulty}`)
+          }}</strong>
           <small>
-            {{ MINESWEEPER_DIFFICULTIES[difficulty].mines }} {{ phone.t('Apps.minesweeper.mines') }} · {{ bestLabel(difficulty) }}
+            {{ MINESWEEPER_DIFFICULTIES[difficulty].mines }}
+            {{ phone.t('Apps.minesweeper.mines') }} ·
+            {{ bestLabel(difficulty) }}
           </small>
-        </button>
+        </SkyButton>
       </div>
 
-      <p class="minesweeper-long-press">{{ phone.t('Apps.minesweeper.longPressHint') }}</p>
+      <p class="minesweeper-long-press">
+        {{ phone.t('Apps.minesweeper.longPressHint') }}
+      </p>
     </section>
 
     <section
@@ -276,14 +304,22 @@ onBeforeUnmount(() => {
       }"
     >
       <div class="minesweeper-toolbar">
-        <SkyButton glass icon-only rounded
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
           class="minesweeper-toolbar__icon"
           :aria-label="phone.t('Apps.minesweeper.backToMenu')"
           @pointerup.stop="minesweeper.showMenu()"
           @click.stop="minesweeper.showMenu()"
         >
-          <ChevronLeft :size="19" :stroke-width="2.7" aria-hidden="true" />
+          <SkyIcon
+            :icon="ChevronLeft"
+            :size="19"
+            :stroke-width="2.7"
+            aria-hidden="true"
+          />
         </SkyButton>
         <div>
           <span>{{ phone.t('Apps.minesweeper.mines') }}</span>
@@ -293,13 +329,21 @@ onBeforeUnmount(() => {
           <span>{{ phone.t('Apps.minesweeper.time') }}</span>
           <strong>{{ formatTime(minesweeper.elapsedMs) }}</strong>
         </div>
-        <SkyButton glass icon-only rounded
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
           class="minesweeper-toolbar__icon"
           :aria-label="phone.t('Apps.minesweeper.restart')"
           @click="restart"
         >
-          <RotateCcw :size="17" :stroke-width="2.5" aria-hidden="true" />
+          <SkyIcon
+            :icon="RotateCcw"
+            :size="17"
+            :stroke-width="2.5"
+            aria-hidden="true"
+          />
         </SkyButton>
       </div>
 
@@ -309,7 +353,8 @@ onBeforeUnmount(() => {
         :style="{ '--minesweeper-columns': game.width }"
         :aria-label="phone.t('Apps.minesweeper.board')"
       >
-        <button
+        <SkyButton
+          variant="content"
           v-for="cell in game.cells"
           :key="cell.id"
           type="button"
@@ -331,10 +376,23 @@ onBeforeUnmount(() => {
           @pointerleave="cancelLongPress"
           @pointercancel="cancelLongPress"
         >
-          <Flag v-if="cell.isFlagged" :size="15" fill="currentColor" aria-hidden="true" />
-          <Bomb v-else-if="cell.isMine && cell.isRevealed" :size="16" aria-hidden="true" />
-          <strong v-else-if="cell.isRevealed && cell.adjacentMines > 0">{{ cell.adjacentMines }}</strong>
-        </button>
+          <SkyIcon
+            :icon="Flag"
+            v-if="cell.isFlagged"
+            :size="15"
+            fill="currentColor"
+            aria-hidden="true"
+          />
+          <SkyIcon
+            :icon="Bomb"
+            v-else-if="cell.isMine && cell.isRevealed"
+            :size="16"
+            aria-hidden="true"
+          />
+          <strong v-else-if="cell.isRevealed && cell.adjacentMines > 0">{{
+            cell.adjacentMines
+          }}</strong>
+        </SkyButton>
 
         <div
           v-if="markerEffectCellId !== null"
@@ -345,7 +403,7 @@ onBeforeUnmount(() => {
         >
           <span class="minesweeper-marker-drop__trail"></span>
           <span class="minesweeper-marker-drop__bomb">
-            <Bomb :size="24" fill="currentColor" />
+            <SkyIcon :icon="Bomb" :size="24" fill="currentColor" />
           </span>
           <span class="minesweeper-marker-drop__impact"></span>
         </div>
@@ -358,7 +416,9 @@ onBeforeUnmount(() => {
         >
           <span class="minesweeper-blast__flash"></span>
           <span class="minesweeper-blast__ring"></span>
-          <span class="minesweeper-blast__core"><Bomb :size="25" fill="currentColor" /></span>
+          <span class="minesweeper-blast__core"
+            ><SkyIcon :icon="Bomb" :size="25" fill="currentColor"
+          /></span>
           <i v-for="particle in 12" :key="particle"></i>
         </div>
 
@@ -377,10 +437,23 @@ onBeforeUnmount(() => {
           class="minesweeper-overlay"
         >
           <span class="minesweeper-overlay__icon">
-            <Flag v-if="game.status === 'won'" :size="30" fill="currentColor" />
-            <Bomb v-else :size="30" />
+            <SkyIcon
+              :icon="Flag"
+              v-if="game.status === 'won'"
+              :size="30"
+              fill="currentColor"
+            />
+            <SkyIcon :icon="Bomb" v-else :size="30" />
           </span>
-          <h2>{{ phone.t(game.status === 'won' ? 'Apps.minesweeper.wonTitle' : 'Apps.minesweeper.lostTitle') }}</h2>
+          <h2>
+            {{
+              phone.t(
+                game.status === 'won'
+                  ? 'Apps.minesweeper.wonTitle'
+                  : 'Apps.minesweeper.lostTitle',
+              )
+            }}
+          </h2>
           <p>
             {{
               phone.t(
@@ -391,21 +464,29 @@ onBeforeUnmount(() => {
               )
             }}
           </p>
-          <button type="button" class="minesweeper-primary" @click="restart">
+          <SkyButton
+            variant="content"
+            type="button"
+            class="minesweeper-primary"
+            @click="restart"
+          >
             {{ phone.t('Apps.minesweeper.playAgain') }}
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             class="minesweeper-secondary"
             @pointerup.stop="minesweeper.showMenu()"
             @click.stop="minesweeper.showMenu()"
           >
             {{ phone.t('Apps.minesweeper.mainMenu') }}
-          </button>
+          </SkyButton>
         </div>
       </div>
 
-      <p class="minesweeper-game__hint">{{ phone.t('Apps.minesweeper.gameHint') }}</p>
+      <p class="minesweeper-game__hint">
+        {{ phone.t('Apps.minesweeper.gameHint') }}
+      </p>
     </section>
   </main>
 </template>
@@ -436,8 +517,20 @@ onBeforeUnmount(() => {
   justify-content: space-between;
 }
 
-.minesweeper-header span { display: block; color: #59878a; font-size: 9px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; }
-.minesweeper-header h1 { margin: 0; font-size: 24px; line-height: 1; letter-spacing: -0.7px; }
+.minesweeper-header span {
+  display: block;
+  color: #59878a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+.minesweeper-header h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.7px;
+}
 
 .minesweeper-header button:not(.sky-button--glass),
 .minesweeper-toolbar__icon:not(.sky-button--glass) {
@@ -448,13 +541,20 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 1px solid rgb(23 83 87 / 9%);
   border-radius: 12px;
-  color: #246871;
+  color: var(--sky-button-text, #ffffff);
   background: rgb(255 255 255 / 48%);
   box-shadow: 0 4px 10px rgb(23 73 75 / 8%);
 }
 
-.minesweeper-header .sky-button--glass { color: var(--sky-text); }
-.minesweeper-toolbar .sky-button--glass { --sky-touch-target: 32px; width: 32px; height: 32px; color: var(--sky-text); }
+.minesweeper-header .sky-button--glass {
+  color: var(--sky-button-text, #ffffff);
+}
+.minesweeper-toolbar .sky-button--glass {
+  --sky-touch-target: 32px;
+  width: 32px;
+  height: 32px;
+  color: var(--sky-text);
+}
 
 .minesweeper-menu {
   height: calc(100% - 55px);
@@ -485,20 +585,42 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   color: #eafff8;
   background: linear-gradient(145deg, #46c2bc, #279c9d);
-  box-shadow: inset 0 2px 0 rgb(255 255 255 / 18%), 0 3px 5px rgb(10 68 71 / 18%);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 18%),
+    0 3px 5px rgb(10 68 71 / 18%);
   font-size: 20px;
   font-weight: 900;
 }
 
 .minesweeper-hero .minesweeper-hero__one,
-.minesweeper-hero .minesweeper-hero__two { background: #fff8e9; }
-.minesweeper-hero__one { color: #367bd3 !important; }
-.minesweeper-hero__two { color: #198768 !important; }
-.minesweeper-hero__mine { color: #203b54 !important; background: #46b7b2 !important; }
-.minesweeper-hero__flag { color: #f15f57 !important; }
+.minesweeper-hero .minesweeper-hero__two {
+  background: #fff8e9;
+}
+.minesweeper-hero__one {
+  color: #367bd3 !important;
+}
+.minesweeper-hero__two {
+  color: #198768 !important;
+}
+.minesweeper-hero__mine {
+  color: #203b54 !important;
+  background: #46b7b2 !important;
+}
+.minesweeper-hero__flag {
+  color: #f15f57 !important;
+}
 
-.minesweeper-intro h2 { margin: 0; font-size: 21px; }
-.minesweeper-intro p { max-width: 270px; margin: 5px 0 0; color: #5f8584; font-size: 11px; line-height: 1.4; }
+.minesweeper-intro h2 {
+  margin: 0;
+  font-size: 21px;
+}
+.minesweeper-intro p {
+  max-width: 270px;
+  margin: 5px 0 0;
+  color: #5f8584;
+  font-size: 11px;
+  line-height: 1.4;
+}
 
 .minesweeper-resume {
   width: 100%;
@@ -514,9 +636,16 @@ onBeforeUnmount(() => {
   font-size: 12px;
   font-weight: 850;
 }
-.minesweeper-resume small { color: #bfece3; font-size: 8px; }
+.minesweeper-resume small {
+  color: #bfece3;
+  font-size: 8px;
+}
 
-.minesweeper-difficulties { width: 100%; display: grid; gap: 6px; }
+.minesweeper-difficulties {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+}
 .minesweeper-difficulties button {
   min-height: 50px;
   display: grid;
@@ -531,10 +660,31 @@ onBeforeUnmount(() => {
   background: rgb(255 255 255 / 45%);
   text-align: left;
 }
-.minesweeper-difficulty__size { grid-row: 1 / 3; display: grid; place-items: center; height: 37px; border-radius: 10px; color: #f0fff9; background: #238f8e; font-size: 11px; font-weight: 850; }
-.minesweeper-difficulties strong { align-self: end; font-size: 12px; }
-.minesweeper-difficulties small { align-self: start; color: #658a89; font-size: 8px; }
-.minesweeper-long-press { margin: 0; color: #628887; font-size: 9px; }
+.minesweeper-difficulty__size {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  height: 37px;
+  border-radius: 10px;
+  color: #f0fff9;
+  background: #238f8e;
+  font-size: 11px;
+  font-weight: 850;
+}
+.minesweeper-difficulties strong {
+  align-self: end;
+  font-size: 12px;
+}
+.minesweeper-difficulties small {
+  align-self: start;
+  color: #658a89;
+  font-size: 8px;
+}
+.minesweeper-long-press {
+  margin: 0;
+  color: #628887;
+  font-size: 9px;
+}
 
 .minesweeper-game {
   position: absolute;
@@ -563,9 +713,25 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(14px);
   box-sizing: border-box;
 }
-.minesweeper-toolbar div { height: 32px; display: grid; grid-template-rows: 10px 20px; align-content: center; justify-items: center; }
-.minesweeper-toolbar span { color: #5a8484; font-size: 10px; font-weight: 800; line-height: 10px; text-transform: uppercase; }
-.minesweeper-toolbar strong { display: block; font-size: 18px; line-height: 20px; }
+.minesweeper-toolbar div {
+  height: 32px;
+  display: grid;
+  grid-template-rows: 10px 20px;
+  align-content: center;
+  justify-items: center;
+}
+.minesweeper-toolbar span {
+  color: #5a8484;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 10px;
+  text-transform: uppercase;
+}
+.minesweeper-toolbar strong {
+  display: block;
+  font-size: 18px;
+  line-height: 20px;
+}
 
 .minesweeper-toolbar .minesweeper-toolbar__icon {
   width: 32px;
@@ -587,7 +753,9 @@ onBeforeUnmount(() => {
   border: 0;
   border-radius: 18px;
   background: #187a7e;
-  box-shadow: inset 0 2px 2px rgb(255 255 255 / 10%), 0 15px 27px rgb(20 79 81 / 18%);
+  box-shadow:
+    inset 0 2px 2px rgb(255 255 255 / 10%),
+    0 15px 27px rgb(20 79 81 / 18%);
   transform: translateY(-45%);
 }
 
@@ -601,28 +769,95 @@ onBeforeUnmount(() => {
   border-radius: 7px;
   color: #effff8;
   background: linear-gradient(145deg, #4bc4bd, #279d9e);
-  box-shadow: inset 0 2px 0 rgb(255 255 255 / 15%), 0 2px 3px rgb(9 61 64 / 20%);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 15%),
+    0 2px 3px rgb(9 61 64 / 20%);
   font-size: 13px;
-  transition: transform 100ms ease, background 130ms ease;
+  transition:
+    transform 100ms ease,
+    background 130ms ease;
 }
 
-.minesweeper-board--expert .minesweeper-cell { border-radius: 6px; font-size: 11px; }
-.minesweeper-cell--revealed { color: #477078; background: #eef5e9; box-shadow: inset 0 1px 3px rgb(39 83 80 / 12%); animation: minesweeper-reveal 170ms ease-out; }
-.minesweeper-cell--flagged { color: #f35f58; background: linear-gradient(145deg, #5bcec5, #2ca5a4); }
-.minesweeper-cell--marking > svg { animation: minesweeper-marker-flag 720ms ease-out; }
-.minesweeper-cell--mine { color: #263c51; background: #dce5dd; }
-.minesweeper-cell--exploded { color: #fff; background: radial-gradient(circle, #263238 0 31%, #743e37 34% 55%, #df584e 58%); box-shadow: inset 0 0 9px #050b0c, 0 0 12px #ff5a3c; animation: minesweeper-explode 720ms ease-out; }
-.minesweeper-cell--number-1 { color: #3275ce; }
-.minesweeper-cell--number-2 { color: #188569; }
-.minesweeper-cell--number-3 { color: #dd574b; }
-.minesweeper-cell--number-4 { color: #7354ad; }
+.minesweeper-board--expert .minesweeper-cell {
+  border-radius: 6px;
+  font-size: 11px;
+}
+.minesweeper-cell--revealed {
+  color: #477078;
+  background: #eef5e9;
+  box-shadow: inset 0 1px 3px rgb(39 83 80 / 12%);
+  animation: minesweeper-reveal 170ms ease-out;
+}
+.minesweeper-cell--flagged {
+  color: #f35f58;
+  background: linear-gradient(145deg, #5bcec5, #2ca5a4);
+}
+.minesweeper-cell--marking > svg {
+  animation: minesweeper-marker-flag 720ms ease-out;
+}
+.minesweeper-cell--mine {
+  color: #263c51;
+  background: #dce5dd;
+}
+.minesweeper-cell--exploded {
+  color: #fff;
+  background: radial-gradient(
+    circle,
+    #263238 0 31%,
+    #743e37 34% 55%,
+    #df584e 58%
+  );
+  box-shadow:
+    inset 0 0 9px #050b0c,
+    0 0 12px #ff5a3c;
+  animation: minesweeper-explode 720ms ease-out;
+}
+.minesweeper-cell--number-1 {
+  color: #3275ce;
+}
+.minesweeper-cell--number-2 {
+  color: #188569;
+}
+.minesweeper-cell--number-3 {
+  color: #dd574b;
+}
+.minesweeper-cell--number-4 {
+  color: #7354ad;
+}
 .minesweeper-cell--number-5,
 .minesweeper-cell--number-6,
 .minesweeper-cell--number-7,
-.minesweeper-cell--number-8 { color: #9b4e34; }
+.minesweeper-cell--number-8 {
+  color: #9b4e34;
+}
 
-@keyframes minesweeper-reveal { from { opacity: 0.45; transform: scale(0.84); } to { opacity: 1; transform: scale(1); } }
-@keyframes minesweeper-explode { 0% { filter: brightness(4); transform: scale(0.7); } 28% { filter: brightness(2); transform: scale(1.32); } 62% { transform: scale(0.9); } 100% { filter: brightness(0.8); transform: scale(1); } }
+@keyframes minesweeper-reveal {
+  from {
+    opacity: 0.45;
+    transform: scale(0.84);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes minesweeper-explode {
+  0% {
+    filter: brightness(4);
+    transform: scale(0.7);
+  }
+  28% {
+    filter: brightness(2);
+    transform: scale(1.32);
+  }
+  62% {
+    transform: scale(0.9);
+  }
+  100% {
+    filter: brightness(0.8);
+    transform: scale(1);
+  }
+}
 
 .minesweeper-game--exploding .minesweeper-board {
   animation: minesweeper-board-shake 680ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
@@ -633,7 +868,7 @@ onBeforeUnmount(() => {
   z-index: 9;
   inset: 0;
   background: #ffb341;
-  content: "";
+  content: '';
   pointer-events: none;
   animation: minesweeper-screen-flash 520ms ease-out forwards;
 }
@@ -669,9 +904,17 @@ onBeforeUnmount(() => {
   border: 2px solid #667985;
   border-radius: 50%;
   color: #172c36;
-  background: radial-gradient(circle at 35% 28%, #687b83, #263c45 48%, #12272f 75%);
-  box-shadow: inset -4px -5px 8px rgb(0 0 0 / 35%), 0 5px 9px rgb(11 42 45 / 42%);
-  animation: minesweeper-bomb-drop 720ms cubic-bezier(0.2, 0.8, 0.35, 1) forwards;
+  background: radial-gradient(
+    circle at 35% 28%,
+    #687b83,
+    #263c45 48%,
+    #12272f 75%
+  );
+  box-shadow:
+    inset -4px -5px 8px rgb(0 0 0 / 35%),
+    0 5px 9px rgb(11 42 45 / 42%);
+  animation: minesweeper-bomb-drop 720ms cubic-bezier(0.2, 0.8, 0.35, 1)
+    forwards;
 }
 
 .minesweeper-marker-drop__trail {
@@ -681,7 +924,13 @@ onBeforeUnmount(() => {
   height: 95px;
   margin: -87px 0 0 27px;
   border-radius: 50%;
-  background: linear-gradient(to bottom, transparent, #ffe38a 45%, #ff6c42 83%, transparent);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #ffe38a 45%,
+    #ff6c42 83%,
+    transparent
+  );
   filter: blur(2px);
   transform: rotate(35deg);
   transform-origin: bottom;
@@ -714,7 +963,13 @@ onBeforeUnmount(() => {
   height: 112px;
   margin: -56px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 0 7%, #ffdf68 12%, #ff713d 32%, transparent 68%);
+  background: radial-gradient(
+    circle,
+    #fff 0 7%,
+    #ffdf68 12%,
+    #ff713d 32%,
+    transparent 68%
+  );
   animation: minesweeper-blast-flash 560ms ease-out forwards;
 }
 
@@ -753,17 +1008,50 @@ onBeforeUnmount(() => {
   animation: minesweeper-debris 760ms ease-out forwards;
 }
 
-.minesweeper-blast i:nth-of-type(2) { --particle-x: 51px; --particle-y: 30px; }
-.minesweeper-blast i:nth-of-type(3) { --particle-x: 29px; --particle-y: 54px; }
-.minesweeper-blast i:nth-of-type(4) { --particle-x: 0; --particle-y: 66px; }
-.minesweeper-blast i:nth-of-type(5) { --particle-x: -34px; --particle-y: 58px; }
-.minesweeper-blast i:nth-of-type(6) { --particle-x: -61px; --particle-y: 28px; }
-.minesweeper-blast i:nth-of-type(7) { --particle-x: -68px; --particle-y: -5px; }
-.minesweeper-blast i:nth-of-type(8) { --particle-x: -49px; --particle-y: -43px; }
-.minesweeper-blast i:nth-of-type(9) { --particle-x: -12px; --particle-y: -65px; }
-.minesweeper-blast i:nth-of-type(10) { --particle-x: 28px; --particle-y: -60px; }
-.minesweeper-blast i:nth-of-type(11) { --particle-x: 61px; --particle-y: -36px; }
-.minesweeper-blast i:nth-of-type(12) { --particle-x: 72px; --particle-y: 10px; }
+.minesweeper-blast i:nth-of-type(2) {
+  --particle-x: 51px;
+  --particle-y: 30px;
+}
+.minesweeper-blast i:nth-of-type(3) {
+  --particle-x: 29px;
+  --particle-y: 54px;
+}
+.minesweeper-blast i:nth-of-type(4) {
+  --particle-x: 0;
+  --particle-y: 66px;
+}
+.minesweeper-blast i:nth-of-type(5) {
+  --particle-x: -34px;
+  --particle-y: 58px;
+}
+.minesweeper-blast i:nth-of-type(6) {
+  --particle-x: -61px;
+  --particle-y: 28px;
+}
+.minesweeper-blast i:nth-of-type(7) {
+  --particle-x: -68px;
+  --particle-y: -5px;
+}
+.minesweeper-blast i:nth-of-type(8) {
+  --particle-x: -49px;
+  --particle-y: -43px;
+}
+.minesweeper-blast i:nth-of-type(9) {
+  --particle-x: -12px;
+  --particle-y: -65px;
+}
+.minesweeper-blast i:nth-of-type(10) {
+  --particle-x: 28px;
+  --particle-y: -60px;
+}
+.minesweeper-blast i:nth-of-type(11) {
+  --particle-x: 61px;
+  --particle-y: -36px;
+}
+.minesweeper-blast i:nth-of-type(12) {
+  --particle-x: 72px;
+  --particle-y: 10px;
+}
 
 .minesweeper-celebration {
   position: absolute;
@@ -788,107 +1076,263 @@ onBeforeUnmount(() => {
   animation: minesweeper-confetti 850ms var(--confetti-delay) ease-in forwards;
 }
 
-.minesweeper-celebration i:nth-child(3n + 1) { --confetti-color: #ff7065; transform: rotate(22deg); }
-.minesweeper-celebration i:nth-child(3n + 2) { --confetti-color: #9cf0d9; transform: rotate(-31deg); }
-.minesweeper-celebration i:nth-child(2n) { --confetti-delay: 90ms; }
-.minesweeper-celebration i:nth-child(1) { --confetti-x: 4%; }
-.minesweeper-celebration i:nth-child(2) { --confetti-x: 10%; }
-.minesweeper-celebration i:nth-child(3) { --confetti-x: 17%; }
-.minesweeper-celebration i:nth-child(4) { --confetti-x: 24%; }
-.minesweeper-celebration i:nth-child(5) { --confetti-x: 31%; }
-.minesweeper-celebration i:nth-child(6) { --confetti-x: 38%; }
-.minesweeper-celebration i:nth-child(7) { --confetti-x: 45%; }
-.minesweeper-celebration i:nth-child(8) { --confetti-x: 52%; }
-.minesweeper-celebration i:nth-child(9) { --confetti-x: 59%; }
-.minesweeper-celebration i:nth-child(10) { --confetti-x: 66%; }
-.minesweeper-celebration i:nth-child(11) { --confetti-x: 73%; }
-.minesweeper-celebration i:nth-child(12) { --confetti-x: 80%; }
-.minesweeper-celebration i:nth-child(13) { --confetti-x: 87%; }
-.minesweeper-celebration i:nth-child(14) { --confetti-x: 94%; }
-.minesweeper-celebration i:nth-child(15) { --confetti-x: 14%; }
-.minesweeper-celebration i:nth-child(16) { --confetti-x: 42%; }
-.minesweeper-celebration i:nth-child(17) { --confetti-x: 70%; }
-.minesweeper-celebration i:nth-child(18) { --confetti-x: 90%; }
+.minesweeper-celebration i:nth-child(3n + 1) {
+  --confetti-color: #ff7065;
+  transform: rotate(22deg);
+}
+.minesweeper-celebration i:nth-child(3n + 2) {
+  --confetti-color: #9cf0d9;
+  transform: rotate(-31deg);
+}
+.minesweeper-celebration i:nth-child(2n) {
+  --confetti-delay: 90ms;
+}
+.minesweeper-celebration i:nth-child(1) {
+  --confetti-x: 4%;
+}
+.minesweeper-celebration i:nth-child(2) {
+  --confetti-x: 10%;
+}
+.minesweeper-celebration i:nth-child(3) {
+  --confetti-x: 17%;
+}
+.minesweeper-celebration i:nth-child(4) {
+  --confetti-x: 24%;
+}
+.minesweeper-celebration i:nth-child(5) {
+  --confetti-x: 31%;
+}
+.minesweeper-celebration i:nth-child(6) {
+  --confetti-x: 38%;
+}
+.minesweeper-celebration i:nth-child(7) {
+  --confetti-x: 45%;
+}
+.minesweeper-celebration i:nth-child(8) {
+  --confetti-x: 52%;
+}
+.minesweeper-celebration i:nth-child(9) {
+  --confetti-x: 59%;
+}
+.minesweeper-celebration i:nth-child(10) {
+  --confetti-x: 66%;
+}
+.minesweeper-celebration i:nth-child(11) {
+  --confetti-x: 73%;
+}
+.minesweeper-celebration i:nth-child(12) {
+  --confetti-x: 80%;
+}
+.minesweeper-celebration i:nth-child(13) {
+  --confetti-x: 87%;
+}
+.minesweeper-celebration i:nth-child(14) {
+  --confetti-x: 94%;
+}
+.minesweeper-celebration i:nth-child(15) {
+  --confetti-x: 14%;
+}
+.minesweeper-celebration i:nth-child(16) {
+  --confetti-x: 42%;
+}
+.minesweeper-celebration i:nth-child(17) {
+  --confetti-x: 70%;
+}
+.minesweeper-celebration i:nth-child(18) {
+  --confetti-x: 90%;
+}
 
 .minesweeper-game--victory .minesweeper-cell--flagged {
   animation: minesweeper-flag-celebrate 520ms ease-out alternate 2;
 }
 
 @keyframes minesweeper-board-shake {
-  0%, 100% { transform: translate(0, -45%); }
-  12% { transform: translate(-7px, calc(-45% + 3px)) rotate(-1deg); }
-  24% { transform: translate(6px, calc(-45% - 4px)) rotate(1deg); }
-  38% { transform: translate(-5px, calc(-45% - 2px)); }
-  52% { transform: translate(4px, calc(-45% + 3px)); }
-  68% { transform: translate(-2px, calc(-45% - 2px)); }
-  82% { transform: translate(2px, calc(-45% + 1px)); }
+  0%,
+  100% {
+    transform: translate(0, -45%);
+  }
+  12% {
+    transform: translate(-7px, calc(-45% + 3px)) rotate(-1deg);
+  }
+  24% {
+    transform: translate(6px, calc(-45% - 4px)) rotate(1deg);
+  }
+  38% {
+    transform: translate(-5px, calc(-45% - 2px));
+  }
+  52% {
+    transform: translate(4px, calc(-45% + 3px));
+  }
+  68% {
+    transform: translate(-2px, calc(-45% - 2px));
+  }
+  82% {
+    transform: translate(2px, calc(-45% + 1px));
+  }
 }
 
 @keyframes minesweeper-bomb-drop {
-  0% { opacity: 0; transform: translate(105px, -185px) scale(0.55) rotate(160deg); }
-  12% { opacity: 1; }
-  66% { transform: translate(0, 0) scale(1) rotate(355deg); }
-  78% { transform: translate(0, -13px) scale(0.9) rotate(370deg); }
-  90% { opacity: 1; transform: translate(0, 0) scale(0.78) rotate(380deg); }
-  100% { opacity: 0; transform: translate(0, 0) scale(0.35) rotate(390deg); }
+  0% {
+    opacity: 0;
+    transform: translate(105px, -185px) scale(0.55) rotate(160deg);
+  }
+  12% {
+    opacity: 1;
+  }
+  66% {
+    transform: translate(0, 0) scale(1) rotate(355deg);
+  }
+  78% {
+    transform: translate(0, -13px) scale(0.9) rotate(370deg);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.78) rotate(380deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.35) rotate(390deg);
+  }
 }
 
 @keyframes minesweeper-bomb-trail {
-  0% { opacity: 0; scale: 0.4; }
-  18% { opacity: 0.9; }
-  72%, 100% { opacity: 0; scale: 1; }
+  0% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  18% {
+    opacity: 0.9;
+  }
+  72%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
 }
 
 @keyframes minesweeper-marker-impact {
-  0%, 62% { opacity: 0; transform: scale(0.2); }
-  68% { opacity: 1; }
-  100% { opacity: 0; transform: scale(2.2); }
+  0%,
+  62% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  68% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
 }
 
 @keyframes minesweeper-marker-flag {
-  0%, 68% { opacity: 0; transform: scale(0.35) rotate(-18deg); }
-  82% { opacity: 1; transform: scale(1.28) rotate(5deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0); }
+  0%,
+  68% {
+    opacity: 0;
+    transform: scale(0.35) rotate(-18deg);
+  }
+  82% {
+    opacity: 1;
+    transform: scale(1.28) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
 }
 
 @keyframes minesweeper-screen-flash {
-  0% { opacity: 0.82; }
-  18% { opacity: 0.22; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0.82;
+  }
+  18% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes minesweeper-blast-flash {
-  0% { opacity: 1; transform: scale(0.18); }
-  45% { opacity: 0.88; transform: scale(1.15); }
-  100% { opacity: 0; transform: scale(1.7); }
+  0% {
+    opacity: 1;
+    transform: scale(0.18);
+  }
+  45% {
+    opacity: 0.88;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
 }
 
 @keyframes minesweeper-blast-ring {
-  0% { opacity: 1; transform: scale(0.15); }
-  100% { opacity: 0; transform: scale(4.2); }
+  0% {
+    opacity: 1;
+    transform: scale(0.15);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(4.2);
+  }
 }
 
 @keyframes minesweeper-blast-core {
-  0% { opacity: 1; transform: scale(0.35) rotate(-18deg); }
-  48% { opacity: 1; transform: scale(1.2) rotate(12deg); }
-  100% { opacity: 0; transform: scale(0.6) rotate(55deg); }
+  0% {
+    opacity: 1;
+    transform: scale(0.35) rotate(-18deg);
+  }
+  48% {
+    opacity: 1;
+    transform: scale(1.2) rotate(12deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6) rotate(55deg);
+  }
 }
 
 @keyframes minesweeper-debris {
-  0% { opacity: 1; transform: translate(0) rotate(0); }
-  75% { opacity: 1; }
-  100% { opacity: 0; transform: translate(var(--particle-x), var(--particle-y)) rotate(260deg); }
+  0% {
+    opacity: 1;
+    transform: translate(0) rotate(0);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--particle-x), var(--particle-y)) rotate(260deg);
+  }
 }
 
 @keyframes minesweeper-confetti {
-  0% { opacity: 0; translate: 0 0; rotate: 0deg; }
-  10% { opacity: 1; }
-  100% { opacity: 0; translate: 16px 380px; rotate: 520deg; }
+  0% {
+    opacity: 0;
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 16px 380px;
+    rotate: 520deg;
+  }
 }
 
 @keyframes minesweeper-flag-celebrate {
-  from { filter: brightness(1); transform: scale(1); }
-  to { filter: brightness(1.3); transform: scale(1.12) rotate(3deg); }
+  from {
+    filter: brightness(1);
+    transform: scale(1);
+  }
+  to {
+    filter: brightness(1.3);
+    transform: scale(1.12) rotate(3deg);
+  }
 }
 
 .minesweeper-overlay {
@@ -907,13 +1351,47 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(5px);
   text-align: center;
 }
-.minesweeper-overlay__icon { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; color: #ff756a; background: rgb(255 255 255 / 10%); }
-.minesweeper-overlay h2 { margin: 0; font-size: 24px; }
-.minesweeper-overlay p { max-width: 220px; margin: -2px 0 4px; color: #bee1dc; font-size: 10px; line-height: 1.35; }
+.minesweeper-overlay__icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ff756a;
+  background: rgb(255 255 255 / 10%);
+}
+.minesweeper-overlay h2 {
+  margin: 0;
+  font-size: 24px;
+}
+.minesweeper-overlay p {
+  max-width: 220px;
+  margin: -2px 0 4px;
+  color: #bee1dc;
+  font-size: 10px;
+  line-height: 1.35;
+}
 .minesweeper-primary,
-.minesweeper-secondary { position: relative; z-index: 1; min-width: 155px; min-height: 40px; border-radius: 13px; font-size: 11px; font-weight: 850; pointer-events: auto; }
-.minesweeper-primary { border: 0; color: #104d51; background: #8ce3d2; }
-.minesweeper-secondary { border: 1px solid rgb(255 255 255 / 13%); color: #e6faf5; background: rgb(255 255 255 / 7%); }
+.minesweeper-secondary {
+  position: relative;
+  z-index: 1;
+  min-width: 155px;
+  min-height: 40px;
+  border-radius: 13px;
+  font-size: 11px;
+  font-weight: 850;
+  pointer-events: auto;
+}
+.minesweeper-primary {
+  border: 0;
+  color: #104d51;
+  background: #8ce3d2;
+}
+.minesweeper-secondary {
+  border: 1px solid rgb(255 255 255 / 13%);
+  color: #e6faf5;
+  background: rgb(255 255 255 / 7%);
+}
 .minesweeper-game__hint {
   position: absolute;
   z-index: 6;
@@ -931,7 +1409,9 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-button:active { transform: scale(0.96); }
+button:active {
+  transform: scale(0.96);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .minesweeper-game--exploding .minesweeper-board,
@@ -942,6 +1422,8 @@ button:active { transform: scale(0.96); }
   .minesweeper-celebration i,
   .minesweeper-game--victory .minesweeper-cell--flagged,
   .minesweeper-cell--revealed,
-  .minesweeper-cell--exploded { animation: none; }
+  .minesweeper-cell--exploded {
+    animation: none;
+  }
 }
 </style>

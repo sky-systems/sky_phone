@@ -42,7 +42,9 @@ describe('Billing app Sky UI migration', () => {
 
   it('shows the Billing icon and localized name as one navbar brand', () => {
     expect(source).toContain('<span class="billing-navbar__brand">')
-    expect(source).toContain('<ReceiptText :size="22" :stroke-width="2" />')
+    expect(source).toContain(
+      '<SkyIcon :icon="ReceiptText" :size="22" :stroke-width="2" />',
+    )
     expect(source).toContain("<strong>{{ t('name') }}</strong>")
   })
 
@@ -103,8 +105,10 @@ describe('Billing app Sky UI migration', () => {
 
   it('identifies Inbox and History with content headings', () => {
     expect(source).toContain('<header class="billing-view-heading">')
-    expect(source).toContain('<Inbox v-if="tab === \'inbox\'" :size="20" />')
-    expect(source).toContain('<History v-else :size="20" />')
+    expect(source).toContain(
+      '<SkyIcon :icon="Inbox" v-if="tab === \'inbox\'" :size="20" />',
+    )
+    expect(source).toContain('<SkyIcon :icon="History" v-else :size="20" />')
     expect(source).toContain('<h1>{{ t(`tabs.${tab}`) }}</h1>')
     expect(source).toMatch(
       /\.billing-view-heading h1\s*\{[^}]*font-size:\s*23px;/s,

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   BellRing,
   Building2,
@@ -337,7 +339,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <SkyAppPage class="citywarn-app" :accent="phone.isDarkMode ? '#ff6961' : '#dc2626'" accent-soft="#fee2e2">
+  <SkyAppPage
+    class="citywarn-app"
+    :accent="phone.isDarkMode ? '#ff6961' : '#dc2626'"
+    accent-soft="#fee2e2"
+  >
     <SkyNavbar
       v-if="selected"
       :title="t('details')"
@@ -348,7 +354,9 @@ onMounted(async () => {
     />
     <SkyNavbar v-else :title="t('name')" outline>
       <template #title>
-        <span class="citywarn-brand"><Siren :size="17" /> CityWarn</span>
+        <span class="citywarn-brand"
+          ><SkyIcon :icon="Siren" :size="17" /> CityWarn</span
+        >
       </template>
       <template v-if="citywarn.context?.canPublish" #right>
         <SkyButton
@@ -358,7 +366,7 @@ onMounted(async () => {
           :aria-label="t('compose.new')"
           @click="openCompose"
         >
-          <Plus :size="22" />
+          <SkyIcon :icon="Plus" :size="22" />
         </SkyButton>
       </template>
     </SkyNavbar>
@@ -385,19 +393,25 @@ onMounted(async () => {
       <div class="citywarn-detail-content">
         <div class="citywarn-meta-grid">
           <div>
-            <Megaphone :size="16" /><span>{{ t('issuedBy') }}</span
+            <SkyIcon :icon="Megaphone" :size="16" /><span>{{
+              t('issuedBy')
+            }}</span
             ><strong>{{ selected.sourceLabel }}</strong>
           </div>
           <div>
-            <MapPinned :size="16" /><span>{{ t('affectedArea') }}</span
+            <SkyIcon :icon="MapPinned" :size="16" /><span>{{
+              t('affectedArea')
+            }}</span
             ><strong>{{ selected.area.label }}</strong>
           </div>
           <div>
-            <RefreshCw :size="16" /><span>{{ t('updated') }}</span
+            <SkyIcon :icon="RefreshCw" :size="16" /><span>{{
+              t('updated')
+            }}</span
             ><strong>{{ formatDate(selected.updatedAt) }}</strong>
           </div>
           <div>
-            <History :size="16" /><span>{{ t('expires') }}</span
+            <SkyIcon :icon="History" :size="16" /><span>{{ t('expires') }}</span
             ><strong>{{ formatDate(selected.expiresAt) }}</strong>
           </div>
         </div>
@@ -408,7 +422,9 @@ onMounted(async () => {
 
         <section v-if="selected.instructions" class="citywarn-instructions">
           <div>
-            <CircleAlert :size="20" /><strong>{{ t('instructions') }}</strong>
+            <SkyIcon :icon="CircleAlert" :size="20" /><strong>{{
+              t('instructions')
+            }}</strong>
           </div>
           <p>{{ selected.instructions }}</p>
         </section>
@@ -432,10 +448,11 @@ onMounted(async () => {
           class="citywarn-manage"
         >
           <SkyButton block outline @click="openManage('update')">
-            <RefreshCw :size="17" /> {{ t('manage.update') }}
+            <SkyIcon :icon="RefreshCw" :size="17" /> {{ t('manage.update') }}
           </SkyButton>
           <SkyButton block variant="danger" @click="openManage('resolve')">
-            <CheckCircle2 :size="17" /> {{ t('manage.resolve') }}
+            <SkyIcon :icon="CheckCircle2" :size="17" />
+            {{ t('manage.resolve') }}
           </SkyButton>
         </div>
       </div>
@@ -469,8 +486,12 @@ onMounted(async () => {
           }"
         >
           <div class="citywarn-overview-symbol">
-            <TriangleAlert v-if="citywarn.visibleActive.length" :size="27" />
-            <ShieldCheck v-else :size="27" />
+            <SkyIcon
+              :icon="TriangleAlert"
+              v-if="citywarn.visibleActive.length"
+              :size="27"
+            />
+            <SkyIcon :icon="ShieldCheck" v-else :size="27" />
           </div>
           <div>
             <strong>
@@ -512,12 +533,15 @@ onMounted(async () => {
                 <span>{{ severityLabel(alert.severity) }}</span>
                 <small>{{ formatRelative(alert.updatedAt) }}</small>
               </div>
-              <ChevronRight :size="19" />
+              <SkyIcon :icon="ChevronRight" :size="19" />
             </div>
             <h3>{{ alert.title }}</h3>
             <p>{{ alert.body }}</p>
             <footer>
-              <span><MapPinned :size="14" /> {{ alert.area.label }}</span>
+              <span
+                ><SkyIcon :icon="MapPinned" :size="14" />
+                {{ alert.area.label }}</span
+              >
               <span>{{ alert.sourceLabel }}</span>
             </footer>
           </article>
@@ -535,7 +559,9 @@ onMounted(async () => {
           class="citywarn-publisher-card"
           outline
         >
-          <div class="citywarn-publisher-icon"><Building2 :size="20" /></div>
+          <div class="citywarn-publisher-icon">
+            <SkyIcon :icon="Building2" :size="20" />
+          </div>
           <div>
             <strong>{{ t('publisher.title') }}</strong>
             <p v-if="citywarn.context.canPublish">
@@ -562,7 +588,7 @@ onMounted(async () => {
 
       <template v-else-if="tab === 'map'">
         <section class="citywarn-map-heading">
-          <span><MapPinned :size="20" /></span>
+          <span><SkyIcon :icon="MapPinned" :size="20" /></span>
           <div>
             <h2>{{ t('mapTitle') }}</h2>
             <p>{{ t('mapBody') }}</p>
@@ -620,7 +646,8 @@ onMounted(async () => {
               ></span>
             </template>
             <template v-for="alert in citywarn.visibleActive" :key="alert.id">
-              <button
+              <SkyButton
+                variant="content"
                 v-if="cityWarnMapPosition(alert.area)"
                 class="citywarn-map-pin"
                 :style="{
@@ -634,7 +661,7 @@ onMounted(async () => {
                 <span
                   ><component :is="categoryIcons[alert.category]" :size="17"
                 /></span>
-              </button>
+              </SkyButton>
             </template>
           </div>
           <div
@@ -651,7 +678,7 @@ onMounted(async () => {
               :title="t('mapZoomIn')"
               :disabled="mapZoom >= maxZoom"
               @click="changeZoom(mapZoom * 1.25)"
-              ><Plus :size="19"
+              ><SkyIcon :icon="Plus" :size="19"
             /></SkyButton>
             <SkyButton
               icon-only
@@ -659,19 +686,20 @@ onMounted(async () => {
               :title="t('mapZoomOut')"
               :disabled="mapZoom <= minZoom"
               @click="changeZoom(mapZoom / 1.25)"
-              ><Minus :size="19"
+              ><SkyIcon :icon="Minus" :size="19"
             /></SkyButton>
             <SkyButton
               icon-only
               :aria-label="t('mapReset')"
               :title="t('mapReset')"
               @click="resetMap"
-              ><RotateCcw :size="18"
+              ><SkyIcon :icon="RotateCcw" :size="18"
             /></SkyButton>
           </div>
         </div>
         <div class="citywarn-map-list">
-          <button
+          <SkyButton
+            variant="content"
             v-for="alert in citywarn.visibleActive"
             :key="alert.id"
             @click="openAlert(alert)"
@@ -684,8 +712,8 @@ onMounted(async () => {
               <strong>{{ alert.area.label }}</strong
               ><small>{{ alert.title }}</small>
             </div>
-            <ChevronRight :size="18" />
-          </button>
+            <SkyIcon :icon="ChevronRight" :size="18" />
+          </SkyButton>
         </div>
       </template>
 
@@ -710,7 +738,7 @@ onMounted(async () => {
               ><strong>{{ alert.title }}</strong
               ><span>{{ alert.area.label }}</span>
             </div>
-            <ChevronRight :size="18" />
+            <SkyIcon :icon="ChevronRight" :size="18" />
           </article>
           <SkyEmptyState
             v-if="!citywarn.archive.length"
@@ -731,7 +759,8 @@ onMounted(async () => {
               :title="t('settings.locationTitle')"
               :model-value="citywarn.preferences.locationAlerts"
               @update:model-value="citywarn.setLocationAlerts"
-              ><template #leading><LocateFixed :size="20" /></template
+              ><template #leading
+                ><SkyIcon :icon="LocateFixed" :size="20" /></template
             ></SkySettingsRow>
           </SkySettingsGroup>
           <SkySettingsGroup
@@ -770,7 +799,8 @@ onMounted(async () => {
             ></SkySettingsRow>
           </SkySettingsGroup>
           <p class="citywarn-settings-hint">
-            <Info :size="16" /> {{ t('settings.notificationHint') }}
+            <SkyIcon :icon="Info" :size="16" />
+            {{ t('settings.notificationHint') }}
           </p>
         </div>
       </template>
@@ -795,7 +825,7 @@ onMounted(async () => {
 
     <Transition name="citywarn-toast">
       <div v-if="feedback" class="citywarn-feedback" @click="feedback = ''">
-        <CheckCircle2 :size="17" /> {{ feedback }}
+        <SkyIcon :icon="CheckCircle2" :size="17" /> {{ feedback }}
       </div>
     </Transition>
 
@@ -832,7 +862,8 @@ onMounted(async () => {
             <h3>{{ t('compose.categoryTitle') }}</h3>
             <p>{{ t('compose.categoryBody') }}</p>
             <div class="compose-category-grid">
-              <button
+              <SkyButton
+                variant="content"
                 v-for="category in availableCategories"
                 :key="category"
                 :class="{ active: draftCategory === category }"
@@ -842,11 +873,12 @@ onMounted(async () => {
                 <component :is="categoryIcons[category]" :size="21" /><span>{{
                   categoryLabel(category)
                 }}</span>
-              </button>
+              </SkyButton>
             </div>
             <h3>{{ t('compose.severityTitle') }}</h3>
             <div class="compose-severity-list">
-              <button
+              <SkyButton
+                variant="content"
                 v-for="severity in availableSeverities"
                 :key="severity"
                 :class="[
@@ -856,8 +888,12 @@ onMounted(async () => {
                 @click="draftSeverity = severity"
               >
                 <span></span>{{ severityLabel(severity)
-                }}<CheckCircle2 v-if="draftSeverity === severity" :size="18" />
-              </button>
+                }}<SkyIcon
+                  :icon="CheckCircle2"
+                  v-if="draftSeverity === severity"
+                  :size="18"
+                />
+              </SkyButton>
             </div>
           </template>
 
@@ -905,7 +941,7 @@ onMounted(async () => {
                 outline
                 :disabled="locating"
                 @click="useCurrentLocation"
-                ><LocateFixed :size="17" />
+                ><SkyIcon :icon="LocateFixed" :size="17" />
                 {{
                   locating
                     ? t('loading')
@@ -989,10 +1025,12 @@ onMounted(async () => {
               >
               <h4>{{ draftTitle }}</h4>
               <p>{{ draftBody }}</p>
-              <footer><MapPinned :size="15" /> {{ draftAreaLabel }}</footer>
+              <footer>
+                <SkyIcon :icon="MapPinned" :size="15" /> {{ draftAreaLabel }}
+              </footer>
             </article>
             <div class="compose-recipient">
-              <Users :size="22" />
+              <SkyIcon :icon="Users" :size="22" />
               <div>
                 <strong>{{
                   t('compose.recipients', {
@@ -1023,7 +1061,8 @@ onMounted(async () => {
             variant="danger"
             :disabled="publishing"
             @click="publishWarning"
-            ><SkySpinner v-if="publishing" :size="17" /><Siren
+            ><SkySpinner v-if="publishing" :size="17" /><SkyIcon
+              :icon="Siren"
               v-else
               :size="17"
             />
@@ -1100,7 +1139,6 @@ onMounted(async () => {
   backdrop-filter: none;
 }
 .citywarn-app :deep(.sky-pill-navigation .sky-segmented) {
-  background: rgb(255 255 255 / 98%);
 }
 .citywarn-brand {
   display: inline-flex;
@@ -1115,7 +1153,7 @@ onMounted(async () => {
 .citywarn-add {
   width: 34px;
   height: 34px;
-  color: var(--citywarn-red);
+  color: var(--sky-button-text, #ffffff);
 }
 .citywarn-navigation-item {
   display: flex;
@@ -1541,7 +1579,7 @@ onMounted(async () => {
   border: 1px solid var(--sky-hairline);
   border-radius: var(--sky-radius-control);
   background: var(--sky-surface);
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 .citywarn-map-canvas {
   position: relative;
@@ -1962,7 +2000,6 @@ onMounted(async () => {
   --citywarn-ink: #f9fafb;
 }
 .sky-app-page--dark.citywarn-app :deep(.sky-pill-navigation .sky-segmented) {
-  background: rgb(23 25 29 / 98%);
 }
 .sky-app-page--dark .citywarn-alert-card,
 .sky-app-page--dark .citywarn-archive-card,

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   CalendarDays,
   ChevronLeft,
@@ -194,7 +196,7 @@ watch(
             :aria-label="phone.t('Common.back')"
             @click="showGallery"
           >
-            <ChevronLeft :size="21" :stroke-width="2.4" />
+            <SkyIcon :icon="ChevronLeft" :size="21" :stroke-width="2.4" />
           </SkyButton>
           <span v-else aria-hidden="true"></span>
 
@@ -297,7 +299,8 @@ watch(
               :aria-label="phone.t('Home.widgetSystem.size')"
               role="group"
             >
-              <button
+              <SkyButton
+                variant="content"
                 v-for="(size, index) in selectedDefinition.supportedSizes"
                 :key="size"
                 type="button"
@@ -307,7 +310,7 @@ watch(
                 :aria-label="phone.t(`Home.widgetSystem.sizes.${size}`)"
                 :aria-pressed="index === selectedSizeIndex"
                 @click="selectedSize = size"
-              ></button>
+              ></SkyButton>
             </div>
 
             <h3>{{ phone.t(selectedDefinition.labelKey) }}</h3>

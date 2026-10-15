@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Bike,
   CarFront,
@@ -260,7 +262,7 @@ onBeforeUnmount(() => {
       :title="phone.t('Apps.garage.unavailable')"
       :body="errorMessage()"
     >
-      <template #icon><Wrench :size="31" /></template>
+      <template #icon><SkyIcon :icon="Wrench" :size="31" /></template>
       <template #actions>
         <SkyButton rounded @click="garage.load()">
           {{ phone.t('Apps.garage.tryAgain') }}
@@ -275,7 +277,7 @@ onBeforeUnmount(() => {
             <small>{{ phone.t('Apps.garage.myVehicles') }}</small>
             <strong>{{ counts.all }}</strong>
           </span>
-          <i><CarFront :size="27" /></i>
+          <i><SkyIcon :icon="CarFront" :size="27" /></i>
         </div>
         <div class="garage-summary__stats">
           <span>
@@ -298,8 +300,12 @@ onBeforeUnmount(() => {
 
       <SkyGlass v-if="garage.valet" class="garage-valet-live">
         <div class="garage-valet-live__icon">
-          <Navigation v-if="garage.valet.status !== 'delivered'" :size="24" />
-          <CheckCircle2 v-else :size="24" />
+          <SkyIcon
+            :icon="Navigation"
+            v-if="garage.valet.status !== 'delivered'"
+            :size="24"
+          />
+          <SkyIcon :icon="CheckCircle2" v-else :size="24" />
         </div>
         <div class="garage-valet-live__body">
           <small>{{ phone.t('Apps.garage.valet.liveEyebrow') }}</small>
@@ -377,12 +383,14 @@ onBeforeUnmount(() => {
             </span>
             <span class="garage-vehicle__meta">
               <span
-                ><MapPin :size="13" />{{
+                ><SkyIcon :icon="MapPin" :size="13" />{{
                   vehicle.location || phone.t('Apps.garage.unknownLocation')
                 }}</span
               >
               <span v-if="conditionValue(vehicle) !== null"
-                ><Gauge :size="13" />{{ conditionValue(vehicle) }}%</span
+                ><SkyIcon :icon="Gauge" :size="13" />{{
+                  conditionValue(vehicle)
+                }}%</span
               >
             </span>
           </span>
@@ -404,7 +412,7 @@ onBeforeUnmount(() => {
             : phone.t('Apps.garage.noVehiclesBody')
         "
       >
-        <template #icon><Warehouse :size="37" /></template>
+        <template #icon><SkyIcon :icon="Warehouse" :size="37" /></template>
       </SkyEmptyState>
     </SkyScrollArea>
 
@@ -448,7 +456,7 @@ onBeforeUnmount(() => {
 
           <div class="garage-detail__location">
             <i class="garage-detail__location-icon">
-              <MapPin :size="17" />
+              <SkyIcon :icon="MapPin" :size="17" />
             </i>
             <span>
               <small>{{ phone.t('Apps.garage.location') }}</small>
@@ -461,20 +469,26 @@ onBeforeUnmount(() => {
 
           <div class="garage-metrics">
             <article>
-              <span><Fuel :size="17" />{{ phone.t('Apps.garage.fuel') }}</span>
+              <span
+                ><SkyIcon :icon="Fuel" :size="17" />{{
+                  phone.t('Apps.garage.fuel')
+                }}</span
+              >
               <strong>{{ metricLabel(selectedVehicle.fuel) }}</strong>
               <i><b :style="{ width: `${selectedVehicle.fuel ?? 0}%` }" /></i>
             </article>
             <article>
               <span
-                ><Gauge :size="17" />{{ phone.t('Apps.garage.engine') }}</span
+                ><SkyIcon :icon="Gauge" :size="17" />{{
+                  phone.t('Apps.garage.engine')
+                }}</span
               >
               <strong>{{ metricLabel(selectedVehicle.engine) }}</strong>
               <i><b :style="{ width: `${selectedVehicle.engine ?? 0}%` }" /></i>
             </article>
             <article>
               <span
-                ><ShieldAlert :size="17" />{{
+                ><SkyIcon :icon="ShieldAlert" :size="17" />{{
                   phone.t('Apps.garage.body')
                 }}</span
               >
@@ -488,7 +502,7 @@ onBeforeUnmount(() => {
             class="garage-valet-offer"
           >
             <div class="garage-valet-offer__top">
-              <span><Sparkles :size="22" /></span>
+              <span><SkyIcon :icon="Sparkles" :size="22" /></span>
               <div>
                 <small>{{ phone.t('Apps.garage.valet.eyebrow') }}</small>
                 <strong>{{ phone.t('Apps.garage.valet.title') }}</strong>
@@ -498,12 +512,12 @@ onBeforeUnmount(() => {
             <p>{{ valetAvailability(selectedVehicle) }}</p>
             <div class="garage-valet-offer__facts">
               <span
-                ><Route :size="15" />{{
+                ><SkyIcon :icon="Route" :size="15" />{{
                   phone.t('Apps.garage.valet.tracked')
                 }}</span
               >
               <span
-                ><Clock3 :size="15" />{{
+                ><SkyIcon :icon="Clock3" :size="15" />{{
                   phone.t('Apps.garage.valet.onDemand')
                 }}</span
               >
@@ -514,7 +528,7 @@ onBeforeUnmount(() => {
               :disabled="!canRequestValet(selectedVehicle)"
               @click="valetCandidate = selectedVehicle"
             >
-              <CircleDollarSign :size="18" />
+              <SkyIcon :icon="CircleDollarSign" :size="18" />
               {{ phone.t('Apps.garage.valet.deliver') }}
             </SkyButton>
           </SkyGlass>
@@ -535,7 +549,7 @@ onBeforeUnmount(() => {
         phone.t('Apps.garage.valet.confirmTitle')
       }}</template>
       <div v-if="valetCandidate" class="garage-valet-dialog">
-        <span><Sparkles :size="24" /></span>
+        <span><SkyIcon :icon="Sparkles" :size="24" /></span>
         <p>
           {{
             phone.t('Apps.garage.valet.confirmBody', {

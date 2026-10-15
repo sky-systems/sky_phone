@@ -24,6 +24,8 @@
   --sky-page-gutter: 16px;
   --sky-page-space: 16px;
   --sky-navbar-height: 44px;
+  --sky-island-width: 126px;
+  --sky-hardware-notch-width: 108px;
   --sky-navbar-large-title-height: 52px;
   --sky-tabbar-height: 64px;
   --sky-touch-target: 44px;
@@ -33,7 +35,7 @@
   --sky-space-4: 16px;
   --sky-space-5: 20px;
   --sky-space-6: 24px;
-  --sky-radius-control: 8px;
+  --sky-radius-control: 12px;
   --sky-radius-card: 24px;
   --sky-radius-sheet: 32px;
   --sky-radius-pill: 999px;
@@ -43,15 +45,45 @@
   --sky-font-medium-title: 24px;
   --sky-font-large-title: 34px;
   --sky-font-family: 'Inter', Arial, sans-serif;
+  --sky-glass-blur: 16px;
+  --sky-clear-glass-blur: 6px;
+  --sky-clear-glass-background: rgba(28, 28, 32, 0.12);
+  --sky-clear-glass-fallback: rgba(38, 38, 42, 0.78);
+  --sky-clear-glass-sheen: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.015) 46%,
+    rgba(255, 255, 255, 0.045)
+  );
+  --sky-shadow-glass-clear:
+    inset 0 1px 1px rgba(255, 255, 255, 0.48),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.2), 0 3px 12px rgba(0, 0, 0, 0.18);
+  --sky-shadow-glass-clear-rim:
+    inset 0 0 7px -2px rgba(255, 255, 255, 0.65),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.18),
+    inset -1px -1px 1px rgba(0, 0, 0, 0.12);
+  --sky-glass-soft-blur: 22px;
+  --sky-glass-soft-sheen: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.015) 40%,
+    rgba(0, 0, 0, 0.035)
+  );
+  --sky-shadow-glass-soft:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.09), 0 3px 12px rgba(0, 0, 0, 0.12);
+  --sky-glass-saturation: 145%;
+  --sky-glass-edge: rgba(255, 255, 255, 0.28);
+  --sky-action-glass: rgba(24, 28, 36, 0.78);
+  --sky-action-glass-flat: rgba(24, 28, 36, 0.9);
+  --sky-icon-size: 20px;
   --sky-transition-fast: 100ms;
   --sky-transition-normal: 200ms;
   --sky-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --sky-shadow-glass:
-    inset -1px -1px 0 -0.5px rgba(255, 255, 255, 1),
-    inset 1px 1px 0 -0.5px rgba(255, 255, 255, 1),
-    inset 3px 3px 10px -3px #dddddd, inset -3px -3px 10px -3px #dddddd,
-    inset 0 0 5px 1px #ffffff, inset 0 0 0 0.5px rgba(0, 0, 0, 0.25),
-    inset 0 0 24px rgba(0, 0, 0, 0.1), 0 0 25px rgba(0, 0, 0, 0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 6px 20px rgba(15, 23, 42, 0.14);
   --sky-shadow-glass-fab:
     inset -3px -3px 0 -3.5px #ffffff, inset 3px 3px 0 -3.5px #ffffff,
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.5), inset 0 0 5px 1px #ffffff;
@@ -130,17 +162,23 @@
 .sky-ui-provider,
 .sky-app,
 .sky-app-page {
+  /* Neutral glass adapts as a surface/foreground pair; filled actions stay white. */
+  --sky-action-glass: rgba(247, 247, 250, 0.72);
+  --sky-clear-glass-background: rgba(247, 247, 250, 0.3);
+  --sky-clear-glass-fallback: rgba(247, 247, 250, 0.94);
+  --sky-action-glass-flat: rgba(247, 247, 250, 0.94);
+  --sky-action-glass-text: #111112;
+  --sky-action-glass-edge: rgba(0, 0, 0, 0.1);
+  --sky-action-glass-highlight: rgba(0, 0, 0, 0.08);
   --sky-app-accent: #007aff;
   --sky-app-accent-tint: #298fff;
   --sky-app-accent-shade: #0066d6;
   --sky-app-accent-soft: rgba(0, 122, 255, 0.15);
   --sky-progress-track-color: #000000;
   --sky-shadow-glass:
-    inset -1px -1px 0 -0.5px rgba(255, 255, 255, 1),
-    inset 1px 1px 0 -0.5px rgba(255, 255, 255, 1),
-    inset 3px 3px 10px -3px #dddddd, inset -3px -3px 10px -3px #dddddd,
-    inset 0 0 5px 1px #ffffff, inset 0 0 0 0.5px rgba(0, 0, 0, 0.25),
-    inset 0 0 24px rgba(0, 0, 0, 0.1), 0 0 25px rgba(0, 0, 0, 0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 6px 20px rgba(15, 23, 42, 0.14);
   --sky-shadow-glass-fab:
     inset -3px -3px 0 -3.5px #ffffff, inset 3px 3px 0 -3.5px #ffffff,
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.5), inset 0 0 5px 1px #ffffff;
@@ -181,7 +219,8 @@
   --sky-menu-list-active-background: var(--sky-app-accent-soft);
   --sky-menu-list-active-text: var(--sky-app-accent);
   --sky-segmented-strong-highlight: #ffffff;
-  --sky-glass: rgba(255, 255, 255, 0.75);
+  --sky-glass: rgba(248, 250, 255, 0.7);
+  --sky-glass-flat: rgba(247, 247, 248, 0.9);
   --sky-glass-solid: rgba(247, 247, 248, 0.96);
   --sky-navbar-glass: #efeff4;
   --sky-toggle-track: #f1f1f5;
@@ -212,6 +251,13 @@
 .sky-ui-provider--dark,
 .sky-app--dark,
 .sky-app-page--dark {
+  --sky-action-glass: rgba(28, 28, 31, 0.64);
+  --sky-clear-glass-background: rgba(28, 28, 32, 0.12);
+  --sky-clear-glass-fallback: rgba(28, 28, 31, 0.94);
+  --sky-action-glass-flat: rgba(28, 28, 31, 0.94);
+  --sky-action-glass-text: #ffffff;
+  --sky-action-glass-edge: rgba(255, 255, 255, 0.16);
+  --sky-action-glass-highlight: rgba(255, 255, 255, 0.16);
   --sky-app-accent: #0a84ff;
   --sky-app-accent-tint: #409cff;
   --sky-app-accent-shade: #0070dc;
@@ -236,7 +282,8 @@
   --sky-menu-list-active-background: var(--sky-app-accent);
   --sky-menu-list-active-text: #ffffff;
   --sky-segmented-strong-highlight: #444447;
-  --sky-glass: rgba(50, 50, 50, 0.5);
+  --sky-glass: rgba(28, 32, 40, 0.72);
+  --sky-glass-flat: rgba(28, 28, 29, 0.88);
   --sky-glass-solid: rgba(28, 28, 29, 0.96);
   --sky-navbar-glass: rgba(0, 0, 0, 0.5);
   --sky-toggle-track: #444447;
@@ -259,12 +306,9 @@
   --sky-warning: #ffd60a;
   --sky-warning-soft: rgba(255, 214, 10, 0.16);
   --sky-shadow-glass:
-    inset -2px -2px 0.5px -2.5px rgba(255, 255, 255, 0.4),
-    inset 3px 3px 0.5px -3.5px rgba(255, 255, 255, 0.4),
-    inset 2px 2px 0.5px -2px #262626, inset -2px -2px 0.5px -2px #262626,
-    inset 0 0 5px 1px #141414, inset 0 0 0 1px rgba(255, 255, 255, 0.15),
-    inset 0 0 10px rgba(255, 255, 255, 0.075),
-    inset 0 0 24px rgba(255, 255, 255, 0.05), 0 0 25px rgba(0, 0, 0, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 20px rgba(0, 0, 0, 0.22);
   --sky-shadow-glass-fab:
     inset -0.5px -0.5px 0 rgba(255, 255, 255, 0.5),
     inset 0.5px 0.5px 0 rgba(255, 255, 255, 0.1),

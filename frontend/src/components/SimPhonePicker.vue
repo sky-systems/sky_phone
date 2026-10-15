@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import { ChevronRight, Smartphone, X } from 'lucide-vue-next'
 import { ref } from 'vue'
 
@@ -66,25 +68,27 @@ function close(): void {
             }}
           </p>
         </div>
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="sim-picker__close"
           :aria-label="phone.t('Common.close')"
           @click="close"
         >
-          <X />
-        </button>
+          <SkyIcon :icon="X" />
+        </SkyButton>
       </header>
 
       <div v-if="!confirmation" class="sim-picker__cards">
-        <button
+        <SkyButton
+          variant="content"
           v-for="choice in choices"
           :key="choice.imei"
           type="button"
           class="sim-picker__card"
           @click="insert(choice)"
         >
-          <Smartphone class="sim-picker__phone-icon" />
+          <SkyIcon :icon="Smartphone" class="sim-picker__phone-icon" />
           <span class="sim-picker__details">
             <strong>{{ choice.name }}</strong>
             <small>{{
@@ -94,24 +98,29 @@ function close(): void {
             }}</small>
             <small>IMEI {{ choice.imei }}</small>
           </span>
-          <ChevronRight />
-        </button>
+          <SkyIcon :icon="ChevronRight" />
+        </SkyButton>
       </div>
 
       <div v-else class="sim-picker__confirmation">
         <h2>{{ phone.t('Apps.phone.replaceTitle') }}</h2>
         <p>{{ phone.t('Apps.phone.replaceBody') }}</p>
         <div>
-          <button type="button" @click="confirmation = null">
+          <SkyButton
+            variant="content"
+            type="button"
+            @click="confirmation = null"
+          >
             {{ phone.t('Common.cancel') }}
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             class="is-primary"
             @click="insert(confirmation, true)"
           >
             {{ phone.t('Common.done') }}
-          </button>
+          </SkyButton>
         </div>
       </div>
       <p v-if="error" class="sim-picker__error">{{ error }}</p>

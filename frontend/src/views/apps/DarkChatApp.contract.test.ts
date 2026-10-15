@@ -34,7 +34,7 @@ describe('DarkChatApp Sky UI contract', () => {
 
     expect(inbox.match(/@click="openProfile"/g)).toHaveLength(1)
     expect(inbox).toContain('@click="beginNewChat"')
-    expect(inbox).toContain('<SquarePen :size="21" />')
+    expect(inbox).toContain('<SkyIcon :icon="SquarePen" :size="21" />')
   })
 
   it('matches the SMS recipient composer for new private chats', () => {

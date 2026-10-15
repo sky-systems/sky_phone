@@ -2,6 +2,7 @@
 import { computed, useId, useSlots } from 'vue'
 
 import SkyChipDeleteIcon from '../controls/SkyChipDeleteIcon.vue'
+import SkyGlass from '../controls/SkyGlass.vue'
 
 defineOptions({ inheritAttrs: false })
 
@@ -14,6 +15,7 @@ const props = withDefaults(
     button?: string
     closeLabel?: string
     component?: 'div' | 'section'
+    glassMaterial?: 'clear' | 'regular'
     icon?: string
     opened: boolean
     role?: 'alert' | 'status'
@@ -24,6 +26,7 @@ const props = withDefaults(
   }>(),
   {
     component: 'section',
+    glassMaterial: 'regular',
     role: 'status',
   },
 )
@@ -55,8 +58,10 @@ const resolvedCloseLabel = computed(() => props.closeLabel ?? props.button)
 
 <template>
   <Transition name="sky-notification-slide" appear>
-    <component
-      :is="component"
+    <SkyGlass
+      :component="component"
+      :material="glassMaterial"
+      :highlight="false"
       v-if="opened"
       v-bind="$attrs"
       class="sky-notification sky-glass-surface"
@@ -88,6 +93,7 @@ const resolvedCloseLabel = computed(() => props.closeLabel ?? props.button)
           <span
             v-if="titleRightText !== undefined || $slots.titleRightText"
             class="sky-notification__time"
+            aria-live="off"
           >
             <slot name="titleRightText">{{ titleRightText }}</slot>
           </span>
@@ -120,6 +126,6 @@ const resolvedCloseLabel = computed(() => props.closeLabel ?? props.button)
 
         <slot />
       </div>
-    </component>
+    </SkyGlass>
   </Transition>
 </template>

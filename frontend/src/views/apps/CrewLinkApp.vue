@@ -1226,7 +1226,7 @@ onBeforeUnmount(() => {
 
     <template v-else-if="crew.isLoading && !crew.profile && !crew.error">
       <div class="crewlink-loading">
-        <span class="crewlink-logo"><Radio /></span>
+        <span class="crewlink-logo"><SkyIcon :icon="Radio" /></span>
         <sky-spinner />
         <p>{{ t('connecting') }}</p>
       </div>
@@ -1234,7 +1234,7 @@ onBeforeUnmount(() => {
 
     <template v-else-if="crew.error === 'not_authenticated'">
       <div class="crewlink-onboarding">
-        <span class="crewlink-logo"><Users /></span>
+        <span class="crewlink-logo"><SkyIcon :icon="Users" /></span>
         <small>{{ t('privateNetwork') }}</small>
         <h1>{{ t('signInTitle') }}</h1>
         <p>{{ t('signInBody') }}</p>
@@ -1261,14 +1261,22 @@ onBeforeUnmount(() => {
         }"
       >
         <section v-if="!activeGroup" class="crewlink-group-gate">
-          <button type="button" @click="openSheet('create-group')">
-            <span><Plus /></span>
+          <SkyButton
+            variant="content"
+            type="button"
+            @click="openSheet('create-group')"
+          >
+            <span><SkyIcon :icon="Plus" /></span>
             <strong>{{ t('createGroup') }}</strong>
-          </button>
-          <button type="button" @click="openSheet('join-group')">
-            <span><UserPlus /></span>
+          </SkyButton>
+          <SkyButton
+            variant="content"
+            type="button"
+            @click="openSheet('join-group')"
+          >
+            <span><SkyIcon :icon="UserPlus" /></span>
             <strong>{{ t('joinGroup') }}</strong>
-          </button>
+          </SkyButton>
           <sky-button
             large
             rounded
@@ -1276,7 +1284,7 @@ onBeforeUnmount(() => {
             class="crewlink-group-gate__logout"
             @click="logoutDialogOpen = true"
           >
-            <LogOut />{{ phone.t('Common.signOut') }}
+            <SkyIcon :icon="LogOut" />{{ phone.t('Common.signOut') }}
           </sky-button>
         </section>
 
@@ -1337,7 +1345,8 @@ onBeforeUnmount(() => {
                   draggable="false"
                 />
               </div>
-              <button
+              <SkyButton
+                variant="content"
                 v-for="member in visibleMapMembers"
                 :key="member.id"
                 type="button"
@@ -1355,8 +1364,9 @@ onBeforeUnmount(() => {
                   <template v-else>{{ memberInitials(member) }}</template>
                 </span>
                 <small>{{ member.username }}</small>
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 v-for="ping in activeGroup.pings"
                 :key="ping.id"
                 type="button"
@@ -1370,51 +1380,56 @@ onBeforeUnmount(() => {
               >
                 <component :is="pingIcons[ping.type]" />
                 <small>{{ ping.label }}</small>
-              </button>
+              </SkyButton>
               <div v-if="placingPing" class="crewlink-map-crosshair">
-                <Crosshair />
+                <SkyIcon :icon="Crosshair" />
               </div>
               <div class="crewlink-map-controls">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="t('zoomIn')"
                   @pointerdown.stop
                   @click="changeZoom(1)"
                 >
                   +
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="t('zoomOut')"
                   @pointerdown.stop
                   @click="changeZoom(-1)"
                 >
                   −
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="t('myLocation')"
                   @pointerdown.stop
                   @click="centerOwnLocation"
                 >
-                  <LocateFixed />
-                </button>
-                <button
+                  <SkyIcon :icon="LocateFixed" />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="`${t('members')} · ${t('map')}`"
                   @pointerdown.stop
                   @click="fitOnlineMembers"
                 >
-                  <Users />
-                </button>
-                <button
+                  <SkyIcon :icon="Users" />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="`${phone.t('Apps.map.switchStyle')}: ${phone.t(`Apps.map.styles.${mapStyle}`)}`"
                   @pointerdown.stop
                   @click="cycleMapStyle"
                 >
                   <component :is="activeMapStyle.icon" />
-                </button>
+                </SkyButton>
               </div>
               <div v-if="!placingPing" class="crewlink-map-legend">
                 <span><i class="is-live"></i>{{ t('status.live') }}</span>
@@ -1432,14 +1447,18 @@ onBeforeUnmount(() => {
                   {{ phone.t('Common.cancel') }}
                 </sky-button>
                 <sky-button rounded @click="confirmPingPlacement">
-                  <MapPin />{{ t('addHere') }}
+                  <SkyIcon :icon="MapPin" />{{ t('addHere') }}
                 </sky-button>
               </div>
             </div>
 
             <div v-else class="crewlink-map-actions">
-              <button type="button" @click="activeTab = 'group'">
-                <Users /><span
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="activeTab = 'group'"
+              >
+                <SkyIcon :icon="Users" /><span
                   ><strong
                     >{{ activeGroup.memberCount }}
                     {{
@@ -1447,17 +1466,18 @@ onBeforeUnmount(() => {
                     }}</strong
                   ><small>{{ t('openCrew') }}</small></span
                 >
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 :disabled="!canPing"
                 @click="startPingPlacement"
               >
-                <MapPin /><span
+                <SkyIcon :icon="MapPin" /><span
                   ><strong>{{ t('newPing') }}</strong
                   ><small>{{ t('shareLocation') }}</small></span
                 >
-              </button>
+              </SkyButton>
             </div>
           </section>
 
@@ -1466,7 +1486,9 @@ onBeforeUnmount(() => {
             class="crewlink-scroll-tab crewlink-group-tab"
           >
             <div class="crewlink-group-hero" :style="activeCrewStyle">
-              <div class="crewlink-group-hero__signal"><Radio /></div>
+              <div class="crewlink-group-hero__signal">
+                <SkyIcon :icon="Radio" />
+              </div>
               <small>{{ t('activeCrew') }}</small>
               <h1>{{ activeGroup.name }}</h1>
               <p>
@@ -1493,30 +1515,38 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="crewlink-quick-actions">
-              <button v-if="canModerate" type="button" @click="loadNearby">
-                <UserPlus /><span>{{ t('nearby') }}</span>
-              </button>
-              <button
+              <SkyButton
+                variant="content"
+                v-if="canModerate"
+                type="button"
+                @click="loadNearby"
+              >
+                <SkyIcon :icon="UserPlus" /><span>{{ t('nearby') }}</span>
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 v-if="activeGroup.inviteCode"
                 type="button"
                 @click="copyInviteCode"
               >
-                <Copy /><span>{{ t('copyCode') }}</span>
-              </button>
-              <button
+                <SkyIcon :icon="Copy" /><span>{{ t('copyCode') }}</span>
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 v-if="activeGroup.inviteCode"
                 type="button"
                 @click="shareGroupInvite"
               >
-                <Share2 /><span>{{ t('shareInvite') }}</span>
-              </button>
-              <button
+                <SkyIcon :icon="Share2" /><span>{{ t('shareInvite') }}</span>
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 v-if="canCoordinate"
                 type="button"
                 @click="openSheet('edit-group')"
               >
-                <Settings2 /><span>{{ t('manage') }}</span>
-              </button>
+                <SkyIcon :icon="Settings2" /><span>{{ t('manage') }}</span>
+              </SkyButton>
             </div>
 
             <template v-if="crew.invitations.length">
@@ -1525,7 +1555,7 @@ onBeforeUnmount(() => {
                 <sky-card v-for="invite in crew.invitations" :key="invite.id">
                   <div class="crewlink-invite-card">
                     <i :style="{ background: colourValue(invite.colour) }"
-                      ><Users
+                      ><SkyIcon :icon="Users"
                     /></i>
                     <div>
                       <strong>{{ invite.groupName }}</strong
@@ -1533,19 +1563,21 @@ onBeforeUnmount(() => {
                         t('invitedBy', { username: invite.inviterUsername })
                       }}</span>
                     </div>
-                    <button
+                    <SkyButton
+                      variant="content"
                       type="button"
                       @click="respondInvitation(invite.id, false)"
                     >
-                      <X />
-                    </button>
-                    <button
+                      <SkyIcon :icon="X" />
+                    </SkyButton>
+                    <SkyButton
+                      variant="content"
                       type="button"
                       class="is-accept"
                       @click="respondInvitation(invite.id, true)"
                     >
-                      <Check />
-                    </button>
+                      <SkyIcon :icon="Check" />
+                    </SkyButton>
                   </div>
                 </sky-card>
               </div>
@@ -1602,14 +1634,19 @@ onBeforeUnmount(() => {
             class="crewlink-scroll-tab crewlink-pings-tab"
           >
             <div class="crewlink-section-header">
-              <span><MapPin /></span>
+              <span><SkyIcon :icon="MapPin" /></span>
               <div>
                 <small>{{ t('liveCoordination') }}</small>
                 <h1>{{ t('pings') }}</h1>
               </div>
-              <button v-if="canPing" type="button" @click="startPingPlacement">
-                <Plus />
-              </button>
+              <SkyButton
+                variant="content"
+                v-if="canPing"
+                type="button"
+                @click="startPingPlacement"
+              >
+                <SkyIcon :icon="Plus" />
+              </SkyButton>
             </div>
             <div v-if="activeGroup.pings.length" class="crewlink-ping-list">
               <sky-card
@@ -1630,14 +1667,16 @@ onBeforeUnmount(() => {
                       t('sharedBy', { username: ping.creatorUsername })
                     }}</span>
                   </div>
-                  <button
+                  <SkyButton
+                    variant="content"
                     type="button"
                     :aria-label="t('setRoute')"
                     @click="routeTo(ping.coords)"
                   >
-                    <Navigation />
-                  </button>
-                  <button
+                    <SkyIcon :icon="Navigation" />
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
                     v-if="
                       ping.creatorProfileId === crew.profile?.id || canModerate
                     "
@@ -1645,13 +1684,13 @@ onBeforeUnmount(() => {
                     :aria-label="phone.t('Common.delete')"
                     @click="removePing(ping)"
                   >
-                    <Trash2 />
-                  </button>
+                    <SkyIcon :icon="Trash2" />
+                  </SkyButton>
                 </article>
               </sky-card>
             </div>
             <div v-else class="crewlink-empty-state">
-              <span><CircleDot /></span>
+              <span><SkyIcon :icon="CircleDot" /></span>
               <h2>{{ t('noPings') }}</h2>
               <p>{{ t('noPingsBody') }}</p>
             </div>
@@ -1698,7 +1737,7 @@ onBeforeUnmount(() => {
                       :src="crew.profile.avatarUrl"
                       alt=""
                     />
-                    <UserRound v-else :size="20" />
+                    <SkyIcon :icon="UserRound" v-else :size="20" />
                   </span>
                 </template>
               </sky-list-item>
@@ -1708,7 +1747,9 @@ onBeforeUnmount(() => {
                 :title="phone.t('Apps.easyShare.shareProfile')"
                 @click="shareProfile"
               >
-                <template #media><Share2 :size="20" /></template>
+                <template #media
+                  ><SkyIcon :icon="Share2" :size="20"
+                /></template>
               </sky-list-item>
             </sky-list>
 
@@ -1718,7 +1759,9 @@ onBeforeUnmount(() => {
                 :title="t('shareOnMap')"
                 :subtitle="t('shareOnMapBody')"
               >
-                <template #media><MapIcon :size="20" /></template>
+                <template #media
+                  ><SkyIcon :icon="MapIcon" :size="20"
+                /></template>
                 <template #after
                   ><sky-toggle
                     :checked="crew.profile.mapVisible"
@@ -1730,7 +1773,7 @@ onBeforeUnmount(() => {
                 :title="t('overheadLabels')"
                 :subtitle="t('overheadLabelsBody')"
               >
-                <template #media><Eye :size="20" /></template>
+                <template #media><SkyIcon :icon="Eye" :size="20" /></template>
                 <template #after
                   ><sky-toggle
                     :checked="crew.profile.overheadVisible"
@@ -1754,10 +1797,11 @@ onBeforeUnmount(() => {
                   ><span
                     class="crewlink-group-dot"
                     :style="{ background: colourValue(group.colour) }"
-                    ><Users /></span
+                    ><SkyIcon :icon="Users" /></span
                 ></template>
                 <template #after
-                  ><Check
+                  ><SkyIcon
+                    :icon="Check"
                     v-if="group.id === activeGroup.id"
                     :size="18"
                     :style="{ color: colourValue(group.colour) }"
@@ -1767,13 +1811,14 @@ onBeforeUnmount(() => {
                 :title="t('createAnotherGroup')"
                 link
                 @click="openSheet('create-group')"
-                ><template #media><Plus :size="20" /></template
+                ><template #media><SkyIcon :icon="Plus" :size="20" /></template
               ></sky-list-item>
               <sky-list-item
                 :title="t('joinWithCode')"
                 link
                 @click="openSheet('join-group')"
-                ><template #media><UserPlus :size="20" /></template
+                ><template #media
+                  ><SkyIcon :icon="UserPlus" :size="20" /></template
               ></sky-list-item>
             </sky-list>
 
@@ -1782,7 +1827,8 @@ onBeforeUnmount(() => {
               <sky-list-item
                 :title="t('externalApi')"
                 :subtitle="t('externalApiBody')"
-                ><template #media><Sparkles :size="20" /></template
+                ><template #media
+                  ><SkyIcon :icon="Sparkles" :size="20" /></template
               ></sky-list-item>
               <sky-list-item
                 :title="phone.t('Common.signOut')"
@@ -1790,7 +1836,9 @@ onBeforeUnmount(() => {
                 link
                 @click="logoutDialogOpen = true"
               >
-                <template #media><LogOut :size="20" /></template>
+                <template #media
+                  ><SkyIcon :icon="LogOut" :size="20"
+                /></template>
               </sky-list-item>
               <sky-list-item
                 :title="
@@ -1804,7 +1852,9 @@ onBeforeUnmount(() => {
                     : 'leave-group'
                 "
               >
-                <template #media><Trash2 :size="20" /></template>
+                <template #media
+                  ><SkyIcon :icon="Trash2" :size="20"
+                /></template>
               </sky-list-item>
             </sky-list>
           </section>
@@ -1828,7 +1878,7 @@ onBeforeUnmount(() => {
             @click="activeTab = 'map'"
             ><template #label>{{ t('map') }}</template
             ><template #icon
-              ><sky-icon><MapIcon /></sky-icon></template
+              ><sky-icon><SkyIcon :icon="MapIcon" /></sky-icon></template
           ></sky-tab-button>
           <sky-tab-button
             component="button"
@@ -1837,7 +1887,7 @@ onBeforeUnmount(() => {
             @click="activeTab = 'group'"
             ><template #label>{{ t('crew') }}</template
             ><template #icon
-              ><sky-icon><Users /></sky-icon></template
+              ><sky-icon><SkyIcon :icon="Users" /></sky-icon></template
           ></sky-tab-button>
           <sky-tab-button
             component="button"
@@ -1849,7 +1899,7 @@ onBeforeUnmount(() => {
             <template #icon>
               <sky-icon>
                 <span class="crewlink-pings-icon">
-                  <MapPin />
+                  <SkyIcon :icon="MapPin" />
                   <sky-badge
                     v-if="activeGroup.pings.length"
                     small
@@ -1867,7 +1917,7 @@ onBeforeUnmount(() => {
             @click="activeTab = 'profile'"
             ><template #label>{{ t('profile') }}</template
             ><template #icon
-              ><sky-icon><UserRound /></sky-icon></template
+              ><sky-icon><SkyIcon :icon="UserRound" /></sky-icon></template
           ></sky-tab-button>
         </sky-toolbar-pane>
       </sky-tab-bar>
@@ -1890,11 +1940,13 @@ onBeforeUnmount(() => {
           :link-props="{ type: 'button' }"
           :aria-label="phone.t('Common.close')"
           @click="closeSheet"
-          ><X
+          ><SkyIcon :icon="X"
         /></sky-link>
 
         <template v-if="sheet === 'create-group'">
-          <span class="crewlink-sheet__panel__icon"><Users /></span>
+          <span class="crewlink-sheet__panel__icon"
+            ><SkyIcon :icon="Users"
+          /></span>
           <h2>{{ t('createGroup') }}</h2>
           <p>{{ t('createGroupBody') }}</p>
           <sky-list inset strong class="crewlink-form-list"
@@ -1909,7 +1961,8 @@ onBeforeUnmount(() => {
           /></sky-list>
           <span class="crewlink-field-label">{{ t('groupColour') }}</span>
           <div class="crewlink-colours" role="radiogroup">
-            <button
+            <SkyButton
+              variant="content"
               v-for="colour in colours"
               :key="colour.id"
               type="button"
@@ -1919,8 +1972,8 @@ onBeforeUnmount(() => {
               :style="{ background: colour.value }"
               @click="groupColour = colour.id"
             >
-              <Check />
-            </button>
+              <SkyIcon :icon="Check" />
+            </SkyButton>
           </div>
           <p v-if="formError" class="crewlink-error">{{ formError }}</p>
           <sky-button
@@ -1933,7 +1986,9 @@ onBeforeUnmount(() => {
         </template>
 
         <template v-else-if="sheet === 'join-group'">
-          <span class="crewlink-sheet__panel__icon"><UserPlus /></span>
+          <span class="crewlink-sheet__panel__icon"
+            ><SkyIcon :icon="UserPlus"
+          /></span>
           <h2>{{ t('joinWithCode') }}</h2>
           <p>{{ t('joinWithCodeBody') }}</p>
           <sky-list inset strong class="crewlink-form-list"
@@ -1963,7 +2018,7 @@ onBeforeUnmount(() => {
               <sky-card v-for="invite in crew.invitations" :key="invite.id">
                 <div class="crewlink-invite-card">
                   <i :style="{ background: colourValue(invite.colour) }"
-                    ><Users
+                    ><SkyIcon :icon="Users"
                   /></i>
                   <div>
                     <strong>{{ invite.groupName }}</strong
@@ -1971,19 +2026,21 @@ onBeforeUnmount(() => {
                       t('invitedBy', { username: invite.inviterUsername })
                     }}</span>
                   </div>
-                  <button
+                  <SkyButton
+                    variant="content"
                     type="button"
                     @click="respondInvitation(invite.id, false)"
                   >
-                    <X />
-                  </button>
-                  <button
+                    <SkyIcon :icon="X" />
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
                     type="button"
                     class="is-accept"
                     @click="respondInvitation(invite.id, true)"
                   >
-                    <Check />
-                  </button>
+                    <SkyIcon :icon="Check" />
+                  </SkyButton>
                 </div>
               </sky-card>
             </div>
@@ -1991,7 +2048,9 @@ onBeforeUnmount(() => {
         </template>
 
         <template v-else-if="sheet === 'nearby'">
-          <span class="crewlink-sheet__panel__icon"><Radio /></span>
+          <span class="crewlink-sheet__panel__icon"
+            ><SkyIcon :icon="Radio"
+          /></span>
           <h2>{{ t('peopleNearby') }}</h2>
           <p>
             {{
@@ -2037,7 +2096,7 @@ onBeforeUnmount(() => {
             </sky-list-item>
           </sky-list>
           <div v-else class="crewlink-sheet__panel-empty">
-            <EyeOff /><strong>{{ t('nobodyNearby') }}</strong
+            <SkyIcon :icon="EyeOff" /><strong>{{ t('nobodyNearby') }}</strong
             ><span>{{ t('nobodyNearbyBody') }}</span>
           </div>
           <p v-if="formError" class="crewlink-error">{{ formError }}</p>
@@ -2047,16 +2106,19 @@ onBeforeUnmount(() => {
             outline
             class="crewlink-nearby-rescan"
             @click="loadNearby"
-            ><RefreshCw />{{ t('scanAgain') }}</sky-button
+            ><SkyIcon :icon="RefreshCw" />{{ t('scanAgain') }}</sky-button
           >
         </template>
 
         <template v-else-if="sheet === 'ping'">
-          <span class="crewlink-sheet__panel__icon"><MapPin /></span>
+          <span class="crewlink-sheet__panel__icon"
+            ><SkyIcon :icon="MapPin"
+          /></span>
           <h2 class="crewlink-ping-title">{{ t('newPing') }}</h2>
           <p class="crewlink-ping-description">{{ t('newPingBody') }}</p>
           <div class="crewlink-ping-types">
-            <button
+            <SkyButton
+              variant="content"
               v-for="(_, type) in pingIcons"
               :key="type"
               type="button"
@@ -2070,7 +2132,7 @@ onBeforeUnmount(() => {
               <component :is="pingIcons[type]" /><span>{{
                 t(`pingTypes.${type}`)
               }}</span>
-            </button>
+            </SkyButton>
           </div>
           <sky-list inset strong class="crewlink-form-list crewlink-ping-form"
             ><sky-field
@@ -2090,8 +2152,12 @@ onBeforeUnmount(() => {
               link
               @click="resumePingPlacement"
             >
-              <template #media><Crosshair :size="22" /></template>
-              <template #after><MapPinned :size="19" /></template>
+              <template #media
+                ><SkyIcon :icon="Crosshair" :size="22"
+              /></template>
+              <template #after
+                ><SkyIcon :icon="MapPinned" :size="19"
+              /></template>
             </sky-list-item>
           </sky-list>
           <p v-if="formError" class="crewlink-error">{{ formError }}</p>
@@ -2101,12 +2167,14 @@ onBeforeUnmount(() => {
             class="crewlink-share-ping"
             :disabled="crew.isLoading"
             @click="createPing"
-            ><Flag />{{ t('sharePing') }}</sky-button
+            ><SkyIcon :icon="Flag" />{{ t('sharePing') }}</sky-button
           >
         </template>
 
         <template v-else-if="sheet === 'edit-group' && activeGroup">
-          <span class="crewlink-sheet__panel__icon"><Settings2 /></span>
+          <span class="crewlink-sheet__panel__icon"
+            ><SkyIcon :icon="Settings2"
+          /></span>
           <h2>{{ t('manageCrew') }}</h2>
           <p>{{ t('manageCrewBody') }}</p>
           <sky-list inset strong class="crewlink-form-list"
@@ -2120,7 +2188,8 @@ onBeforeUnmount(() => {
           /></sky-list>
           <span class="crewlink-field-label">{{ t('groupColour') }}</span>
           <div class="crewlink-colours">
-            <button
+            <SkyButton
+              variant="content"
               v-for="colour in colours"
               :key="colour.id"
               type="button"
@@ -2128,8 +2197,8 @@ onBeforeUnmount(() => {
               :style="{ background: colour.value }"
               @click="groupColour = colour.id"
             >
-              <Check />
-            </button>
+              <SkyIcon :icon="Check" />
+            </SkyButton>
           </div>
           <sky-list inset strong>
             <sky-list-item
@@ -2159,10 +2228,18 @@ onBeforeUnmount(() => {
             ><div class="crewlink-code-card">
               <small>{{ t('inviteCode') }}</small
               ><strong>{{ activeGroup.inviteCode }}</strong
-              ><button type="button" @click="copyInviteCode"><Copy /></button
-              ><button type="button" @click="rotateInviteCode">
-                <RefreshCw />
-              </button></div
+              ><SkyButton
+                variant="content"
+                type="button"
+                @click="copyInviteCode"
+                ><SkyIcon :icon="Copy" /></SkyButton
+              ><SkyButton
+                variant="content"
+                type="button"
+                @click="rotateInviteCode"
+              >
+                <SkyIcon :icon="RefreshCw" />
+              </SkyButton></div
           ></sky-card>
           <p v-if="formError" class="crewlink-error">{{ formError }}</p>
           <sky-button large rounded @click="saveGroup">{{
@@ -2202,7 +2279,10 @@ onBeforeUnmount(() => {
                 ><component :is="roleIcons[role]" :size="20"
               /></template>
               <template #after
-                ><Check v-if="role === selectedMember.role" :size="18"
+                ><SkyIcon
+                  :icon="Check"
+                  v-if="role === selectedMember.role"
+                  :size="18"
               /></template>
             </sky-list-item>
           </sky-list>
@@ -2213,7 +2293,7 @@ onBeforeUnmount(() => {
               rounded
               outline
               @click="confirmAction = 'transfer-owner'"
-              ><Crown />{{ t('transferOwnership') }}</sky-button
+              ><SkyIcon :icon="Crown" />{{ t('transferOwnership') }}</sky-button
             >
             <sky-button
               large
@@ -2221,7 +2301,7 @@ onBeforeUnmount(() => {
               tonal
               class="crewlink-danger-button"
               @click="confirmAction = 'remove-member'"
-              ><Trash2 />{{ t('removeMember') }}</sky-button
+              ><SkyIcon :icon="Trash2" />{{ t('removeMember') }}</sky-button
             >
           </div>
         </template>
@@ -2238,16 +2318,16 @@ onBeforeUnmount(() => {
               :src="crew.profile.avatarUrl"
               alt=""
             />
-            <UserRound v-else />
+            <SkyIcon :icon="UserRound" v-else />
           </div>
           <h2>{{ t('editProfile') }}</h2>
           <p>{{ t('editProfileBody') }}</p>
           <div class="crewlink-profile-editor__media-actions">
             <sky-button rounded outline @click="openProfileMedia('photos')">
-              <Images :size="16" />{{ t('gallery') }}
+              <SkyIcon :icon="Images" :size="16" />{{ t('gallery') }}
             </sky-button>
             <sky-button rounded outline @click="openProfileMedia('camera')">
-              <Camera :size="16" />{{ t('camera') }}
+              <SkyIcon :icon="Camera" :size="16" />{{ t('camera') }}
             </sky-button>
           </div>
           <sky-button
@@ -2260,7 +2340,7 @@ onBeforeUnmount(() => {
             class="crewlink-profile-editor__remove"
             @click="removeProfilePhoto"
           >
-            <Trash2 :size="15" />{{ t('removeProfilePhoto') }}
+            <SkyIcon :icon="Trash2" :size="15" />{{ t('removeProfilePhoto') }}
           </sky-button>
           <sky-list inset strong class="crewlink-form-list"
             ><sky-field
@@ -2299,7 +2379,7 @@ onBeforeUnmount(() => {
           class="crewlink-sheet__panel__close"
           :link-props="{ type: 'button' }"
           @click="selectedMember = null"
-          ><X
+          ><SkyIcon :icon="X"
         /></sky-link>
         <span
           class="crewlink-sheet__panel__avatar"
@@ -2322,7 +2402,7 @@ onBeforeUnmount(() => {
           large
           rounded
           @click="routeToSelectedMember"
-          ><Route />{{ t('setRoute') }}</sky-button
+          ><SkyIcon :icon="Route" />{{ t('setRoute') }}</sky-button
         >
       </section>
     </sky-sheet>
@@ -2340,7 +2420,7 @@ onBeforeUnmount(() => {
           class="crewlink-sheet__panel__close"
           :link-props="{ type: 'button' }"
           @click="selectedPing = null"
-          ><X
+          ><SkyIcon :icon="X"
         /></sky-link>
         <span
           class="crewlink-sheet__panel__icon"
@@ -2353,7 +2433,7 @@ onBeforeUnmount(() => {
           {{ expiresIn(selectedPing.expiresAt) }}
         </p>
         <sky-button large rounded @click="routeToSelectedPing"
-          ><Navigation />{{ t('setRoute') }}</sky-button
+          ><SkyIcon :icon="Navigation" />{{ t('setRoute') }}</sky-button
         >
       </section>
     </sky-sheet>

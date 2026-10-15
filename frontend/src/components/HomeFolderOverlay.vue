@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import { Check, Pencil, X } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
@@ -267,12 +269,13 @@ onBeforeUnmount(() => {
     class="home-folder-layer"
     :class="{ 'home-folder-layer--dragging-out': draggingOutside }"
   >
-    <button
+    <SkyButton
+      variant="content"
       class="home-folder-backdrop"
       type="button"
       :aria-label="phone.t('Home.folders.close')"
       @click="emit('close')"
-    ></button>
+    ></SkyButton>
     <section
       class="home-folder-dialog"
       role="dialog"
@@ -281,14 +284,15 @@ onBeforeUnmount(() => {
       @pointerdown.stop
     >
       <div v-if="!renameOpened" class="home-folder-heading">
-        <button
+        <SkyButton
+          variant="content"
           class="home-folder-title"
           type="button"
           :aria-label="phone.t('Home.folders.rename')"
           @click="openRename"
         >
           {{ folderName }}
-        </button>
+        </SkyButton>
         <SkyLink
           class="home-folder-edit"
           component="button"
@@ -297,7 +301,7 @@ onBeforeUnmount(() => {
           type="button"
           @click="openRename"
         >
-          <Pencil :size="18" :stroke-width="2.2" />
+          <SkyIcon :icon="Pencil" :size="18" :stroke-width="2.2" />
         </SkyLink>
       </div>
       <form
@@ -314,7 +318,7 @@ onBeforeUnmount(() => {
           type="button"
           @click="renameOpened = false"
         >
-          <X :size="19" :stroke-width="2.3" />
+          <SkyIcon :icon="X" :size="19" :stroke-width="2.3" />
         </SkyLink>
         <SkyField
           v-model="renameDraft"
@@ -335,7 +339,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Common.save')"
           type="submit"
         >
-          <Check :size="20" :stroke-width="2.5" />
+          <SkyIcon :icon="Check" :size="20" :stroke-width="2.5" />
         </SkyLink>
       </form>
       <div
@@ -370,14 +374,15 @@ onBeforeUnmount(() => {
           class="home-folder-pages"
           :aria-label="phone.t('Home.folders.pages')"
         >
-          <button
+          <SkyButton
+            variant="content"
             v-for="page in pageCount"
             :key="page"
             type="button"
             :class="{ active: currentPage === page - 1 }"
             :aria-label="`${phone.t('Home.page')} ${page}`"
             @click="goToPage(page - 1)"
-          ></button>
+          ></SkyButton>
         </nav>
       </div>
     </section>

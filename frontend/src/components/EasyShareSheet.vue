@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Check,
   Clock3,
@@ -309,7 +311,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
         ></div>
         <header class="easyshare-header">
           <img v-if="app?.iconImage" :src="app.iconImage" alt="" />
-          <span v-else class="easyshare-header__fallback"><Share2 /></span>
+          <span v-else class="easyshare-header__fallback"
+            ><SkyIcon :icon="Share2"
+          /></span>
           <div>
             <small>{{
               app ? getPhoneAppLabel(app, phone.t) : label('name')
@@ -327,7 +331,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
             :aria-label="label('recentChats')"
             @wheel="scrollRowHorizontally"
           >
-            <button
+            <SkyButton
+              variant="content"
               v-for="chat in sharePeople"
               :key="`${chat.kind}:${chat.targetId}`"
               type="button"
@@ -340,18 +345,19 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
                 <i><img :src="getPhoneApp(chat.kind)?.iconImage" alt="" /></i>
               </span>
               <small>{{ chat.label }}</small>
-            </button>
-            <button
+            </SkyButton>
+            <SkyButton
+              variant="content"
               v-if="!sharePeople.length"
               type="button"
               class="easyshare-person"
               @click="openChatApp('messages')"
             >
               <span class="easyshare-avatar easyshare-avatar--empty"
-                ><MessageCircle
+                ><SkyIcon :icon="MessageCircle"
               /></span>
               <small>{{ label('newMessage') }}</small>
-            </button>
+            </SkyButton>
           </section>
 
           <section
@@ -359,7 +365,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
             :aria-label="label('destinations')"
             @wheel="scrollRowHorizontally"
           >
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="easyshare-action"
               @click="easyShare.showNearby"
@@ -369,8 +376,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
                 aria-hidden="true"
               ></span>
               <small>{{ label('name') }}</small>
-            </button>
-            <button
+            </SkyButton>
+            <SkyButton
+              variant="content"
               v-for="destination in shareApps"
               :key="destination.id"
               type="button"
@@ -381,15 +389,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
                 ><img :src="destination.app.iconImage" alt=""
               /></span>
               <small>{{ getPhoneAppLabel(destination.app, phone.t) }}</small>
-            </button>
-            <button
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="easyshare-action"
               @click="easyShare.showHistory"
             >
-              <span class="easyshare-action__icon"><History /></span>
+              <span class="easyshare-action__icon"
+                ><SkyIcon :icon="History"
+              /></span>
               <small>{{ label('history') }}</small>
-            </button>
+            </SkyButton>
           </section>
         </template>
 
@@ -398,7 +409,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
             <span aria-hidden="true"></span>
             <strong>{{ label('nearby') }}</strong>
             <SkyLink component="button" icon-only @click="easyShare.showHistory"
-              ><History :size="18"
+              ><SkyIcon :icon="History" :size="18"
             /></SkyLink>
           </div>
 
@@ -406,7 +417,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
             v-if="easyShare.incomingTransfer"
             class="easyshare-incoming"
           >
-            <UserRound :size="28" />
+            <SkyIcon :icon="UserRound" :size="28" />
             <div>
               <strong>{{
                 label('incomingFrom', {
@@ -421,13 +432,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
                 tonal
                 :disabled="Boolean(easyShare.pendingActionId)"
                 @click="respond(easyShare.incomingTransfer, false)"
-                ><X
+                ><SkyIcon :icon="X"
               /></SkyButton>
               <SkyButton
                 rounded
                 :disabled="Boolean(easyShare.pendingActionId)"
                 @click="respond(easyShare.incomingTransfer, true)"
-                ><Check
+                ><SkyIcon :icon="Check"
               /></SkyButton>
             </div>
           </SkyGlass>
@@ -484,9 +495,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               @click="requestTransfer(target.id)"
             >
               <template #media
-                ><span><UserRound /></span
+                ><span><SkyIcon :icon="UserRound" /></span
               ></template>
-              <template #after><Share2 :size="18" /></template>
+              <template #after><SkyIcon :icon="Share2" :size="18" /></template>
             </SkyListItem>
           </SkyList>
           <p
@@ -521,7 +532,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               @click="openTransfer(transfer)"
             >
               <template #media
-                ><span><Clock3 /></span
+                ><span><SkyIcon :icon="Clock3" /></span
               ></template>
               <template #after>{{
                 transfer.direction === 'incoming' ? '↓' : '↑'

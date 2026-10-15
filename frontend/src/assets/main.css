@@ -532,6 +532,7 @@ button {
 .phone-app--performance .sky-app-page {
   /* Resolve Glass from the nearest Sky theme instead of the outer phone theme. */
   --sky-glass: var(--sky-glass-solid);
+  --sky-glass-solid: var(--sky-glass-flat);
   --sky-navbar-glass: var(--sky-bg);
   --sky-shadow-glass: none;
   --sky-shadow-glass-fab: none;
@@ -547,6 +548,14 @@ button {
 .phone-device.phone-app--performance {
   filter: none;
 }
+:where([data-sky-backdrop='false']) .phone-device,
+:where([data-sky-backdrop='false']) .phone-device *,
+:where([data-sky-backdrop='false']) .phone-device *::before,
+:where([data-sky-backdrop='false']) .phone-device *::after,
+:where([data-sky-backdrop='false']) .sky-ui-provider,
+:where([data-sky-backdrop='false']) .sky-ui-provider *,
+:where([data-sky-backdrop='false']) .sky-ui-provider *::before,
+:where([data-sky-backdrop='false']) .sky-ui-provider *::after,
 .phone-app--performance,
 .phone-app--performance *,
 .phone-app--performance *::before,
@@ -597,8 +606,20 @@ button {
   transform: none;
 }
 .phone-app--performance .sky-glass,
+.phone-app--performance .sky-glass-surface,
 .phone-app--performance .sky-navbar__back--surface {
   box-shadow: none !important;
+}
+.phone-app--performance .sky-glass__rim,
+:where([data-sky-backdrop='false']) .sky-glass__rim {
+  display: none;
+}
+
+.phone-app--performance .sky-glass,
+.phone-app--performance .sky-glass-surface,
+:where([data-sky-backdrop='false']) .sky-glass,
+:where([data-sky-backdrop='false']) .sky-glass-surface {
+  background: var(--sky-glass-fallback, var(--sky-glass-solid)) !important;
 }
 .phone-app--performance .sky-segmented--navigation {
   background: var(--sky-glass-solid);
@@ -785,15 +806,20 @@ button {
 }
 .phone-status-bar__time {
   position: absolute;
+  top: 0;
   left: 0;
-  width: calc(50% - 70px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc((100% - var(--sky-hardware-notch-width)) / 2);
+  height: 48px;
+  padding: 17px 0 0;
   text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .phone-status-bar__time-button {
-  top: 0;
-  height: 48px;
   border: 0;
-  padding: 17px 0 0;
   color: inherit;
   background: transparent;
   font: inherit;
@@ -978,8 +1004,8 @@ button {
   animation: springboard-unlock 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .lock-screen {
-  --lock-notification-background: rgb(38 36 40 / 76%);
-  --lock-notification-clear-background: rgb(28 28 32 / 72%);
+  --lock-notification-background: rgb(38 36 40 / 20%);
+  --lock-notification-flat: rgb(38 36 40 / 90%);
   --lock-notification-color: #fff;
   --lock-notification-muted: rgb(255 255 255 / 65%);
   --lock-notification-focus: #fff;
@@ -995,18 +1021,15 @@ button {
   touch-action: none;
   transform: translateY(var(--lock-drag));
   transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.24, 1);
-  will-change: transform, opacity, filter;
+  will-change: transform;
 }
 .phone-app--light .lock-screen {
-  --lock-notification-background: rgb(247 247 248 / 82%);
-  --lock-notification-clear-background: rgb(247 247 248 / 88%);
+  --lock-notification-background: rgb(247 247 248 / 56%);
+  --lock-notification-flat: rgb(247 247 248 / 92%);
   --lock-notification-color: #111;
   --lock-notification-muted: rgb(0 0 0 / 55%);
   --lock-notification-focus: #007aff;
   --lock-notification-text-shadow: none;
-}
-.phone-app--performance .lock-screen {
-  --lock-notification-clear-background: var(--phone-performance-glass);
 }
 .lock-screen--dragging {
   transition: none;
@@ -1019,18 +1042,6 @@ button {
     radial-gradient(circle at 50% 34%, transparent 26%, #0000001f 100%);
   pointer-events: none;
 }
-.lock-screen__status {
-  position: absolute;
-  z-index: 1;
-  top: 17px;
-  right: 30px;
-  left: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 26px;
-  filter: drop-shadow(0 1px 2px #0009);
-}
 .lock-screen__lock {
   position: absolute;
   z-index: 1;
@@ -1038,13 +1049,6 @@ button {
   left: 50%;
   transform: translateX(-50%);
   filter: drop-shadow(0 1px 2px #0009);
-}
-.lock-screen__indicators {
-  position: absolute;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 .lock-screen__content {
   position: relative;
@@ -1064,30 +1068,39 @@ button {
   margin-top: -5px;
   color: #ffffffaa;
   font-size: 110px;
-  font-weight: 300;
+  font-weight: 600;
   line-height: 1.04;
-  letter-spacing: -7px;
+  letter-spacing: -5px;
   font-variant-numeric: tabular-nums;
-  text-shadow:
-    0 0 12px #ffffff38,
-    0 2px 16px #0006;
-  filter: blur(0.24px);
+  text-shadow: 0 2px 16px #0006;
 }
-.lock-screen__status-time {
-  color: #fff;
-  font-size: 14px;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .phone-app--ultimate .lock-screen__time {
+    background: linear-gradient(
+      165deg,
+      rgb(255 255 255 / 50%) 0%,
+      rgb(255 255 255 / 28%) 14%,
+      rgb(255 255 255 / 28%) 78%,
+      rgb(255 255 255 / 58%) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 0;
+    text-shadow: none;
+    filter: drop-shadow(0 -0.5px 0.4px rgb(255 255 255 / 65%))
+      drop-shadow(0 0.75px 0.5px rgb(255 255 255 / 45%));
+  }
 }
 .lock-screen__notifications {
   position: absolute;
   z-index: 2;
   top: 285px;
   right: 18px;
-  bottom: 142px;
+  bottom: 150px;
   left: 18px;
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -1099,30 +1112,44 @@ button {
 .lock-screen__notifications::-webkit-scrollbar {
   display: none;
 }
+.lock-screen__notifications-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  gap: 12px;
+  margin-top: auto;
+  padding: 8px 8px 4px;
+}
+.lock-screen__notifications-heading h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-shadow: 0 1px 3px #0008;
+}
 .lock-screen__notifications-clear {
+  --sky-button-glass-text: #fff;
+  --sky-clear-glass-background: rgba(28, 28, 32, 0.12);
+  --sky-clear-glass-fallback: rgba(38, 38, 42, 0.78);
   position: sticky;
   z-index: 5;
   top: 0;
-  justify-self: end;
-  border: 0;
-  border-radius: 999px;
-  padding: 5px 10px;
-  color: var(--lock-notification-color);
-  background: var(--lock-notification-clear-background);
-  box-shadow: 0 2px 10px #0004;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  align-self: flex-end;
+  flex: none;
 }
 .lock-screen__notification-row {
   position: relative;
   overflow: hidden;
-  min-height: 76px;
-  border-radius: 18px;
+  flex: none;
+  min-height: 78px;
+  border-radius: 22px;
   background: transparent;
   isolation: isolate;
+}
+.lock-screen__notification-row:first-child {
+  margin-top: auto;
 }
 .lock-screen__notification-clear {
   position: absolute;
@@ -1154,15 +1181,22 @@ button {
   opacity: 1;
 }
 .lock-screen__notification {
+  --sky-clear-glass-background: var(--lock-notification-background);
+  --sky-clear-glass-fallback: var(--lock-notification-flat);
+  --sky-glass-blur: var(--sky-glass-soft-blur);
+  --sky-glass-sheen: var(--sky-glass-soft-sheen);
+  --sky-glass-background: var(--lock-notification-background);
+  --sky-glass-fallback: var(--lock-notification-flat);
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
   gap: 10px;
   width: 100%;
-  min-height: 76px;
-  border-radius: 18px;
-  padding: 11px;
+  min-height: 78px;
+  border-radius: 22px;
+  padding: 12px;
   color: var(--lock-notification-color);
   background-color: var(--lock-notification-background);
   text-shadow: var(--lock-notification-text-shadow);
@@ -1170,8 +1204,12 @@ button {
   transform: translate3d(var(--notification-swipe), 0, 0);
   transition: transform 0.28s cubic-bezier(0.22, 0.78, 0.24, 1);
   will-change: transform;
-  backdrop-filter: blur(22px) saturate(1.18);
-  -webkit-backdrop-filter: blur(22px) saturate(1.18);
+}
+.lock-screen__notification.sky-glass {
+  border-color: rgb(255 255 255 / 12%);
+  border-radius: 22px;
+  color: var(--lock-notification-color);
+  box-shadow: var(--sky-shadow-glass-soft);
 }
 .lock-screen__notification-row.is-swiping .lock-screen__notification {
   transition: none;
@@ -1187,8 +1225,8 @@ button {
   outline-offset: 2px;
 }
 .lock-screen__notification-icon {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   object-fit: contain;
 }
@@ -1204,12 +1242,20 @@ button {
 }
 .lock-screen__notification-heading strong {
   overflow: hidden;
-  font-size: 13px;
-  line-height: 17px;
+  font-size: 14px;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.lock-screen__notification-heading span,
+.lock-screen__notification-heading time {
+  flex: none;
+  margin-left: auto;
+  color: var(--lock-notification-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  white-space: nowrap;
+}
 .lock-screen__notification-copy small {
   color: var(--lock-notification-muted);
   font-size: 10px;
@@ -1225,8 +1271,8 @@ button {
   display: -webkit-box;
   overflow: hidden;
   margin: 2px 0 0;
-  font-size: 12px;
-  line-height: 15px;
+  font-size: 13px;
+  line-height: 17px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -1234,7 +1280,7 @@ button {
   position: absolute;
   z-index: 3;
   right: 0;
-  bottom: 25px;
+  bottom: 8px;
   left: 0;
 }
 .lock-screen__shortcuts {
@@ -1242,16 +1288,29 @@ button {
   justify-content: space-between;
   padding: 0 48px;
 }
-.lock-screen__shortcut {
-  --color-primary: transparent;
+.lock-screen__shortcut.sky-fab--glass {
+  --sky-clear-glass-background: rgba(28, 28, 32, 0.12);
+  --sky-clear-glass-fallback: rgba(38, 38, 42, 0.78);
+  --sky-button-glass-text: #fff;
+}
+.lock-screen .lock-screen__shortcut--active.sky-fab--glass {
+  --sky-clear-glass-background: #fff;
+  --sky-clear-glass-fallback: #fff;
+  --sky-button-glass-text: #17171c;
 }
 .lock-screen__shortcut svg {
   width: 21px;
   height: 21px;
 }
 .lock-screen__swipe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
   width: 100%;
-  margin-top: 18px;
+  min-height: 44px;
+  margin-top: 22px;
   border: 0;
   padding: 0;
   color: #fff;
@@ -1260,6 +1319,15 @@ button {
   font-weight: 600;
   letter-spacing: 0.15px;
   text-shadow: 0 1px 4px #0009;
+  text-align: center;
+}
+.lock-screen__home-indicator {
+  width: 106px;
+  height: 4px;
+  flex: none;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 4px #0008;
 }
 .lock-screen__swipe-chevron {
   display: block;
@@ -3874,7 +3942,7 @@ button {
 }
 
 .banking-section-title button {
-  color: var(--sky-app-accent);
+  color: var(--sky-button-text, #ffffff);
   font-size: 10px;
 }
 
@@ -5876,7 +5944,7 @@ button {
 .messages-media-picker > header button {
   border: 0;
   background: transparent;
-  color: #007aff;
+  color: var(--sky-button-text, #ffffff);
   font-size: 12px;
 }
 .messages-media-picker__photos {
@@ -5925,7 +5993,7 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: white;
+  color: var(--sky-button-text, #ffffff);
   background: rgb(60 60 67 / 78%);
 }
 .shared-composer-preview--dark {
@@ -6105,11 +6173,11 @@ button {
 }
 .messages-recorder__cancel {
   background: rgb(120 120 128 / 16%);
-  color: #8e8e93;
+  color: var(--sky-button-text, #ffffff);
 }
 .messages-recorder__send {
   background: transparent;
-  color: #0a84ff;
+  color: var(--sky-button-text, #ffffff);
 }
 .messages-recorder__dot {
   width: 7px;
@@ -7711,7 +7779,7 @@ button {
   place-items: center;
   border: 0.5px solid rgb(255 255 255 / 30%) !important;
   border-radius: 50% !important;
-  color: #ff453a;
+  color: var(--sky-button-text, #ffffff);
   background: rgb(28 28 30 / 48%) !important;
   box-shadow: 0 1px 7px rgb(0 0 0 / 18%);
 }

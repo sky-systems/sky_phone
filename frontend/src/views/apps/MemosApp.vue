@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Ellipsis,
   Mic,
@@ -493,12 +495,13 @@ onBeforeUnmount(() => {
                 "
                 @click.stop="togglePlayback(memo)"
               >
-                <Pause
+                <SkyIcon
+                  :icon="Pause"
                   v-if="audioPlaying && activeAudioId === memo.id"
                   :size="17"
                   fill="currentColor"
                 />
-                <Play v-else :size="17" fill="currentColor" />
+                <SkyIcon :icon="Play" v-else :size="17" fill="currentColor" />
               </SkyLink>
             </template>
             <template #text>
@@ -534,7 +537,9 @@ onBeforeUnmount(() => {
           )
         "
       >
-        <template #icon><MicOff :size="24" aria-hidden="true" /></template>
+        <template #icon
+          ><SkyIcon :icon="MicOff" :size="24" aria-hidden="true"
+        /></template>
       </SkyEmptyState>
     </SkyScrollArea>
 
@@ -551,7 +556,9 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Apps.memos.newMemo')"
         @click="startRecording"
       >
-        <template #icon><Mic :size="23" aria-hidden="true" /></template>
+        <template #icon
+          ><SkyIcon :icon="Mic" :size="23" aria-hidden="true"
+        /></template>
       </SkyFab>
     </footer>
   </SkyAppPage>
@@ -576,7 +583,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.memos.actions')"
           @click="openMenu"
         >
-          <Ellipsis :size="22" aria-hidden="true" />
+          <SkyIcon :icon="Ellipsis" :size="22" aria-hidden="true" />
         </SkyLink>
       </template>
     </SkyNavbar>
@@ -649,7 +656,7 @@ onBeforeUnmount(() => {
           @click="skipPlayback(-15)"
         >
           <span class="memo-skip-icon" aria-hidden="true">
-            <RotateCcw :size="24" />
+            <SkyIcon :icon="RotateCcw" :size="24" />
             <small>15</small>
           </span>
         </SkyButton>
@@ -664,13 +671,20 @@ onBeforeUnmount(() => {
           "
           @click="togglePlayback(selectedMemo)"
         >
-          <Pause
+          <SkyIcon
+            :icon="Pause"
             v-if="audioPlaying"
             :size="28"
             fill="currentColor"
             aria-hidden="true"
           />
-          <Play v-else :size="28" fill="currentColor" aria-hidden="true" />
+          <SkyIcon
+            :icon="Play"
+            v-else
+            :size="28"
+            fill="currentColor"
+            aria-hidden="true"
+          />
         </SkyButton>
         <SkyButton
           rounded
@@ -681,7 +695,7 @@ onBeforeUnmount(() => {
           @click="skipPlayback(15)"
         >
           <span class="memo-skip-icon" aria-hidden="true">
-            <RotateCw :size="24" />
+            <SkyIcon :icon="RotateCw" :size="24" />
             <small>15</small>
           </span>
         </SkyButton>
@@ -720,7 +734,7 @@ onBeforeUnmount(() => {
   >
     <SkyActionGroup>
       <SkyActionButton class="memo-delete-action" @click="requestDelete">
-        <Trash2 :size="18" aria-hidden="true" />
+        <SkyIcon :icon="Trash2" :size="18" aria-hidden="true" />
         <span>{{ phone.t('Apps.memos.delete') }}</span>
       </SkyActionButton>
     </SkyActionGroup>
@@ -810,13 +824,20 @@ onBeforeUnmount(() => {
           "
           @click="pauseOrResumeRecording"
         >
-          <Play
+          <SkyIcon
+            :icon="Play"
             v-if="recorderState.state === 'paused'"
             :size="20"
             fill="currentColor"
             aria-hidden="true"
           />
-          <Pause v-else :size="20" fill="currentColor" aria-hidden="true" />
+          <SkyIcon
+            :icon="Pause"
+            v-else
+            :size="20"
+            fill="currentColor"
+            aria-hidden="true"
+          />
         </SkyButton>
         <SkyButton
           v-else
@@ -825,7 +846,7 @@ onBeforeUnmount(() => {
           class="memo-retry-button"
           @click="startRecording"
         >
-          <Mic :size="17" aria-hidden="true" />
+          <SkyIcon :icon="Mic" :size="17" aria-hidden="true" />
           <span>{{ phone.t('Apps.memos.newMemo') }}</span>
         </SkyButton>
       </div>

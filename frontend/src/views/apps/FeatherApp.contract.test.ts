@@ -149,9 +149,7 @@ describe('FeatherApp Sky UI contract', () => {
   })
 
   it('keeps profile suggestion content styles off the follow button', () => {
-    expect(source).toContain(
-      'class="feather-profile-suggestion__profile"',
-    )
+    expect(source).toContain('class="feather-profile-suggestion__profile"')
     expect(source).toMatch(
       /\.feather-app\.feather-app--active \.feather-profile-suggestion__profile\s*\{[^}]*width:\s*100%/s,
     )
@@ -178,7 +176,7 @@ describe('FeatherApp Sky UI contract', () => {
     expect(source).toContain('@click="logoutDialogOpen = true"')
     expect(profile).not.toContain('feather-profile-action--logout')
     expect(source).toMatch(
-      /v-else-if="screen === 'edit'"[\s\S]*?icon-only[\s\S]*?class="feather-edit__navbar-save"[\s\S]*?<SkySpinner v-if="busy"[\s\S]*?<Check v-else/,
+      /v-else-if="screen === 'edit'"[\s\S]*?icon-only[\s\S]*?class="feather-edit__navbar-save"[\s\S]*?<SkySpinner v-if="busy"[\s\S]*?<SkyIcon :icon="Check" v-else/,
     )
     expect(source).toMatch(
       /\.feather-edit__navbar-save\s*\{[^}]*width:\s*44px !important[^}]*height:\s*44px !important[^}]*border-radius:\s*50% !important[^}]*background:\s*transparent !important[^}]*box-shadow:\s*none/s,
@@ -208,9 +206,7 @@ describe('FeatherApp Sky UI contract', () => {
     expect(source).toMatch(
       /\.feather-app\.feather-app--active[\s\S]*?\.feather-profile-suggestion[\s\S]*?> :deep\(\.sky-button\)\s*\{[^}]*width:\s*auto/s,
     )
-    expect(source).not.toContain(
-      '.feather-profile-suggestion > button',
-    )
+    expect(source).not.toContain('.feather-profile-suggestion > button')
     expect(source).toMatch(
       /\.feather-profile-suggestions__rail::-webkit-scrollbar\s*\{[^}]*display:\s*block[^}]*height:\s*5px/s,
     )

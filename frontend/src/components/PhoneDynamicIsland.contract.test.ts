@@ -117,7 +117,7 @@ describe('Phone Dynamic Island contract', () => {
     expect(source).toContain('{{ musicElapsedLabel }}')
     expect(source).toContain('{{ musicRemainingLabel }}')
     expect(source).not.toContain('Airplay')
-    expect(source).toContain('<X aria-hidden="true" />')
+    expect(source).toContain('<SkyIcon :icon="X" aria-hidden="true" />')
     expect(source).toMatch(
       /\.phone-dynamic-island--timer\.phone-dynamic-island__copy|\.phone-dynamic-island--timer \.phone-dynamic-island__copy/,
     )
@@ -204,7 +204,7 @@ describe('Phone Dynamic Island contract', () => {
 
   it('keeps compact and expanded islands close to the physical camera proportions', () => {
     expect(source).toMatch(
-      /\.phone-dynamic-island\s*\{[^}]*width:\s*126px;[^}]*height:\s*38px;/s,
+      /\.phone-dynamic-island\s*\{[^}]*width:\s*var\(--sky-island-width,\s*126px\);[^}]*height:\s*38px;/s,
     )
     expect(source).toMatch(
       /\.phone-dynamic-island\[data-expanded='true'\]\s*\{[^}]*width:\s*318px;[^}]*height:\s*74px;/s,

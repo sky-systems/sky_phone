@@ -70,7 +70,7 @@ describe('SkyFab', () => {
       'utf8',
     )
     expect(controls).toMatch(
-      /\.sky-glass\.sky-fab--neutral\s*\{[^}]*background:\s*var\(--sky-glass-solid/s,
+      /\.sky-glass\.sky-fab--neutral\s*\{[^}]*background:\s*var\(--sky-action-surface/s,
     )
   })
 
@@ -88,7 +88,7 @@ describe('SkyFab', () => {
       'utf8',
     )
     expect(controls).toMatch(
-      /\.sky-glass\.sky-fab--glass\s*\{[^}]*border:\s*1px solid var\(--sky-hairline[^}]*background:\s*var\(--sky-glass[^}]*box-shadow:\s*var\(--sky-shadow-glass\)/s,
+      /\.sky-glass\.sky-fab--glass\s*\{[^}]*border:\s*1px solid var\(--sky-action-glass-edge[^}]*background:\s*var\(--sky-glass[^}]*box-shadow:\s*var\(--sky-shadow-glass\)/s,
     )
   })
 

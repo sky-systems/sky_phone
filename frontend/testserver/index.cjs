@@ -1,5 +1,8 @@
 const { randomUUID } = require('node:crypto')
-const { socialPosts, deleteSocialPost } = require('./social-moderation-fixture.cjs')
+const {
+  socialPosts,
+  deleteSocialPost,
+} = require('./social-moderation-fixture.cjs')
 
 const cors = require('cors')
 const express = require('express')
@@ -3064,6 +3067,7 @@ const deviceData = {
         {
           appId: 'messages',
           id: 'demo-notification-message',
+          createdAt: Date.now() - 39 * 60_000,
           route: '/apps/messages?phoneNumber=5551110001',
           subtitle: 'Alex Rivera',
           text: 'Meet us at the observatory after sunset.',
@@ -3072,6 +3076,7 @@ const deviceData = {
         {
           appId: 'companies',
           id: 'demo-notification-company',
+          createdAt: Date.now() - 14 * 60_000,
           route: '/apps/companies?area=requests',
           subtitle: 'Los Santos Customs',
           text: 'Your repair request has been accepted.',
@@ -3080,6 +3085,7 @@ const deviceData = {
         {
           appId: 'billing',
           id: 'demo-notification-billing',
+          createdAt: Date.now() - 2 * 60_000,
           route: '/apps/billing',
           subtitle: 'Los Santos Customs',
           text: 'A new invoice for $1,850 is ready.',
@@ -11077,7 +11083,10 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'crypto:watch') {
-    response.json({ success: true, data: request.body.active ? cryptoOverview().markets : undefined })
+    response.json({
+      success: true,
+      data: request.body.active ? cryptoOverview().markets : undefined,
+    })
     return
   }
   if (endpoint === 'crypto:login') {

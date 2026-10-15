@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { ScanFace } from 'lucide-vue-next'
 import { computed } from 'vue'
 
@@ -29,7 +31,8 @@ const wallpaperStyle = computed(() => {
   >
     <PhoneStatusBar :interactive="false" />
     <div class="face-id-screen__content">
-      <ScanFace
+      <SkyIcon
+        :icon="ScanFace"
         class="face-id-screen__icon"
         :class="{ 'face-id-screen__icon--scanning': busy }"
         :size="76"
@@ -41,13 +44,14 @@ const wallpaperStyle = computed(() => {
       <SkyButton v-if="!busy" glass rounded @click="emit('retry')">{{
         phone.t('FaceId.retry')
       }}</SkyButton>
-      <button
+      <SkyButton
+        variant="content"
         type="button"
         class="face-id-screen__passcode"
         @click="emit('passcode')"
       >
         {{ phone.t('FaceId.usePin') }}
-      </button>
+      </SkyButton>
     </div>
   </section>
 </template>

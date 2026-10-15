@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import {
   Gauge,
   Mic,
@@ -528,7 +530,8 @@ onBeforeUnmount(() => {
       "
     >
       <Transition name="phone-dynamic-island-content" mode="out-in">
-        <button
+        <SkyButton
+          variant="content"
           v-if="!isExpanded"
           :key="`compact-${activity}`"
           type="button"
@@ -536,22 +539,26 @@ onBeforeUnmount(() => {
           :aria-label="activityTitle"
           @click.stop="toggleExpanded"
         >
-          <PhoneCall
+          <SkyIcon
+            :icon="PhoneCall"
             v-if="activity === 'call'"
             class="phone-dynamic-island__compact-icon phone-dynamic-island__compact-icon--call"
             aria-hidden="true"
           />
-          <Mic
+          <SkyIcon
+            :icon="Mic"
             v-else-if="activity === 'recording'"
             class="phone-dynamic-island__compact-icon phone-dynamic-island__compact-icon--recording"
             aria-hidden="true"
           />
-          <Timer
+          <SkyIcon
+            :icon="Timer"
             v-else-if="activity === 'timer'"
             class="phone-dynamic-island__compact-icon phone-dynamic-island__compact-icon--timer"
             aria-hidden="true"
           />
-          <Gauge
+          <SkyIcon
+            :icon="Gauge"
             v-else-if="activity === 'stopwatch'"
             class="phone-dynamic-island__compact-icon phone-dynamic-island__compact-icon--timer"
             aria-hidden="true"
@@ -585,14 +592,15 @@ onBeforeUnmount(() => {
           >
             <i></i><i></i><i></i>
           </span>
-        </button>
+        </SkyButton>
 
         <div
           v-else
           :key="`expanded-${activity}`"
           class="phone-dynamic-island__expanded"
         >
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="phone-dynamic-island__summary"
             :aria-label="activityTitle"
@@ -624,19 +632,19 @@ onBeforeUnmount(() => {
               <span
                 v-else-if="activity === 'music'"
                 class="phone-dynamic-island__symbol phone-dynamic-island__symbol--music"
-                ><Play
+                ><SkyIcon :icon="Play"
               /></span>
               <span
                 v-else-if="activity === 'recording'"
                 class="phone-dynamic-island__symbol phone-dynamic-island__symbol--recording"
-                ><Mic
+                ><SkyIcon :icon="Mic"
               /></span>
               <span
                 v-else
                 class="phone-dynamic-island__symbol phone-dynamic-island__symbol--timer"
               >
-                <Timer v-if="activity === 'timer'" />
-                <Gauge v-else />
+                <SkyIcon :icon="Timer" v-if="activity === 'timer'" />
+                <SkyIcon :icon="Gauge" v-else />
               </span>
             </span>
             <span
@@ -669,7 +677,7 @@ onBeforeUnmount(() => {
             >
               <i></i><i></i><i></i><i></i>
             </span>
-          </button>
+          </SkyButton>
 
           <div
             v-if="activity === 'recording'"
@@ -697,57 +705,63 @@ onBeforeUnmount(() => {
             v-if="activity === 'incoming-call'"
             class="phone-dynamic-island__actions phone-dynamic-island__actions--incoming"
           >
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__call-action phone-dynamic-island__call-action--decline"
               :aria-label="phone.t('Apps.phone.decline')"
               @click.stop="endCall"
             >
-              <PhoneOff aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="PhoneOff" aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__call-action phone-dynamic-island__call-action--answer"
               :aria-label="phone.t('Apps.phone.answer')"
               @click.stop="calls.answer()"
             >
-              <Phone aria-hidden="true" />
-            </button>
+              <SkyIcon :icon="Phone" aria-hidden="true" />
+            </SkyButton>
           </div>
           <div
             v-else-if="activity === 'call'"
             class="phone-dynamic-island__actions"
           >
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action"
               :aria-label="phone.t('Apps.phone.returnToCall')"
               @click.stop="openActivity"
             >
-              <PhoneCall aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="PhoneCall" aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action phone-dynamic-island__action--danger"
               :aria-label="phone.t('Apps.phone.hangup')"
               @click.stop="endCall"
             >
-              <PhoneOff aria-hidden="true" />
-            </button>
+              <SkyIcon :icon="PhoneOff" aria-hidden="true" />
+            </SkyButton>
           </div>
           <div
             v-else-if="activity === 'music'"
             class="phone-dynamic-island__actions phone-dynamic-island__actions--media"
           >
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action"
               :aria-label="phone.t('Apps.music.previous')"
               @click.stop="music.previous()"
             >
-              <SkipBack aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="SkipBack" aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action phone-dynamic-island__action--primary"
               :aria-label="
@@ -755,26 +769,29 @@ onBeforeUnmount(() => {
               "
               @click.stop="music.toggle()"
             >
-              <Pause
+              <SkyIcon
+                :icon="Pause"
                 v-if="props.preview || music.isPlaying"
                 aria-hidden="true"
               />
-              <Play v-else aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="Play" v-else aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action"
               :aria-label="phone.t('Apps.music.next')"
               @click.stop="music.next()"
             >
-              <SkipForward aria-hidden="true" />
-            </button>
+              <SkyIcon :icon="SkipForward" aria-hidden="true" />
+            </SkyButton>
           </div>
           <div
             v-else-if="activity === 'recording'"
             class="phone-dynamic-island__actions"
           >
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action"
               :disabled="
@@ -790,13 +807,15 @@ onBeforeUnmount(() => {
               "
               @click.stop="pauseOrResumeRecording"
             >
-              <Play
+              <SkyIcon
+                :icon="Play"
                 v-if="recorderState.state === 'paused'"
                 aria-hidden="true"
               />
-              <Pause v-else aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="Pause" v-else aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action phone-dynamic-island__action--recording"
               :disabled="
@@ -806,22 +825,24 @@ onBeforeUnmount(() => {
               :aria-label="phone.t('Apps.memos.stop')"
               @click.stop="postRecorderCommand('memo:recordStop')"
             >
-              <Square aria-hidden="true" />
-            </button>
+              <SkyIcon :icon="Square" aria-hidden="true" />
+            </SkyButton>
           </div>
           <div
             v-else-if="activity === 'timer'"
             class="phone-dynamic-island__actions"
           >
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action"
               :aria-label="phone.t('Common.reset')"
               @click.stop="clock.resetTimer()"
             >
-              <X aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="X" aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action phone-dynamic-island__action--timer"
               :aria-label="
@@ -833,15 +854,17 @@ onBeforeUnmount(() => {
               "
               @click.stop="toggleTimer"
             >
-              <Play
+              <SkyIcon
+                :icon="Play"
                 v-if="!props.preview && clock.timerStartedAt === null"
                 aria-hidden="true"
               />
-              <Pause v-else aria-hidden="true" />
-            </button>
+              <SkyIcon :icon="Pause" v-else aria-hidden="true" />
+            </SkyButton>
           </div>
           <div v-else class="phone-dynamic-island__actions">
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action"
               :aria-label="
@@ -857,9 +880,10 @@ onBeforeUnmount(() => {
                   : clock.addLap(Date.now())
               "
             >
-              <RotateCcw aria-hidden="true" />
-            </button>
-            <button
+              <SkyIcon :icon="RotateCcw" aria-hidden="true" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="phone-dynamic-island__action phone-dynamic-island__action--timer"
               :aria-label="
@@ -871,12 +895,13 @@ onBeforeUnmount(() => {
               "
               @click.stop="toggleStopwatch"
             >
-              <Play
+              <SkyIcon
+                :icon="Play"
                 v-if="!props.preview && clock.stopwatchStartedAt === null"
                 aria-hidden="true"
               />
-              <Pause v-else aria-hidden="true" />
-            </button>
+              <SkyIcon :icon="Pause" v-else aria-hidden="true" />
+            </SkyButton>
           </div>
         </div>
       </Transition>
@@ -890,7 +915,7 @@ onBeforeUnmount(() => {
   z-index: 102;
   top: 30px;
   left: 50%;
-  width: 126px;
+  width: var(--sky-island-width, 126px);
   max-width: calc(100% - 24px);
   height: 38px;
   overflow: hidden;

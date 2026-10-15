@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { kApp } from 'konsta/vue'
+import { SkyApp } from '@/ui'
+
 import { computed, type CSSProperties } from 'vue'
 
 import PhoneLockScreen from '@/components/PhoneLockScreen.vue'
@@ -59,8 +60,7 @@ const wrapperStyle = computed<CSSProperties>(() => ({
             [`phone-app--${preferences.settings.graphicsMode}`]: true,
           }"
         >
-          <k-app
-            theme="ios"
+          <SkyApp
             :dark="isDarkMode"
             safe-areas
             class="phone-app"
@@ -81,7 +81,7 @@ const wrapperStyle = computed<CSSProperties>(() => ({
               @close="emit('close')"
               @open="emit('open', $event)"
             />
-          </k-app>
+          </SkyApp>
         </div>
         <img
           class="phone-device__frame"

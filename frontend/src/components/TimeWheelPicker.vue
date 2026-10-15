@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton } from '@/ui'
+
 import { nextTick, onMounted, ref, watch } from 'vue'
 
 const props = defineProps<{
@@ -248,7 +250,8 @@ watch(
           updateFromScroll('hour', $event.currentTarget as HTMLElement)
         "
       >
-        <button
+        <SkyButton
+          variant="content"
           v-for="item in loopedHours"
           :key="item.index"
           type="button"
@@ -262,7 +265,7 @@ watch(
           @click="select('hour', item.index, item.value, hourWheel)"
         >
           {{ format(item.value) }}
-        </button>
+        </SkyButton>
       </div>
       <span v-if="showUnitLabels" class="time-wheel-picker__unit">{{
         hoursUnitLabel ?? hoursLabel
@@ -283,7 +286,8 @@ watch(
           updateFromScroll('minute', $event.currentTarget as HTMLElement)
         "
       >
-        <button
+        <SkyButton
+          variant="content"
           v-for="item in loopedMinutes"
           :key="item.index"
           type="button"
@@ -297,7 +301,7 @@ watch(
           @click="select('minute', item.index, item.value, minuteWheel)"
         >
           {{ format(item.value) }}
-        </button>
+        </SkyButton>
       </div>
       <span v-if="showUnitLabels" class="time-wheel-picker__unit">{{
         minutesUnitLabel ?? minutesLabel
@@ -318,7 +322,8 @@ watch(
           updateFromScroll('second', $event.currentTarget as HTMLElement)
         "
       >
-        <button
+        <SkyButton
+          variant="content"
           v-for="item in loopedSeconds"
           :key="item.index"
           type="button"
@@ -332,7 +337,7 @@ watch(
           @click="select('second', item.index, item.value, secondWheel)"
         >
           {{ format(item.value) }}
-        </button>
+        </SkyButton>
       </div>
       <span v-if="showUnitLabels" class="time-wheel-picker__unit">{{
         secondsUnitLabel ?? secondsLabel

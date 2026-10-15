@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import { SkyBadge as kBadge } from '@/ui'
 import { Minus } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -311,7 +313,8 @@ onBeforeUnmount(() => {
     }"
     :style="dragStyle"
   >
-    <button
+    <SkyButton
+      variant="content"
       class="app-icon-button"
       :class="{ 'app-icon-button--compact': compact }"
       type="button"
@@ -368,8 +371,9 @@ onBeforeUnmount(() => {
       <span v-if="showLabel" class="app-icon-label">{{
         getPhoneAppLabel(app, phone.t)
       }}</span>
-    </button>
-    <button
+    </SkyButton>
+    <SkyButton
+      variant="content"
       v-if="editMode && isPhoneAppRemovable(app)"
       class="app-icon-remove"
       type="button"
@@ -383,8 +387,8 @@ onBeforeUnmount(() => {
       @pointerdown.stop
     >
       <span class="app-icon-remove__badge" aria-hidden="true">
-        <Minus :size="14" :stroke-width="4" />
+        <SkyIcon :icon="Minus" :size="14" :stroke-width="4" />
       </span>
-    </button>
+    </SkyButton>
   </div>
 </template>

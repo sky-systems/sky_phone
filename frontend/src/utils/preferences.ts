@@ -7,6 +7,7 @@ import {
 
 export const APPEARANCE_MODE_IDS = ['automatic', 'light', 'dark'] as const
 export const GRAPHICS_MODE_IDS = ['performance', 'ultimate'] as const
+export const LOCK_SCREEN_DATE_FORMAT_IDS = ['short', 'long'] as const
 export const PHONE_FRAME_IDS = [
   'black',
   'blue',
@@ -43,10 +44,14 @@ export const WALLPAPER_IDS = [
 export const PHONE_SCALE_MIN = 75
 export const PHONE_SCALE_MAX = 150
 export const PHONE_SCALE_STEP = 1
+export const GLASS_BLUR_MIN = 0
+export const GLASS_BLUR_MAX = 20
+export const GLASS_BLUR_STEP = 0.5
 export const PHONE_SETUP_LAST_STEP = 9
 
 export type AppearanceMode = (typeof APPEARANCE_MODE_IDS)[number]
 export type GraphicsMode = (typeof GRAPHICS_MODE_IDS)[number]
+export type LockScreenDateFormat = (typeof LOCK_SCREEN_DATE_FORMAT_IDS)[number]
 export type PhoneFrameId = (typeof PHONE_FRAME_IDS)[number]
 export type BuiltInRingtoneId = (typeof RINGTONE_IDS)[number]
 export type BuiltInNotificationSoundId = (typeof NOTIFICATION_SOUND_IDS)[number]
@@ -81,7 +86,9 @@ export type PhonePreferencesV1 = {
     focusMode: boolean
     frame: PhoneFrameId
     graphicsMode: GraphicsMode
+    glassBlur: number
     hideCallerId: boolean
+    lockScreenDateFormat: LockScreenDateFormat
     lockWallpaper: WallpaperId
     lockWallpaperImageUrl: string | null
     notificationSound: NotificationSoundId
@@ -160,7 +167,9 @@ export const DEFAULT_PHONE_PREFERENCES: PhonePreferencesV1 = {
     focusMode: false,
     frame: 'black',
     graphicsMode: 'ultimate',
+    glassBlur: 6,
     hideCallerId: false,
+    lockScreenDateFormat: 'short',
     lockWallpaper: 'midnight',
     lockWallpaperImageUrl: null,
     notificationSound: 'chime',
@@ -365,8 +374,19 @@ export function parsePhonePreferences(raw: string | null): PhonePreferencesV1 {
           GRAPHICS_MODE_IDS,
           defaults.graphicsMode,
         ),
+        glassBlur: readNumber(
+          settings.glassBlur,
+          defaults.glassBlur,
+          GLASS_BLUR_MIN,
+          GLASS_BLUR_MAX,
+        ),
         lockWallpaper,
         lockWallpaperImageUrl,
+        lockScreenDateFormat: readChoice(
+          settings.lockScreenDateFormat,
+          LOCK_SCREEN_DATE_FORMAT_IDS,
+          defaults.lockScreenDateFormat,
+        ),
         notificationSound: readToneChoice(
           settings.notificationSound,
           NOTIFICATION_SOUND_IDS,

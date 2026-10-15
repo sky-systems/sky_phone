@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   BellRing,
   Check,
@@ -316,24 +318,26 @@ function skipSetupForDevelopment(): void {
     :style="currentWallpaperStyle"
     :aria-label="phone.t('Setup.title')"
   >
-    <button
+    <SkyButton
+      variant="content"
       v-if="showDevelopmentSkip && step === 0"
       type="button"
       class="setup-assistant__development-skip"
       @click="skipSetupForDevelopment"
     >
       {{ phone.t('Setup.development.skip') }}
-    </button>
+    </SkyButton>
     <header v-if="step > 0 && step < 9" class="setup-assistant__chrome">
-      <button
+      <SkyButton
+        variant="content"
         type="button"
         class="setup-assistant__back"
         :aria-label="phone.t('Common.back')"
         :disabled="setupCompleteBusy"
         @click="moveTo(step - 1)"
       >
-        <ChevronLeft :size="23" :stroke-width="2.2" />
-      </button>
+        <SkyIcon :icon="ChevronLeft" :size="23" :stroke-width="2.2" />
+      </SkyButton>
       <div class="setup-assistant__progress" aria-hidden="true">
         <span :style="{ width: progress }"></span>
       </div>
@@ -348,7 +352,7 @@ function skipSetupForDevelopment(): void {
         <template v-if="step === 0">
           <div class="setup-welcome__hero" aria-hidden="true">
             <div class="setup-welcome__device">
-              <Smartphone :size="43" :stroke-width="1.55" />
+              <SkyIcon :icon="Smartphone" :size="43" :stroke-width="1.55" />
             </div>
           </div>
           <div class="setup-welcome__copy">
@@ -370,7 +374,7 @@ function skipSetupForDevelopment(): void {
 
         <template v-else-if="step === 1">
           <div class="setup-assistant__icon setup-assistant__icon--signal">
-            <Signal :size="44" />
+            <SkyIcon :icon="Signal" :size="44" />
           </div>
           <p class="setup-assistant__eyebrow">
             {{ phone.t('Setup.connection.eyebrow') }}
@@ -393,10 +397,10 @@ function skipSetupForDevelopment(): void {
                 ? phone.t('Setup.connection.ready')
                 : phone.t('Setup.connection.offline')
             }}</span>
-            <Wifi :size="25" />
+            <SkyIcon :icon="Wifi" :size="25" />
           </div>
           <div class="setup-assistant__notice">
-            <ShieldCheck :size="19" />
+            <SkyIcon :icon="ShieldCheck" :size="19" />
             <p>{{ phone.t('Setup.connection.preserved') }}</p>
           </div>
           <SkyButton class="setup-assistant__primary" @click="continueSetup">
@@ -408,7 +412,7 @@ function skipSetupForDevelopment(): void {
           <div class="setup-cloud-hero" aria-hidden="true">
             <span class="setup-cloud-hero__orbit"></span>
             <span class="setup-cloud-hero__glow"></span>
-            <Cloud :size="45" :stroke-width="1.45" />
+            <SkyIcon :icon="Cloud" :size="45" :stroke-width="1.45" />
             <i></i><i></i><i></i>
           </div>
           <p class="setup-assistant__eyebrow">
@@ -446,20 +450,22 @@ function skipSetupForDevelopment(): void {
                 }"
                 aria-hidden="true"
               ></span>
-              <button
+              <SkyButton
+                variant="content"
                 :class="{ active: accountMode === 'login' }"
                 :aria-pressed="accountMode === 'login'"
                 @click="selectAccountMode('login')"
               >
                 {{ phone.t('Setup.cloud.signIn') }}
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 :class="{ active: accountMode === 'register' }"
                 :aria-pressed="accountMode === 'register'"
                 @click="selectAccountMode('register')"
               >
                 {{ phone.t('Setup.cloud.create') }}
-              </button>
+              </SkyButton>
             </div>
 
             <div class="setup-cloud-identity">
@@ -471,7 +477,7 @@ function skipSetupForDevelopment(): void {
                   }}<em>@{{ phone.mailDomain }}</em></strong
                 >
               </div>
-              <Check v-if="normalizedAccountEmail" :size="17" />
+              <SkyIcon :icon="Check" v-if="normalizedAccountEmail" :size="17" />
             </div>
 
             <div class="setup-cloud-fields">
@@ -550,19 +556,20 @@ function skipSetupForDevelopment(): void {
               </Transition>
             </SkyButton>
             <div class="setup-cloud-security-note">
-              <LockKeyhole :size="13" />
+              <SkyIcon :icon="LockKeyhole" :size="13" />
               <span>{{ phone.t('Setup.cloud.securityNote') }}</span>
             </div>
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="setup-assistant__later"
               @click="continueSetup"
             >
               {{ phone.t('Setup.setUpLater') }}
-            </button>
+            </SkyButton>
           </div>
           <div v-else class="setup-cloud-connected">
-            <Check :size="31" />
+            <SkyIcon :icon="Check" :size="31" />
             <strong>{{ phone.t('Setup.cloud.connected') }}</strong>
             <span>{{ account.email }}</span>
             <SkyButton
@@ -577,7 +584,7 @@ function skipSetupForDevelopment(): void {
           v-else-if="step === 3 && (showFaceIdSetup || phone.security.enabled)"
         >
           <div class="setup-assistant__icon setup-assistant__icon--security">
-            <ScanFace :size="46" :stroke-width="1.6" />
+            <SkyIcon :icon="ScanFace" :size="46" :stroke-width="1.6" />
           </div>
           <p class="setup-assistant__eyebrow">
             {{ phone.t('Setup.security.eyebrow') }}
@@ -585,7 +592,7 @@ function skipSetupForDevelopment(): void {
           <h1>{{ phone.t('FaceId.title') }}</h1>
           <p class="setup-assistant__lead">{{ phone.t('FaceId.setupBody') }}</p>
           <div class="setup-assistant__notice">
-            <ShieldCheck :size="19" />
+            <SkyIcon :icon="ShieldCheck" :size="19" />
             <p>
               {{
                 phone.t(
@@ -614,18 +621,19 @@ function skipSetupForDevelopment(): void {
               )
             }}
           </SkyButton>
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="setup-assistant__later"
             @click="continueSetup"
           >
             {{ phone.t('Setup.setUpLater') }}
-          </button>
+          </SkyButton>
         </template>
 
         <template v-else-if="step === 3">
           <div class="setup-assistant__icon setup-assistant__icon--security">
-            <LockKeyhole :size="43" />
+            <SkyIcon :icon="LockKeyhole" :size="43" />
           </div>
           <p class="setup-assistant__eyebrow">
             {{ phone.t('Setup.security.eyebrow') }}
@@ -638,14 +646,15 @@ function skipSetupForDevelopment(): void {
             <div>
               <span v-for="dot in passcodeLength" :key="dot"></span>
             </div>
-            <ShieldCheck :size="40" />
+            <SkyIcon :icon="ShieldCheck" :size="40" />
           </div>
           <div
             class="setup-passcode-length"
             role="group"
             :aria-label="phone.t('Setup.security.lengthTitle')"
           >
-            <button
+            <SkyButton
+              variant="content"
               v-for="length in [4, 6] as const"
               :key="length"
               type="button"
@@ -660,15 +669,16 @@ function skipSetupForDevelopment(): void {
                   )
                 }}</small>
               </span>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="passcodeLength === length"
                 :size="16"
                 :stroke-width="3"
               />
-            </button>
+            </SkyButton>
           </div>
           <div class="setup-assistant__notice">
-            <ShieldCheck :size="19" />
+            <SkyIcon :icon="ShieldCheck" :size="19" />
             <p>{{ phone.t('Setup.security.local') }}</p>
           </div>
           <SkyButton
@@ -680,18 +690,19 @@ function skipSetupForDevelopment(): void {
               })
             }}</SkyButton
           >
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="setup-assistant__later"
             @click="showFaceIdSetup = true"
           >
             {{ phone.t('Setup.setUpLater') }}
-          </button>
+          </SkyButton>
         </template>
 
         <template v-else-if="step === 4">
           <div class="setup-assistant__icon setup-assistant__icon--appearance">
-            <Palette :size="43" />
+            <SkyIcon :icon="Palette" :size="43" />
           </div>
           <p class="setup-assistant__eyebrow">
             {{ phone.t('Setup.appearance.eyebrow') }}
@@ -701,7 +712,8 @@ function skipSetupForDevelopment(): void {
             {{ phone.t('Setup.appearance.body') }}
           </p>
           <div class="setup-choice-grid setup-choice-grid--appearance">
-            <button
+            <SkyButton
+              variant="content"
               v-for="mode in ['automatic', 'light', 'dark'] as AppearanceMode[]"
               :key="mode"
               :class="{
@@ -715,11 +727,12 @@ function skipSetupForDevelopment(): void {
                 ><i></i><i></i><i></i
               ></span>
               <strong>{{ phone.t(`Apps.settings.${mode}`) }}</strong>
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="phone.preferences.settings.appearanceMode === mode"
                 :size="18"
               />
-            </button>
+            </SkyButton>
           </div>
           <SkyButton class="setup-assistant__primary" @click="continueSetup">{{
             phone.t('Common.continue')
@@ -728,7 +741,7 @@ function skipSetupForDevelopment(): void {
 
         <template v-else-if="step === 5">
           <div class="setup-assistant__icon setup-assistant__icon--performance">
-            <Gauge :size="44" />
+            <SkyIcon :icon="Gauge" :size="44" />
           </div>
           <p class="setup-assistant__eyebrow">
             {{ phone.t('Setup.performance.eyebrow') }}
@@ -738,7 +751,8 @@ function skipSetupForDevelopment(): void {
             {{ phone.t('Setup.performance.body') }}
           </p>
           <div class="setup-mode-stack">
-            <button
+            <SkyButton
+              variant="content"
               v-for="mode in ['performance', 'ultimate'] as GraphicsMode[]"
               :key="mode"
               :class="{
@@ -768,14 +782,15 @@ function skipSetupForDevelopment(): void {
                 ><small>{{ phone.t(`Setup.performance.${mode}`) }}</small></span
               >
               <span class="setup-mode-stack__check"
-                ><Check
+                ><SkyIcon
+                  :icon="Check"
                   v-if="phone.preferences.settings.graphicsMode === mode"
                   :size="17"
               /></span>
-            </button>
+            </SkyButton>
           </div>
           <div class="setup-assistant__notice">
-            <Gauge :size="19" />
+            <SkyIcon :icon="Gauge" :size="19" />
             <p>{{ phone.t('Setup.performance.changeLater') }}</p>
           </div>
           <SkyButton class="setup-assistant__primary" @click="continueSetup">{{
@@ -785,7 +800,7 @@ function skipSetupForDevelopment(): void {
 
         <template v-else-if="step === 6">
           <div class="setup-assistant__icon setup-assistant__icon--wallpaper">
-            <Sparkles :size="43" />
+            <SkyIcon :icon="Sparkles" :size="43" />
           </div>
           <p class="setup-assistant__eyebrow">
             {{ phone.t('Setup.wallpaper.eyebrow') }}
@@ -795,7 +810,8 @@ function skipSetupForDevelopment(): void {
             {{ phone.t('Setup.wallpaper.body') }}
           </p>
           <div class="setup-wallpapers">
-            <button
+            <SkyButton
+              variant="content"
               v-for="wallpaper in wallpaperChoices"
               :key="wallpaper"
               :class="[
@@ -807,11 +823,12 @@ function skipSetupForDevelopment(): void {
               :aria-label="wallpaper"
               @click="chooseWallpaper(wallpaper)"
             >
-              <Check
+              <SkyIcon
+                :icon="Check"
                 v-if="phone.preferences.settings.wallpaper === wallpaper"
                 :size="17"
               />
-            </button>
+            </SkyButton>
           </div>
           <SkyButton class="setup-assistant__primary" @click="continueSetup">{{
             phone.t('Common.continue')
@@ -822,7 +839,7 @@ function skipSetupForDevelopment(): void {
           <div
             class="setup-assistant__icon setup-assistant__icon--notifications"
           >
-            <BellRing :size="43" />
+            <SkyIcon :icon="BellRing" :size="43" />
           </div>
           <p class="setup-assistant__eyebrow">
             {{ phone.t('Setup.notifications.eyebrow') }}
@@ -832,15 +849,19 @@ function skipSetupForDevelopment(): void {
             {{ phone.t('Setup.notifications.body') }}
           </p>
           <div class="setup-toggle-card">
-            <button @click="notificationsEnabled = !notificationsEnabled">
+            <SkyButton
+              variant="content"
+              @click="notificationsEnabled = !notificationsEnabled"
+            >
               <span
                 ><strong>{{ phone.t('Setup.notifications.allow') }}</strong
                 ><small>{{
                   phone.t('Setup.notifications.allowBody')
                 }}</small></span
               ><i :class="{ on: notificationsEnabled }"><b></b></i>
-            </button>
-            <button
+            </SkyButton>
+            <SkyButton
+              variant="content"
               :disabled="!notificationsEnabled"
               @click="notificationSounds = !notificationSounds"
             >
@@ -852,7 +873,7 @@ function skipSetupForDevelopment(): void {
               ><i :class="{ on: notificationsEnabled && notificationSounds }"
                 ><b></b
               ></i>
-            </button>
+            </SkyButton>
           </div>
           <SkyButton class="setup-assistant__primary" @click="continueSetup">{{
             phone.t('Common.continue')
@@ -861,7 +882,7 @@ function skipSetupForDevelopment(): void {
 
         <template v-else-if="step === 8">
           <div class="setup-assistant__icon setup-assistant__icon--apps">
-            <Sparkles :size="43" />
+            <SkyIcon :icon="Sparkles" :size="43" />
           </div>
           <p class="setup-assistant__eyebrow">
             {{ phone.t('Setup.apps.eyebrow') }}
@@ -869,7 +890,8 @@ function skipSetupForDevelopment(): void {
           <h1>{{ phone.t('Setup.apps.title') }}</h1>
           <p class="setup-assistant__lead">{{ phone.t('Setup.apps.body') }}</p>
           <div class="setup-app-list">
-            <button
+            <SkyButton
+              variant="content"
               v-for="app in setupApps"
               :key="app.id"
               :class="{
@@ -886,11 +908,12 @@ function skipSetupForDevelopment(): void {
                 }}</small></span
               >
               <i
-                ><Check
+                ><SkyIcon
+                  :icon="Check"
                   v-if="selectedApps.includes(app.id as BuiltinPhoneAppId)"
                   :size="16"
               /></i>
-            </button>
+            </SkyButton>
           </div>
           <SkyButton
             class="setup-assistant__primary"
@@ -919,7 +942,7 @@ function skipSetupForDevelopment(): void {
 
         <template v-else>
           <div class="setup-ready__halo" aria-hidden="true">
-            <Check :size="66" />
+            <SkyIcon :icon="Check" :size="66" />
           </div>
           <p class="setup-assistant__eyebrow">
             {{ phone.t('Setup.ready.eyebrow') }}
@@ -934,19 +957,19 @@ function skipSetupForDevelopment(): void {
           <p class="setup-assistant__lead">{{ phone.t('Setup.ready.body') }}</p>
           <div class="setup-ready__summary">
             <span
-              ><Cloud :size="18" /><b>{{
+              ><SkyIcon :icon="Cloud" :size="18" /><b>{{
                 account.email || phone.t('Setup.ready.localOnly')
               }}</b></span
             >
             <span
-              ><Gauge :size="18" /><b>{{
+              ><SkyIcon :icon="Gauge" :size="18" /><b>{{
                 phone.t(
                   `Apps.settings.${phone.preferences.settings.graphicsMode}Mode`,
                 )
               }}</b></span
             >
             <span
-              ><Palette :size="18" /><b>{{
+              ><SkyIcon :icon="Palette" :size="18" /><b>{{
                 phone.t(
                   `Apps.settings.${phone.preferences.settings.appearanceMode}`,
                 )
@@ -972,14 +995,15 @@ function skipSetupForDevelopment(): void {
           >
             {{ setupCompleteError }}
           </p>
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="setup-assistant__later"
             :disabled="setupCompleteBusy"
             @click="moveTo(0)"
           >
             {{ phone.t('Setup.ready.review') }}
-          </button>
+          </SkyButton>
         </template>
       </main>
     </Transition>

@@ -15,7 +15,7 @@ const phone = usePhoneStore()
     <SkyButton
       v-for="entry in entries"
       :key="entry.id"
-      clear
+      variant="content"
       class="live-profiles__entry"
       :aria-label="phone.t('Realtime.joinLive', { name: entry.hostName })"
       @click="entry.profileId && emit('join', entry.profileId)"

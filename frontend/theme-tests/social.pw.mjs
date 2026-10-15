@@ -75,7 +75,9 @@ for (const mode of ['light', 'dark']) {
       await expect(root.locator('header .live-entry')).toHaveCount(0)
       if (app === 'picstagram') {
         await root.getByText('Home', { exact: true }).click()
-        await root.getByRole('link', { name: 'New Post', exact: true }).click()
+        await root
+          .getByRole('button', { name: 'New Post', exact: true })
+          .click()
       } else
         await root.getByRole('button', { name: 'Create', exact: true }).click()
       await root.getByRole('button', { name: 'Go live', exact: true }).click()

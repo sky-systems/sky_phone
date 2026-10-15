@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import { Pause, Play } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 
@@ -19,7 +21,12 @@ const progress = computed(() =>
 )
 const source = computed(() => darkchat.mediaSources[props.message.id] ?? '')
 const displayTime = computed(() => {
-  const seconds = Math.max(0, Math.floor(playing.value || currentTime.value ? currentTime.value : duration.value))
+  const seconds = Math.max(
+    0,
+    Math.floor(
+      playing.value || currentTime.value ? currentTime.value : duration.value,
+    ),
+  )
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 })
 
@@ -43,10 +50,12 @@ async function togglePlayback(): Promise<void> {
   if (audio.value) audio.value.playbackRate = speed.value
   try {
     await audio.value?.play()
-  }
-  catch (error) {
+  } catch (error) {
     failed.value = true
-    console.error(`[DarkChat] Could not play voice message ${props.message.id}:`, error)
+    console.error(
+      `[DarkChat] Could not play voice message ${props.message.id}:`,
+      error,
+    )
   }
 }
 
@@ -65,23 +74,43 @@ onBeforeUnmount(() => audio.value?.pause())
 
 <template>
   <div class="darkchat-voice" :class="{ 'darkchat-voice--failed': failed }">
-    <button type="button" :disabled="loading" @click="togglePlayback">
+    <SkyButton
+      variant="content"
+      type="button"
+      :disabled="loading"
+      @click="togglePlayback"
+    >
       <span v-if="loading" class="darkchat-loader darkchat-loader--small" />
-      <Pause v-else-if="playing" :size="15" fill="currentColor" />
-      <Play v-else :size="15" fill="currentColor" />
-    </button>
+      <SkyIcon
+        :icon="Pause"
+        v-else-if="playing"
+        :size="15"
+        fill="currentColor"
+      />
+      <SkyIcon :icon="Play" v-else :size="15" fill="currentColor" />
+    </SkyButton>
     <div>
       <span class="darkchat-voice__wave" aria-hidden="true">
         <i
           v-for="(sample, index) in message.mediaWaveform ?? []"
           :key="index"
-          :class="{ active: index / Math.max(1, (message.mediaWaveform?.length ?? 1) - 1) <= progress }"
+          :class="{
+            active:
+              index / Math.max(1, (message.mediaWaveform?.length ?? 1) - 1) <=
+              progress,
+          }"
           :style="{ height: `${Math.max(3, sample * 21)}px` }"
         />
       </span>
       <small>{{ displayTime }}</small>
     </div>
-    <button type="button" class="darkchat-voice__speed" @click="cycleSpeed">{{ speed }}×</button>
+    <SkyButton
+      variant="content"
+      type="button"
+      class="darkchat-voice__speed"
+      @click="cycleSpeed"
+      >{{ speed }}×</SkyButton
+    >
     <audio
       ref="audio"
       :src="source"

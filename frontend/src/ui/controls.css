@@ -1,4 +1,4 @@
-.sky-button,
+:where(.sky-button),
 .sky-breadcrumbs-collapsed,
 .sky-breadcrumbs-item,
 .sky-chip,
@@ -32,7 +32,7 @@
   min-height: var(--sky-touch-target, 44px);
 }
 
-.sky-button,
+:where(.sky-button),
 .sky-breadcrumbs-collapsed,
 .sky-breadcrumbs-item,
 .sky-link,
@@ -69,16 +69,16 @@
   outline-offset: 2px;
 }
 
-.sky-button {
+.sky-button:where(:not(.sky-button--content)) {
   width: 100%;
   height: 34px;
   min-height: 34px;
   min-width: var(--sky-touch-target, 44px);
   position: relative;
-  gap: 7px;
+  gap: var(--sky-space-2, 8px);
   padding: 4px 8px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--sky-radius-control, 12px);
   background: var(--sky-app-accent, #007aff);
   color: var(--sky-button-text, #ffffff);
   font-size: 15px;
@@ -107,19 +107,30 @@
 }
 
 .sky-button--secondary {
-  background: var(--sky-surface-muted, #e6e9ee);
-  color: var(--sky-text, #111827);
+  background: var(--sky-action-surface, #1c1c1d);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .sky-glass.sky-button--glass {
-  border-color: var(--sky-hairline, rgba(0, 0, 0, 0.2));
-  background: var(--sky-glass, rgba(255, 255, 255, 0.75));
-  color: var(--sky-text, #000000);
+  --sky-button-text: var(
+    --sky-button-glass-text,
+    var(--sky-action-glass-text, #ffffff)
+  );
+  --sky-glass-background: var(
+    --sky-button-glass-background,
+    var(--sky-action-glass)
+  );
+  --sky-glass-fallback: var(
+    --sky-button-glass-fallback,
+    var(--sky-action-glass-flat)
+  );
+  border-color: var(--sky-action-glass-edge, var(--sky-glass-edge));
+  background: var(--sky-glass-fallback);
+  color: var(--sky-button-text, var(--sky-action-glass-text, #ffffff));
   box-shadow: var(--sky-shadow-glass);
 }
 
 .sky-glass.sky-button--glass:active:not(:disabled) {
-  background: var(--sky-glass, rgba(255, 255, 255, 0.75));
   filter: brightness(0.94);
 }
 
@@ -129,50 +140,50 @@
 
 .sky-button--plain {
   background: transparent;
-  color: var(--sky-app-accent, #007aff);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .sky-button--clear {
   background: transparent;
-  color: var(--sky-app-accent, #007aff);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .sky-button--clear:active:not(:disabled),
 .sky-button--plain:active:not(:disabled) {
-  background: var(--sky-app-accent-soft, rgba(0, 122, 255, 0.15));
+  background: var(--sky-action-pressed, #323234);
 }
 
 .sky-button--tonal {
-  background: var(--sky-app-accent-soft, rgba(0, 122, 255, 0.15));
-  color: var(--sky-app-accent, #007aff);
+  background: var(--sky-action-surface, #1c1c1d);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .sky-button--tonal:active:not(:disabled) {
-  background: var(--sky-app-accent-soft, rgba(0, 122, 255, 0.15));
+  background: var(--sky-action-pressed, #323234);
   filter: brightness(0.92);
 }
 
 .sky-button--outline {
-  border-width: 2px;
+  border-width: 1px;
   border-color: var(--sky-app-accent, #007aff);
-  background: transparent;
-  color: var(--sky-app-accent, #007aff);
+  background: var(--sky-action-surface, #1c1c1d);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .sky-button--outline:active:not(:disabled) {
-  background: var(--sky-app-accent-soft, rgba(0, 122, 255, 0.15));
-  color: var(--sky-app-accent, #007aff);
+  background: var(--sky-action-pressed, #323234);
+  color: var(--sky-button-text, #ffffff);
   filter: none;
 }
 
 .sky-button--danger.sky-button--outline {
   border-color: var(--sky-danger, #dc2626);
-  color: var(--sky-danger, #dc2626);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .sky-button--danger.sky-button--outline:active:not(:disabled) {
-  background: var(--sky-danger-soft, rgba(220, 38, 38, 0.14));
-  color: var(--sky-danger, #dc2626);
+  background: var(--sky-danger, #dc2626);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .sky-button--rounded {
@@ -221,6 +232,45 @@
 .sky-button--icon-only {
   width: var(--sky-touch-target, 44px);
   padding: 0;
+  border-radius: var(--sky-radius-pill, 999px);
+  flex: none;
+}
+.sky-button--small.sky-button--icon-only {
+  width: 28px;
+  min-width: 28px;
+}
+.sky-button--small.sky-glass--interactive {
+  min-height: 28px;
+  min-width: 28px;
+}
+
+/* Cards, game boards and swatches own their composition, while sharing native
+   button semantics, focus and disabled behavior with ordinary actions. */
+:where(.sky-button--content) {
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  appearance: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sky-button--content::before {
+  content: none;
+}
+
+.sky-button > svg,
+.sky-button__spinner,
+.sky-link > svg {
+  flex: none;
 }
 
 .sky-button:disabled,
@@ -238,11 +288,12 @@
   min-width: 0;
   min-height: 0;
   position: relative;
-  gap: 4px;
+  gap: var(--sky-space-1, 4px);
   padding: 0;
+  border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--sky-app-accent, #007aff);
+  color: #ffffff;
   font-size: inherit;
   transition: opacity 300ms ease;
 }
@@ -255,6 +306,10 @@
   left: 50%;
   content: '';
   transform: translate(-50%, -50%);
+}
+
+.sky-link.sky-link--content {
+  color: inherit;
 }
 
 .sky-link:active:not(:disabled) {
@@ -284,7 +339,9 @@
 .sky-navbar .sky-link,
 .sky-navbar .sky-navbar-back-link,
 .sky-toolbar .sky-link {
-  color: inherit;
+  --sky-button-text: var(--sky-action-glass-text, #ffffff);
+  color: var(--sky-button-text);
+  background: transparent;
 }
 
 .sky-badge {
@@ -2206,7 +2263,7 @@ label.sky-list-item__row {
   border-radius: var(--sky-radius-pill, 999px);
   overflow: hidden;
   background: transparent;
-  color: var(--sky-app-accent, #007aff);
+  color: var(--sky-action-glass-text, #ffffff);
   font-size: 15px;
   font-weight: 500;
   line-height: 22.5px;
@@ -2222,7 +2279,7 @@ label.sky-list-item__row {
 
 .sky-segmented--navbar .sky-segmented-button--active {
   background: transparent;
-  color: var(--sky-text);
+  color: var(--sky-action-glass-text, #ffffff);
   box-shadow: none;
 }
 
@@ -2234,7 +2291,7 @@ label.sky-list-item__row {
 .sky-segmented--navbar .sky-segmented__highlight {
   top: 5px;
   bottom: 5px;
-  background: #ffffff;
+  background: var(--sky-action-glass-highlight);
 }
 
 .sky-ui-provider--dark .sky-segmented--navbar .sky-segmented__highlight,
@@ -2253,7 +2310,7 @@ label.sky-list-item__row {
   border-radius: var(--sky-radius-pill, 999px);
   overflow: hidden;
   background: transparent;
-  color: #8e8e93;
+  color: var(--sky-action-glass-text, #ffffff);
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
@@ -2266,7 +2323,12 @@ label.sky-list-item__row {
 
 .sky-segmented--navigation .sky-segmented-button--active {
   background: transparent;
-  color: var(--sky-app-accent, #007aff);
+  color: var(--sky-action-glass-text, #ffffff);
+  box-shadow: none;
+}
+
+.sky-segmented--navigation .sky-segmented__highlight {
+  background: var(--sky-action-glass-highlight);
   box-shadow: none;
 }
 
@@ -2441,11 +2503,11 @@ label.sky-list-item__row {
 }
 
 .sky-tabbar .sky-tab-button {
-  color: var(--sky-text, #000000);
+  color: var(--sky-action-glass-text, #ffffff);
 }
 
 .sky-tabbar .sky-tab-button--active {
-  color: var(--sky-app-accent, #3b82f6);
+  color: var(--sky-action-glass-text, #ffffff);
 }
 
 .sky-tab-button:active:not(:disabled) {
@@ -2764,7 +2826,7 @@ label.sky-list-item__row {
 .sky-fab
   > :not(.sky-fab__accent-layer):not(.sky-fab__dark-accent-layer):not(
     .sky-fab__surface-layer
-  ) {
+  ):not(.sky-glass__rim):not(.sky-glass__filter) {
   position: relative;
   z-index: 3;
 }
@@ -2778,14 +2840,20 @@ label.sky-list-item__row {
 }
 
 .sky-glass.sky-fab--neutral {
-  background: var(--sky-glass-solid, rgba(247, 247, 248, 0.96));
-  color: var(--sky-text, #000000);
+  background: var(--sky-action-surface);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .sky-glass.sky-fab--glass {
-  border: 1px solid var(--sky-hairline, rgba(0, 0, 0, 0.2));
-  background: var(--sky-glass, rgba(255, 255, 255, 0.75));
-  color: var(--sky-text, #000000);
+  --sky-button-text: var(
+    --sky-button-glass-text,
+    var(--sky-action-glass-text, #ffffff)
+  );
+  --sky-glass-background: var(--sky-action-glass);
+  --sky-glass-fallback: var(--sky-action-glass-flat);
+  border: 1px solid var(--sky-action-glass-edge, var(--sky-glass-edge));
+  background: var(--sky-glass-fallback);
+  color: var(--sky-button-text, var(--sky-action-glass-text, #ffffff));
   box-shadow: var(--sky-shadow-glass);
 }
 
@@ -2803,11 +2871,16 @@ label.sky-list-item__row {
 }
 
 .sky-glass.sky-fab--neutral:active:not(:disabled) {
-  background: var(--sky-glass-solid, rgba(247, 247, 248, 0.96));
+  background: var(--sky-action-pressed);
 }
 
 .sky-glass.sky-fab--glass:active:not(:disabled) {
-  background: var(--sky-glass, rgba(255, 255, 255, 0.75));
+  filter: brightness(0.94);
+}
+
+/* Backdrop optics and opaque content share a root; regular filter would flatten both. */
+.sky-glass.sky-glass--clear:active:not(:disabled) {
+  filter: none;
 }
 
 .sky-fab--disabled {
@@ -2826,8 +2899,12 @@ label.sky-list-item__row {
 
 .sky-glass {
   position: relative;
-  border: 1px solid var(--sky-hairline, rgba(0, 0, 0, 0.2));
-  background: var(--sky-glass-solid, rgba(247, 247, 248, 0.96));
+  border: 1px solid var(--sky-glass-edge, rgba(255, 255, 255, 0.3));
+  border-radius: var(--sky-radius-card, 24px);
+  background: var(
+    --sky-glass-fallback,
+    var(--sky-glass-solid, rgba(247, 247, 248, 0.96))
+  );
   color: var(--sky-text, #000000);
   box-shadow: var(--sky-shadow-glass);
   transition:
@@ -2841,6 +2918,63 @@ label.sky-list-item__row {
   background: var(--sky-glass-solid, rgba(247, 247, 248, 0.96));
   color: var(--sky-text, #000000);
   box-shadow: var(--sky-shadow-glass);
+}
+
+/* Light lives on its own layer, so glyphs never become translucent or filtered. */
+.sky-glass__rim {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--sky-shadow-glass-clear-rim);
+  pointer-events: none;
+}
+
+.sky-glass__filter {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sky-glass--refractive > .sky-glass__rim {
+  background-image: var(--sky-glass-rim-image);
+  background-size: 100% 100%;
+  box-shadow: none;
+}
+
+.sky-glass--clear:active > .sky-glass__rim {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sky-navbar__left,
+.sky-navbar__right,
+.sky-toolbar-pane,
+.sky-tabbar__pane,
+.sky-glass.sky-segmented--navigation,
+.sky-glass.sky-segmented--navbar {
+  --sky-button-text: var(--sky-action-glass-text, #ffffff);
+  --sky-glass-background: var(--sky-action-glass);
+  --sky-glass-fallback: var(--sky-action-glass-flat, rgba(24, 28, 36, 0.9));
+  color: var(--sky-action-glass-text, #ffffff);
+  background: var(--sky-glass-fallback);
+}
+
+.sky-navbar__left,
+.sky-navbar__right,
+.sky-toolbar-pane,
+.sky-tabbar__pane {
+  background: var(--sky-glass-fallback);
+}
+
+.sky-glass.sky-glass--clear {
+  --sky-glass-blur: var(--sky-clear-glass-blur);
+  --sky-glass-saturation: 125%;
+  --sky-glass-background: var(--sky-clear-glass-background);
+  --sky-glass-fallback: var(--sky-clear-glass-fallback);
+  --sky-glass-sheen: var(--sky-clear-glass-sheen);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: var(--sky-shadow-glass-clear);
 }
 
 .sky-glass::after {
@@ -2880,8 +3014,6 @@ label.sky-list-item__row {
 .sky-glass--interactive {
   min-width: var(--sky-touch-target, 44px);
   min-height: var(--sky-touch-target, 44px);
-  -webkit-backdrop-filter: blur(18px) saturate(145%);
-  backdrop-filter: blur(18px) saturate(145%);
   cursor: pointer;
 }
 
@@ -3556,15 +3688,36 @@ label.sky-list-item__row {
 @supports (
   (-webkit-backdrop-filter: blur(16px)) or (backdrop-filter: blur(16px))
 ) {
-  .sky-glass,
-  .sky-glass-surface {
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
+  :where([data-sky-backdrop='true']) .sky-glass,
+  :where([data-sky-backdrop='true']) .sky-glass.sky-button--glass,
+  :where([data-sky-backdrop='true']) .sky-glass.sky-fab--glass,
+  :where([data-sky-backdrop='true']) .sky-glass.sky-glass--clear,
+  :where([data-sky-backdrop='true']) .sky-glass-surface,
+  :where([data-sky-backdrop='true']) .sky-glass.sky-segmented--navigation,
+  :where([data-sky-backdrop='true']) .sky-glass.sky-segmented--navbar,
+  :where([data-sky-backdrop='true'])
+    .sky-glass.sky-segmented--navigation.sky-segmented--compact {
+    background:
+      var(--sky-glass-sheen, none),
+      var(--sky-glass-background, var(--sky-glass, rgba(255, 255, 255, 0.75)));
+    -webkit-backdrop-filter: blur(
+        var(--sky-user-glass-blur, var(--sky-glass-blur, 16px))
+      )
+      saturate(var(--sky-glass-saturation, 145%));
+    backdrop-filter: blur(
+        var(--sky-user-glass-blur, var(--sky-glass-blur, 16px))
+      )
+      saturate(var(--sky-glass-saturation, 145%));
   }
+}
 
-  .sky-glass,
-  .sky-glass-surface {
-    background: var(--sky-glass, rgba(255, 255, 255, 0.75));
+@supports (backdrop-filter: url('#sky-glass')) {
+  :where([data-sky-refraction='true']) .sky-glass.sky-glass--refractive {
+    /* Frost the backdrop first, then bend it through the curved rim. */
+    -webkit-backdrop-filter: blur(var(--sky-user-glass-blur, 6px))
+      var(--sky-glass-refraction) saturate(var(--sky-glass-saturation, 145%));
+    backdrop-filter: blur(var(--sky-user-glass-blur, 6px))
+      var(--sky-glass-refraction) saturate(var(--sky-glass-saturation, 145%));
   }
 }
 

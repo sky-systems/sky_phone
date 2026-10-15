@@ -46,6 +46,13 @@ local function valid_notifications(payload)
             or type(item.title) ~= "string" or #item.title > 200
             or type(item.text) ~= "string" or #item.text > 2000
             or (item.subtitle ~= nil and (type(item.subtitle) ~= "string" or #item.subtitle > 200))
+            or (item.createdAt ~= nil and (
+                type(item.createdAt) ~= "number"
+                or item.createdAt ~= item.createdAt
+                or item.createdAt <= 0
+                or item.createdAt > 8640000000000000
+                or item.createdAt % 1 ~= 0
+            ))
         then
             return false
         end

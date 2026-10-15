@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { computed, nextTick, ref, watch, type Component } from 'vue'
 import {
   Calculator,
@@ -275,20 +277,22 @@ watch([() => calculator.display, expression], async () => {
     :aria-label="phone.t('Apps.calculator.name')"
   >
     <header class="calculator-toolbar">
-      <button
+      <SkyButton
+        variant="content"
         type="button"
         :aria-label="phone.t('Apps.calculator.history')"
         @click="historyOpened = true"
       >
-        <History :size="24" :stroke-width="1.8" />
-      </button>
-      <button
+        <SkyIcon :icon="History" :size="24" :stroke-width="1.8" />
+      </SkyButton>
+      <SkyButton
+        variant="content"
         type="button"
         :aria-label="phone.t('Apps.calculator.changeMode')"
         @click="scientificOpened = !scientificOpened"
       >
-        <Calculator :size="23" :stroke-width="1.8" />
-      </button>
+        <SkyIcon :icon="Calculator" :size="23" :stroke-width="1.8" />
+      </SkyButton>
     </header>
 
     <section class="calculator-display" aria-live="polite">
@@ -314,7 +318,8 @@ watch([() => calculator.display, expression], async () => {
       class="calculator-scientific-pad"
       :aria-label="phone.t('Apps.calculator.scientificFunctions')"
     >
-      <button
+      <SkyButton
+        variant="content"
         v-for="key in scientificKeys"
         :key="key.label"
         type="button"
@@ -329,11 +334,12 @@ watch([() => calculator.display, expression], async () => {
         @click="key.action"
       >
         {{ key.label }}
-      </button>
+      </SkyButton>
     </section>
 
     <section class="calculator-basic-pad">
-      <button
+      <SkyButton
+        variant="content"
         v-for="key in basicKeys"
         :key="key.label"
         type="button"
@@ -357,9 +363,9 @@ watch([() => calculator.display, expression], async () => {
           :stroke-width="2"
           aria-hidden="true"
         />
-        <Delete v-else-if="key.label === 'delete'" :size="23" />
+        <SkyIcon :icon="Delete" v-else-if="key.label === 'delete'" :size="23" />
         <span v-else>{{ key.label }}</span>
-      </button>
+      </SkyButton>
     </section>
 
     <SkySheet
@@ -406,7 +412,7 @@ watch([() => calculator.display, expression], async () => {
               :aria-label="phone.t('Apps.calculator.closeHistory')"
               @click="historyOpened = false"
             >
-              <X :size="23" />
+              <SkyIcon :icon="X" :size="23" />
             </SkyButton>
           </template>
         </SkyNavbar>
@@ -414,34 +420,36 @@ watch([() => calculator.display, expression], async () => {
         <div v-if="historyGroups.length" class="calculator-history__scroll">
           <section v-for="group in historyGroups" :key="group.label">
             <h2>{{ group.label }}</h2>
-            <button
+            <SkyButton
+              variant="content"
               v-for="entry in group.entries"
               :key="entry.id"
               type="button"
               class="calculator-history__entry"
               @click="useHistoryEntry(entry)"
             >
-              <Trash2 v-if="editingHistory" :size="18" />
+              <SkyIcon :icon="Trash2" v-if="editingHistory" :size="18" />
               <span>
                 <small>{{ entry.expression.split(' ').join('') }}</small>
                 <strong>{{ formatDisplayValue(entry.result) }}</strong>
               </span>
-            </button>
+            </SkyButton>
           </section>
         </div>
         <div v-else class="calculator-history__empty">
-          <History :size="34" />
+          <SkyIcon :icon="History" :size="34" />
           <strong>{{ phone.t('Apps.calculator.noHistory') }}</strong>
         </div>
 
-        <button
+        <SkyButton
+          variant="content"
           v-if="editingHistory && calculator.history.length"
           type="button"
           class="calculator-history__clear"
           @click="calculator.clearHistory"
         >
           {{ phone.t('Apps.calculator.clearHistory') }}
-        </button>
+        </SkyButton>
       </section>
     </SkySheet>
   </main>

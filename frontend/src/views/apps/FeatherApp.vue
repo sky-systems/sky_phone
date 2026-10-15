@@ -956,7 +956,8 @@ onMounted(async () => {
       :title="screen === 'main' && tab === 'home' ? undefined : navbarTitle"
     >
       <template v-if="screen === 'main' && tab === 'home'" #title>
-        <Feather
+        <SkyIcon
+          :icon="Feather"
           class="feather-navbar__brand-mark"
           :size="30"
           :stroke-width="1.8"
@@ -977,7 +978,7 @@ onMounted(async () => {
           :aria-label="t('cancel')"
           @click="goBack"
         >
-          <X :size="16" />
+          <SkyIcon :icon="X" :size="16" />
         </SkyLink>
         <SkyNavbarBackLink
           v-else
@@ -1010,7 +1011,7 @@ onMounted(async () => {
           @click="saveProfile"
         >
           <SkySpinner v-if="busy" :size="15" />
-          <Check v-else :size="16" :stroke-width="2.8" />
+          <SkyIcon :icon="Check" v-else :size="16" :stroke-width="2.8" />
         </SkyButton>
         <SkyButton
           v-else-if="
@@ -1025,7 +1026,7 @@ onMounted(async () => {
           :aria-label="phone.t('Common.signOut')"
           @click="logoutDialogOpen = true"
         >
-          <LogOut :size="16" />
+          <SkyIcon :icon="LogOut" :size="16" />
         </SkyButton>
       </template>
     </SkyNavbar>
@@ -1063,18 +1064,20 @@ onMounted(async () => {
     </section>
 
     <section v-else-if="!feather.onboarded" class="feather-onboarding">
-      <div class="feather-welcome__mark"><Feather :size="45" /></div>
+      <div class="feather-welcome__mark">
+        <SkyIcon :icon="Feather" :size="45" />
+      </div>
       <span class="feather-onboarding__step">{{ t('profileStep') }}</span>
       <h1>{{ t('welcome') }}</h1>
       <p>{{ t('welcomeBody') }}</p>
       <div class="feather-onboarding__account">
-        <CheckCircle2 :size="15" />
+        <SkyIcon :icon="CheckCircle2" :size="15" />
         <span>{{ t('accountConnected') }}</span>
         <strong>{{ account.email }}</strong>
       </div>
       <div class="feather-onboarding__form">
         <div class="feather-onboarding__form-head">
-          <span><UserRound :size="20" /></span>
+          <span><SkyIcon :icon="UserRound" :size="20" /></span>
           <div>
             <h2>{{ t('createProfile') }}</h2>
             <p>{{ t('profileDetailsHint') }}</p>
@@ -1088,7 +1091,7 @@ onMounted(async () => {
             :maxlength="50"
             @input="onboarding.displayName = inputValue($event)"
           >
-            <template #media><UserRound :size="18" /></template>
+            <template #media><SkyIcon :icon="UserRound" :size="18" /></template>
           </SkyField>
           <SkyField
             :value="onboarding.handle"
@@ -1098,7 +1101,7 @@ onMounted(async () => {
             :info="t('handleHint')"
             @input="onboarding.handle = inputValue($event)"
           >
-            <template #media><AtSign :size="18" /></template>
+            <template #media><SkyIcon :icon="AtSign" :size="18" /></template>
           </SkyField>
           <SkyField
             :value="onboarding.bio"
@@ -1109,7 +1112,7 @@ onMounted(async () => {
             :info="`${onboarding.bio.length}/160`"
             @input="onboarding.bio = inputValue($event)"
           >
-            <template #media><AlignLeft :size="18" /></template>
+            <template #media><SkyIcon :icon="AlignLeft" :size="18" /></template>
           </SkyField>
         </SkyList>
       </div>
@@ -1129,7 +1132,7 @@ onMounted(async () => {
         class="feather-onboarding__logout"
         @click="logoutDialogOpen = true"
       >
-        <LogOut :size="16" />
+        <SkyIcon :icon="LogOut" :size="16" />
         {{ phone.t('Common.signOut') }}
       </SkyButton>
     </section>
@@ -1148,7 +1151,7 @@ onMounted(async () => {
                   :src="feather.profile.avatar_url"
                   alt=""
                 />
-                <UserRound v-else :size="20" />
+                <SkyIcon :icon="UserRound" v-else :size="20" />
               </div>
               <div>
                 <strong>{{ feather.profile?.display_name }}</strong>
@@ -1164,7 +1167,10 @@ onMounted(async () => {
               "
             ></textarea>
             <div class="feather-composer-card__footer">
-              <span><UsersRound :size="14" /> {{ t('composerAudience') }}</span>
+              <span
+                ><SkyIcon :icon="UsersRound" :size="14" />
+                {{ t('composerAudience') }}</span
+              >
               <b>{{
                 t('charactersLeft', {
                   count: String(360 - composerBody.length),
@@ -1176,7 +1182,7 @@ onMounted(async () => {
 
         <section class="feather-composer-media">
           <header>
-            <span><ImagePlus :size="21" /></span>
+            <span><SkyIcon :icon="ImagePlus" :size="21" /></span>
             <div>
               <strong>{{ t('mediaTitle') }}</strong>
               <small>{{ t('mediaBody') }}</small>
@@ -1185,26 +1191,28 @@ onMounted(async () => {
           </header>
           <div class="feather-composer-media__actions">
             <SkyGlass :highlight="false">
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 :disabled="photos.length >= 4"
                 @click="openComposerMedia('photos')"
               >
-                <span><Images :size="20" /></span>
+                <span><SkyIcon :icon="Images" :size="20" /></span>
                 <strong>{{ t('chooseGallery') }}</strong>
                 <small>{{ t('chooseGalleryBody') }}</small>
-              </button>
+              </SkyButton>
             </SkyGlass>
             <SkyGlass :highlight="false">
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 :disabled="photos.length >= 4"
                 @click="openComposerMedia('camera')"
               >
-                <span><Camera :size="20" /></span>
+                <span><SkyIcon :icon="Camera" :size="20" /></span>
                 <strong>{{ t('takePhoto') }}</strong>
                 <small>{{ t('takePhotoBody') }}</small>
-              </button>
+              </SkyButton>
             </SkyGlass>
           </div>
           <div v-if="photos.length" class="feather-composer-media__selected">
@@ -1218,13 +1226,14 @@ onMounted(async () => {
             >
               <div v-for="(photo, index) in photos" :key="photo.id">
                 <img :src="photo.url" alt="" />
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="t('removePhoto', { number: String(index + 1) })"
                   @click="photos.splice(index, 1)"
                 >
-                  <X :size="14" />
-                </button>
+                  <SkyIcon :icon="X" :size="14" />
+                </SkyButton>
                 <i>{{ index + 1 }}</i>
               </div>
             </div>
@@ -1240,24 +1249,26 @@ onMounted(async () => {
               :src="editProfileAvatarUrl"
               alt=""
             />
-            <UserRound v-else :size="28" />
+            <SkyIcon :icon="UserRound" v-else :size="28" />
           </div>
           <div class="feather-edit__account">
             <strong>{{ feather.profile?.display_name }}</strong>
             <span>@{{ feather.profile?.handle }}</span>
           </div>
-          <span class="feather-edit__badge"><PencilLine :size="14" /></span>
+          <span class="feather-edit__badge"
+            ><SkyIcon :icon="PencilLine" :size="14"
+          /></span>
         </div>
 
         <div class="feather-edit__photo">
           <strong>{{ t('chooseAvatar') }}</strong>
           <div class="feather-edit__photo-actions">
             <SkyButton tonal rounded @click="openProfileMedia('photos')">
-              <Images :size="16" />
+              <SkyIcon :icon="Images" :size="16" />
               <span>{{ t('chooseGallery') }}</span>
             </SkyButton>
             <SkyButton tonal rounded @click="openProfileMedia('camera')">
-              <Camera :size="16" />
+              <SkyIcon :icon="Camera" :size="16" />
               <span>{{ t('takePhoto') }}</span>
             </SkyButton>
           </div>
@@ -1272,7 +1283,7 @@ onMounted(async () => {
             :info="`${editing.displayName.length}/50`"
             @input="editing.displayName = inputValue($event)"
           >
-            <template #media><UserRound :size="18" /></template>
+            <template #media><SkyIcon :icon="UserRound" :size="18" /></template>
           </SkyField>
           <SkyField
             :value="editing.bio"
@@ -1283,7 +1294,7 @@ onMounted(async () => {
             :info="`${editing.bio.length}/160`"
             @input="editing.bio = inputValue($event)"
           >
-            <template #media><AlignLeft :size="18" /></template>
+            <template #media><SkyIcon :icon="AlignLeft" :size="18" /></template>
           </SkyField>
         </SkyList>
       </section>
@@ -1323,7 +1334,7 @@ onMounted(async () => {
           inset
           class="feather-connections__empty"
         >
-          <UsersRound :size="30" />
+          <SkyIcon :icon="UsersRound" :size="30" />
           <strong>{{ t('noConnections') }}</strong>
           <p>{{ t('noConnectionsBody') }}</p>
         </SkyBlock>
@@ -1335,7 +1346,8 @@ onMounted(async () => {
             :text="`@${person.handle}`"
           >
             <template #media>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="feather-connections__profile"
                 :aria-label="person.display_name"
@@ -1347,9 +1359,9 @@ onMounted(async () => {
                     :src="person.avatar_url"
                     alt=""
                   />
-                  <UserRound v-else :size="19" />
+                  <SkyIcon :icon="UserRound" v-else :size="19" />
                 </span>
-              </button>
+              </SkyButton>
             </template>
             <template #after>
               <SkyButton
@@ -1360,7 +1372,7 @@ onMounted(async () => {
                 class="feather-connections__remove"
                 @click="removeConnection(person)"
               >
-                <UserMinus :size="13" />
+                <SkyIcon :icon="UserMinus" :size="13" />
                 <span>{{ t('removeConnection') }}</span>
               </SkyButton>
               <SkyButton
@@ -1407,7 +1419,7 @@ onMounted(async () => {
             v-if="!feather.thread.replies.length"
             class="feather-thread-empty"
           >
-            <MessageCircle :size="22" />
+            <SkyIcon :icon="MessageCircle" :size="22" />
             <strong>{{ t('noComments') }}</strong>
             <span>{{ t('noReplies') }}</span>
           </div>
@@ -1421,25 +1433,31 @@ onMounted(async () => {
               'feather-comment--reply': Boolean(leadingCommentMention(post)),
             }"
           >
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="feather-avatar feather-comment__avatar"
               :aria-label="post.display_name"
               @click="openProfile(post.profile_id)"
             >
               <img v-if="post.avatar_url" :src="post.avatar_url" alt="" />
-              <UserRound v-else :size="18" />
-            </button>
+              <SkyIcon :icon="UserRound" v-else :size="18" />
+            </SkyButton>
             <div class="feather-comment__copy">
               <header>
-                <button type="button" @click="openProfile(post.profile_id)">
+                <SkyButton
+                  variant="content"
+                  type="button"
+                  @click="openProfile(post.profile_id)"
+                >
                   <strong>{{ post.display_name }}</strong>
-                  <CheckCircle2
+                  <SkyIcon
+                    :icon="CheckCircle2"
                     v-if="post.verified"
                     :size="13"
                     :aria-label="t('verified')"
                   />
-                </button>
+                </SkyButton>
                 <time>{{ relativeCommentTime(post.created_at) }}</time>
               </header>
               <p>
@@ -1449,23 +1467,29 @@ onMounted(async () => {
                 {{ visibleCommentBody(post) }}
               </p>
               <footer>
-                <button type="button" @click="focusThreadReply(post)">
+                <SkyButton
+                  variant="content"
+                  type="button"
+                  @click="focusThreadReply(post)"
+                >
                   {{ t('reply') }}
-                </button>
+                </SkyButton>
                 <span v-if="post.like_count">{{
                   t('likesCount', { count: String(post.like_count) })
                 }}</span>
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="feather-comment__more"
                   :aria-label="t('moreActions')"
                   @click="openPostMenu(post)"
                 >
-                  <MoreHorizontal :size="16" />
-                </button>
+                  <SkyIcon :icon="MoreHorizontal" :size="16" />
+                </SkyButton>
               </footer>
             </div>
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="feather-comment__like"
               :class="{
@@ -1475,11 +1499,12 @@ onMounted(async () => {
               :aria-label="t('likeComment', { name: post.display_name })"
               @click="reactComment(post)"
             >
-              <Heart
+              <SkyIcon
+                :icon="Heart"
                 :size="17"
                 :fill="post.is_liked ? 'currentColor' : 'none'"
               />
-            </button>
+            </SkyButton>
           </article>
         </section>
 
@@ -1502,7 +1527,7 @@ onMounted(async () => {
               :aria-label="t('cancel')"
               @click="clearThreadReplyTarget"
             >
-              <X :size="13" />
+              <SkyIcon :icon="X" :size="13" />
             </SkyButton>
           </div>
           <form ref="threadReplyInput" @submit.prevent="publishThreadReply">
@@ -1520,7 +1545,7 @@ onMounted(async () => {
                     :src="feather.profile.avatar_url"
                     alt=""
                   />
-                  <UserRound v-else :size="17" />
+                  <SkyIcon :icon="UserRound" v-else :size="17" />
                 </span>
               </template>
               <template #right>
@@ -1532,7 +1557,7 @@ onMounted(async () => {
                   class="feather-comment-composer__send"
                   :aria-label="t('postComment')"
                 >
-                  <Send :size="16" />
+                  <SkyIcon :icon="Send" :size="16" />
                 </SkyButton>
               </template>
             </SkyMessagebar>
@@ -1557,7 +1582,7 @@ onMounted(async () => {
           <div class="feather-profile">
             <div class="feather-profile__cover">
               <span class="feather-profile__cover-title">
-                <Feather :size="17" :stroke-width="2" />
+                <SkyIcon :icon="Feather" :size="17" :stroke-width="2" />
                 {{ activeProfile.display_name }}
               </span>
             </div>
@@ -1568,7 +1593,7 @@ onMounted(async () => {
                   :src="activeProfile.avatar_url"
                   alt=""
                 />
-                <UserRound v-else :size="29" />
+                <SkyIcon :icon="UserRound" v-else :size="29" />
               </div>
               <SkyButton
                 v-if="!activeProfile.is_owner"
@@ -1584,7 +1609,7 @@ onMounted(async () => {
                 @click="followProfile(activeProfile)"
               >
                 <SkyIcon v-if="!activeProfile.is_following"
-                  ><UserPlus :size="14"
+                  ><SkyIcon :icon="UserPlus" :size="14"
                 /></SkyIcon>
                 {{ activeProfile.is_following ? t('following') : t('follow') }}
               </SkyButton>
@@ -1592,7 +1617,11 @@ onMounted(async () => {
             <div class="feather-profile__identity">
               <h1>
                 {{ activeProfile.display_name }}
-                <CheckCircle2 v-if="activeProfile.verified" :size="15" />
+                <SkyIcon
+                  :icon="CheckCircle2"
+                  v-if="activeProfile.verified"
+                  :size="15"
+                />
               </h1>
               <span class="feather-profile__handle"
                 >@{{ activeProfile.handle }}</span
@@ -1601,7 +1630,7 @@ onMounted(async () => {
                 {{ activeProfile.bio || t('noBio') }}
               </p>
               <div class="feather-profile__joined">
-                <CalendarDays :size="14" />
+                <SkyIcon :icon="CalendarDays" :size="14" />
                 {{ t('joinedDate') }}
               </div>
             </div>
@@ -1610,14 +1639,22 @@ onMounted(async () => {
                 <strong>{{ activeProfile.post_count }}</strong>
                 <small>{{ t('posts') }}</small>
               </span>
-              <button type="button" @click="openConnections('following')">
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="openConnections('following')"
+              >
                 <strong>{{ activeProfile.following }}</strong>
                 <small>{{ t('followingCount') }}</small>
-              </button>
-              <button type="button" @click="openConnections('followers')">
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="openConnections('followers')"
+              >
                 <strong>{{ activeProfile.followers }}</strong>
                 <small>{{ t('followers') }}</small>
-              </button>
+              </SkyButton>
             </div>
             <div v-if="activeProfile.is_owner" class="feather-profile__actions">
               <SkyButton
@@ -1626,7 +1663,7 @@ onMounted(async () => {
                 class="feather-profile-action"
                 @click="shareProfile"
               >
-                <Share2 :size="15" />
+                <SkyIcon :icon="Share2" :size="15" />
                 <span>{{ t('shareProfile') }}</span>
               </SkyButton>
               <SkyButton
@@ -1634,7 +1671,7 @@ onMounted(async () => {
                 class="feather-primary feather-profile-action"
                 @click="openEdit"
               >
-                <PencilLine :size="15" />
+                <SkyIcon :icon="PencilLine" :size="15" />
                 <span>{{ t('editProfile') }}</span>
               </SkyButton>
             </div>
@@ -1647,7 +1684,7 @@ onMounted(async () => {
             :class="{ 'is-active': profileView === 'posts' }"
             @click="selectProfileView('posts')"
           >
-            <AlignLeft :size="16" /> {{ t('posts') }}
+            <SkyIcon :icon="AlignLeft" :size="16" /> {{ t('posts') }}
           </SkySegmentedButton>
           <SkySegmentedButton
             type="button"
@@ -1655,7 +1692,7 @@ onMounted(async () => {
             :class="{ 'is-active': profileView === 'replies' }"
             @click="selectProfileView('replies')"
           >
-            <AtSign :size="17" />
+            <SkyIcon :icon="AtSign" :size="17" />
           </SkySegmentedButton>
           <SkySegmentedButton
             v-if="activeProfile.is_owner"
@@ -1666,7 +1703,7 @@ onMounted(async () => {
             :title="t('bookmarks')"
             @click="selectProfileView('bookmarks')"
           >
-            <Bookmark :size="17" />
+            <SkyIcon :icon="Bookmark" :size="17" />
           </SkySegmentedButton>
         </SkySegmented>
         <div
@@ -1681,7 +1718,7 @@ onMounted(async () => {
           "
           class="feather-empty"
         >
-          <Bookmark :size="34" />
+          <SkyIcon :icon="Bookmark" :size="34" />
           <h2>{{ t('noBookmarks') }}</h2>
           <p>{{ t('noBookmarksBody') }}</p>
         </div>
@@ -1718,7 +1755,8 @@ onMounted(async () => {
               :key="person.id"
               class="feather-profile-suggestion"
             >
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="feather-profile-suggestion__profile"
                 @click="openProfile(person.id)"
@@ -1729,14 +1767,14 @@ onMounted(async () => {
                     :src="person.avatar_url"
                     alt=""
                   />
-                  <UserRound v-else :size="20" />
+                  <SkyIcon :icon="UserRound" v-else :size="20" />
                 </span>
                 <span class="feather-profile-suggestion__identity">
                   <strong>{{ person.display_name }}</strong>
                   <small>@{{ person.handle }}</small>
                   <p>{{ person.bio || t('noBio') }}</p>
                 </span>
-              </button>
+              </SkyButton>
               <SkyButton
                 rounded
                 small
@@ -1838,7 +1876,7 @@ onMounted(async () => {
                 <h1>{{ t('networkTitle') }}</h1>
                 <p>{{ t('networkBody') }}</p>
               </div>
-              <UsersRound :size="35" />
+              <SkyIcon :icon="UsersRound" :size="35" />
             </header>
           </SkyGlass>
           <SkySearchbar
@@ -1865,7 +1903,7 @@ onMounted(async () => {
                 inset
                 class="feather-network-empty"
               >
-                <Search :size="25" />
+                <SkyIcon :icon="Search" :size="25" />
                 <strong>{{
                   section.key === 'results'
                     ? t('noPeopleFound')
@@ -1890,7 +1928,8 @@ onMounted(async () => {
                   title-wrap-class="feather-network-person__title-wrap"
                 >
                   <template #media>
-                    <button
+                    <SkyButton
+                      variant="content"
                       type="button"
                       class="feather-network-person__avatar"
                       :aria-label="person.display_name"
@@ -1902,23 +1941,25 @@ onMounted(async () => {
                           :src="person.avatar_url"
                           alt=""
                         />
-                        <UserRound v-else :size="20" />
+                        <SkyIcon :icon="UserRound" v-else :size="20" />
                       </span>
-                    </button>
+                    </SkyButton>
                   </template>
                   <template #title>
-                    <button
+                    <SkyButton
+                      variant="content"
                       type="button"
                       class="feather-network-person__name"
                       @click="openProfile(person.id)"
                     >
                       <span>{{ person.display_name }}</span>
-                      <CheckCircle2
+                      <SkyIcon
+                        :icon="CheckCircle2"
                         v-if="person.verified"
                         :size="13"
                         :aria-label="t('verified')"
                       />
-                    </button>
+                    </SkyButton>
                   </template>
                   <template #subtitle
                     ><span class="feather-network-person__handle"
@@ -1956,8 +1997,12 @@ onMounted(async () => {
                       @click="followProfile(person)"
                     >
                       <SkyIcon>
-                        <CheckCircle2 v-if="person.is_following" :size="13" />
-                        <UserPlus v-else :size="13" />
+                        <SkyIcon
+                          :icon="CheckCircle2"
+                          v-if="person.is_following"
+                          :size="13"
+                        />
+                        <SkyIcon :icon="UserPlus" v-else :size="13" />
                       </SkyIcon>
                       {{ person.is_following ? t('following') : t('follow') }}
                     </SkyButton>
@@ -1974,11 +2019,12 @@ onMounted(async () => {
           with-tabbar
         >
           <div v-if="!feather.topics.length" class="feather-empty">
-            <Search :size="34" />
+            <SkyIcon :icon="Search" :size="34" />
             <h2>{{ t('noTrendingHashtags') }}</h2>
             <p>{{ t('noTrendingHashtagsBody') }}</p>
           </div>
-          <button
+          <SkyButton
+            variant="content"
             v-for="topic in feather.topics"
             :key="topic.tag"
             type="button"
@@ -1989,7 +2035,7 @@ onMounted(async () => {
             <strong>{{ topic.tag }}</strong>
             <small>{{ t('postsCount', { count: String(topic.count) }) }}</small>
             <b>•••</b>
-          </button>
+          </SkyButton>
         </SkyScrollArea>
 
         <SkyScrollArea
@@ -1998,11 +2044,12 @@ onMounted(async () => {
           with-tabbar
         >
           <div v-if="!displayedActivities.length" class="feather-empty">
-            <Bell :size="34" />
+            <SkyIcon :icon="Bell" :size="34" />
             <h2>{{ t('noActivity') }}</h2>
             <p>{{ t('activityBody') }}</p>
           </div>
-          <button
+          <SkyButton
+            variant="content"
             v-for="item in displayedActivities"
             :key="item.id"
             class="feather-activity"
@@ -2017,13 +2064,13 @@ onMounted(async () => {
           >
             <div class="feather-avatar">
               <img v-if="item.avatar_url" :src="item.avatar_url" alt="" />
-              <UserRound v-else :size="20" />
+              <SkyIcon :icon="UserRound" v-else :size="20" />
             </div>
             <p>
               <strong>{{ item.display_name }}</strong>
               {{ t(`activityKinds.${item.kind}`) }}
             </p>
-          </button>
+          </SkyButton>
         </SkyScrollArea>
 
         <SkyScrollArea v-else class="feather-scroll" with-tabbar>
@@ -2037,8 +2084,8 @@ onMounted(async () => {
             v-else-if="!displayedPosts.length && !feather.loading"
             class="feather-empty"
           >
-            <Search v-if="tab === 'explore'" :size="34" />
-            <Feather v-else :size="34" />
+            <SkyIcon :icon="Search" v-if="tab === 'explore'" :size="34" />
+            <SkyIcon :icon="Feather" v-else :size="34" />
             <h2>
               {{ tab === 'explore' ? t('emptyExplore') : t('emptyFeed') }}
             </h2>
@@ -2074,12 +2121,16 @@ onMounted(async () => {
                   v-if="person.avatar_url"
                   :src="person.avatar_url"
                   alt=""
-                /><UserRound v-else :size="20" />
+                /><SkyIcon :icon="UserRound" v-else :size="20" />
               </div>
-              <button type="button" @click="openProfile(person.id)">
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="openProfile(person.id)"
+              >
                 <strong>{{ person.display_name }}</strong
                 ><span>@{{ person.handle }}</span>
-              </button>
+              </SkyButton>
               <SkyButton
                 rounded
                 small
@@ -2092,7 +2143,7 @@ onMounted(async () => {
                 @click="followProfile(person)"
               >
                 <SkyIcon v-if="!person.is_following"
-                  ><UserPlus :size="14"
+                  ><SkyIcon :icon="UserPlus" :size="14"
                 /></SkyIcon>
                 {{ person.is_following ? t('following') : t('follow') }}
               </SkyButton>
@@ -2120,7 +2171,11 @@ onMounted(async () => {
             class="feather-navigation__button"
             @click="selectTab('home')"
           >
-            <Home :size="20" :fill="tab === 'home' ? 'currentColor' : 'none'" />
+            <SkyIcon
+              :icon="Home"
+              :size="20"
+              :fill="tab === 'home' ? 'currentColor' : 'none'"
+            />
             <small>{{ t('home') }}</small>
           </SkySegmentedButton>
           <SkySegmentedButton
@@ -2128,7 +2183,7 @@ onMounted(async () => {
             class="feather-navigation__button"
             @click="selectTab('explore')"
           >
-            <Search :size="20" />
+            <SkyIcon :icon="Search" :size="20" />
             <small>{{ t('explore') }}</small>
           </SkySegmentedButton>
           <SkySegmentedButton
@@ -2136,7 +2191,8 @@ onMounted(async () => {
             class="feather-navigation__button"
             @click="selectTab('network')"
           >
-            <UsersRound
+            <SkyIcon
+              :icon="UsersRound"
               :size="20"
               :fill="tab === 'network' ? 'currentColor' : 'none'"
             />
@@ -2148,7 +2204,8 @@ onMounted(async () => {
             @click="selectTab('activity')"
           >
             <span class="feather-navigation__badge-anchor">
-              <Bell
+              <SkyIcon
+                :icon="Bell"
                 :size="20"
                 :fill="tab === 'activity' ? 'currentColor' : 'none'"
               />
@@ -2161,7 +2218,8 @@ onMounted(async () => {
             class="feather-navigation__button"
             @click="selectTab('profile')"
           >
-            <UserRound
+            <SkyIcon
+              :icon="UserRound"
               :size="20"
               :fill="tab === 'profile' ? 'currentColor' : 'none'"
             />
@@ -2178,7 +2236,7 @@ onMounted(async () => {
         :aria-label="t('newPost')"
         @click="openComposer()"
       >
-        <template #icon><Plus :size="20" /></template>
+        <template #icon><SkyIcon :icon="Plus" :size="20" /></template>
       </SkyFab>
     </template>
 
@@ -2250,7 +2308,7 @@ onMounted(async () => {
               class="feather-post-menu__action feather-post-menu__action--danger"
               @click="deletePost"
             >
-              <Trash2 :size="18" />
+              <SkyIcon :icon="Trash2" :size="18" />
               <span>{{ t('delete') }}</span>
             </SkyButton>
             <template v-else>
@@ -2260,7 +2318,7 @@ onMounted(async () => {
                 class="feather-post-menu__action"
                 @click="openPostReport"
               >
-                <Flag :size="18" />
+                <SkyIcon :icon="Flag" :size="18" />
                 <span>{{ t('report') }}</span>
               </SkyButton>
               <SkyButton
@@ -2269,7 +2327,7 @@ onMounted(async () => {
                 class="feather-post-menu__action feather-post-menu__action--danger"
                 @click="blockPostAuthor"
               >
-                <Ban :size="18" />
+                <SkyIcon :icon="Ban" :size="18" />
                 <span>{{
                   t('block', { handle: menuPost?.handle ?? '' })
                 }}</span>
@@ -2339,7 +2397,7 @@ onMounted(async () => {
           :aria-label="t('previousImage')"
           @click.stop="moveMediaPreview(-1)"
         >
-          <ChevronLeft :size="20" :stroke-width="2.8" />
+          <SkyIcon :icon="ChevronLeft" :size="20" :stroke-width="2.8" />
         </SkyButton>
         <SkyButton
           glass
@@ -2349,7 +2407,7 @@ onMounted(async () => {
           :aria-label="t('nextImage')"
           @click.stop="moveMediaPreview(1)"
         >
-          <ChevronRight :size="20" :stroke-width="2.8" />
+          <SkyIcon :icon="ChevronRight" :size="20" :stroke-width="2.8" />
         </SkyButton>
         <span class="feather-media-preview__count">
           {{ mediaPreview.index + 1 }} / {{ mediaPreview.items.length }}
@@ -2680,7 +2738,7 @@ onMounted(async () => {
 .feather-onboarding__button:disabled {
   --sky-app-accent: rgb(67 140 245 / 13%);
   --sky-button-text: #71839a;
-  color: #71839a !important;
+  color: var(--sky-button-text, #ffffff) !important;
   background: rgb(67 140 245 / 13%) !important;
   opacity: 1;
   box-shadow: none;
@@ -3146,7 +3204,7 @@ onMounted(async () => {
   flex: 1;
   flex-direction: column;
   border: 0;
-  color: inherit;
+  color: var(--sky-button-text, #ffffff);
   background: transparent;
   text-align: left;
 }
@@ -4167,7 +4225,7 @@ onMounted(async () => {
   --sky-app-accent: var(--feather-blue);
   --sky-app-accent-soft: rgba(29, 155, 240, 0.14);
   border-color: color-mix(in srgb, currentColor 22%, transparent);
-  color: var(--feather-blue);
+  color: var(--sky-button-text, #ffffff);
   box-shadow: none;
 }
 @media (hover: hover) {
@@ -4490,7 +4548,7 @@ onMounted(async () => {
   width: 46px;
   height: 46px;
   min-width: 46px;
-  color: var(--feather-blue);
+  color: var(--sky-button-text, #ffffff);
   transition:
     transform 150ms ease,
     box-shadow 150ms ease,
@@ -4647,7 +4705,7 @@ onMounted(async () => {
   min-height: 36px;
   gap: 6px;
   border-color: color-mix(in srgb, var(--feather-blue) 55%, transparent);
-  color: inherit;
+  color: var(--sky-button-text, #ffffff);
   padding-inline: 7px;
   font-size: 10.5px;
   font-weight: 750;
@@ -4656,7 +4714,7 @@ onMounted(async () => {
   width: 100%;
   margin-top: 8px;
   border-color: color-mix(in srgb, #f04f65 62%, transparent);
-  color: #f04f65;
+  color: var(--sky-button-text, #ffffff);
 }
 .feather-app--active .feather-profile-action span {
   min-width: 0;
@@ -4803,7 +4861,7 @@ onMounted(async () => {
   border: 1px solid var(--feather-border);
   border-radius: 50%;
   color: #fff;
-  color: inherit;
+  color: var(--sky-button-text, #ffffff);
   background: var(--feather-panel);
 }
 .feather-composer-publish {
@@ -4831,7 +4889,7 @@ onMounted(async () => {
   border-radius: 50% !important;
   padding: 0;
   background: transparent !important;
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   box-shadow: none;
 }
 .feather-edit__navbar-save :deep(svg) {
@@ -5158,7 +5216,7 @@ onMounted(async () => {
   min-height: 35px;
   gap: 6px;
   border: 1px solid color-mix(in srgb, var(--feather-blue) 24%, transparent);
-  color: var(--feather-blue);
+  color: var(--sky-button-text, #ffffff);
   font-size: 10px;
   font-weight: 800;
 }
@@ -5274,7 +5332,7 @@ onMounted(async () => {
   min-height: 29px;
   gap: 4px;
   border-color: color-mix(in srgb, #f04f65 62%, transparent);
-  color: #f04f65;
+  color: var(--sky-button-text, #ffffff);
   font-size: 9px;
   font-weight: 800;
 }
@@ -5313,7 +5371,7 @@ onMounted(async () => {
   gap: 9px;
   border-radius: 0;
   padding: 9px 13px;
-  color: inherit;
+  color: var(--sky-button-text, #ffffff);
   font-size: 12px;
   font-weight: 700;
   line-height: 18px;
@@ -5322,7 +5380,7 @@ onMounted(async () => {
   border-top: 1px solid var(--feather-border);
 }
 .feather-post-menu__action--danger {
-  color: var(--sky-danger);
+  color: var(--sky-button-text, #ffffff);
 }
 .feather-post-menu__action svg {
   flex: none;
@@ -5412,8 +5470,8 @@ onMounted(async () => {
 /* Navbar actions sit on the current theme, unlike the white cover artwork. */
 .feather-app--active .feather-navbar .feather-profile__logout {
   --sky-app-accent: var(--feather-blue);
-  --sky-button-text: var(--sky-text);
-  color: var(--sky-text);
+  --sky-button-text: #fff;
+  color: var(--sky-button-text, #ffffff);
   border-color: var(--sky-hairline);
 }
 .feather-app--active :deep(.feather-post__name) {
@@ -5430,6 +5488,6 @@ onMounted(async () => {
   color: var(--sky-text);
 }
 .feather-app--light .feather-edit__photo-actions :deep(.sky-button) {
-  color: var(--sky-app-accent-shade);
+  color: var(--sky-button-text, #ffffff);
 }
 </style>

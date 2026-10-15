@@ -21,7 +21,9 @@ describe('Sky UI graphics modes', () => {
     'utf8',
   )
   const controlCenterSource = readFileSync(
-    fileURLToPath(new URL('../components/PhoneControlCenter.vue', import.meta.url)),
+    fileURLToPath(
+      new URL('../components/PhoneControlCenter.vue', import.meta.url),
+    ),
     'utf8',
   )
   const appModeConsumers = [
@@ -54,7 +56,9 @@ describe('Sky UI graphics modes', () => {
       /\.k-glass:where\(\[class~='bg-ios-light-glass'\]\)\s*\{[^}]*background:\s*var\(--phone-performance-glass\) !important/s,
     )
     expect(performanceCss).not.toContain("[class~='dark:bg-ios-dark-glass']")
-    expect(controlCenterSource).toContain("bgIos: 'bg-[#5e5ce6]'")
+    expect(controlCenterSource).toMatch(
+      /--sky-button-glass-background:\s*#5e5ce6/,
+    )
     expect(controlCenterSource).not.toContain(
       "bgIos: 'bg-ios-light-glass bg-[#5e5ce6]'",
     )
@@ -108,13 +112,13 @@ describe('Sky UI graphics modes', () => {
       /\.phone-app--performance \.sky-segmented--navbar\s*\{[^}]*background:\s*var\(--sky-glass-solid\)[^}]*box-shadow:\s*none/s,
     )
     expect(controlsCss).toMatch(
-      /\.sky-glass\s*\{[^}]*background:\s*var\(--sky-glass-solid[^}]*box-shadow:\s*var\(--sky-shadow-glass\)/s,
+      /\.sky-glass\s*\{[^}]*background:\s*var\(\s*--sky-glass-fallback[^}]*box-shadow:\s*var\(--sky-shadow-glass\)/s,
     )
     expect(controlsCss).toContain('@supports (')
-    expect(controlsCss).toContain('backdrop-filter: blur(16px)')
-    expect(controlsCss).toContain(
-      'background: var(--sky-glass, rgba(255, 255, 255, 0.75))',
+    expect(controlsCss).toMatch(
+      /backdrop-filter:\s*blur\(\s*var\(--sky-user-glass-blur, var\(--sky-glass-blur, 16px\)\)\s*\)/s,
     )
+    expect(controlsCss).toContain("data-sky-backdrop='true'")
   })
 
   it('keeps app-specific effect choices behind shared semantic markers', () => {

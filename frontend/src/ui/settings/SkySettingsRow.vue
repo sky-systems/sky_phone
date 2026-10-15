@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SkyIcon from '../controls/SkyIcon.vue'
+
 import { Check, ChevronRight } from 'lucide-vue-next'
 import { computed, useId, useSlots } from 'vue'
 
@@ -192,14 +194,16 @@ function updateToggle(value: boolean): void {
           >
             <slot name="trailing" />
           </span>
-          <Check
+          <SkyIcon
+            :icon="Check"
             v-if="kind === 'choice' && selected"
             class="sky-settings-row__check"
             :size="20"
             :stroke-width="2.25"
             aria-hidden="true"
           />
-          <ChevronRight
+          <SkyIcon
+            :icon="ChevronRight"
             v-if="kind === 'navigation'"
             class="sky-settings-row__chevron"
             :size="18"

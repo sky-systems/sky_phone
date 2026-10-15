@@ -16,7 +16,9 @@ describe('PopupDemo Konsta parity', () => {
   })
 
   it('keeps a 20px close icon and one scroll owner', () => {
-    expect(source).toContain('<SkyIcon :size="20"><X /></SkyIcon>')
+    expect(source).toContain(
+      '<SkyIcon :size="20"><SkyIcon :icon="X" /></SkyIcon>',
+    )
     expect(source.match(/<SkyScrollArea/g)).toHaveLength(1)
   })
 

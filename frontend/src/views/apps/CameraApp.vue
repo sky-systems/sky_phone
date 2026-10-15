@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { SkyAppPage, SkyButton, SkyFab, SkyGlass } from '@/ui'
 import {
   ArrowLeft,
@@ -541,7 +543,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Common.back')"
           @click="cancelMediaSelection"
         >
-          <template #icon><ArrowLeft :size="20" /></template>
+          <template #icon><SkyIcon :icon="ArrowLeft" :size="20" /></template>
         </sky-fab>
         <sky-fab
           v-else
@@ -554,8 +556,8 @@ onBeforeUnmount(() => {
           @click="toggleFlash"
         >
           <template #icon>
-            <Zap v-if="flashEnabled" :size="19" />
-            <ZapOff v-else :size="19" />
+            <SkyIcon :icon="Zap" v-if="flashEnabled" :size="19" />
+            <SkyIcon :icon="ZapOff" v-else :size="19" />
           </template>
         </sky-fab>
         <sky-fab
@@ -577,8 +579,8 @@ onBeforeUnmount(() => {
           @click="toggleMicrophone"
         >
           <template #icon>
-            <Mic v-if="microphoneEnabled" :size="19" />
-            <MicOff v-else :size="19" />
+            <SkyIcon :icon="Mic" v-if="microphoneEnabled" :size="19" />
+            <SkyIcon :icon="MicOff" v-else :size="19" />
           </template>
         </sky-fab>
       </div>
@@ -608,8 +610,8 @@ onBeforeUnmount(() => {
         :aria-pressed="cameraLocked"
         @click="toggleCameraLock"
       >
-        <LockKeyhole v-if="cameraLocked" :size="12" />
-        <LockOpen v-else :size="12" />
+        <SkyIcon :icon="LockKeyhole" v-if="cameraLocked" :size="12" />
+        <SkyIcon :icon="LockOpen" v-else :size="12" />
         <span class="camera-look-copy">
           <span class="camera-look-label">
             {{
@@ -641,7 +643,9 @@ onBeforeUnmount(() => {
         "
         @click="toggleOrientation"
       >
-        <template #icon><RotateCcwSquare :size="19" /></template>
+        <template #icon
+          ><SkyIcon :icon="RotateCcwSquare" :size="19"
+        /></template>
       </sky-fab>
     </header>
 
@@ -690,11 +694,12 @@ onBeforeUnmount(() => {
             :src="latestMedia.url"
             alt=""
           />
-          <Video v-else-if="latestMedia" :size="22" />
-          <Images v-else :size="22" />
+          <SkyIcon :icon="Video" v-else-if="latestMedia" :size="22" />
+          <SkyIcon :icon="Images" v-else :size="22" />
         </sky-glass>
 
-        <button
+        <SkyButton
+          variant="content"
           class="camera-shutter"
           :class="{ recording, video: mode === 'video' }"
           type="button"
@@ -711,7 +716,7 @@ onBeforeUnmount(() => {
           @click="capture"
         >
           <span></span>
-        </button>
+        </SkyButton>
 
         <sky-fab
           component="button"
@@ -721,7 +726,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.camera.flip')"
           @click="toggleFacing"
         >
-          <template #icon><RefreshCw :size="20" /></template>
+          <template #icon><SkyIcon :icon="RefreshCw" :size="20" /></template>
         </sky-fab>
       </div>
 
@@ -933,7 +938,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: var(--sky-space-2);
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   font-size: 11px;
   cursor: pointer;
 }

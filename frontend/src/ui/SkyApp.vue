@@ -11,6 +11,7 @@ const props = withDefaults(
     accentSoft?: string
     component?: string
     dark?: boolean
+    glassEffects?: boolean
     safeAreas?: boolean
   }>(),
   {
@@ -26,6 +27,7 @@ provideSkyTheme({
   accent: () => props.accent,
   accentSoft: () => props.accentSoft,
   dark: () => props.dark,
+  glassEffects: () => props.glassEffects,
   safeAreas: () => props.safeAreas,
 })
 
@@ -45,6 +47,7 @@ const themeStyle = computed<CSSProperties | undefined>(() => {
     v-bind="$attrs"
     class="sky-app"
     :class="{
+      dark: dark,
       'sky-app--dark': dark,
       'sky-app--no-safe-areas': !safeAreas,
       'sky-safe-areas': safeAreas,

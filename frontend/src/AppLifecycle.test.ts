@@ -85,6 +85,7 @@ describe('phone root device lifecycle', () => {
           'passcodeRequired',
           'unlockedServicesLoaded',
           'controlCenterOpened',
+          'notificationCenterOpened',
           'isUnlocking',
           'passcodeVisible',
           'passcodeBusy',

@@ -319,6 +319,69 @@ describe('notifications store', () => {
     )
   })
 
+  it('persists reception time and keeps it when reopening the phone', async () => {
+    const receivedAt = Date.parse('2026-10-15T15:00:00Z')
+    vi.setSystemTime(receivedAt)
+    openPhone('111')
+    const notifications = useNotificationsStore()
+    notifications.show({
+      appId: 'mail',
+      text: 'Keep the original age',
+      title: 'Mail',
+    })
+    await Promise.resolve()
+    await Promise.resolve()
+    const saved = vi
+      .mocked(nuiCall)
+      .mock.calls.find(([name]) => name === 'notifications:save')?.[1] as {
+      payload: { items: unknown[]; version: 1 }
+    }
+    expect(saved.payload.items[0]).toEqual(
+      expect.objectContaining({ createdAt: receivedAt }),
+    )
+
+    notifications.clearLockScreen()
+    vi.setSystemTime(receivedAt + 39 * 60_000)
+    notifications.hydrate(saved.payload, '111')
+    expect(notifications.lockScreenNotifications[0].createdAt).toBe(receivedAt)
+  })
+
+  it('recovers reception time from legacy IDs and leaves unknown legacy dates unset', () => {
+    openPhone('111')
+    const notifications = useNotificationsStore()
+    const receivedAt = Date.parse('2026-10-15T15:00:00Z')
+    notifications.hydrate(
+      {
+        version: 1,
+        items: [
+          {
+            id: `notification-${receivedAt}-abc1234`,
+            appId: 'mail',
+            title: 'Mail',
+            text: 'Known age',
+          },
+          {
+            id: 'old-import',
+            appId: 'mail',
+            title: 'Mail',
+            text: 'Unknown age',
+          },
+        ],
+      },
+      '111',
+    )
+    expect(
+      notifications.lockScreenNotifications.find(
+        (item) => item.text === 'Known age',
+      )?.createdAt,
+    ).toBe(receivedAt)
+    expect(
+      notifications.lockScreenNotifications.find(
+        (item) => item.text === 'Unknown age',
+      )?.createdAt,
+    ).toBeUndefined()
+  })
+
   it('hides the matching device preview when that phone opens', () => {
     const notifications = useNotificationsStore()
     notifications.show({

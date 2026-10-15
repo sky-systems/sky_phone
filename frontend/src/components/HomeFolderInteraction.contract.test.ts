@@ -108,8 +108,8 @@ describe('Home folder interaction contract', () => {
   it('edits the folder name inline with Sky UI controls', () => {
     expect(overlaySource).toContain('<SkyField')
     expect(overlaySource).toContain('home-folder-heading--editing')
-    expect(overlaySource).toContain('<Check')
-    expect(overlaySource).toContain('<X')
+    expect(overlaySource).toContain('<SkyIcon :icon="Check"')
+    expect(overlaySource).toContain('<SkyIcon :icon="X"')
     expect(overlaySource).not.toContain('<SkyDialog')
     expect(overlaySource).not.toContain('<SkySheet')
   })

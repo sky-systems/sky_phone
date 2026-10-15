@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   SkyBlock,
   SkyBlockTitle,
@@ -759,7 +761,7 @@ onBeforeUnmount(() => {
           :aria-expanded="addMenuOpened"
           @click="openAddMenu"
         >
-          <Ellipsis :size="22" />
+          <SkyIcon :icon="Ellipsis" :size="22" />
         </sky-link>
         <sky-link
           v-else-if="!sharedPlaylist"
@@ -770,7 +772,7 @@ onBeforeUnmount(() => {
           :aria-expanded="addMenuOpened"
           @click="openAddMenu"
         >
-          <Plus :size="24" />
+          <SkyIcon :icon="Plus" :size="24" />
         </sky-link>
       </template>
     </sky-navbar>
@@ -822,7 +824,7 @@ onBeforeUnmount(() => {
                 playTrack(playlistTracks[0], playlistTracks)
               "
             >
-              <Play :size="18" fill="currentColor" />
+              <SkyIcon :icon="Play" :size="18" fill="currentColor" />
               {{ phone.t('Apps.music.play') }}
             </sky-button>
             <sky-button
@@ -832,7 +834,7 @@ onBeforeUnmount(() => {
               v-if="!sharedPlaylist"
               @click="openActivePlaylistTrackPicker"
             >
-              <CirclePlus :size="18" />
+              <SkyIcon :icon="CirclePlus" :size="18" />
               {{ phone.t('Apps.music.addSongs') }}
             </sky-button>
           </div>
@@ -856,7 +858,7 @@ onBeforeUnmount(() => {
                   alt=""
                   @error="hideBrokenArtwork"
                 />
-                <Music2 v-else :size="20" />
+                <SkyIcon :icon="Music2" v-else :size="20" />
               </span>
             </template>
             <template #after>
@@ -873,13 +875,13 @@ onBeforeUnmount(() => {
                 "
                 @click="openTrackMenu($event, track)"
               >
-                <Ellipsis :size="20" />
+                <SkyIcon :icon="Ellipsis" :size="20" />
               </sky-link>
             </template>
           </sky-list-item>
         </sky-list>
         <sky-block v-else class="music-empty" inset>
-          <ListMusic :size="43" />
+          <SkyIcon :icon="ListMusic" :size="43" />
           <strong>{{ phone.t('Apps.music.emptyPlaylist') }}</strong>
           <span>{{ phone.t('Apps.music.emptyPlaylistBody') }}</span>
         </sky-block>
@@ -896,13 +898,13 @@ onBeforeUnmount(() => {
           class="music-featured"
           :highlight="false"
         >
-          <button type="button" @click="playFeatured">
+          <SkyButton variant="content" type="button" @click="playFeatured">
             <div class="music-featured-copy">
               <small>{{ phone.t('Apps.music.featured') }}</small>
               <h2>{{ featuredTrack.title }}</h2>
               <p>{{ featuredTrack.artist }}</p>
               <span
-                ><Play :size="16" fill="currentColor" />
+                ><SkyIcon :icon="Play" :size="16" fill="currentColor" />
                 {{ phone.t('Apps.music.play') }}</span
               >
             </div>
@@ -916,9 +918,9 @@ onBeforeUnmount(() => {
                 alt=""
                 @error="hideBrokenArtwork"
               />
-              <Music2 v-else :size="52" />
+              <SkyIcon :icon="Music2" v-else :size="52" />
             </div>
-          </button>
+          </SkyButton>
         </sky-glass>
 
         <template v-if="recentTracks.length">
@@ -926,7 +928,8 @@ onBeforeUnmount(() => {
             phone.t('Apps.music.recentlyAdded')
           }}</sky-block-title>
           <section class="music-album-grid">
-            <button
+            <SkyButton
+              variant="content"
               v-for="track in recentTracks"
               :key="`${track.source}:${track.id}`"
               type="button"
@@ -939,11 +942,11 @@ onBeforeUnmount(() => {
                   alt=""
                   @error="hideBrokenArtwork"
                 />
-                <Music2 v-else :size="40" />
+                <SkyIcon :icon="Music2" v-else :size="40" />
               </span>
               <strong>{{ track.title }}</strong>
               <small>{{ track.artist }}</small>
-            </button>
+            </SkyButton>
           </section>
 
           <sky-block-title class="music-section-title">{{
@@ -967,7 +970,7 @@ onBeforeUnmount(() => {
                     alt=""
                     @error="hideBrokenArtwork"
                   />
-                  <Music2 v-else :size="20" />
+                  <SkyIcon :icon="Music2" v-else :size="20" />
                 </span>
               </template>
               <template #after>
@@ -983,18 +986,18 @@ onBeforeUnmount(() => {
                   "
                   @click="openTrackMenu($event, track)"
                 >
-                  <Ellipsis :size="20" />
+                  <SkyIcon :icon="Ellipsis" :size="20" />
                 </sky-link>
               </template>
             </sky-list-item>
           </sky-list>
         </template>
         <sky-block v-else class="music-empty music-empty--library" inset>
-          <Music2 :size="48" />
+          <SkyIcon :icon="Music2" :size="48" />
           <strong>{{ phone.t('Apps.music.emptyLibrary') }}</strong>
           <span>{{ phone.t('Apps.music.emptyLibraryBody') }}</span>
           <sky-button rounded @click="openSheet('youtube')">
-            <ExternalLink :size="17" />
+            <SkyIcon :icon="ExternalLink" :size="17" />
             {{ phone.t('Apps.music.addYouTube') }}
           </sky-button>
         </sky-block>
@@ -1006,7 +1009,8 @@ onBeforeUnmount(() => {
           <p>{{ phone.t('Apps.music.playlistsSubtitle') }}</p>
         </header>
         <section v-if="music.playlists.length" class="music-playlist-grid">
-          <button
+          <SkyButton
+            variant="content"
             v-for="playlist in music.playlists"
             :key="playlist.id"
             type="button"
@@ -1038,14 +1042,14 @@ onBeforeUnmount(() => {
                 })
               }}
             </small>
-          </button>
+          </SkyButton>
         </section>
         <sky-block v-else class="music-empty music-empty--library" inset>
-          <ListMusic :size="48" />
+          <SkyIcon :icon="ListMusic" :size="48" />
           <strong>{{ phone.t('Apps.music.noPlaylists') }}</strong>
           <span>{{ phone.t('Apps.music.noPlaylistsBody') }}</span>
           <sky-button rounded @click="openNewPlaylist()">
-            <Plus :size="17" />
+            <SkyIcon :icon="Plus" :size="17" />
             {{ phone.t('Apps.music.newPlaylist') }}
           </sky-button>
         </sky-block>
@@ -1080,7 +1084,7 @@ onBeforeUnmount(() => {
                   alt=""
                   @error="hideBrokenArtwork"
                 />
-                <Music2 v-else :size="20" />
+                <SkyIcon :icon="Music2" v-else :size="20" />
               </span>
             </template>
             <template #after>
@@ -1096,13 +1100,13 @@ onBeforeUnmount(() => {
                 "
                 @click="openTrackMenu($event, track)"
               >
-                <Ellipsis :size="20" />
+                <SkyIcon :icon="Ellipsis" :size="20" />
               </sky-link>
             </template>
           </sky-list-item>
         </sky-list>
         <sky-block v-else class="music-empty" inset>
-          <Search :size="42" />
+          <SkyIcon :icon="Search" :size="42" />
           <strong>{{ phone.t('Apps.music.noResults') }}</strong>
           <span>{{ phone.t('Apps.music.noResultsBody') }}</span>
         </sky-block>
@@ -1122,29 +1126,36 @@ onBeforeUnmount(() => {
           alt=""
           @error="hideBrokenArtwork"
         />
-        <Music2 v-else :size="19" />
+        <SkyIcon :icon="Music2" v-else :size="19" />
       </span>
       <span class="music-mini-copy">
         <strong>{{ music.currentTrack.title }}</strong>
         <small>{{ music.currentTrack.artist }}</small>
       </span>
-      <button
+      <SkyButton
+        variant="content"
         type="button"
         :aria-label="
           phone.t(music.isPlaying ? 'Common.pause' : 'Apps.music.play')
         "
         @click.stop="music.toggle"
       >
-        <Pause v-if="music.isPlaying" :size="23" fill="currentColor" />
-        <Play v-else :size="23" fill="currentColor" />
-      </button>
-      <button
+        <SkyIcon
+          :icon="Pause"
+          v-if="music.isPlaying"
+          :size="23"
+          fill="currentColor"
+        />
+        <SkyIcon :icon="Play" v-else :size="23" fill="currentColor" />
+      </SkyButton>
+      <SkyButton
+        variant="content"
         type="button"
         :aria-label="phone.t('Apps.music.next')"
         @click.stop="music.next"
       >
-        <SkipForward :size="23" fill="currentColor" />
-      </button>
+        <SkyIcon :icon="SkipForward" :size="23" fill="currentColor" />
+      </SkyButton>
     </sky-glass>
 
     <SkyPillNavigation
@@ -1210,7 +1221,9 @@ onBeforeUnmount(() => {
           </header>
 
           <template v-if="activeSheet === 'youtube'">
-            <div class="music-sheet-icon"><ExternalLink :size="28" /></div>
+            <div class="music-sheet-icon">
+              <SkyIcon :icon="ExternalLink" :size="28" />
+            </div>
             <p>{{ phone.t('Apps.music.youtubeBody') }}</p>
             <sky-list inset strong>
               <sky-field
@@ -1284,16 +1297,18 @@ onBeforeUnmount(() => {
                 "
                 @click="addTrackToPlaylist(playlist)"
               >
-                <template #media><ListMusic :size="22" /></template>
+                <template #media
+                  ><SkyIcon :icon="ListMusic" :size="22"
+                /></template>
                 <template #after>
                   <span
                     v-if="actionTrackIsInPlaylist(playlist)"
                     class="music-picker-added"
                   >
-                    <Check :size="16" />
+                    <SkyIcon :icon="Check" :size="16" />
                     {{ phone.t('Apps.music.alreadyAdded') }}
                   </span>
-                  <CirclePlus v-else :size="19" />
+                  <SkyIcon :icon="CirclePlus" v-else :size="19" />
                 </template>
               </sky-list-item>
             </sky-list>
@@ -1305,10 +1320,11 @@ onBeforeUnmount(() => {
               :disabled="music.isLoading"
               @click="openNewPlaylist(actionTrack)"
             >
-              <Plus :size="17" /> {{ phone.t('Apps.music.newPlaylist') }}
+              <SkyIcon :icon="Plus" :size="17" />
+              {{ phone.t('Apps.music.newPlaylist') }}
             </sky-button>
             <sky-block v-else class="music-empty" inset>
-              <ListMusic :size="42" />
+              <SkyIcon :icon="ListMusic" :size="42" />
               <strong>{{ phone.t('Apps.music.noPlaylists') }}</strong>
               <span>{{ phone.t('Apps.music.createPlaylistFirst') }}</span>
               <sky-button
@@ -1350,15 +1366,17 @@ onBeforeUnmount(() => {
                       alt=""
                       @error="hideBrokenArtwork"
                     />
-                    <Music2 v-else :size="20" />
+                    <SkyIcon :icon="Music2" v-else :size="20" />
                   </span>
                 </template>
-                <template #after><CirclePlus :size="20" /></template>
+                <template #after
+                  ><SkyIcon :icon="CirclePlus" :size="20"
+                /></template>
               </sky-list-item>
             </sky-list>
             <sky-block v-else class="music-empty" inset>
-              <Check v-if="allTracks.length" :size="42" />
-              <Music2 v-else :size="42" />
+              <SkyIcon :icon="Check" v-if="allTracks.length" :size="42" />
+              <SkyIcon :icon="Music2" v-else :size="42" />
               <strong>{{
                 phone.t(
                   allTracks.length
@@ -1380,7 +1398,9 @@ onBeforeUnmount(() => {
           </template>
 
           <template v-else>
-            <div class="music-sheet-icon"><ListMusic :size="29" /></div>
+            <div class="music-sheet-icon">
+              <SkyIcon :icon="ListMusic" :size="29" />
+            </div>
             <p>{{ phone.t('Apps.music.playlistBody') }}</p>
             <sky-list inset strong>
               <sky-field
@@ -1421,7 +1441,7 @@ onBeforeUnmount(() => {
               :aria-label="phone.t('Common.close')"
               @click="playerOpened = false"
             >
-              <X :size="20" />
+              <SkyIcon :icon="X" :size="20" />
             </sky-link>
             <span>{{ phone.t('Apps.music.nowPlaying') }}</span>
             <div class="music-player-header-actions">
@@ -1431,7 +1451,7 @@ onBeforeUnmount(() => {
                 :aria-label="phone.t('Apps.easyShare.share')"
                 @click="shareTrack(music.currentTrack)"
               >
-                <Share2 :size="20" />
+                <SkyIcon :icon="Share2" :size="20" />
               </sky-link>
               <sky-link
                 component="button"
@@ -1439,7 +1459,7 @@ onBeforeUnmount(() => {
                 :aria-label="phone.t('Apps.music.addToPlaylist')"
                 @click="openCurrentTrackPlaylistPicker"
               >
-                <CirclePlus :size="21" />
+                <SkyIcon :icon="CirclePlus" :size="21" />
               </sky-link>
             </div>
           </header>
@@ -1453,7 +1473,7 @@ onBeforeUnmount(() => {
               :alt="music.currentTrack.title"
               @error="hideBrokenArtwork"
             />
-            <Music2 v-else :size="86" />
+            <SkyIcon :icon="Music2" v-else :size="86" />
           </div>
           <div class="music-player-copy">
             <strong>{{ music.currentTrack.title }}</strong>
@@ -1477,33 +1497,41 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <div class="music-player-controls">
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               :aria-label="phone.t('Apps.music.previous')"
               @click="music.previous"
             >
-              <SkipBack :size="38" fill="currentColor" />
-            </button>
-            <button
+              <SkyIcon :icon="SkipBack" :size="38" fill="currentColor" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               :aria-label="
                 phone.t(music.isPlaying ? 'Common.pause' : 'Apps.music.play')
               "
               @click="music.toggle"
             >
-              <Pause v-if="music.isPlaying" :size="50" fill="currentColor" />
-              <Play v-else :size="50" fill="currentColor" />
-            </button>
-            <button
+              <SkyIcon
+                :icon="Pause"
+                v-if="music.isPlaying"
+                :size="50"
+                fill="currentColor"
+              />
+              <SkyIcon :icon="Play" v-else :size="50" fill="currentColor" />
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               :aria-label="phone.t('Apps.music.next')"
               @click="music.next"
             >
-              <SkipForward :size="38" fill="currentColor" />
-            </button>
+              <SkyIcon :icon="SkipForward" :size="38" fill="currentColor" />
+            </SkyButton>
           </div>
           <div class="music-volume">
-            <Volume1 :size="18" />
+            <SkyIcon :icon="Volume1" :size="18" />
             <sky-range
               :value="Math.round(music.volume * 100)"
               :min="0"
@@ -1511,7 +1539,7 @@ onBeforeUnmount(() => {
               :aria-label="phone.t('Apps.music.volume')"
               @input="updateVolume"
             />
-            <Volume2 :size="20" />
+            <SkyIcon :icon="Volume2" :size="20" />
           </div>
           <p v-if="music.playbackError" class="music-player-error">
             {{ phone.t('Apps.music.errors.playback_failed') }}

@@ -28,7 +28,9 @@ describe('CompaniesApp request card contract', () => {
     expect(requestListSource).toMatch(
       /:subtitle=\x22requestSubtitle\(item\)\x22/,
     )
-    expect(requestListSource).toMatch(/<ClipboardList :size=\x2219\x22/)
+    expect(requestListSource).toMatch(
+      /<SkyIcon :icon="ClipboardList" :size=\x2219\x22/,
+    )
     expect(requestListSource).toMatch(/v-if=\x22item\.unreadCount\x22/)
     expect(requestListSource).toContain('item.unreadCount')
     expect(requestListSource).toMatch(

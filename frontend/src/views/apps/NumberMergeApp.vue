@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
+import { ChevronLeft, RotateCcw, Volume2, VolumeX } from 'lucide-vue-next'
 import {
-  ChevronLeft,
-  RotateCcw,
-  Volume2,
-  VolumeX,
-} from 'lucide-vue-next'
-import { computed, onBeforeUnmount, onMounted, ref, type CSSProperties } from 'vue'
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  type CSSProperties,
+} from 'vue'
 
 import { playNumberMergeSound } from '@/features/games/number-merge/audio'
 import { useNumberMergeStore } from '@/features/games/number-merge/store'
@@ -136,7 +139,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
         <span>{{ phone.t('Apps.numberMerge.eyebrow') }}</span>
         <h1>{{ phone.t('Apps.numberMerge.name') }}</h1>
       </div>
-      <SkyButton glass icon-only rounded
+      <SkyButton
+        glass
+        icon-only
+        rounded
         type="button"
         :aria-label="
           phone.t(
@@ -154,17 +160,30 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
         "
         @click="toggleSound"
       >
-        <Volume2 v-if="numberMerge.soundEnabled" :size="18" aria-hidden="true" />
-        <VolumeX v-else :size="18" aria-hidden="true" />
+        <SkyIcon
+          :icon="Volume2"
+          v-if="numberMerge.soundEnabled"
+          :size="18"
+          aria-hidden="true"
+        />
+        <SkyIcon :icon="VolumeX" v-else :size="18" aria-hidden="true" />
       </SkyButton>
     </header>
 
     <section v-if="numberMerge.menuOpen" class="number-merge-menu">
       <div class="number-merge-hero" aria-hidden="true">
-        <span class="number-merge-hero__tile number-merge-hero__tile--2">2</span>
-        <span class="number-merge-hero__tile number-merge-hero__tile--0">0</span>
-        <span class="number-merge-hero__tile number-merge-hero__tile--4">4</span>
-        <span class="number-merge-hero__tile number-merge-hero__tile--8">8</span>
+        <span class="number-merge-hero__tile number-merge-hero__tile--2"
+          >2</span
+        >
+        <span class="number-merge-hero__tile number-merge-hero__tile--0"
+          >0</span
+        >
+        <span class="number-merge-hero__tile number-merge-hero__tile--4"
+          >4</span
+        >
+        <span class="number-merge-hero__tile number-merge-hero__tile--8"
+          >8</span
+        >
       </div>
 
       <div class="number-merge-menu__intro">
@@ -184,21 +203,23 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
       </div>
 
       <div class="number-merge-menu__actions">
-        <button
+        <SkyButton
+          variant="content"
           v-if="canResume"
           type="button"
           class="number-merge-primary"
           @click="numberMerge.resume"
         >
           {{ phone.t('Apps.numberMerge.continueGame') }}
-        </button>
-        <button
+        </SkyButton>
+        <SkyButton
+          variant="content"
           type="button"
           :class="canResume ? 'number-merge-secondary' : 'number-merge-primary'"
           @click="requestNewGame"
         >
           {{ phone.t('Apps.numberMerge.newGame') }}
-        </button>
+        </SkyButton>
       </div>
 
       <div class="number-merge-how-to">
@@ -211,14 +232,22 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 
     <section v-else-if="game" class="number-merge-game">
       <div class="number-merge-toolbar">
-        <SkyButton glass icon-only rounded
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
           class="number-merge-toolbar__icon"
           :aria-label="phone.t('Apps.numberMerge.backToMenu')"
           :title="phone.t('Apps.numberMerge.backToMenu')"
           @click="numberMerge.showMenu"
         >
-          <ChevronLeft :size="19" :stroke-width="2.7" aria-hidden="true" />
+          <SkyIcon
+            :icon="ChevronLeft"
+            :size="19"
+            :stroke-width="2.7"
+            aria-hidden="true"
+          />
         </SkyButton>
         <div>
           <span>{{ phone.t('Apps.numberMerge.score') }}</span>
@@ -228,14 +257,22 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
           <span>{{ phone.t('Apps.numberMerge.best') }}</span>
           <strong>{{ formatScore(numberMerge.bestScore) }}</strong>
         </div>
-        <SkyButton glass icon-only rounded
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
           class="number-merge-toolbar__icon number-merge-toolbar__restart"
           :aria-label="phone.t('Apps.numberMerge.newGame')"
           :title="phone.t('Apps.numberMerge.newGame')"
           @click="requestNewGame"
         >
-          <RotateCcw :size="17" :stroke-width="2.5" aria-hidden="true" />
+          <SkyIcon
+            :icon="RotateCcw"
+            :size="17"
+            :stroke-width="2.5"
+            aria-hidden="true"
+          />
         </SkyButton>
       </div>
 
@@ -245,7 +282,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
         @touchstart.passive="beginSwipe"
         @touchend.passive="endSwipe"
       >
-        <span v-for="cell in 16" :key="`cell-${cell}`" class="number-merge-cell"></span>
+        <span
+          v-for="cell in 16"
+          :key="`cell-${cell}`"
+          class="number-merge-cell"
+        ></span>
         <span
           v-for="tile in game.tiles"
           :key="tile.id"
@@ -282,15 +323,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
               )
             }}
           </p>
-          <button
+          <SkyButton
+            variant="content"
             v-if="game.status === 'won'"
             type="button"
             class="number-merge-primary"
             @click="numberMerge.continueAfterWin"
           >
             {{ phone.t('Apps.numberMerge.keepPlaying') }}
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="
               game.status === 'won'
@@ -300,26 +343,48 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
             @click="requestNewGame"
           >
             {{ phone.t('Apps.numberMerge.newGame') }}
-          </button>
-          <button type="button" class="number-merge-link" @click="numberMerge.showMenu">
+          </SkyButton>
+          <SkyButton
+            variant="content"
+            type="button"
+            class="number-merge-link"
+            @click="numberMerge.showMenu"
+          >
             {{ phone.t('Apps.numberMerge.mainMenu') }}
-          </button>
+          </SkyButton>
         </div>
       </div>
 
-      <p class="number-merge-hint">{{ phone.t('Apps.numberMerge.swipeHint') }}</p>
+      <p class="number-merge-hint">
+        {{ phone.t('Apps.numberMerge.swipeHint') }}
+      </p>
     </section>
 
-    <div v-if="confirmNewGame" class="number-merge-confirm" role="dialog" aria-modal="true">
+    <div
+      v-if="confirmNewGame"
+      class="number-merge-confirm"
+      role="dialog"
+      aria-modal="true"
+    >
       <div>
         <h2>{{ phone.t('Apps.numberMerge.confirmTitle') }}</h2>
         <p>{{ phone.t('Apps.numberMerge.confirmBody') }}</p>
-        <button type="button" class="number-merge-danger" @click="startNewGame">
+        <SkyButton
+          variant="content"
+          type="button"
+          class="number-merge-danger"
+          @click="startNewGame"
+        >
           {{ phone.t('Apps.numberMerge.confirmNew') }}
-        </button>
-        <button type="button" class="number-merge-secondary" @click="confirmNewGame = false">
+        </SkyButton>
+        <SkyButton
+          variant="content"
+          type="button"
+          class="number-merge-secondary"
+          @click="confirmNewGame = false"
+        >
           {{ phone.t('Apps.numberMerge.cancel') }}
-        </button>
+        </SkyButton>
       </div>
     </div>
   </main>
@@ -383,14 +448,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   padding: 0;
   border: 1px solid rgb(109 66 52 / 9%);
   border-radius: 12px;
-  color: #784c3c;
+  color: var(--sky-button-text, #ffffff);
   background: rgb(255 255 255 / 46%);
   box-shadow: 0 4px 10px rgb(95 48 31 / 8%);
   cursor: pointer;
 }
 
-.number-merge-header .sky-button--glass { color: var(--sky-text); }
-.number-merge-toolbar .sky-button--glass { --sky-touch-target: 32px; width: 32px; height: 32px; color: var(--sky-text); }
+.number-merge-header .sky-button--glass {
+  color: var(--sky-button-text, #ffffff);
+}
+.number-merge-toolbar .sky-button--glass {
+  --sky-touch-target: 32px;
+  width: 32px;
+  height: 32px;
+  color: var(--sky-text);
+}
 
 .number-merge-menu {
   height: calc(100% - 55px);
@@ -426,17 +498,45 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   border-radius: 18px;
   font-size: 35px;
   font-weight: 900;
-  box-shadow: inset 0 2px 0 rgb(255 255 255 / 25%), 0 5px 8px rgb(54 24 18 / 17%);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 25%),
+    0 5px 8px rgb(54 24 18 / 17%);
 }
 
-.number-merge-hero__tile--2 { color: #765044; background: #f7e1bc; }
-.number-merge-hero__tile--0 { color: #fff7e4; background: #eea62e; }
-.number-merge-hero__tile--4 { color: #fff7e4; background: #e96c2c; }
-.number-merge-hero__tile--8 { color: #fff7e4; background: #713c31; }
+.number-merge-hero__tile--2 {
+  color: #765044;
+  background: #f7e1bc;
+}
+.number-merge-hero__tile--0 {
+  color: #fff7e4;
+  background: #eea62e;
+}
+.number-merge-hero__tile--4 {
+  color: #fff7e4;
+  background: #e96c2c;
+}
+.number-merge-hero__tile--8 {
+  color: #fff7e4;
+  background: #713c31;
+}
 
-.number-merge-menu__intro { width: 100%; }
-.number-merge-menu__intro h2 { margin: 0; font-size: 25px; letter-spacing: -0.5px; overflow-wrap: anywhere; }
-.number-merge-menu__intro p { max-width: 300px; margin: 6px auto 0; color: #8b675b; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.number-merge-menu__intro {
+  width: 100%;
+}
+.number-merge-menu__intro h2 {
+  margin: 0;
+  font-size: 25px;
+  letter-spacing: -0.5px;
+  overflow-wrap: anywhere;
+}
+.number-merge-menu__intro p {
+  max-width: 300px;
+  margin: 6px auto 0;
+  color: #8b675b;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
 
 .number-merge-records {
   width: 100%;
@@ -464,9 +564,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   overflow-wrap: anywhere;
 }
 
-.number-merge-records strong { min-width: 0; overflow-wrap: anywhere; font-size: 20px; }
+.number-merge-records strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+}
 
-.number-merge-menu__actions { width: 100%; display: grid; gap: 7px; }
+.number-merge-menu__actions {
+  width: 100%;
+  display: grid;
+  gap: 7px;
+}
 
 .number-merge-primary,
 .number-merge-secondary,
@@ -503,8 +611,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   background: rgb(255 255 255 / 28%);
 }
 
-.number-merge-how-to strong { font-size: 13px; text-transform: uppercase; overflow-wrap: anywhere; }
-.number-merge-how-to p { margin: 5px 0 0; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.number-merge-how-to strong {
+  font-size: 13px;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.number-merge-how-to p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
 .number-merge-how-to div {
   margin: 7px 0 4px;
   color: #a7472d;
@@ -512,7 +629,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   font-weight: 900;
   letter-spacing: -0.2px;
 }
-.number-merge-how-to small { display: block; color: #8b6559; font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
+.number-merge-how-to small {
+  display: block;
+  color: #8b6559;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 
 .number-merge-game {
   position: absolute;
@@ -551,9 +674,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   justify-items: center;
 }
 
-.number-merge-toolbar span { line-height: 10px; }
-.number-merge-toolbar strong { display: block; max-width: 80px; overflow: hidden; font-size: 18px; line-height: 20px; text-overflow: ellipsis; }
-.number-merge-toolbar__restart { justify-self: end; }
+.number-merge-toolbar span {
+  line-height: 10px;
+}
+.number-merge-toolbar strong {
+  display: block;
+  max-width: 80px;
+  overflow: hidden;
+  font-size: 18px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+}
+.number-merge-toolbar__restart {
+  justify-self: end;
+}
 
 .number-merge-toolbar .number-merge-toolbar__icon {
   width: 32px;
@@ -579,7 +713,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   border: 0;
   border-radius: 21px;
   background: #80564c;
-  box-shadow: inset 0 2px 2px rgb(255 255 255 / 10%), 0 14px 28px rgb(101 52 38 / 15%);
+  box-shadow:
+    inset 0 2px 2px rgb(255 255 255 / 10%),
+    0 14px 28px rgb(101 52 38 / 15%);
   transform: translateY(-47%);
 }
 
@@ -613,36 +749,93 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   border-radius: 13px;
   color: #725044;
   background: #f5dfbc;
-  box-shadow: inset 0 2px 0 rgb(255 255 255 / 30%), 0 4px 7px rgb(47 20 15 / 18%);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 30%),
+    0 4px 7px rgb(47 20 15 / 18%);
   font-size: 25px;
   font-weight: 900;
   letter-spacing: -1px;
 }
 
-.number-merge-tile--4 strong { background: #f4ce91; }
-.number-merge-tile--8 strong { color: #fff9eb; background: #ee9c4a; }
-.number-merge-tile--16 strong { color: #fff9eb; background: #ec7e38; }
-.number-merge-tile--32 strong { color: #fff9eb; background: #e96335; }
-.number-merge-tile--64 strong { color: #fff9eb; background: #d94b2e; }
-.number-merge-tile--128 strong { color: #fff9e6; background: #d5a333; font-size: 21px; }
-.number-merge-tile--256 strong { color: #fff9e6; background: #c98d29; font-size: 21px; }
-.number-merge-tile--512 strong { color: #fff9e6; background: #b97624; font-size: 21px; }
-.number-merge-tile--1024 strong { color: #fff; background: #8f4935; font-size: 17px; }
-.number-merge-tile--2048 strong { color: #fff; background: #642f3a; font-size: 17px; box-shadow: 0 0 17px rgb(255 191 69 / 55%); }
-.number-merge-tile--super strong { color: #fff; background: #3e2634; font-size: 14px; }
+.number-merge-tile--4 strong {
+  background: #f4ce91;
+}
+.number-merge-tile--8 strong {
+  color: #fff9eb;
+  background: #ee9c4a;
+}
+.number-merge-tile--16 strong {
+  color: #fff9eb;
+  background: #ec7e38;
+}
+.number-merge-tile--32 strong {
+  color: #fff9eb;
+  background: #e96335;
+}
+.number-merge-tile--64 strong {
+  color: #fff9eb;
+  background: #d94b2e;
+}
+.number-merge-tile--128 strong {
+  color: #fff9e6;
+  background: #d5a333;
+  font-size: 21px;
+}
+.number-merge-tile--256 strong {
+  color: #fff9e6;
+  background: #c98d29;
+  font-size: 21px;
+}
+.number-merge-tile--512 strong {
+  color: #fff9e6;
+  background: #b97624;
+  font-size: 21px;
+}
+.number-merge-tile--1024 strong {
+  color: #fff;
+  background: #8f4935;
+  font-size: 17px;
+}
+.number-merge-tile--2048 strong {
+  color: #fff;
+  background: #642f3a;
+  font-size: 17px;
+  box-shadow: 0 0 17px rgb(255 191 69 / 55%);
+}
+.number-merge-tile--super strong {
+  color: #fff;
+  background: #3e2634;
+  font-size: 14px;
+}
 
-.number-merge-tile--new strong { animation: number-merge-spawn 210ms cubic-bezier(0.2, 0.9, 0.3, 1.35); }
-.number-merge-tile--merged strong { animation: number-merge-pop 250ms cubic-bezier(0.2, 0.9, 0.3, 1.35); }
+.number-merge-tile--new strong {
+  animation: number-merge-spawn 210ms cubic-bezier(0.2, 0.9, 0.3, 1.35);
+}
+.number-merge-tile--merged strong {
+  animation: number-merge-pop 250ms cubic-bezier(0.2, 0.9, 0.3, 1.35);
+}
 
 @keyframes number-merge-spawn {
-  0% { opacity: 0; transform: scale(0.35); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes number-merge-pop {
-  0% { transform: scale(1); }
-  48% { transform: scale(1.16); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  48% {
+    transform: scale(1.16);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .number-merge-overlay {
@@ -663,12 +856,35 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   overflow-y: auto;
 }
 
-.number-merge-overlay > span { margin-top: auto; color: #ffc75b; font-size: 29px; font-weight: 900; }
-.number-merge-overlay h2 { margin: 0; font-size: 25px; overflow-wrap: anywhere; }
-.number-merge-overlay p { margin: -3px 0 4px; color: #e7cabd; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
-.number-merge-overlay button { min-width: min(160px, 100%); }
-.number-merge-overlay .number-merge-link { margin-bottom: auto; }
-.number-merge-overlay .number-merge-secondary { color: #fff1df; background: rgb(255 255 255 / 8%); border-color: rgb(255 255 255 / 13%); }
+.number-merge-overlay > span {
+  margin-top: auto;
+  color: #ffc75b;
+  font-size: 29px;
+  font-weight: 900;
+}
+.number-merge-overlay h2 {
+  margin: 0;
+  font-size: 25px;
+  overflow-wrap: anywhere;
+}
+.number-merge-overlay p {
+  margin: -3px 0 4px;
+  color: #e7cabd;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.number-merge-overlay button {
+  min-width: min(160px, 100%);
+}
+.number-merge-overlay .number-merge-link {
+  margin-bottom: auto;
+}
+.number-merge-overlay .number-merge-secondary {
+  color: #fff1df;
+  background: rgb(255 255 255 / 8%);
+  border-color: rgb(255 255 255 / 13%);
+}
 
 .number-merge-link {
   min-height: 28px;
@@ -723,15 +939,35 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
   text-align: center;
 }
 
-.number-merge-confirm h2 { margin: 0; font-size: 21px; overflow-wrap: anywhere; }
-.number-merge-confirm p { margin: 0 0 5px; color: #876359; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
-.number-merge-danger { border: 0; color: #fff; background: #b64f39; }
+.number-merge-confirm h2 {
+  margin: 0;
+  font-size: 21px;
+  overflow-wrap: anywhere;
+}
+.number-merge-confirm p {
+  margin: 0 0 5px;
+  color: #876359;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.number-merge-danger {
+  border: 0;
+  color: #fff;
+  background: #b64f39;
+}
 
-button:active { transform: scale(0.97); }
+button:active {
+  transform: scale(0.97);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .number-merge-tile { transition-duration: 1ms; }
+  .number-merge-tile {
+    transition-duration: 1ms;
+  }
   .number-merge-tile--new strong,
-  .number-merge-tile--merged strong { animation: none; }
+  .number-merge-tile--merged strong {
+    animation: none;
+  }
 }
 </style>

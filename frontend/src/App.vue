@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { SkyApp, SkyButton } from '@/ui'
+
 import { cellular, type CellularState } from '@/utils/cellular'
-import { kApp } from 'konsta/vue'
+
 import {
   computed,
   defineAsyncComponent,
@@ -406,6 +408,10 @@ const appTransitionName = computed(() =>
   route.query.transition === 'app-switch' ? 'app-switch' : 'app-window',
 )
 const isLocked = ref(false)
+const notificationCenterOpened = ref(false)
+const deviceLocked = computed(
+  () => isLocked.value && !notificationCenterOpened.value,
+)
 const adminPanelOpen = ref(
   isDevelopment && developmentParameters.has('adminPanel'),
 )
@@ -520,6 +526,7 @@ const phoneStageStyle = computed<CSSProperties>(() => ({
   visibility: activitySuspended.value ? 'hidden' : 'visible',
 }))
 const phoneDisplayStyle = computed<CSSProperties>(() => ({
+  '--sky-user-glass-blur': `${phone.preferences.settings.glassBlur}px`,
   '--phone-display-dim': String(
     ((100 - phone.preferences.settings.screenBrightness) / 100) * 0.8,
   ),
@@ -1513,6 +1520,7 @@ function finishUnlock(): void {
   if (!isLocked.value) return
   isUnlocking.value = true
   isLocked.value = false
+  notificationCenterOpened.value = false
   passcodeVisible.value = false
   passcodeRequired.value = false
   passcodeError.value = ''
@@ -1648,7 +1656,9 @@ function toggleControlCenter(): void {
 }
 
 function lockPhone(): void {
-  if (!phone.isOpen || isLocked.value) return
+  if (!phone.isOpen || (isLocked.value && !notificationCenterOpened.value))
+    return
+  notificationCenterOpened.value = false
   controlCenterOpened.value = false
   isUnlocking.value = false
   passcodeVisible.value = false
@@ -1656,6 +1666,14 @@ function lockPhone(): void {
   passcodeError.value = ''
   passcodeRequired.value = phone.security.enabled
   pendingUnlockRoute.value = null
+  isLocked.value = true
+}
+
+function openNotificationCenter(): void {
+  if (!phone.isOpen || isLocked.value || setupRequired.value) return
+  controlCenterOpened.value = false
+  notificationCenterOpened.value = true
+  passcodeRequired.value = false
   isLocked.value = true
 }
 
@@ -1672,7 +1690,7 @@ function showHardwareVolumeHud(): void {
 
 function toggleHardwareLock(): void {
   if (setupRequired.value) return
-  if (isLocked.value) {
+  if (isLocked.value && !notificationCenterOpened.value) {
     unlockPhone()
     return
   }
@@ -1897,6 +1915,7 @@ watch(
     faceIdBusy.value = false
     if (unlockTimer !== undefined) window.clearTimeout(unlockTimer)
     if (!isOpen) {
+      notificationCenterOpened.value = false
       updateTextInputFocus(false)
       cancelUnlockedPhoneDataLoad()
       skypic.resetSession()
@@ -1923,6 +1942,7 @@ watch(
       }
       return
     }
+    notificationCenterOpened.value = false
     isLocked.value =
       developmentLockScreenPreview || (!isDevelopment && phone.security.enabled)
     passcodeRequired.value = isLocked.value && phone.security.enabled
@@ -2079,7 +2099,8 @@ onBeforeUnmount(() => {
               }"
               :aria-label="phone.t('Common.phone')"
             >
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="phone-hardware-button phone-hardware-button--action"
                 :aria-label="
@@ -2092,34 +2113,37 @@ onBeforeUnmount(() => {
                 :aria-pressed="hardwareAlertVolume === 0"
                 :disabled="setupRequired"
                 @click="toggleHardwareAlertMute"
-              ></button>
-              <button
+              ></SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 class="phone-hardware-button phone-hardware-button--volume-up"
                 :aria-label="phone.t('HardwareButtons.volumeUp')"
                 :disabled="setupRequired"
                 @click="changeHardwareAlertVolume(10)"
-              ></button>
-              <button
+              ></SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 class="phone-hardware-button phone-hardware-button--volume-down"
                 :aria-label="phone.t('HardwareButtons.volumeDown')"
                 :disabled="setupRequired"
                 @click="changeHardwareAlertVolume(-10)"
-              ></button>
-              <button
+              ></SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 class="phone-hardware-button phone-hardware-button--power"
                 :aria-label="
                   phone.t(
-                    isLocked
+                    deviceLocked
                       ? 'HardwareButtons.unlock'
                       : 'HardwareButtons.lock',
                   )
                 "
                 :disabled="setupRequired"
                 @click="toggleHardwareLock"
-              ></button>
+              ></SkyButton>
               <div
                 class="phone-screen"
                 :class="{
@@ -2161,9 +2185,11 @@ onBeforeUnmount(() => {
                     ></span>
                   </div>
                 </Transition>
-                <k-app
-                  theme="ios"
+                <SkyApp
                   :dark="displayedDarkMode"
+                  :glass-effects="
+                    phone.preferences.settings.graphicsMode === 'ultimate'
+                  "
                   safe-areas
                   class="phone-app"
                   :style="phoneDisplayStyle"
@@ -2200,7 +2226,7 @@ onBeforeUnmount(() => {
                     :interactive="!setupRequired && !isLocked"
                     :lockable="!setupRequired && !isLocked"
                     @control-center="toggleControlCenter"
-                    @lock="lockPhone"
+                    @lock="openNotificationCenter"
                   />
                   <SpringboardView
                     v-if="!isDevelopmentRoute && !setupRequired"
@@ -2237,6 +2263,7 @@ onBeforeUnmount(() => {
                     <PhoneLockScreen
                       v-if="isLocked && !lockedCallVisible && !setupRequired"
                       :notifications="notifications.lockScreenNotifications"
+                      :locked="deviceLocked"
                       @camera="unlockCamera"
                       @clear-notifications="notifications.clearLockScreen"
                       @dismiss-notification="
@@ -2292,12 +2319,13 @@ onBeforeUnmount(() => {
                   />
                   <PhoneNotifications
                     :notification="notifications.current"
+                    :locked="deviceLocked || !phone.isOpen"
                     @close="notifications.dismissCurrent()"
                     @open="openNotificationPreview"
                   />
                   <EasyShareSheet />
                   <div class="phone-display-dimmer" aria-hidden="true"></div>
-                </k-app>
+                </SkyApp>
               </div>
               <img
                 class="phone-device__frame"

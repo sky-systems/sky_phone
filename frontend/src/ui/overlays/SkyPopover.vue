@@ -45,6 +45,7 @@ const props = withDefaults(
     backdrop?: boolean
     component?: 'div' | 'section'
     modal?: boolean
+    motion?: 'fade' | 'spring'
     offset?: number
     opened: boolean
     placement?: PopoverPlacement
@@ -63,6 +64,7 @@ const props = withDefaults(
     backdrop: true,
     component: 'div',
     modal: true,
+    motion: 'spring',
     offset: 10,
     placement: 'auto',
     role: 'dialog',
@@ -503,8 +505,12 @@ onBeforeUnmount(detachListeners)
 
 <template>
   <Transition
-    name="sky-popover-scale"
-    :duration="{ enter: 600, leave: 600 }"
+    :name="motion === 'fade' ? 'sky-popover-fade' : 'sky-popover-scale'"
+    :duration="
+      motion === 'fade'
+        ? { enter: 160, leave: 160 }
+        : { enter: 600, leave: 600 }
+    "
     appear
   >
     <div

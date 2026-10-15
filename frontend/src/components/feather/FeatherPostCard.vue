@@ -91,25 +91,28 @@ onBeforeUnmount(() => {
 <template>
   <SkyGlass :highlight="false" class="feather-post-glass">
     <article class="feather-post" @click="$emit('open', post)">
-      <button
+      <SkyButton
+        variant="content"
         class="feather-avatar"
         type="button"
         @click.stop="$emit('profile', post.profile_id)"
       >
         <img v-if="post.avatar_url" :src="post.avatar_url" alt="" />
-        <UserRound v-else :size="21" />
-      </button>
+        <SkyIcon :icon="UserRound" v-else :size="21" />
+      </SkyButton>
 
       <div class="feather-post__body">
         <header class="feather-post__header">
-          <button
+          <SkyButton
+            variant="content"
             class="feather-post__author"
             type="button"
             @click.stop="$emit('profile', post.profile_id)"
           >
             <span class="feather-post__name">
               <strong>{{ post.display_name }}</strong>
-              <CheckCircle2
+              <SkyIcon
+                :icon="CheckCircle2"
                 v-if="post.verified"
                 :size="13"
                 class="feather-verified"
@@ -119,7 +122,7 @@ onBeforeUnmount(() => {
             <span class="feather-post__meta">
               @{{ post.handle }} · {{ relativeTime(post.created_at) }}
             </span>
-          </button>
+          </SkyButton>
           <SkyButton
             v-if="!post.is_owner && !post.is_following"
             outline
@@ -140,7 +143,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.feather.moreActions')"
             @click.stop="$emit('menu', post)"
           >
-            <SkyIcon><MoreHorizontal :size="18" /></SkyIcon>
+            <SkyIcon><SkyIcon :icon="MoreHorizontal" :size="18" /></SkyIcon>
           </SkyButton>
         </header>
 
@@ -149,21 +152,23 @@ onBeforeUnmount(() => {
             leadingMention
           }}</span
           >{{ visibleBodyAfterMention }}
-          <button
+          <SkyButton
+            variant="content"
             v-if="shouldTruncate && !expanded"
             type="button"
             class="feather-post__more-text"
             @click.stop="expanded = true"
           >
             {{ phone.t('Apps.feather.showMore') }}
-          </button>
+          </SkyButton>
         </p>
         <div
           v-if="post.media.length"
           class="feather-media"
           :class="`feather-media--${Math.min(post.media.length, 4)}`"
         >
-          <button
+          <SkyButton
+            variant="content"
             v-for="(item, index) in post.media"
             :key="item.id"
             type="button"
@@ -176,15 +181,20 @@ onBeforeUnmount(() => {
             @click.stop="$emit('media', post, index)"
           >
             <img :src="item.url" alt="" />
-          </button>
+          </SkyButton>
         </div>
 
         <footer class="feather-actions">
-          <button type="button" @click.stop="$emit('reply', post)">
-            <MessageCircle :size="17" />
+          <SkyButton
+            variant="content"
+            type="button"
+            @click.stop="$emit('reply', post)"
+          >
+            <SkyIcon :icon="MessageCircle" :size="17" />
             <span v-if="post.reply_count">{{ post.reply_count }}</span>
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             class="feather-action feather-action--like"
             :class="{
@@ -193,10 +203,15 @@ onBeforeUnmount(() => {
             }"
             @click.stop="react('like')"
           >
-            <Heart :size="17" :fill="post.is_liked ? 'currentColor' : 'none'" />
+            <SkyIcon
+              :icon="Heart"
+              :size="17"
+              :fill="post.is_liked ? 'currentColor' : 'none'"
+            />
             <span v-if="post.like_count">{{ post.like_count }}</span>
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             class="feather-action feather-action--bookmark"
             :class="{
@@ -205,14 +220,19 @@ onBeforeUnmount(() => {
             }"
             @click.stop="react('bookmark')"
           >
-            <Bookmark
+            <SkyIcon
+              :icon="Bookmark"
               :size="17"
               :fill="post.is_bookmarked ? 'currentColor' : 'none'"
             />
-          </button>
-          <button type="button" @click.stop="$emit('share', post)">
-            <Share2 :size="17" />
-          </button>
+          </SkyButton>
+          <SkyButton
+            variant="content"
+            type="button"
+            @click.stop="$emit('share', post)"
+          >
+            <SkyIcon :icon="Share2" :size="17" />
+          </SkyButton>
         </footer>
       </div>
     </article>
@@ -332,6 +352,7 @@ onBeforeUnmount(() => {
   letter-spacing: 0.1px;
 }
 .feather-more {
+  --sky-button-text: #71767b;
   --sky-app-accent: #71767b;
   --sky-app-accent-soft: color-mix(in srgb, currentColor 10%, transparent);
   flex: 0 0 auto;
@@ -342,7 +363,7 @@ onBeforeUnmount(() => {
   min-height: 27px;
   border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
   padding: 0;
-  color: #71767b;
+  color: var(--sky-button-text, #ffffff);
   background: color-mix(in srgb, currentColor 7%, transparent);
 }
 .feather-post__text {

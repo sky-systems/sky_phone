@@ -45,12 +45,12 @@ describe('VaultX crypto app contracts', () => {
   })
 
   it('shows distinct icons in every primary navigation item', () => {
-    expect(source).toContain('<WalletCards')
-    expect(source).toContain('<ChartNoAxesCombined')
-    expect(source).toContain('<History')
-    expect(source).toContain('<UserRound')
+    expect(source).toContain('<SkyIcon :icon="WalletCards"')
+    expect(source).toContain('<SkyIcon :icon="ChartNoAxesCombined"')
+    expect(source).toContain('<SkyIcon :icon="History"')
+    expect(source).toContain('<SkyIcon :icon="UserRound"')
     expect(source).toMatch(
-      /\.sky-pill-navigation \.sky-segmented-button--active\)\s*\{\s*color:\s*var\(--sky-text\);/,
+      /\.sky-pill-navigation \.sky-segmented-button--active\)\s*\{\s*color:\s*var\(--sky-button-text, #ffffff\);/,
     )
   })
 
@@ -298,7 +298,7 @@ describe('VaultX crypto app contracts', () => {
     expect(source).toContain('class="activity-filters"')
     expect(source).toContain('class="activity-status__icon"')
     expect(source.match(/class="activity-filter-content"/g)).toHaveLength(3)
-    expect(source).toContain('<WalletCards :size="15" />')
+    expect(source).toContain('<SkyIcon :icon="WalletCards" :size="15" />')
     expect(source).not.toContain('inset-inline-start: 10px;')
     expect(source).toContain('transform: translateY(1px);')
   })

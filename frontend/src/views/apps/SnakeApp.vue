@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { ChevronLeft, Pause, Play } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 
@@ -222,7 +224,8 @@ onBeforeUnmount(() => {
       </div>
       <fieldset class="snake-speed-picker">
         <legend>{{ phone.t('Apps.snake.speed') }}</legend>
-        <button
+        <SkyButton
+          variant="content"
           v-for="speed in speedOptions"
           :key="speed"
           type="button"
@@ -230,12 +233,17 @@ onBeforeUnmount(() => {
           @click="snake.setSpeed(speed)"
         >
           {{ phone.t(`Apps.snake.speeds.${speed}`) }}
-        </button>
+        </SkyButton>
       </fieldset>
-      <button type="button" class="snake-primary" @click="startGame">
-        <Play :size="18" fill="currentColor" />
+      <SkyButton
+        variant="content"
+        type="button"
+        class="snake-primary"
+        @click="startGame"
+      >
+        <SkyIcon :icon="Play" :size="18" fill="currentColor" />
         {{ phone.t('Apps.snake.start') }}
-      </button>
+      </SkyButton>
     </section>
 
     <section v-else class="snake-game">
@@ -250,7 +258,12 @@ onBeforeUnmount(() => {
           :title="phone.t('Apps.snake.backToMenu')"
           @click="returnToMenu"
         >
-          <ChevronLeft :size="18" :stroke-width="2.7" aria-hidden="true" />
+          <SkyIcon
+            :icon="ChevronLeft"
+            :size="18"
+            :stroke-width="2.7"
+            aria-hidden="true"
+          />
         </SkyButton>
         <div>
           <span>{{ phone.t('Apps.snake.score') }}</span>
@@ -285,12 +298,13 @@ onBeforeUnmount(() => {
           "
           @click="game.status === 'paused' ? snake.resume() : snake.pause()"
         >
-          <Play
+          <SkyIcon
+            :icon="Play"
             v-if="game.status === 'paused'"
             :size="18"
             fill="currentColor"
           />
-          <Pause v-else :size="18" fill="currentColor" />
+          <SkyIcon :icon="Pause" v-else :size="18" fill="currentColor" />
         </SkyButton>
       </div>
 
@@ -350,22 +364,37 @@ onBeforeUnmount(() => {
         <div v-if="game.status !== 'playing'" class="snake-overlay">
           <template v-if="game.status === 'paused'">
             <h2>{{ phone.t('Apps.snake.paused') }}</h2>
-            <button type="button" class="snake-primary" @click="snake.resume">
-              <Play :size="17" fill="currentColor" />
+            <SkyButton
+              variant="content"
+              type="button"
+              class="snake-primary"
+              @click="snake.resume"
+            >
+              <SkyIcon :icon="Play" :size="17" fill="currentColor" />
               {{ phone.t('Apps.snake.resume') }}
-            </button>
+            </SkyButton>
           </template>
           <template v-else>
             <span class="snake-overline"
               >{{ phone.t('Apps.snake.score') }} {{ game.score }}</span
             >
             <h2>{{ phone.t('Apps.snake.gameOver') }}</h2>
-            <button type="button" class="snake-primary" @click="startGame">
+            <SkyButton
+              variant="content"
+              type="button"
+              class="snake-primary"
+              @click="startGame"
+            >
               {{ phone.t('Apps.snake.restart') }}
-            </button>
-            <button type="button" class="snake-secondary" @click="returnToMenu">
+            </SkyButton>
+            <SkyButton
+              variant="content"
+              type="button"
+              class="snake-secondary"
+              @click="returnToMenu"
+            >
               {{ phone.t('Apps.snake.menu') }}
-            </button>
+            </SkyButton>
           </template>
         </div>
       </div>
@@ -619,7 +648,7 @@ onBeforeUnmount(() => {
   height: 32px;
   display: grid;
   place-items: center;
-  color: #dff6d9;
+  color: var(--sky-button-text, #ffffff);
 }
 
 .snake-game__meta .snake-game__pause {

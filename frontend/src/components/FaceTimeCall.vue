@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { computed, ref } from 'vue'
 import {
   Camera,
@@ -67,7 +69,7 @@ const initials = computed(() =>
     <div v-if="!mainStream" class="facetime-call__waiting" role="status">
       <SkyGlass class="facetime-call__portrait">
         <img v-if="avatar" :src="avatar" alt="" />
-        <UserRound v-else :size="56" />
+        <SkyIcon :icon="UserRound" v-else :size="56" />
       </SkyGlass>
       <p>{{ phone.t('Realtime.connecting') }}</p>
     </div>
@@ -75,14 +77,18 @@ const initials = computed(() =>
       <header class="facetime-call__identity">
         <span class="facetime-call__avatar">
           <img v-if="avatar" :src="avatar" alt="" />
-          <UserRound v-else-if="/^[\d\s]+$/.test(name)" :size="24" /><span
-            v-else
-            >{{ initials }}</span
-          >
+          <SkyIcon
+            :icon="UserRound"
+            v-else-if="/^[\d\s]+$/.test(name)"
+            :size="24"
+          /><span v-else>{{ initials }}</span>
         </span>
         <div class="facetime-call__contact">
           <h1>{{ name }}</h1>
-          <p><Video :size="14" /> {{ phone.t('Realtime.faceTimeVideo') }}</p>
+          <p>
+            <SkyIcon :icon="Video" :size="14" />
+            {{ phone.t('Realtime.faceTimeVideo') }}
+          </p>
         </div>
         <SkyButton
           rounded
@@ -91,7 +97,9 @@ const initials = computed(() =>
           :aria-label="phone.t('Apps.phone.hangup')"
           @click="emit('hangup')"
         >
-          <PhoneOff :size="18" /><span>{{ phone.t('Apps.phone.hangup') }}</span>
+          <SkyIcon :icon="PhoneOff" :size="18" /><span>{{
+            phone.t('Apps.phone.hangup')
+          }}</span>
         </SkyButton>
       </header>
       <div class="facetime-call__controls">
@@ -106,7 +114,8 @@ const initials = computed(() =>
           "
           @click="locked ? emit('unlock') : emit('message')"
         >
-          <LockKeyhole v-if="locked" :size="22" /><MessageCircle
+          <SkyIcon :icon="LockKeyhole" v-if="locked" :size="22" /><SkyIcon
+            :icon="MessageCircle"
             v-else
             :size="22"
           />
@@ -125,7 +134,7 @@ const initials = computed(() =>
           "
           @click="emit('speaker')"
         >
-          <Volume2 :size="23" />
+          <SkyIcon :icon="Volume2" :size="23" />
         </SkyButton>
         <SkyButton
           glass
@@ -145,10 +154,11 @@ const initials = computed(() =>
           "
           @click="emit('mute')"
         >
-          <MicOff v-if="calls.activeCall?.muted" :size="23" /><Mic
-            v-else
+          <SkyIcon
+            :icon="MicOff"
+            v-if="calls.activeCall?.muted"
             :size="23"
-          />
+          /><SkyIcon :icon="Mic" v-else :size="23" />
         </SkyButton>
         <SkyButton
           glass
@@ -157,7 +167,7 @@ const initials = computed(() =>
           :aria-label="phone.t('Realtime.endVideo')"
           :disabled="videoPending"
           @click="emit('endVideo')"
-          ><VideoOff :size="23"
+          ><SkyIcon :icon="VideoOff" :size="23"
         /></SkyButton>
         <SkyButton
           glass
@@ -167,7 +177,7 @@ const initials = computed(() =>
           :aria-pressed="swapped"
           :disabled="!remote || !realtime.localStream"
           @click="swapped = !swapped"
-          ><PictureInPicture2 :size="23"
+          ><SkyIcon :icon="PictureInPicture2" :size="23"
         /></SkyButton>
       </div>
       <p class="facetime-call__duration"><span></span>{{ status }}</p>
@@ -180,7 +190,8 @@ const initials = computed(() =>
       :aria-label="phone.t('Realtime.yourCamera')"
     >
       <RealtimeVideo :stream="smallStream" muted />
-      <VideoOff
+      <SkyIcon
+        :icon="VideoOff"
         v-if="!smallStream"
         class="facetime-call__no-camera"
         :size="24"
@@ -193,7 +204,7 @@ const initials = computed(() =>
         :aria-label="phone.t('Realtime.flip')"
         :disabled="!realtime.localStream"
         @click="realtime.flip"
-        ><Camera :size="20"
+        ><SkyIcon :icon="Camera" :size="20"
       /></SkyButton>
     </SkyGlass>
   </section>
@@ -299,11 +310,11 @@ const initials = computed(() =>
 }
 .facetime-call__controls .sky-button {
   flex-shrink: 0;
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 .facetime-call__controls .sky-button[aria-pressed='true'] {
   background: var(--sky-text);
-  color: var(--sky-bg);
+  color: var(--sky-button-text, #ffffff);
 }
 .facetime-call__duration {
   display: flex;
@@ -350,7 +361,7 @@ const initials = computed(() =>
   position: absolute;
   right: var(--sky-space-1);
   bottom: var(--sky-space-1);
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 .facetime-call__no-camera {
   position: absolute;

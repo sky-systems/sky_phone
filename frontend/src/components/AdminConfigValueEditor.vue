@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import {
   ChevronDown,
   Plus,
@@ -622,20 +624,25 @@ function mapEntryStructure(
   >
     <header class="config-structured-editor__bar">
       <span
-        ><Rows3 :size="14" style="--admin-icon-size: 14" />{{
+        ><SkyIcon :icon="Rows3" :size="14" style="--admin-icon-size: 14" />{{
           labels.list
         }}</span
       >
       <div class="config-structured-editor__actions">
-        <button
+        <SkyButton
+          variant="content"
           v-if="!listValue.length && !structure"
           type="button"
           :disabled="disabled"
           :title="labels.convertToTable"
           @click="emit('update:modelValue', {})"
         >
-          <TableProperties :size="13" style="--admin-icon-size: 13" />
-        </button>
+          <SkyIcon
+            :icon="TableProperties"
+            :size="13"
+            style="--admin-icon-size: 13"
+          />
+        </SkyButton>
       </div>
     </header>
 
@@ -653,7 +660,8 @@ function mapEntryStructure(
         }"
       >
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
-        <button
+        <SkyButton
+          variant="content"
           v-if="isStructuredValue(row, listItemStructure(index))"
           type="button"
           class="config-structured-editor__section-toggle"
@@ -674,8 +682,12 @@ function mapEntryStructure(
             </small>
           </span>
           <em>{{ structuredValueLabel(row, listItemStructure(index)) }}</em>
-          <ChevronDown :size="14" style="--admin-icon-size: 14" />
-        </button>
+          <SkyIcon
+            :icon="ChevronDown"
+            :size="14"
+            style="--admin-icon-size: 14"
+          />
+        </SkyButton>
         <span v-else class="config-structured-editor__field-copy is-list-entry">
           <strong>{{ labels.entry }} {{ index + 1 }}</strong>
           <small
@@ -702,7 +714,8 @@ function mapEntryStructure(
           :path="listEntryPath(index)"
           @update:model-value="updateListRow(index, $event)"
         />
-        <button
+        <SkyButton
+          variant="content"
           v-if="!listStructure?.items[index]"
           type="button"
           class="config-structured-editor__remove"
@@ -710,8 +723,8 @@ function mapEntryStructure(
           :title="labels.remove"
           @click="removeListRow(index)"
         >
-          <Trash2 :size="13" style="--admin-icon-size: 13" />
-        </button>
+          <SkyIcon :icon="Trash2" :size="13" style="--admin-icon-size: 13" />
+        </SkyButton>
       </div>
     </div>
     <div v-else class="config-structured-editor__empty">
@@ -738,9 +751,11 @@ function mapEntryStructure(
       >
         {{ structureTypeLabel(listTemplate) }}
       </span>
-      <button type="submit" :disabled="disabled">
-        <Plus :size="13" style="--admin-icon-size: 13" />{{ labels.addRow }}
-      </button>
+      <SkyButton variant="content" type="submit" :disabled="disabled">
+        <SkyIcon :icon="Plus" :size="13" style="--admin-icon-size: 13" />{{
+          labels.addRow
+        }}
+      </SkyButton>
     </form>
   </div>
 
@@ -755,7 +770,11 @@ function mapEntryStructure(
   >
     <header v-if="!usesFixedTableLayout" class="config-structured-editor__bar">
       <span>
-        <TableProperties :size="14" style="--admin-icon-size: 14" />
+        <SkyIcon
+          :icon="TableProperties"
+          :size="14"
+          style="--admin-icon-size: 14"
+        />
         {{
           vectorType ? `${labels.vector} ${vectorType.slice(-1)}` : labels.table
         }}
@@ -764,27 +783,31 @@ function mapEntryStructure(
         v-if="!structure && !mapType && !vectorType"
         class="config-structured-editor__actions"
       >
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           :disabled="disabled"
           :title="labels.convertToMap"
           @click="convertTableToMap"
         >
-          <TableProperties :size="13" style="--admin-icon-size: 13" />{{
-            labels.convertToMap
-          }}
-        </button>
-        <button
+          <SkyIcon
+            :icon="TableProperties"
+            :size="13"
+            style="--admin-icon-size: 13"
+          />{{ labels.convertToMap }}
+        </SkyButton>
+        <SkyButton
+          variant="content"
           v-if="!tableEntries.length"
           type="button"
           :disabled="disabled"
           :title="labels.convertToList"
           @click="emit('update:modelValue', [])"
         >
-          <Rows3 :size="13" style="--admin-icon-size: 13" />{{
+          <SkyIcon :icon="Rows3" :size="13" style="--admin-icon-size: 13" />{{
             labels.convertToList
           }}
-        </button>
+        </SkyButton>
       </div>
     </header>
 
@@ -794,7 +817,8 @@ function mapEntryStructure(
       role="tablist"
       :aria-label="ariaLabel"
     >
-      <button
+      <SkyButton
+        variant="content"
         v-for="tableTab in rootTableTabs"
         :key="tableTab.id"
         type="button"
@@ -815,7 +839,7 @@ function mapEntryStructure(
       >
         <span>{{ tableTab.label }}</span>
         <em>{{ tableTab.count }}</em>
-      </button>
+      </SkyButton>
     </nav>
 
     <div
@@ -837,14 +861,17 @@ function mapEntryStructure(
         class="config-structured-editor__tab-panel-actions"
       >
         <strong>{{ activeRootTableField.key }}</strong>
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           :disabled="disabled"
           :title="labels.remove"
           @click="removeTableField(activeRootTableField.key)"
         >
-          <Trash2 :size="13" style="--admin-icon-size: 13" />{{ labels.remove }}
-        </button>
+          <SkyIcon :icon="Trash2" :size="13" style="--admin-icon-size: 13" />{{
+            labels.remove
+          }}
+        </SkyButton>
       </div>
       <AdminConfigValueEditor
         :model-value="activeRootTableField.value"
@@ -904,7 +931,8 @@ function mapEntryStructure(
             }}
           </em>
         </span>
-        <button
+        <SkyButton
+          variant="content"
           v-if="isStructuredValue(entry.value, mapEntryStructure(entry))"
           type="button"
           class="config-structured-editor__section-toggle is-map"
@@ -915,8 +943,12 @@ function mapEntryStructure(
           <small>{{
             structuredValueLabel(entry.value, mapEntryStructure(entry))
           }}</small>
-          <ChevronDown :size="14" style="--admin-icon-size: 14" />
-        </button>
+          <SkyIcon
+            :icon="ChevronDown"
+            :size="14"
+            style="--admin-icon-size: 14"
+          />
+        </SkyButton>
         <AdminConfigValueEditor
           v-if="
             !isStructuredValue(entry.value, mapEntryStructure(entry)) ||
@@ -933,7 +965,8 @@ function mapEntryStructure(
           :path="mapValuePath(entry)"
           @update:model-value="updateMapValue(index, $event)"
         />
-        <button
+        <SkyButton
+          variant="content"
           v-if="!fixedMapEntryStructure(entry)"
           type="button"
           class="config-structured-editor__remove"
@@ -941,8 +974,8 @@ function mapEntryStructure(
           :title="labels.remove"
           @click="removeMapEntry(index)"
         >
-          <Trash2 :size="13" style="--admin-icon-size: 13" />
-        </button>
+          <SkyIcon :icon="Trash2" :size="13" style="--admin-icon-size: 13" />
+        </SkyButton>
       </div>
       <div v-if="!mapEntries.length" class="config-structured-editor__empty">
         {{ labels.emptyTable }}
@@ -967,7 +1000,8 @@ function mapEntryStructure(
         }"
       >
         <span class="config-structured-editor__index">{{ index + 1 }}</span>
-        <button
+        <SkyButton
+          variant="content"
           v-if="isStructuredValue(value, tableFieldStructure(key))"
           type="button"
           class="config-structured-editor__section-toggle"
@@ -988,8 +1022,12 @@ function mapEntryStructure(
             </small>
           </span>
           <em>{{ structuredValueLabel(value, tableFieldStructure(key)) }}</em>
-          <ChevronDown :size="14" style="--admin-icon-size: 14" />
-        </button>
+          <SkyIcon
+            :icon="ChevronDown"
+            :size="14"
+            style="--admin-icon-size: 14"
+          />
+        </SkyButton>
         <span v-else class="config-structured-editor__field-copy">
           <strong>{{ tableEntryLabel(key) }}</strong>
           <small
@@ -1016,7 +1054,8 @@ function mapEntryStructure(
           :path="tableEntryPath(key)"
           @update:model-value="updateTableField(key, $event)"
         />
-        <button
+        <SkyButton
+          variant="content"
           v-if="!vectorType && !isFixedTableField(key)"
           type="button"
           class="config-structured-editor__remove"
@@ -1024,8 +1063,8 @@ function mapEntryStructure(
           :title="labels.remove"
           @click="removeTableField(key)"
         >
-          <Trash2 :size="13" style="--admin-icon-size: 13" />
-        </button>
+          <SkyIcon :icon="Trash2" :size="13" style="--admin-icon-size: 13" />
+        </SkyButton>
       </div>
     </div>
     <div
@@ -1072,9 +1111,15 @@ function mapEntryStructure(
       <span v-else class="config-structured-editor__fixed-type">
         {{ structureTypeLabel(mapTemplate) }}
       </span>
-      <button type="submit" :disabled="disabled || !canAddMapEntry">
-        <Plus :size="13" style="--admin-icon-size: 13" />{{ labels.addField }}
-      </button>
+      <SkyButton
+        variant="content"
+        type="submit"
+        :disabled="disabled || !canAddMapEntry"
+      >
+        <SkyIcon :icon="Plus" :size="13" style="--admin-icon-size: 13" />{{
+          labels.addField
+        }}
+      </SkyButton>
     </form>
 
     <form
@@ -1110,11 +1155,15 @@ function mapEntryStructure(
       >
         {{ structureTypeLabel(tableStructure.template) }}
       </span>
-      <button type="submit" :disabled="disabled || !canAddTableField">
-        <Plus :size="13" style="--admin-icon-size: 13" />{{
+      <SkyButton
+        variant="content"
+        type="submit"
+        :disabled="disabled || !canAddTableField"
+      >
+        <SkyIcon :icon="Plus" :size="13" style="--admin-icon-size: 13" />{{
           isJobTable ? labels.addJob : labels.addField
         }}
-      </button>
+      </SkyButton>
     </form>
   </div>
 

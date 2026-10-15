@@ -283,7 +283,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @click="editor.chain().focus().undo().run()"
         >
           <template #icon
-            ><SkyIcon :size="20"><Undo2 /></SkyIcon
+            ><SkyIcon :size="20"><SkyIcon :icon="Undo2" /></SkyIcon
           ></template>
         </SkyTabButton>
         <SkyTabButton
@@ -292,7 +292,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @click="editor.chain().focus().redo().run()"
         >
           <template #icon
-            ><SkyIcon :size="20"><Redo2 /></SkyIcon
+            ><SkyIcon :size="20"><SkyIcon :icon="Redo2" /></SkyIcon
           ></template>
         </SkyTabButton>
         <SkyTabButton
@@ -308,7 +308,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @click="editor.chain().focus().toggleBulletList().run()"
         >
           <template #icon
-            ><SkyIcon :size="21"><List /></SkyIcon
+            ><SkyIcon :size="21"><SkyIcon :icon="List" /></SkyIcon
           ></template>
         </SkyTabButton>
         <SkyTabButton
@@ -317,7 +317,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @click="editor.chain().focus().toggleOrderedList().run()"
         >
           <template #icon
-            ><SkyIcon :size="21"><ListOrdered /></SkyIcon
+            ><SkyIcon :size="21"><SkyIcon :icon="ListOrdered" /></SkyIcon
           ></template>
         </SkyTabButton>
         <SkyTabButton
@@ -326,7 +326,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @pointerdown.prevent="toggleSelectionQuote"
         >
           <template #icon
-            ><SkyIcon :size="20"><Quote /></SkyIcon
+            ><SkyIcon :size="20"><SkyIcon :icon="Quote" /></SkyIcon
           ></template>
         </SkyTabButton>
       </template>
@@ -365,7 +365,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @click="editor.chain().focus().toggleBold().run()"
         >
           <template #icon
-            ><SkyIcon :size="20"><Bold /></SkyIcon
+            ><SkyIcon :size="20"><SkyIcon :icon="Bold" /></SkyIcon
           ></template>
         </SkyTabButton>
         <SkyTabButton
@@ -374,7 +374,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @click="editor.chain().focus().toggleItalic().run()"
         >
           <template #icon
-            ><SkyIcon :size="20"><Italic /></SkyIcon
+            ><SkyIcon :size="20"><SkyIcon :icon="Italic" /></SkyIcon
           ></template>
         </SkyTabButton>
         <SkyTabButton
@@ -383,7 +383,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @click="editor.chain().focus().toggleUnderline().run()"
         >
           <template #icon
-            ><SkyIcon :size="20"><Underline /></SkyIcon
+            ><SkyIcon :size="20"><SkyIcon :icon="Underline" /></SkyIcon
           ></template>
         </SkyTabButton>
         <SkyTabButton
@@ -392,7 +392,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @click="editor.chain().focus().toggleStrike().run()"
         >
           <template #icon
-            ><SkyIcon :size="20"><Strikethrough /></SkyIcon
+            ><SkyIcon :size="20"><SkyIcon :icon="Strikethrough" /></SkyIcon
           ></template>
         </SkyTabButton>
         <SkyTabButton
@@ -400,7 +400,7 @@ onBeforeUnmount(() => editor.value?.destroy())
           @click="formatMode = false"
         >
           <template #icon
-            ><SkyIcon :size="20"><X /></SkyIcon
+            ><SkyIcon :size="20"><SkyIcon :icon="X" /></SkyIcon
           ></template>
         </SkyTabButton>
       </template>

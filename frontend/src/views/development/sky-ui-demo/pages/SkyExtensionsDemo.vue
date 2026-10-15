@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { Gamepad2, LayoutGrid, PackageOpen, Search } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
@@ -85,7 +87,7 @@ function resetExamples(): void {
           title="Nothing here"
         >
           <template #icon
-            ><PackageOpen :size="32" aria-hidden="true"
+            ><SkyIcon :icon="PackageOpen" :size="32" aria-hidden="true"
           /></template>
           <template #actions><SkyButton rounded>Action</SkyButton></template>
         </SkyEmptyState>

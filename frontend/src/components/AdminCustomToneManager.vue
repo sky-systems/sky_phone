@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   FileAudio,
   FileCode2,
@@ -319,7 +321,7 @@ onBeforeUnmount(() => {
 <template>
   <section class="admin-custom-tones">
     <article class="admin-custom-tones__config-note">
-      <FileCode2 :size="18" style="--admin-icon-size: 18" />
+      <SkyIcon :icon="FileCode2" :size="18" style="--admin-icon-size: 18" />
       <div>
         <strong>{{ t('configTitle') }}</strong>
         <p>{{ t('configBody') }}</p>
@@ -342,20 +344,22 @@ onBeforeUnmount(() => {
 
       <fieldset :disabled="disabled || saving">
         <legend>{{ t('category') }}</legend>
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           :class="{ 'is-active': toneType === 'ringtone' }"
           @click="toneType = 'ringtone'"
         >
           {{ t('ringtone') }}
-        </button>
-        <button
+        </SkyButton>
+        <SkyButton
+          variant="content"
           type="button"
           :class="{ 'is-active': toneType === 'notification' }"
           @click="toneType = 'notification'"
         >
           {{ t('notification') }}
-        </button>
+        </SkyButton>
       </fieldset>
 
       <label
@@ -374,13 +378,19 @@ onBeforeUnmount(() => {
           :disabled="disabled || saving || processingFile"
           @change="chooseFile"
         />
-        <LoaderCircle
+        <SkyIcon
+          :icon="LoaderCircle"
           v-if="processingFile"
           :size="20"
           style="--admin-icon-size: 20"
           class="is-spinning"
         />
-        <Upload v-else :size="20" style="--admin-icon-size: 20" />
+        <SkyIcon
+          :icon="Upload"
+          v-else
+          :size="20"
+          style="--admin-icon-size: 20"
+        />
         <span>
           <strong>{{ selectedFile?.name ?? t('chooseFile') }}</strong>
           <small>
@@ -400,29 +410,42 @@ onBeforeUnmount(() => {
           :disabled="!previewUrl || saving"
           @click="previewSelected"
         >
-          <Pause
+          <SkyIcon
+            :icon="Pause"
             v-if="playingToneId === 'selected'"
             :size="17"
             style="--admin-icon-size: 17"
           />
-          <Play v-else :size="17" style="--admin-icon-size: 17" />
+          <SkyIcon
+            :icon="Play"
+            v-else
+            :size="17"
+            style="--admin-icon-size: 17"
+          />
           {{ t('preview') }}
         </SkyButton>
         <SkyButton small :disabled="!canSave" @click="saveTone">
-          <LoaderCircle
+          <SkyIcon
+            :icon="LoaderCircle"
             v-if="saving"
             :size="17"
             style="--admin-icon-size: 17"
             class="is-spinning"
           />
-          <Plus v-else :size="17" style="--admin-icon-size: 17" />
+          <SkyIcon
+            :icon="Plus"
+            v-else
+            :size="17"
+            style="--admin-icon-size: 17"
+          />
           {{ t('add') }}
         </SkyButton>
       </div>
     </div>
 
     <div v-if="admin.customTonesLoading" class="admin-custom-tones__loading">
-      <LoaderCircle
+      <SkyIcon
+        :icon="LoaderCircle"
         :size="22"
         style="--admin-icon-size: 22"
         class="is-spinning"
@@ -450,7 +473,10 @@ onBeforeUnmount(() => {
         </p>
         <article v-for="tone in group.tones" :key="tone.id">
           <span class="admin-custom-tones__tone-icon"
-            ><FileAudio :size="18" style="--admin-icon-size: 18"
+            ><SkyIcon
+              :icon="FileAudio"
+              :size="18"
+              style="--admin-icon-size: 18"
           /></span>
           <span class="admin-custom-tones__tone-copy">
             <strong>{{ tone.label }}</strong>
@@ -462,19 +488,27 @@ onBeforeUnmount(() => {
               }}
             </small>
           </span>
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             :aria-label="t('preview')"
             @click="previewStored(tone)"
           >
-            <Pause
+            <SkyIcon
+              :icon="Pause"
               v-if="playingToneId === tone.id"
               :size="17"
               style="--admin-icon-size: 17"
             />
-            <Play v-else :size="17" style="--admin-icon-size: 17" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="Play"
+              v-else
+              :size="17"
+              style="--admin-icon-size: 17"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             v-if="tone.source === 'database'"
             type="button"
             class="is-danger"
@@ -485,21 +519,31 @@ onBeforeUnmount(() => {
             :disabled="admin.actionKey === `custom-tone:delete:${tone.id}`"
             @click="deleteTone(tone)"
           >
-            <LoaderCircle
+            <SkyIcon
+              :icon="LoaderCircle"
               v-if="admin.actionKey === `custom-tone:delete:${tone.id}`"
               :size="17"
               style="--admin-icon-size: 17"
               class="is-spinning"
             />
-            <Trash2 v-else :size="17" style="--admin-icon-size: 17" />
-          </button>
+            <SkyIcon
+              :icon="Trash2"
+              v-else
+              :size="17"
+              style="--admin-icon-size: 17"
+            />
+          </SkyButton>
           <span
             v-else
             class="admin-custom-tones__locked"
             :title="t('configManaged')"
             :aria-label="t('configManaged')"
           >
-            <LockKeyhole :size="15" style="--admin-icon-size: 15" />
+            <SkyIcon
+              :icon="LockKeyhole"
+              :size="15"
+              style="--admin-icon-size: 15"
+            />
           </span>
         </article>
       </section>

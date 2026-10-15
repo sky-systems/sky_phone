@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   ArrowLeft,
   Bookmark,
@@ -788,7 +790,7 @@ onMounted(async () => {
             :aria-label="phone.t('Common.signOut')"
             @click="logoutDialogOpen = true"
           >
-            <LogOut :size="16" />
+            <SkyIcon :icon="LogOut" :size="16" />
           </SkyButton>
         </template>
       </sky-navbar>
@@ -809,7 +811,7 @@ onMounted(async () => {
                 ><strong>{{ phone.t('Apps.localPages.heroTitle') }}</strong
                 ><span>{{ phone.t('Apps.localPages.heroBody') }}</span>
               </div>
-              <MapPin :size="40" />
+              <SkyIcon :icon="MapPin" :size="40" />
             </div>
           </sky-glass>
           <sky-searchbar
@@ -868,7 +870,7 @@ onMounted(async () => {
               class="pages__profile-editor"
             >
               <div class="pages__profile-editor-head">
-                <span><UserRound :size="21" /></span>
+                <span><SkyIcon :icon="UserRound" :size="21" /></span>
                 <div>
                   <strong>{{
                     phone.t(
@@ -889,7 +891,7 @@ onMounted(async () => {
                     :src="profileAvatarUrl"
                     :alt="phone.t('Apps.localPages.profilePhoto')"
                   />
-                  <UserRound v-else :size="30" />
+                  <SkyIcon :icon="UserRound" v-else :size="30" />
                 </span>
                 <div>
                   <strong>{{ phone.t('Apps.localPages.profilePhoto') }}</strong>
@@ -898,34 +900,37 @@ onMounted(async () => {
                   }}</small>
                   <div class="pages__profile-photo-actions">
                     <sky-glass
-                      ><button
+                      ><SkyButton
+                        variant="content"
                         type="button"
                         @click="openProfileMedia('camera')"
                       >
-                        <Camera :size="15" />{{
+                        <SkyIcon :icon="Camera" :size="15" />{{
                           phone.t('Apps.localPages.camera')
                         }}
-                      </button></sky-glass
+                      </SkyButton></sky-glass
                     >
                     <sky-glass
-                      ><button
+                      ><SkyButton
+                        variant="content"
                         type="button"
                         @click="openProfileMedia('photos')"
                       >
-                        <Images :size="15" />{{
+                        <SkyIcon :icon="Images" :size="15" />{{
                           phone.t('Apps.localPages.gallery')
                         }}
-                      </button></sky-glass
+                      </SkyButton></sky-glass
                     >
                   </div>
-                  <button
+                  <SkyButton
+                    variant="content"
                     v-if="profileAvatarUrl"
                     class="pages__profile-photo-remove"
                     type="button"
                     @click="removeProfilePhoto"
                   >
                     {{ phone.t('Apps.localPages.removeProfilePhoto') }}
-                  </button>
+                  </SkyButton>
                 </div>
               </div>
               <label>
@@ -933,7 +938,7 @@ onMounted(async () => {
                 <sky-glass
                   class="pages__profile-field pages__profile-field--readonly"
                 >
-                  <Mail :size="16" />
+                  <SkyIcon :icon="Mail" :size="16" />
                   <input
                     :value="pages.profile?.email || account.email"
                     readonly
@@ -977,19 +982,24 @@ onMounted(async () => {
                 <sky-glass
                   v-if="pages.profile?.exists"
                   class="pages__profile-action"
-                  ><button type="button" @click="cancelProfileEdit">
+                  ><SkyButton
+                    variant="content"
+                    type="button"
+                    @click="cancelProfileEdit"
+                  >
                     {{ phone.t('Apps.localPages.profileCancel') }}
-                  </button></sky-glass
+                  </SkyButton></sky-glass
                 >
                 <sky-glass
                   class="pages__profile-action pages__profile-action--save"
-                  ><button
+                  ><SkyButton
+                    variant="content"
                     type="button"
                     :disabled="!canSaveProfile || profilePending"
                     @click="saveProfile"
                   >
                     {{ phone.t('Apps.localPages.profileSave') }}
-                  </button></sky-glass
+                  </SkyButton></sky-glass
                 >
               </div>
             </section>
@@ -1014,14 +1024,15 @@ onMounted(async () => {
                     >
                     <p v-if="pages.profile.bio">{{ pages.profile.bio }}</p>
                   </div>
-                  <button
+                  <SkyButton
+                    variant="content"
                     class="pages__profile-edit"
                     type="button"
                     :aria-label="phone.t('Apps.localPages.editProfile')"
                     @click="editProfile"
                   >
-                    <Pencil :size="15" />
-                  </button>
+                    <SkyIcon :icon="Pencil" :size="15" />
+                  </SkyButton>
                 </div>
               </sky-glass>
               <SkySegmented
@@ -1065,7 +1076,8 @@ onMounted(async () => {
             class="pages-post-glass"
           >
             <article class="pages__post">
-              <button
+              <SkyButton
+                variant="content"
                 class="pages__post-open"
                 type="button"
                 @click="openPost(post)"
@@ -1083,7 +1095,7 @@ onMounted(async () => {
                   <div>
                     <strong>@{{ post.author_name }}</strong
                     ><small
-                      ><MapPin :size="10" />
+                      ><SkyIcon :icon="MapPin" :size="10" />
                       {{
                         post.district
                           ? phone.t(`Apps.citymarkt.districts.${post.district}`)
@@ -1105,9 +1117,10 @@ onMounted(async () => {
                 </div>
                 <h2>{{ post.title }}</h2>
                 <p>{{ post.body }}</p>
-              </button>
+              </SkyButton>
               <div class="pages__post-foot">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="pages__reaction"
                   :class="{
@@ -1118,23 +1131,27 @@ onMounted(async () => {
                   :aria-label="phone.t('Apps.localPages.likes')"
                   @click="reactToPost(post, 'like')"
                 >
-                  <Heart
+                  <SkyIcon
+                    :icon="Heart"
                     :size="15"
                     :fill="post.is_liked ? 'currentColor' : 'none'"
                   />
                   {{ post.like_count }}
-                </button>
+                </SkyButton>
                 <span v-if="post.source_type === 'citymarkt'"
-                  ><Store :size="14" /> CityMarkt</span
+                  ><SkyIcon :icon="Store" :size="14" /> CityMarkt</span
                 >
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="phone.t('Apps.easyShare.share')"
                   @click="sharePost(post)"
                 >
-                  <Share2 :size="15" /> {{ phone.t('Apps.easyShare.share') }}
-                </button>
-                <button
+                  <SkyIcon :icon="Share2" :size="15" />
+                  {{ phone.t('Apps.easyShare.share') }}
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="pages__reaction"
                   :class="{
@@ -1145,17 +1162,18 @@ onMounted(async () => {
                   :aria-label="phone.t('Apps.localPages.save')"
                   @click="reactToPost(post, 'save')"
                 >
-                  <Bookmark
+                  <SkyIcon
+                    :icon="Bookmark"
                     :size="15"
                     :fill="post.is_saved ? 'currentColor' : 'none'"
                   />
                   {{ phone.t('Apps.localPages.save') }}
-                </button>
+                </SkyButton>
               </div>
             </article>
           </sky-glass>
           <div v-if="!displayedPosts.length" class="pages__empty">
-            <Compass :size="38" /><strong>{{
+            <SkyIcon :icon="Compass" :size="38" /><strong>{{
               phone.t('Apps.localPages.noPosts')
             }}</strong
             ><span>{{ phone.t('Apps.localPages.noPostsBody') }}</span>
@@ -1182,14 +1200,16 @@ onMounted(async () => {
             class="pages-navigation__button"
             @click="selectTab('feed')"
           >
-            <Compass :size="19" />
+            <SkyIcon :icon="Compass" :size="19" />
             <small>{{ phone.t('Apps.localPages.discover') }}</small>
           </SkySegmentedButton>
           <SkySegmentedButton
             class="pages-navigation__button"
             @click="selectTab('create')"
           >
-            <span class="pages-navigation__create"><Plus :size="19" /></span>
+            <span class="pages-navigation__create"
+              ><SkyIcon :icon="Plus" :size="19"
+            /></span>
             <small>{{ phone.t('Apps.localPages.create') }}</small>
           </SkySegmentedButton>
           <SkySegmentedButton
@@ -1197,7 +1217,7 @@ onMounted(async () => {
             class="pages-navigation__button"
             @click="selectTab('profile')"
           >
-            <UserRound :size="19" />
+            <SkyIcon :icon="UserRound" :size="19" />
             <small>{{ phone.t('Apps.localPages.profile') }}</small>
           </SkySegmentedButton>
         </SkySegmented>
@@ -1212,7 +1232,7 @@ onMounted(async () => {
           class="pages__detail-control"
           @click="screen = 'main'"
         >
-          <ArrowLeft :size="20" />
+          <SkyIcon :icon="ArrowLeft" :size="20" />
         </sky-glass>
         <strong>{{ phone.t('Apps.localPages.post') }}</strong>
         <sky-glass
@@ -1222,7 +1242,7 @@ onMounted(async () => {
           class="pages__detail-control danger"
           @click="removePost"
         >
-          <Trash2 :size="18" />
+          <SkyIcon :icon="Trash2" :size="18" />
         </sky-glass>
         <sky-glass
           v-else
@@ -1235,7 +1255,8 @@ onMounted(async () => {
           }"
           @click="react('save')"
         >
-          <Bookmark
+          <SkyIcon
+            :icon="Bookmark"
             :size="18"
             :fill="selected.is_saved ? 'currentColor' : 'none'"
           />
@@ -1247,10 +1268,18 @@ onMounted(async () => {
           class="pages__gallery"
           :style="{ background: selected.images[galleryIndex]?.gradient }"
         >
-          <button v-if="selected.images.length > 1" @click="moveGallery(-1)">
-            <ChevronLeft /></button
-          ><button v-if="selected.images.length > 1" @click="moveGallery(1)">
-            <ChevronRight /></button
+          <SkyButton
+            variant="content"
+            v-if="selected.images.length > 1"
+            @click="moveGallery(-1)"
+          >
+            <SkyIcon :icon="ChevronLeft" /></SkyButton
+          ><SkyButton
+            variant="content"
+            v-if="selected.images.length > 1"
+            @click="moveGallery(1)"
+          >
+            <SkyIcon :icon="ChevronRight" /></SkyButton
           ><span>{{ galleryIndex + 1 }} / {{ selected.images.length }}</span>
         </div>
         <article>
@@ -1273,7 +1302,7 @@ onMounted(async () => {
           <h1>{{ selected.title }}</h1>
           <p>{{ selected.body }}</p>
           <div class="pages__location">
-            <MapPin :size="17" />
+            <SkyIcon :icon="MapPin" :size="17" />
             <div>
               <small>{{ phone.t('Apps.localPages.location') }}</small
               ><strong>{{
@@ -1283,12 +1312,13 @@ onMounted(async () => {
               }}</strong>
             </div>
           </div>
-          <button
+          <SkyButton
+            variant="content"
             v-if="selected.source_type === 'citymarkt'"
             class="pages__market-link"
             @click="openCityMarktListing"
           >
-            <Store :size="18" /><span
+            <SkyIcon :icon="Store" :size="18" /><span
               ><small>{{ phone.t('Apps.localPages.sharedFrom') }}</small
               ><strong>{{
                 phone.t('Apps.localPages.openCityMarkt')
@@ -1296,11 +1326,12 @@ onMounted(async () => {
             ><b v-if="selected.citymarkt_price"
               >${{ Number(selected.citymarkt_price).toLocaleString() }}</b
             >
-          </button>
+          </SkyButton>
         </article>
       </SkyScrollArea>
       <sky-glass class="pages__detail-actions">
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="pages__reaction"
           :class="{
@@ -1309,15 +1340,19 @@ onMounted(async () => {
           }"
           @click="react('like')"
         >
-          <Heart
+          <SkyIcon
+            :icon="Heart"
             :size="19"
             :fill="selected.is_liked ? 'currentColor' : 'none'"
           />{{ selected.like_count }} {{ phone.t('Apps.localPages.likes') }}
-        </button>
-        <button type="button" @click="sharePost(selected)">
-          <Share2 :size="19" />{{ phone.t('Apps.easyShare.share') }}
-        </button>
-        <button
+        </SkyButton>
+        <SkyButton variant="content" type="button" @click="sharePost(selected)">
+          <SkyIcon :icon="Share2" :size="19" />{{
+            phone.t('Apps.easyShare.share')
+          }}
+        </SkyButton>
+        <SkyButton
+          variant="content"
           type="button"
           class="pages__reaction"
           :class="{
@@ -1326,11 +1361,12 @@ onMounted(async () => {
           }"
           @click="react('save')"
         >
-          <Bookmark
+          <SkyIcon
+            :icon="Bookmark"
             :size="19"
             :fill="selected.is_saved ? 'currentColor' : 'none'"
           />{{ phone.t('Apps.localPages.save') }}
-        </button>
+        </SkyButton>
       </sky-glass>
     </section>
 
@@ -1367,7 +1403,7 @@ onMounted(async () => {
             :aria-label="phone.t('Common.close')"
             @click="closeCompose"
           >
-            <X :size="17" />
+            <SkyIcon :icon="X" :size="17" />
           </SkyButton>
         </template>
         <template #right>
@@ -1385,7 +1421,7 @@ onMounted(async () => {
       </sky-navbar>
       <SkyScrollArea as="div" class="pages__compose-scroll">
         <sky-glass v-if="cityMarktListing" class="pages__citymarkt-source">
-          <Store :size="19" />
+          <SkyIcon :icon="Store" :size="19" />
           <span
             ><strong>{{
               phone.t('Apps.localPages.cityMarktComposeTitle')
@@ -1442,7 +1478,7 @@ onMounted(async () => {
           /></label>
         </div>
         <section class="pages__photos">
-          <ImagePlus :size="30" />
+          <SkyIcon :icon="ImagePlus" :size="30" />
           <h2>{{ phone.t('Apps.citymarkt.addPhotos') }}</h2>
           <p>
             {{
@@ -1455,18 +1491,26 @@ onMounted(async () => {
           </p>
           <div class="pages__photo-actions">
             <sky-glass
-              ><button type="button" @click="openMediaApp('photos')">
-                <span><Images :size="20" /></span>
+              ><SkyButton
+                variant="content"
+                type="button"
+                @click="openMediaApp('photos')"
+              >
+                <span><SkyIcon :icon="Images" :size="20" /></span>
                 <strong>{{ phone.t('Apps.citymarkt.chooseGallery') }}</strong>
                 <small>{{ phone.t('Apps.citymarkt.chooseGalleryBody') }}</small>
-              </button></sky-glass
+              </SkyButton></sky-glass
             >
             <sky-glass
-              ><button type="button" @click="openMediaApp('camera')">
-                <span><Camera :size="20" /></span>
+              ><SkyButton
+                variant="content"
+                type="button"
+                @click="openMediaApp('camera')"
+              >
+                <span><SkyIcon :icon="Camera" :size="20" /></span>
                 <strong>{{ phone.t('Apps.citymarkt.takePhotos') }}</strong>
                 <small>{{ phone.t('Apps.citymarkt.takePhotosBody') }}</small>
-              </button></sky-glass
+              </SkyButton></sky-glass
             >
           </div>
           <div class="pages__selected-heading">
@@ -1483,7 +1527,8 @@ onMounted(async () => {
             :photo-label="phone.t('Apps.citymarkt.photo')"
           />
           <div v-if="selectedImages.length" class="pages__selected-strip">
-            <button
+            <SkyButton
+              variant="content"
               v-for="(photo, index) in selectedImages"
               :key="photo.media_id"
               type="button"
@@ -1496,8 +1541,8 @@ onMounted(async () => {
               @click="togglePhoto(photo.media_id)"
             >
               <i>{{ index + 1 }}</i
-              ><X :size="12" />
-            </button>
+              ><SkyIcon :icon="X" :size="12" />
+            </SkyButton>
           </div>
         </section>
       </SkyScrollArea>
@@ -2864,11 +2909,11 @@ onMounted(async () => {
   width: 30px;
   min-width: 30px;
   padding: 0;
-  color: inherit;
+  color: var(--sky-button-text, #ffffff);
 }
 .pages-create-publish {
   --sky-app-accent: var(--yellow);
-  color: var(--yellow);
+  color: var(--sky-button-text, #ffffff);
 }
 .pages-create-publish:disabled {
   opacity: 0.38;

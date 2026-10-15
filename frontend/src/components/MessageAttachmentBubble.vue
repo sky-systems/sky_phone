@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import { Camera, Pause, Play, TriangleAlert } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
@@ -94,9 +96,10 @@ function durationLabel(milliseconds: number | null): string {
       loading="lazy"
       referrerpolicy="no-referrer"
     />
-    <Camera v-else :size="18" />
+    <SkyIcon :icon="Camera" v-else :size="18" />
   </div>
-  <button
+  <SkyButton
+    variant="content"
     v-else-if="message.message_type === 'video'"
     type="button"
     class="messages-attachment messages-attachment--video"
@@ -121,16 +124,24 @@ function durationLabel(milliseconds: number | null): string {
       @error="playbackFailed = true"
     />
     <span
-      ><TriangleAlert v-if="playbackFailed" :size="22" /><Pause
+      ><SkyIcon
+        :icon="TriangleAlert"
+        v-if="playbackFailed"
+        :size="22" /><SkyIcon
+        :icon="Pause"
         v-else-if="playing"
         :size="22"
-        fill="currentColor" /><Play v-else :size="22" fill="currentColor"
+        fill="currentColor" /><SkyIcon
+        :icon="Play"
+        v-else
+        :size="22"
+        fill="currentColor"
     /></span>
     <small v-if="playbackFailed">{{
       phone.t('Apps.photos.errors.unsupported')
     }}</small>
     <small v-else>{{ durationLabel(message.media_duration_ms) }}</small>
-  </button>
+  </SkyButton>
   <div
     v-else
     class="messages-attachment messages-attachment--gif"

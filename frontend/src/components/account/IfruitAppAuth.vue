@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { SkyButton } from '@/ui'
+
 import {
-  SkyButton as kButton,
   SkyField as kListInput,
   SkyList as kList,
   SkySegmented as kSegmented,
@@ -146,7 +147,7 @@ async function submit(): Promise<void> {
     </k-list>
 
     <p v-if="error" class="ifruit-app-auth__error" role="alert">{{ error }}</p>
-    <k-button large rounded :disabled="!canSubmit || pending" @click="submit">
+    <SkyButton large rounded :disabled="!canSubmit || pending" @click="submit">
       <k-preloader v-if="pending" />
       <template v-else>
         {{
@@ -157,7 +158,7 @@ async function submit(): Promise<void> {
           )
         }}
       </template>
-    </k-button>
+    </SkyButton>
   </section>
 </template>
 

@@ -24,8 +24,12 @@ describe('SettingsApp Sky UI contract', () => {
     expect(source).toContain('<SkySettingsGroup')
     expect(source).toContain('<SkySettingsRow')
     expect(source).toContain('<SkySettingsRangeRow')
-    expect(source).toContain('<template #leading><Volume1 /></template>')
-    expect(source).toContain('<template #trailing><Volume2 /></template>')
+    expect(source).toContain(
+      '<template #leading><SkyIcon :icon="Volume1" /></template>',
+    )
+    expect(source).toContain(
+      '<template #trailing><SkyIcon :icon="Volume2" /></template>',
+    )
     expect(source).toContain(
       `<template v-if="activeView === 'account' && !account.email" #right>`,
     )

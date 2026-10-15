@@ -995,7 +995,9 @@ onBeforeUnmount(() => {
     }"
   >
     <div v-if="flare.loading" class="flare-loading">
-      <span class="flare-mark"><Flame fill="currentColor" /></span>
+      <span class="flare-mark"
+        ><SkyIcon :icon="Flame" fill="currentColor"
+      /></span>
       <sky-spinner />
     </div>
 
@@ -1003,7 +1005,9 @@ onBeforeUnmount(() => {
       v-else-if="flare.error === 'not_authenticated'"
       class="flare-state"
     >
-      <span class="flare-mark"><Flame fill="currentColor" /></span>
+      <span class="flare-mark"
+        ><SkyIcon :icon="Flame" fill="currentColor"
+      /></span>
       <h1>{{ phone.t('Apps.flare.signInTitle') }}</h1>
       <p>{{ phone.t('Apps.flare.signInBody') }}</p>
     </section>
@@ -1015,7 +1019,9 @@ onBeforeUnmount(() => {
       />
       <section class="flare-profile-form flare-profile-form--onboarding">
         <div class="flare-brand-lockup">
-          <span class="flare-mark"><Flame fill="currentColor" /></span>
+          <span class="flare-mark"
+            ><SkyIcon :icon="Flame" fill="currentColor"
+          /></span>
           <div>
             <h1>{{ phone.t('Apps.flare.welcome') }}</h1>
             <p>{{ phone.t('Apps.flare.welcomeBody') }}</p>
@@ -1051,7 +1057,7 @@ onBeforeUnmount(() => {
                 "
                 @click="removeDraftPhoto(photo.id)"
               >
-                <X />
+                <SkyIcon :icon="X" />
               </sky-link>
             </div>
           </div>
@@ -1060,11 +1066,11 @@ onBeforeUnmount(() => {
             class="flare-onboarding-photo-actions"
           >
             <sky-button outline rounded @click="openProfileMediaApp('photos')">
-              <Images :size="19" />
+              <SkyIcon :icon="Images" :size="19" />
               <span>{{ phone.t('Apps.flare.choosePhotos') }}</span>
             </sky-button>
             <sky-button outline rounded @click="openProfileMediaApp('camera')">
-              <Camera :size="19" />
+              <SkyIcon :icon="Camera" :size="19" />
               <span>{{ phone.t('Apps.flare.takePhoto') }}</span>
             </sky-button>
           </div>
@@ -1172,7 +1178,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.flare.matchActions')"
             @click="unmatchDialog = true"
           >
-            <Ellipsis />
+            <SkyIcon :icon="Ellipsis" />
           </sky-link>
         </template>
       </sky-navbar>
@@ -1201,26 +1207,38 @@ onBeforeUnmount(() => {
       </div>
 
       <section v-if="attachmentMenuOpen" class="messages-attachment-menu">
-        <button type="button" @click="openChatMediaApp('photos', 'photo')">
-          <span><Images :size="20" /></span>
+        <SkyButton
+          variant="content"
+          type="button"
+          @click="openChatMediaApp('photos', 'photo')"
+        >
+          <span><SkyIcon :icon="Images" :size="20" /></span>
           {{ phone.t('Apps.flare.attachPhoto') }}
-        </button>
-        <button type="button" @click="openChatMediaApp('camera', 'photo')">
-          <span><Camera :size="20" /></span>
+        </SkyButton>
+        <SkyButton
+          variant="content"
+          type="button"
+          @click="openChatMediaApp('camera', 'photo')"
+        >
+          <span><SkyIcon :icon="Camera" :size="20" /></span>
           {{ phone.t('Apps.flare.takePhoto') }}
-        </button>
-        <button type="button" @click="openEmojiPicker">
+        </SkyButton>
+        <SkyButton variant="content" type="button" @click="openEmojiPicker">
           <span class="messages-action-emoji">😀</span>
           {{ phone.t('Apps.flare.emoji') }}
-        </button>
-        <button type="button" @click="openGifPicker">
-          <span><ImagePlay :size="20" /></span>
+        </SkyButton>
+        <SkyButton variant="content" type="button" @click="openGifPicker">
+          <span><SkyIcon :icon="ImagePlay" :size="20" /></span>
           {{ phone.t('Apps.flare.attachGif') }}
-        </button>
-        <button type="button" @click="openChatMediaApp('photos', 'video')">
-          <span><Video :size="20" /></span>
+        </SkyButton>
+        <SkyButton
+          variant="content"
+          type="button"
+          @click="openChatMediaApp('photos', 'video')"
+        >
+          <span><SkyIcon :icon="Video" :size="20" /></span>
           {{ phone.t('Apps.flare.attachVideo') }}
-        </button>
+        </SkyButton>
       </section>
 
       <section
@@ -1229,13 +1247,17 @@ onBeforeUnmount(() => {
       >
         <header>
           <strong>{{ phone.t('Apps.flare.gifs') }}</strong>
-          <button type="button" @click="attachmentPicker = null">
+          <SkyButton
+            variant="content"
+            type="button"
+            @click="attachmentPicker = null"
+          >
             {{ phone.t('Common.done') }}
-          </button>
+          </SkyButton>
         </header>
         <div class="messages-media-picker__gifs">
           <label class="messages-gif-search">
-            <Search :size="15" />
+            <SkyIcon :icon="Search" :size="15" />
             <input
               v-model="gifQuery"
               type="search"
@@ -1243,7 +1265,8 @@ onBeforeUnmount(() => {
               @input="queueGifSearch"
             />
           </label>
-          <button
+          <SkyButton
+            variant="content"
             v-for="gif in gifResults"
             :key="gif.id"
             type="button"
@@ -1256,21 +1279,22 @@ onBeforeUnmount(() => {
               loading="lazy"
               referrerpolicy="no-referrer"
             />
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             v-if="gifResults.length && gifHasMore && !gifLoading"
             type="button"
             class="messages-gif-more"
             @click="loadGifs()"
           >
             {{ phone.t('Apps.flare.loadMore') }}
-          </button>
+          </SkyButton>
           <div v-if="gifError && !gifLoading" class="messages-gif-error">
-            <ImagePlay :size="24" />
+            <SkyIcon :icon="ImagePlay" :size="24" />
             <strong>{{ phone.t(`Apps.flare.errors.${gifError}`) }}</strong>
-            <button type="button" @click="loadGifs(true)">
+            <SkyButton variant="content" type="button" @click="loadGifs(true)">
               {{ phone.t('Apps.flare.retryGifs') }}
-            </button>
+            </SkyButton>
           </div>
           <sky-spinner v-if="gifLoading" class="messages-gif-loading" />
         </div>
@@ -1284,13 +1308,14 @@ onBeforeUnmount(() => {
 
       <div v-if="shareDraft" class="shared-composer-preview">
         <SharedContentCard compact :payload="shareDraft" variant="flare" />
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           :aria-label="phone.t('Common.close')"
           @click="shareDraft = null"
         >
-          <X :size="15" />
-        </button>
+          <SkyIcon :icon="X" :size="15" />
+        </SkyButton>
       </div>
 
       <sky-messagebar
@@ -1312,7 +1337,7 @@ onBeforeUnmount(() => {
               }"
               @click="toggleAttachmentMenu"
             >
-              <Plus :size="25" />
+              <SkyIcon :icon="Plus" :size="25" />
             </sky-link>
           </sky-toolbar-pane>
         </template>
@@ -1324,7 +1349,7 @@ onBeforeUnmount(() => {
               :disabled="(!draft.trim() && !shareDraft) || flare.sending"
               @click="sendMessage"
             >
-              <ArrowUpCircle :size="29" />
+              <SkyIcon :icon="ArrowUpCircle" :size="29" />
             </sky-link>
           </sky-toolbar-pane>
         </template>
@@ -1350,7 +1375,7 @@ onBeforeUnmount(() => {
       >
         <template #title>
           <span v-if="activeTab === 'discover'" class="flare-title">
-            <Flame fill="currentColor" /> Flare
+            <SkyIcon :icon="Flame" fill="currentColor" /> Flare
           </span>
           <strong v-else-if="profileEditing" class="flare-section-title">
             {{ phone.t('Apps.flare.editProfile') }}
@@ -1382,7 +1407,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.flare.filters')"
             @click="openSettings"
           >
-            <SlidersHorizontal />
+            <SkyIcon :icon="SlidersHorizontal" />
           </sky-link>
         </template>
       </sky-navbar>
@@ -1392,7 +1417,7 @@ onBeforeUnmount(() => {
           v-if="!flare.profile.discoverable"
           class="flare-state flare-state--discovery-off"
         >
-          <span class="flare-state__icon"><EyeOff /></span>
+          <span class="flare-state__icon"><SkyIcon :icon="EyeOff" /></span>
           <h2>{{ phone.t('Apps.flare.discoveryOffTitle') }}</h2>
           <p>{{ phone.t('Apps.flare.discoveryOffBody') }}</p>
           <sky-button rounded @click="setDiscovery(true)">
@@ -1437,7 +1462,8 @@ onBeforeUnmount(() => {
                 :class="{ active: photoNumber - 1 === normalizedPhotoIndex }"
               />
             </div>
-            <button
+            <SkyButton
+              variant="content"
               v-if="activeExploreMode !== 'all'"
               type="button"
               class="flare-card__mode"
@@ -1446,8 +1472,8 @@ onBeforeUnmount(() => {
               @click.stop="clearExplore"
             >
               {{ phone.t(`Apps.flare.lookingFor.${activeExploreMode}`) }}
-              <X :size="12" />
-            </button>
+              <SkyIcon :icon="X" :size="12" />
+            </SkyButton>
             <span class="flare-card__stamp flare-card__stamp--like">
               {{ phone.t('Apps.flare.like') }}
             </span>
@@ -1461,12 +1487,13 @@ onBeforeUnmount(() => {
                 <b>{{ currentProfile.age }}</b>
               </div>
               <p class="flare-card__location">
-                <MapPin :size="14" /> {{ phone.t('Apps.flare.nearby') }}
+                <SkyIcon :icon="MapPin" :size="14" />
+                {{ phone.t('Apps.flare.nearby') }}
               </p>
               <p class="flare-card__bio">{{ currentProfile.bio }}</p>
               <div class="flare-tags">
                 <span class="flare-intent">
-                  <Heart :size="12" fill="currentColor" />
+                  <SkyIcon :icon="Heart" :size="12" fill="currentColor" />
                   {{
                     phone.t(
                       `Apps.flare.lookingFor.${currentProfile.lookingFor}`,
@@ -1487,7 +1514,7 @@ onBeforeUnmount(() => {
           v-else-if="flare.profile.discoverable"
           class="flare-state flare-state--compact"
         >
-          <span class="flare-state__icon"><RotateCcw /></span>
+          <span class="flare-state__icon"><SkyIcon :icon="RotateCcw" /></span>
           <h2>{{ phone.t('Apps.flare.noProfiles') }}</h2>
           <p>{{ phone.t('Apps.flare.noProfilesBody') }}</p>
           <sky-button
@@ -1509,7 +1536,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.flare.rewind')"
             @click="rewind"
           >
-            <RotateCcw />
+            <SkyIcon :icon="RotateCcw" />
           </sky-button>
           <sky-button
             rounded
@@ -1517,7 +1544,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.flare.pass')"
             @click="swipe('pass')"
           >
-            <X />
+            <SkyIcon :icon="X" />
           </sky-button>
           <sky-button
             rounded
@@ -1525,7 +1552,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.flare.superLike')"
             @click="swipe('superlike')"
           >
-            <Star fill="currentColor" />
+            <SkyIcon :icon="Star" fill="currentColor" />
           </sky-button>
           <sky-button
             rounded
@@ -1533,7 +1560,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.flare.like')"
             @click="swipe('like')"
           >
-            <Heart fill="currentColor" />
+            <SkyIcon :icon="Heart" fill="currentColor" />
           </sky-button>
         </div>
       </section>
@@ -1565,7 +1592,7 @@ onBeforeUnmount(() => {
             <strong>{{
               phone.t(`Apps.flare.exploreModes.${tile.key}`)
             }}</strong>
-            <ChevronRight />
+            <SkyIcon :icon="ChevronRight" />
           </sky-card>
         </div>
       </section>
@@ -1583,7 +1610,7 @@ onBeforeUnmount(() => {
             <span>
               <strong>{{ profile.name }}, {{ profile.age }}</strong>
               <small v-if="profile.superLiked" class="is-super-like">
-                <Star :size="11" fill="currentColor" />
+                <SkyIcon :icon="Star" :size="11" fill="currentColor" />
                 {{ phone.t('Apps.flare.superLikedYou') }}
               </small>
               <small v-else>{{ phone.t('Apps.flare.likedYou') }}</small>
@@ -1594,20 +1621,20 @@ onBeforeUnmount(() => {
                 :aria-label="phone.t('Apps.flare.pass')"
                 @click="reactToLike(profile.id, 'pass')"
               >
-                <X />
+                <SkyIcon :icon="X" />
               </sky-button>
               <sky-button
                 rounded
                 :aria-label="phone.t('Apps.flare.like')"
                 @click="reactToLike(profile.id, 'like')"
               >
-                <Heart fill="currentColor" />
+                <SkyIcon :icon="Heart" fill="currentColor" />
               </sky-button>
             </div>
           </article>
         </div>
         <div v-else class="flare-state flare-state--compact">
-          <span class="flare-state__icon"><Heart /></span>
+          <span class="flare-state__icon"><SkyIcon :icon="Heart" /></span>
           <h2>{{ phone.t('Apps.flare.noLikes') }}</h2>
           <p>{{ phone.t('Apps.flare.noLikesBody') }}</p>
         </div>
@@ -1622,7 +1649,8 @@ onBeforeUnmount(() => {
             {{ phone.t('Apps.flare.newMatches') }}
           </h2>
           <div v-if="newMatches.length" class="flare-new-matches">
-            <button
+            <SkyButton
+              variant="content"
               v-for="match in newMatches"
               :key="match.id"
               type="button"
@@ -1632,7 +1660,7 @@ onBeforeUnmount(() => {
                 <b v-if="match.unread" />
               </i>
               <span>{{ match.profile.name }}</span>
-            </button>
+            </SkyButton>
           </div>
           <h2>{{ phone.t('Apps.flare.messages') }}</h2>
           <sky-list strong class="flare-conversation-list">
@@ -1659,7 +1687,9 @@ onBeforeUnmount(() => {
           </sky-list>
         </template>
         <div v-else class="flare-state flare-state--compact">
-          <span class="flare-state__icon"><MessageCircle /></span>
+          <span class="flare-state__icon"
+            ><SkyIcon :icon="MessageCircle"
+          /></span>
           <h2>{{ phone.t('Apps.flare.noMatches') }}</h2>
           <p>{{ phone.t('Apps.flare.noMatchesBody') }}</p>
         </div>
@@ -1733,7 +1763,7 @@ onBeforeUnmount(() => {
             @activate="signOutDialogOpened = true"
           >
             <template #leading>
-              <LogOut :size="20" aria-hidden="true" />
+              <SkyIcon :icon="LogOut" :size="20" aria-hidden="true" />
             </template>
           </sky-settings-row>
           <sky-settings-row
@@ -1744,7 +1774,7 @@ onBeforeUnmount(() => {
             @activate="deleteAccountDialogOpened = true"
           >
             <template #leading>
-              <Trash2 :size="20" aria-hidden="true" />
+              <SkyIcon :icon="Trash2" :size="20" aria-hidden="true" />
             </template>
           </sky-settings-row>
         </sky-settings-group>
@@ -1764,7 +1794,7 @@ onBeforeUnmount(() => {
             role="img"
             :aria-label="ownPhotoLabel()"
           />
-          <span><Flame :size="16" fill="currentColor" /></span>
+          <span><SkyIcon :icon="Flame" :size="16" fill="currentColor" /></span>
         </div>
         <div
           v-if="draftPhotos.length > 1"
@@ -1772,7 +1802,8 @@ onBeforeUnmount(() => {
           role="group"
           :aria-label="phone.t('Apps.flare.profilePhotos')"
         >
-          <button
+          <SkyButton
+            variant="content"
             v-for="(photo, index) in draftPhotos"
             :key="photo.id"
             type="button"
@@ -1787,36 +1818,46 @@ onBeforeUnmount(() => {
             @click="selectOwnPhoto(index)"
           >
             <i :style="photoStyle(photo.url)" aria-hidden="true" />
-          </button>
+          </SkyButton>
         </div>
         <h1>{{ profileDraft.name }}, {{ profileDraft.age }}</h1>
         <p>{{ profileDraft.bio }}</p>
-        <button
+        <SkyButton
+          variant="content"
           v-if="!flare.profile.discoverable"
           type="button"
           class="flare-hidden-banner"
           @click="profileSettings = true"
         >
-          <EyeOff />
+          <SkyIcon :icon="EyeOff" />
           <span>
             <strong>{{ phone.t('Apps.flare.discoveryOffTitle') }}</strong>
             <small>{{ phone.t('Apps.flare.discoveryOffShort') }}</small>
           </span>
-          <ChevronRight />
-        </button>
+          <SkyIcon :icon="ChevronRight" />
+        </SkyButton>
         <div class="flare-profile-controls">
-          <button type="button" @click="profileSettings = true">
-            <span><Settings2 /></span>
+          <SkyButton
+            variant="content"
+            type="button"
+            @click="profileSettings = true"
+          >
+            <span><SkyIcon :icon="Settings2" /></span>
             {{ phone.t('Apps.flare.settings') }}
-          </button>
-          <button type="button" class="primary" @click="profileEditing = true">
-            <span><Pencil /></span>
+          </SkyButton>
+          <SkyButton
+            variant="content"
+            type="button"
+            class="primary"
+            @click="profileEditing = true"
+          >
+            <span><SkyIcon :icon="Pencil" /></span>
             {{ phone.t('Apps.flare.editProfile') }}
-          </button>
-          <button type="button" @click="shareProfile">
-            <span><Share2 /></span>
+          </SkyButton>
+          <SkyButton variant="content" type="button" @click="shareProfile">
+            <span><SkyIcon :icon="Share2" /></span>
             {{ phone.t('Apps.easyShare.shareProfile') }}
-          </button>
+          </SkyButton>
         </div>
         <sky-card
           component="button"
@@ -1828,14 +1869,14 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.flare.editRelationshipGoal')"
           @click="openProfileGoalEditor"
         >
-          <span><Heart fill="currentColor" /></span>
+          <span><SkyIcon :icon="Heart" fill="currentColor" /></span>
           <div>
             <strong>{{
               phone.t(`Apps.flare.lookingFor.${profileDraft.lookingFor}`)
             }}</strong>
             <small>{{ phone.t('Apps.flare.profileGoalBody') }}</small>
           </div>
-          <ChevronRight />
+          <SkyIcon :icon="ChevronRight" />
         </sky-card>
       </section>
 
@@ -1870,7 +1911,7 @@ onBeforeUnmount(() => {
                 "
                 @click="removeDraftPhoto(photo.id)"
               >
-                <X />
+                <SkyIcon :icon="X" />
               </sky-link>
             </div>
             <sky-button
@@ -1883,7 +1924,7 @@ onBeforeUnmount(() => {
               :aria-expanded="photoSourceOpened"
               @click="openPhotoSourcePicker"
             >
-              <Plus />
+              <SkyIcon :icon="Plus" />
               <span>{{ phone.t('Apps.flare.addPhotos') }}</span>
             </sky-button>
           </div>
@@ -1970,7 +2011,7 @@ onBeforeUnmount(() => {
               phone.t('Apps.flare.tabs.discover')
             }}</template>
             <template #icon
-              ><sky-icon><Flame fill="currentColor" /></sky-icon
+              ><sky-icon><SkyIcon :icon="Flame" fill="currentColor" /></sky-icon
             ></template>
           </sky-tab-button>
           <sky-tab-button
@@ -1981,7 +2022,7 @@ onBeforeUnmount(() => {
           >
             <template #label>{{ phone.t('Apps.flare.tabs.explore') }}</template>
             <template #icon
-              ><sky-icon><Grid2X2 /></sky-icon
+              ><sky-icon><SkyIcon :icon="Grid2X2" /></sky-icon
             ></template>
           </sky-tab-button>
           <sky-tab-button
@@ -1993,7 +2034,7 @@ onBeforeUnmount(() => {
             <template #label>{{ phone.t('Apps.flare.tabs.likes') }}</template>
             <template #icon>
               <sky-icon class="flare-tab-icon">
-                <Heart fill="currentColor" />
+                <SkyIcon :icon="Heart" fill="currentColor" />
                 <sky-badge v-if="flare.likes.length" small>{{
                   flare.likes.length
                 }}</sky-badge>
@@ -2009,7 +2050,7 @@ onBeforeUnmount(() => {
             <template #label>{{ phone.t('Apps.flare.tabs.matches') }}</template>
             <template #icon>
               <sky-icon class="flare-tab-icon">
-                <MessageCircle />
+                <SkyIcon :icon="MessageCircle" />
                 <sky-badge v-if="unreadMatches" small>{{
                   unreadMatches
                 }}</sky-badge>
@@ -2024,7 +2065,7 @@ onBeforeUnmount(() => {
           >
             <template #label>{{ phone.t('Apps.flare.tabs.profile') }}</template>
             <template #icon
-              ><sky-icon><UserRound /></sky-icon
+              ><sky-icon><SkyIcon :icon="UserRound" /></sky-icon
             ></template>
           </sky-tab-button>
         </sky-toolbar-pane>
@@ -2046,9 +2087,13 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Common.close')"
         @click="matchReveal = null"
       >
-        <X />
+        <SkyIcon :icon="X" />
       </SkyButton>
-      <Flame class="flare-match-reveal__flame" fill="currentColor" />
+      <SkyIcon
+        :icon="Flame"
+        class="flare-match-reveal__flame"
+        fill="currentColor"
+      />
       <h2>{{ phone.t('Apps.flare.itsAMatch') }}</h2>
       <p>
         {{
@@ -2057,7 +2102,7 @@ onBeforeUnmount(() => {
       </p>
       <div class="flare-match-pair">
         <i :style="ownPhotoStyle()" />
-        <span><Heart fill="currentColor" /></span>
+        <span><SkyIcon :icon="Heart" fill="currentColor" /></span>
         <i :style="profilePhotoStyle(matchReveal.profile)" />
       </div>
       <div class="flare-match-actions">
@@ -2120,7 +2165,7 @@ onBeforeUnmount(() => {
               :link-props="{ type: 'button' }"
               @click="closeChoice"
             >
-              <X />
+              <SkyIcon :icon="X" />
             </sky-link>
           </header>
           <sky-list
@@ -2147,7 +2192,8 @@ onBeforeUnmount(() => {
               @click="selectChoice(option.value)"
             >
               <template #after>
-                <Check
+                <SkyIcon
+                  :icon="Check"
                   v-if="activeChoiceValue === option.value"
                   class="flare-choice-check"
                   aria-hidden="true"
@@ -2279,7 +2325,7 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid color-mix(in srgb, var(--flare-ink) 9%, transparent);
 }
 .flare-navbar :deep(.sky-link) {
-  color: var(--flare-muted);
+  color: var(--sky-button-text, #ffffff);
 }
 .flare-navbar :deep(.flare-navbar-done) {
   color: var(--flare);
@@ -3404,7 +3450,7 @@ onBeforeUnmount(() => {
   height: 22px;
 }
 .flare-tabbar :deep(.sky-tab-button--active) {
-  color: var(--flare) !important;
+  color: var(--sky-button-text, #ffffff) !important;
 }
 .flare-tab-icon {
   position: relative;

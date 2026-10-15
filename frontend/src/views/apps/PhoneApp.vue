@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   SkyBlock,
   SkyButton,
@@ -865,7 +867,7 @@ onBeforeUnmount(() => {
               class="phone-video-request"
             >
               <span class="phone-video-request__icon"
-                ><Video :size="24"
+                ><SkyIcon :icon="Video" :size="24"
               /></span>
               <strong>{{ phone.t('Realtime.videoRequest') }}</strong>
               <p>{{ phone.t('Realtime.videoConsent') }}</p>
@@ -875,7 +877,7 @@ onBeforeUnmount(() => {
                   rounded
                   :disabled="callVideoPending"
                   @click="videoAction('decline')"
-                  ><Phone :size="18" />{{
+                  ><SkyIcon :icon="Phone" :size="18" />{{
                     phone.t('Realtime.keepAudio')
                   }}</SkyButton
                 >
@@ -884,7 +886,7 @@ onBeforeUnmount(() => {
                   class="phone-video-request__accept"
                   :disabled="callVideoPending"
                   @click="videoAction('accept')"
-                  ><Video :size="18" />{{
+                  ><SkyIcon :icon="Video" :size="18" />{{
                     phone.t('Apps.phone.faceTime')
                   }}</SkyButton
                 >
@@ -925,7 +927,7 @@ onBeforeUnmount(() => {
                   variant="danger"
                   @click="calls.hangup()"
                 >
-                  <PhoneOff />
+                  <SkyIcon :icon="PhoneOff" />
                 </sky-button>
                 <sky-button
                   glass
@@ -954,7 +956,7 @@ onBeforeUnmount(() => {
                     <span v-if="contactInitials(calls.activeCall.otherNumber)">
                       {{ contactInitials(calls.activeCall.otherNumber) }}
                     </span>
-                    <UserRound v-else />
+                    <SkyIcon :icon="UserRound" v-else />
                   </span>
                   <strong>{{
                     phone.t(
@@ -971,7 +973,7 @@ onBeforeUnmount(() => {
                   :disabled="!calls.activeCall.otherNumber"
                   @click="messageActiveCaller"
                 >
-                  <MessageCircle />
+                  <SkyIcon :icon="MessageCircle" />
                   <strong>{{ phone.t('Apps.phone.sendMessage') }}</strong>
                 </sky-button>
 
@@ -981,7 +983,7 @@ onBeforeUnmount(() => {
                   class="phone-call-more__item phone-call-more__item--danger"
                   @click="removeActiveCallerContact"
                 >
-                  <Delete />
+                  <SkyIcon :icon="Delete" />
                   <strong>{{ phone.t('Apps.phone.removeContact') }}</strong>
                 </sky-button>
 
@@ -991,7 +993,7 @@ onBeforeUnmount(() => {
                   :disabled="!calls.activeCall.otherNumber"
                   @click="confirmBlockNumber(calls.activeCall.otherNumber)"
                 >
-                  <PhoneOff />
+                  <SkyIcon :icon="PhoneOff" />
                   <strong>{{ phone.t('Apps.phone.blockCaller') }}</strong>
                 </sky-button>
               </div>
@@ -1021,7 +1023,7 @@ onBeforeUnmount(() => {
                 "
                 @click="toggleCallSpeaker"
               >
-                <Volume2 />
+                <SkyIcon :icon="Volume2" />
                 <span>{{ phone.t('Apps.phone.speaker') }}</span>
               </sky-button>
               <sky-button
@@ -1046,7 +1048,7 @@ onBeforeUnmount(() => {
                 "
                 @click="handleFaceTime"
               >
-                <Video />
+                <SkyIcon :icon="Video" />
                 <span>{{ phone.t('Apps.phone.faceTime') }}</span>
               </sky-button>
               <sky-button
@@ -1073,7 +1075,7 @@ onBeforeUnmount(() => {
                 "
                 @click="toggleCallMute"
               >
-                <MicOff />
+                <SkyIcon :icon="MicOff" />
                 <span>{{ phone.t('Apps.phone.mute') }}</span>
               </sky-button>
 
@@ -1086,8 +1088,8 @@ onBeforeUnmount(() => {
                     locked ? emit('unlock') : (callMoreOpened = !callMoreOpened)
                   "
                 >
-                  <LockKeyhole v-if="locked" />
-                  <MoreHorizontal v-else />
+                  <SkyIcon :icon="LockKeyhole" v-if="locked" />
+                  <SkyIcon :icon="MoreHorizontal" v-else />
                   <span>{{
                     phone.t(
                       locked ? 'HardwareButtons.unlock' : 'Apps.phone.more',
@@ -1107,7 +1109,7 @@ onBeforeUnmount(() => {
                     : calls.hangup()
                 "
               >
-                <PhoneOff />
+                <SkyIcon :icon="PhoneOff" />
                 <span>{{
                   phone.t(
                     calls.activeCall.direction === 'incoming' &&
@@ -1128,7 +1130,7 @@ onBeforeUnmount(() => {
                 :disabled="callAnswerPending"
                 @click="answerCall(false)"
               >
-                <Phone />
+                <SkyIcon :icon="Phone" />
                 <span>{{
                   phone.t(
                     incomingVideoCall
@@ -1144,7 +1146,7 @@ onBeforeUnmount(() => {
                 class="phone-call-action"
                 @click="openCallKeypad"
               >
-                <Grid3X3 />
+                <SkyIcon :icon="Grid3X3" />
                 <span>{{ phone.t('Apps.phone.keypad') }}</span>
               </sky-button>
             </div>
@@ -1174,7 +1176,7 @@ onBeforeUnmount(() => {
                 :aria-label="phone.t('Common.back')"
                 @click="closeRecentDetail"
               >
-                <ChevronLeft :size="29" :stroke-width="2.4" />
+                <SkyIcon :icon="ChevronLeft" :size="29" :stroke-width="2.4" />
               </sky-button>
 
               <span class="phone-detail-header-spacer" />
@@ -1207,7 +1209,12 @@ onBeforeUnmount(() => {
                 <span v-else-if="contactInitials(selectedNumber)">{{
                   contactInitials(selectedNumber)
                 }}</span>
-                <UserRound v-else :size="48" :stroke-width="1.8" />
+                <SkyIcon
+                  :icon="UserRound"
+                  v-else
+                  :size="48"
+                  :stroke-width="1.8"
+                />
               </div>
               <h2>{{ selectedDisplayName }}</h2>
               <p
@@ -1249,14 +1256,14 @@ onBeforeUnmount(() => {
             <section v-if="viewingOwnCard" class="phone-profile-content">
               <sky-glass class="phone-own-profile-card">
                 <div>
-                  <span><Phone :size="19" /></span>
+                  <span><SkyIcon :icon="Phone" :size="19" /></span>
                   <p>
                     <small>{{ phone.t('Apps.phone.myNumber') }}</small>
                     <strong>{{ formatPhoneNumber(selectedNumber) }}</strong>
                   </p>
                 </div>
                 <div>
-                  <span><Smartphone :size="19" /></span>
+                  <span><SkyIcon :icon="Smartphone" :size="19" /></span>
                   <p>
                     <small>{{ phone.t('Apps.phone.device') }}</small>
                     <strong>{{ phone.device?.name }}</strong>
@@ -1264,15 +1271,20 @@ onBeforeUnmount(() => {
                 </div>
               </sky-glass>
               <sky-glass class="phone-profile-card phone-profile-single-option">
-                <button type="button" @click="shareOwnProfile">
+                <SkyButton
+                  variant="content"
+                  type="button"
+                  @click="shareOwnProfile"
+                >
                   <span>{{ phone.t('Apps.easyShare.shareProfile') }}</span>
-                </button>
+                </SkyButton>
               </sky-glass>
             </section>
 
             <section v-else class="phone-profile-content">
               <sky-glass class="phone-profile-card phone-profile-info-card">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="selectedContact?.canCall === false"
                   @click="startCall(selectedNumber)"
@@ -1281,9 +1293,10 @@ onBeforeUnmount(() => {
                     <small>{{ phone.t('Apps.phone.mobile') }}</small>
                     <strong>{{ formatPhoneNumber(selectedNumber) }}</strong>
                   </span>
-                  <Phone :size="21" fill="currentColor" />
-                </button>
-                <button
+                  <SkyIcon :icon="Phone" :size="21" fill="currentColor" />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="selectedContact?.canMessage === false"
                   @click="openMessage(selectedNumber)"
@@ -1292,8 +1305,8 @@ onBeforeUnmount(() => {
                     <small>{{ phone.t('Apps.phone.messagesProfile') }}</small>
                     <strong>{{ selectedDisplayName }}</strong>
                   </span>
-                  <ChevronRight :size="23" />
-                </button>
+                  <SkyIcon :icon="ChevronRight" :size="23" />
+                </SkyButton>
                 <div class="phone-profile-notes">
                   <span>{{ phone.t('Apps.phone.notes') }}</span>
                   <p v-if="selectedContact?.notes">
@@ -1303,21 +1316,24 @@ onBeforeUnmount(() => {
               </sky-glass>
 
               <sky-glass class="phone-profile-card phone-profile-options-card">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="selectedContact?.canMessage === false"
                   @click="openMessage(selectedNumber)"
                 >
                   <span>{{ phone.t('Apps.phone.sendMessage') }}</span>
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="!selectedContact"
                   @click="shareSelectedContact"
                 >
                   <span>{{ phone.t('Apps.phone.shareContact') }}</span>
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="!selectedContact"
                   @click="toggleSelectedFavorite"
@@ -1329,16 +1345,17 @@ onBeforeUnmount(() => {
                         : 'Apps.phone.addFavorite',
                     )
                   }}</span>
-                </button>
+                </SkyButton>
               </sky-glass>
 
               <sky-glass class="phone-profile-card phone-profile-single-option">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   @click="confirmBlockNumber(selectedNumber)"
                 >
                   <span>{{ phone.t('Apps.phone.blockContact') }}</span>
-                </button>
+                </SkyButton>
               </sky-glass>
 
               <sky-glass class="phone-history-card">
@@ -1357,11 +1374,12 @@ onBeforeUnmount(() => {
                       ].includes(recent.status),
                     }"
                   >
-                    <PhoneIncoming
+                    <SkyIcon
+                      :icon="PhoneIncoming"
                       v-if="recent.direction === 'incoming'"
                       :size="17"
                     />
-                    <PhoneOutgoing v-else :size="17" />
+                    <SkyIcon :icon="PhoneOutgoing" v-else :size="17" />
                   </span>
                   <span class="phone-history-copy">
                     <strong>{{ recentStatus(recent) }}</strong>
@@ -1409,7 +1427,7 @@ onBeforeUnmount(() => {
                 :highlight="false"
                 class="phone-recents-search"
               >
-                <Search :size="21" />
+                <SkyIcon :icon="Search" :size="21" />
                 <input
                   :value="recentQuery"
                   :placeholder="phone.t('Apps.phone.searchRecents')"
@@ -1437,9 +1455,15 @@ onBeforeUnmount(() => {
                   <span v-else-if="contactInitials(recent.other_number)">{{
                     contactInitials(recent.other_number)
                   }}</span>
-                  <UserRound v-else :size="30" :stroke-width="1.8" />
+                  <SkyIcon
+                    :icon="UserRound"
+                    v-else
+                    :size="30"
+                    :stroke-width="1.8"
+                  />
                 </div>
-                <button
+                <SkyButton
+                  variant="content"
                   class="phone-recent-call"
                   type="button"
                   :disabled="!recent.other_number"
@@ -1457,14 +1481,15 @@ onBeforeUnmount(() => {
                     {{ contactNameFor(recent.other_number) }}
                   </span>
                   <span class="phone-recent-meta">
-                    <PhoneIncoming
+                    <SkyIcon
+                      :icon="PhoneIncoming"
                       v-if="recent.direction === 'incoming'"
                       :size="14"
                     />
-                    <PhoneOutgoing v-else :size="14" />
+                    <SkyIcon :icon="PhoneOutgoing" v-else :size="14" />
                     {{ recentStatus(recent) }}
                   </span>
-                </button>
+                </SkyButton>
                 <time class="phone-recent-date">{{
                   formatRecentDate(recent.created_at)
                 }}</time>
@@ -1476,7 +1501,7 @@ onBeforeUnmount(() => {
                   :aria-label="phone.t('Apps.phone.contactDetails')"
                   @click="openRecentDetail(recent.other_number)"
                 >
-                  <Info :size="21" />
+                  <SkyIcon :icon="Info" :size="21" />
                 </sky-glass>
               </article>
             </div>
@@ -1499,7 +1524,7 @@ onBeforeUnmount(() => {
                   :aria-label="phone.t('Apps.phone.addContact')"
                   @click="openContact()"
                 >
-                  <Plus :size="28" />
+                  <SkyIcon :icon="Plus" :size="28" />
                 </sky-glass>
               </div>
 
@@ -1508,7 +1533,7 @@ onBeforeUnmount(() => {
                 :highlight="false"
                 class="phone-contacts-search"
               >
-                <Search :size="21" />
+                <SkyIcon :icon="Search" :size="21" />
                 <input
                   :value="query"
                   :placeholder="phone.t('Common.search')"
@@ -1518,9 +1543,14 @@ onBeforeUnmount(() => {
               </sky-glass>
             </header>
 
-            <button class="phone-my-card" type="button" @click="openMyCard">
+            <SkyButton
+              variant="content"
+              class="phone-my-card"
+              type="button"
+              @click="openMyCard"
+            >
               <div class="phone-contact-avatar">
-                <UserRound :size="30" :stroke-width="1.8" />
+                <SkyIcon :icon="UserRound" :size="30" :stroke-width="1.8" />
               </div>
               <span>
                 <strong>{{ phone.t('Apps.phone.myCard') }}</strong>
@@ -1528,7 +1558,7 @@ onBeforeUnmount(() => {
                   formatPhoneNumber(phone.device.sim.number)
                 }}</small>
               </span>
-            </button>
+            </SkyButton>
 
             <div v-if="groupedContacts.length" class="phone-contact-groups">
               <section
@@ -1537,10 +1567,11 @@ onBeforeUnmount(() => {
                 class="phone-contact-group phone-contact-group--favorites"
               >
                 <h2>
-                  <Star :size="13" fill="currentColor" />
+                  <SkyIcon :icon="Star" :size="13" fill="currentColor" />
                   {{ phone.t('Apps.phone.favorites') }}
                 </h2>
-                <button
+                <SkyButton
+                  variant="content"
                   v-for="contact in favoriteContacts"
                   :key="`favorite-${contact.id}`"
                   class="phone-contact-row"
@@ -1563,7 +1594,7 @@ onBeforeUnmount(() => {
                       phone.t('Apps.phone.officialContact')
                     }}</small>
                   </span>
-                </button>
+                </SkyButton>
               </section>
               <section
                 v-for="group in groupedContacts"
@@ -1574,7 +1605,8 @@ onBeforeUnmount(() => {
                 class="phone-contact-group"
               >
                 <h2>{{ group.letter }}</h2>
-                <button
+                <SkyButton
+                  variant="content"
                   v-for="contact in group.contacts"
                   :key="contact.id"
                   class="phone-contact-row"
@@ -1597,7 +1629,7 @@ onBeforeUnmount(() => {
                       phone.t('Apps.phone.officialContact')
                     }}</small>
                   </span>
-                </button>
+                </SkyButton>
               </section>
             </div>
             <sky-block v-else class="text-center text-[#8e8e93]">{{
@@ -1609,22 +1641,24 @@ onBeforeUnmount(() => {
               class="phone-contact-index"
               :aria-label="phone.t('Apps.phone.contactIndex')"
             >
-              <button
+              <SkyButton
+                variant="content"
                 v-if="favoriteContacts.length"
                 type="button"
                 :aria-label="phone.t('Apps.phone.favorites')"
                 @click="scrollToContactGroup('favorites')"
               >
-                <Star :size="9" fill="currentColor" />
-              </button>
-              <button
+                <SkyIcon :icon="Star" :size="9" fill="currentColor" />
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 v-for="letter in contactAlphabet"
                 :key="letter"
                 type="button"
                 @click="scrollToContactGroup(letter)"
               >
                 {{ letter }}
-              </button>
+              </SkyButton>
             </nav>
           </section>
         </template>
@@ -1687,7 +1721,7 @@ onBeforeUnmount(() => {
                 type="button"
                 @click="startCall(keypad)"
               >
-                <Phone :size="31" fill="currentColor" />
+                <SkyIcon :icon="Phone" :size="31" fill="currentColor" />
               </sky-glass>
               <sky-glass
                 v-if="keypad"
@@ -1697,7 +1731,7 @@ onBeforeUnmount(() => {
                 :aria-label="phone.t('Common.delete')"
                 @click="keypad = keypad.slice(0, -1)"
               >
-                <Delete :size="27" />
+                <SkyIcon :icon="Delete" :size="27" />
               </sky-glass>
             </div>
           </section>
@@ -1754,7 +1788,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Common.cancel')"
             @click="editorOpened = false"
           >
-            <X :size="27" />
+            <SkyIcon :icon="X" :size="27" />
           </sky-button>
           <h2>
             {{
@@ -1775,7 +1809,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Common.save')"
             @click="saveContact"
           >
-            <Check :size="28" :stroke-width="2.2" />
+            <SkyIcon :icon="Check" :size="28" :stroke-width="2.2" />
           </sky-button>
         </header>
 
@@ -1800,7 +1834,12 @@ onBeforeUnmount(() => {
                 <span v-else-if="contactEditorInitials">{{
                   contactEditorInitials
                 }}</span>
-                <UserRound v-else :size="72" :stroke-width="1.35" />
+                <SkyIcon
+                  :icon="UserRound"
+                  v-else
+                  :size="72"
+                  :stroke-width="1.35"
+                />
               </sky-glass>
               <sky-button
                 glass
@@ -1810,7 +1849,7 @@ onBeforeUnmount(() => {
                 :aria-label="phone.t('Apps.phone.removePhoto')"
                 @click="removeContactPhoto"
               >
-                <Delete :size="25" />
+                <SkyIcon :icon="Delete" :size="25" />
                 <span>{{ phone.t('Apps.phone.removePhoto') }}</span>
               </sky-button>
             </div>
@@ -1825,7 +1864,7 @@ onBeforeUnmount(() => {
                 tonal
                 @click="openContactPhotoPicker('photos')"
               >
-                <Images :size="18" />
+                <SkyIcon :icon="Images" :size="18" />
                 {{ phone.t('Apps.phone.chooseGallery') }}
               </sky-button>
               <sky-button
@@ -1835,7 +1874,7 @@ onBeforeUnmount(() => {
                 tonal
                 @click="openContactPhotoPicker('camera')"
               >
-                <Camera :size="18" />
+                <SkyIcon :icon="Camera" :size="18" />
                 {{ phone.t('Apps.phone.takePhoto') }}
               </sky-button>
             </div>
@@ -1885,7 +1924,7 @@ onBeforeUnmount(() => {
             >
               <template #media>
                 <span class="phone-contact-editor__add-icon"
-                  ><Plus :size="19"
+                  ><SkyIcon :icon="Plus" :size="19"
                 /></span>
               </template>
             </sky-field>
@@ -4204,7 +4243,7 @@ onBeforeUnmount(() => {
 }
 .phone-video-request__accept {
   background: var(--sky-success);
-  color: var(--sky-action-surface);
+  color: var(--sky-button-text, #ffffff);
 }
 .phone-video-waiting {
   color: var(--sky-muted);

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton } from '@/ui'
+
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePhoneStore } from '@/stores/phone'
@@ -24,7 +26,8 @@ function goHome(): void {
 </script>
 
 <template>
-  <button
+  <SkyButton
+    variant="content"
     class="phone-home-indicator"
     :class="{ 'phone-home-indicator--interactive': canGoHome }"
     type="button"
@@ -32,5 +35,5 @@ function goHome(): void {
     @click.stop="goHome"
   >
     <span aria-hidden="true"></span>
-  </button>
+  </SkyButton>
 </template>

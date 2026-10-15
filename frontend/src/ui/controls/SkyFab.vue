@@ -11,6 +11,7 @@ const props = withDefaults(
     component?: 'a' | 'button'
     disabled?: boolean
     href?: string
+    glassMaterial?: 'clear' | 'regular'
     text?: string
     textPosition?: 'after' | 'before'
     type?: 'button' | 'reset' | 'submit'
@@ -21,6 +22,7 @@ const props = withDefaults(
     component: 'button',
     disabled: false,
     href: undefined,
+    glassMaterial: 'clear',
     text: '',
     textPosition: 'after',
     type: 'button',
@@ -66,6 +68,7 @@ function handleClick(event: MouseEvent): void {
   <SkyGlass
     v-bind="{ ...$attrs, ...elementProps }"
     :component="component"
+    :material="variant === 'glass' ? glassMaterial : 'regular'"
     :disabled="disabled"
     :href="href"
     :type="type"

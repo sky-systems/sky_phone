@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { SkyButton } from '@/ui'
+
 import {
   SkyAppPage as kPage,
   SkyBlock as kBlock,
-  SkyButton as kButton,
   SkySpinner as kPreloader,
 } from '@/ui'
 import {
@@ -580,9 +581,9 @@ watch(() => catalog.openRequests[props.app.id], flushOpenRequest, {
         <strong>{{ phone.t('Apps.customApps.unavailableTitle') }}</strong>
         <p>{{ phone.t('Apps.customApps.unavailableBody') }}</p>
       </k-block>
-      <k-button rounded @click="closeApp">
+      <SkyButton rounded @click="closeApp">
         {{ phone.t('Apps.customApps.close') }}
-      </k-button>
+      </SkyButton>
     </div>
   </k-page>
 </template>

@@ -68,13 +68,11 @@ describe('SkyToolbar', () => {
 
     expect(html).toContain('class="sky-link"')
     expect(controls).toMatch(
-      /\.sky-toolbar \.sky-link\s*\{\s*color: inherit;\s*\}/,
+      /\.sky-toolbar \.sky-link\s*\{\s*--sky-button-text: var\(--sky-action-glass-text, #ffffff\);\s*color: var\(--sky-button-text\);\s*background: transparent;\s*\}/,
     )
     expect(controls).toMatch(
       /\.sky-glass\s*\{[^}]*color: var\(--sky-text, #000000\);/s,
     )
-    expect(controls).toMatch(
-      /\.sky-link\s*\{[^}]*color: var\(--sky-app-accent, #007aff\);/s,
-    )
+    expect(controls).toMatch(/\.sky-link\s*\{[^}]*color: #ffffff;/s)
   })
 })

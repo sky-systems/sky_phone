@@ -266,16 +266,14 @@ describe('SkyNavbar', () => {
     )
   })
 
-  it('inherits the Konsta iOS foreground for navbar and toolbar actions', () => {
+  it('adapts neutral glass actions while keeping generic action defaults white', () => {
     expect(foundationStyles).toMatch(
       /\.sky-navbar__back\s*\{[^}]*color:\s*inherit;/s,
     )
     expect(controlsStyles).toMatch(
-      /\.sky-navbar \.sky-link,\s*\.sky-navbar \.sky-navbar-back-link,\s*\.sky-toolbar \.sky-link\s*\{[^}]*color:\s*inherit;/s,
+      /\.sky-navbar \.sky-link,\s*\.sky-navbar \.sky-navbar-back-link,\s*\.sky-toolbar \.sky-link\s*\{[^}]*--sky-button-text:\s*var\(--sky-action-glass-text, #ffffff\);[^}]*color:\s*var\(--sky-button-text\);/s,
     )
-    expect(controlsStyles).toMatch(
-      /\.sky-link\s*\{[^}]*color:\s*var\(--sky-app-accent, #007aff\);/s,
-    )
+    expect(controlsStyles).toMatch(/\.sky-link\s*\{[^}]*color:\s*#ffffff;/s)
     expect(controlsStyles).toMatch(
       /\.sky-navbar-back-link:active:not\(:disabled\)\s*\{[^}]*opacity:\s*0\.5;[^}]*transition-duration:\s*0ms;/s,
     )

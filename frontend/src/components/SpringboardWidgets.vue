@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import {
   BatteryCharging,
   Cloud,
@@ -111,7 +113,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="widgets-stack">
-    <button
+    <SkyButton
+      variant="content"
       type="button"
       class="widget widget--weather"
       :aria-label="phone.t('Apps.weather.name')"
@@ -123,10 +126,11 @@ onBeforeUnmount(() => {
         <small>{{ weatherCondition }}</small>
       </div>
       <component :is="weatherIcon" :size="48" aria-hidden="true" />
-    </button>
+    </SkyButton>
 
     <div class="widget-row">
-      <button
+      <SkyButton
+        variant="content"
         type="button"
         class="widget widget--calendar"
         :aria-label="phone.t('Apps.calendar.name')"
@@ -135,9 +139,9 @@ onBeforeUnmount(() => {
         <span>{{ date }}</span>
         <strong>{{ day }}</strong>
         <small>{{ calendarEventLabel }}</small>
-      </button>
+      </SkyButton>
       <article class="widget widget--battery">
-        <BatteryCharging :size="25" aria-hidden="true" />
+        <SkyIcon :icon="BatteryCharging" :size="25" aria-hidden="true" />
         <strong>78%</strong>
         <small>{{ phone.t('Home.widgets.battery.label') }}</small>
       </article>
@@ -149,7 +153,8 @@ onBeforeUnmount(() => {
         <strong>{{ phone.t('Home.widgets.media.title') }}</strong>
         <small>{{ phone.t('Home.widgets.media.artist') }}</small>
       </div>
-      <button
+      <SkyButton
+        variant="content"
         type="button"
         :aria-label="
           phone.t(
@@ -158,10 +163,10 @@ onBeforeUnmount(() => {
         "
         @click="playing = !playing"
       >
-        <Pause v-if="playing" :size="20" fill="currentColor" />
-        <Play v-else :size="20" fill="currentColor" />
-      </button>
-      <SkipForward :size="19" aria-hidden="true" />
+        <SkyIcon :icon="Pause" v-if="playing" :size="20" fill="currentColor" />
+        <SkyIcon :icon="Play" v-else :size="20" fill="currentColor" />
+      </SkyButton>
+      <SkyIcon :icon="SkipForward" :size="19" aria-hidden="true" />
     </article>
   </div>
 </template>

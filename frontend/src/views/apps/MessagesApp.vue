@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   ArrowUpCircle,
   Ban,
@@ -1106,7 +1108,7 @@ onBeforeUnmount(() => {
         :title="phone.t('Apps.messages.noSim')"
         :body="phone.t('Apps.messages.noSimBody')"
       >
-        <template #icon><MessageCircle :size="35" /></template>
+        <template #icon><SkyIcon :icon="MessageCircle" :size="35" /></template>
       </SkyEmptyState>
     </SkyScrollArea>
   </SkyAppPage>
@@ -1147,7 +1149,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.messages.inboxActions')"
           @click="openInboxMenu"
         >
-          <Ellipsis :size="22" />
+          <SkyIcon :icon="Ellipsis" :size="22" />
         </SkyLink>
       </template>
     </SkyNavbar>
@@ -1226,7 +1228,8 @@ onBeforeUnmount(() => {
                     ),
                   }"
                 >
-                  <Check
+                  <SkyIcon
+                    :icon="Check"
                     v-if="selectedNumbers.includes(conversation.phoneNumber)"
                     :size="13"
                   />
@@ -1242,7 +1245,7 @@ onBeforeUnmount(() => {
               <time>{{
                 formatConversationDate(conversation.lastMessageAt)
               }}</time>
-              <ChevronRight :size="15" />
+              <SkyIcon :icon="ChevronRight" :size="15" />
             </span>
           </template>
           <template #subtitle>
@@ -1267,7 +1270,7 @@ onBeforeUnmount(() => {
             : phone.t('Apps.messages.noMessagesBody')
         "
       >
-        <template #icon><MessageCircle :size="32" /></template>
+        <template #icon><SkyIcon :icon="MessageCircle" :size="32" /></template>
         <template v-if="!search && !showUnreadOnly" #actions>
           <SkyButton rounded @click="beginCompose">
             {{ phone.t('Apps.messages.compose') }}
@@ -1294,7 +1297,7 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Apps.messages.compose')"
         @click="beginCompose"
       >
-        <template #icon><SquarePen :size="21" /></template>
+        <template #icon><SkyIcon :icon="SquarePen" :size="21" /></template>
       </SkyFab>
     </SkyToolbar>
 
@@ -1311,7 +1314,7 @@ onBeforeUnmount(() => {
         :disabled="!selectedNumbers.length"
         @click="deleteSelectedConversations"
       >
-        <Trash2 :size="18" />
+        <SkyIcon :icon="Trash2" :size="18" />
         {{ phone.t('Apps.messages.deleteSelected') }}
       </SkyButton>
     </SkyPillNavigation>
@@ -1398,7 +1401,7 @@ onBeforeUnmount(() => {
         class="messages-number-action"
         @click="chooseRecipient(composerNumber)"
       >
-        <MessageCircle :size="17" />
+        <SkyIcon :icon="MessageCircle" :size="17" />
         {{ composerNumber }}
       </SkyButton>
     </SkyScrollArea>
@@ -1427,7 +1430,8 @@ onBeforeUnmount(() => {
       @back="goBack"
     >
       <template #title>
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="messages-sky-thread-contact"
           :aria-label="phone.t('Apps.messages.contactDetails')"
@@ -1456,8 +1460,8 @@ onBeforeUnmount(() => {
             </span>
           </span>
           <span>{{ activeTitle }}</span>
-          <ChevronRight :size="13" />
-        </button>
+          <SkyIcon :icon="ChevronRight" :size="13" />
+        </SkyButton>
       </template>
     </SkyNavbar>
 
@@ -1515,7 +1519,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.messages.call')"
             @click="callActiveContact"
           >
-            <PhoneIcon :size="22" />
+            <SkyIcon :icon="PhoneIcon" :size="22" />
           </SkyButton>
           <SkyButton
             v-if="activeCanMessage"
@@ -1525,7 +1529,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.messages.messageAction')"
             @click="contactDetailsOpen = false"
           >
-            <MessageCircle :size="22" />
+            <SkyIcon :icon="MessageCircle" :size="22" />
           </SkyButton>
           <SkyButton
             v-if="activeContactEmail"
@@ -1535,7 +1539,7 @@ onBeforeUnmount(() => {
             :aria-label="phone.t('Apps.phone.mail')"
             @click="mailActiveContact"
           >
-            <Mail :size="22" />
+            <SkyIcon :icon="Mail" :size="22" />
           </SkyButton>
         </div>
         <SkySettingsGroup
@@ -1577,7 +1581,9 @@ onBeforeUnmount(() => {
             "
             @activate="openActiveContactInPhone"
           >
-            <template #leading><ContactRound :size="20" /></template>
+            <template #leading
+              ><SkyIcon :icon="ContactRound" :size="20"
+            /></template>
           </SkySettingsRow>
           <SkySettingsRow
             kind="action"
@@ -1585,7 +1591,7 @@ onBeforeUnmount(() => {
             :title="phone.t('Apps.messages.blockContact')"
             @activate="confirmBlockActiveContact"
           >
-            <template #leading><Ban :size="20" /></template>
+            <template #leading><SkyIcon :icon="Ban" :size="20" /></template>
           </SkySettingsRow>
         </SkySettingsGroup>
       </SkyScrollArea>
@@ -1666,7 +1672,7 @@ onBeforeUnmount(() => {
         type="button"
         @click="openMediaApp('photos', 'photo')"
       >
-        <span><Images :size="20" /></span>
+        <span><SkyIcon :icon="Images" :size="20" /></span>
         {{ phone.t('Apps.messages.attachPhoto') }}
       </SkyGlass>
       <SkyGlass
@@ -1674,7 +1680,7 @@ onBeforeUnmount(() => {
         type="button"
         @click="openMediaApp('camera', 'photo')"
       >
-        <span><Camera :size="20" /></span>
+        <span><SkyIcon :icon="Camera" :size="20" /></span>
         {{ phone.t('Apps.messages.takePhoto') }}
       </SkyGlass>
       <SkyGlass component="button" type="button" @click="openEmojiPicker">
@@ -1682,11 +1688,11 @@ onBeforeUnmount(() => {
         {{ phone.t('Apps.messages.emoji') }}
       </SkyGlass>
       <SkyGlass component="button" type="button" @click="openContactPicker">
-        <span><ContactRound :size="20" /></span>
+        <span><SkyIcon :icon="ContactRound" :size="20" /></span>
         {{ phone.t('Apps.messages.shareContact') }}
       </SkyGlass>
       <SkyGlass component="button" type="button" @click="openGifPicker">
-        <span><ImagePlay :size="20" /></span>
+        <span><SkyIcon :icon="ImagePlay" :size="20" /></span>
         {{ phone.t('Apps.messages.attachGif') }}
       </SkyGlass>
       <SkyGlass
@@ -1694,7 +1700,7 @@ onBeforeUnmount(() => {
         type="button"
         @click="openMediaApp('photos', 'video')"
       >
-        <span><Video :size="20" /></span>
+        <span><SkyIcon :icon="Video" :size="20" /></span>
         {{ phone.t('Apps.messages.attachVideo') }}
       </SkyGlass>
     </section>
@@ -1790,7 +1796,8 @@ onBeforeUnmount(() => {
               :key="columnIndex"
               class="messages-gif-column"
             >
-              <button
+              <SkyButton
+                variant="content"
                 v-for="gif in column"
                 :key="gif.id"
                 type="button"
@@ -1802,23 +1809,24 @@ onBeforeUnmount(() => {
                 @click="sendAttachment('gif', gif.url)"
               >
                 <img :src="gif.previewUrl" :alt="gif.title" loading="lazy" />
-              </button>
+              </SkyButton>
             </div>
           </div>
-          <button
+          <SkyButton
+            variant="content"
             v-if="gifResults.length && gifHasMore && !gifLoading"
             type="button"
             class="messages-gif-more"
             @click="loadGifs()"
           >
             {{ phone.t('Apps.messages.loadMore') }}
-          </button>
+          </SkyButton>
           <div v-if="gifError && !gifLoading" class="messages-gif-error">
-            <ImagePlay :size="24" />
+            <SkyIcon :icon="ImagePlay" :size="24" />
             <strong>{{ errorText(gifError) }}</strong>
-            <button type="button" @click="loadGifs(true)">
+            <SkyButton variant="content" type="button" @click="loadGifs(true)">
               {{ phone.t('Apps.messages.retryGifs') }}
-            </button>
+            </SkyButton>
           </div>
           <SkySpinner
             v-if="gifLoading"
@@ -1849,7 +1857,7 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Common.close')"
         @click="shareDraft = null"
       >
-        <X :size="15" />
+        <SkyIcon :icon="X" :size="15" />
       </SkyLink>
     </div>
 
@@ -1865,7 +1873,7 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Apps.messages.cancelRecording')"
         @click="cancelVoiceRecording"
       >
-        <X :size="20" />
+        <SkyIcon :icon="X" :size="20" />
       </SkyLink>
       <span class="messages-recorder__dot" />
       <time>{{ formatRecordingTime(recordingElapsedMs) }}</time>
@@ -1884,7 +1892,7 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Apps.messages.stopAndSend')"
         @click="stopVoiceRecording"
       >
-        <ArrowUpCircle :size="27" :stroke-width="2.4" />
+        <SkyIcon :icon="ArrowUpCircle" :size="27" :stroke-width="2.4" />
       </SkyButton>
     </section>
 
@@ -1925,7 +1933,8 @@ onBeforeUnmount(() => {
             playsinline
             preload="metadata"
           />
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             :disabled="sending"
             :aria-label="
@@ -1935,8 +1944,8 @@ onBeforeUnmount(() => {
             "
             @click="removePendingAttachment(media.id)"
           >
-            <X :size="13" :stroke-width="2.5" />
-          </button>
+            <SkyIcon :icon="X" :size="13" :stroke-width="2.5" />
+          </SkyButton>
         </div>
       </div>
 
@@ -1951,7 +1960,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.messages.moreActions')"
           @click="toggleAttachmentMenu"
         >
-          <Plus :size="24" />
+          <SkyIcon :icon="Plus" :size="24" />
         </SkyGlass>
         <SkyGlass
           component="div"
@@ -1976,7 +1985,7 @@ onBeforeUnmount(() => {
                 :aria-label="phone.t('Apps.messages.send')"
                 @click="sendTextMessage"
               >
-                <ArrowUpCircle :size="29" :stroke-width="2.4" />
+                <SkyIcon :icon="ArrowUpCircle" :size="29" :stroke-width="2.4" />
               </SkyLink>
               <SkyLink
                 v-else-if="!activeServiceLine"
@@ -1987,7 +1996,7 @@ onBeforeUnmount(() => {
                 :aria-label="phone.t('Apps.messages.recordVoice')"
                 @click="startVoiceRecording"
               >
-                <Mic :size="21" :stroke-width="2.3" />
+                <SkyIcon :icon="Mic" :size="21" :stroke-width="2.3" />
               </SkyLink>
             </template>
           </SkyMessagebar>
@@ -2053,7 +2062,7 @@ onBeforeUnmount(() => {
 }
 
 .messages-sky-edit {
-  color: var(--sky-app-accent);
+  color: var(--sky-button-text, #ffffff);
   font-size: 15px;
   font-weight: 650;
 }
@@ -2394,7 +2403,7 @@ onBeforeUnmount(() => {
 }
 
 .messages-sky-messagebar__send {
-  color: var(--sky-app-accent);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .messages-pending-media {
@@ -2452,7 +2461,7 @@ onBeforeUnmount(() => {
   height: 38px;
   flex: 0 0 38px;
   padding: 0;
-  color: var(--sky-app-accent);
+  color: var(--sky-button-text, #ffffff);
 }
 
 .messages-recorder__wave i {

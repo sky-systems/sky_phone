@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Ellipsis,
   Pin,
@@ -240,7 +242,7 @@ onMounted(async () => {
           @click="editNote(note)"
         >
           <template v-if="note.pinned" #after>
-            <Pin :size="15" aria-hidden="true" />
+            <SkyIcon :icon="Pin" :size="15" aria-hidden="true" />
           </template>
           <template #actions>
             <SkyButton
@@ -250,7 +252,7 @@ onMounted(async () => {
               rounded
               @click.stop="requestListDelete(note)"
             >
-              <Trash2 :size="18" aria-hidden="true" />
+              <SkyIcon :icon="Trash2" :size="18" aria-hidden="true" />
             </SkyButton>
           </template>
         </SkyListItem>
@@ -292,7 +294,7 @@ onMounted(async () => {
         @click="createNote"
       >
         <template #icon>
-          <SquarePen :size="21" aria-hidden="true" />
+          <SkyIcon :icon="SquarePen" :size="21" aria-hidden="true" />
         </template>
       </SkyFab>
     </SkyToolbar>
@@ -337,7 +339,7 @@ onMounted(async () => {
           :aria-label="phone.t('Apps.notes.actions')"
           @click="openMenu"
         >
-          <Ellipsis :size="22" />
+          <SkyIcon :icon="Ellipsis" :size="22" />
         </sky-link>
       </template>
     </sky-navbar>
@@ -362,12 +364,17 @@ onMounted(async () => {
       <div class="notes-action-menu">
         <div class="notes-action-menu__choices">
           <SkyButton block large tonal @click="shareNote">
-            <Share2 :size="19" aria-hidden="true" />
+            <SkyIcon :icon="Share2" :size="19" aria-hidden="true" />
             {{ phone.t('Apps.easyShare.name') }}
           </SkyButton>
           <SkyButton block large tonal @click="togglePinned">
-            <PinOff v-if="currentNote?.pinned" :size="19" aria-hidden="true" />
-            <Pin v-else :size="19" aria-hidden="true" />
+            <SkyIcon
+              :icon="PinOff"
+              v-if="currentNote?.pinned"
+              :size="19"
+              aria-hidden="true"
+            />
+            <SkyIcon :icon="Pin" v-else :size="19" aria-hidden="true" />
             {{
               phone.t(
                 currentNote?.pinned ? 'Apps.notes.unpin' : 'Apps.notes.pin',
@@ -381,7 +388,7 @@ onMounted(async () => {
             tonal
             @click="deleteNote"
           >
-            <Trash2 :size="19" aria-hidden="true" />
+            <SkyIcon :icon="Trash2" :size="19" aria-hidden="true" />
             {{ phone.t('Apps.notes.deleteNote') }}
           </SkyButton>
         </div>
@@ -451,7 +458,7 @@ onMounted(async () => {
 }
 
 .notes-action-menu__danger {
-  color: var(--sky-danger);
+  color: var(--sky-button-text, #ffffff);
   background: var(--sky-danger-soft);
 }
 

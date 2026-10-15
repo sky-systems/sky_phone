@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import { Delete } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch, type CSSProperties } from 'vue'
 
@@ -139,7 +141,8 @@ onMounted(() => screen.value?.focus())
       </header>
 
       <div class="passcode-screen__keypad">
-        <button
+        <SkyButton
+          variant="content"
           v-for="key in keypad"
           :key="key.digit"
           type="button"
@@ -151,9 +154,10 @@ onMounted(() => screen.value?.focus())
         >
           <span>{{ key.digit }}</span>
           <small v-if="key.letters">{{ key.letters }}</small>
-        </button>
+        </SkyButton>
         <span aria-hidden="true"></span>
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="passcode-screen__key passcode-screen__key--single"
           aria-label="0"
@@ -161,13 +165,14 @@ onMounted(() => screen.value?.focus())
           @click="enterDigit(0)"
         >
           <span>0</span>
-        </button>
+        </SkyButton>
         <span aria-hidden="true"></span>
       </div>
 
       <footer class="passcode-screen__footer">
         <span aria-hidden="true"></span>
-        <button
+        <SkyButton
+          variant="content"
           v-if="digits.length > 0"
           type="button"
           class="passcode-screen__action"
@@ -175,9 +180,15 @@ onMounted(() => screen.value?.focus())
           :disabled="inputDisabled || digits.length === 0"
           @click="removeDigit"
         >
-          <Delete :size="24" :stroke-width="1.7" aria-hidden="true" />
-        </button>
-        <button
+          <SkyIcon
+            :icon="Delete"
+            :size="24"
+            :stroke-width="1.7"
+            aria-hidden="true"
+          />
+        </SkyButton>
+        <SkyButton
+          variant="content"
           v-else
           type="button"
           class="passcode-screen__action"
@@ -185,7 +196,7 @@ onMounted(() => screen.value?.focus())
           @click="emit('cancel')"
         >
           {{ cancelable ? phone.t('LockScreen.passcode.cancel') : '' }}
-        </button>
+        </SkyButton>
       </footer>
     </div>
   </section>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Bookmark,
   Camera,
@@ -1767,7 +1769,7 @@ onBeforeUnmount(() => {
             class="sp-avatar sp-avatar--large"
             :style="avatarStyle({ avatarSeed: onboarding.avatarSeed })"
           >
-            <Camera :size="28" aria-hidden="true" />
+            <SkyIcon :icon="Camera" :size="28" aria-hidden="true" />
           </span>
           <small>{{ t('onboarding.eyebrow') }}</small>
           <h2>{{ t('onboarding.heading') }}</h2>
@@ -1788,7 +1790,7 @@ onBeforeUnmount(() => {
             maxlength="24"
           />
           <p class="sp-hint">
-            <Shield :size="15" aria-hidden="true" />
+            <SkyIcon :icon="Shield" :size="15" aria-hidden="true" />
             {{ t('onboarding.accountBound') }}
           </p>
           <SkyButton block large :disabled="onboardingSubmitting" type="submit">
@@ -1861,7 +1863,7 @@ onBeforeUnmount(() => {
             {{ textOverlay }}
           </strong>
           <span class="sp-compose-preview__duration">
-            <Timer :size="14" aria-hidden="true" />
+            <SkyIcon :icon="Timer" :size="14" aria-hidden="true" />
             {{ durationSeconds }}s
           </span>
         </div>
@@ -1879,7 +1881,7 @@ onBeforeUnmount(() => {
             )
           "
         >
-          <Images :size="17" aria-hidden="true" />
+          <SkyIcon :icon="Images" :size="17" aria-hidden="true" />
           {{ t('composer.changeMedia') }}
         </SkyButton>
 
@@ -1899,7 +1901,7 @@ onBeforeUnmount(() => {
           />
           <label class="sp-color-row">
             <span>
-              <Palette :size="17" aria-hidden="true" />
+              <SkyIcon :icon="Palette" :size="17" aria-hidden="true" />
               {{ t('composer.color') }}
             </span>
             <input
@@ -2031,12 +2033,13 @@ onBeforeUnmount(() => {
                 store.activeConversation.streakCount
               "
             >
-              <Flame :size="13" aria-hidden="true" />
+              <SkyIcon :icon="Flame" :size="13" aria-hidden="true" />
               {{ store.activeConversation.streakCount }}
             </span>
           </template>
           <template #right>
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="sp-icon-button"
               :aria-label="t('chats.sendSnap')"
@@ -2046,8 +2049,8 @@ onBeforeUnmount(() => {
                 ])
               "
             >
-              <Camera :size="20" aria-hidden="true" />
-            </button>
+              <SkyIcon :icon="Camera" :size="20" aria-hidden="true" />
+            </SkyButton>
           </template>
         </SkyNavbar>
         <SkyScrollArea class="sp-thread">
@@ -2063,20 +2066,29 @@ onBeforeUnmount(() => {
                 :text-footer="relativeTime(entry.value.createdAt)"
               >
                 <template #footer>
-                  <button type="button" @click="toggleSaved(entry.value)">
-                    <Bookmark :size="13" aria-hidden="true" />
+                  <SkyButton
+                    variant="content"
+                    type="button"
+                    @click="toggleSaved(entry.value)"
+                  >
+                    <SkyIcon :icon="Bookmark" :size="13" aria-hidden="true" />
                     {{ t(entry.value.savedAt ? 'chats.unsave' : 'chats.save') }}
-                  </button>
-                  <button type="button" @click="deleteMessage(entry.value)">
-                    <Trash2 :size="13" aria-hidden="true" />
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
+                    type="button"
+                    @click="deleteMessage(entry.value)"
+                  >
+                    <SkyIcon :icon="Trash2" :size="13" aria-hidden="true" />
                     {{ t('chats.delete') }}
-                  </button>
+                  </SkyButton>
                   <small v-if="entry.value.savedAt">
                     {{ t('chats.saved') }}
                   </small>
                 </template>
               </SkyMessage>
-              <button
+              <SkyButton
+                variant="content"
                 v-else
                 type="button"
                 class="sp-thread-snap"
@@ -2086,17 +2098,24 @@ onBeforeUnmount(() => {
                 :disabled="!snapCanOpen(entry.value)"
                 @click="openThreadSnap(entry.value)"
               >
-                <Video
+                <SkyIcon
+                  :icon="Video"
                   v-if="entry.value.type === 'snap_video'"
                   :size="18"
                   aria-hidden="true"
                 />
-                <ImageIcon v-else :size="18" aria-hidden="true" />
+                <SkyIcon
+                  :icon="ImageIcon"
+                  v-else
+                  :size="18"
+                  aria-hidden="true"
+                />
                 <span>
                   <b>{{ snapLabel(entry.value) }}</b>
                   <small>{{ relativeTime(entry.value.createdAt) }}</small>
                 </span>
-                <RotateCcw
+                <SkyIcon
+                  :icon="RotateCcw"
                   v-if="
                     entry.value.openedAt &&
                     entry.value.allowReplay &&
@@ -2105,7 +2124,7 @@ onBeforeUnmount(() => {
                   :size="16"
                   aria-hidden="true"
                 />
-              </button>
+              </SkyButton>
             </template>
           </SkyMessages>
           <SkyEmptyState
@@ -2132,7 +2151,7 @@ onBeforeUnmount(() => {
             @click="openThreadMedia('photos', 'photo')"
           >
             <span class="sp-thread-attachment-menu__icon is-photo">
-              <Images :size="20" aria-hidden="true" />
+              <SkyIcon :icon="Images" :size="20" aria-hidden="true" />
             </span>
             {{ t('chats.attachPhoto') }}
           </SkyGlass>
@@ -2146,7 +2165,7 @@ onBeforeUnmount(() => {
             @click="openThreadMedia('camera', 'photo')"
           >
             <span class="sp-thread-attachment-menu__icon is-camera">
-              <Camera :size="20" aria-hidden="true" />
+              <SkyIcon :icon="Camera" :size="20" aria-hidden="true" />
             </span>
             {{ t('chats.takePhoto') }}
           </SkyGlass>
@@ -2168,7 +2187,7 @@ onBeforeUnmount(() => {
             @click="openThreadMedia('photos', 'video')"
           >
             <span class="sp-thread-attachment-menu__icon is-video">
-              <Video :size="20" aria-hidden="true" />
+              <SkyIcon :icon="Video" :size="20" aria-hidden="true" />
             </span>
             {{ t('chats.attachVideo') }}
           </SkyGlass>
@@ -2213,7 +2232,8 @@ onBeforeUnmount(() => {
                 preload="metadata"
               />
               <span class="sp-thread-media-preview__order">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="threadSending || index === 0"
                   :aria-label="
@@ -2223,9 +2243,10 @@ onBeforeUnmount(() => {
                   "
                   @click="moveThreadMedia(index, -1)"
                 >
-                  <ChevronLeft :size="13" aria-hidden="true" />
-                </button>
-                <button
+                  <SkyIcon :icon="ChevronLeft" :size="13" aria-hidden="true" />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="
                     threadSending || index === pendingThreadMedia.length - 1
@@ -2237,10 +2258,11 @@ onBeforeUnmount(() => {
                   "
                   @click="moveThreadMedia(index, 1)"
                 >
-                  <ChevronRight :size="13" aria-hidden="true" />
-                </button>
+                  <SkyIcon :icon="ChevronRight" :size="13" aria-hidden="true" />
+                </SkyButton>
               </span>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-thread-media-preview__remove"
                 :disabled="threadSending"
@@ -2251,8 +2273,8 @@ onBeforeUnmount(() => {
                 "
                 @click="removeThreadMedia(media.id)"
               >
-                <X :size="13" aria-hidden="true" />
-              </button>
+                <SkyIcon :icon="X" :size="13" aria-hidden="true" />
+              </SkyButton>
             </article>
           </div>
 
@@ -2282,11 +2304,12 @@ onBeforeUnmount(() => {
                 :aria-label="t('chats.moreActions')"
                 @click="toggleThreadAttachmentMenu"
               >
-                <Plus :size="23" aria-hidden="true" />
+                <SkyIcon :icon="Plus" :size="23" aria-hidden="true" />
               </SkyGlass>
             </template>
             <template #right>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-send-button"
                 :aria-label="phone.t('Common.send')"
@@ -2294,8 +2317,8 @@ onBeforeUnmount(() => {
                 @click="submitMessage"
               >
                 <SkySpinner v-if="threadSending" :size="16" />
-                <Send v-else :size="18" aria-hidden="true" />
-              </button>
+                <SkyIcon :icon="Send" v-else :size="18" aria-hidden="true" />
+              </SkyButton>
             </template>
           </SkyMessagebar>
         </div>
@@ -2309,7 +2332,8 @@ onBeforeUnmount(() => {
         >
           <header class="sp-camera-header">
             <div class="sp-camera-header__actions">
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-camera-profile"
                 :aria-label="t('profile.title')"
@@ -2326,7 +2350,7 @@ onBeforeUnmount(() => {
                   />
                   <template v-else>{{ initials(store.profile) }}</template>
                 </span>
-              </button>
+              </SkyButton>
               <SkyGlass
                 component="button"
                 type="button"
@@ -2334,7 +2358,7 @@ onBeforeUnmount(() => {
                 :aria-label="t('friends.searchPlaceholder')"
                 @click="setTab('friends')"
               >
-                <Search :size="20" aria-hidden="true" />
+                <SkyIcon :icon="Search" :size="20" aria-hidden="true" />
               </SkyGlass>
             </div>
             <div class="sp-camera-header__actions">
@@ -2345,7 +2369,7 @@ onBeforeUnmount(() => {
                 :aria-label="t('chats.title')"
                 @click="setTab('chats')"
               >
-                <MessageCircle :size="20" aria-hidden="true" />
+                <SkyIcon :icon="MessageCircle" :size="20" aria-hidden="true" />
               </SkyGlass>
               <SkyGlass
                 component="button"
@@ -2354,7 +2378,7 @@ onBeforeUnmount(() => {
                 :aria-label="t('friends.title')"
                 @click="setTab('friends')"
               >
-                <UsersRound :size="20" aria-hidden="true" />
+                <SkyIcon :icon="UsersRound" :size="20" aria-hidden="true" />
               </SkyGlass>
             </div>
           </header>
@@ -2396,7 +2420,8 @@ onBeforeUnmount(() => {
               </SkySegmented>
 
               <div class="sp-camera-actions">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="sp-camera-secondary"
                   :aria-label="t('camera.gallery')"
@@ -2404,8 +2429,8 @@ onBeforeUnmount(() => {
                     beginCapture('photos', captureMediaType, capturePurpose)
                   "
                 >
-                  <Images :size="22" aria-hidden="true" />
-                </button>
+                  <SkyIcon :icon="Images" :size="22" aria-hidden="true" />
+                </SkyButton>
                 <SkyGlass
                   component="button"
                   class="sp-shutter"
@@ -2421,15 +2446,22 @@ onBeforeUnmount(() => {
                   "
                 >
                   <span>
-                    <Camera
+                    <SkyIcon
+                      :icon="Camera"
                       v-if="captureMediaType === 'photo'"
                       :size="28"
                       aria-hidden="true"
                     />
-                    <CirclePlay v-else :size="29" aria-hidden="true" />
+                    <SkyIcon
+                      :icon="CirclePlay"
+                      v-else
+                      :size="29"
+                      aria-hidden="true"
+                    />
                   </span>
                 </SkyGlass>
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="sp-camera-secondary"
                   :aria-label="
@@ -2444,13 +2476,19 @@ onBeforeUnmount(() => {
                       captureMediaType === 'photo' ? 'video' : 'photo'
                   "
                 >
-                  <Video
+                  <SkyIcon
+                    :icon="Video"
                     v-if="captureMediaType === 'photo'"
                     :size="22"
                     aria-hidden="true"
                   />
-                  <ImageIcon v-else :size="22" aria-hidden="true" />
-                </button>
+                  <SkyIcon
+                    :icon="ImageIcon"
+                    v-else
+                    :size="22"
+                    aria-hidden="true"
+                  />
+                </SkyButton>
               </div>
 
               <span class="sp-camera-format">
@@ -2469,7 +2507,8 @@ onBeforeUnmount(() => {
         <template v-else-if="activeTab === 'chats'">
           <SkyNavbar class="sp-content-navbar" :title="t('chats.title')">
             <template #left>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-navbar-profile"
                 :aria-label="t('profile.title')"
@@ -2486,17 +2525,18 @@ onBeforeUnmount(() => {
                   />
                   <template v-else>{{ initials(store.profile) }}</template>
                 </span>
-              </button>
+              </SkyButton>
             </template>
             <template #right>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-icon-button"
                 :aria-label="t('chats.sendSnap')"
                 @click="beginCapture('camera', 'photo', 'snap', [])"
               >
-                <Camera :size="20" aria-hidden="true" />
-              </button>
+                <SkyIcon :icon="Camera" :size="20" aria-hidden="true" />
+              </SkyButton>
             </template>
           </SkyNavbar>
           <SkyScrollArea with-tabbar class="sp-screen sp-chat-screen">
@@ -2508,7 +2548,8 @@ onBeforeUnmount(() => {
                 </SkyBadge>
               </header>
               <div class="sp-chat-list">
-                <button
+                <SkyButton
+                  variant="content"
                   v-for="snap in incomingSnaps"
                   :key="snap.id"
                   type="button"
@@ -2543,21 +2584,28 @@ onBeforeUnmount(() => {
                     </small>
                   </span>
                   <span class="sp-chat-row__action">
-                    <RotateCcw
+                    <SkyIcon
+                      :icon="RotateCcw"
                       v-if="
                         snap.openedAt && snap.allowReplay && !snap.replayedAt
                       "
                       :size="18"
                       aria-hidden="true"
                     />
-                    <Video
+                    <SkyIcon
+                      :icon="Video"
                       v-else-if="snap.type === 'snap_video'"
                       :size="18"
                       aria-hidden="true"
                     />
-                    <ImageIcon v-else :size="18" aria-hidden="true" />
+                    <SkyIcon
+                      :icon="ImageIcon"
+                      v-else
+                      :size="18"
+                      aria-hidden="true"
+                    />
                   </span>
-                </button>
+                </SkyButton>
               </div>
             </section>
 
@@ -2567,7 +2615,8 @@ onBeforeUnmount(() => {
                 <small>{{ store.conversations.length }}</small>
               </header>
               <div v-if="store.conversations.length" class="sp-chat-list">
-                <button
+                <SkyButton
+                  variant="content"
                   v-for="conversation in store.conversations"
                   :key="conversation.friendshipId"
                   type="button"
@@ -2603,7 +2652,7 @@ onBeforeUnmount(() => {
                           t('profile.streaks') + ': ' + conversation.streakCount
                         "
                       >
-                        <Flame :size="13" aria-hidden="true" />
+                        <SkyIcon :icon="Flame" :size="13" aria-hidden="true" />
                         {{ conversation.streakCount }}
                       </span>
                       <span>{{ lastItemLabel(conversation) }}</span>
@@ -2620,9 +2669,14 @@ onBeforeUnmount(() => {
                     >
                       {{ conversation.unreadCount }}
                     </SkyBadge>
-                    <Camera v-else :size="20" aria-hidden="true" />
+                    <SkyIcon
+                      :icon="Camera"
+                      v-else
+                      :size="20"
+                      aria-hidden="true"
+                    />
                   </span>
-                </button>
+                </SkyButton>
               </div>
               <SkyEmptyState
                 v-if="!store.conversations.length"
@@ -2636,7 +2690,8 @@ onBeforeUnmount(() => {
           <section class="sp-spotlight-screen">
             <header class="sp-spotlight-header">
               <div class="sp-spotlight-header__actions">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="sp-camera-profile"
                   :aria-label="t('profile.title')"
@@ -2653,7 +2708,7 @@ onBeforeUnmount(() => {
                     />
                     <template v-else>{{ initials(store.profile) }}</template>
                   </span>
-                </button>
+                </SkyButton>
                 <SkyGlass
                   component="button"
                   type="button"
@@ -2661,7 +2716,7 @@ onBeforeUnmount(() => {
                   :aria-label="t('friends.searchPlaceholder')"
                   @click="setTab('friends')"
                 >
-                  <Search :size="20" aria-hidden="true" />
+                  <SkyIcon :icon="Search" :size="20" aria-hidden="true" />
                 </SkyGlass>
               </div>
               <strong>{{ t('spotlight.title') }}</strong>
@@ -2675,7 +2730,7 @@ onBeforeUnmount(() => {
                   :aria-label="t('friends.title')"
                   @click="setTab('friends')"
                 >
-                  <UsersRound :size="20" aria-hidden="true" />
+                  <SkyIcon :icon="UsersRound" :size="20" aria-hidden="true" />
                 </SkyGlass>
                 <SkyGlass
                   component="button"
@@ -2684,7 +2739,7 @@ onBeforeUnmount(() => {
                   :aria-label="t('spotlight.add')"
                   @click="beginCapture('camera', 'video', 'spotlight', [])"
                 >
-                  <Plus :size="21" aria-hidden="true" />
+                  <SkyIcon :icon="Plus" :size="21" aria-hidden="true" />
                 </SkyGlass>
               </div>
             </header>
@@ -2724,10 +2779,11 @@ onBeforeUnmount(() => {
                   v-if="activeSpotlight.isSponsored"
                   class="sp-sponsored-label"
                 >
-                  <Megaphone :size="14" aria-hidden="true" />
+                  <SkyIcon :icon="Megaphone" :size="14" aria-hidden="true" />
                   {{ t('spotlight.sponsored') }}
                 </span>
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="sp-spotlight-author"
                   @click="openSpotlightAuthor"
@@ -2751,7 +2807,7 @@ onBeforeUnmount(() => {
                       {{ t('spotlight.viewProfile') }}
                     </small>
                   </span>
-                </button>
+                </SkyButton>
                 <h2
                   v-if="
                     activeSpotlight.isSponsored && activeSpotlight.adHeadline
@@ -2765,64 +2821,71 @@ onBeforeUnmount(() => {
               </div>
 
               <aside class="sp-spotlight-actions">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :class="{ 'is-active': activeSpotlight.isLiked }"
                   :aria-label="t('spotlight.like')"
                   @click="toggleSpotlightLike"
                 >
-                  <Heart
+                  <SkyIcon
+                    :icon="Heart"
                     :fill="activeSpotlight.isLiked ? 'currentColor' : 'none'"
                     aria-hidden="true"
                   />
                   <small>{{ activeSpotlight.likeCount }}</small>
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="t('spotlight.comments')"
                   @click="openSpotlightComments"
                 >
-                  <MessageCircle aria-hidden="true" />
+                  <SkyIcon :icon="MessageCircle" aria-hidden="true" />
                   <small>{{ activeSpotlight.commentCount }}</small>
-                </button>
+                </SkyButton>
                 <span
                   class="sp-spotlight-stat"
                   :aria-label="t('spotlight.views')"
                 >
-                  <Eye aria-hidden="true" />
+                  <SkyIcon :icon="Eye" aria-hidden="true" />
                   <small>{{ activeSpotlight.viewCount }}</small>
                 </span>
-                <button
+                <SkyButton
+                  variant="content"
                   v-if="activeSpotlight.isOwner"
                   type="button"
                   :aria-label="t('spotlight.delete')"
                   @click="deleteSpotlight"
                 >
-                  <Trash2 aria-hidden="true" />
-                </button>
-                <button
+                  <SkyIcon :icon="Trash2" aria-hidden="true" />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   v-else
                   type="button"
                   :aria-label="t('spotlight.report')"
                   @click="openSpotlightReport"
                 >
-                  <Flag aria-hidden="true" />
-                </button>
+                  <SkyIcon :icon="Flag" aria-hidden="true" />
+                </SkyButton>
               </aside>
 
               <nav
                 class="sp-spotlight-pager"
                 :aria-label="t('spotlight.navigation')"
               >
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="activeSpotlightIndex === 0"
                   :aria-label="t('spotlight.previous')"
                   @click="moveSpotlight(-1)"
                 >
-                  <ChevronUp aria-hidden="true" />
-                </button>
-                <button
+                  <SkyIcon :icon="ChevronUp" aria-hidden="true" />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="
                     activeSpotlightIndex >= store.spotlights.length - 1 &&
@@ -2831,8 +2894,8 @@ onBeforeUnmount(() => {
                   :aria-label="t('spotlight.next')"
                   @click="moveSpotlight(1)"
                 >
-                  <ChevronDown aria-hidden="true" />
-                </button>
+                  <SkyIcon :icon="ChevronDown" aria-hidden="true" />
+                </SkyButton>
               </nav>
             </article>
             <SkyEmptyState
@@ -2842,13 +2905,13 @@ onBeforeUnmount(() => {
               :description="t('spotlight.emptyBody')"
             >
               <template #icon>
-                <CirclePlay :size="30" aria-hidden="true" />
+                <SkyIcon :icon="CirclePlay" :size="30" aria-hidden="true" />
               </template>
               <SkyButton
                 rounded
                 @click="beginCapture('camera', 'video', 'spotlight', [])"
               >
-                <Video :size="17" aria-hidden="true" />
+                <SkyIcon :icon="Video" :size="17" aria-hidden="true" />
                 {{ t('spotlight.add') }}
               </SkyButton>
             </SkyEmptyState>
@@ -2857,7 +2920,8 @@ onBeforeUnmount(() => {
         <template v-else-if="activeTab === 'stories'">
           <SkyNavbar class="sp-content-navbar" :title="t('stories.title')">
             <template #left>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-navbar-profile"
                 :aria-label="t('profile.title')"
@@ -2874,17 +2938,18 @@ onBeforeUnmount(() => {
                   />
                   <template v-else>{{ initials(store.profile) }}</template>
                 </span>
-              </button>
+              </SkyButton>
             </template>
             <template #right>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-icon-button"
                 :aria-label="t('stories.add')"
                 @click="beginCapture('camera', 'photo', 'story', [])"
               >
-                <Plus :size="21" aria-hidden="true" />
-              </button>
+                <SkyIcon :icon="Plus" :size="21" aria-hidden="true" />
+              </SkyButton>
             </template>
           </SkyNavbar>
           <SkyScrollArea with-tabbar class="sp-screen sp-stories-screen">
@@ -2894,7 +2959,8 @@ onBeforeUnmount(() => {
                 <small>{{ friendStoryRail.length }}</small>
               </header>
               <div class="sp-story-rail">
-                <button
+                <SkyButton
+                  variant="content"
                   v-if="ownStories.length"
                   type="button"
                   class="sp-story-rail__item"
@@ -2913,8 +2979,9 @@ onBeforeUnmount(() => {
                     <template v-else>{{ initials(store.profile) }}</template>
                   </span>
                   <small>{{ t('stories.yours') }}</small>
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   v-else
                   type="button"
                   class="sp-story-rail__item"
@@ -2931,13 +2998,14 @@ onBeforeUnmount(() => {
                     />
                     <template v-else>{{ initials(store.profile) }}</template>
                     <span class="sp-story-rail__plus" aria-hidden="true">
-                      <Plus :size="14" />
+                      <SkyIcon :icon="Plus" :size="14" />
                     </span>
                   </span>
                   <small>{{ t('stories.add') }}</small>
-                </button>
+                </SkyButton>
 
-                <button
+                <SkyButton
+                  variant="content"
                   v-for="story in friendStoryRail"
                   :key="story.id"
                   type="button"
@@ -2958,7 +3026,7 @@ onBeforeUnmount(() => {
                     <template v-else>{{ initials(story.author) }}</template>
                   </span>
                   <small>{{ story.author.displayName }}</small>
-                </button>
+                </SkyButton>
               </div>
             </section>
 
@@ -2977,7 +3045,8 @@ onBeforeUnmount(() => {
                     'sp-story-card--seen': story.seen,
                   }"
                 >
-                  <button
+                  <SkyButton
+                    variant="content"
                     type="button"
                     class="sp-story-card__open"
                     :disabled="store.storyViewing"
@@ -2995,7 +3064,11 @@ onBeforeUnmount(() => {
                       <span v-else>{{ initials(story.author) }}</span>
                     </span>
                     <span class="sp-story-card__duration">
-                      <CirclePlay :size="13" aria-hidden="true" />
+                      <SkyIcon
+                        :icon="CirclePlay"
+                        :size="13"
+                        aria-hidden="true"
+                      />
                       {{ story.durationSeconds }}s
                     </span>
                     <span class="sp-story-card__copy">
@@ -3022,22 +3095,24 @@ onBeforeUnmount(() => {
                         · {{ relativeTime(story.createdAt) }}
                       </small>
                     </span>
-                  </button>
+                  </SkyButton>
                   <div v-if="story.isOwner" class="sp-story-card__actions">
-                    <button
+                    <SkyButton
+                      variant="content"
                       type="button"
                       :aria-label="t('stories.viewers')"
                       @click="showStoryViewers(story)"
                     >
-                      <Eye :size="15" aria-hidden="true" />
-                    </button>
-                    <button
+                      <SkyIcon :icon="Eye" :size="15" aria-hidden="true" />
+                    </SkyButton>
+                    <SkyButton
+                      variant="content"
                       type="button"
                       :aria-label="t('stories.delete')"
                       @click="deleteStory(story.id)"
                     >
-                      <Trash2 :size="15" aria-hidden="true" />
-                    </button>
+                      <SkyIcon :icon="Trash2" :size="15" aria-hidden="true" />
+                    </SkyButton>
                   </div>
                 </article>
               </div>
@@ -3047,7 +3122,7 @@ onBeforeUnmount(() => {
                 :title="t('stories.emptyTitle')"
               >
                 <template #icon>
-                  <CirclePlay :size="30" aria-hidden="true" />
+                  <SkyIcon :icon="CirclePlay" :size="30" aria-hidden="true" />
                 </template>
               </SkyEmptyState>
               <SkyButton
@@ -3069,7 +3144,8 @@ onBeforeUnmount(() => {
         <template v-else>
           <SkyNavbar class="sp-content-navbar" :title="t('friends.title')">
             <template #left>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-navbar-profile"
                 :aria-label="t('profile.title')"
@@ -3086,17 +3162,18 @@ onBeforeUnmount(() => {
                   />
                   <template v-else>{{ initials(store.profile) }}</template>
                 </span>
-              </button>
+              </SkyButton>
             </template>
             <template #right>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-icon-button"
                 :aria-label="t('profile.edit')"
                 @click="toggleProfileEditor"
               >
-                <Settings :size="20" aria-hidden="true" />
-              </button>
+                <SkyIcon :icon="Settings" :size="20" aria-hidden="true" />
+              </SkyButton>
             </template>
           </SkyNavbar>
           <SkyScrollArea with-tabbar class="sp-screen sp-friends-screen">
@@ -3116,13 +3193,14 @@ onBeforeUnmount(() => {
                 <b>{{ store.profile.displayName }}</b>
                 <small>@{{ store.profile.handle }}</small>
               </span>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="sp-profile-card__edit"
                 @click="toggleProfileEditor"
               >
                 {{ t('profile.edit') }}
-              </button>
+              </SkyButton>
               <div class="sp-profile-stats">
                 <span>
                   <b>{{ store.profile.snapScore }}</b>
@@ -3137,7 +3215,7 @@ onBeforeUnmount(() => {
                     class="sp-profile-streak-stat"
                     :aria-label="t('profile.streaks') + ': ' + bestStreak"
                   >
-                    <Flame :size="15" aria-hidden="true" />
+                    <SkyIcon :icon="Flame" :size="15" aria-hidden="true" />
                     {{ bestStreak }}
                   </b>
                   <small>{{ t('profile.streaks') }}</small>
@@ -3214,18 +3292,23 @@ onBeforeUnmount(() => {
               </label>
               <fieldset class="sp-account-settings">
                 <legend>{{ t('profile.account') }}</legend>
-                <button type="button" @click="logoutDialogOpen = true">
-                  <LogOut :size="18" aria-hidden="true" />
+                <SkyButton
+                  variant="content"
+                  type="button"
+                  @click="logoutDialogOpen = true"
+                >
+                  <SkyIcon :icon="LogOut" :size="18" aria-hidden="true" />
                   <span>{{ t('profile.logout') }}</span>
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="sp-account-settings__danger"
                   @click="deleteAccountDialogOpen = true"
                 >
-                  <Trash2 :size="18" aria-hidden="true" />
+                  <SkyIcon :icon="Trash2" :size="18" aria-hidden="true" />
                   <span>{{ t('profile.deleteAccount') }}</span>
-                </button>
+                </SkyButton>
               </fieldset>
               <div class="sp-editor-actions">
                 <SkyButton
@@ -3273,21 +3356,23 @@ onBeforeUnmount(() => {
                   <small>@{{ request.profile.handle }}</small>
                 </span>
                 <span class="sp-request-actions">
-                  <button
+                  <SkyButton
+                    variant="content"
                     type="button"
                     :aria-label="t('friends.decline')"
                     @click="respondFriend(request.friendshipId, false)"
                   >
-                    <X :size="17" aria-hidden="true" />
-                  </button>
-                  <button
+                    <SkyIcon :icon="X" :size="17" aria-hidden="true" />
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
                     type="button"
                     class="sp-request-actions__accept"
                     :aria-label="t('friends.accept')"
                     @click="respondFriend(request.friendshipId, true)"
                   >
-                    <Check :size="17" aria-hidden="true" />
-                  </button>
+                    <SkyIcon :icon="Check" :size="17" aria-hidden="true" />
+                  </SkyButton>
                 </span>
               </article>
             </section>
@@ -3318,13 +3403,14 @@ onBeforeUnmount(() => {
                   <small>@{{ request.profile.handle }}</small>
                 </span>
                 <span class="sp-request-actions">
-                  <button
+                  <SkyButton
+                    variant="content"
                     type="button"
                     :aria-label="t('friends.cancelRequest')"
                     @click="cancelFriendRequest(request)"
                   >
-                    <X :size="17" aria-hidden="true" />
-                  </button>
+                    <SkyIcon :icon="X" :size="17" aria-hidden="true" />
+                  </SkyButton>
                 </span>
               </article>
             </section>
@@ -3373,7 +3459,7 @@ onBeforeUnmount(() => {
                 @update:model-value="updateSearchQuery"
               >
                 <template #icon>
-                  <Search :size="17" aria-hidden="true" />
+                  <SkyIcon :icon="Search" :size="17" aria-hidden="true" />
                 </template>
               </SkySearchbar>
               <div
@@ -3463,21 +3549,27 @@ onBeforeUnmount(() => {
                           t('profile.streaks') + ': ' + friend.streakCount
                         "
                       >
-                        <Flame :size="13" aria-hidden="true" />
+                        <SkyIcon :icon="Flame" :size="13" aria-hidden="true" />
                         {{ friend.streakCount }}
                       </span>
                     </small>
                   </span>
                 </div>
                 <div class="sp-friend-actions">
-                  <button
+                  <SkyButton
+                    variant="content"
                     type="button"
                     @click="openThread(friend.friendshipId)"
                   >
-                    <MessageCircle :size="17" aria-hidden="true" />
+                    <SkyIcon
+                      :icon="MessageCircle"
+                      :size="17"
+                      aria-hidden="true"
+                    />
                     {{ t('friends.chat') }}
-                  </button>
-                  <button
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
                     type="button"
                     @click="
                       beginCapture('camera', 'photo', 'snap', [
@@ -3485,17 +3577,25 @@ onBeforeUnmount(() => {
                       ])
                     "
                   >
-                    <Camera :size="17" aria-hidden="true" />
+                    <SkyIcon :icon="Camera" :size="17" aria-hidden="true" />
                     {{ t('friends.sendSnap') }}
-                  </button>
-                  <button type="button" @click="removeFriend(friend)">
-                    <X :size="17" aria-hidden="true" />
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
+                    type="button"
+                    @click="removeFriend(friend)"
+                  >
+                    <SkyIcon :icon="X" :size="17" aria-hidden="true" />
                     {{ t('friends.remove') }}
-                  </button>
-                  <button type="button" @click="blockProfile(friend.profile)">
-                    <Shield :size="17" aria-hidden="true" />
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
+                    type="button"
+                    @click="blockProfile(friend.profile)"
+                  >
+                    <SkyIcon :icon="Shield" :size="17" aria-hidden="true" />
                     {{ t('friends.block') }}
-                  </button>
+                  </SkyButton>
                 </div>
               </article>
               <SkyEmptyState
@@ -3503,7 +3603,7 @@ onBeforeUnmount(() => {
                 :title="t('friends.empty')"
               >
                 <template #icon>
-                  <UsersRound :size="30" aria-hidden="true" />
+                  <SkyIcon :icon="UsersRound" :size="30" aria-hidden="true" />
                 </template>
               </SkyEmptyState>
             </section>
@@ -3522,7 +3622,7 @@ onBeforeUnmount(() => {
             @click="setTab('camera')"
           >
             <template #icon>
-              <Camera aria-hidden="true" />
+              <SkyIcon :icon="Camera" aria-hidden="true" />
             </template>
           </SkyTabButton>
           <SkyTabButton
@@ -3534,7 +3634,7 @@ onBeforeUnmount(() => {
           >
             <template #icon>
               <span class="sp-tab-icon">
-                <MessageCircle aria-hidden="true" />
+                <SkyIcon :icon="MessageCircle" aria-hidden="true" />
                 <SkyBadge
                   v-if="store.unreadCount"
                   small
@@ -3554,7 +3654,7 @@ onBeforeUnmount(() => {
             @click="setTab('stories')"
           >
             <template #icon>
-              <CirclePlay aria-hidden="true" />
+              <SkyIcon :icon="CirclePlay" aria-hidden="true" />
             </template>
           </SkyTabButton>
           <SkyTabButton
@@ -3566,7 +3666,7 @@ onBeforeUnmount(() => {
           >
             <template #icon>
               <span class="sp-tab-icon">
-                <UsersRound aria-hidden="true" />
+                <SkyIcon :icon="UsersRound" aria-hidden="true" />
                 <SkyBadge
                   v-if="store.incomingRequests.length"
                   small
@@ -3586,7 +3686,7 @@ onBeforeUnmount(() => {
             @click="setTab('spotlight')"
           >
             <template #icon>
-              <CirclePlay aria-hidden="true" />
+              <SkyIcon :icon="CirclePlay" aria-hidden="true" />
             </template>
           </SkyTabButton>
         </SkyTabBar>
@@ -3618,14 +3718,15 @@ onBeforeUnmount(() => {
             })
           }}
         </small>
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="sp-icon-button sp-icon-button--glass"
           :aria-label="t('viewer.close')"
           @click="closeSnapViewer"
         >
-          <X :size="20" aria-hidden="true" />
-        </button>
+          <SkyIcon :icon="X" :size="20" aria-hidden="true" />
+        </SkyButton>
       </header>
       <img
         v-if="store.openedSnap.mediaType === 'photo'"
@@ -3698,14 +3799,15 @@ onBeforeUnmount(() => {
             </small>
           </span>
         </span>
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="sp-icon-button sp-icon-button--glass"
           :aria-label="t('viewer.close')"
           @click="closeStoryViewer"
         >
-          <X :size="20" aria-hidden="true" />
-        </button>
+          <SkyIcon :icon="X" :size="20" aria-hidden="true" />
+        </SkyButton>
       </header>
       <img
         v-if="store.viewedStory.mediaType === 'photo'"
@@ -3757,29 +3859,38 @@ onBeforeUnmount(() => {
         @update:model-value="updateStoryReply"
       >
         <template #right>
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="sp-send-button"
             :aria-label="phone.t('Common.send')"
             :disabled="!storyReply.trim()"
             @click="submitStoryReply"
           >
-            <Send :size="18" aria-hidden="true" />
-          </button>
+            <SkyIcon :icon="Send" :size="18" aria-hidden="true" />
+          </SkyButton>
         </template>
       </SkyMessagebar>
       <footer
         v-if="viewedStorySummary?.isOwner"
         class="sp-media-viewer__owner-actions"
       >
-        <button type="button" @click="showStoryViewers(viewedStorySummary)">
-          <Eye :size="18" aria-hidden="true" />
+        <SkyButton
+          variant="content"
+          type="button"
+          @click="showStoryViewers(viewedStorySummary)"
+        >
+          <SkyIcon :icon="Eye" :size="18" aria-hidden="true" />
           {{ t('stories.viewers') }}
-        </button>
-        <button type="button" @click="deleteStory(viewedStorySummary.id)">
-          <Trash2 :size="18" aria-hidden="true" />
+        </SkyButton>
+        <SkyButton
+          variant="content"
+          type="button"
+          @click="deleteStory(viewedStorySummary.id)"
+        >
+          <SkyIcon :icon="Trash2" :size="18" aria-hidden="true" />
           {{ t('stories.delete') }}
-        </button>
+        </SkyButton>
       </footer>
     </div>
     <SkySheet
@@ -3793,14 +3904,15 @@ onBeforeUnmount(() => {
       <section class="sp-viewers-sheet">
         <header>
           <b>{{ t('stories.viewers') }}</b>
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="sp-icon-button"
             :aria-label="phone.t('Common.close')"
             @click="closeStoryViewerSheet"
           >
-            <X :size="19" aria-hidden="true" />
-          </button>
+            <SkyIcon :icon="X" :size="19" aria-hidden="true" />
+          </SkyButton>
         </header>
         <div class="sp-viewers-sheet__scroll">
           <article
@@ -3851,14 +3963,15 @@ onBeforeUnmount(() => {
       <section class="sp-spotlight-sheet">
         <header>
           <b>{{ t('spotlight.comments') }}</b>
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="sp-icon-button"
             :aria-label="phone.t('Common.close')"
             @click="closeSpotlightComments"
           >
-            <X :size="19" aria-hidden="true" />
-          </button>
+            <SkyIcon :icon="X" :size="19" aria-hidden="true" />
+          </SkyButton>
         </header>
         <div class="sp-spotlight-sheet__scroll">
           <article
@@ -3882,14 +3995,15 @@ onBeforeUnmount(() => {
               <p>{{ comment.body }}</p>
               <small>{{ relativeTime(comment.createdAt) }}</small>
             </span>
-            <button
+            <SkyButton
+              variant="content"
               v-if="comment.isOwner || activeSpotlight?.isOwner"
               type="button"
               :aria-label="t('spotlight.deleteComment')"
               @click="deleteSpotlightComment(comment.id)"
             >
-              <Trash2 :size="17" aria-hidden="true" />
-            </button>
+              <SkyIcon :icon="Trash2" :size="17" aria-hidden="true" />
+            </SkyButton>
           </article>
           <SkyEmptyState
             v-if="!store.spotlightComments.length"
@@ -3928,7 +4042,7 @@ onBeforeUnmount(() => {
             type="submit"
             :disabled="!spotlightCommentBody.trim()"
           >
-            <Send :size="17" aria-hidden="true" />
+            <SkyIcon :icon="Send" :size="17" aria-hidden="true" />
             {{ t('spotlight.sendComment') }}
           </SkyButton>
         </form>
@@ -3952,17 +4066,19 @@ onBeforeUnmount(() => {
             <b>{{ t('spotlight.report') }}</b>
             <small>{{ t('spotlight.reportBody') }}</small>
           </span>
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="sp-icon-button"
             :aria-label="phone.t('Common.close')"
             @click="closeSpotlightReport"
           >
-            <X :size="19" aria-hidden="true" />
-          </button>
+            <SkyIcon :icon="X" :size="19" aria-hidden="true" />
+          </SkyButton>
         </header>
         <div class="sp-report-reasons">
-          <button
+          <SkyButton
+            variant="content"
             v-for="reason in SPOTLIGHT_REPORT_REASONS"
             :key="reason"
             type="button"
@@ -3970,15 +4086,16 @@ onBeforeUnmount(() => {
             @click="spotlightReportReason = reason"
           >
             {{ t(`spotlight.reportReasons.${reason}`) }}
-            <Check
+            <SkyIcon
+              :icon="Check"
               v-if="spotlightReportReason === reason"
               :size="17"
               aria-hidden="true"
             />
-          </button>
+          </SkyButton>
         </div>
         <SkyButton block large tone="danger" @click="submitSpotlightReport">
-          <Flag :size="17" aria-hidden="true" />
+          <SkyIcon :icon="Flag" :size="17" aria-hidden="true" />
           {{ t('spotlight.submitReport') }}
         </SkyButton>
       </section>

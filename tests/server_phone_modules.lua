@@ -391,3 +391,35 @@ end
 assert(not SkyPhone.OpenDeviceForCall(1, phone_item.metadata.imei) and opened_event == nil,
     "Incoming calls must recheck custom cancellation after loading the device")
 print("server phone modules: ok; custom opening checks and cancellation after preparation")
+
+-- Reception timestamps remain optional for existing notification history, but
+-- malformed dates must be rejected before encoding or writing any payload.
+Bridge.Database.Query = query
+local saved_notification_payload
+local notification_writes = 0
+json.encode = function(payload)
+    saved_notification_payload = payload
+    return "notification-test-payload"
+end
+Bridge.Database.Query = function(sql, parameters)
+    assert(sql:find("'notifications'", 1, true), "unexpected notification persistence query")
+    assert(parameters[1] == phone_item.metadata.imei)
+    notification_writes = notification_writes + 1
+    return 1
+end
+SkyPhoneImei.IsValid = function(imei) return imei == phone_item.metadata.imei end
+local save_notifications = registered_callbacks["sky_phone:notifications:save"]
+local notification_item = { appId = "mail", id = "notification-test", title = "Mail", text = "Message" }
+local notification_data = { imei = phone_item.metadata.imei, payload = { version = 1, items = { notification_item } } }
+assert(save_notifications(1, notification_data).success, "legacy notification records must remain valid")
+notification_item.createdAt = 1792080000000
+assert(save_notifications(1, notification_data).success)
+assert(saved_notification_payload.items[1].createdAt == 1792080000000,
+    "notification reception time must survive the persistence boundary")
+for _, invalid_time in ipairs({ "1792080000000", -1, 0, 1.5, math.huge, 0 / 0, 8640000000000001 }) do
+    notification_item.createdAt = invalid_time
+    local invalid = save_notifications(1, notification_data)
+    assert(not invalid.success and invalid.error == "invalid_request", "invalid reception time must be rejected")
+end
+assert(notification_writes == 2, "invalid notification dates must not reach the database")
+print("server phone modules: ok; notification reception time persistence and validation")

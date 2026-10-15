@@ -86,7 +86,7 @@ describe('SkyTabBar', () => {
       /\.sky-tabbar \.sky-tab-button__icon \+ \.sky-tab-button__label\s*\{[^}]*font-size:\s*12px[^}]*font-weight:\s*500[^}]*line-height:\s*16px/s,
     )
     expect(controls).toMatch(
-      /\.sky-tabbar \.sky-tab-button\s*\{[^}]*color:\s*var\(--sky-text,\s*#000000\)/s,
+      /\.sky-tabbar \.sky-tab-button\s*\{[^}]*color:\s*var\(--sky-action-glass-text, #ffffff\)/s,
     )
     expect(foundation).not.toContain(
       '.sky-tabbar__links > button > span > span:last-child',
@@ -101,6 +101,8 @@ describe('SkyTabBar', () => {
     expect(mainCss).toMatch(
       /\.phone-app--performance \.sky-tabbar__pane\s*\{[^}]*background:\s*var\(--sky-glass-solid\)[^}]*box-shadow:\s*none/s,
     )
-    expect(source).toContain('<SkyGlass class="sky-tabbar__pane">')
+    expect(source).toContain(
+      '<SkyGlass material="clear" class="sky-tabbar__pane">',
+    )
   })
 })

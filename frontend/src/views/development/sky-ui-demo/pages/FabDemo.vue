@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { Plus } from 'lucide-vue-next'
 
 import { SkyBlock, SkyFab } from '@/ui'
@@ -89,31 +91,31 @@ import SkyUiDemoPage from '../SkyUiDemoPage.vue'
         aria-label="Add from the right top"
         class="fab-demo__button fab-demo__button--right-top sky-ui-demo-color-red"
       >
-        <template #icon><Plus /></template>
+        <template #icon><SkyIcon :icon="Plus" /></template>
       </SkyFab>
       <SkyFab
         aria-label="Add from the right bottom"
         class="fab-demo__button fab-demo__button--right-bottom"
       >
-        <template #icon><Plus /></template>
+        <template #icon><SkyIcon :icon="Plus" /></template>
       </SkyFab>
       <SkyFab
         aria-label="Add from the left bottom"
         class="fab-demo__button fab-demo__button--left-bottom sky-ui-demo-color-green"
       >
-        <template #icon><Plus /></template>
+        <template #icon><SkyIcon :icon="Plus" /></template>
       </SkyFab>
       <SkyFab
         aria-label="Add from the top left"
         class="fab-demo__button fab-demo__button--left-top sky-ui-demo-color-yellow"
       >
-        <template #icon><Plus /></template>
+        <template #icon><SkyIcon :icon="Plus" /></template>
       </SkyFab>
       <SkyFab
         aria-label="Add from the center"
         class="fab-demo__button fab-demo__button--center"
       >
-        <template #icon><Plus /></template>
+        <template #icon><SkyIcon :icon="Plus" /></template>
       </SkyFab>
       <SkyFab
         aria-label="Create"
@@ -121,7 +123,7 @@ import SkyUiDemoPage from '../SkyUiDemoPage.vue'
         text="Create"
         text-position="after"
       >
-        <template #icon><Plus /></template>
+        <template #icon><SkyIcon :icon="Plus" /></template>
       </SkyFab>
     </template>
   </SkyUiDemoPage>

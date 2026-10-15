@@ -32,7 +32,9 @@ describe('SkyNotification', () => {
     })
 
     expect(html).toContain('<section')
-    expect(html).toContain('class="sky-notification sky-glass-surface"')
+    expect(html).toMatch(
+      /class="sky-notification sky-glass-surface(?: sky-glass)?"/,
+    )
     expect(html).toContain('role="status"')
     expect(html).toContain('aria-live="polite"')
     expect(html).toContain('sky-notification__header--with-close')

@@ -137,7 +137,11 @@ function disable(event: MouseEvent): void {
     @blur.capture="emit('blur-capture', $event)"
     @focus.capture="emit('focus-capture', $event)"
   >
-    <SkyGlass :highlight="false" class="sky-searchbar__control">
+    <SkyGlass
+      material="clear"
+      :highlight="false"
+      class="sky-searchbar__control"
+    >
       <label v-if="label" class="sky-visually-hidden" :for="resolvedInputId">
         {{ label }}
       </label>

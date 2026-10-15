@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   SkyBlock,
   SkyDialog,
@@ -1159,8 +1161,8 @@ onBeforeUnmount(() => {
         "
         @click="selectImportSource(source)"
       >
-        <template #media><Globe2 :size="22" /></template>
-        <template #after><ChevronRight :size="18" /></template>
+        <template #media><SkyIcon :icon="Globe2" :size="22" /></template>
+        <template #after><SkyIcon :icon="ChevronRight" :size="18" /></template>
       </sky-list-item>
     </sky-list>
   </sky-app-page>
@@ -1181,7 +1183,9 @@ onBeforeUnmount(() => {
     </sky-navbar>
 
     <div class="gallery-import-form">
-      <div class="gallery-import-form-icon"><Link2 :size="34" /></div>
+      <div class="gallery-import-form-icon">
+        <SkyIcon :icon="Link2" :size="34" />
+      </div>
       <h2>{{ phone.t('Apps.photos.import.linkTitle') }}</h2>
       <p>{{ phone.t('Apps.photos.import.linkBody') }}</p>
       <sky-list inset strong class="gallery-import-url-list">
@@ -1281,7 +1285,7 @@ onBeforeUnmount(() => {
               :title="phone.t('Apps.photos.sorting.action')"
               @click="openSortMenu"
             >
-              <ListFilter :size="21" aria-hidden="true" />
+              <SkyIcon :icon="ListFilter" :size="21" aria-hidden="true" />
             </SkyButton>
           </SkyToolbarPane>
           <SkyToolbarPane
@@ -1297,7 +1301,7 @@ onBeforeUnmount(() => {
               :title="phone.t('Apps.photos.import.action')"
               @click="openImport"
             >
-              <Download :size="21" aria-hidden="true" />
+              <SkyIcon :icon="Download" :size="21" aria-hidden="true" />
             </SkyButton>
           </SkyToolbarPane>
           <SkyToolbarPane class="gallery-header-tool gallery-header-tool--text">
@@ -1335,7 +1339,8 @@ onBeforeUnmount(() => {
           ref="loadTrigger"
           class="gallery-load-trigger"
         ></span>
-        <button
+        <SkyButton
+          variant="content"
           v-for="(entry, index) in orderedMedia"
           :key="entry.id"
           class="gallery-tile"
@@ -1378,7 +1383,7 @@ onBeforeUnmount(() => {
             preload="metadata"
           ></video>
           <span v-if="entry.mediaType === 'video'" class="gallery-video-badge">
-            <Play :size="16" fill="currentColor" />
+            <SkyIcon :icon="Play" :size="16" fill="currentColor" />
           </span>
           <span
             v-if="
@@ -1389,7 +1394,7 @@ onBeforeUnmount(() => {
           >
             {{ selectedMediaIds.indexOf(entry.id) + 1 }}
           </span>
-        </button>
+        </SkyButton>
       </div>
     </div>
 
@@ -1405,21 +1410,21 @@ onBeforeUnmount(() => {
         :label="phone.t('Apps.photos.filters.all')"
         @click="filter = 'all'"
       >
-        <template #icon><Images :size="21" /></template>
+        <template #icon><SkyIcon :icon="Images" :size="21" /></template>
       </SkyTabButton>
       <SkyTabButton
         :active="filter === 'photo'"
         :label="phone.t('Apps.photos.filters.photos')"
         @click="filter = 'photo'"
       >
-        <template #icon><Image :size="21" /></template>
+        <template #icon><SkyIcon :icon="Image" :size="21" /></template>
       </SkyTabButton>
       <SkyTabButton
         :active="filter === 'video'"
         :label="phone.t('Apps.photos.filters.videos')"
         @click="filter = 'video'"
       >
-        <template #icon><Video :size="21" /></template>
+        <template #icon><SkyIcon :icon="Video" :size="21" /></template>
       </SkyTabButton>
     </SkyTabBar>
 
@@ -1443,7 +1448,7 @@ onBeforeUnmount(() => {
             :disabled="!selectedMediaIds.length"
             @click="shareSelection"
           >
-            <Share2 :size="20" aria-hidden="true" />
+            <SkyIcon :icon="Share2" :size="20" aria-hidden="true" />
           </SkyButton>
         </SkyToolbarPane>
         <SkyToolbarPane class="gallery-selection-action">
@@ -1456,7 +1461,7 @@ onBeforeUnmount(() => {
             :disabled="!selectedMediaIds.length || deletingMany"
             @click="deleteManyDialogOpened = true"
           >
-            <Trash2 :size="20" aria-hidden="true" />
+            <SkyIcon :icon="Trash2" :size="20" aria-hidden="true" />
           </SkyButton>
         </SkyToolbarPane>
       </div>
@@ -1482,7 +1487,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Common.back')"
           @click="closeMedia"
         >
-          <ChevronLeft :size="24" aria-hidden="true" />
+          <SkyIcon :icon="ChevronLeft" :size="24" aria-hidden="true" />
         </SkyButton>
       </template>
       <template #right>
@@ -1550,7 +1555,7 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Apps.easyShare.name')"
           @click="shareSelected"
         >
-          <Share2 :size="21" aria-hidden="true" />
+          <SkyIcon :icon="Share2" :size="21" aria-hidden="true" />
         </SkyButton>
       </SkyToolbarPane>
       <SkyToolbarPane class="gallery-detail-tools">
@@ -1568,7 +1573,8 @@ onBeforeUnmount(() => {
           :disabled="favoriting"
           @click="toggleFavorite"
         >
-          <Heart
+          <SkyIcon
+            :icon="Heart"
             :size="20"
             :fill="selected.favorite ? 'currentColor' : 'none'"
             aria-hidden="true"
@@ -1585,7 +1591,7 @@ onBeforeUnmount(() => {
           :disabled="deleting"
           @click="deleteDialogOpened = true"
         >
-          <Trash2 :size="21" aria-hidden="true" />
+          <SkyIcon :icon="Trash2" :size="21" aria-hidden="true" />
         </SkyButton>
       </SkyToolbarPane>
     </SkyToolbar>
@@ -1763,7 +1769,7 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 .gallery-header-action {
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   font-size: 14px;
   font-weight: 600;
 }
@@ -1794,7 +1800,7 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 .gallery-selection-action :deep(.sky-button) {
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 .gallery-grid--fill {
   flex: 1;

@@ -48,7 +48,9 @@ describe('phone status bar theme contract', () => {
   })
 
   it('keeps every status indicator bound to the inherited foreground', () => {
-    expect(indicatorsSource).toMatch(/<Plane[\s\S]*?fill="currentColor"/)
+    expect(indicatorsSource).toMatch(
+      /<SkyIcon\s+:icon="Plane"[\s\S]*?fill="currentColor"/,
+    )
     expect(indicatorsSource).toMatch(
       /\.phone-status-indicators__signal\s*\{[^}]*fill:\s*currentColor;/s,
     )

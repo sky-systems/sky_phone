@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   ChevronLeft,
   Circle,
@@ -20,9 +22,7 @@ import { computed, onBeforeUnmount, onMounted } from 'vue'
 
 import { playMemorySound } from '@/features/games/memory/audio'
 import { useMemoryStore } from '@/features/games/memory/store'
-import type {
-  MemoryDifficulty,
-} from '@/features/games/memory/types'
+import type { MemoryDifficulty } from '@/features/games/memory/types'
 import { usePhoneStore } from '@/stores/phone'
 import { SkyButton } from '@/ui'
 
@@ -135,15 +135,31 @@ onBeforeUnmount(() => {
         <h1>{{ phone.t('Apps.memory.name') }}</h1>
       </div>
       <div class="memory-header__actions">
-        <Sparkles :size="23" aria-hidden="true" />
-        <SkyButton glass icon-only rounded
+        <SkyIcon :icon="Sparkles" :size="23" aria-hidden="true" />
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
-          :aria-label="phone.t(memory.soundEnabled ? 'Apps.memory.mute' : 'Apps.memory.unmute')"
-          :title="phone.t(memory.soundEnabled ? 'Apps.memory.mute' : 'Apps.memory.unmute')"
+          :aria-label="
+            phone.t(
+              memory.soundEnabled ? 'Apps.memory.mute' : 'Apps.memory.unmute',
+            )
+          "
+          :title="
+            phone.t(
+              memory.soundEnabled ? 'Apps.memory.mute' : 'Apps.memory.unmute',
+            )
+          "
           @click="toggleSound"
         >
-          <Volume2 v-if="memory.soundEnabled" :size="18" aria-hidden="true" />
-          <VolumeX v-else :size="18" aria-hidden="true" />
+          <SkyIcon
+            :icon="Volume2"
+            v-if="memory.soundEnabled"
+            :size="18"
+            aria-hidden="true"
+          />
+          <SkyIcon :icon="VolumeX" v-else :size="18" aria-hidden="true" />
         </SkyButton>
       </div>
     </header>
@@ -152,7 +168,7 @@ onBeforeUnmount(() => {
       <div class="memory-hero" aria-hidden="true">
         <span class="memory-hero__card memory-hero__card--back"></span>
         <span class="memory-hero__card memory-hero__card--front">
-          <Star :size="34" fill="currentColor" />
+          <SkyIcon :icon="Star" :size="34" fill="currentColor" />
         </span>
       </div>
       <div class="memory-intro">
@@ -161,7 +177,8 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="memory-difficulties">
-        <button
+        <SkyButton
+          variant="content"
           v-for="option in difficulties"
           :key="option.difficulty"
           type="button"
@@ -176,21 +193,29 @@ onBeforeUnmount(() => {
           <span class="memory-difficulty__best">
             {{ bestLabel(option.difficulty) }}
           </span>
-          <Play :size="16" fill="currentColor" />
-        </button>
+          <SkyIcon :icon="Play" :size="16" fill="currentColor" />
+        </SkyButton>
       </div>
     </section>
 
     <section v-else class="memory-game">
       <div class="memory-stats">
-        <SkyButton glass icon-only rounded
+        <SkyButton
+          glass
+          icon-only
+          rounded
           type="button"
           class="memory-menu-button"
           :aria-label="phone.t('Apps.memory.backToMenu')"
           :title="phone.t('Apps.memory.backToMenu')"
           @click="returnToMenu"
         >
-          <ChevronLeft :size="18" :stroke-width="2.6" aria-hidden="true" />
+          <SkyIcon
+            :icon="ChevronLeft"
+            :size="18"
+            :stroke-width="2.6"
+            aria-hidden="true"
+          />
         </SkyButton>
         <div>
           <span>{{ phone.t('Apps.memory.time') }}</span>
@@ -200,9 +225,9 @@ onBeforeUnmount(() => {
           <span>{{ phone.t('Apps.memory.moves') }}</span>
           <strong>{{ game.moves }}</strong>
         </div>
-        <button type="button" @click="restart">
+        <SkyButton variant="content" type="button" @click="restart">
           {{ phone.t('Apps.memory.restart') }}
-        </button>
+        </SkyButton>
       </div>
 
       <div
@@ -210,7 +235,8 @@ onBeforeUnmount(() => {
         :class="`memory-board--${game.difficulty}`"
         :aria-label="phone.t('Apps.memory.board')"
       >
-        <button
+        <SkyButton
+          variant="content"
           v-for="card in game.cards"
           :key="card.id"
           type="button"
@@ -237,7 +263,9 @@ onBeforeUnmount(() => {
             </span>
             <span
               class="memory-game-card__face memory-game-card__front"
-              :style="{ color: symbols[card.symbol as keyof typeof symbols].color }"
+              :style="{
+                color: symbols[card.symbol as keyof typeof symbols].color,
+              }"
             >
               <component
                 :is="symbols[card.symbol as keyof typeof symbols].icon"
@@ -247,22 +275,34 @@ onBeforeUnmount(() => {
               />
             </span>
           </span>
-        </button>
+        </SkyButton>
 
         <div v-if="game.status === 'won'" class="memory-complete">
-          <div class="memory-complete__burst"><Star :size="35" fill="currentColor" /></div>
+          <div class="memory-complete__burst">
+            <SkyIcon :icon="Star" :size="35" fill="currentColor" />
+          </div>
           <span>{{ phone.t('Apps.memory.completeEyebrow') }}</span>
           <h2>{{ phone.t('Apps.memory.completeTitle') }}</h2>
           <p>
             {{ game.moves }} {{ phone.t('Apps.memory.moves') }} ·
             {{ formatTime(memory.elapsedMs) }}
           </p>
-          <button type="button" class="memory-primary" @click="restart">
+          <SkyButton
+            variant="content"
+            type="button"
+            class="memory-primary"
+            @click="restart"
+          >
             {{ phone.t('Apps.memory.playAgain') }}
-          </button>
-          <button type="button" class="memory-secondary" @click="returnToMenu">
+          </SkyButton>
+          <SkyButton
+            variant="content"
+            type="button"
+            class="memory-secondary"
+            @click="returnToMenu"
+          >
             {{ phone.t('Apps.memory.menu') }}
-          </button>
+          </SkyButton>
         </div>
       </div>
     </section>
@@ -322,11 +362,13 @@ onBeforeUnmount(() => {
   padding: 9px;
   border: 0;
   border-radius: 13px;
-  color: #7658c7;
+  color: var(--sky-button-text, #ffffff);
   background: rgb(255 255 255 / 54%);
 }
 
-.memory-header__actions .sky-button--glass { color: var(--sky-text); }
+.memory-header__actions .sky-button--glass {
+  color: var(--sky-button-text, #ffffff);
+}
 
 .memory-header__actions button {
   display: grid;
@@ -375,9 +417,20 @@ onBeforeUnmount(() => {
   transform: rotate(10deg);
 }
 
-.memory-intro { text-align: center; }
-.memory-intro h2 { margin: 0; font-size: 23px; letter-spacing: -0.6px; }
-.memory-intro p { margin: 7px 18px 0; color: #74698f; font-size: 14px; line-height: 1.4; }
+.memory-intro {
+  text-align: center;
+}
+.memory-intro h2 {
+  margin: 0;
+  font-size: 23px;
+  letter-spacing: -0.6px;
+}
+.memory-intro p {
+  margin: 7px 18px 0;
+  color: #74698f;
+  font-size: 14px;
+  line-height: 1.4;
+}
 
 .memory-difficulties {
   display: grid;
@@ -412,9 +465,22 @@ onBeforeUnmount(() => {
   font-weight: 800;
 }
 
-.memory-difficulty__name { align-self: end; font-size: 15px; font-weight: 800; }
-.memory-difficulty__best { align-self: start; color: #74698f; font-size: 11.5px; line-height: 1.2; }
-.memory-difficulties svg { grid-column: 3; grid-row: 1 / 3; color: #7658c7; }
+.memory-difficulty__name {
+  align-self: end;
+  font-size: 15px;
+  font-weight: 800;
+}
+.memory-difficulty__best {
+  align-self: start;
+  color: #74698f;
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+.memory-difficulties svg {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  color: #7658c7;
+}
 
 .memory-game {
   position: absolute;
@@ -441,10 +507,33 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-.memory-stats div { height: 32px; display: grid; grid-template-rows: 10px 20px; align-content: center; justify-items: center; }
-.memory-stats span { color: #74698f; font-size: 10.5px; font-weight: 800; line-height: 10px; text-transform: uppercase; }
-.memory-stats strong { display: block; font-size: 19px; line-height: 20px; }
-.memory-stats button:not(.sky-button--glass) { justify-self: end; border: 0; color: #7052bf; background: transparent; font-size: 13px; font-weight: 800; }
+.memory-stats div {
+  height: 32px;
+  display: grid;
+  grid-template-rows: 10px 20px;
+  align-content: center;
+  justify-items: center;
+}
+.memory-stats span {
+  color: #74698f;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 10px;
+  text-transform: uppercase;
+}
+.memory-stats strong {
+  display: block;
+  font-size: 19px;
+  line-height: 20px;
+}
+.memory-stats button:not(.sky-button--glass) {
+  justify-self: end;
+  border: 0;
+  color: #7052bf;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 800;
+}
 .memory-stats .memory-menu-button {
   --sky-touch-target: 32px;
   width: 32px;
@@ -453,7 +542,7 @@ onBeforeUnmount(() => {
   place-items: center;
   justify-self: start;
   padding: 0;
-  color: #7052bf;
+  color: var(--sky-button-text, #ffffff);
   cursor: pointer;
 }
 
@@ -472,10 +561,18 @@ onBeforeUnmount(() => {
   perspective: 900px;
 }
 
-.memory-board--small { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.memory-board--small {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .memory-board--medium,
-.memory-board--large { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.memory-board--large { gap: 6px; padding-right: 15px; padding-left: 15px; }
+.memory-board--large {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.memory-board--large {
+  gap: 6px;
+  padding-right: 15px;
+  padding-left: 15px;
+}
 
 .memory-game-card {
   aspect-ratio: 0.82;
@@ -487,7 +584,9 @@ onBeforeUnmount(() => {
   perspective: 500px;
 }
 
-.memory-game-card:disabled { cursor: default; }
+.memory-game-card:disabled {
+  cursor: default;
+}
 
 .memory-game-card__inner {
   position: relative;
@@ -498,7 +597,9 @@ onBeforeUnmount(() => {
   transition: transform 360ms cubic-bezier(0.22, 0.68, 0.3, 1);
 }
 
-.memory-game-card--flipped .memory-game-card__inner { transform: rotateY(180deg); }
+.memory-game-card--flipped .memory-game-card__inner {
+  transform: rotateY(180deg);
+}
 
 .memory-game-card__face {
   position: absolute;
@@ -525,20 +626,36 @@ onBeforeUnmount(() => {
   inset: 5px;
   border: 1px solid rgb(255 255 255 / 15%);
   border-radius: 9px;
-  background: radial-gradient(circle at 24% 18%, rgb(255 255 255 / 12%), transparent 42%);
-  content: "";
+  background: radial-gradient(
+    circle at 24% 18%,
+    rgb(255 255 255 / 12%),
+    transparent 42%
+  );
+  content: '';
 }
 
-.memory-game-card__back i { width: 6px; height: 6px; border-radius: 50%; background: rgb(255 255 255 / 30%); }
+.memory-game-card__back i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 30%);
+}
 
 .memory-game-card__front {
-  background: radial-gradient(circle at 50% 42%, #fff 0 25%, #fffaf1 72%, #f8f1e7 100%);
+  background: radial-gradient(
+    circle at 50% 42%,
+    #fff 0 25%,
+    #fffaf1 72%,
+    #f8f1e7 100%
+  );
   transform: rotateY(180deg);
 }
 
 .memory-game-card--matched .memory-game-card__front {
   background: #f7fff2;
-  box-shadow: 0 0 0 2px rgb(121 199 107 / 32%), 0 6px 12px rgb(71 143 65 / 14%);
+  box-shadow:
+    0 0 0 2px rgb(121 199 107 / 32%),
+    0 6px 12px rgb(71 143 65 / 14%);
 }
 
 .memory-game-card--matched {
@@ -550,17 +667,34 @@ onBeforeUnmount(() => {
 }
 
 @keyframes memory-match-pop {
-  0% { transform: scale(1) translateY(0); }
-  38% { transform: scale(1.12) translateY(-4px); }
-  68% { transform: scale(0.97) translateY(1px); }
-  100% { transform: scale(1) translateY(0); }
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  38% {
+    transform: scale(1.12) translateY(-4px);
+  }
+  68% {
+    transform: scale(0.97) translateY(1px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
 }
 
 @keyframes memory-mismatch-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-3px) rotate(-1.5deg); }
-  50% { transform: translateX(3px) rotate(1.5deg); }
-  75% { transform: translateX(-2px) rotate(-1deg); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateX(3px) rotate(1.5deg);
+  }
+  75% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
 }
 
 .memory-complete {
@@ -589,9 +723,22 @@ onBeforeUnmount(() => {
   box-shadow: 0 9px 22px rgb(100 75 151 / 17%);
 }
 
-.memory-complete > span { color: #74698f; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
-.memory-complete h2 { margin: 0; font-size: 27px; }
-.memory-complete p { margin: -4px 0 4px; color: #756b8e; font-size: 14px; }
+.memory-complete > span {
+  color: #74698f;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.memory-complete h2 {
+  margin: 0;
+  font-size: 27px;
+}
+.memory-complete p {
+  margin: -4px 0 4px;
+  color: #756b8e;
+  font-size: 14px;
+}
 
 .memory-primary,
 .memory-secondary {
@@ -602,14 +749,29 @@ onBeforeUnmount(() => {
   font-weight: 800;
 }
 
-.memory-primary { border: 0; color: #fff; background: linear-gradient(135deg, #9a7be1, #7051bf); box-shadow: 0 8px 17px rgb(91 61 164 / 22%); }
-.memory-secondary { border: 1px solid rgb(92 72 134 / 14%); color: #6e6091; background: rgb(255 255 255 / 48%); }
+.memory-primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #9a7be1, #7051bf);
+  box-shadow: 0 8px 17px rgb(91 61 164 / 22%);
+}
+.memory-secondary {
+  border: 1px solid rgb(92 72 134 / 14%);
+  color: #6e6091;
+  background: rgb(255 255 255 / 48%);
+}
 
-button:active { transform: scale(0.97); }
+button:active {
+  transform: scale(0.97);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .memory-game-card__inner { transition-duration: 1ms; }
+  .memory-game-card__inner {
+    transition-duration: 1ms;
+  }
   .memory-game-card--matched,
-  .memory-game-card--mismatch { animation: none; }
+  .memory-game-card--mismatch {
+    animation: none;
+  }
 }
 </style>

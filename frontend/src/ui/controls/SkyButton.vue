@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import SkyGlass from './SkyGlass.vue'
+import SkySpinner from './SkySpinner.vue'
 
 defineOptions({ inheritAttrs: false })
 
@@ -12,17 +13,19 @@ const props = withDefaults(
     component?: 'a' | 'button'
     disabled?: boolean
     glass?: boolean
+    glassMaterial?: 'clear' | 'regular'
     href?: string
     iconOnly?: boolean
     inline?: boolean
     large?: boolean
+    loading?: boolean
     outline?: boolean
     raised?: boolean
     rounded?: boolean
     small?: boolean
     tonal?: boolean
     type?: 'button' | 'reset' | 'submit'
-    variant?: 'danger' | 'plain' | 'primary' | 'secondary'
+    variant?: 'content' | 'danger' | 'plain' | 'primary' | 'secondary'
   }>(),
   {
     block: false,
@@ -30,10 +33,12 @@ const props = withDefaults(
     component: 'button',
     disabled: false,
     glass: false,
+    glassMaterial: 'clear',
     href: undefined,
     iconOnly: false,
     inline: false,
     large: false,
+    loading: false,
     outline: false,
     raised: false,
     rounded: false,
@@ -47,6 +52,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   click: [event: MouseEvent]
 }>()
+
+const unavailable = computed(() => props.disabled || props.loading)
 
 const buttonClasses = computed(() => [
   `sky-button--${props.variant}`,
@@ -68,20 +75,22 @@ const buttonClasses = computed(() => [
 const elementProps = computed<Record<string, unknown>>(() => {
   if (props.component === 'a') {
     return {
-      'aria-disabled': props.disabled || undefined,
-      href: props.disabled ? undefined : props.href,
-      tabindex: props.disabled ? -1 : undefined,
+      'aria-busy': props.loading || undefined,
+      'aria-disabled': unavailable.value || undefined,
+      href: unavailable.value ? undefined : props.href,
+      tabindex: unavailable.value ? -1 : undefined,
     }
   }
 
   return {
-    disabled: props.disabled,
+    'aria-busy': props.loading || undefined,
+    disabled: unavailable.value,
     type: props.type,
   }
 })
 
 function handleClick(event: MouseEvent): void {
-  if (props.disabled) {
+  if (unavailable.value) {
     event.preventDefault()
     event.stopPropagation()
     return
@@ -95,14 +104,16 @@ function handleClick(event: MouseEvent): void {
   <SkyGlass
     v-if="glass"
     :component="component"
+    :material="glassMaterial"
     v-bind="{ ...$attrs, ...elementProps }"
     class="sky-button"
     :class="buttonClasses"
-    :disabled="disabled"
+    :disabled="unavailable"
     :href="href"
     :type="type"
     @click="handleClick"
   >
+    <SkySpinner v-if="loading" class="sky-button__spinner" :size="20" />
     <slot />
   </SkyGlass>
   <component
@@ -113,6 +124,7 @@ function handleClick(event: MouseEvent): void {
     :class="buttonClasses"
     @click="handleClick"
   >
+    <SkySpinner v-if="loading" class="sky-button__spinner" :size="20" />
     <slot />
   </component>
 </template>

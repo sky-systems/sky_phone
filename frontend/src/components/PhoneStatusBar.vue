@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import { PhoneCall } from 'lucide-vue-next'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import PhoneStatusIndicators from '@/components/PhoneStatusIndicators.vue'
@@ -53,7 +55,8 @@ onBeforeUnmount(() => {
 
 <template>
   <header class="phone-status-bar" :aria-label="phone.t('Common.phoneStatus')">
-    <button
+    <SkyButton
+      variant="content"
       v-if="lockable"
       class="phone-status-bar__time phone-status-bar__time-button"
       :class="{
@@ -62,29 +65,35 @@ onBeforeUnmount(() => {
       type="button"
       :aria-label="
         phone.t(
-          activeCallReturn ? 'Apps.phone.returnToCall' : 'LockScreen.label',
+          activeCallReturn ? 'Apps.phone.returnToCall' : 'Notifications.center',
         )
       "
       @click.stop="handleTimeClick"
     >
-      <PhoneCall
+      <SkyIcon
+        :icon="PhoneCall"
         v-if="activeCallReturn"
         class="phone-status-bar__active-call-icon"
         aria-hidden="true"
       />
       <time>{{ time }}</time>
-    </button>
+    </SkyButton>
     <time v-else class="phone-status-bar__time">{{ time }}</time>
-    <button
+    <component
+      :is="interactive ? SkyButton : 'span'"
+      :variant="interactive ? 'content' : undefined"
       class="phone-status-bar__indicators"
-      type="button"
+      :type="interactive ? 'button' : undefined"
       :aria-label="
-        cellular.enabled && !cellular.hasSignal
-          ? phone.t('Cellular.noSignal') + '. ' + phone.t('ControlCenter.open')
-          : phone.t('ControlCenter.open')
+        !interactive
+          ? undefined
+          : cellular.enabled && !cellular.hasSignal
+            ? phone.t('Cellular.noSignal') +
+              '. ' +
+              phone.t('ControlCenter.open')
+            : phone.t('ControlCenter.open')
       "
-      :aria-expanded="controlCenterOpened"
-      :disabled="!interactive"
+      :aria-expanded="interactive ? controlCenterOpened : undefined"
       @click.stop="interactive && emit('controlCenter')"
     >
       <span
@@ -101,7 +110,7 @@ onBeforeUnmount(() => {
         "
         :wifi-enabled="phone.preferences.settings.wifiEnabled"
       />
-    </button>
+    </component>
   </header>
 </template>
 

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import {
   Camera,
   ChevronRight,
@@ -440,7 +442,8 @@ watch(
       variant="large"
     >
       <template #right>
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="app-store-profile"
           :aria-label="
@@ -449,7 +452,7 @@ watch(
           @click="profileOpened = true"
         >
           {{ profileInitials }}
-        </button>
+        </SkyButton>
       </template>
       <template v-if="tab === 'search'" #subnavbar>
         <SkySearchbar
@@ -482,7 +485,8 @@ watch(
           class="store-highlight store-highlight--hero phone-effect--expensive-shadow"
           :style="highlightStyle(0)"
         >
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="store-highlight__detail-link"
             :aria-label="
@@ -491,14 +495,19 @@ watch(
               })
             "
             @click="openAppDetail(dailyHighlights[0])"
-          ></button>
+          ></SkyButton>
           <div
             class="store-highlight__texture phone-effect--decorative"
             aria-hidden="true"
           ></div>
           <div class="store-highlight__copy">
             <p>
-              <Sparkles :size="12" :stroke-width="2.5" aria-hidden="true" />
+              <SkyIcon
+                :icon="Sparkles"
+                :size="12"
+                :stroke-width="2.5"
+                aria-hidden="true"
+              />
               {{ phone.t('Apps.appStore.today.featured') }}
             </p>
             <h2>{{ highlightTitle(dailyHighlights[0]) }}</h2>
@@ -535,7 +544,8 @@ watch(
                 {{ categoryDescription(dailyHighlights[0]) }}
               </small>
             </div>
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="store-action-button"
               :class="{
@@ -558,7 +568,7 @@ watch(
                     : undefined
                 "
               />
-            </button>
+            </SkyButton>
           </footer>
         </article>
 
@@ -567,7 +577,12 @@ watch(
             <span>{{ phone.t('Apps.appStore.today.curatedForYou') }}</span>
             <h2>{{ phone.t('Apps.appStore.today.moreHighlights') }}</h2>
           </div>
-          <Sparkles :size="20" :stroke-width="2" aria-hidden="true" />
+          <SkyIcon
+            :icon="Sparkles"
+            :size="20"
+            :stroke-width="2"
+            aria-hidden="true"
+          />
         </header>
         <article
           v-for="(app, index) in editorialHighlights"
@@ -576,7 +591,8 @@ watch(
           :class="{ 'store-highlight--reverse': index % 2 === 1 }"
           :style="highlightStyle(index + 1)"
         >
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="store-highlight__detail-link"
             :aria-label="
@@ -585,7 +601,7 @@ watch(
               })
             "
             @click="openAppDetail(app)"
-          ></button>
+          ></SkyButton>
           <div
             class="store-highlight__texture phone-effect--decorative"
             aria-hidden="true"
@@ -618,7 +634,8 @@ watch(
               <strong>{{ getPhoneAppLabel(app, phone.t) }}</strong>
               <small>{{ phone.t('Apps.appStore.today.editorsChoice') }}</small>
             </div>
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="store-action-button"
               :class="{
@@ -635,14 +652,19 @@ watch(
                 :action="appAction(app)"
                 :price="isExternalPhoneApp(app) ? app.store?.price : undefined"
               />
-            </button>
+            </SkyButton>
           </footer>
         </article>
 
         <section class="store-ranking phone-effect--expensive-shadow">
           <header class="store-ranking__header">
             <span class="store-ranking__icon">
-              <Trophy :size="18" :stroke-width="2.2" aria-hidden="true" />
+              <SkyIcon
+                :icon="Trophy"
+                :size="18"
+                :stroke-width="2.2"
+                aria-hidden="true"
+              />
             </span>
             <div>
               <h2>{{ phone.t('Apps.appStore.today.topToday') }}</h2>
@@ -651,7 +673,8 @@ watch(
           </header>
           <ol>
             <li v-for="app in topToday" :key="app.id">
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="store-ranking__detail-link"
                 :aria-label="
@@ -666,8 +689,9 @@ watch(
                   <strong>{{ getPhoneAppLabel(app, phone.t) }}</strong>
                   <small>{{ categoryDescription(app) }}</small>
                 </span>
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 class="store-action-button"
                 :class="{
@@ -686,7 +710,7 @@ watch(
                     isExternalPhoneApp(app) ? app.store?.price : undefined
                   "
                 />
-              </button>
+              </SkyButton>
             </li>
           </ol>
         </section>
@@ -696,7 +720,8 @@ watch(
           class="store-final-pick phone-effect--expensive-shadow"
           :style="highlightStyle(4)"
         >
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="store-highlight__detail-link"
             :aria-label="
@@ -705,7 +730,7 @@ watch(
               })
             "
             @click="openAppDetail(finalHighlight)"
-          ></button>
+          ></SkyButton>
           <div
             class="store-final-pick__glow phone-effect--decorative"
             aria-hidden="true"
@@ -721,7 +746,8 @@ watch(
             alt=""
             draggable="false"
           />
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="store-action-button"
             :class="{
@@ -743,7 +769,7 @@ watch(
                   : undefined
               "
             />
-          </button>
+          </SkyButton>
         </article>
       </section>
 
@@ -791,15 +817,17 @@ watch(
             </div>
             <footer>
               <img :src="app.iconImage" alt="" draggable="false" />
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="store-browse-feature__details"
                 @click="openAppDetail(app)"
               >
                 <strong>{{ getPhoneAppLabel(app, phone.t) }}</strong>
                 <small>{{ appStoreTagline(app) }}</small>
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 class="store-action-button"
                 :class="{
@@ -818,7 +846,7 @@ watch(
                     isExternalPhoneApp(app) ? app.store?.price : undefined
                   "
                 />
-              </button>
+              </SkyButton>
             </footer>
           </article>
         </div>
@@ -828,7 +856,8 @@ watch(
           class="store-browse__pages"
           :aria-label="phone.t('Apps.appStore.browse.featuredPages')"
         >
-          <button
+          <SkyButton
+            variant="content"
             v-for="(app, index) in featuredCandidates"
             :key="app.id"
             type="button"
@@ -837,7 +866,7 @@ watch(
             }"
             :aria-label="getPhoneAppLabel(app, phone.t)"
             @click="scrollToFeatured(index)"
-          ></button>
+          ></SkyButton>
         </div>
 
         <header class="store-browse__list-heading">
@@ -858,7 +887,8 @@ watch(
 
         <section class="store-list store-list--browse">
           <article v-for="app in shownApps" :key="app.id">
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="store-list__detail-link"
               @click="openAppDetail(app)"
@@ -875,8 +905,9 @@ watch(
                   appStoreTagline(app)
                 }}</small>
               </span>
-            </button>
-            <button
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="store-action-button"
               :class="{
@@ -893,7 +924,7 @@ watch(
                 :action="appAction(app)"
                 :price="isExternalPhoneApp(app) ? app.store?.price : undefined"
               />
-            </button>
+            </SkyButton>
           </article>
           <p v-if="shownApps.length === 0" class="store-empty">
             {{ phone.t('Home.noApps') }}
@@ -906,7 +937,12 @@ watch(
           <section class="store-search__section">
             <header class="store-search__heading">
               <h2>{{ phone.t('Apps.appStore.search.recommended') }}</h2>
-              <ChevronRight :size="22" :stroke-width="2.5" aria-hidden="true" />
+              <SkyIcon
+                :icon="ChevronRight"
+                :size="22"
+                :stroke-width="2.5"
+                aria-hidden="true"
+              />
             </header>
             <div class="store-search__recommendations">
               <article
@@ -916,7 +952,8 @@ watch(
                   'store-search__recommendation--promoted': index === 0,
                 }"
               >
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="store-search__detail-link"
                   @click="openAppDetail(app)"
@@ -929,8 +966,9 @@ watch(
                       phone.t('Apps.appStore.search.ad')
                     }}</em>
                   </span>
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="store-action-button"
                   :class="{
@@ -950,7 +988,7 @@ watch(
                       isExternalPhoneApp(app) ? app.store?.price : undefined
                     "
                   />
-                </button>
+                </SkyButton>
               </article>
             </div>
           </section>
@@ -958,10 +996,16 @@ watch(
           <section class="store-search__section store-search__discover">
             <header class="store-search__heading">
               <h2>{{ phone.t('Apps.appStore.search.discover') }}</h2>
-              <ChevronRight :size="22" :stroke-width="2.5" aria-hidden="true" />
+              <SkyIcon
+                :icon="ChevronRight"
+                :size="22"
+                :stroke-width="2.5"
+                aria-hidden="true"
+              />
             </header>
             <div class="store-search__discover-grid">
-              <button
+              <SkyButton
+                variant="content"
                 v-for="card in searchDiscoverCards"
                 :key="card.id"
                 type="button"
@@ -977,7 +1021,7 @@ watch(
                 />
                 <span>{{ phone.t(`Apps.appStore.search.${card.id}`) }}</span>
                 <small>{{ getPhoneAppLabel(card.app, phone.t) }}</small>
-              </button>
+              </SkyButton>
             </div>
           </section>
         </template>
@@ -991,7 +1035,8 @@ watch(
           </header>
           <div class="store-list store-list--browse store-list--search-results">
             <article v-for="app in shownApps" :key="app.id">
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 class="store-list__detail-link"
                 @click="openAppDetail(app)"
@@ -1008,8 +1053,9 @@ watch(
                     appStoreTagline(app)
                   }}</small>
                 </span>
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 class="store-action-button"
                 :class="{
@@ -1028,7 +1074,7 @@ watch(
                     isExternalPhoneApp(app) ? app.store?.price : undefined
                   "
                 />
-              </button>
+              </SkyButton>
             </article>
           </div>
           <SkyEmptyState
@@ -1039,7 +1085,12 @@ watch(
             :body="phone.t('Apps.appStore.search.noResultsBody')"
           >
             <template #icon>
-              <Search :size="38" :stroke-width="1.8" aria-hidden="true" />
+              <SkyIcon
+                :icon="Search"
+                :size="38"
+                :stroke-width="1.8"
+                aria-hidden="true"
+              />
             </template>
           </SkyEmptyState>
         </section>
@@ -1092,7 +1143,8 @@ watch(
       @escape="closeProfile"
     >
       <section class="store-account">
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="store-account__grabber"
           :aria-label="phone.t('Common.close')"
@@ -1103,7 +1155,7 @@ watch(
           @pointerup="endProfileDrag"
         >
           <span aria-hidden="true"></span>
-        </button>
+        </SkyButton>
         <header class="store-account__toolbar">
           <div>
             <span>{{ phone.t('Apps.appStore.account.account') }}</span>
@@ -1117,7 +1169,12 @@ watch(
             <strong>{{ profileName }}</strong>
             <small>{{ phone.t('Apps.appStore.account.skyAccount') }}</small>
           </div>
-          <ShieldCheck :size="24" :stroke-width="1.8" aria-hidden="true" />
+          <SkyIcon
+            :icon="ShieldCheck"
+            :size="24"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
         </section>
 
         <dl class="store-account__summary">
@@ -1146,14 +1203,16 @@ watch(
               <strong>{{ getPhoneAppLabel(app, phone.t) }}</strong>
               <small>{{ downloadDateDescription }}</small>
             </div>
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="store-account__primary-action"
               @click="handleManagedApp(app)"
             >
               {{ phone.t('Apps.appStore.open') }}
-            </button>
-            <button
+            </SkyButton>
+            <SkyButton
+              variant="content"
               v-if="isPhoneAppRemovable(app)"
               type="button"
               class="store-account__remove"
@@ -1164,8 +1223,13 @@ watch(
               "
               @click.stop="requestUninstall(app)"
             >
-              <Trash2 :size="17" :stroke-width="2" aria-hidden="true" />
-            </button>
+              <SkyIcon
+                :icon="Trash2"
+                :size="17"
+                :stroke-width="2"
+                aria-hidden="true"
+              />
+            </SkyButton>
           </article>
         </div>
       </section>
@@ -1265,9 +1329,7 @@ watch(
 }
 
 .app-store-navbar--search :deep(.sky-navbar__subnavbar) {
-  transform: translateY(
-    calc(0px - var(--sky-navbar-collapse-offset) - 24px)
-  );
+  transform: translateY(calc(0px - var(--sky-navbar-collapse-offset) - 24px));
 }
 
 .app-store-profile {
@@ -1683,8 +1745,16 @@ watch(
   border: 0;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.24), transparent 38%),
-    radial-gradient(circle at 66% 68%, var(--store-highlight-glow), transparent 70%);
+    radial-gradient(
+      circle at 34% 30%,
+      rgba(255, 255, 255, 0.24),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 66% 68%,
+      var(--store-highlight-glow),
+      transparent 70%
+    );
   box-shadow: none;
   opacity: 0.68;
   filter: blur(14px) saturate(125%);
@@ -1712,8 +1782,16 @@ watch(
 .store-highlight__orbit::after {
   inset: -58px;
   background:
-    radial-gradient(circle at 68% 36%, rgba(255, 255, 255, 0.12), transparent 42%),
-    radial-gradient(circle at 38% 64%, var(--store-highlight-glow), transparent 72%);
+    radial-gradient(
+      circle at 68% 36%,
+      rgba(255, 255, 255, 0.12),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 38% 64%,
+      var(--store-highlight-glow),
+      transparent 72%
+    );
   opacity: 0.56;
   filter: blur(20px) saturate(130%);
 }
@@ -2279,8 +2357,16 @@ watch(
   border: 0;
   border-radius: 50%;
   background:
-    radial-gradient(ellipse at 30% 36%, rgba(255, 255, 255, 0.24), transparent 38%),
-    radial-gradient(ellipse at 70% 64%, var(--store-highlight-glow), transparent 74%);
+    radial-gradient(
+      ellipse at 30% 36%,
+      rgba(255, 255, 255, 0.24),
+      transparent 38%
+    ),
+    radial-gradient(
+      ellipse at 70% 64%,
+      var(--store-highlight-glow),
+      transparent 74%
+    );
   box-shadow: none;
   opacity: 0.72;
   filter: blur(11px) saturate(125%);
@@ -2870,14 +2956,18 @@ watch(
   font-size: 10px;
 }
 
-.store-ranking li > button.store-action-button--get:not(.store-ranking__detail-link),
+.store-ranking
+  li
+  > button.store-action-button--get:not(.store-ranking__detail-link),
 .store-browse-feature
   footer
   > button.store-action-button--get:not(.store-browse-feature__details),
 .store-search__recommendations
   article
   > button.store-action-button--get:not(.store-search__detail-link),
-.store-list article > button.store-action-button--get:not(.store-list__detail-link) {
+.store-list
+  article
+  > button.store-action-button--get:not(.store-list__detail-link) {
   width: 56px;
   min-width: 56px;
   min-height: 32px;
@@ -2888,14 +2978,18 @@ watch(
   letter-spacing: 0.04em;
 }
 
-.store-ranking li > button.store-action-button--icon:not(.store-ranking__detail-link),
+.store-ranking
+  li
+  > button.store-action-button--icon:not(.store-ranking__detail-link),
 .store-browse-feature
   footer
   > button.store-action-button--icon:not(.store-browse-feature__details),
 .store-search__recommendations
   article
   > button.store-action-button--icon:not(.store-search__detail-link),
-.store-list article > button.store-action-button--icon:not(.store-list__detail-link) {
+.store-list
+  article
+  > button.store-action-button--icon:not(.store-list__detail-link) {
   width: 56px;
   min-width: 56px;
   min-height: 32px;

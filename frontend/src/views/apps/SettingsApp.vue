@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { faceIdErrorKey } from '@/utils/face-id'
 import {
   BellRing,
@@ -58,6 +60,7 @@ import {
 } from '@/utils/mail'
 import { nuiCall } from '@/utils/nui'
 import { formatPhoneNumber } from '@/utils/phone'
+import { formatLockScreenDate } from '@/utils/lockScreen'
 import {
   SkyAppPage,
   SkyBlock,
@@ -81,6 +84,10 @@ import {
 import {
   APPEARANCE_MODE_IDS,
   GRAPHICS_MODE_IDS,
+  GLASS_BLUR_MIN,
+  GLASS_BLUR_MAX,
+  GLASS_BLUR_STEP,
+  LOCK_SCREEN_DATE_FORMAT_IDS,
   NOTIFICATION_SOUND_IDS,
   PHONE_FRAME_IDS,
   PHONE_SCALE_MAX,
@@ -625,6 +632,7 @@ async function submitSettingsPasscode(passcode: string): Promise<void> {
 
 function updateNumberPreference(
   key:
+    | 'glassBlur'
     | 'notificationDurationSeconds'
     | 'notificationVolume'
     | 'phoneScale'
@@ -887,7 +895,7 @@ onBeforeUnmount(() => {
           >
             <template #leading>
               <SkySettingsIcon color="#8e8e93">
-                <UserRound aria-hidden="true" />
+                <SkyIcon :icon="UserRound" aria-hidden="true" />
               </SkySettingsIcon>
             </template>
           </SkySettingsRow>
@@ -974,7 +982,7 @@ onBeforeUnmount(() => {
           >
             <template #leading>
               <SkySettingsIcon color="#5856d6">
-                <PanelsTopLeft aria-hidden="true" />
+                <SkyIcon :icon="PanelsTopLeft" aria-hidden="true" />
               </SkySettingsIcon>
             </template>
           </SkySettingsRow>
@@ -1068,7 +1076,7 @@ onBeforeUnmount(() => {
             >
               <template #leading>
                 <SkySettingsIcon color="#0a84ff">
-                  <UserRound aria-hidden="true" />
+                  <SkyIcon :icon="UserRound" aria-hidden="true" />
                 </SkySettingsIcon>
               </template>
             </SkySettingsRow>
@@ -1086,7 +1094,7 @@ onBeforeUnmount(() => {
                 "
               >
                 <template #leading>
-                  <Smartphone :size="20" aria-hidden="true" />
+                  <SkyIcon :icon="Smartphone" :size="20" aria-hidden="true" />
                 </template>
               </SkySettingsRow>
               <SkySettingsRow
@@ -1336,8 +1344,8 @@ onBeforeUnmount(() => {
               updateNumberPreference('ringtoneVolume', $event)
             "
           >
-            <template #leading><Volume1 /></template>
-            <template #trailing><Volume2 /></template>
+            <template #leading><SkyIcon :icon="Volume1" /></template>
+            <template #trailing><SkyIcon :icon="Volume2" /></template>
           </SkySettingsRangeRow>
           <SkySettingsRangeRow
             :model-value="phone.preferences.settings.notificationVolume"
@@ -1352,8 +1360,8 @@ onBeforeUnmount(() => {
               updateNumberPreference('notificationVolume', $event)
             "
           >
-            <template #leading><Volume1 /></template>
-            <template #trailing><Volume2 /></template>
+            <template #leading><SkyIcon :icon="Volume1" /></template>
+            <template #trailing><SkyIcon :icon="Volume2" /></template>
           </SkySettingsRangeRow>
         </SkySettingsGroup>
 
@@ -1433,7 +1441,7 @@ onBeforeUnmount(() => {
           >
             <template #leading>
               <SkySettingsIcon color="#5856d6">
-                <Moon aria-hidden="true" />
+                <SkyIcon :icon="Moon" aria-hidden="true" />
               </SkySettingsIcon>
             </template>
           </SkySettingsRow>
@@ -1441,6 +1449,22 @@ onBeforeUnmount(() => {
       </template>
 
       <template v-else-if="activeView === 'general'">
+        <SkySettingsGroup
+          :title="phone.t('Apps.settings.lockScreenDateFormat')"
+          :footer="phone.t('Apps.settings.lockScreenDateFormatDescription')"
+        >
+          <SkySettingsRow
+            v-for="format in LOCK_SCREEN_DATE_FORMAT_IDS"
+            :key="format"
+            kind="choice"
+            :selected="
+              phone.preferences.settings.lockScreenDateFormat === format
+            "
+            :title="phone.t('Apps.settings.lockScreenDateFormats.' + format)"
+            :value="formatLockScreenDate(new Date(), phone.lang, format)"
+            @activate="phone.setPreference('lockScreenDateFormat', format)"
+          />
+        </SkySettingsGroup>
         <SkySettingsGroup
           :aria-label="phone.t('Apps.settings.notificationDuration')"
         >
@@ -1533,7 +1557,7 @@ onBeforeUnmount(() => {
           >
             <template #leading>
               <SkySettingsIcon color="#8e8e93">
-                <RotateCcw :size="18" aria-hidden="true" />
+                <SkyIcon :icon="RotateCcw" :size="18" aria-hidden="true" />
               </SkySettingsIcon>
             </template>
           </SkySettingsRow>
@@ -1543,7 +1567,7 @@ onBeforeUnmount(() => {
       <template v-else-if="activeView === 'reset'">
         <section class="settings-reset-hero">
           <div class="settings-reset-hero__icon">
-            <RotateCcw :size="35" :stroke-width="1.65" />
+            <SkyIcon :icon="RotateCcw" :size="35" :stroke-width="1.65" />
           </div>
           <h2>{{ phone.t('Apps.settings.resetHeroTitle') }}</h2>
           <p>{{ phone.t('Apps.settings.resetHeroBody') }}</p>
@@ -1606,6 +1630,24 @@ onBeforeUnmount(() => {
         </SkySettingsGroup>
 
         <SkySettingsGroup
+          :aria-label="phone.t('Apps.settings.glassBlur')"
+          :footer="phone.t('Apps.settings.glassBlurDescription')"
+        >
+          <SkySettingsRangeRow
+            :model-value="phone.preferences.settings.glassBlur"
+            :title="phone.t('Apps.settings.glassBlur')"
+            :value-label="phone.preferences.settings.glassBlur + ' px'"
+            :disabled="
+              phone.preferences.settings.graphicsMode === 'performance'
+            "
+            :min="GLASS_BLUR_MIN"
+            :max="GLASS_BLUR_MAX"
+            :step="GLASS_BLUR_STEP"
+            @update:model-value="updateNumberPreference('glassBlur', $event)"
+          />
+        </SkySettingsGroup>
+
+        <SkySettingsGroup
           :aria-label="phone.t('Apps.settings.screenBrightness')"
         >
           <SkySettingsRangeRow
@@ -1619,8 +1661,8 @@ onBeforeUnmount(() => {
               updateNumberPreference('screenBrightness', $event)
             "
           >
-            <template #leading><Sun /></template>
-            <template #trailing><Sun /></template>
+            <template #leading><SkyIcon :icon="Sun" /></template>
+            <template #trailing><SkyIcon :icon="Sun" /></template>
           </SkySettingsRangeRow>
         </SkySettingsGroup>
 
@@ -1635,8 +1677,8 @@ onBeforeUnmount(() => {
             :step="PHONE_SCALE_STEP"
             @update:model-value="updateNumberPreference('phoneScale', $event)"
           >
-            <template #leading><Smartphone /></template>
-            <template #trailing><Smartphone /></template>
+            <template #leading><SkyIcon :icon="Smartphone" /></template>
+            <template #trailing><SkyIcon :icon="Smartphone" /></template>
           </SkySettingsRangeRow>
         </SkySettingsGroup>
 
@@ -1681,9 +1723,13 @@ onBeforeUnmount(() => {
         </SkySegmented>
 
         <section class="settings-wallpaper-actions">
-          <button type="button" @click="openWallpaperMedia('photos')">
+          <SkyButton
+            variant="content"
+            type="button"
+            @click="openWallpaperMedia('photos')"
+          >
             <span class="settings-wallpaper-actions__icon" aria-hidden="true">
-              <Images />
+              <SkyIcon :icon="Images" />
             </span>
             <span>
               <strong>{{
@@ -1693,10 +1739,14 @@ onBeforeUnmount(() => {
                 phone.t('Apps.settings.wallpaperFromPhotosDescription')
               }}</small>
             </span>
-          </button>
-          <button type="button" @click="openWallpaperMedia('camera')">
+          </SkyButton>
+          <SkyButton
+            variant="content"
+            type="button"
+            @click="openWallpaperMedia('camera')"
+          >
             <span class="settings-wallpaper-actions__icon" aria-hidden="true">
-              <Camera />
+              <SkyIcon :icon="Camera" />
             </span>
             <span>
               <strong>{{
@@ -1706,15 +1756,16 @@ onBeforeUnmount(() => {
                 phone.t('Apps.settings.wallpaperFromCameraDescription')
               }}</small>
             </span>
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             v-if="customWallpaperUploadAvailable"
             type="button"
             class="settings-wallpaper-actions__custom"
             @click="openWallpaperCustomUpload"
           >
             <span class="settings-wallpaper-actions__icon" aria-hidden="true">
-              <Upload />
+              <SkyIcon :icon="Upload" />
             </span>
             <span>
               <strong>{{
@@ -1724,7 +1775,7 @@ onBeforeUnmount(() => {
                 phone.t('Apps.settings.wallpaperCustomUploadDescription')
               }}</small>
             </span>
-          </button>
+          </SkyButton>
         </section>
 
         <section
@@ -1733,7 +1784,8 @@ onBeforeUnmount(() => {
         >
           <h2>{{ phone.t('Apps.settings.wallpaperHistory') }}</h2>
           <div class="settings-wallpaper-history">
-            <button
+            <SkyButton
+              variant="content"
               v-for="(entry, index) in wallpaperHistory"
               :key="`${entry.wallpaper}-${entry.imageUrl ?? index}`"
               type="button"
@@ -1752,15 +1804,20 @@ onBeforeUnmount(() => {
               "
               @click="selectWallpaperHistory(entry)"
             >
-              <Check v-if="isWallpaperSelected(entry)" aria-hidden="true" />
-            </button>
+              <SkyIcon
+                :icon="Check"
+                v-if="isWallpaperSelected(entry)"
+                aria-hidden="true"
+              />
+            </SkyButton>
           </div>
         </section>
 
         <section class="settings-wallpaper-section">
           <h2>{{ phone.t('Apps.settings.wallpaperPicker') }}</h2>
           <div class="settings-wallpaper-grid">
-            <button
+            <SkyButton
+              variant="content"
               v-for="wallpaper in WALLPAPER_IDS"
               :key="wallpaper"
               type="button"
@@ -1778,12 +1835,12 @@ onBeforeUnmount(() => {
                 aria-hidden="true"
               >
                 <span class="settings-wallpaper-choice__screen"></span>
-                <Check v-if="selectedWallpaper === wallpaper" />
+                <SkyIcon :icon="Check" v-if="selectedWallpaper === wallpaper" />
               </span>
               <strong>{{
                 phone.t('Apps.settings.wallpapers.' + wallpaper)
               }}</strong>
-            </button>
+            </SkyButton>
           </div>
         </section>
       </template>
@@ -1809,7 +1866,7 @@ onBeforeUnmount(() => {
       <div class="settings-reset-content">
         <div class="settings-reset-mark" aria-hidden="true">
           <div class="settings-reset-mark__face">
-            <Smartphone :size="38" :stroke-width="1.45" />
+            <SkyIcon :icon="Smartphone" :size="38" :stroke-width="1.45" />
           </div>
         </div>
 
@@ -1835,7 +1892,7 @@ onBeforeUnmount(() => {
 
         <div class="settings-reset-assurance">
           <span class="settings-reset-assurance__icon">
-            <ShieldCheck :size="18" :stroke-width="1.8" />
+            <SkyIcon :icon="ShieldCheck" :size="18" :stroke-width="1.8" />
           </span>
           <span>
             <strong>{{ phone.t('Apps.settings.factoryResetSimSafe') }}</strong>
@@ -1859,7 +1916,8 @@ onBeforeUnmount(() => {
         role="group"
         :aria-label="phone.t('Apps.settings.phoneFrame')"
       >
-        <button
+        <SkyButton
+          variant="content"
           v-for="frame in PHONE_FRAME_IDS"
           :key="frame"
           type="button"
@@ -1877,12 +1935,13 @@ onBeforeUnmount(() => {
             :style="{ background: PHONE_FRAME_COLORS[frame] }"
             aria-hidden="true"
           />
-          <Check
+          <SkyIcon
+            :icon="Check"
             v-if="phone.preferences.settings.frame === frame"
             :size="17"
             aria-hidden="true"
           />
-        </button>
+        </SkyButton>
       </div>
       <template #buttons>
         <SkyDialogButton @click="framePickerOpened = false">

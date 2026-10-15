@@ -1,7 +1,17 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowRef,
+  useId,
+  watch,
+} from 'vue'
 
 import { readPhoneViewportGeometry } from '@/utils/phoneViewportGeometry'
+import { useSkyTheme } from '../theme'
+import { createGlassLens, type GlassLens } from './glassLens'
 
 defineOptions({ inheritAttrs: false })
 
@@ -21,6 +31,7 @@ const props = withDefaults(
     highlight?: boolean
     hoverHighlight?: boolean
     href?: string
+    material?: 'clear' | 'regular'
     type?: 'button' | 'reset' | 'submit'
   }>(),
   {
@@ -29,6 +40,7 @@ const props = withDefaults(
     highlight: true,
     hoverHighlight: true,
     href: undefined,
+    material: 'regular',
     type: 'button',
   },
 )
@@ -44,10 +56,73 @@ const highlightX = ref('50%')
 const highlightY = ref('50%')
 const touchScale = ref('1.05')
 const capturedPointerId = ref<number | null>(null)
+const theme = useSkyTheme()
+const mounted = ref(false)
+const lens = shallowRef<GlassLens | null>(null)
+const filterId = `sky-glass-lens-${useId()}`
+const refractionEnabled = computed(
+  () =>
+    mounted.value &&
+    props.material === 'clear' &&
+    (theme?.glassEffects.value ?? true) &&
+    document.documentElement.dataset.skyRefraction === 'true',
+)
+let lensObserver: ResizeObserver | undefined
+let lensFrame = 0
+
+function refreshLens(): void {
+  cancelAnimationFrame(lensFrame)
+  lensFrame = requestAnimationFrame(() => {
+    const element = root.value
+    if (!element || !refractionEnabled.value) return
+    const width = element.offsetWidth
+    const height = element.offsetHeight
+    if (!width || !height) return
+    const cssRadius = getComputedStyle(element).borderTopLeftRadius
+    const radius = Math.min(
+      width / 2,
+      height / 2,
+      cssRadius.endsWith('%')
+        ? (Math.min(width, height) * parseFloat(cssRadius)) / 100
+        : parseFloat(cssRadius) || 0,
+    )
+    // Maps are static and bounded; never rebuild them in a pointer/animation loop.
+    if (width > 1024 || height > 1024) {
+      lens.value = null
+      return
+    }
+    lens.value = createGlassLens(width, height, Math.max(1, Math.round(radius)))
+  })
+}
+
+watch(
+  [root, refractionEnabled],
+  ([element, enabled]) => {
+    lensObserver?.disconnect()
+    cancelAnimationFrame(lensFrame)
+    lens.value = null
+    if (!element || !enabled) return
+    lensObserver = new ResizeObserver(refreshLens)
+    lensObserver.observe(element)
+    refreshLens()
+  },
+  { flush: 'post' },
+)
+
+onMounted(() => {
+  mounted.value = true
+})
+
 const highlightStyle = computed(() => ({
   '--sky-glass-highlight-x': highlightX.value,
   '--sky-glass-highlight-y': highlightY.value,
   '--sky-glass-touch-scale': touchScale.value,
+  ...(lens.value
+    ? {
+        '--sky-glass-refraction': `url("#${filterId}")`,
+        '--sky-glass-rim-image': `url("${lens.value.highlightMap}")`,
+      }
+    : {}),
 }))
 
 const elementProps = computed<Record<string, unknown>>(() => {
@@ -156,7 +231,11 @@ watch(
   },
 )
 
-onBeforeUnmount(clearPointerState)
+onBeforeUnmount(() => {
+  clearPointerState()
+  lensObserver?.disconnect()
+  cancelAnimationFrame(lensFrame)
+})
 </script>
 
 <template>
@@ -167,6 +246,8 @@ onBeforeUnmount(clearPointerState)
     class="sky-glass"
     :class="{
       'sky-glass--disabled': disabled,
+      'sky-glass--clear': material === 'clear',
+      'sky-glass--refractive': !!lens,
       'sky-glass--highlight': highlight,
       'sky-glass--highlight-visible': highlightVisible,
       'sky-glass--interactive': component === 'a' || component === 'button',
@@ -181,6 +262,48 @@ onBeforeUnmount(clearPointerState)
     @pointermove="updateHighlightPosition"
     @pointerup="handlePointerEnd"
   >
+    <svg
+      v-if="lens"
+      class="sky-glass__filter"
+      width="0"
+      height="0"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <filter
+          :id="filterId"
+          x="0"
+          y="0"
+          :width="lens.width"
+          :height="lens.height"
+          filterUnits="userSpaceOnUse"
+          color-interpolation-filters="sRGB"
+        >
+          <feImage
+            :href="lens.displacementMap"
+            x="0"
+            y="0"
+            :width="lens.width"
+            :height="lens.height"
+            preserveAspectRatio="none"
+            result="displacement"
+          />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="displacement"
+            :scale="lens.scale"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </defs>
+    </svg>
+    <span
+      v-if="material === 'clear'"
+      class="sky-glass__rim"
+      aria-hidden="true"
+    ></span>
     <slot />
   </component>
 </template>

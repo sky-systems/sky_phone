@@ -99,7 +99,7 @@ function closePanel(id: PanelId): void {
                 icon-only
                 @click="closePanel(panel.id)"
               >
-                <SkyIcon :size="20"><X /></SkyIcon>
+                <SkyIcon :size="20"><SkyIcon :icon="X" /></SkyIcon>
               </SkyLink>
             </template>
           </SkyNavbar>

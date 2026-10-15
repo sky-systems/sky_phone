@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   SkyButton,
   SkyFab,
@@ -682,7 +684,8 @@ onBeforeUnmount(() => {
           <span class="current-location__pulse"></span>
           <span class="current-location__dot"></span>
         </div>
-        <button
+        <SkyButton
+          variant="content"
           v-for="marker in mapStore.markers"
           :key="marker.id"
           type="button"
@@ -692,14 +695,15 @@ onBeforeUnmount(() => {
           @pointerdown.stop
           @click.stop="selectMarker(marker)"
         >
-          <MapPin
+          <SkyIcon
+            :icon="MapPin"
             :size="30"
             :style="{ color: markerColorValue(marker.color) }"
             fill="currentColor"
             aria-hidden="true"
           />
           <span>{{ marker.label }}</span>
-        </button>
+        </SkyButton>
       </div>
 
       <div
@@ -726,7 +730,7 @@ onBeforeUnmount(() => {
         @click="shareCurrentLocation"
       >
         <template #icon>
-          <Share2 aria-hidden="true" />
+          <SkyIcon :icon="Share2" aria-hidden="true" />
         </template>
       </SkyFab>
       <SkyFab
@@ -751,7 +755,7 @@ onBeforeUnmount(() => {
         @click="startMarkerPlacement"
       >
         <template #icon>
-          <MapPinPlus aria-hidden="true" />
+          <SkyIcon :icon="MapPinPlus" aria-hidden="true" />
         </template>
       </SkyFab>
       <SkyFab
@@ -764,7 +768,7 @@ onBeforeUnmount(() => {
         @click="loadCurrentLocation(true)"
       >
         <template #icon>
-          <LocateFixed aria-hidden="true" />
+          <SkyIcon :icon="LocateFixed" aria-hidden="true" />
         </template>
       </SkyFab>
     </nav>
@@ -784,11 +788,11 @@ onBeforeUnmount(() => {
           variant="secondary"
           @click="cancelMarkerPlacement"
         >
-          <X :size="16" />
+          <SkyIcon :icon="X" :size="16" />
           {{ phone.t('Common.cancel') }}
         </SkyButton>
         <SkyButton block rounded @click="openMarkerEditor">
-          <MapPin :size="16" />
+          <SkyIcon :icon="MapPin" :size="16" />
           {{ phone.t('Apps.map.addHere') }}
         </SkyButton>
       </div>
@@ -829,7 +833,8 @@ onBeforeUnmount(() => {
             role="radiogroup"
             :aria-label="phone.t('Apps.map.markerColor')"
           >
-            <button
+            <SkyButton
+              variant="content"
               v-for="color in markerColors"
               :key="color.id"
               type="button"
@@ -839,7 +844,7 @@ onBeforeUnmount(() => {
               :class="{ 'map-marker-color--active': markerColor === color.id }"
               :style="{ backgroundColor: color.value }"
               @click="markerColor = color.id"
-            ></button>
+            ></SkyButton>
           </div>
           <p v-if="markerError" class="map-marker-error" role="alert">
             {{ markerError }}
@@ -867,7 +872,7 @@ onBeforeUnmount(() => {
             class="map-marker-sheet__pin"
             :style="{ color: markerColorValue(selectedMarker.color) }"
           >
-            <MapPin :size="32" fill="currentColor" />
+            <SkyIcon :icon="MapPin" :size="32" fill="currentColor" />
           </span>
           <h2>{{ selectedMarker.label }}</h2>
           <p>
@@ -884,7 +889,7 @@ onBeforeUnmount(() => {
             :disabled="mapStore.isLoading"
             @click="setSelectedMarkerWaypoint"
           >
-            <Route :size="17" />
+            <SkyIcon :icon="Route" :size="17" />
             {{ phone.t('Apps.map.setWaypoint') }}
           </sky-button>
           <sky-button
@@ -897,7 +902,7 @@ onBeforeUnmount(() => {
           >
             <sky-spinner v-if="mapStore.isLoading" />
             <template v-else>
-              <Trash2 :size="17" />
+              <SkyIcon :icon="Trash2" :size="17" />
               {{ phone.t('Apps.map.deleteMarker') }}
             </template>
           </sky-button>
@@ -1072,10 +1077,10 @@ onBeforeUnmount(() => {
 .map-control {
   --sky-glass: rgb(247 247 248 / 72%);
   --sky-hairline: rgb(0 0 0 / 16%);
-  color: #151515;
+  color: var(--sky-button-text, #ffffff);
 }
 .map-control--share {
-  color: #007aff;
+  color: var(--sky-button-text, #ffffff);
 }
 .sky-app-page--dark .map-control {
   --sky-glass: rgb(44 44 46 / 62%);

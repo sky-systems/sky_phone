@@ -219,7 +219,7 @@ onBeforeUnmount(() => {
     <span class="sky-tabbar__blur" aria-hidden="true" />
     <span class="sky-tabbar__background" :class="bgClass" aria-hidden="true" />
     <div class="sky-tabbar__inner" :class="innerClass">
-      <SkyGlass class="sky-tabbar__pane">
+      <SkyGlass material="clear" class="sky-tabbar__pane">
         <div ref="links" class="sky-tabbar__links">
           <slot />
         </div>

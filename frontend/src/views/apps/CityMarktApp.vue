@@ -1099,7 +1099,7 @@ onMounted(async () => {
           :title="phone.t('Common.signOut')"
           @click="logoutDialogOpen = true"
         >
-          <LogOut :size="18" />
+          <SkyIcon :icon="LogOut" :size="18" />
         </sky-link>
       </template>
     </sky-navbar>
@@ -1123,7 +1123,8 @@ onMounted(async () => {
         />
 
         <div v-if="tab === 'discover'" class="citymarkt__categories">
-          <button
+          <SkyButton
+            variant="content"
             v-for="item in categories"
             :key="item.id"
             :class="{ active: category === item.id }"
@@ -1134,7 +1135,7 @@ onMounted(async () => {
               <component :is="item.icon" :size="19" />
             </sky-glass>
             {{ label('categories', item.id) }}
-          </button>
+          </SkyButton>
         </div>
 
         <div v-else class="citymarkt__filters">
@@ -1164,7 +1165,8 @@ onMounted(async () => {
                 {{ phone.t('Apps.citymarkt.offers') }}
               </small>
               <sky-glass class="citymarkt-layout-toggle">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="
                     phone.t(
@@ -1185,9 +1187,13 @@ onMounted(async () => {
                       listingLayout === 'compact' ? 'wide' : 'compact'
                   "
                 >
-                  <Rows3 v-if="listingLayout === 'compact'" :size="17" />
-                  <LayoutGrid v-else :size="17" />
-                </button>
+                  <SkyIcon
+                    :icon="Rows3"
+                    v-if="listingLayout === 'compact'"
+                    :size="17"
+                  />
+                  <SkyIcon :icon="LayoutGrid" v-else :size="17" />
+                </SkyButton>
               </sky-glass>
             </span>
           </div>
@@ -1196,7 +1202,7 @@ onMounted(async () => {
           {{ phone.t('Common.loading') }}
         </div>
         <div v-else-if="!displayItems.length" class="citymarkt__empty">
-          <Search :size="32" /><strong>{{
+          <SkyIcon :icon="Search" :size="32" /><strong>{{
             phone.t('Apps.citymarkt.noListings')
           }}</strong
           ><span>{{ phone.t('Apps.citymarkt.noListingsBody') }}</span>
@@ -1211,7 +1217,8 @@ onMounted(async () => {
             :key="item.id"
             class="citymarkt-listing-card"
           >
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               class="citymarkt-listing-card__open"
               @click="openListing(item)"
@@ -1222,7 +1229,7 @@ onMounted(async () => {
                 :style="{ background: item.image ?? undefined }"
               >
                 <span v-if="!item.image" class="citymarkt__image-placeholder"
-                  ><ImageOff :size="20" /><small>{{
+                  ><SkyIcon :icon="ImageOff" :size="20" /><small>{{
                     phone.t('Apps.citymarkt.noPhoto')
                   }}</small></span
                 >
@@ -1236,7 +1243,7 @@ onMounted(async () => {
                   item.title
                 }}</span>
                 <small
-                  ><MapPin :size="11" />
+                  ><SkyIcon :icon="MapPin" :size="11" />
                   {{
                     item.district
                       ? label('districts', item.district)
@@ -1245,8 +1252,9 @@ onMounted(async () => {
                   · {{ relativeDate(item.created_at) }}</small
                 >
               </span>
-            </button>
-            <button
+            </SkyButton>
+            <SkyButton
+              variant="content"
               type="button"
               class="citymarkt-listing-card__favorite"
               :class="{ active: Boolean(item.is_favorite) }"
@@ -1259,18 +1267,19 @@ onMounted(async () => {
               "
               @click.stop="toggleListingFavorite(item)"
             >
-              <Heart
+              <SkyIcon
+                :icon="Heart"
                 :size="15"
                 :fill="item.is_favorite ? 'currentColor' : 'none'"
               />
-            </button>
+            </SkyButton>
           </sky-glass>
         </div>
       </template>
 
       <template v-else-if="tab === 'inbox'">
         <div v-if="!isAuthenticated" class="citymarkt__auth">
-          <UserRound :size="40" />
+          <SkyIcon :icon="UserRound" :size="40" />
           <h2>{{ phone.t('Apps.citymarkt.signInTitle') }}</h2>
           <p>{{ phone.t('Apps.citymarkt.signInBody') }}</p>
           <sky-button rounded @click="tab = 'profile'">
@@ -1278,18 +1287,22 @@ onMounted(async () => {
           </sky-button>
         </div>
         <div v-else-if="!marketplace.inquiries.length" class="citymarkt__empty">
-          <MessageCircle :size="36" /><strong>{{
+          <SkyIcon :icon="MessageCircle" :size="36" /><strong>{{
             phone.t('Apps.citymarkt.noMessages')
           }}</strong
           ><span>{{ phone.t('Apps.citymarkt.noMessagesBody') }}</span>
         </div>
         <div v-else class="citymarkt__inquiries citymarkt__glass-list">
           <sky-glass v-for="item in marketplace.inquiries" :key="item.id">
-            <button type="button" @click="openChat(item.id)">
+            <SkyButton
+              variant="content"
+              type="button"
+              @click="openChat(item.id)"
+            >
               <span
                 :class="{ 'citymarkt__thumb--empty': !item.image }"
                 :style="{ background: item.image ?? undefined }"
-                ><ImageOff v-if="!item.image" :size="17"
+                ><SkyIcon :icon="ImageOff" v-if="!item.image" :size="17"
               /></span>
               <div>
                 <strong>{{ item.other_name }}</strong
@@ -1297,8 +1310,8 @@ onMounted(async () => {
                 ><small>{{ item.last_message }}</small>
               </div>
               <i v-if="Number(item.unread)">{{ item.unread }}</i
-              ><ChevronRight :size="16" />
-            </button>
+              ><SkyIcon :icon="ChevronRight" :size="16" />
+            </SkyButton>
           </sky-glass>
         </div>
       </template>
@@ -1324,7 +1337,7 @@ onMounted(async () => {
             class="citymarkt__profile-editor"
           >
             <header>
-              <div><UserRound :size="21" /></div>
+              <div><SkyIcon :icon="UserRound" :size="21" /></div>
               <span>
                 <strong>{{
                   phone.t(
@@ -1355,22 +1368,33 @@ onMounted(async () => {
                 }}</template>
               </span>
               <div>
-                <button type="button" @click="openProfileMedia('photos')">
-                  <Images :size="15" />{{
+                <SkyButton
+                  variant="content"
+                  type="button"
+                  @click="openProfileMedia('photos')"
+                >
+                  <SkyIcon :icon="Images" :size="15" />{{
                     phone.t('Apps.citymarkt.chooseGallery')
                   }}
-                </button>
-                <button type="button" @click="openProfileMedia('camera')">
-                  <Camera :size="15" />{{ phone.t('Apps.citymarkt.takePhoto') }}
-                </button>
-                <button
+                </SkyButton>
+                <SkyButton
+                  variant="content"
+                  type="button"
+                  @click="openProfileMedia('camera')"
+                >
+                  <SkyIcon :icon="Camera" :size="15" />{{
+                    phone.t('Apps.citymarkt.takePhoto')
+                  }}
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   v-if="profileDraft.avatarMediaId"
                   type="button"
                   class="danger"
                   @click="removeProfilePhoto"
                 >
                   {{ phone.t('Apps.citymarkt.removeProfilePhoto') }}
-                </button>
+                </SkyButton>
               </div>
             </div>
             <label
@@ -1393,20 +1417,22 @@ onMounted(async () => {
                 /></sky-glass
             ></label>
             <div class="citymarkt__profile-actions">
-              <button
+              <SkyButton
+                variant="content"
                 v-if="marketplace.profile?.exists"
                 type="button"
                 @click="cancelProfileEdit"
               >
                 {{ phone.t('Apps.citymarkt.cancel') }}
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 :disabled="!canSaveProfile || profilePending"
                 @click="saveProfile"
               >
                 {{ phone.t('Apps.citymarkt.saveProfile') }}
-              </button>
+              </SkyButton>
             </div>
           </section>
           <template v-else>
@@ -1428,36 +1454,39 @@ onMounted(async () => {
                   {{ marketplace.profile.bio }}
                 </p>
               </div>
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 :aria-label="phone.t('Apps.citymarkt.editProfile')"
                 @click="editProfile"
               >
-                <Pencil :size="16" />
-              </button>
+                <SkyIcon :icon="Pencil" :size="16" />
+              </SkyButton>
             </sky-glass>
             <sky-glass class="citymarkt__glass-segmented">
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 :class="{ active: profileMode === 'own' }"
                 @click="profileMode = 'own'"
               >
-                <Tag :size="14" />
+                <SkyIcon :icon="Tag" :size="14" />
                 {{ phone.t('Apps.citymarkt.myListings') }}
                 <span>{{ marketplace.counts.active }}</span>
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 :class="{ active: profileMode === 'favorites' }"
                 @click="profileMode = 'favorites'"
               >
-                <Heart :size="14" />
+                <SkyIcon :icon="Heart" :size="14" />
                 {{ phone.t('Apps.citymarkt.favorites') }}
                 <span>{{ marketplace.items.length }}</span>
-              </button>
+              </SkyButton>
             </sky-glass>
             <div v-if="!displayItems.length" class="citymarkt__empty">
-              <Tag :size="34" /><strong>{{
+              <SkyIcon :icon="Tag" :size="34" /><strong>{{
                 phone.t('Apps.citymarkt.noProfileListings')
               }}</strong>
             </div>
@@ -1466,19 +1495,24 @@ onMounted(async () => {
                 v-for="item in displayItems"
                 :key="item.id"
                 class="citymarkt-profile-listing"
-                ><button type="button" @click="openListing(item)">
+                ><SkyButton
+                  variant="content"
+                  type="button"
+                  @click="openListing(item)"
+                >
                   <span
                     :class="{ 'citymarkt__thumb--empty': !item.image }"
                     :style="{ background: item.image ?? undefined }"
-                    ><ImageOff v-if="!item.image" :size="17"
+                    ><SkyIcon :icon="ImageOff" v-if="!item.image" :size="17"
                   /></span>
                   <div class="citymarkt-profile-listing__body">
                     <b>{{ formatPrice(item) }}</b>
                     <strong>{{ item.title }}</strong>
                     <small>{{ label('status', item.status) }}</small>
                   </div>
-                  <ChevronRight :size="17" /></button
-                ><button
+                  <SkyIcon :icon="ChevronRight" :size="17" /></SkyButton
+                ><SkyButton
+                  variant="content"
                   v-if="
                     profileMode === 'own' &&
                     (item.status === 'active' || item.status === 'reserved')
@@ -1487,13 +1521,14 @@ onMounted(async () => {
                   type="button"
                   @click="shareToLocalPages(item.id)"
                 >
-                  <CircleCheck
+                  <SkyIcon
+                    :icon="CircleCheck"
                     v-if="hasLocalPagesPost(item.id)"
                     :size="15"
-                  /><Share2 v-else :size="15" />{{
+                  /><SkyIcon :icon="Share2" v-else :size="15" />{{
                     localPagesShareLabel(item.id)
                   }}
-                </button></sky-glass
+                </SkyButton></sky-glass
               >
             </div>
           </template>
@@ -1514,7 +1549,7 @@ onMounted(async () => {
           :aria-label="phone.t('Common.back')"
           :title="phone.t('Common.back')"
           @click="screen = 'main'"
-          ><ArrowLeft :size="19"
+          ><SkyIcon :icon="ArrowLeft" :size="19"
         /></sky-link>
         <div>
           <sky-glass
@@ -1531,7 +1566,8 @@ onMounted(async () => {
               )
             "
             @click="toggleListingFavorite(selectedListing)"
-            ><Heart
+            ><SkyIcon
+              :icon="Heart"
               :size="19"
               :fill="selectedListing.is_favorite ? 'currentColor' : 'none'"
           /></sky-glass>
@@ -1542,7 +1578,7 @@ onMounted(async () => {
             class="citymarkt-detail-action"
             :aria-label="phone.t('Apps.citymarkt.reportListing')"
             @click="screen = 'report'"
-            ><MoreHorizontal :size="20"
+            ><SkyIcon :icon="MoreHorizontal" :size="20"
           /></sky-glass>
         </div>
       </div>
@@ -1573,7 +1609,7 @@ onMounted(async () => {
         </div>
         <h1>{{ selectedListing.title }}</h1>
         <p class="citymarkt__meta">
-          <MapPin :size="14" />
+          <SkyIcon :icon="MapPin" :size="14" />
           {{
             selectedListing.district
               ? label('districts', selectedListing.district)
@@ -1600,11 +1636,10 @@ onMounted(async () => {
             >
           </div>
         </div>
-        <sky-glass
-          v-if="selectedListing.phone_number"
-          class="citymarkt__phone"
-        >
-          <span class="citymarkt__phone-icon"><PhoneIcon :size="18" /></span>
+        <sky-glass v-if="selectedListing.phone_number" class="citymarkt__phone">
+          <span class="citymarkt__phone-icon"
+            ><SkyIcon :icon="PhoneIcon" :size="18"
+          /></span>
           <span class="citymarkt__phone-copy">
             <small>{{ phone.t('Apps.citymarkt.phone') }}</small>
             <strong>{{
@@ -1612,7 +1647,8 @@ onMounted(async () => {
             }}</strong>
           </span>
         </sky-glass>
-        <button
+        <SkyButton
+          variant="content"
           v-if="
             selectedListing.status === 'active' ||
             selectedListing.status === 'reserved'
@@ -1621,12 +1657,13 @@ onMounted(async () => {
           type="button"
           @click="shareListing"
         >
-          <Share2 :size="17" /><span
+          <SkyIcon :icon="Share2" :size="17" /><span
             ><strong>{{ phone.t('Apps.easyShare.share') }}</strong></span
           >
-        </button>
+        </SkyButton>
         <template v-if="selectedListing.is_owner">
-          <button
+          <SkyButton
+            variant="content"
             v-if="
               selectedListing.status === 'active' ||
               selectedListing.status === 'reserved'
@@ -1635,26 +1672,29 @@ onMounted(async () => {
             type="button"
             @click="shareToLocalPages()"
           >
-            <CircleCheck
+            <SkyIcon
+              :icon="CircleCheck"
               v-if="hasLocalPagesPost(selectedListing.id)"
               :size="17"
-            /><Share2 v-else :size="17" /><span
+            /><SkyIcon :icon="Share2" v-else :size="17" /><span
               ><strong>{{ localPagesShareLabel(selectedListing.id) }}</strong
               ><small>{{
                 localPagesShareHint(selectedListing.id)
               }}</small></span
             >
-          </button>
+          </SkyButton>
           <div class="citymarkt__owner-actions">
-            <button
+            <SkyButton
+              variant="content"
               v-if="
                 selectedListing.status !== 'sold' &&
                 selectedListing.status !== 'removed'
               "
               @click="editListing"
             >
-              {{ phone.t('Apps.citymarkt.edit') }}</button
-            ><button
+              {{ phone.t('Apps.citymarkt.edit') }}</SkyButton
+            ><SkyButton
+              variant="content"
               v-if="
                 selectedListing.status === 'reserved' ||
                 selectedListing.status === 'expired' ||
@@ -1662,16 +1702,18 @@ onMounted(async () => {
               "
               @click="setListingStatus('active')"
             >
-              {{ phone.t('Apps.citymarkt.makeActive') }}</button
-            ><button
+              {{ phone.t('Apps.citymarkt.makeActive') }}</SkyButton
+            ><SkyButton
+              variant="content"
               v-if="
                 selectedListing.status === 'active' ||
                 selectedListing.status === 'reserved'
               "
               @click="setListingStatus('sold')"
             >
-              {{ phone.t('Apps.citymarkt.markSold') }}</button
-            ><button
+              {{ phone.t('Apps.citymarkt.markSold') }}</SkyButton
+            ><SkyButton
+              variant="content"
               v-if="
                 selectedListing.status !== 'sold' &&
                 selectedListing.status !== 'removed'
@@ -1680,7 +1722,7 @@ onMounted(async () => {
               @click="setListingStatus('removed')"
             >
               {{ phone.t('Apps.citymarkt.remove') }}
-            </button>
+            </SkyButton>
           </div>
         </template>
         <template v-else-if="isAuthenticated">
@@ -1696,16 +1738,17 @@ onMounted(async () => {
           phone.t('Apps.citymarkt.signInToMessage')
         }}</sky-glass>
       </div>
-      <button
+      <SkyButton
+        variant="content"
         v-if="!selectedListing.is_owner && isAuthenticated"
         class="citymarkt__contact-fixed"
         :disabled="!firstMessage.trim()"
         @click="sendFirstMessage"
       >
-        <MessageCircle :size="17" />{{
+        <SkyIcon :icon="MessageCircle" :size="17" />{{
           phone.t('Apps.citymarkt.contactSeller')
         }}
-      </button>
+      </SkyButton>
     </section>
 
     <section v-else-if="screen === 'sell'" class="citymarkt__sell">
@@ -1729,17 +1772,19 @@ onMounted(async () => {
         "
       >
         <template #left>
-          <button
+          <SkyButton
+            variant="content"
             class="citymarkt-create-close"
             type="button"
             :aria-label="phone.t('Common.close')"
             @click="closeSell"
           >
-            <X :size="20" />
-          </button>
+            <SkyIcon :icon="X" :size="20" />
+          </SkyButton>
         </template>
         <template #right>
-          <button
+          <SkyButton
+            variant="content"
             class="citymarkt-create-next"
             type="button"
             :disabled="!canContinueSell || submitting"
@@ -1752,7 +1797,7 @@ onMounted(async () => {
                     editing ? 'Apps.citymarkt.save' : 'Apps.citymarkt.publish',
                   )
             }}
-          </button>
+          </SkyButton>
         </template>
       </sky-navbar>
       <div class="citymarkt__progress">
@@ -1760,23 +1805,31 @@ onMounted(async () => {
       </div>
       <div class="citymarkt__sell-body">
         <template v-if="sellStep === 1">
-          <ImagePlus :size="32" />
+          <SkyIcon :icon="ImagePlus" :size="32" />
           <h2>{{ phone.t('Apps.citymarkt.addPhotos') }}</h2>
           <p>{{ phone.t('Apps.citymarkt.addPhotosBody') }}</p>
           <div class="citymarkt__photo-actions">
             <sky-glass>
-              <button type="button" @click="openMediaApp('photos')">
-                <span><Images :size="20" /></span>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="openMediaApp('photos')"
+              >
+                <span><SkyIcon :icon="Images" :size="20" /></span>
                 <strong>{{ phone.t('Apps.citymarkt.chooseGallery') }}</strong>
                 <small>{{ phone.t('Apps.citymarkt.chooseGalleryBody') }}</small>
-              </button>
+              </SkyButton>
             </sky-glass>
             <sky-glass>
-              <button type="button" @click="openMediaApp('camera')">
-                <span><Camera :size="20" /></span>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="openMediaApp('camera')"
+              >
+                <span><SkyIcon :icon="Camera" :size="20" /></span>
                 <strong>{{ phone.t('Apps.citymarkt.takePhotos') }}</strong>
                 <small>{{ phone.t('Apps.citymarkt.takePhotosBody') }}</small>
-              </button>
+              </SkyButton>
             </sky-glass>
           </div>
           <div class="citymarkt__selected-heading">
@@ -1793,7 +1846,8 @@ onMounted(async () => {
             :photo-label="phone.t('Apps.citymarkt.photo')"
           />
           <div v-if="draftImages.length" class="citymarkt__selected-strip">
-            <button
+            <SkyButton
+              variant="content"
               v-for="(photo, index) in draftImages"
               :key="photo.media_id"
               type="button"
@@ -1806,8 +1860,8 @@ onMounted(async () => {
               @click="togglePhoto(photo.media_id)"
             >
               <i>{{ index + 1 }}</i
-              ><X :size="12" />
-            </button>
+              ><SkyIcon :icon="X" :size="12" />
+            </SkyButton>
           </div>
         </template>
         <template v-else-if="sellStep === 2">
@@ -1940,18 +1994,21 @@ onMounted(async () => {
           <h3>{{ draft.title }}</h3>
           <p>{{ draft.description }}</p>
           <small
-            ><MapPin :size="13" />
+            ><SkyIcon :icon="MapPin" :size="13" />
             {{ label('districts', draft.district) }}</small
-          ><div
+          >
+          <div
             v-if="draft.showPhone && phone.device?.sim?.number"
             class="citymarkt__preview-phone"
           >
-            <span class="citymarkt__phone-icon"><PhoneIcon :size="16" /></span>
+            <span class="citymarkt__phone-icon"
+              ><SkyIcon :icon="PhoneIcon" :size="16"
+            /></span>
             <span class="citymarkt__phone-copy">
               <small>{{ phone.t('Apps.citymarkt.phone') }}</small>
               <strong>{{ formatPhoneNumber(phone.device.sim.number) }}</strong>
-            </span></div
-          ></template
+            </span>
+          </div></template
         >
       </div>
       <sky-glass
@@ -1961,7 +2018,7 @@ onMounted(async () => {
         type="button"
         @click="sellStep--"
       >
-        <ArrowLeft :size="18" />
+        <SkyIcon :icon="ArrowLeft" :size="18" />
         {{ phone.t('Apps.citymarkt.previous') }}
       </sky-glass>
     </section>
@@ -1979,7 +2036,7 @@ onMounted(async () => {
           :aria-label="phone.t('Common.back')"
           :title="phone.t('Common.back')"
           @click="closeChat"
-          ><ArrowLeft :size="19"
+          ><SkyIcon :icon="ArrowLeft" :size="19"
         /></sky-button>
         <div>
           <strong>{{
@@ -2036,7 +2093,7 @@ onMounted(async () => {
             rounded
             type="button"
             @click="offerPanelOpen = false"
-            ><X :size="16"
+            ><SkyIcon :icon="X" :size="16"
           /></sky-button>
         </header>
         <label>
@@ -2050,11 +2107,15 @@ onMounted(async () => {
               type="number"
           /></span>
         </label>
-        <button type="submit" :disabled="offerSubmitting || !offerAmount">
-          <BadgeDollarSign :size="16" />{{
+        <SkyButton
+          variant="content"
+          type="submit"
+          :disabled="offerSubmitting || !offerAmount"
+        >
+          <SkyIcon :icon="BadgeDollarSign" :size="16" />{{
             phone.t('Apps.citymarkt.sendOffer')
           }}
-        </button>
+        </SkyButton>
       </form>
       <div
         v-if="
@@ -2064,10 +2125,16 @@ onMounted(async () => {
         "
         class="citymarkt__chat-actions"
       >
-        <button v-if="canMakeOffer" type="button" @click="openOfferPanel">
-          <BadgeDollarSign :size="14" />{{ offerButtonLabel }}
-        </button>
-        <button
+        <SkyButton
+          variant="content"
+          v-if="canMakeOffer"
+          type="button"
+          @click="openOfferPanel"
+        >
+          <SkyIcon :icon="BadgeDollarSign" :size="14" />{{ offerButtonLabel }}
+        </SkyButton>
+        <SkyButton
+          variant="content"
           v-if="
             selectedChat.inquiry.seller_account_id === selectedChat.accountId &&
             selectedChat.inquiry.status === 'active'
@@ -2076,20 +2143,21 @@ onMounted(async () => {
           @click="setListingStatus('reserved', selectedChat.inquiry.id)"
         >
           {{ phone.t('Apps.citymarkt.reserveForBuyer') }}
-        </button>
+        </SkyButton>
       </div>
       <form class="citymarkt__chat-composer" @submit.prevent="sendChatMessage">
         <input
           v-model="message"
           maxlength="1000"
           :placeholder="phone.t('Apps.citymarkt.writeMessage')"
-        /><button
+        /><SkyButton
+          variant="content"
           :aria-label="phone.t('Common.send')"
           :title="phone.t('Common.send')"
           :disabled="!message.trim()"
         >
-          <Send :size="17" />
-        </button>
+          <SkyIcon :icon="Send" :size="17" />
+        </SkyButton>
       </form>
     </section>
 
@@ -2105,7 +2173,7 @@ onMounted(async () => {
           :aria-label="phone.t('Common.back')"
           :title="phone.t('Common.back')"
           @click="screen = 'detail'"
-          ><ArrowLeft :size="19" /></sky-button
+          ><SkyIcon :icon="ArrowLeft" :size="19" /></sky-button
         ><strong>{{ phone.t('Apps.citymarkt.reportListing') }}</strong>
       </header>
       <div>
@@ -2119,11 +2187,11 @@ onMounted(async () => {
           v-model="reportDetails"
           maxlength="500"
           :placeholder="phone.t('Apps.citymarkt.reportDetails')"
-        /><button @click="submitReport">
-          {{ phone.t('Apps.citymarkt.sendReport') }}</button
-        ><button class="secondary" @click="blockSeller">
+        /><SkyButton variant="content" @click="submitReport">
+          {{ phone.t('Apps.citymarkt.sendReport') }}</SkyButton
+        ><SkyButton variant="content" class="secondary" @click="blockSeller">
           {{ phone.t('Apps.citymarkt.blockSeller') }}
-        </button>
+        </SkyButton>
       </div>
     </section>
 

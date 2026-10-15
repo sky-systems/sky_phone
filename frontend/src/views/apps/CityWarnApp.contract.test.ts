@@ -79,7 +79,7 @@ describe('CityWarn product contract', () => {
     expect(source).toContain('filter: none !important;')
     expect(source).toContain('will-change: auto !important;')
     expect(source).not.toContain("t('manage.success')")
-    expect(source).not.toContain('<X :size="20" />')
+    expect(source).not.toContain('<SkyIcon :icon="X" :size="20" />')
     expect(source).not.toContain('<span>{{ alert.title }}</span>')
   })
 

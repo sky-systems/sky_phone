@@ -14,7 +14,12 @@ withDefaults(
 </script>
 
 <template>
-  <SkyGlass :component="component" v-bind="$attrs" class="sky-toolbar-pane">
+  <SkyGlass
+    :component="component"
+    material="clear"
+    v-bind="$attrs"
+    class="sky-toolbar-pane"
+  >
     <slot />
   </SkyGlass>
 </template>

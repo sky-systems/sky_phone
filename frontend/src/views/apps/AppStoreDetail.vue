@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { ChevronLeft, ChevronRight, Share2, Star } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
@@ -137,7 +139,12 @@ function updateActivePreview(): void {
         :aria-label="phone.t('Common.back')"
         @click="emit('back')"
       >
-        <ChevronLeft :size="26" :stroke-width="2.2" aria-hidden="true" />
+        <SkyIcon
+          :icon="ChevronLeft"
+          :size="26"
+          :stroke-width="2.2"
+          aria-hidden="true"
+        />
       </SkyButton>
       <SkyButton
         glass
@@ -148,7 +155,12 @@ function updateActivePreview(): void {
         :aria-label="phone.t('Apps.appStore.details.share')"
         @click="emit('share')"
       >
-        <Share2 :size="21" :stroke-width="2" aria-hidden="true" />
+        <SkyIcon
+          :icon="Share2"
+          :size="21"
+          :stroke-width="2"
+          aria-hidden="true"
+        />
       </SkyButton>
     </header>
 
@@ -162,7 +174,8 @@ function updateActivePreview(): void {
       <div>
         <h1>{{ appName }}</h1>
         <p>{{ developer }}</p>
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="store-detail__action"
           :class="{
@@ -173,7 +186,7 @@ function updateActivePreview(): void {
           @click="emit('action')"
         >
           <AppStoreAction :action="action" :price="external?.store?.price" />
-        </button>
+        </SkyButton>
       </div>
     </section>
 
@@ -184,7 +197,13 @@ function updateActivePreview(): void {
         </dt>
         <dd>{{ rating }}</dd>
         <span class="store-detail__stars" aria-hidden="true">
-          <Star v-for="star in 5" :key="star" :size="11" fill="currentColor" />
+          <SkyIcon
+            :icon="Star"
+            v-for="star in 5"
+            :key="star"
+            :size="11"
+            fill="currentColor"
+          />
         </span>
       </div>
       <div>
@@ -230,7 +249,12 @@ function updateActivePreview(): void {
     <section v-if="!external" class="store-detail__whats-new">
       <header>
         <h2>{{ phone.t('Apps.appStore.details.whatsNew') }}</h2>
-        <ChevronRight :size="22" :stroke-width="2.4" aria-hidden="true" />
+        <SkyIcon
+          :icon="ChevronRight"
+          :size="22"
+          :stroke-width="2.4"
+          aria-hidden="true"
+        />
       </header>
       <div class="store-detail__version">
         <span>{{ phone.t('Apps.appStore.details.version', { version }) }}</span>
@@ -260,7 +284,12 @@ function updateActivePreview(): void {
             :disabled="activePreviewIndex === 0"
             @click="scrollToPreview(activePreviewIndex - 1)"
           >
-            <ChevronLeft :size="17" :stroke-width="2.4" aria-hidden="true" />
+            <SkyIcon
+              :icon="ChevronLeft"
+              :size="17"
+              :stroke-width="2.4"
+              aria-hidden="true"
+            />
           </SkyButton>
           <SkyButton
             glass
@@ -272,7 +301,12 @@ function updateActivePreview(): void {
             :disabled="activePreviewIndex === previewCount - 1"
             @click="scrollToPreview(activePreviewIndex + 1)"
           >
-            <ChevronRight :size="17" :stroke-width="2.4" aria-hidden="true" />
+            <SkyIcon
+              :icon="ChevronRight"
+              :size="17"
+              :stroke-width="2.4"
+              aria-hidden="true"
+            />
           </SkyButton>
         </div>
       </header>
@@ -367,7 +401,7 @@ function updateActivePreview(): void {
   place-items: center;
   border: 1px solid var(--sky-hairline);
   border-radius: 50%;
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   transition:
     background-color 100ms ease,
     border-color 100ms ease,
@@ -564,7 +598,7 @@ function updateActivePreview(): void {
   border: 1px solid var(--sky-hairline);
   border-radius: 50%;
   padding: 0;
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   transition:
     background-color 100ms ease,
     color 100ms ease,

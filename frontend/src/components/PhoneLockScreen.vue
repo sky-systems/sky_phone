@@ -1,15 +1,10 @@
 <script setup lang="ts">
-import { kFab, kGlass } from 'konsta/vue'
-import {
-  Camera,
-  Flashlight,
-  LockKeyhole,
-  ScanFace,
-  Trash2,
-} from 'lucide-vue-next'
+import { SkyButton, SkyDropdown, SkyFab, SkyGlass, SkyIcon } from '@/ui'
+
+import { Camera, Flashlight, Trash2, X } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
-import PhoneStatusIndicators from '@/components/PhoneStatusIndicators.vue'
+import PhoneStatusBar from '@/components/PhoneStatusBar.vue'
 import { getPhoneApp } from '@/config/apps'
 import type { PhoneNotification } from '@/stores/notifications'
 import { usePhoneStore } from '@/stores/phone'
@@ -22,11 +17,17 @@ import {
 } from '@/utils/notificationSwipe'
 import { nuiCall } from '@/utils/nui'
 import type { PhonePreferencesV1 } from '@/utils/preferences'
+import lockClosedIcon from '@/assets/icons/ionicons/lock-closed.svg'
+import lockOpenIcon from '@/assets/icons/ionicons/lock-open.svg'
+import { formatLockScreenDate } from '@/utils/lockScreen'
+import { presentPhoneNotification } from '@/utils/notificationPresentation'
+import { formatNotificationTime } from '@/utils/notificationTime'
 
 const props = defineProps<{
   notifications: PhoneNotification[]
   preferences?: PhonePreferencesV1
   preview?: boolean
+  locked?: boolean
 }>()
 const emit = defineEmits<{
   camera: []
@@ -38,18 +39,44 @@ const emit = defineEmits<{
 
 const phone = usePhoneStore()
 const preferences = computed(() => props.preferences ?? phone.preferences)
+const privacyLocked = computed(() => props.locked !== false)
+const notificationPresentation = computed(() =>
+  Object.fromEntries(
+    props.notifications.map((notification) => [
+      notification.id,
+      presentPhoneNotification(notification, privacyLocked.value, phone.t),
+    ]),
+  ),
+)
 const now = ref(new Date())
+const notificationTimes = computed(() =>
+  Object.fromEntries(
+    props.notifications.map((notification) => [
+      notification.id,
+      {
+        label: formatNotificationTime(
+          notification.createdAt,
+          phone.lang,
+          now.value.getTime(),
+          phone.t('Notifications.now'),
+        ),
+        dateTime: notification.createdAt
+          ? new Date(notification.createdAt).toISOString()
+          : undefined,
+      },
+    ]),
+  ),
+)
 const dragOffset = ref(0)
 const dragging = ref(false)
 const flashlightActive = ref(false)
+const clearMenuOpened = ref(false)
+const clearMenuTarget = ref<HTMLElement | null>(null)
+let clearHoldTimer: number | undefined
+let clearHoldTriggered = false
 const revealedNotificationId = ref<string | null>(null)
 const swipingNotificationId = ref<string | null>(null)
 const notificationSwipeOffset = ref(0)
-const shortcutColors = {
-  bgIos: 'bg-ios-light-glass dark:bg-ios-dark-glass',
-  activeBgIos: 'active:bg-white/90 dark:active:bg-white/20',
-  textIos: 'text-black dark:text-white',
-}
 let pointerStart = 0
 let pointerStartedAt = 0
 let clockTicker: number | undefined
@@ -61,11 +88,11 @@ let notificationSwipeAxis: NotificationSwipeAxis | null = null
 let suppressNotificationClickUntil = 0
 
 const date = computed(() =>
-  new Intl.DateTimeFormat(phone.lang, {
-    day: 'numeric',
-    month: 'long',
-    weekday: 'long',
-  }).format(now.value),
+  formatLockScreenDate(
+    now.value,
+    phone.lang,
+    preferences.value.settings.lockScreenDateFormat,
+  ),
 )
 const time = computed(() =>
   new Intl.DateTimeFormat(phone.lang, {
@@ -88,18 +115,9 @@ const dragStyle = computed<Record<string, string>>(() => {
       : {}),
   }
 })
-const flashlightShortcutColors = computed(() =>
-  flashlightActive.value
-    ? {
-        ...shortcutColors,
-        bgIos: 'bg-white',
-        textIos: 'text-purple-500',
-      }
-    : shortcutColors,
-)
 
 function onPointerDown(event: PointerEvent): void {
-  if (props.preview) return
+  if (props.preview || clearMenuOpened.value) return
   if (
     (event.target as HTMLElement).closest('button, .lock-screen__notifications')
   )
@@ -256,12 +274,12 @@ function finishPointer(event: PointerEvent): void {
 }
 
 function unlockWithKeyboard(event: KeyboardEvent): void {
-  if (props.preview) return
+  if (props.preview || event.target !== event.currentTarget) return
   if (event.key === 'Enter' || event.key === ' ') emit('unlock')
 }
 
 function unlockFromWallpaper(event: MouseEvent): void {
-  if (props.preview) return
+  if (props.preview || clearMenuOpened.value || clearHoldTriggered) return
   if (
     (event.target as HTMLElement).closest(
       'button, [role="link"], .lock-screen__notifications',
@@ -278,6 +296,40 @@ async function toggleFlashlight(): Promise<void> {
   if (!response.success) flashlightActive.value = !enabled
 }
 
+function cancelClearHold(): void {
+  if (clearHoldTimer !== undefined) window.clearTimeout(clearHoldTimer)
+  clearHoldTimer = undefined
+}
+
+function beginClearHold(event: PointerEvent): void {
+  if (event.button !== 0 || props.preview) return
+  cancelClearHold()
+  const target = event.currentTarget as HTMLElement
+  target.setPointerCapture(event.pointerId)
+  clearMenuTarget.value = target
+  clearHoldTriggered = false
+  clearHoldTimer = window.setTimeout(() => {
+    clearHoldTimer = undefined
+    clearHoldTriggered = true
+    clearMenuOpened.value = true
+  }, 500)
+}
+
+function openClearMenu(event: MouseEvent): void {
+  cancelClearHold()
+  if (clearHoldTriggered) {
+    clearHoldTriggered = false
+    return
+  }
+  clearMenuTarget.value = event.currentTarget as HTMLElement
+  clearMenuOpened.value = true
+}
+
+function clearAllNotifications(): void {
+  clearMenuOpened.value = false
+  emit('clearNotifications')
+}
+
 onMounted(() => {
   clockTicker = window.setInterval(() => {
     now.value = new Date()
@@ -285,6 +337,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  cancelClearHold()
   if (clockTicker !== undefined) window.clearInterval(clockTicker)
   if (flashlightActive.value)
     void nuiCall('camera:setFlash', { enabled: false })
@@ -313,16 +366,12 @@ onBeforeUnmount(() => {
   >
     <div class="lock-screen__shade" aria-hidden="true"></div>
 
-    <header class="lock-screen__status">
-      <time class="lock-screen__status-time">{{ time }}</time>
-      <PhoneStatusIndicators class="lock-screen__indicators" />
-    </header>
+    <PhoneStatusBar :interactive="false" style="color: #fff" />
 
-    <component
-      :is="!preview && phone.security.faceIdEnabled ? ScanFace : LockKeyhole"
+    <SkyIcon
+      :src="privacyLocked ? lockClosedIcon : lockOpenIcon"
       class="lock-screen__lock"
-      :size="14"
-      :stroke-width="1.8"
+      :size="22"
       aria-hidden="true"
     />
     <div class="lock-screen__content">
@@ -335,14 +384,32 @@ onBeforeUnmount(() => {
       class="lock-screen__notifications"
       aria-live="polite"
     >
-      <button
-        v-if="!preview && props.notifications.length > 1"
-        class="lock-screen__notifications-clear"
-        type="button"
-        @click.stop="emit('clearNotifications')"
-      >
-        {{ phone.t('Notifications.clearAll') }}
-      </button>
+      <div class="lock-screen__notifications-heading">
+        <h2>{{ phone.t('Notifications.center') }}</h2>
+        <SkyButton
+          variant="plain"
+          glass
+          glass-material="clear"
+          inline
+          icon-only
+          small
+          v-if="!preview && props.notifications.length > 1"
+          class="lock-screen__notifications-clear"
+          type="button"
+          :aria-label="phone.t('Notifications.clearAll')"
+          aria-haspopup="menu"
+          :aria-expanded="clearMenuOpened"
+          @pointerdown.stop="beginClearHold"
+          @pointerup.stop="cancelClearHold"
+          @pointerleave="cancelClearHold"
+          @pointercancel="cancelClearHold"
+          @lostpointercapture="cancelClearHold"
+          @contextmenu.prevent.stop="openClearMenu"
+          @click.stop="openClearMenu"
+        >
+          <SkyIcon :icon="X" :size="16" :stroke-width="2" />
+        </SkyButton>
+      </div>
       <div
         v-for="notification in props.notifications"
         :key="notification.id"
@@ -354,7 +421,8 @@ onBeforeUnmount(() => {
         }"
         :style="notificationStyle(notification.id)"
       >
-        <button
+        <SkyButton
+          variant="content"
           class="lock-screen__notification-clear"
           type="button"
           :tabindex="revealedNotificationId === notification.id ? 0 : -1"
@@ -362,11 +430,17 @@ onBeforeUnmount(() => {
           :aria-label="phone.t('Notifications.clear')"
           @click.stop="dismissNotification(notification.id)"
         >
-          <Trash2 :size="18" :stroke-width="1.8" aria-hidden="true" />
+          <SkyIcon
+            :icon="Trash2"
+            :size="18"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
           <span>{{ phone.t('Notifications.clear') }}</span>
-        </button>
-        <k-glass
+        </SkyButton>
+        <SkyGlass
           class="lock-screen__notification"
+          material="clear"
           :class="{ 'is-actionable': !!notification.route }"
           :highlight="false"
           :role="notification.route ? 'button' : undefined"
@@ -391,50 +465,86 @@ onBeforeUnmount(() => {
           />
           <div class="lock-screen__notification-copy">
             <div class="lock-screen__notification-heading">
-              <strong>{{ notification.title }}</strong>
-              <span>{{ phone.t('Notifications.now') }}</span>
+              <strong v-if="notificationPresentation[notification.id]?.title">{{
+                notificationPresentation[notification.id]?.title
+              }}</strong>
+              <time
+                v-if="notificationTimes[notification.id]?.label"
+                :datetime="notificationTimes[notification.id]?.dateTime"
+                aria-live="off"
+                >{{ notificationTimes[notification.id]?.label }}</time
+              >
             </div>
-            <small v-if="notification.subtitle">{{
-              notification.subtitle
+            <small v-if="notificationPresentation[notification.id]?.subtitle">{{
+              notificationPresentation[notification.id]?.subtitle
             }}</small>
-            <p>{{ notification.text }}</p>
+            <p>{{ notificationPresentation[notification.id]?.text }}</p>
           </div>
-        </k-glass>
+        </SkyGlass>
       </div>
     </section>
 
+    <SkyDropdown
+      class="lock-screen__clear-menu"
+      single-line
+      motion="fade"
+      :opened="clearMenuOpened"
+      :target="clearMenuTarget"
+      :label="phone.t('Notifications.center')"
+      :items="[{ id: 'clear-all', label: phone.t('Notifications.removeAll') }]"
+      @select="clearAllNotifications"
+      @backdropclick="clearMenuOpened = false"
+      @escape="clearMenuOpened = false"
+      @click.stop
+      @pointerdown.stop
+      @pointerup.stop
+    />
+
     <div v-if="!preview" class="lock-screen__footer">
       <nav class="lock-screen__shortcuts">
-        <k-fab
+        <SkyFab
+          variant="glass"
+          glass-material="clear"
           component="button"
           type="button"
           class="lock-screen__shortcut"
-          :colors="flashlightShortcutColors"
+          :class="{ 'lock-screen__shortcut--active': flashlightActive }"
+          :aria-pressed="flashlightActive"
           :aria-label="phone.t('LockScreen.flashlight')"
           @click="toggleFlashlight"
         >
           <template #icon>
-            <Flashlight :stroke-width="1.4" aria-hidden="true" />
+            <SkyIcon
+              :icon="Flashlight"
+              :stroke-width="1.4"
+              aria-hidden="true"
+            />
           </template>
-        </k-fab>
-        <k-fab
+        </SkyFab>
+        <SkyFab
+          variant="glass"
+          glass-material="clear"
           component="button"
           type="button"
           class="lock-screen__shortcut"
-          :colors="shortcutColors"
           :aria-label="phone.t('LockScreen.camera')"
           @click="emit('camera')"
         >
           <template #icon>
-            <Camera :stroke-width="1.4" aria-hidden="true" />
+            <SkyIcon :icon="Camera" :stroke-width="1.4" aria-hidden="true" />
           </template>
-        </k-fab>
+        </SkyFab>
       </nav>
 
-      <button class="lock-screen__swipe" type="button" @click="emit('unlock')">
-        <span class="lock-screen__swipe-chevron" aria-hidden="true"></span>
-        {{ phone.t('LockScreen.swipeUp') }}
-      </button>
+      <SkyButton
+        variant="content"
+        class="lock-screen__swipe"
+        type="button"
+        @click="emit('unlock')"
+      >
+        <span>{{ phone.t('LockScreen.swipeUp') }}</span>
+        <span class="lock-screen__home-indicator" aria-hidden="true"></span>
+      </SkyButton>
     </div>
   </section>
 </template>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -259,7 +261,7 @@ onBeforeUnmount(() => {
       </template>
       <template #title>
         <span class="billing-navbar__brand">
-          <ReceiptText :size="22" :stroke-width="2" />
+          <SkyIcon :icon="ReceiptText" :size="22" :stroke-width="2" />
           <strong>{{ t('name') }}</strong>
         </span>
       </template>
@@ -280,7 +282,7 @@ onBeforeUnmount(() => {
         >
           <template v-if="billing.detail.status === 'paid'">
             <div class="billing-paid-mark">
-              <CheckCircle2 :size="38" :stroke-width="2.2" />
+              <SkyIcon :icon="CheckCircle2" :size="38" :stroke-width="2.2" />
             </div>
             <strong class="billing-paid-title">{{ t('status.paid') }}</strong>
             <strong class="billing-paid-amount">
@@ -295,7 +297,9 @@ onBeforeUnmount(() => {
             </span>
           </template>
           <template v-else>
-            <div class="billing-issuer-mark"><Building2 :size="26" /></div>
+            <div class="billing-issuer-mark">
+              <SkyIcon :icon="Building2" :size="26" />
+            </div>
             <div class="billing-detail__identity">
               <strong>{{ billing.detail.issuerLabel }}</strong>
               <span>#{{ billing.detail.id.slice(0, 13).toUpperCase() }}</span>
@@ -330,7 +334,7 @@ onBeforeUnmount(() => {
             class="billing-detail-row"
           >
             <span class="billing-detail-row__icon"
-              ><Building2 :size="18"
+              ><SkyIcon :icon="Building2" :size="18"
             /></span>
             <span class="billing-detail-row__copy">
               <small>{{ t('detail.issuer') }}</small>
@@ -339,7 +343,7 @@ onBeforeUnmount(() => {
           </div>
           <div v-else class="billing-detail-row">
             <span class="billing-detail-row__icon"
-              ><ReceiptText :size="18"
+              ><SkyIcon :icon="ReceiptText" :size="18"
             /></span>
             <span class="billing-detail-row__copy">
               <small>{{ t('detail.reason') }}</small>
@@ -348,8 +352,12 @@ onBeforeUnmount(() => {
           </div>
           <div class="billing-detail-row">
             <span class="billing-detail-row__icon">
-              <FileCheck2 v-if="billing.detail.status === 'paid'" :size="18" />
-              <CalendarDays v-else :size="18" />
+              <SkyIcon
+                :icon="FileCheck2"
+                v-if="billing.detail.status === 'paid'"
+                :size="18"
+              />
+              <SkyIcon :icon="CalendarDays" v-else :size="18" />
             </span>
             <span class="billing-detail-row__copy">
               <small>{{
@@ -370,7 +378,9 @@ onBeforeUnmount(() => {
             v-if="billing.detail.status !== 'paid'"
             class="billing-detail-row"
           >
-            <span class="billing-detail-row__icon"><Clock3 :size="18" /></span>
+            <span class="billing-detail-row__icon"
+              ><SkyIcon :icon="Clock3" :size="18"
+            /></span>
             <span class="billing-detail-row__copy">
               <small>{{ t('detail.due') }}</small>
               <strong>{{ formatDate(billing.detail.dueAt) }}</strong>
@@ -380,7 +390,9 @@ onBeforeUnmount(() => {
             v-if="billing.detail.paymentReference"
             class="billing-detail-row"
           >
-            <span class="billing-detail-row__icon"><Hash :size="18" /></span>
+            <span class="billing-detail-row__icon"
+              ><SkyIcon :icon="Hash" :size="18"
+            /></span>
             <span class="billing-detail-row__copy">
               <small>{{ t('detail.paymentReference') }}</small>
               <strong class="billing-detail-row__reference">
@@ -389,7 +401,9 @@ onBeforeUnmount(() => {
             </span>
           </div>
           <div class="billing-detail-row">
-            <span class="billing-detail-row__icon"><Hash :size="18" /></span>
+            <span class="billing-detail-row__icon"
+              ><SkyIcon :icon="Hash" :size="18"
+            /></span>
             <span class="billing-detail-row__copy">
               <small>{{ t('detail.invoiceNumber') }}</small>
               <strong>#{{ billing.detail.id.toUpperCase() }}</strong>
@@ -407,9 +421,13 @@ onBeforeUnmount(() => {
             class="billing-action billing-action--pay"
             @click="paymentOpen = true"
           >
-            <WalletCards :size="16" />
+            <SkyIcon :icon="WalletCards" :size="16" />
             {{ t('payment.payNow') }}
-            <ChevronRight class="billing-action-chevron" :size="16" />
+            <SkyIcon
+              :icon="ChevronRight"
+              class="billing-action-chevron"
+              :size="16"
+            />
           </SkyButton>
           <SkyButton
             v-if="billing.detail.canDispute"
@@ -417,9 +435,13 @@ onBeforeUnmount(() => {
             variant="secondary"
             @click="disputeInvoice"
           >
-            <ShieldAlert :size="16" />
+            <SkyIcon :icon="ShieldAlert" :size="16" />
             {{ t('detail.dispute') }}
-            <ChevronRight class="billing-action-chevron" :size="16" />
+            <SkyIcon
+              :icon="ChevronRight"
+              class="billing-action-chevron"
+              :size="16"
+            />
           </SkyButton>
         </div>
       </template>
@@ -435,7 +457,7 @@ onBeforeUnmount(() => {
       </div>
 
       <div v-else-if="billing.error && !billing.overview" class="billing-empty">
-        <AlertTriangle :size="39" />
+        <SkyIcon :icon="AlertTriangle" :size="39" />
         <strong>{{ t(`errors.${billing.error}`) }}</strong>
         <SkyButton rounded @click="billing.loadOverview(direction)">
           {{ t('tryAgain') }}
@@ -448,7 +470,7 @@ onBeforeUnmount(() => {
             :highlight="false"
             class="billing-summary__item billing-summary__item--open"
           >
-            <ReceiptText :size="19" />
+            <SkyIcon :icon="ReceiptText" :size="19" />
             <span>{{ t('summary.open') }}</span>
             <strong>{{ billing.overview.openCount }}</strong>
           </SkyGlass>
@@ -456,7 +478,7 @@ onBeforeUnmount(() => {
             :highlight="false"
             class="billing-summary__item billing-summary__item--due"
           >
-            <CalendarDays :size="19" />
+            <SkyIcon :icon="CalendarDays" :size="19" />
             <span>{{ t('summary.due') }}</span>
             <strong>{{ formatMoney(billing.overview.openTotal) }}</strong>
           </SkyGlass>
@@ -464,7 +486,7 @@ onBeforeUnmount(() => {
             :highlight="false"
             class="billing-summary__item billing-summary__item--overdue"
           >
-            <AlertTriangle :size="19" />
+            <SkyIcon :icon="AlertTriangle" :size="19" />
             <span>{{ t('summary.overdue') }}</span>
             <strong>{{ billing.overview.overdueCount }}</strong>
           </SkyGlass>
@@ -481,7 +503,7 @@ onBeforeUnmount(() => {
               :active="direction === 'inbox'"
               @click="selectDirection('inbox')"
             >
-              <Inbox :size="15" />
+              <SkyIcon :icon="Inbox" :size="15" />
               <span>{{ t('direction.inbox') }}</span>
               <b
                 v-if="billing.overview.unreadCount"
@@ -495,7 +517,7 @@ onBeforeUnmount(() => {
               :active="direction === 'sent'"
               @click="selectDirection('sent')"
             >
-              <Send :size="15" />
+              <SkyIcon :icon="Send" :size="15" />
               <span>{{ t('direction.sent') }}</span>
             </SkySegmentedButton>
           </SkySegmented>
@@ -506,7 +528,12 @@ onBeforeUnmount(() => {
             <span>{{ t('overview.eyebrow') }}</span>
             <h2>{{ t('overview.urgent') }}</h2>
           </div>
-          <SkyLink component="button" type="button" @click="selectTab('inbox')">
+          <SkyLink
+            variant="content"
+            component="button"
+            type="button"
+            @click="selectTab('inbox')"
+          >
             {{ t('overview.viewAll') }}
           </SkyLink>
         </div>
@@ -515,14 +542,17 @@ onBeforeUnmount(() => {
           v-if="billing.overview.urgentInvoices.length"
           class="billing-card-list"
         >
-          <button
+          <SkyButton
+            variant="content"
             v-for="invoice in billing.overview.urgentInvoices"
             :key="invoice.id"
             type="button"
             class="billing-invoice-card"
             @click="openInvoice(invoice)"
           >
-            <span class="billing-issuer-mark"><Building2 :size="22" /></span>
+            <span class="billing-issuer-mark"
+              ><SkyIcon :icon="Building2" :size="22"
+            /></span>
             <span class="billing-invoice-card__copy">
               <strong>{{ invoice.title }}</strong>
               <small>{{ invoice.issuerLabel }}</small>
@@ -539,12 +569,12 @@ onBeforeUnmount(() => {
               <strong>{{
                 formatMoney(invoice.amount, invoice.currency)
               }}</strong>
-              <ChevronRight :size="17" />
+              <SkyIcon :icon="ChevronRight" :size="17" />
             </span>
-          </button>
+          </SkyButton>
         </div>
         <div v-else class="billing-empty">
-          <CheckCircle2 :size="39" />
+          <SkyIcon :icon="CheckCircle2" :size="39" />
           <strong>{{ t('empty.openTitle') }}</strong>
           <p>{{ t('empty.openBody') }}</p>
         </div>
@@ -553,8 +583,8 @@ onBeforeUnmount(() => {
       <template v-else>
         <header class="billing-view-heading">
           <span class="billing-view-heading__icon">
-            <Inbox v-if="tab === 'inbox'" :size="20" />
-            <History v-else :size="20" />
+            <SkyIcon :icon="Inbox" v-if="tab === 'inbox'" :size="20" />
+            <SkyIcon :icon="History" v-else :size="20" />
           </span>
           <div>
             <small>{{ t('name') }}</small>
@@ -573,7 +603,7 @@ onBeforeUnmount(() => {
               :active="direction === 'inbox'"
               @click="selectDirection('inbox')"
             >
-              <Inbox :size="15" />
+              <SkyIcon :icon="Inbox" :size="15" />
               <span>{{ t('direction.inbox') }}</span>
               <b
                 v-if="billing.overview?.unreadCount"
@@ -587,7 +617,7 @@ onBeforeUnmount(() => {
               :active="direction === 'sent'"
               @click="selectDirection('sent')"
             >
-              <Send :size="15" />
+              <SkyIcon :icon="Send" :size="15" />
               <span>{{ t('direction.sent') }}</span>
             </SkySegmentedButton>
           </SkySegmented>
@@ -626,7 +656,8 @@ onBeforeUnmount(() => {
           <SkySpinner :label="phone.t('Common.loading')" />
         </div>
         <div v-else-if="visibleInvoices.length" class="billing-list">
-          <button
+          <SkyButton
+            variant="content"
             v-for="invoice in visibleInvoices"
             :key="invoice.id"
             type="button"
@@ -655,7 +686,7 @@ onBeforeUnmount(() => {
                 formatMoney(invoice.amount, invoice.currency)
               }}</strong>
             </span>
-          </button>
+          </SkyButton>
           <SkyButton
             v-if="billing.hasMore"
             clear
@@ -678,7 +709,7 @@ onBeforeUnmount(() => {
           </SkyButton>
         </div>
         <div v-else class="billing-empty billing-empty--list">
-          <SearchX :size="39" />
+          <SkyIcon :icon="SearchX" :size="39" />
           <strong>{{ t(`empty.${tab}Title`) }}</strong>
           <p>{{ t(`empty.${tab}Body`) }}</p>
         </div>
@@ -699,7 +730,8 @@ onBeforeUnmount(() => {
         @click="selectTab('overview')"
       >
         <template #icon>
-          <House
+          <SkyIcon
+            :icon="House"
             :size="20"
             :fill="tab === 'overview' ? 'currentColor' : 'none'"
           />
@@ -713,7 +745,8 @@ onBeforeUnmount(() => {
       >
         <template #icon>
           <span class="billing-tab-icon">
-            <Inbox
+            <SkyIcon
+              :icon="Inbox"
               :size="20"
               :fill="tab === 'inbox' ? 'currentColor' : 'none'"
             />
@@ -729,7 +762,7 @@ onBeforeUnmount(() => {
         :label="t('tabs.history')"
         @click="selectTab('history')"
       >
-        <template #icon><History :size="20" /></template>
+        <template #icon><SkyIcon :icon="History" :size="20" /></template>
       </SkyTabButton>
     </SkyTabBar>
 
@@ -742,7 +775,7 @@ onBeforeUnmount(() => {
     >
       <section v-if="billing.detail" class="billing-payment-sheet__content">
         <span class="billing-payment-sheet__icon"
-          ><WalletCards :size="27"
+          ><SkyIcon :icon="WalletCards" :size="27"
         /></span>
         <h2 id="billing-payment-title">{{ t('payment.title') }}</h2>
         <p>{{ t('payment.body', { issuer: billing.detail.issuerLabel }) }}</p>
@@ -765,7 +798,12 @@ onBeforeUnmount(() => {
           />
           <span v-else>{{ t('payment.confirm') }}</span>
         </SkyButton>
-        <SkyLink component="button" type="button" @click="paymentOpen = false">
+        <SkyLink
+          variant="content"
+          component="button"
+          type="button"
+          @click="paymentOpen = false"
+        >
           {{ t('payment.cancel') }}
         </SkyLink>
       </section>
@@ -1383,11 +1421,11 @@ onBeforeUnmount(() => {
 }
 .billing-detail__actions :deep(.billing-action--dispute) {
   border-color: var(--billing-border);
-  color: #f6f7f9;
+  color: var(--sky-button-text, #ffffff);
   background: color-mix(in srgb, var(--billing-panel) 94%, transparent);
 }
 .billing-app--light .billing-detail__actions :deep(.billing-action--dispute) {
-  color: #111827;
+  color: var(--sky-button-text, #ffffff);
 }
 .billing-action-chevron {
   margin-left: auto;

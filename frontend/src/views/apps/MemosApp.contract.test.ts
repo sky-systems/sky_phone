@@ -21,8 +21,8 @@ describe('MemosApp layout', () => {
 
   it('centers the skip duration inside a dedicated icon frame', () => {
     expect(source).toContain('<span class="memo-skip-icon" aria-hidden="true">')
-    expect(source).toContain('<RotateCcw :size="24" />')
-    expect(source).toContain('<RotateCw :size="24" />')
+    expect(source).toContain('<SkyIcon :icon="RotateCcw" :size="24" />')
+    expect(source).toContain('<SkyIcon :icon="RotateCw" :size="24" />')
     expect(source).toContain('.memo-skip-icon small {')
     expect(source).toContain('place-items: center')
   })

@@ -182,7 +182,7 @@ onMounted(async () => {
               icon-only
               type="button"
             >
-              <SkyIcon :size="20"><Camera /></SkyIcon>
+              <SkyIcon :size="20"><SkyIcon :icon="Camera" /></SkyIcon>
             </SkyLink>
           </SkyToolbarPane>
         </template>
@@ -197,7 +197,7 @@ onMounted(async () => {
               :style="{ opacity: canSend ? 1 : 0.3 }"
               @click="sendMessage"
             >
-              <SkyIcon :size="28"><CircleArrowUp /></SkyIcon>
+              <SkyIcon :size="28"><SkyIcon :icon="CircleArrowUp" /></SkyIcon>
             </SkyLink>
           </SkyToolbarPane>
         </template>

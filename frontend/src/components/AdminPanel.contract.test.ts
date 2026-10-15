@@ -151,7 +151,7 @@ describe('standalone admin panel contracts', () => {
   })
 
   it('uses a fixed blue accent and replaces appearance controls with live statistics', () => {
-    expect(source).not.toContain('<RefreshCw')
+    expect(source).not.toContain('<SkyIcon :icon="RefreshCw"')
     expect(source).not.toContain("kind: 'refresh'")
     expect(source).not.toContain("'sky-phone-admin-accent'")
     expect(source).not.toContain("'sky-phone-admin-font-family'")

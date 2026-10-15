@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton } from '@/ui'
+
 import { computed, onBeforeUnmount, ref } from 'vue'
 
 import { usePhoneStore } from '@/stores/phone'
@@ -241,7 +243,8 @@ onBeforeUnmount(() => {
     }"
     :style="dragStyle"
   >
-    <button
+    <SkyButton
+      variant="content"
       class="home-folder-button app-icon-button"
       type="button"
       :aria-label="folderName"
@@ -264,7 +267,7 @@ onBeforeUnmount(() => {
         </span>
       </span>
       <span v-if="showLabel" class="app-icon-label">{{ folderName }}</span>
-    </button>
+    </SkyButton>
   </div>
 </template>
 

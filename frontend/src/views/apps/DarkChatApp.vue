@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   ArrowUpCircle,
   Bell,
@@ -1952,7 +1954,9 @@ onBeforeUnmount(() => {
   >
     <section v-if="!signedIn" class="dc-gate">
       <SkyCard class="dc-gate-card" outline>
-        <span class="dc-icon-tile"><LockKeyhole :size="28" /></span>
+        <span class="dc-icon-tile"
+          ><SkyIcon :icon="LockKeyhole" :size="28"
+        /></span>
         <h1>{{ t('name') }}</h1>
         <p>{{ t('signInBody') }}</p>
         <small>{{ t('signInHint') }}</small>
@@ -1969,7 +1973,7 @@ onBeforeUnmount(() => {
         :title="t('createIdentity')"
         :body="t('createIdentityBody')"
       >
-        <template #icon><ShieldCheck :size="30" /></template>
+        <template #icon><SkyIcon :icon="ShieldCheck" :size="30" /></template>
         <template #actions>
           <SkyButton
             large
@@ -2001,12 +2005,12 @@ onBeforeUnmount(() => {
               :aria-label="t('myIdentity')"
               @click="openProfile"
             >
-              <UserRound :size="20" />
+              <SkyIcon :icon="UserRound" :size="20" />
             </SkyLink>
           </template>
           <template #right>
             <SkyLink icon-only :aria-label="t('newChat')" @click="beginNewChat">
-              <SquarePen :size="21" />
+              <SkyIcon :icon="SquarePen" :size="21" />
             </SkyLink>
           </template>
           <template #subnavbar>
@@ -2026,12 +2030,12 @@ onBeforeUnmount(() => {
             class="dc-security"
             @click="copyIdentity(darkchat.profile.darkId)"
           >
-            <LockKeyhole :size="17" />
+            <SkyIcon :icon="LockKeyhole" :size="17" />
             <span>
               <strong>{{ t('privateNetwork') }}</strong>
               <small>{{ darkchat.profile.darkId }}</small>
             </span>
-            <Copy :size="16" />
+            <SkyIcon :icon="Copy" :size="16" />
           </SkyGlass>
 
           <SkyList
@@ -2067,7 +2071,7 @@ onBeforeUnmount(() => {
               </template>
               <template v-if="conversation.disappearingSeconds !== 0" #footer>
                 <span class="dc-timer">
-                  <Clock3 :size="11" />
+                  <SkyIcon :icon="Clock3" :size="11" />
                   {{ timerLabel(conversation.disappearingSeconds) }}
                 </span>
               </template>
@@ -2080,7 +2084,9 @@ onBeforeUnmount(() => {
             :title="search ? t('noResults') : t('noChats')"
             :body="search ? t('noResultsBody') : t('noChatsBody')"
           >
-            <template #icon><ShieldCheck :size="27" /></template>
+            <template #icon
+              ><SkyIcon :icon="ShieldCheck" :size="27"
+            /></template>
           </SkyEmptyState>
         </SkyScrollArea>
       </section>
@@ -2133,7 +2139,7 @@ onBeforeUnmount(() => {
               </template>
               <template #after>
                 <span class="dc-contact-badge">
-                  <LockKeyhole :size="11" />{{ t('private') }}
+                  <SkyIcon :icon="LockKeyhole" :size="11" />{{ t('private') }}
                 </span>
               </template>
             </SkyListItem>
@@ -2145,7 +2151,7 @@ onBeforeUnmount(() => {
             class="dc-identifier-action"
             @click="requestStart()"
           >
-            <MessageCirclePlus :size="17" />
+            <SkyIcon :icon="MessageCirclePlus" :size="17" />
             {{ identifier }}
           </SkyButton>
         </SkyScrollArea>
@@ -2171,12 +2177,12 @@ onBeforeUnmount(() => {
               :aria-label="t('contactSecurity')"
               @click="openContact"
             >
-              <UserRound :size="19" />
+              <SkyIcon :icon="UserRound" :size="19" />
             </SkyGlass>
           </template>
         </SkyNavbar>
         <div class="dc-thread-meta">
-          <LockKeyhole :size="13" />{{ t('serverPrivate') }}
+          <SkyIcon :icon="LockKeyhole" :size="13" />{{ t('serverPrivate') }}
           <span v-if="active.disappearingSeconds !== 0">
             · {{ timerLabel(active.disappearingSeconds) }}
           </span>
@@ -2188,9 +2194,12 @@ onBeforeUnmount(() => {
             :key="message.clientId ?? message.id"
           >
             <div v-if="message.messageType === 'system'" class="dc-system">
-              <ShieldCheck :size="13" />{{ systemText(message.body) }}
+              <SkyIcon :icon="ShieldCheck" :size="13" />{{
+                systemText(message.body)
+              }}
             </div>
-            <button
+            <SkyButton
+              variant="content"
               v-else
               type="button"
               class="dc-message"
@@ -2201,7 +2210,7 @@ onBeforeUnmount(() => {
               @click="selectedMessage = message"
             >
               <span v-if="message.replyBody" class="dc-reply-preview">
-                <Reply :size="12" />{{ message.replyBody }}
+                <SkyIcon :icon="Reply" :size="12" />{{ message.replyBody }}
               </span>
               <img
                 v-if="
@@ -2253,17 +2262,19 @@ onBeforeUnmount(() => {
                   }}
                 </template>
               </small>
-            </button>
+            </SkyButton>
           </template>
         </div>
 
         <div v-if="replyTo" class="dc-replying">
-          <Reply :size="15" />
+          <SkyIcon :icon="Reply" :size="15" />
           <span>
             <small>{{ t('replying') }}</small>
             <strong>{{ replyTo.body || t(replyTo.messageType) }}</strong>
           </span>
-          <SkyLink icon-only @click="replyTo = null"><X :size="17" /></SkyLink>
+          <SkyLink icon-only @click="replyTo = null"
+            ><SkyIcon :icon="X" :size="17"
+          /></SkyLink>
         </div>
         <div v-if="attachmentOpen" class="dc-attachments">
           <SkyGlass
@@ -2271,7 +2282,7 @@ onBeforeUnmount(() => {
             class="dc-attachment-action"
             @click="openMediaApp('photos', 'photo')"
           >
-            <span><Images :size="19" /></span>
+            <span><SkyIcon :icon="Images" :size="19" /></span>
             <small>{{ t('photo') }}</small>
           </SkyGlass>
           <SkyGlass
@@ -2279,7 +2290,7 @@ onBeforeUnmount(() => {
             class="dc-attachment-action"
             @click="openMediaApp('camera', 'photo')"
           >
-            <span><Camera :size="19" /></span>
+            <span><SkyIcon :icon="Camera" :size="19" /></span>
             <small>{{ t('takePhoto') }}</small>
           </SkyGlass>
           <SkyGlass
@@ -2287,7 +2298,7 @@ onBeforeUnmount(() => {
             class="dc-attachment-action"
             @click="openEmojiPanel"
           >
-            <span><Smile :size="19" /></span>
+            <span><SkyIcon :icon="Smile" :size="19" /></span>
             <small>{{ t('emoji') }}</small>
           </SkyGlass>
           <SkyGlass
@@ -2295,7 +2306,7 @@ onBeforeUnmount(() => {
             class="dc-attachment-action"
             @click="openGifPanel"
           >
-            <span><ImagePlay :size="19" /></span>
+            <span><SkyIcon :icon="ImagePlay" :size="19" /></span>
             <small>{{ t('gif') }}</small>
           </SkyGlass>
           <SkyGlass
@@ -2303,7 +2314,7 @@ onBeforeUnmount(() => {
             class="dc-attachment-action"
             @click="openMediaApp('photos', 'video')"
           >
-            <span><Video :size="19" /></span>
+            <span><SkyIcon :icon="Video" :size="19" /></span>
             <small>{{ t('video') }}</small>
           </SkyGlass>
         </div>
@@ -2323,14 +2334,15 @@ onBeforeUnmount(() => {
             @clear="clearGifSearch"
           />
           <div class="dc-gif-grid">
-            <button
+            <SkyButton
+              variant="content"
               v-for="gif in gifResults"
               :key="gif.id"
               type="button"
               @click="sendGif(gif)"
             >
               <img :src="gif.previewUrl" :alt="gif.title" />
-            </button>
+            </SkyButton>
           </div>
           <SkyButton v-if="gifHasMore && !gifLoading" clear @click="loadGifs()">
             {{ t('loadMore') }}
@@ -2347,16 +2359,19 @@ onBeforeUnmount(() => {
           class="shared-composer-preview shared-composer-preview--dark"
         >
           <SharedContentCard compact :payload="shareDraft" variant="darkchat" />
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             :aria-label="phone.t('Common.close')"
             @click="shareDraft = null"
           >
-            <X :size="15" />
-          </button>
+            <SkyIcon :icon="X" :size="15" />
+          </SkyButton>
         </div>
         <SkyGlass v-if="recording" class="dc-composer-pill dc-recorder">
-          <SkyLink icon-only @click="cancelRecording"><X :size="19" /></SkyLink>
+          <SkyLink icon-only @click="cancelRecording"
+            ><SkyIcon :icon="X" :size="19"
+          /></SkyLink>
           <i />
           <time>{{ recordingTime() }}</time>
           <span>
@@ -2367,7 +2382,7 @@ onBeforeUnmount(() => {
             />
           </span>
           <SkyLink icon-only @click="stopRecording">
-            <ArrowUpCircle :size="29" />
+            <SkyIcon :icon="ArrowUpCircle" :size="29" />
           </SkyLink>
         </SkyGlass>
         <div v-else class="dc-composer-row">
@@ -2379,7 +2394,7 @@ onBeforeUnmount(() => {
               :aria-label="phone.t('Common.add')"
               @click="toggleAttachmentPanel"
             >
-              <Plus :size="23" />
+              <SkyIcon :icon="Plus" :size="23" />
             </SkyGlass>
             <SkyMessagebar
               class="dc-composer"
@@ -2396,10 +2411,10 @@ onBeforeUnmount(() => {
                   icon-only
                   @click="sendText"
                 >
-                  <ArrowUpCircle :size="27" />
+                  <SkyIcon :icon="ArrowUpCircle" :size="27" />
                 </SkyLink>
                 <SkyLink v-else icon-only @click="startRecording">
-                  <Mic :size="20" />
+                  <SkyIcon :icon="Mic" :size="20" />
                 </SkyLink>
               </template>
             </SkyMessagebar>
@@ -2425,7 +2440,7 @@ onBeforeUnmount(() => {
             </span>
             <h2>{{ active.peer.alias }}</h2>
             <SkyButton clear rounded @click="copyIdentity(active.peer.darkId)">
-              {{ active.peer.darkId }}<Copy :size="14" />
+              {{ active.peer.darkId }}<SkyIcon :icon="Copy" :size="14" />
             </SkyButton>
             <small>{{
               t('chatSince', { date: dayLabel(active.createdAt) })
@@ -2439,7 +2454,7 @@ onBeforeUnmount(() => {
               :model-value="active.notificationsEnabled"
               @update:model-value="setConversationNotifications"
             >
-              <template #leading><Bell :size="20" /></template>
+              <template #leading><SkyIcon :icon="Bell" :size="20" /></template>
             </SkySettingsRow>
             <SkySettingsRow
               kind="toggle"
@@ -2447,7 +2462,7 @@ onBeforeUnmount(() => {
               :model-value="active.readReceipts"
               @update:model-value="setReadReceipts"
             >
-              <template #leading><Check :size="20" /></template>
+              <template #leading><SkyIcon :icon="Check" :size="20" /></template>
             </SkySettingsRow>
             <SkySettingsRow
               kind="navigation"
@@ -2455,7 +2470,9 @@ onBeforeUnmount(() => {
               :value="timerLabel(active.disappearingSeconds)"
               @activate="selectionSheet = 'disappearing'"
             >
-              <template #leading><Clock3 :size="20" /></template>
+              <template #leading
+                ><SkyIcon :icon="Clock3" :size="20"
+              /></template>
             </SkySettingsRow>
           </SkySettingsGroup>
 
@@ -2474,7 +2491,7 @@ onBeforeUnmount(() => {
             class="dc-primary"
             @click="saveContact"
           >
-            <UserPlus :size="18" />
+            <SkyIcon :icon="UserPlus" :size="18" />
             {{ active.peer.isContact ? t('saveContact') : t('addContact') }}
           </SkyButton>
 
@@ -2485,7 +2502,9 @@ onBeforeUnmount(() => {
               :title="t('removeContact')"
               @activate="removeContact"
             >
-              <template #leading><UserMinus :size="20" /></template>
+              <template #leading
+                ><SkyIcon :icon="UserMinus" :size="20"
+              /></template>
             </SkySettingsRow>
             <SkySettingsRow
               kind="action"
@@ -2493,7 +2512,9 @@ onBeforeUnmount(() => {
               :title="active.peer.blocked ? t('unblock') : t('block')"
               @activate="toggleBlock"
             >
-              <template #leading><ShieldOff :size="20" /></template>
+              <template #leading
+                ><SkyIcon :icon="ShieldOff" :size="20"
+              /></template>
             </SkySettingsRow>
             <SkySettingsRow
               kind="action"
@@ -2501,7 +2522,9 @@ onBeforeUnmount(() => {
               :title="t('report')"
               @activate="beginReport()"
             >
-              <template #leading><BellOff :size="20" /></template>
+              <template #leading
+                ><SkyIcon :icon="BellOff" :size="20"
+              /></template>
             </SkySettingsRow>
             <SkySettingsRow
               kind="action"
@@ -2509,7 +2532,9 @@ onBeforeUnmount(() => {
               :title="t('clearChat')"
               @activate="clearChat"
             >
-              <template #leading><Trash2 :size="20" /></template>
+              <template #leading
+                ><SkyIcon :icon="Trash2" :size="20"
+              /></template>
             </SkySettingsRow>
           </SkySettingsGroup>
         </SkyScrollArea>
@@ -2543,7 +2568,7 @@ onBeforeUnmount(() => {
               rounded
               @click="copyIdentity(darkchat.profile.darkId)"
             >
-              {{ darkchat.profile.darkId }}<Copy :size="14" />
+              {{ darkchat.profile.darkId }}<SkyIcon :icon="Copy" :size="14" />
             </SkyButton>
           </div>
 
@@ -2567,7 +2592,7 @@ onBeforeUnmount(() => {
               "
               @activate="selectionSheet = 'notification'"
             >
-              <template #leading><Bell :size="20" /></template>
+              <template #leading><SkyIcon :icon="Bell" :size="20" /></template>
             </SkySettingsRow>
             <SkySettingsRow
               kind="toggle"
@@ -2575,12 +2600,14 @@ onBeforeUnmount(() => {
               :model-value="activityVisible"
               @update:model-value="setActivityVisible"
             >
-              <template #leading><ShieldCheck :size="20" /></template>
+              <template #leading
+                ><SkyIcon :icon="ShieldCheck" :size="20"
+              /></template>
             </SkySettingsRow>
           </SkySettingsGroup>
 
           <SkyCard class="dc-qr-card" outline :content-wrap="false">
-            <div class="dc-faux-qr"><QrCode :size="58" /></div>
+            <div class="dc-faux-qr"><SkyIcon :icon="QrCode" :size="58" /></div>
             <div>
               <strong>{{ darkchat.profile.inviteCode }}</strong>
               <small>{{ t('inviteCode') }}</small>
@@ -2591,15 +2618,17 @@ onBeforeUnmount(() => {
                 rounded
                 @click="copyIdentity(darkchat.profile.inviteCode)"
               >
-                <Copy :size="16" />{{ t('copyInvite') }}
+                <SkyIcon :icon="Copy" :size="16" />{{ t('copyInvite') }}
               </SkyButton>
               <SkyButton tonal rounded @click="sharePrivateInvite">
-                <Share2 :size="16" />{{ t('shareInvite') }}
+                <SkyIcon :icon="Share2" :size="16" />{{ t('shareInvite') }}
               </SkyButton>
             </div>
           </SkyCard>
           <p class="dc-privacy-note">
-            <LockKeyhole :size="17" />{{ t('privacyDisclaimer') }}
+            <SkyIcon :icon="LockKeyhole" :size="17" />{{
+              t('privacyDisclaimer')
+            }}
           </p>
 
           <SkySettingsGroup
@@ -2611,7 +2640,9 @@ onBeforeUnmount(() => {
               :title="t('signOut')"
               @activate="signOutOpen = true"
             >
-              <template #leading><LogOut :size="20" /></template>
+              <template #leading
+                ><SkyIcon :icon="LogOut" :size="20"
+              /></template>
             </SkySettingsRow>
             <SkySettingsRow
               kind="action"
@@ -2619,7 +2650,9 @@ onBeforeUnmount(() => {
               :title="t('deleteProfile')"
               @activate="deleteProfileOpen = true"
             >
-              <template #leading><Trash2 :size="20" /></template>
+              <template #leading
+                ><SkyIcon :icon="Trash2" :size="20"
+              /></template>
             </SkySettingsRow>
           </SkySettingsGroup>
         </SkyScrollArea>
@@ -2633,7 +2666,9 @@ onBeforeUnmount(() => {
       @escape="safetyOpen = false"
     >
       <template #title>{{ t('unknownIdentity') }}</template>
-      <span class="dc-dialog-icon"><ShieldCheck :size="25" /></span>
+      <span class="dc-dialog-icon"
+        ><SkyIcon :icon="ShieldCheck" :size="25"
+      /></span>
       <p>{{ t('unknownIdentityBody') }}</p>
       <strong class="dc-dialog-id">{{ pendingIdentifier }}</strong>
       <template #buttons>
@@ -2656,14 +2691,15 @@ onBeforeUnmount(() => {
       <template v-if="selectedMessage">
         <div class="dc-sheet-handle" />
         <div class="dc-reaction-row">
-          <button
+          <SkyButton
+            variant="content"
             v-for="reaction in ['❤️', '👍', '👎', '😂', '‼️', '❓']"
             :key="reaction"
             type="button"
             @click="react(selectedMessage, reaction)"
           >
             {{ reaction }}
-          </button>
+          </SkyButton>
         </div>
         <SkyList inset strong class="dc-action-list">
           <SkyListItem
@@ -2672,7 +2708,7 @@ onBeforeUnmount(() => {
             :title="phone.t('Apps.easyShare.name')"
             @click="shareMessage(selectedMessage)"
           >
-            <template #media><Share2 :size="20" /></template>
+            <template #media><SkyIcon :icon="Share2" :size="20" /></template>
           </SkyListItem>
           <SkyListItem
             link
@@ -2680,7 +2716,7 @@ onBeforeUnmount(() => {
             :title="t('reply')"
             @click="beginReply(selectedMessage)"
           >
-            <template #media><Reply :size="20" /></template>
+            <template #media><SkyIcon :icon="Reply" :size="20" /></template>
           </SkyListItem>
           <SkyListItem
             v-if="
@@ -2692,7 +2728,7 @@ onBeforeUnmount(() => {
             :title="t('copy')"
             @click="copyMessage(selectedMessage)"
           >
-            <template #media><Copy :size="20" /></template>
+            <template #media><SkyIcon :icon="Copy" :size="20" /></template>
           </SkyListItem>
           <SkyListItem
             link
@@ -2700,7 +2736,7 @@ onBeforeUnmount(() => {
             :title="t('deleteForMe')"
             @click="messageAction(selectedMessage, 'delete_me')"
           >
-            <template #media><Trash2 :size="20" /></template>
+            <template #media><SkyIcon :icon="Trash2" :size="20" /></template>
           </SkyListItem>
           <SkyListItem
             v-if="selectedMessage.direction === 'sent'"
@@ -2710,7 +2746,7 @@ onBeforeUnmount(() => {
             :title="t('deleteForBoth')"
             @click="messageAction(selectedMessage, 'delete_all')"
           >
-            <template #media><Trash2 :size="20" /></template>
+            <template #media><SkyIcon :icon="Trash2" :size="20" /></template>
           </SkyListItem>
           <SkyListItem
             v-if="selectedMessage.direction === 'received'"
@@ -2720,7 +2756,7 @@ onBeforeUnmount(() => {
             :title="t('report')"
             @click="beginReport(selectedMessage)"
           >
-            <template #media><ShieldOff :size="20" /></template>
+            <template #media><SkyIcon :icon="ShieldOff" :size="20" /></template>
           </SkyListItem>
         </SkyList>
         <SkyButton
@@ -2744,7 +2780,7 @@ onBeforeUnmount(() => {
     >
       <template #title>{{ t('reportUser') }}</template>
       <span class="dc-dialog-icon dc-dialog-icon--danger">
-        <ShieldOff :size="25" />
+        <SkyIcon :icon="ShieldOff" :size="25" />
       </span>
       <SkyList inset strong class="dc-action-list dc-report-reason">
         <SkyListItem
@@ -2805,7 +2841,7 @@ onBeforeUnmount(() => {
             v-if="String(option.value) === String(selectionValue)"
             #after
           >
-            <Check :size="20" />
+            <SkyIcon :icon="Check" :size="20" />
           </template>
         </SkyListItem>
       </SkyList>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   ArrowRight,
   Camera,
@@ -119,7 +121,9 @@ const modeRegisterLabel = computed(
     :class="{ 'app-profile-auth--centered': variant === 'centered' }"
   >
     <header class="app-profile-auth__hero">
-      <span class="app-profile-auth__mark"><UserRound :size="23" /></span>
+      <span class="app-profile-auth__mark"
+        ><SkyIcon :icon="UserRound" :size="23"
+      /></span>
       <div>
         <small>{{ eyebrow }}</small>
         <h2>{{ title }}</h2>
@@ -129,7 +133,9 @@ const modeRegisterLabel = computed(
 
     <SkyGlass class="app-profile-auth__card">
       <SkySegmented
-        :active-index="movingModeHighlight ? (mode === 'login' ? 0 : 1) : undefined"
+        :active-index="
+          movingModeHighlight ? (mode === 'login' ? 0 : 1) : undefined
+        "
         :aria-label="eyebrow"
         :item-count="movingModeHighlight ? 2 : undefined"
         raised
@@ -166,26 +172,26 @@ const modeRegisterLabel = computed(
       <div v-if="mode === 'register'" class="app-profile-auth__photo">
         <span class="app-profile-auth__avatar">
           <img v-if="avatarUrl" :src="avatarUrl" alt="" />
-          <UserRound v-else :size="28" />
-          <i><Camera :size="11" /></i>
+          <SkyIcon :icon="UserRound" v-else :size="28" />
+          <i><SkyIcon :icon="Camera" :size="11" /></i>
         </span>
         <div>
           <SkyButton rounded outline @click="emit('gallery')">
-            <Images :size="15" />{{ galleryLabel }}
+            <SkyIcon :icon="Images" :size="15" />{{ galleryLabel }}
           </SkyButton>
           <SkyButton rounded outline @click="emit('camera')">
-            <Camera :size="15" />{{ cameraLabel }}
+            <SkyIcon :icon="Camera" :size="15" />{{ cameraLabel }}
           </SkyButton>
         </div>
       </div>
 
       <div v-if="!emailAsField" class="app-profile-auth__identity">
-        <span><Mail :size="17" /></span>
+        <span><SkyIcon :icon="Mail" :size="17" /></span>
         <div>
           <small>{{ emailLabel }}</small>
           <strong>{{ email }}</strong>
         </div>
-        <LockKeyhole :size="15" />
+        <SkyIcon :icon="LockKeyhole" :size="15" />
       </div>
 
       <SkyList inset strong class="app-profile-auth__fields">
@@ -201,11 +207,15 @@ const modeRegisterLabel = computed(
           readonly
           outline
         >
-          <template #leading><Mail :size="17" /></template>
-          <template #trailing><LockKeyhole :size="15" /></template>
+          <template #leading><SkyIcon :icon="Mail" :size="17" /></template>
+          <template #trailing
+            ><SkyIcon :icon="LockKeyhole" :size="15"
+          /></template>
         </SkyField>
         <SkyField
-          v-if="variant !== 'centered' || mode === 'register' || !requirePassword"
+          v-if="
+            variant !== 'centered' || mode === 'register' || !requirePassword
+          "
           class="app-profile-auth__credential-field"
           input-id="app-profile-auth-username"
           :label="usernameLabel"
@@ -226,7 +236,7 @@ const modeRegisterLabel = computed(
           @keydown.enter="emit('submit')"
         >
           <template v-if="usernameInputType === 'password'" #leading>
-            <LockKeyhole :size="17" />
+            <SkyIcon :icon="LockKeyhole" :size="17" />
           </template>
         </SkyField>
         <SkyField
@@ -239,9 +249,7 @@ const modeRegisterLabel = computed(
           maxlength="72"
           minlength="8"
           :placeholder="passwordPlaceholder"
-          :autocomplete="
-            mode === 'login' ? 'current-password' : 'new-password'
-          "
+          :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
           autocapitalize="none"
           autocorrect="off"
           spellcheck="false"
@@ -251,7 +259,9 @@ const modeRegisterLabel = computed(
           "
           @keydown.enter="emit('submit')"
         >
-          <template #leading><LockKeyhole :size="17" /></template>
+          <template #leading
+            ><SkyIcon :icon="LockKeyhole" :size="17"
+          /></template>
         </SkyField>
         <SkyField
           v-if="showConfirmPassword"
@@ -277,7 +287,9 @@ const modeRegisterLabel = computed(
           "
           @keydown.enter="emit('submit')"
         >
-          <template #leading><LockKeyhole :size="17" /></template>
+          <template #leading
+            ><SkyIcon :icon="LockKeyhole" :size="17"
+          /></template>
         </SkyField>
       </SkyList>
 
@@ -294,7 +306,7 @@ const modeRegisterLabel = computed(
         <SkySpinner v-if="pending" />
         <template v-else>
           <span>{{ mode === 'login' ? loginLabel : registerLabel }}</span>
-          <ArrowRight :size="18" />
+          <SkyIcon :icon="ArrowRight" :size="18" />
         </template>
       </SkyButton>
     </SkyGlass>
@@ -334,10 +346,18 @@ const modeRegisterLabel = computed(
   border-radius: 15px;
   color: var(--auth-accent, var(--sky-app-accent));
   background: rgba(255, 214, 62, 0.14);
-  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 14%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--auth-accent, var(--sky-app-accent)) 14%,
+    transparent
+  );
   box-shadow: 0 10px 28px rgba(255, 214, 62, 0.16);
   box-shadow: 0 10px 28px
-    color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 16%, transparent);
+    color-mix(
+      in srgb,
+      var(--auth-accent, var(--sky-app-accent)) 16%,
+      transparent
+    );
 }
 .app-profile-auth__hero small {
   color: var(--auth-accent, var(--sky-app-accent));
@@ -379,7 +399,11 @@ const modeRegisterLabel = computed(
   height: 150px;
   border-radius: 50%;
   background: rgba(255, 214, 62, 0.16);
-  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 16%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--auth-accent, var(--sky-app-accent)) 16%,
+    transparent
+  );
   filter: blur(38px);
   content: '';
   pointer-events: none;
@@ -412,7 +436,9 @@ const modeRegisterLabel = computed(
   border-radius: 3px 10px 10px 3px;
 }
 .app-profile-auth__mode
-  :deep(.app-profile-auth__mode-button:not(.app-profile-auth__mode-button--active)) {
+  :deep(
+    .app-profile-auth__mode-button:not(.app-profile-auth__mode-button--active)
+  ) {
   color: var(--auth-accent, var(--sky-app-accent));
 }
 .app-profile-auth__photo {
@@ -508,7 +534,11 @@ const modeRegisterLabel = computed(
   border-radius: 11px;
   color: var(--auth-accent, var(--sky-app-accent));
   background: rgba(255, 214, 62, 0.13);
-  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 13%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--auth-accent, var(--sky-app-accent)) 13%,
+    transparent
+  );
 }
 .app-profile-auth__identity div {
   min-width: 0;
@@ -561,7 +591,11 @@ const modeRegisterLabel = computed(
   place-items: center;
   border-radius: 11px;
   color: var(--auth-accent, var(--sky-app-accent));
-  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 13%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--auth-accent, var(--sky-app-accent)) 13%,
+    transparent
+  );
 }
 .app-profile-auth__password-field div {
   min-width: 0;
@@ -597,7 +631,11 @@ const modeRegisterLabel = computed(
   place-items: center;
   border-radius: 11px;
   color: var(--auth-accent, var(--sky-app-accent));
-  background: color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 13%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--auth-accent, var(--sky-app-accent)) 13%,
+    transparent
+  );
 }
 .app-profile-auth__username-field div {
   min-width: 0;
@@ -667,7 +705,11 @@ const modeRegisterLabel = computed(
   background: var(--sky-app-accent-shade) !important;
   box-shadow: 0 10px 26px rgba(255, 214, 62, 0.25);
   box-shadow: 0 10px 26px
-    color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 25%, transparent);
+    color-mix(
+      in srgb,
+      var(--auth-accent, var(--sky-app-accent)) 25%,
+      transparent
+    );
   font-weight: 750;
 }
 .app-profile-auth__submit:disabled {
@@ -740,7 +782,11 @@ const modeRegisterLabel = computed(
   color: #fff;
   background: var(--auth-accent, var(--sky-app-accent));
   box-shadow: 0 6px 16px
-    color-mix(in srgb, var(--auth-accent, var(--sky-app-accent)) 28%, transparent);
+    color-mix(
+      in srgb,
+      var(--auth-accent, var(--sky-app-accent)) 28%,
+      transparent
+    );
   font-weight: 750;
 }
 .app-profile-auth--centered .app-profile-auth__identity,

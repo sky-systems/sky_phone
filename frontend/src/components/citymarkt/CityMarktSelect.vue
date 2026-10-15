@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { SkyButton, SkyGlass, SkyIcon } from '@/ui'
+
 import { Check, ChevronDown } from 'lucide-vue-next'
-import { SkyGlass as kGlass } from '@/ui'
+import {} from '@/ui'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 type SelectOption = {
@@ -75,7 +77,7 @@ onUnmounted(() =>
 
 <template>
   <div ref="root" class="citymarkt-select" @keydown="handleKeydown">
-    <k-glass
+    <SkyGlass
       component="button"
       class="citymarkt-select__trigger"
       type="button"
@@ -84,12 +86,13 @@ onUnmounted(() =>
       @click="isOpen ? (isOpen = false) : open()"
     >
       <span>{{ selectedLabel }}</span>
-      <ChevronDown :size="14" :class="{ open: isOpen }" />
-    </k-glass>
+      <SkyIcon :icon="ChevronDown" :size="14" :class="{ open: isOpen }" />
+    </SkyGlass>
 
     <Transition name="citymarkt-select">
       <div v-if="isOpen" class="citymarkt-select__menu" role="listbox">
-        <button
+        <SkyButton
+          variant="content"
           v-for="(option, index) in options"
           :key="option.value"
           type="button"
@@ -103,8 +106,12 @@ onUnmounted(() =>
           @click="select(option.value)"
         >
           <span>{{ option.label }}</span>
-          <Check v-if="option.value === modelValue" :size="13" />
-        </button>
+          <SkyIcon
+            :icon="Check"
+            v-if="option.value === modelValue"
+            :size="13"
+          />
+        </SkyButton>
       </div>
     </Transition>
   </div>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Camera,
   CarFront,
@@ -215,7 +217,9 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-else-if="!housing.overview" class="house-state">
-      <span class="house-state__icon"><WifiOff :size="30" /></span>
+      <span class="house-state__icon"
+        ><SkyIcon :icon="WifiOff" :size="30"
+      /></span>
       <strong>{{ phone.t('Apps.house.unavailable') }}</strong>
       <p>{{ translatedError(housing.error) }}</p>
       <sky-button
@@ -228,7 +232,9 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-else-if="!housing.overview.available" class="house-state">
-      <span class="house-state__icon"><Router :size="31" /></span>
+      <span class="house-state__icon"
+        ><SkyIcon :icon="Router" :size="31"
+      /></span>
       <strong>{{ phone.t('Apps.house.offline') }}</strong>
       <p>{{ phone.t('Apps.house.offlineBody') }}</p>
       <sky-button
@@ -285,7 +291,9 @@ onBeforeUnmount(() => {
             @click="selectedPropertyId = property.id"
           >
             <template #media>
-              <span class="house-property__icon"><House :size="21" /></span>
+              <span class="house-property__icon"
+                ><SkyIcon :icon="House" :size="21"
+              /></span>
             </template>
             <template #after>
               <span
@@ -293,8 +301,8 @@ onBeforeUnmount(() => {
                 class="house-property__status"
                 :class="{ 'is-locked': property.locked }"
               >
-                <Lock v-if="property.locked" :size="13" />
-                <LockOpen v-else :size="13" />
+                <SkyIcon :icon="Lock" v-if="property.locked" :size="13" />
+                <SkyIcon :icon="LockOpen" v-else :size="13" />
                 {{
                   phone.t(
                     property.locked
@@ -309,7 +317,9 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else class="house-empty">
-        <span class="house-empty__icon"><House :size="32" /></span>
+        <span class="house-empty__icon"
+          ><SkyIcon :icon="House" :size="32"
+        /></span>
         <small>{{ phone.t('Apps.house.myHomes') }}</small>
         <h1>{{ phone.t('Apps.house.empty') }}</h1>
         <p>{{ phone.t('Apps.house.emptyBody') }}</p>
@@ -336,7 +346,9 @@ onBeforeUnmount(() => {
       @swipeclose="selectedPropertyId = null"
     >
       <section v-if="selectedProperty" class="house-detail">
-        <span class="house-detail__mark"><House :size="29" /></span>
+        <span class="house-detail__mark"
+          ><SkyIcon :icon="House" :size="29"
+        /></span>
         <small>{{ accessLabel(selectedProperty) }}</small>
         <h2>{{ selectedProperty.name }}</h2>
         <span
@@ -344,8 +356,8 @@ onBeforeUnmount(() => {
           class="house-detail__status"
           :class="{ 'is-locked': selectedProperty.locked }"
         >
-          <Lock v-if="selectedProperty.locked" :size="14" />
-          <LockOpen v-else :size="14" />
+          <SkyIcon :icon="Lock" v-if="selectedProperty.locked" :size="14" />
+          <SkyIcon :icon="LockOpen" v-else :size="14" />
           {{
             phone.t(
               selectedProperty.locked
@@ -363,8 +375,8 @@ onBeforeUnmount(() => {
           :disabled="isPending('toggle_lock', selectedProperty)"
           @click="runCommand('toggle_lock', selectedProperty)"
         >
-          <LockOpen v-if="selectedProperty.locked" :size="19" />
-          <Lock v-else :size="19" />
+          <SkyIcon :icon="LockOpen" v-if="selectedProperty.locked" :size="19" />
+          <SkyIcon :icon="Lock" v-else :size="19" />
           {{
             phone.t(
               selectedProperty.locked
@@ -383,7 +395,9 @@ onBeforeUnmount(() => {
             :disabled="isPending('set_waypoint', selectedProperty)"
             @click="runCommand('set_waypoint', selectedProperty)"
           >
-            <template #media><LocateFixed :size="19" /></template>
+            <template #media
+              ><SkyIcon :icon="LocateFixed" :size="19"
+            /></template>
           </sky-list-item>
           <sky-list-item
             :link="selectedProperty.capabilities.cctv"
@@ -405,7 +419,7 @@ onBeforeUnmount(() => {
               runCommand('open_cctv', selectedProperty)
             "
           >
-            <template #media><Camera :size="19" /></template>
+            <template #media><SkyIcon :icon="Camera" :size="19" /></template>
           </sky-list-item>
           <sky-list-item
             link
@@ -413,7 +427,7 @@ onBeforeUnmount(() => {
             :title="phone.t('Apps.easyShare.share')"
             @click="shareProperty(selectedProperty)"
           >
-            <template #media><Share2 :size="19" /></template>
+            <template #media><SkyIcon :icon="Share2" :size="19" /></template>
           </sky-list-item>
         </sky-list>
 
@@ -423,7 +437,7 @@ onBeforeUnmount(() => {
             :title="phone.t('Apps.house.access')"
             :after="accessLabel(selectedProperty)"
           >
-            <template #media><UserRound :size="17" /></template>
+            <template #media><SkyIcon :icon="UserRound" :size="17" /></template>
           </sky-list-item>
           <sky-list-item
             :title="phone.t('Apps.house.camera')"
@@ -435,7 +449,7 @@ onBeforeUnmount(() => {
               )
             "
           >
-            <template #media><Camera :size="17" /></template>
+            <template #media><SkyIcon :icon="Camera" :size="17" /></template>
           </sky-list-item>
           <sky-list-item
             v-if="selectedProperty.garage"
@@ -453,7 +467,7 @@ onBeforeUnmount(() => {
               )
             "
           >
-            <template #media><CarFront :size="17" /></template>
+            <template #media><SkyIcon :icon="CarFront" :size="17" /></template>
           </sky-list-item>
         </sky-list>
 
@@ -470,7 +484,9 @@ onBeforeUnmount(() => {
               inline
               @click="openKeyCandidates(selectedProperty)"
             >
-              <Plus :size="15" />{{ phone.t('Apps.house.addKey') }}
+              <SkyIcon :icon="Plus" :size="15" />{{
+                phone.t('Apps.house.addKey')
+              }}
             </sky-button>
           </header>
           <sky-list
@@ -489,7 +505,9 @@ onBeforeUnmount(() => {
                 )
               "
             >
-              <template #media><KeyRound :size="17" /></template>
+              <template #media
+                ><SkyIcon :icon="KeyRound" :size="17"
+              /></template>
               <template #after>
                 <sky-button
                   clear
@@ -504,7 +522,7 @@ onBeforeUnmount(() => {
             </sky-list-item>
           </sky-list>
           <sky-card v-else class="house-keys__empty">
-            <KeyRound :size="25" />
+            <SkyIcon :icon="KeyRound" :size="25" />
             <strong>{{ phone.t('Apps.house.noKeys') }}</strong>
             <p>{{ phone.t('Apps.house.noKeysBody') }}</p>
           </sky-card>
@@ -524,7 +542,7 @@ onBeforeUnmount(() => {
       @swipeclose="candidatesOpened = false"
     >
       <section class="house-candidates">
-        <UsersRound :size="34" />
+        <SkyIcon :icon="UsersRound" :size="34" />
         <h2>{{ phone.t('Apps.house.chooseResident') }}</h2>
         <p>{{ phone.t('Apps.house.chooseResidentBody') }}</p>
         <div
@@ -542,11 +560,11 @@ onBeforeUnmount(() => {
             :title="candidate.name"
             @click="grantKey(candidate)"
           >
-            <template #media><UserRound :size="17" /></template>
+            <template #media><SkyIcon :icon="UserRound" :size="17" /></template>
           </sky-list-item>
         </sky-list>
         <sky-card v-else class="house-keys__empty">
-          <UsersRound :size="25" />
+          <SkyIcon :icon="UsersRound" :size="25" />
           <strong>{{ phone.t('Apps.house.noCandidates') }}</strong>
           <p>{{ phone.t('Apps.house.noCandidatesBody') }}</p>
         </sky-card>
@@ -566,7 +584,7 @@ onBeforeUnmount(() => {
           phone.t('Apps.house.cancel')
         }}</sky-dialog-button>
         <sky-dialog-button strong @click="revokeKey"
-          ><Check :size="15" />{{
+          ><SkyIcon :icon="Check" :size="15" />{{
             phone.t('Apps.house.confirm')
           }}</sky-dialog-button
         >

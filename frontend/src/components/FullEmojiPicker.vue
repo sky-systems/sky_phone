@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import deEmojiData from 'emoji-picker-element-data/de/cldr/data.json'
 import enEmojiData from 'emoji-picker-element-data/en/cldr/data.json'
 import { Search, X } from 'lucide-vue-next'
@@ -57,16 +59,17 @@ const emojis = computed(() => {
   >
     <header>
       <strong>{{ phone.t('Apps.messages.emoji') }}</strong>
-      <button
+      <SkyButton
+        variant="content"
         type="button"
         :aria-label="phone.t('Common.done')"
         @click="emit('close')"
       >
-        <X :size="18" />
-      </button>
+        <SkyIcon :icon="X" :size="18" />
+      </SkyButton>
     </header>
     <label class="messages-full-emoji-picker__search">
-      <Search :size="15" />
+      <SkyIcon :icon="Search" :size="15" />
       <input
         v-model="query"
         type="search"
@@ -75,7 +78,8 @@ const emojis = computed(() => {
       />
     </label>
     <nav v-if="!query" :aria-label="phone.t('Apps.messages.emojiCategories')">
-      <button
+      <SkyButton
+        variant="content"
         v-for="(group, index) in groups"
         :key="group"
         type="button"
@@ -83,9 +87,10 @@ const emojis = computed(() => {
         @click="activeGroup = index"
       >
         {{ group }}
-      </button>
+      </SkyButton>
       <i aria-hidden="true" />
-      <button
+      <SkyButton
+        variant="content"
         v-for="(tone, index) in skinTones"
         :key="tone"
         type="button"
@@ -94,10 +99,11 @@ const emojis = computed(() => {
         @click="skinTone = index"
       >
         {{ tone }}
-      </button>
+      </SkyButton>
     </nav>
     <div class="messages-full-emoji-picker__grid">
-      <button
+      <SkyButton
+        variant="content"
         v-for="entry in emojis"
         :key="`${entry.emoji}-${entry.annotation}`"
         type="button"
@@ -105,7 +111,7 @@ const emojis = computed(() => {
         @click="emit('pick', entry.emoji)"
       >
         {{ entry.emoji }}
-      </button>
+      </SkyButton>
     </div>
   </section>
 </template>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { Headphones } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
@@ -194,7 +196,11 @@ onBeforeUnmount(() => {
           { 'radio-hud__member--secondary': entry.channel === 2 },
         ]"
       >
-        <Headphones class="radio-hud__icon" aria-hidden="true" />
+        <SkyIcon
+          :icon="Headphones"
+          class="radio-hud__icon"
+          aria-hidden="true"
+        />
         <span v-if="entry.badge" class="radio-hud__badge">
           [{{ entry.badge }}]
         </span>

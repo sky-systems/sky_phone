@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton } from '@/ui'
+
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import payphoneFrame from '@/assets/img/payphone/american-payphone-frame.png'
@@ -289,14 +291,15 @@ onBeforeUnmount(() => {
           aria-hidden="true"
           draggable="false"
         />
-        <button
+        <SkyButton
+          variant="content"
           type="button"
           class="payphone-console__close"
           :aria-label="text('close')"
           @click="close"
         >
           ×
-        </button>
+        </SkyButton>
         <div class="payphone-display">
           <header class="payphone-console__header">
             <span class="payphone-console__signal" aria-hidden="true"></span>
@@ -324,14 +327,15 @@ onBeforeUnmount(() => {
               type="text"
               @input="sanitizeNumber"
             />
-            <button
+            <SkyButton
+              variant="content"
               type="button"
               :aria-label="text('delete')"
               :disabled="active || !number"
               @click="deleteDigit"
             >
               ⌫
-            </button>
+            </SkyButton>
           </div>
           <div v-if="state === 'connected'" class="payphone-meter">
             <span
@@ -346,7 +350,8 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="payphone-keypad" :aria-label="text('keypad')">
-          <button
+          <SkyButton
+            variant="content"
             v-for="key in keypad"
             :key="key.digit"
             type="button"
@@ -355,19 +360,21 @@ onBeforeUnmount(() => {
           >
             <strong>{{ key.digit }}</strong>
             <small>{{ key.letters }}</small>
-          </button>
+          </SkyButton>
         </div>
 
         <footer class="payphone-actions">
-          <button
+          <SkyButton
+            variant="content"
             v-if="state === 'ringing' || state === 'connected'"
             type="button"
             class="payphone-action payphone-action--hangup"
             @click="hangup"
           >
             <span aria-hidden="true">☎</span>{{ text('hangup') }}
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             v-else
             type="button"
             class="payphone-action payphone-action--call"
@@ -375,15 +382,16 @@ onBeforeUnmount(() => {
             @click="dial"
           >
             <span aria-hidden="true">☎</span>{{ text('call') }}
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             class="payphone-action payphone-action--clear"
             :disabled="active || !number"
             @click="clearNumber"
           >
             {{ text('clear') }}
-          </button>
+          </SkyButton>
         </footer>
       </section>
     </div>

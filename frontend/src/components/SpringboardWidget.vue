@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import {
   Banknote,
   MessageCircle,
@@ -378,7 +380,8 @@ onBeforeUnmount(() => {
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
       >
-        <button
+        <SkyButton
+          variant="content"
           v-if="interactive"
           class="home-widget-open"
           type="button"
@@ -466,10 +469,15 @@ onBeforeUnmount(() => {
               alt=""
               draggable="false"
             />
-            <Music2 v-else :size="36" />
+            <SkyIcon :icon="Music2" v-else :size="36" />
           </div>
           <div class="widget-music-body">
-            <Music2 class="widget-music-mark" :size="22" aria-hidden="true" />
+            <SkyIcon
+              :icon="Music2"
+              class="widget-music-mark"
+              :size="22"
+              aria-hidden="true"
+            />
             <div v-if="music.current.value" class="widget-music-copy">
               <strong>{{ music.current.value.title }}</strong>
               <small>{{ music.current.value.artist }}</small>
@@ -486,7 +494,8 @@ onBeforeUnmount(() => {
               class="widget-music-controls"
               data-widget-control
             >
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 :aria-label="
                   phone.t(
@@ -497,30 +506,34 @@ onBeforeUnmount(() => {
                 "
                 @click.stop="music.toggle"
               >
-                <Pause
+                <SkyIcon
+                  :icon="Pause"
                   v-if="music.playing.value"
                   :size="20"
                   fill="currentColor"
                   aria-hidden="true"
                 />
-                <Play
+                <SkyIcon
+                  :icon="Play"
                   v-else
                   :size="20"
                   fill="currentColor"
                   aria-hidden="true"
                 />
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 :aria-label="phone.t('ControlCenter.next')"
                 @click.stop="music.next"
               >
-                <SkipForward
+                <SkyIcon
+                  :icon="SkipForward"
                   :size="19"
                   fill="currentColor"
                   aria-hidden="true"
                 />
-              </button>
+              </SkyButton>
             </div>
           </div>
           <p v-if="!music.current.value" class="widget-music-empty">
@@ -529,7 +542,9 @@ onBeforeUnmount(() => {
         </template>
 
         <template v-else-if="instance.kind === 'wallet'">
-          <div class="widget-wallet-icon"><WalletCards :size="22" /></div>
+          <div class="widget-wallet-icon">
+            <SkyIcon :icon="WalletCards" :size="22" />
+          </div>
           <span class="widget-eyebrow">{{
             phone.t(
               instance.settings.balanceSource === 'cash'
@@ -544,9 +559,10 @@ onBeforeUnmount(() => {
         <template v-else-if="instance.kind === 'transactions'">
           <header class="widget-list-header">
             <span>{{ phone.t('Home.widgetSystem.transactions.name') }}</span>
-            <Banknote :size="19" />
+            <SkyIcon :icon="Banknote" :size="19" />
           </header>
-          <button
+          <SkyButton
+            variant="content"
             v-for="transaction in visibleTransactions"
             :key="transaction.id"
             type="button"
@@ -571,7 +587,7 @@ onBeforeUnmount(() => {
                   : '−'
               }}{{ formatMoney(transaction.amount) }}</b
             >
-          </button>
+          </SkyButton>
         </template>
 
         <template v-else-if="instance.kind === 'contacts'">
@@ -585,20 +601,26 @@ onBeforeUnmount(() => {
               }}</span>
               <strong>{{ contact.name }}</strong>
               <div data-widget-control>
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="phone.t('Apps.messages.call')"
                   @click.stop="callContact(contact.phone_number)"
                 >
-                  <Phone :size="15" fill="currentColor" />
-                </button>
-                <button
+                  <SkyIcon :icon="Phone" :size="15" fill="currentColor" />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :aria-label="phone.t('Apps.messages.messageAction')"
                   @click.stop="messageContact(contact.phone_number)"
                 >
-                  <MessageCircle :size="15" fill="currentColor" />
-                </button>
+                  <SkyIcon
+                    :icon="MessageCircle"
+                    :size="15"
+                    fill="currentColor"
+                  />
+                </SkyButton>
               </div>
             </article>
           </div>
@@ -606,7 +628,8 @@ onBeforeUnmount(() => {
       </article>
     </SkyWidgetFrame>
 
-    <button
+    <SkyButton
+      variant="content"
       v-if="editMode && !preview"
       class="home-widget-remove"
       type="button"
@@ -616,7 +639,7 @@ onBeforeUnmount(() => {
       @pointerdown.stop
     >
       <span aria-hidden="true">−</span>
-    </button>
+    </SkyButton>
   </div>
 </template>
 

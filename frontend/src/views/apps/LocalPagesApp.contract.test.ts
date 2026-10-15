@@ -49,7 +49,9 @@ describe('LocalPagesApp Sky UI contract', () => {
     expect(source).toMatch(
       /\.pages-create-close,[\s\S]*?min-width:\s*44px[\s\S]*?height:\s*30px[\s\S]*?background:\s*transparent/,
     )
-    expect(source).toMatch(/class="pages-create-close"[\s\S]*?<X :size="17"/)
+    expect(source).toMatch(
+      /class="pages-create-close"[\s\S]*?<SkyIcon :icon="X" :size="17"/,
+    )
     expect(source).toMatch(/clear[\s\S]*?class="pages-create-publish"/)
   })
 

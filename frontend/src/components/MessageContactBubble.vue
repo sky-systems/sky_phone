@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Check,
   ChevronRight,
@@ -51,18 +53,22 @@ const initials = computed(() =>
           @error="imageFailed = true"
         />
         <b v-else-if="initials">{{ initials }}</b>
-        <UserRound v-else :size="28" />
+        <SkyIcon :icon="UserRound" v-else :size="28" />
       </span>
       <div>
         <strong>{{ displayName }}</strong>
         <small v-if="contact.organization">{{ contact.organization }}</small>
         <small v-if="showNumber">({{ contact.phone_number }})</small>
       </div>
-      <ChevronRight :size="20" class="message-contact-card__chevron" />
+      <SkyIcon
+        :icon="ChevronRight"
+        :size="20"
+        class="message-contact-card__chevron"
+      />
     </div>
     <div class="message-contact-card__actions">
       <SkyButton rounded small tonal @click.stop="emit('message')">
-        <MessageCircle :size="17" />
+        <SkyIcon :icon="MessageCircle" :size="17" />
         {{ messageLabel }}
       </SkyButton>
       <SkyButton
@@ -72,8 +78,8 @@ const initials = computed(() =>
         :disabled="saved"
         @click.stop="emit('save')"
       >
-        <Check v-if="saved" :size="17" />
-        <UserPlus v-else :size="17" />
+        <SkyIcon :icon="Check" v-if="saved" :size="17" />
+        <SkyIcon :icon="UserPlus" v-else :size="17" />
         {{ saved ? savedLabel : addLabel }}
       </SkyButton>
     </div>

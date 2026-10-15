@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { SkyButton, SkyGlass, SkyIcon } from '@/ui'
+
 import { Check, Pencil, Plus, Search, Trash2, X } from 'lucide-vue-next'
-import { kButton, kGlass } from 'konsta/vue'
+
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import AppIcon from '@/components/AppIcon.vue'
@@ -1765,21 +1767,22 @@ onBeforeUnmount(() => {
           class="app-library-search"
           :class="{ 'app-library-search--focused': searchFocused }"
         >
-          <Search :size="16" aria-hidden="true" />
+          <SkyIcon :icon="Search" :size="16" aria-hidden="true" />
           <input
             v-model="searchQuery"
             type="search"
             :placeholder="phone.t('Home.appLibrarySearch')"
             @focus="openAllApps"
           />
-          <button
+          <SkyButton
+            variant="content"
             v-if="searchQuery || searchFocused"
             type="button"
             :aria-label="phone.t('Common.cancel')"
             @click="clearSearch"
           >
-            <X :size="15" />
-          </button>
+            <SkyIcon :icon="X" :size="15" />
+          </SkyButton>
         </div>
 
         <div
@@ -1797,7 +1800,7 @@ onBeforeUnmount(() => {
                 class="app-library-restore-item"
               >
                 <AppIcon :app="app" compact :show-label="false" />
-                <k-button
+                <SkyButton
                   small
                   rounded
                   class="app-library-restore-button"
@@ -1808,8 +1811,8 @@ onBeforeUnmount(() => {
                   "
                   @click.stop="restoreHomeApp(app.id)"
                 >
-                  <Plus :size="13" :stroke-width="3" />
-                </k-button>
+                  <SkyIcon :icon="Plus" :size="13" :stroke-width="3" />
+                </SkyButton>
               </div>
             </div>
             <span>{{ phone.t('Home.removedFromHome') }}</span>
@@ -1827,7 +1830,8 @@ onBeforeUnmount(() => {
                 compact
                 :show-label="false"
               />
-              <button
+              <SkyButton
+                variant="content"
                 v-if="group.moreApps.length"
                 class="app-library-more"
                 type="button"
@@ -1841,7 +1845,7 @@ onBeforeUnmount(() => {
                   alt=""
                   draggable="false"
                 />
-              </button>
+              </SkyButton>
             </div>
             <span>{{ phone.t(`Home.groups.${group.key}`) }}</span>
           </article>
@@ -1866,7 +1870,7 @@ onBeforeUnmount(() => {
               >
                 <AppIcon :app="app" compact :show-label="false" />
                 <span>{{ getPhoneAppLabel(app, phone.t) }}</span>
-                <k-button
+                <SkyButton
                   v-if="appStore.homeLayout.hidden.includes(app.id)"
                   small
                   rounded
@@ -1878,8 +1882,8 @@ onBeforeUnmount(() => {
                   "
                   @click.stop="restoreHomeApp(app.id)"
                 >
-                  <Plus :size="14" :stroke-width="3" />
-                </k-button>
+                  <SkyIcon :icon="Plus" :size="14" :stroke-width="3" />
+                </SkyButton>
               </div>
             </div>
             <p v-if="filteredApps.length === 0" class="app-library-empty">
@@ -1895,7 +1899,7 @@ onBeforeUnmount(() => {
     </Teleport>
 
     <Transition name="edit-done">
-      <k-glass
+      <SkyGlass
         v-if="editMode && isEditablePage && !folderOverlayVisible"
         component="button"
         class="springboard-edit-add"
@@ -1903,12 +1907,12 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Home.widgetSystem.add')"
         @click="widgetPickerOpened = true"
       >
-        <Plus :size="20" :stroke-width="2.5" />
-      </k-glass>
+        <SkyIcon :icon="Plus" :size="20" :stroke-width="2.5" />
+      </SkyGlass>
     </Transition>
 
     <Transition name="edit-done">
-      <k-glass
+      <SkyGlass
         v-if="editMode && isEditablePage && !folderOverlayVisible"
         component="button"
         class="springboard-edit-done"
@@ -1916,8 +1920,13 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Common.done')"
         @click="editMode = false"
       >
-        <Check :size="20" :stroke-width="3" aria-hidden="true" />
-      </k-glass>
+        <SkyIcon
+          :icon="Check"
+          :size="20"
+          :stroke-width="3"
+          aria-hidden="true"
+        />
+      </SkyGlass>
     </Transition>
 
     <Transition name="dock">
@@ -1995,15 +2004,16 @@ onBeforeUnmount(() => {
       :class="{ 'page-indicator--without-dock': phone.currentPage === 0 }"
       :aria-label="phone.t('Home.pages')"
     >
-      <button
+      <SkyButton
+        variant="content"
         v-for="pageIndex in appPages.length + 1"
         :key="pageIndex - 1"
         type="button"
         :class="{ active: phone.currentPage === pageIndex - 1 }"
         :aria-label="`${phone.t('Home.page')} ${pageIndex}`"
         @click="changePage(pageIndex - 1)"
-      ></button>
-      <k-button
+      ></SkyButton>
+      <SkyButton
         v-if="editMode && canAddHomePage"
         small
         rounded
@@ -2012,9 +2022,9 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Home.addPage')"
         @click="addHomePage"
       >
-        <Plus :size="12" :stroke-width="2.8" />
-      </k-button>
-      <k-button
+        <SkyIcon :icon="Plus" :size="12" :stroke-width="2.8" />
+      </SkyButton>
+      <SkyButton
         v-if="editMode && canDeleteCurrentPage"
         small
         rounded
@@ -2023,8 +2033,8 @@ onBeforeUnmount(() => {
         :aria-label="phone.t('Home.deletePage')"
         @click="deleteCurrentPage"
       >
-        <Trash2 :size="12" :stroke-width="2.4" />
-      </k-button>
+        <SkyIcon :icon="Trash2" :size="12" :stroke-width="2.4" />
+      </SkyButton>
     </nav>
 
     <Transition name="home-folder">
@@ -2076,14 +2086,14 @@ onBeforeUnmount(() => {
             class="widget-action-button"
             @click="openWidgetConfig"
           >
-            <Pencil :size="20" />
+            <SkyIcon :icon="Pencil" :size="20" />
             <span>{{ phone.t('Home.widgetSystem.editWidget') }}</span>
           </SkyActionButton>
           <SkyActionButton
             class="widget-action-button widget-action-remove"
             @click="activeWidget && removeWidget(activeWidget.id)"
           >
-            <Trash2 :size="20" />
+            <SkyIcon :icon="Trash2" :size="20" />
             <span>{{ phone.t('Home.widgetSystem.removeWidget') }}</span>
           </SkyActionButton>
         </SkyActionGroup>

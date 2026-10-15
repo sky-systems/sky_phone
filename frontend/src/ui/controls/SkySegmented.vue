@@ -123,6 +123,7 @@ const indicatorStyle = computed<CSSProperties | undefined>(() => {
     ref="root"
     v-bind="$attrs"
     :highlight="usesGlass ? glassHighlight : undefined"
+    :material="usesGlass ? 'clear' : undefined"
     class="sky-segmented"
     :class="{
       'sky-segmented--navigation': isNavigation,

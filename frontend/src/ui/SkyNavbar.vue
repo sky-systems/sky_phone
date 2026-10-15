@@ -11,6 +11,7 @@ import {
 import { getSkyNavbarCollapseState } from './navbar-collapse'
 import { provideSkyNavbar } from './navbar-context'
 import { useSkyPageScroll } from './page-scroll-context'
+import SkyGlass from './controls/SkyGlass.vue'
 
 defineOptions({ inheritAttrs: false })
 
@@ -176,7 +177,12 @@ function hasNavigationRow(): boolean {
       class="sky-navbar__inner"
       :class="innerClass"
     >
-      <div v-if="hasLeftContent()" class="sky-navbar__left sky-glass-surface">
+      <SkyGlass
+        v-if="hasLeftContent()"
+        material="clear"
+        :highlight="false"
+        class="sky-navbar__left sky-glass-surface"
+      >
         <slot name="left">
           <button
             v-if="showBack"
@@ -200,7 +206,7 @@ function hasNavigationRow(): boolean {
             </span>
           </button>
         </slot>
-      </div>
+      </SkyGlass>
 
       <div v-if="!hasExtendedTitle" class="sky-navbar__heading">
         <h1 class="sky-navbar__title">
@@ -211,9 +217,14 @@ function hasNavigationRow(): boolean {
         </p>
       </div>
 
-      <div v-if="hasRightContent()" class="sky-navbar__right sky-glass-surface">
+      <SkyGlass
+        v-if="hasRightContent()"
+        material="clear"
+        :highlight="false"
+        class="sky-navbar__right sky-glass-surface"
+      >
         <slot name="right" />
-      </div>
+      </SkyGlass>
     </div>
 
     <div v-if="hasExtendedTitle" class="sky-navbar__title-container">

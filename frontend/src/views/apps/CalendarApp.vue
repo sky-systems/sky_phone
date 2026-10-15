@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import {
   Bell,
   CalendarDays,
@@ -566,7 +568,7 @@ onMounted(async () => {
               :aria-label="phone.t('Common.close')"
               @click="toggleSearch"
             >
-              <X :size="20" />
+              <SkyIcon :icon="X" :size="20" />
             </sky-glass>
           </div>
           <div v-else class="calendar__toolbar-default">
@@ -578,7 +580,7 @@ onMounted(async () => {
               :aria-label="String(visibleYear)"
               @click="openYearOverview"
             >
-              <ChevronLeft :size="20" />
+              <SkyIcon :icon="ChevronLeft" :size="20" />
               <span>{{ visibleYear }}</span>
             </sky-glass>
             <div class="calendar__toolbar-actions">
@@ -602,7 +604,7 @@ onMounted(async () => {
                 type="button"
                 @click="toggleSearch"
               >
-                <Search :size="19" />
+                <SkyIcon :icon="Search" :size="19" />
               </sky-glass>
               <sky-glass
                 v-if="isAuthenticated"
@@ -612,13 +614,14 @@ onMounted(async () => {
                 type="button"
                 @click="openCreate"
               >
-                <Plus :size="21" />
+                <SkyIcon :icon="Plus" :size="21" />
               </sky-glass>
             </div>
 
             <Transition name="calendar-popover">
               <div v-if="viewMenuOpen" class="calendar__view-menu">
-                <button
+                <SkyButton
+                  variant="content"
                   v-for="mode in viewModes"
                   :key="mode.id"
                   :class="{ active: viewMode === mode.id }"
@@ -627,8 +630,12 @@ onMounted(async () => {
                 >
                   <component :is="mode.icon" :size="19" />
                   <span>{{ phone.t(mode.labelKey) }}</span>
-                  <Check v-if="viewMode === mode.id" :size="17" />
-                </button>
+                  <SkyIcon
+                    :icon="Check"
+                    v-if="viewMode === mode.id"
+                    :size="17"
+                  />
+                </SkyButton>
               </div>
             </Transition>
           </div>
@@ -636,7 +643,7 @@ onMounted(async () => {
       </header>
 
       <section v-if="!isAuthenticated" class="calendar__auth">
-        <span><UserRound :size="33" /></span>
+        <span><SkyIcon :icon="UserRound" :size="33" /></span>
         <h1>{{ phone.t('Apps.calendar.signInTitle') }}</h1>
         <p>{{ phone.t('Apps.calendar.signInBody') }}</p>
       </section>
@@ -673,7 +680,8 @@ onMounted(async () => {
                   v-for="(day, cellIndex) in month.cells"
                   :key="day ? dateKey(day) : `${month.key}-${cellIndex}`"
                 >
-                  <button
+                  <SkyButton
+                    variant="content"
                     v-if="day"
                     type="button"
                     :class="{
@@ -683,7 +691,7 @@ onMounted(async () => {
                     @click="selectOverviewDay(day)"
                   >
                     {{ day.getDate() }}
-                  </button>
+                  </SkyButton>
                   <span v-else />
                 </template>
               </div>
@@ -723,7 +731,8 @@ onMounted(async () => {
                 v-for="(day, cellIndex) in month.cells"
                 :key="day ? dateKey(day) : `${month.key}-blank-${cellIndex}`"
               >
-                <button
+                <SkyButton
+                  variant="content"
                   v-if="day"
                   type="button"
                   :class="{
@@ -766,20 +775,21 @@ onMounted(async () => {
                       {{ event.title }}
                     </i>
                   </span>
-                </button>
+                </SkyButton>
                 <span v-else class="calendar__blank-day" />
               </template>
             </div>
           </section>
 
-          <button
+          <SkyButton
+            variant="content"
             class="calendar__next-year"
             type="button"
             @click="moveYear(1)"
           >
             <span>{{ visibleYear + 1 }}</span>
-            <ChevronRight :size="19" />
-          </button>
+            <SkyIcon :icon="ChevronRight" :size="19" />
+          </SkyButton>
         </template>
 
         <section v-else class="calendar__list-view">
@@ -790,7 +800,7 @@ onMounted(async () => {
             v-else-if="!monthEventGroups.length"
             class="calendar__empty-copy calendar__empty-copy--list"
           >
-            <CalendarDays :size="38" />
+            <SkyIcon :icon="CalendarDays" :size="38" />
             <strong>{{ phone.t('Apps.calendar.noEvents') }}</strong>
             <span>{{ phone.t('Apps.calendar.noEventsBody') }}</span>
           </div>
@@ -804,7 +814,8 @@ onMounted(async () => {
               <strong>{{ group.label }}</strong>
               <span>{{ group.events.length }}</span>
             </header>
-            <button
+            <SkyButton
+              variant="content"
               v-for="event in group.events"
               :key="event.id"
               type="button"
@@ -815,8 +826,8 @@ onMounted(async () => {
                 <strong>{{ event.title }}</strong>
                 <small>{{ eventTimeLabel(event) }}</small>
               </span>
-              <ChevronRight :size="17" />
-            </button>
+              <SkyIcon :icon="ChevronRight" :size="17" />
+            </SkyButton>
           </section>
         </section>
       </div>
@@ -838,14 +849,14 @@ onMounted(async () => {
       class="calendar__detail"
     >
       <header class="calendar__sheet-header">
-        <button type="button" @click="screen = 'main'">
-          <ChevronLeft :size="20" />
+        <SkyButton variant="content" type="button" @click="screen = 'main'">
+          <SkyIcon :icon="ChevronLeft" :size="20" />
           {{ phone.t('Apps.calendar.name') }}
-        </button>
+        </SkyButton>
         <strong>{{ phone.t('Apps.calendar.event') }}</strong>
-        <button type="button" @click="openEdit">
+        <SkyButton variant="content" type="button" @click="openEdit">
           {{ phone.t('Common.edit') }}
-        </button>
+        </SkyButton>
       </header>
       <div class="calendar__sheet-scroll">
         <section class="calendar__detail-title">
@@ -857,7 +868,7 @@ onMounted(async () => {
         </section>
         <section class="calendar__group">
           <div class="calendar__group-row calendar__group-row--tall">
-            <Clock3 :size="20" />
+            <SkyIcon :icon="Clock3" :size="20" />
             <div>
               <small>{{ phone.t('Apps.calendar.date') }}</small>
               <strong>{{ formatLongDate(selectedEvent.startsAt) }}</strong>
@@ -865,29 +876,35 @@ onMounted(async () => {
             </div>
           </div>
           <div class="calendar__group-row">
-            <Bell :size="20" />
+            <SkyIcon :icon="Bell" :size="20" />
             <span>{{ phone.t('Apps.calendar.reminder') }}</span>
             <strong>{{ reminderLabel(selectedEvent.reminderMinutes) }}</strong>
           </div>
         </section>
         <section v-if="selectedEvent.note" class="calendar__group">
           <div class="calendar__group-row calendar__group-row--note">
-            <FileText :size="20" />
+            <SkyIcon :icon="FileText" :size="20" />
             <p>{{ selectedEvent.note }}</p>
           </div>
         </section>
-        <button
+        <SkyButton
+          variant="content"
           class="calendar__delete calendar__share"
           type="button"
           @click="shareEvent"
         >
-          <Share2 :size="18" />
+          <SkyIcon :icon="Share2" :size="18" />
           {{ phone.t('Apps.easyShare.share') }}
-        </button>
-        <button class="calendar__delete" type="button" @click="deleteEvent">
-          <Trash2 :size="18" />
+        </SkyButton>
+        <SkyButton
+          variant="content"
+          class="calendar__delete"
+          type="button"
+          @click="deleteEvent"
+        >
+          <SkyIcon :icon="Trash2" :size="18" />
           {{ phone.t('Apps.calendar.deleteEvent') }}
-        </button>
+        </SkyButton>
       </div>
     </section>
 
@@ -933,15 +950,16 @@ onMounted(async () => {
         </section>
 
         <section class="calendar__group calendar__group--fields">
-          <button
+          <SkyButton
+            variant="content"
             class="calendar__date-time-row"
             type="button"
             @click="openDatePicker"
           >
             <span>{{ phone.t('Apps.calendar.date') }}</span>
             <strong>{{ draftDateLabel }}</strong>
-            <ChevronRight :size="17" />
-          </button>
+            <SkyIcon :icon="ChevronRight" :size="17" />
+          </SkyButton>
           <div class="calendar__all-day-row">
             <span>{{ phone.t('Apps.calendar.allDay') }}</span>
             <sky-toggle
@@ -951,7 +969,8 @@ onMounted(async () => {
               @change="toggleAllDay"
             />
           </div>
-          <button
+          <SkyButton
+            variant="content"
             v-if="!draft.allDay"
             class="calendar__date-time-row"
             type="button"
@@ -959,9 +978,10 @@ onMounted(async () => {
           >
             <span>{{ phone.t('Apps.calendar.starts') }}</span>
             <strong>{{ draft.startTime }}</strong>
-            <ChevronRight :size="17" />
-          </button>
-          <button
+            <SkyIcon :icon="ChevronRight" :size="17" />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             v-if="!draft.allDay"
             class="calendar__date-time-row"
             type="button"
@@ -969,23 +989,29 @@ onMounted(async () => {
           >
             <span>{{ phone.t('Apps.calendar.ends') }}</span>
             <strong>{{ draft.endTime }}</strong>
-            <ChevronRight :size="17" />
-          </button>
+            <SkyIcon :icon="ChevronRight" :size="17" />
+          </SkyButton>
         </section>
 
         <section class="calendar__group calendar__group--fields">
-          <button
+          <SkyButton
+            variant="content"
             class="calendar__form-row"
             type="button"
             @click="reminderOpen = !reminderOpen"
           >
-            <Bell :size="19" />
+            <SkyIcon :icon="Bell" :size="19" />
             <span>{{ phone.t('Apps.calendar.reminder') }}</span>
             <strong>{{ reminderLabel(draft.reminderMinutes) }}</strong>
-            <ChevronRight :size="17" :class="{ open: reminderOpen }" />
-          </button>
+            <SkyIcon
+              :icon="ChevronRight"
+              :size="17"
+              :class="{ open: reminderOpen }"
+            />
+          </SkyButton>
           <div v-if="reminderOpen" class="calendar__reminders">
-            <button
+            <SkyButton
+              variant="content"
               v-for="option in reminderOptions"
               :key="String(option)"
               type="button"
@@ -993,11 +1019,15 @@ onMounted(async () => {
               @click="draft.reminderMinutes = option"
             >
               <span>{{ reminderLabel(option) }}</span>
-              <Check v-if="draft.reminderMinutes === option" :size="18" />
-            </button>
+              <SkyIcon
+                :icon="Check"
+                v-if="draft.reminderMinutes === option"
+                :size="18"
+              />
+            </SkyButton>
           </div>
           <div class="calendar__form-row">
-            <Circle :size="17" fill="#ff3b30" color="#ff3b30" />
+            <SkyIcon :icon="Circle" :size="17" fill="#ff3b30" color="#ff3b30" />
             <span>{{ phone.t('Apps.calendar.calendar') }}</span>
             <strong>{{ phone.t('Apps.calendar.calendarName') }}</strong>
           </div>
@@ -1021,13 +1051,21 @@ onMounted(async () => {
           :aria-label="phone.t('Apps.calendar.date')"
         >
           <header>
-            <button type="button" @click="datePickerOpen = false">
+            <SkyButton
+              variant="content"
+              type="button"
+              @click="datePickerOpen = false"
+            >
               {{ phone.t('Common.cancel') }}
-            </button>
+            </SkyButton>
             <strong>{{ phone.t('Apps.calendar.date') }}</strong>
-            <button type="button" @click="confirmDatePicker">
+            <SkyButton
+              variant="content"
+              type="button"
+              @click="confirmDatePicker"
+            >
               {{ phone.t('Common.done') }}
-            </button>
+            </SkyButton>
           </header>
 
           <div class="calendar__date-picker-month">
@@ -1037,7 +1075,7 @@ onMounted(async () => {
               :aria-label="phone.t('Apps.calendar.previousMonth')"
               @click="movePickerMonth(-1)"
             >
-              <ChevronLeft :size="20" />
+              <SkyIcon :icon="ChevronLeft" :size="20" />
             </sky-glass>
             <strong>{{ pickerMonthLabel }}</strong>
             <sky-glass
@@ -1046,7 +1084,7 @@ onMounted(async () => {
               :aria-label="phone.t('Apps.calendar.nextMonth')"
               @click="movePickerMonth(1)"
             >
-              <ChevronRight :size="20" />
+              <SkyIcon :icon="ChevronRight" :size="20" />
             </sky-glass>
           </div>
 
@@ -1057,7 +1095,8 @@ onMounted(async () => {
           </div>
           <div class="calendar__date-picker-grid">
             <template v-for="(day, index) in pickerMonthCells" :key="index">
-              <button
+              <SkyButton
+                variant="content"
                 v-if="day"
                 type="button"
                 :class="{
@@ -1068,7 +1107,7 @@ onMounted(async () => {
                 @click="pickerDate = dateKey(day)"
               >
                 {{ day.getDate() }}
-              </button>
+              </SkyButton>
               <span v-else />
             </template>
           </div>
@@ -1090,13 +1129,21 @@ onMounted(async () => {
           :aria-label="timePickerTitle"
         >
           <header>
-            <button type="button" @click="timePickerField = null">
+            <SkyButton
+              variant="content"
+              type="button"
+              @click="timePickerField = null"
+            >
               {{ phone.t('Common.cancel') }}
-            </button>
+            </SkyButton>
             <strong>{{ timePickerTitle }}</strong>
-            <button type="button" @click="confirmTimePicker">
+            <SkyButton
+              variant="content"
+              type="button"
+              @click="confirmTimePicker"
+            >
               {{ phone.t('Common.done') }}
-            </button>
+            </SkyButton>
           </header>
 
           <div class="calendar__time-preview">
@@ -1105,7 +1152,8 @@ onMounted(async () => {
 
           <div class="calendar__time-wheels">
             <div ref="hourColumn" class="calendar__time-column">
-              <button
+              <SkyButton
+                variant="content"
                 v-for="hour in hourOptions"
                 :key="hour"
                 :data-value="hour"
@@ -1114,11 +1162,12 @@ onMounted(async () => {
                 @click="selectPickerValue('hour', hour, $event.currentTarget)"
               >
                 {{ hour }}
-              </button>
+              </SkyButton>
             </div>
             <strong>:</strong>
             <div ref="minuteColumn" class="calendar__time-column">
-              <button
+              <SkyButton
+                variant="content"
                 v-for="minute in minuteOptions"
                 :key="minute"
                 :data-value="minute"
@@ -1129,7 +1178,7 @@ onMounted(async () => {
                 "
               >
                 {{ minute }}
-              </button>
+              </SkyButton>
             </div>
             <i aria-hidden="true" />
           </div>

@@ -19,8 +19,8 @@ describe('CrewLink authentication fields', () => {
   it('shows only the password on login and adds the username on registration', () => {
     expect(crewLinkSource).toContain('variant="centered"')
     expect(crewLinkSource).toContain('require-password')
-    expect(authSource).toContain(
-      `v-if="variant !== 'centered' || mode === 'register' || !requirePassword"`,
+    expect(authSource.replace(/\s+/g, ' ')).toMatch(
+      /v-if="\s*variant !== 'centered' \|\| mode === 'register' \|\| !requirePassword\s*"/,
     )
   })
 

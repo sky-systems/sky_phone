@@ -96,8 +96,8 @@ describe('SkyPanel', () => {
     expect(source).not.toContain(':duration=')
     expect(tokens).toContain('--sky-panel-background: #ffffff;')
     expect(tokens).toContain('--sky-panel-background: #000000;')
-    expect(tokens).toContain('--sky-glass: rgba(255, 255, 255, 0.75);')
-    expect(tokens).toContain('--sky-glass: rgba(50, 50, 50, 0.5);')
+    expect(tokens).toContain('--sky-glass: rgba(248, 250, 255, 0.7);')
+    expect(tokens).toContain('--sky-glass: rgba(28, 32, 40, 0.72);')
   })
 
   it('resets every dark Glass override at a nested light theme boundary', () => {

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   CloudSun,
   Droplets,
@@ -199,7 +201,7 @@ watch(
       </div>
       <header class="weather-hero">
         <div class="weather-location">
-          <Navigation :size="13" fill="currentColor" />
+          <SkyIcon :icon="Navigation" :size="13" fill="currentColor" />
           {{ phone.t(`Apps.weather.regions.${forecast.region}`) }}
         </div>
         <WeatherConditionIcon
@@ -226,29 +228,33 @@ watch(
         :aria-label="phone.t('Apps.weather.details')"
       >
         <SkyCard :content-wrap="false" class="weather-detail-card">
-          <ThermometerSun :size="18" />
+          <SkyIcon :icon="ThermometerSun" :size="18" />
           <span>{{ phone.t('Apps.weather.feelsLike') }}</span>
           <strong>{{ forecast.feelsLike }}°</strong>
         </SkyCard>
         <SkyCard :content-wrap="false" class="weather-detail-card">
-          <Wind :size="18" />
+          <SkyIcon :icon="Wind" :size="18" />
           <span>{{ phone.t('Apps.weather.wind') }}</span>
           <strong>{{ forecast.windSpeed }} km/h</strong>
         </SkyCard>
         <SkyCard :content-wrap="false" class="weather-detail-card">
-          <Droplets :size="18" />
+          <SkyIcon :icon="Droplets" :size="18" />
           <span>{{ phone.t('Apps.weather.humidity') }}</span>
           <strong>{{ forecast.humidity }}%</strong>
         </SkyCard>
         <SkyCard :content-wrap="false" class="weather-detail-card">
-          <Umbrella :size="18" />
+          <SkyIcon :icon="Umbrella" :size="18" />
           <span>{{ phone.t('Apps.weather.rain') }}</span>
           <strong>{{ forecast.rainChance }}%</strong>
         </SkyCard>
       </section>
 
       <SkyCard :content-wrap="false" class="weather-panel weather-hourly-panel">
-        <h2><Gauge :size="15" />{{ phone.t('Apps.weather.hourly') }}</h2>
+        <h2>
+          <SkyIcon :icon="Gauge" :size="15" />{{
+            phone.t('Apps.weather.hourly')
+          }}
+        </h2>
         <div class="weather-hourly">
           <div
             v-for="(hour, index) in forecast.hourly"
@@ -269,7 +275,7 @@ watch(
 
     <div v-else class="weather-empty">
       <SkySpinner v-if="weather.isLoading" :label="phone.t('Common.loading')" />
-      <CloudSun v-else :size="52" :stroke-width="1.4" />
+      <SkyIcon :icon="CloudSun" v-else :size="52" :stroke-width="1.4" />
       <strong>{{
         phone.t(
           weather.isLoading ? 'Common.loading' : 'Apps.weather.unavailable',

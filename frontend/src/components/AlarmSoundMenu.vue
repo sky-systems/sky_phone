@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   SkyList as kList,
   SkyListItem as kListItem,
@@ -59,7 +61,11 @@ onBeforeUnmount(stopSoundPreview)
       @click="selectSound(sound)"
     >
       <template #after>
-        <Check v-if="selectedSound === sound" class="h-5 w-5 text-primary" />
+        <SkyIcon
+          :icon="Check"
+          v-if="selectedSound === sound"
+          class="h-5 w-5 text-primary"
+        />
       </template>
     </k-list-item>
   </k-list>

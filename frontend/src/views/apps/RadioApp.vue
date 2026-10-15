@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   Clock3,
   RadioTower,
@@ -258,7 +260,7 @@ onBeforeUnmount(() => {
           indicator
         >
           <template #icon>
-            <Signal :size="22" aria-hidden="true" />
+            <SkyIcon :icon="Signal" :size="22" aria-hidden="true" />
           </template>
         </SkyStatusCard>
 
@@ -275,7 +277,7 @@ onBeforeUnmount(() => {
               :step="radio.data.frequencyStep"
             >
               <template #leading>
-                <RadioTower :size="20" aria-hidden="true" />
+                <SkyIcon :icon="RadioTower" :size="20" aria-hidden="true" />
               </template>
               <template #trailing>
                 <span class="radio-unit">{{ phone.t('Apps.radio.mhz') }}</span>
@@ -299,7 +301,7 @@ onBeforeUnmount(() => {
               :step="radio.data.frequencyStep"
             >
               <template #leading>
-                <RadioTower :size="20" aria-hidden="true" />
+                <SkyIcon :icon="RadioTower" :size="20" aria-hidden="true" />
               </template>
               <template v-if="radio.data.secondarySupported" #trailing>
                 <span class="radio-unit">{{ phone.t('Apps.radio.mhz') }}</span>
@@ -312,7 +314,7 @@ onBeforeUnmount(() => {
               title-font-size-ios="radio-audio-control-title"
             >
               <template #media>
-                <Volume2 :size="20" aria-hidden="true" />
+                <SkyIcon :icon="Volume2" :size="20" aria-hidden="true" />
               </template>
               <template #after>
                 <output class="radio-volume-value" for="radio-volume">
@@ -344,7 +346,7 @@ onBeforeUnmount(() => {
               :subtitle="speakerDescription"
             >
               <template #media>
-                <Volume2 :size="20" aria-hidden="true" />
+                <SkyIcon :icon="Volume2" :size="20" aria-hidden="true" />
               </template>
               <template #after>
                 <SkyToggle
@@ -403,7 +405,7 @@ onBeforeUnmount(() => {
             :title="phone.t('Apps.radio.noMembers')"
           >
             <template #icon>
-              <Users :size="32" aria-hidden="true" />
+              <SkyIcon :icon="Users" :size="32" aria-hidden="true" />
             </template>
           </SkyEmptyState>
           <SkyList v-else inset strong>
@@ -424,7 +426,7 @@ onBeforeUnmount(() => {
             :title="phone.t('Apps.radio.noHistory')"
           >
             <template #icon>
-              <Clock3 :size="32" aria-hidden="true" />
+              <SkyIcon :icon="Clock3" :size="32" aria-hidden="true" />
             </template>
           </SkyEmptyState>
           <SkyList v-else inset strong class="radio-history-list">
@@ -519,7 +521,7 @@ onBeforeUnmount(() => {
           @click="tab = 'radio'"
         >
           <span class="radio-navigation__item">
-            <RadioTower :size="20" aria-hidden="true" />
+            <SkyIcon :icon="RadioTower" :size="20" aria-hidden="true" />
             <span>{{ phone.t('Apps.radio.tabs.radio') }}</span>
           </span>
         </SkySegmentedButton>
@@ -530,7 +532,7 @@ onBeforeUnmount(() => {
           @click="tab = 'settings'"
         >
           <span class="radio-navigation__item">
-            <Settings :size="20" aria-hidden="true" />
+            <SkyIcon :icon="Settings" :size="20" aria-hidden="true" />
             <span>{{ phone.t('Apps.radio.tabs.settings') }}</span>
           </span>
         </SkySegmentedButton>

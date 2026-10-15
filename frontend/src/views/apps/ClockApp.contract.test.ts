@@ -42,8 +42,8 @@ describe('Clock app controls', () => {
     )
     expect(clockView).toContain('clock-action-button--start')
     expect(clockView).toContain('clock-action-button--stop')
-    expect(clockView).toContain('<Play')
-    expect(clockView).toContain('<Pause')
+    expect(clockView.replace(/\s+/g, ' ')).toContain('<SkyIcon :icon="Play"')
+    expect(clockView.replace(/\s+/g, ' ')).toContain('<SkyIcon :icon="Pause"')
   })
 
   it('uses the shared full-width Sky tab bar', () => {

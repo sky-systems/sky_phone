@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   ChartNoAxesCombined,
   BadgeDollarSign,
@@ -1043,7 +1045,11 @@ onBeforeUnmount(() => {
           <span class="admin-panel-context__path">
             {{ t('tabs.' + tab) }}
           </span>
-          <ChevronRight :size="14" style="--admin-icon-size: 14" />
+          <SkyIcon
+            :icon="ChevronRight"
+            :size="14"
+            style="--admin-icon-size: 14"
+          />
           <strong>{{
             tab === 'configurator'
               ? t('configurator.context')
@@ -1061,7 +1067,8 @@ onBeforeUnmount(() => {
           <span v-if="hasChanges" class="admin-panel-dirty">
             <span></span>{{ t('editor.unsaved') }} · {{ pendingCount }}
           </span>
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             class="admin-panel-save"
             :class="{ 'is-ready': hasChanges }"
@@ -1070,142 +1077,198 @@ onBeforeUnmount(() => {
             :disabled="!hasChanges || saving"
             @click="saveChanges"
           >
-            <LoaderCircle
+            <SkyIcon
+              :icon="LoaderCircle"
               v-if="saving"
               :size="18"
               style="--admin-icon-size: 18"
               class="is-spinning"
             />
-            <Check
+            <SkyIcon
+              :icon="Check"
               v-else
               :size="19"
               style="--admin-icon-size: 19"
               stroke-width="3"
             />
-          </button>
-          <button
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             class="admin-panel-icon-button admin-panel-close"
             :aria-label="t('editor.close')"
             :title="t('editor.close')"
             @click="queueAction({ kind: 'close' })"
           >
-            <X :size="18" style="--admin-icon-size: 18" />
-          </button>
+            <SkyIcon :icon="X" :size="18" style="--admin-icon-size: 18" />
+          </SkyButton>
         </div>
       </header>
 
       <div class="admin-panel-body">
         <nav class="admin-panel-rail" :aria-label="t('navigation')">
-          <button
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'overview' }"
             :aria-label="t('tabs.overview')"
             :title="t('tabs.overview')"
             @click="selectTab('overview')"
           >
-            <LayoutDashboard :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="LayoutDashboard"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'players' }"
             :aria-label="t('tabs.players')"
             :title="t('tabs.players')"
             @click="selectTab('players')"
           >
-            <UsersRound :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="UsersRound"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'devices' }"
             :aria-label="t('tabs.devices')"
             :title="t('tabs.devices')"
             @click="selectTab('devices')"
           >
-            <Smartphone :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="Smartphone"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'apps' }"
             :aria-label="t('tabs.apps')"
             :title="t('tabs.apps')"
             @click="selectTab('apps')"
           >
-            <Grid2X2 :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon :icon="Grid2X2" :size="19" style="--admin-icon-size: 19" />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'accounts' }"
             :aria-label="t('tabs.accounts')"
             :title="t('tabs.accounts')"
             @click="selectTab('accounts')"
           >
-            <KeyRound :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="KeyRound"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'messages' }"
             :aria-label="t('tabs.messages')"
             :title="t('tabs.messages')"
             @click="selectTab('messages')"
           >
-            <MessageSquare :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="MessageSquare"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'calls' }"
             :aria-label="t('tabs.calls')"
             :title="t('tabs.calls')"
             @click="selectTab('calls')"
           >
-            <PhoneCall :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="PhoneCall"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'social' }"
             :aria-label="t('tabs.social')"
             :title="t('tabs.social')"
             @click="selectTab('social')"
           >
-            <MessageSquare :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="MessageSquare"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'moderation' }"
             :aria-label="t('tabs.moderation')"
             :title="t('tabs.moderation')"
             @click="selectTab('moderation')"
           >
-            <ShieldAlert :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="ShieldAlert"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'tones' }"
             :aria-label="t('tabs.tones')"
             :title="t('tabs.tones')"
             @click="selectTab('tones')"
           >
-            <BellRing :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="BellRing"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'webhooks' }"
             :aria-label="t('tabs.webhooks')"
             :title="t('tabs.webhooks')"
             @click="selectTab('webhooks')"
           >
-            <Webhook :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon :icon="Webhook" :size="19" style="--admin-icon-size: 19" />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             :class="{ 'is-active': tab === 'audit' }"
             :aria-label="t('tabs.audit')"
             :title="t('tabs.audit')"
             @click="selectTab('audit')"
           >
-            <ScrollText :size="19" style="--admin-icon-size: 19" />
-          </button>
-          <button
+            <SkyIcon
+              :icon="ScrollText"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
+          <SkyButton
+            variant="content"
             type="button"
             class="admin-panel-rail__configurator"
             :class="{ 'is-active': tab === 'configurator' }"
@@ -1213,8 +1276,12 @@ onBeforeUnmount(() => {
             :title="t('tabs.configurator')"
             @click="selectTab('configurator')"
           >
-            <Settings2 :size="19" style="--admin-icon-size: 19" />
-          </button>
+            <SkyIcon
+              :icon="Settings2"
+              :size="19"
+              style="--admin-icon-size: 19"
+            />
+          </SkyButton>
         </nav>
 
         <aside class="admin-panel-directory">
@@ -1227,86 +1294,206 @@ onBeforeUnmount(() => {
               <strong>{{ admin.stats.online }}</strong>
             </div>
             <div class="admin-panel-overview-directory">
-              <button type="button" @click="selectTab('players')">
-                <UsersRound :size="17" style="--admin-icon-size: 17" />
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('players')"
+              >
+                <SkyIcon
+                  :icon="UsersRound"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.players') }}</strong>
                   <small>{{ t('overview.playerFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
-              <button type="button" @click="selectTab('devices')">
-                <Smartphone :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('devices')"
+              >
+                <SkyIcon
+                  :icon="Smartphone"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.devices') }}</strong>
                   <small>{{ t('overview.deviceFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
-              <button type="button" @click="selectTab('apps')">
-                <Grid2X2 :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('apps')"
+              >
+                <SkyIcon
+                  :icon="Grid2X2"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.apps') }}</strong>
                   <small>{{ t('overview.appFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
-              <button type="button" @click="selectTab('accounts')">
-                <KeyRound :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('accounts')"
+              >
+                <SkyIcon
+                  :icon="KeyRound"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.accounts') }}</strong>
                   <small>{{ t('overview.accountFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
-              <button type="button" @click="selectTab('messages')">
-                <MessageSquare :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('messages')"
+              >
+                <SkyIcon
+                  :icon="MessageSquare"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.messages') }}</strong>
                   <small>{{ t('overview.messageFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
-              <button type="button" @click="selectTab('calls')">
-                <PhoneCall :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('calls')"
+              >
+                <SkyIcon
+                  :icon="PhoneCall"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.calls') }}</strong>
                   <small>{{ t('overview.callFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
-              <button type="button" @click="selectTab('moderation')">
-                <ShieldAlert :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('moderation')"
+              >
+                <SkyIcon
+                  :icon="ShieldAlert"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.moderation') }}</strong>
                   <small>{{ t('overview.moderationFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
-              <button type="button" @click="selectTab('audit')">
-                <ScrollText :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('audit')"
+              >
+                <SkyIcon
+                  :icon="ScrollText"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.audit') }}</strong>
                   <small>{{ t('overview.auditFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
-              <button type="button" @click="selectTab('tones')">
-                <BellRing :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('tones')"
+              >
+                <SkyIcon
+                  :icon="BellRing"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.tones') }}</strong>
                   <small>{{ t('overview.tonesFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
-              <button type="button" @click="selectTab('configurator')">
-                <Settings2 :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
+              <SkyButton
+                variant="content"
+                type="button"
+                @click="selectTab('configurator')"
+              >
+                <SkyIcon
+                  :icon="Settings2"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <span>
                   <strong>{{ t('tabs.configurator') }}</strong>
                   <small>{{ t('overview.configuratorFeature') }}</small>
                 </span>
-                <ChevronRight :size="14" style="--admin-icon-size: 14" />
-              </button>
+                <SkyIcon
+                  :icon="ChevronRight"
+                  :size="14"
+                  style="--admin-icon-size: 14"
+                />
+              </SkyButton>
             </div>
           </template>
 
@@ -1315,7 +1502,11 @@ onBeforeUnmount(() => {
               <div>
                 <h2>{{ t('tabs.social') }}</h2>
               </div>
-              <MessageSquare :size="19" style="--admin-icon-size: 19" />
+              <SkyIcon
+                :icon="MessageSquare"
+                :size="19"
+                style="--admin-icon-size: 19"
+              />
             </div>
             <div class="admin-panel-overview-directory">
               <p class="admin-panel-webhook-help">{{ t('social.body') }}</p>
@@ -1327,7 +1518,11 @@ onBeforeUnmount(() => {
                 <span>Discord</span>
                 <h2>{{ t('tabs.webhooks') }}</h2>
               </div>
-              <Webhook :size="19" style="--admin-icon-size: 19" />
+              <SkyIcon
+                :icon="Webhook"
+                :size="19"
+                style="--admin-icon-size: 19"
+              />
             </div>
             <div class="admin-panel-overview-directory">
               <p class="admin-panel-webhook-help">
@@ -1347,7 +1542,10 @@ onBeforeUnmount(() => {
             <div class="admin-panel-tone-directory">
               <article>
                 <span
-                  ><PhoneCall :size="16" style="--admin-icon-size: 16"
+                  ><SkyIcon
+                    :icon="PhoneCall"
+                    :size="16"
+                    style="--admin-icon-size: 16"
                 /></span>
                 <div>
                   <strong>{{ t('configurator.customTones.ringtones') }}</strong>
@@ -1362,7 +1560,10 @@ onBeforeUnmount(() => {
               </article>
               <article>
                 <span
-                  ><MessageSquare :size="16" style="--admin-icon-size: 16"
+                  ><SkyIcon
+                    :icon="MessageSquare"
+                    :size="16"
+                    style="--admin-icon-size: 16"
                 /></span>
                 <div>
                   <strong>{{
@@ -1389,7 +1590,11 @@ onBeforeUnmount(() => {
               <strong>{{ filteredConfiguratorFieldCount }}</strong>
             </div>
             <label class="admin-panel-search">
-              <Search :size="16" style="--admin-icon-size: 16" />
+              <SkyIcon
+                :icon="Search"
+                :size="16"
+                style="--admin-icon-size: 16"
+              />
               <input
                 v-model="configuratorQuery"
                 type="search"
@@ -1402,7 +1607,8 @@ onBeforeUnmount(() => {
               role="tablist"
               :aria-label="t('configurator.sections')"
             >
-              <button
+              <SkyButton
+                variant="content"
                 type="button"
                 role="tab"
                 :aria-selected="configuratorScope === 'config'"
@@ -1411,8 +1617,9 @@ onBeforeUnmount(() => {
               >
                 <span>{{ t('configurator.configScope') }}</span>
                 <em>{{ configuratorScopeCounts.config }}</em>
-              </button>
-              <button
+              </SkyButton>
+              <SkyButton
+                variant="content"
                 type="button"
                 role="tab"
                 :aria-selected="configuratorScope === 'media'"
@@ -1421,10 +1628,11 @@ onBeforeUnmount(() => {
               >
                 <span>{{ t('configurator.mediaScope') }}</span>
                 <em>{{ configuratorScopeCounts.media }}</em>
-              </button>
+              </SkyButton>
             </div>
             <div class="admin-panel-config-sections">
-              <button
+              <SkyButton
+                variant="content"
                 v-for="section in filteredConfiguratorSections"
                 :key="section.id"
                 type="button"
@@ -1433,7 +1641,11 @@ onBeforeUnmount(() => {
                 }"
                 @click="selectedConfiguratorSection = section.id"
               >
-                <Settings2 :size="16" style="--admin-icon-size: 16" />
+                <SkyIcon
+                  :icon="Settings2"
+                  :size="16"
+                  style="--admin-icon-size: 16"
+                />
                 <span>
                   <strong>{{ configuratorSectionLabel(section) }}</strong>
                   <small>{{
@@ -1445,12 +1657,16 @@ onBeforeUnmount(() => {
                 <em v-if="section.id !== 'config:general'">{{
                   configuratorSectionCount(section.fields)
                 }}</em>
-              </button>
+              </SkyButton>
               <div
                 v-if="!filteredConfiguratorSections.length"
                 class="admin-panel-empty-list"
               >
-                <Search :size="24" style="--admin-icon-size: 24" />
+                <SkyIcon
+                  :icon="Search"
+                  :size="24"
+                  style="--admin-icon-size: 24"
+                />
                 <strong>{{ t('configurator.noResults') }}</strong>
               </div>
             </div>
@@ -1465,7 +1681,11 @@ onBeforeUnmount(() => {
               <strong>{{ filteredPlayers.length }}</strong>
             </div>
             <label class="admin-panel-search">
-              <Search :size="16" style="--admin-icon-size: 16" />
+              <SkyIcon
+                :icon="Search"
+                :size="16"
+                style="--admin-icon-size: 16"
+              />
               <input
                 v-model="playerQuery"
                 type="search"
@@ -1475,7 +1695,8 @@ onBeforeUnmount(() => {
             </label>
 
             <div class="admin-panel-player-list">
-              <button
+              <SkyButton
+                variant="content"
                 v-for="player in filteredPlayers"
                 :key="player.source"
                 type="button"
@@ -1495,13 +1716,17 @@ onBeforeUnmount(() => {
                   <span class="admin-panel-online-dot"></span>
                   {{ player.deviceCount }}
                 </span>
-              </button>
+              </SkyButton>
 
               <div
                 v-if="!filteredPlayers.length"
                 class="admin-panel-empty-list"
               >
-                <UsersRound :size="26" style="--admin-icon-size: 26" />
+                <SkyIcon
+                  :icon="UsersRound"
+                  :size="26"
+                  style="--admin-icon-size: 26"
+                />
                 <strong>{{ t('players.empty') }}</strong>
                 <span>{{ t('players.emptyBody') }}</span>
               </div>
@@ -1519,7 +1744,10 @@ onBeforeUnmount(() => {
             <div class="admin-panel-audit-mini-list">
               <article v-for="entry in admin.audit" :key="entry.id">
                 <span class="admin-panel-audit-icon"
-                  ><ScrollText :size="15" style="--admin-icon-size: 15"
+                  ><SkyIcon
+                    :icon="ScrollText"
+                    :size="15"
+                    style="--admin-icon-size: 15"
                 /></span>
                 <div>
                   <strong>{{ t('audit.actions.' + entry.action) }}</strong>
@@ -1536,7 +1764,8 @@ onBeforeUnmount(() => {
             v-if="admin.loading && !admin.initialized"
             class="admin-panel-loading"
           >
-            <LoaderCircle
+            <SkyIcon
+              :icon="LoaderCircle"
               :size="26"
               style="--admin-icon-size: 26"
               class="is-spinning"
@@ -1558,22 +1787,38 @@ onBeforeUnmount(() => {
 
             <div class="admin-panel-stat-grid">
               <article>
-                <UsersRound :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="UsersRound"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <span>{{ t('overview.online') }}</span>
                 <strong>{{ formatStatistic(admin.stats.online) }}</strong>
               </article>
               <article>
-                <Smartphone :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="Smartphone"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <span>{{ t('overview.devices') }}</span>
                 <strong>{{ formatStatistic(admin.stats.devices) }}</strong>
               </article>
               <article>
-                <Database :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="Database"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <span>{{ t('overview.accounts') }}</span>
                 <strong>{{ formatStatistic(admin.stats.accounts) }}</strong>
               </article>
               <article>
-                <ScrollText :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="ScrollText"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <span>{{ t('overview.audit') }}</span>
                 <strong>{{ formatStatistic(admin.stats.auditEntries) }}</strong>
               </article>
@@ -1588,7 +1833,11 @@ onBeforeUnmount(() => {
                   <h2>{{ t('statistics.title') }}</h2>
                   <p>{{ t('statistics.body') }}</p>
                 </div>
-                <ChartNoAxesCombined :size="20" style="--admin-icon-size: 20" />
+                <SkyIcon
+                  :icon="ChartNoAxesCombined"
+                  :size="20"
+                  style="--admin-icon-size: 20"
+                />
               </div>
               <div class="admin-panel-statistics-layout">
                 <section class="admin-panel-activity-statistics">
@@ -1600,21 +1849,33 @@ onBeforeUnmount(() => {
                   </div>
                   <div class="admin-panel-activity-grid">
                     <article>
-                      <MessageSquare :size="17" style="--admin-icon-size: 17" />
+                      <SkyIcon
+                        :icon="MessageSquare"
+                        :size="17"
+                        style="--admin-icon-size: 17"
+                      />
                       <strong>{{
                         formatStatistic(admin.stats.messagesToday)
                       }}</strong>
                       <span>{{ t('statistics.messagesToday') }}</span>
                     </article>
                     <article>
-                      <PhoneCall :size="17" style="--admin-icon-size: 17" />
+                      <SkyIcon
+                        :icon="PhoneCall"
+                        :size="17"
+                        style="--admin-icon-size: 17"
+                      />
                       <strong>{{
                         formatStatistic(admin.stats.callsToday)
                       }}</strong>
                       <span>{{ t('statistics.callsToday') }}</span>
                     </article>
                     <article>
-                      <ScrollText :size="17" style="--admin-icon-size: 17" />
+                      <SkyIcon
+                        :icon="ScrollText"
+                        :size="17"
+                        style="--admin-icon-size: 17"
+                      />
                       <strong>{{
                         formatStatistic(admin.stats.auditToday)
                       }}</strong>
@@ -1702,7 +1963,11 @@ onBeforeUnmount(() => {
           >
             <div class="admin-panel-page-heading">
               <div class="admin-panel-heading-icon">
-                <BellRing :size="23" style="--admin-icon-size: 23" />
+                <SkyIcon
+                  :icon="BellRing"
+                  :size="23"
+                  style="--admin-icon-size: 23"
+                />
               </div>
               <div>
                 <span>{{ t('configurator.customTones.eyebrow') }}</span>
@@ -1721,7 +1986,8 @@ onBeforeUnmount(() => {
               v-if="admin.configuratorLoading && !admin.configurator"
               class="admin-panel-loading"
             >
-              <LoaderCircle
+              <SkyIcon
+                :icon="LoaderCircle"
                 :size="26"
                 style="--admin-icon-size: 26"
                 class="is-spinning"
@@ -1732,7 +1998,11 @@ onBeforeUnmount(() => {
             <template v-else-if="admin.configurator">
               <div class="admin-panel-page-heading">
                 <div class="admin-panel-heading-icon">
-                  <Settings2 :size="23" style="--admin-icon-size: 23" />
+                  <SkyIcon
+                    :icon="Settings2"
+                    :size="23"
+                    style="--admin-icon-size: 23"
+                  />
                 </div>
                 <div class="admin-panel-config-heading-copy">
                   <span>{{ t('configurator.eyebrow') }}</span>
@@ -1745,7 +2015,11 @@ onBeforeUnmount(() => {
                 v-if="!admin.configurator.enabled"
                 class="admin-panel-config-disabled"
               >
-                <TriangleAlert :size="20" style="--admin-icon-size: 20" />
+                <SkyIcon
+                  :icon="TriangleAlert"
+                  :size="20"
+                  style="--admin-icon-size: 20"
+                />
                 <div>
                   <strong>{{ t('configurator.disabledTitle') }}</strong>
                   <p>{{ t('configurator.disabledBody') }}</p>
@@ -1754,7 +2028,11 @@ onBeforeUnmount(() => {
               </article>
 
               <article class="admin-panel-config-notice">
-                <Save :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="Save"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <div>
                   <strong>{{ t('configurator.manualSave') }}</strong>
                   <p>{{ t('configurator.refreshNotice') }}</p>
@@ -1947,7 +2225,11 @@ onBeforeUnmount(() => {
           >
             <div class="admin-panel-page-heading">
               <div class="admin-panel-heading-icon">
-                <ScrollText :size="23" style="--admin-icon-size: 23" />
+                <SkyIcon
+                  :icon="ScrollText"
+                  :size="23"
+                  style="--admin-icon-size: 23"
+                />
               </div>
               <div>
                 <span>{{ t('audit.eyebrow') }}</span>
@@ -1973,7 +2255,11 @@ onBeforeUnmount(() => {
               </article>
             </div>
             <div v-else class="admin-panel-empty-editor">
-              <ScrollText :size="34" style="--admin-icon-size: 34" />
+              <SkyIcon
+                :icon="ScrollText"
+                :size="34"
+                style="--admin-icon-size: 34"
+              />
               <h2>{{ t('audit.empty') }}</h2>
               <p>{{ t('audit.emptyBody') }}</p>
             </div>
@@ -1993,37 +2279,46 @@ onBeforeUnmount(() => {
                 <p>{{ admin.selectedPlayer.serverName }}</p>
               </div>
               <div v-if="selectedDevice" class="admin-panel-player-actions">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="
                     !selectedDevice.security.enabled || !!admin.actionKey
                   "
                   @click="openDeviceAction('reset-passcode')"
                 >
-                  <KeyRound :size="15" style="--admin-icon-size: 15" />{{
-                    t('moderation.resetPasscode')
-                  }}
-                </button>
-                <button
+                  <SkyIcon
+                    :icon="KeyRound"
+                    :size="15"
+                    style="--admin-icon-size: 15"
+                  />{{ t('moderation.resetPasscode') }}
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="!selectedDevice.number || !!admin.actionKey"
                   @click="openDeviceAction('change-number')"
                 >
-                  <PhoneForwarded :size="15" style="--admin-icon-size: 15" />{{
-                    t('moderation.changeNumber')
-                  }}
-                </button>
-                <button
+                  <SkyIcon
+                    :icon="PhoneForwarded"
+                    :size="15"
+                    style="--admin-icon-size: 15"
+                  />{{ t('moderation.changeNumber') }}
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="is-danger"
                   :disabled="hasChanges || !!admin.actionKey"
                   :title="hasChanges ? t('moderation.saveFirst') : ''"
                   @click="openDeviceAction('factory-reset')"
                 >
-                  <Trash2 :size="15" style="--admin-icon-size: 15" />{{
-                    t('moderation.factoryReset')
-                  }}
-                </button>
+                  <SkyIcon
+                    :icon="Trash2"
+                    :size="15"
+                    style="--admin-icon-size: 15"
+                  />{{ t('moderation.factoryReset') }}
+                </SkyButton>
               </div>
             </div>
 
@@ -2039,7 +2334,8 @@ onBeforeUnmount(() => {
               class="admin-panel-device-tabs"
               :aria-label="t('devices.choose')"
             >
-              <button
+              <SkyButton
+                variant="content"
                 v-for="device in admin.selectedPlayer.devices"
                 :key="device.imei"
                 type="button"
@@ -2051,15 +2347,23 @@ onBeforeUnmount(() => {
                 }"
                 @click="selectedImei = device.imei"
               >
-                <Smartphone :size="16" style="--admin-icon-size: 16" />
+                <SkyIcon
+                  :icon="Smartphone"
+                  :size="16"
+                  style="--admin-icon-size: 16"
+                />
                 <span>{{ device.name }}</span>
                 <small>{{ device.number || device.imei.slice(-4) }}</small>
-              </button>
+              </SkyButton>
             </div>
 
             <div v-if="tab === 'players'" class="admin-panel-stat-grid">
               <article>
-                <WalletCards :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="WalletCards"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <span>{{ t('detail.cash') }}</span>
                 <strong>{{
                   formatMoney(
@@ -2069,7 +2373,11 @@ onBeforeUnmount(() => {
                 }}</strong>
               </article>
               <article>
-                <BadgeDollarSign :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="BadgeDollarSign"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <span>{{ t('detail.bank') }}</span>
                 <strong>{{
                   formatMoney(
@@ -2079,7 +2387,11 @@ onBeforeUnmount(() => {
                 }}</strong>
               </article>
               <article>
-                <BriefcaseBusiness :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="BriefcaseBusiness"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <span>{{ t('detail.job') }}</span>
                 <strong>{{
                   admin.selectedPlayer.job.label ||
@@ -2087,7 +2399,11 @@ onBeforeUnmount(() => {
                 }}</strong>
               </article>
               <article>
-                <Wifi :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="Wifi"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <span>{{ t('detail.duty') }}</span>
                 <strong>{{
                   admin.selectedPlayer.job.onDuty
@@ -2104,7 +2420,11 @@ onBeforeUnmount(() => {
                     <span>{{ t('editor.profile') }}</span>
                     <h2>{{ t('detail.playerData') }}</h2>
                   </div>
-                  <CircleUserRound :size="20" style="--admin-icon-size: 20" />
+                  <SkyIcon
+                    :icon="CircleUserRound"
+                    :size="20"
+                    style="--admin-icon-size: 20"
+                  />
                 </div>
                 <dl class="admin-panel-field-list">
                   <div>
@@ -2138,11 +2458,19 @@ onBeforeUnmount(() => {
                     <span>{{ t('editor.device') }}</span>
                     <h2>{{ t('devices.title') }}</h2>
                   </div>
-                  <HardDrive :size="20" style="--admin-icon-size: 20" />
+                  <SkyIcon
+                    :icon="HardDrive"
+                    :size="20"
+                    style="--admin-icon-size: 20"
+                  />
                 </div>
                 <div v-if="selectedDevice" class="admin-panel-device-summary">
                   <span class="admin-panel-device-summary__icon">
-                    <Smartphone :size="23" style="--admin-icon-size: 23" />
+                    <SkyIcon
+                      :icon="Smartphone"
+                      :size="23"
+                      style="--admin-icon-size: 23"
+                    />
                   </span>
                   <div>
                     <strong>{{ selectedDevice.name }}</strong>
@@ -2180,11 +2508,19 @@ onBeforeUnmount(() => {
                   <h2>{{ t('devices.title') }}</h2>
                   <p>{{ t('devices.body') }}</p>
                 </div>
-                <HardDrive :size="20" style="--admin-icon-size: 20" />
+                <SkyIcon
+                  :icon="HardDrive"
+                  :size="20"
+                  style="--admin-icon-size: 20"
+                />
               </div>
               <div v-if="selectedDevice" class="admin-panel-device-summary">
                 <span class="admin-panel-device-summary__icon">
-                  <Smartphone :size="23" style="--admin-icon-size: 23" />
+                  <SkyIcon
+                    :icon="Smartphone"
+                    :size="23"
+                    style="--admin-icon-size: 23"
+                  />
                 </span>
                 <div>
                   <strong>{{ selectedDevice.name }}</strong>
@@ -2234,13 +2570,18 @@ onBeforeUnmount(() => {
                   <h2>{{ t('activity.messagesTitle') }}</h2>
                   <p>{{ t('activity.messagesBody') }}</p>
                 </div>
-                <MessageSquare :size="20" style="--admin-icon-size: 20" />
+                <SkyIcon
+                  :icon="MessageSquare"
+                  :size="20"
+                  style="--admin-icon-size: 20"
+                />
               </div>
               <div
                 v-if="admin.activityKey === selectedDevice.imei + ':messages'"
                 class="admin-panel-inline-empty"
               >
-                <LoaderCircle
+                <SkyIcon
+                  :icon="LoaderCircle"
                   :size="20"
                   style="--admin-icon-size: 20"
                   class="is-spinning"
@@ -2253,7 +2594,11 @@ onBeforeUnmount(() => {
               >
                 <article v-for="entry in selectedMessages" :key="entry.id">
                   <span class="admin-panel-activity-icon">
-                    <MessageSquare :size="17" style="--admin-icon-size: 17" />
+                    <SkyIcon
+                      :icon="MessageSquare"
+                      :size="17"
+                      style="--admin-icon-size: 17"
+                    />
                   </span>
                   <div>
                     <span class="admin-panel-activity-meta">
@@ -2283,13 +2628,18 @@ onBeforeUnmount(() => {
                   <h2>{{ t('activity.callsTitle') }}</h2>
                   <p>{{ t('activity.callsBody') }}</p>
                 </div>
-                <PhoneCall :size="20" style="--admin-icon-size: 20" />
+                <SkyIcon
+                  :icon="PhoneCall"
+                  :size="20"
+                  style="--admin-icon-size: 20"
+                />
               </div>
               <div
                 v-if="admin.activityKey === selectedDevice.imei + ':calls'"
                 class="admin-panel-inline-empty"
               >
-                <LoaderCircle
+                <SkyIcon
+                  :icon="LoaderCircle"
                   :size="20"
                   style="--admin-icon-size: 20"
                   class="is-spinning"
@@ -2302,7 +2652,11 @@ onBeforeUnmount(() => {
               >
                 <article v-for="entry in selectedCalls" :key="entry.id">
                   <span class="admin-panel-activity-icon">
-                    <PhoneCall :size="17" style="--admin-icon-size: 17" />
+                    <SkyIcon
+                      :icon="PhoneCall"
+                      :size="17"
+                      style="--admin-icon-size: 17"
+                    />
                   </span>
                   <div>
                     <span class="admin-panel-activity-meta">
@@ -2332,48 +2686,79 @@ onBeforeUnmount(() => {
                   <h2>{{ t('moderation.title') }}</h2>
                   <p>{{ t('moderation.body') }}</p>
                 </div>
-                <ShieldAlert :size="20" style="--admin-icon-size: 20" />
+                <SkyIcon
+                  :icon="ShieldAlert"
+                  :size="20"
+                  style="--admin-icon-size: 20"
+                />
               </div>
               <div class="admin-panel-moderation-grid">
-                <button
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="
                     !selectedDevice.security.enabled || !!admin.actionKey
                   "
                   @click="openDeviceAction('reset-passcode')"
                 >
-                  <KeyRound :size="20" style="--admin-icon-size: 20" />
+                  <SkyIcon
+                    :icon="KeyRound"
+                    :size="20"
+                    style="--admin-icon-size: 20"
+                  />
                   <span>
                     <strong>{{ t('moderation.resetPasscode') }}</strong>
                     <small>{{ t('moderation.resetPasscodeBody') }}</small>
                   </span>
-                  <ChevronRight :size="15" style="--admin-icon-size: 15" />
-                </button>
-                <button
+                  <SkyIcon
+                    :icon="ChevronRight"
+                    :size="15"
+                    style="--admin-icon-size: 15"
+                  />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   :disabled="!selectedDevice.number || !!admin.actionKey"
                   @click="openDeviceAction('change-number')"
                 >
-                  <PhoneForwarded :size="20" style="--admin-icon-size: 20" />
+                  <SkyIcon
+                    :icon="PhoneForwarded"
+                    :size="20"
+                    style="--admin-icon-size: 20"
+                  />
                   <span>
                     <strong>{{ t('moderation.changeNumber') }}</strong>
                     <small>{{ t('moderation.changeNumberBody') }}</small>
                   </span>
-                  <ChevronRight :size="15" style="--admin-icon-size: 15" />
-                </button>
-                <button
+                  <SkyIcon
+                    :icon="ChevronRight"
+                    :size="15"
+                    style="--admin-icon-size: 15"
+                  />
+                </SkyButton>
+                <SkyButton
+                  variant="content"
                   type="button"
                   class="is-danger"
                   :disabled="hasChanges || !!admin.actionKey"
                   @click="openDeviceAction('factory-reset')"
                 >
-                  <Trash2 :size="20" style="--admin-icon-size: 20" />
+                  <SkyIcon
+                    :icon="Trash2"
+                    :size="20"
+                    style="--admin-icon-size: 20"
+                  />
                   <span>
                     <strong>{{ t('moderation.factoryReset') }}</strong>
                     <small>{{ t('moderation.factoryResetBody') }}</small>
                   </span>
-                  <ChevronRight :size="15" style="--admin-icon-size: 15" />
-                </button>
+                  <SkyIcon
+                    :icon="ChevronRight"
+                    :size="15"
+                    style="--admin-icon-size: 15"
+                  />
+                </SkyButton>
               </div>
             </article>
 
@@ -2386,7 +2771,11 @@ onBeforeUnmount(() => {
                   <span>{{ t('editor.security') }}</span>
                   <h2>{{ t('credentials.title') }}</h2>
                 </div>
-                <KeyRound :size="20" style="--admin-icon-size: 20" />
+                <SkyIcon
+                  :icon="KeyRound"
+                  :size="20"
+                  style="--admin-icon-size: 20"
+                />
               </div>
               <div class="admin-panel-security-grid">
                 <div class="admin-panel-credential-box">
@@ -2400,7 +2789,8 @@ onBeforeUnmount(() => {
                   <strong class="admin-panel-password">
                     {{ revealedCredential?.password || '••••••••••••' }}
                   </strong>
-                  <button
+                  <SkyButton
+                    variant="content"
                     v-if="selectedDevice.account && !revealedCredential"
                     type="button"
                     :disabled="
@@ -2408,24 +2798,33 @@ onBeforeUnmount(() => {
                     "
                     @click="revealDialogImei = selectedDevice.imei"
                   >
-                    <Eye :size="15" style="--admin-icon-size: 15" />{{
-                      t('credentials.reveal')
-                    }}
-                  </button>
-                  <button
+                    <SkyIcon
+                      :icon="Eye"
+                      :size="15"
+                      style="--admin-icon-size: 15"
+                    />{{ t('credentials.reveal') }}
+                  </SkyButton>
+                  <SkyButton
+                    variant="content"
                     v-else-if="revealedCredential"
                     type="button"
                     @click="copyPassword"
                   >
-                    <Clipboard :size="15" style="--admin-icon-size: 15" />{{
-                      t('credentials.copy')
-                    }}
-                  </button>
+                    <SkyIcon
+                      :icon="Clipboard"
+                      :size="15"
+                      style="--admin-icon-size: 15"
+                    />{{ t('credentials.copy') }}
+                  </SkyButton>
                 </div>
                 <div
                   class="admin-panel-credential-box admin-panel-credential-box--pin"
                 >
-                  <LockKeyhole :size="18" style="--admin-icon-size: 18" />
+                  <SkyIcon
+                    :icon="LockKeyhole"
+                    :size="18"
+                    style="--admin-icon-size: 18"
+                  />
                   <div>
                     <span>{{ t('credentials.passcode') }}</span>
                     <strong>{{
@@ -2461,7 +2860,11 @@ onBeforeUnmount(() => {
                     }}
                   </span>
                   <label class="admin-panel-search admin-panel-search--apps">
-                    <Search :size="15" style="--admin-icon-size: 15" />
+                    <SkyIcon
+                      :icon="Search"
+                      :size="15"
+                      style="--admin-icon-size: 15"
+                    />
                     <input
                       v-model="appQuery"
                       type="search"
@@ -2473,7 +2876,11 @@ onBeforeUnmount(() => {
               </div>
 
               <div class="admin-panel-manual-save-note">
-                <Save :size="17" style="--admin-icon-size: 17" />
+                <SkyIcon
+                  :icon="Save"
+                  :size="17"
+                  style="--admin-icon-size: 17"
+                />
                 <div>
                   <strong>{{ t('editor.noAutoSave') }}</strong>
                   <span>{{ t('editor.noAutoSaveBody') }}</span>
@@ -2481,7 +2888,8 @@ onBeforeUnmount(() => {
               </div>
 
               <div class="admin-panel-app-grid">
-                <button
+                <SkyButton
+                  variant="content"
                   v-for="app in manageableApps"
                   :key="app.id"
                   type="button"
@@ -2518,7 +2926,7 @@ onBeforeUnmount(() => {
                   <span class="admin-panel-switch" aria-hidden="true">
                     <span></span>
                   </span>
-                </button>
+                </SkyButton>
               </div>
             </article>
 
@@ -2541,24 +2949,40 @@ onBeforeUnmount(() => {
 
           <section v-else class="admin-panel-empty-editor">
             <span class="admin-panel-empty-editor__icon">
-              <LayoutDashboard :size="34" style="--admin-icon-size: 34" />
+              <SkyIcon
+                :icon="LayoutDashboard"
+                :size="34"
+                style="--admin-icon-size: 34"
+              />
             </span>
             <span>{{ t('overview.eyebrow') }}</span>
             <h1>{{ t('overview.title') }}</h1>
             <p>{{ t('editor.selectPlayer') }}</p>
             <div class="admin-panel-empty-stats">
               <article>
-                <UsersRound :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="UsersRound"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <strong>{{ admin.stats.online }}</strong>
                 <span>{{ t('overview.online') }}</span>
               </article>
               <article>
-                <Smartphone :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="Smartphone"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <strong>{{ admin.stats.devices }}</strong>
                 <span>{{ t('overview.devices') }}</span>
               </article>
               <article>
-                <Database :size="18" style="--admin-icon-size: 18" />
+                <SkyIcon
+                  :icon="Database"
+                  :size="18"
+                  style="--admin-icon-size: 18"
+                />
                 <strong>{{ admin.stats.accounts }}</strong>
                 <span>{{ t('overview.accounts') }}</span>
               </article>
@@ -2570,12 +2994,18 @@ onBeforeUnmount(() => {
 
     <Transition name="admin-toast">
       <div v-if="toast" class="admin-panel-toast" :class="`is-${toastTone}`">
-        <Check
+        <SkyIcon
+          :icon="Check"
           v-if="toastTone === 'success'"
           :size="17"
           style="--admin-icon-size: 17"
         />
-        <TriangleAlert v-else :size="17" style="--admin-icon-size: 17" />
+        <SkyIcon
+          :icon="TriangleAlert"
+          v-else
+          :size="17"
+          style="--admin-icon-size: 17"
+        />
         {{ toast }}
       </div>
     </Transition>
@@ -2583,7 +3013,7 @@ onBeforeUnmount(() => {
     <div v-if="revealDialogImei" class="admin-panel-dialog-backdrop">
       <section class="admin-panel-dialog" role="alertdialog">
         <span class="admin-panel-dialog__icon"
-          ><KeyRound :size="21" style="--admin-icon-size: 21"
+          ><SkyIcon :icon="KeyRound" :size="21" style="--admin-icon-size: 21"
         /></span>
         <div>
           <h2>{{ t('credentials.revealTitle') }}</h2>
@@ -2594,7 +3024,7 @@ onBeforeUnmount(() => {
             {{ t('credentials.cancel') }}
           </SkyButton>
           <SkyButton class="is-primary" @click="revealPassword">
-            <Eye :size="15" style="--admin-icon-size: 15" />{{
+            <SkyIcon :icon="Eye" :size="15" style="--admin-icon-size: 15" />{{
               t('credentials.confirmReveal')
             }}
           </SkyButton>
@@ -2608,17 +3038,24 @@ onBeforeUnmount(() => {
           class="admin-panel-dialog__icon"
           :class="{ 'is-warning': deviceAction === 'factory-reset' }"
         >
-          <Trash2
+          <SkyIcon
+            :icon="Trash2"
             v-if="deviceAction === 'factory-reset'"
             :size="21"
             style="--admin-icon-size: 21"
           />
-          <PhoneForwarded
+          <SkyIcon
+            :icon="PhoneForwarded"
             v-else-if="deviceAction === 'change-number'"
             :size="21"
             style="--admin-icon-size: 21"
           />
-          <KeyRound v-else :size="21" style="--admin-icon-size: 21" />
+          <SkyIcon
+            :icon="KeyRound"
+            v-else
+            :size="21"
+            style="--admin-icon-size: 21"
+          />
         </span>
         <div>
           <h2>{{ t(`moderation.dialogs.${deviceAction}Title`) }}</h2>
@@ -2667,7 +3104,8 @@ onBeforeUnmount(() => {
             "
             @click="confirmDeviceAction"
           >
-            <LoaderCircle
+            <SkyIcon
+              :icon="LoaderCircle"
               v-if="admin.actionKey"
               :size="15"
               style="--admin-icon-size: 15"
@@ -2682,7 +3120,11 @@ onBeforeUnmount(() => {
     <div v-if="discardDialog" class="admin-panel-dialog-backdrop">
       <section class="admin-panel-dialog" role="alertdialog">
         <span class="admin-panel-dialog__icon is-warning">
-          <TriangleAlert :size="21" style="--admin-icon-size: 21" />
+          <SkyIcon
+            :icon="TriangleAlert"
+            :size="21"
+            style="--admin-icon-size: 21"
+          />
         </span>
         <div>
           <h2>{{ t('editor.discardTitle') }}</h2>
@@ -4700,7 +5142,7 @@ button:disabled {
   padding: calc(7 * var(--admin-unit)) calc(10 * var(--admin-unit));
   border: calc(1 * var(--admin-unit)) solid var(--admin-border-strong);
   border-radius: calc(5 * var(--admin-unit));
-  color: #c6cbc6;
+  color: var(--sky-button-text, #ffffff);
   background: #202320;
   font-size: calc(9 * var(--admin-unit));
   cursor: pointer;
@@ -4719,13 +5161,13 @@ button:disabled {
 
 .admin-panel-dialog__actions button.is-primary {
   border-color: color-mix(in srgb, var(--admin-green) 30%, transparent);
-  color: #d9eed7;
+  color: var(--sky-button-text, #ffffff);
   background: var(--admin-green-soft);
 }
 
 .admin-panel-dialog__actions button.is-danger {
   border-color: rgba(239, 105, 105, 0.3);
-  color: #efaaaa;
+  color: var(--sky-button-text, #ffffff);
   background: rgba(239, 105, 105, 0.1);
 }
 

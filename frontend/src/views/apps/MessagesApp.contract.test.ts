@@ -92,7 +92,7 @@ describe('MessagesApp Sky UI contract', () => {
     expect(toolbar).toContain('v-model="search"')
     expect(toolbar).toContain('variant="glass"')
     expect(toolbar).toContain('@click="beginCompose"')
-    expect(toolbar).toContain('<SquarePen :size="21" />')
+    expect(toolbar).toContain('<SkyIcon :icon="SquarePen" :size="21" />')
     expect(inbox).not.toContain('messages-sky-compose-navigation')
   })
 
@@ -174,7 +174,9 @@ describe('MessagesApp Sky UI contract', () => {
       'compressWaveformSamples(recordingSamples, WAVEFORM_SAMPLES)',
     )
     expect(source).toContain('class="messages-recorder__send"')
-    expect(source).toContain('<ArrowUpCircle :size="27" :stroke-width="2.4" />')
+    expect(source).toContain(
+      '<SkyIcon :icon="ArrowUpCircle" :size="27" :stroke-width="2.4" />',
+    )
     expect(source).not.toContain('fill="currentColor" />\n      </SkyButton>')
     expect(source).toContain('const recordingStarting = ref(false)')
     expect(source).toContain('if (requestId !== recordingRequestId)')
@@ -275,9 +277,11 @@ describe('MessagesApp Sky UI contract', () => {
     expect(contactProfile).toMatch(
       /<SkyButton\s+v-if="activeContactEmail"\s+icon-only\s+rounded\s+tonal[\s\S]*?@click="mailActiveContact"/,
     )
-    expect(contactProfile).toContain('<PhoneIcon :size="22" />')
-    expect(contactProfile).toContain('<MessageCircle :size="22" />')
-    expect(contactProfile).toContain('<Mail :size="22" />')
+    expect(contactProfile).toContain('<SkyIcon :icon="PhoneIcon" :size="22" />')
+    expect(contactProfile).toContain(
+      '<SkyIcon :icon="MessageCircle" :size="22" />',
+    )
+    expect(contactProfile).toContain('<SkyIcon :icon="Mail" :size="22" />')
 
     expect(contactProfile).toContain('Apps.messages.showInContacts')
     expect(contactProfile).toContain('Apps.messages.addContact')
@@ -295,7 +299,7 @@ describe('MessagesApp Sky UI contract', () => {
     expect(source).not.toContain('saveContactDetails')
     expect(source).not.toContain('deleteActiveContact')
     expect(source).not.toContain('Apps.messages.deleteContact')
-    expect(contactProfile).not.toContain('<Pencil')
+    expect(contactProfile).not.toContain('<SkyIcon :icon="Pencil"')
     expect(source).toContain(':inert="contactDetailsOpen || undefined"')
     expect(source).toContain(':aria-hidden="contactDetailsOpen"')
   })

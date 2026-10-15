@@ -110,6 +110,7 @@ describe('incoming calls on a locked phone', () => {
       passcodeRetrySeconds: ref(0),
       pendingUnlockRoute: ref(null),
       controlCenterOpened: ref(false),
+      notificationCenterOpened: ref(false),
       unlockTimer: undefined,
       loadUnlockedPhoneData,
     })

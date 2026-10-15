@@ -47,7 +47,7 @@ const sheetOpened = ref(false)
               icon-only
               @click="sheetOpened = false"
             >
-              <SkyIcon :size="24"><X /></SkyIcon>
+              <SkyIcon :size="24"><SkyIcon :icon="X" /></SkyIcon>
             </SkyLink>
           </SkyToolbarPane>
         </SkyToolbar>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { Palette } from 'lucide-vue-next'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
@@ -156,7 +158,12 @@ onBeforeUnmount(() => {
           @click="demo.navigate(entry.id)"
         >
           <template #media>
-            <Palette :size="28" :stroke-width="1.8" aria-hidden="true" />
+            <SkyIcon
+              :icon="Palette"
+              :size="28"
+              :stroke-width="1.8"
+              aria-hidden="true"
+            />
           </template>
         </SkyListItem>
       </SkyList>

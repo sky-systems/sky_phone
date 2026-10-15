@@ -297,3 +297,37 @@ describe('preferences', () => {
     )
   })
 })
+
+describe('glass blur preference', () => {
+  it.each([0, 3, 7.5, 20])(
+    'round-trips blur %s without a schema migration',
+    (glassBlur) => {
+      const value = parsePhonePreferences(
+        JSON.stringify({ version: 1, settings: { glassBlur } }),
+      )
+      expect(
+        parsePhonePreferences(JSON.stringify(value)).settings.glassBlur,
+      ).toBe(glassBlur)
+    },
+  )
+  it.each([undefined, null, '3', true])(
+    'uses the default for missing or invalid blur %s',
+    (glassBlur) => {
+      expect(
+        parsePhonePreferences(
+          JSON.stringify({ version: 1, settings: { glassBlur } }),
+        ).settings.glassBlur,
+      ).toBe(6)
+    },
+  )
+  it.each([
+    [-1, 0],
+    [200, 20],
+  ])('bounds blur %s to %s', (glassBlur, expected) => {
+    expect(
+      parsePhonePreferences(
+        JSON.stringify({ version: 1, settings: { glassBlur } }),
+      ).settings.glassBlur,
+    ).toBe(expected)
+  })
+})

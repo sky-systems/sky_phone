@@ -1,22 +1,44 @@
 <script setup lang="ts">
+import { SkyButton } from '@/ui'
+
 import { computed, ref, watch } from 'vue'
 
 import { getPhoneApp } from '@/config/apps'
 import type { PhoneNotification } from '@/stores/notifications'
 import { usePhoneStore } from '@/stores/phone'
 import { SkyNotification, SkyProvider } from '@/ui'
+import { presentPhoneNotification } from '@/utils/notificationPresentation'
+import { formatNotificationTime } from '@/utils/notificationTime'
 
 const props = defineProps<{
   dark?: boolean
   notification: PhoneNotification | null
+  locked?: boolean
 }>()
 const emit = defineEmits<{
   close: []
   open: [notification: PhoneNotification]
 }>()
 const phone = usePhoneStore()
-const notificationTime = ref('')
+const now = ref(Date.now())
+const notificationTime = computed(() =>
+  formatNotificationTime(
+    props.notification?.createdAt,
+    phone.lang,
+    now.value,
+    phone.t('Notifications.now'),
+  ),
+)
 const darkMode = computed(() => props.dark ?? phone.isDarkMode)
+const presentation = computed(() =>
+  props.notification
+    ? presentPhoneNotification(
+        props.notification,
+        props.locked !== false,
+        phone.t,
+      )
+    : null,
+)
 const icon = computed(() =>
   props.notification
     ? getPhoneApp(props.notification.appId)?.iconImage
@@ -33,17 +55,12 @@ let suppressOpenUntil = 0
 
 watch(
   () => props.notification?.id,
-  (notificationId) => {
+  (notificationId, _previousId, onCleanup) => {
     resetGesture()
-    if (!notificationId) {
-      notificationTime.value = ''
-      return
-    }
-    notificationTime.value = new Intl.DateTimeFormat(phone.lang, {
-      hour: '2-digit',
-      hourCycle: 'h23',
-      minute: '2-digit',
-    }).format(new Date())
+    if (!notificationId) return
+    now.value = Date.now()
+    const ticker = setInterval(() => (now.value = Date.now()), 15_000)
+    onCleanup(() => clearInterval(ticker))
   },
   { immediate: true },
 )
@@ -129,10 +146,11 @@ function finishDismissGesture(event: PointerEvent): void {
 <template>
   <SkyProvider class="phone-notification-provider" :dark="darkMode" safe-areas>
     <SkyNotification
+      glass-material="clear"
       :opened="!!notification"
-      :title="notification?.title"
-      :subtitle="notification?.subtitle"
-      :text="notification?.text"
+      :title="presentation?.title"
+      :subtitle="presentation?.subtitle"
+      :text="presentation?.text"
       :title-right-text="notificationTime"
       :role="notification?.critical ? 'alert' : 'status'"
       class="phone-notification"
@@ -145,14 +163,15 @@ function finishDismissGesture(event: PointerEvent): void {
       <template v-if="icon" #icon>
         <img :src="icon" alt="" class="phone-notification__icon" />
       </template>
-      <button
+      <SkyButton
+        variant="content"
         v-if="notification?.route"
         type="button"
         class="phone-notification__open"
         :aria-label="phone.t('Notifications.open')"
         @click.stop="openNotification"
         @keydown.esc.stop="emit('close')"
-      ></button>
+      ></SkyButton>
     </SkyNotification>
   </SkyProvider>
 </template>

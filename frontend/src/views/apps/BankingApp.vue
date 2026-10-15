@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   ArrowDownLeft,
   ArrowRight,
@@ -308,7 +310,7 @@ onBeforeUnmount(() => {
       :inert="overlayOpened"
       :title="phone.t('Apps.banking.unavailable')"
     >
-      <template #icon><Landmark :size="34" /></template>
+      <template #icon><SkyIcon :icon="Landmark" :size="34" /></template>
       <template #actions>
         <SkyButton rounded @click="banking.load(true)">
           {{ phone.t('Apps.banking.tryAgain') }}
@@ -361,9 +363,11 @@ onBeforeUnmount(() => {
             class="banking-action banking-action--primary"
             @click="openAction('transfer')"
           >
-            <span class="banking-action__icon"><Send :size="20" /></span>
+            <span class="banking-action__icon"
+              ><SkyIcon :icon="Send" :size="20"
+            /></span>
             <b>{{ phone.t('Apps.banking.send') }}</b>
-            <ChevronRight :size="16" aria-hidden="true" />
+            <SkyIcon :icon="ChevronRight" :size="16" aria-hidden="true" />
           </SkyGlass>
         </section>
 
@@ -376,13 +380,17 @@ onBeforeUnmount(() => {
               :title="phone.t('Apps.banking.bankAccount')"
               :after="formatMoney(banking.overview.bank)"
             >
-              <template #media><WalletCards :size="18" /></template>
+              <template #media
+                ><SkyIcon :icon="WalletCards" :size="18"
+              /></template>
             </SkyListItem>
             <SkyListItem
               :title="phone.t('Apps.banking.cash')"
               :after="formatMoney(banking.overview.cash)"
             >
-              <template #media><CircleDollarSign :size="18" /></template>
+              <template #media
+                ><SkyIcon :icon="CircleDollarSign" :size="18"
+              /></template>
             </SkyListItem>
           </SkyList>
         </SkyCard>
@@ -391,6 +399,7 @@ onBeforeUnmount(() => {
           <div class="banking-section-title">
             <h2>{{ phone.t('Apps.banking.latestTransactions') }}</h2>
             <SkyLink
+              variant="content"
               component="button"
               type="button"
               @click="selectTab('activity')"
@@ -540,14 +549,14 @@ onBeforeUnmount(() => {
         :label="phone.t('Apps.banking.home')"
         @click="selectTab('home')"
       >
-        <template #icon><House :size="25" /></template>
+        <template #icon><SkyIcon :icon="House" :size="25" /></template>
       </SkyTabButton>
       <SkyTabButton
         :active="activeTab === 'activity'"
         :label="phone.t('Apps.banking.activity')"
         @click="selectTab('activity')"
       >
-        <template #icon><BarChart3 :size="25" /></template>
+        <template #icon><SkyIcon :icon="BarChart3" :size="25" /></template>
       </SkyTabButton>
     </SkyTabBar>
 
@@ -570,7 +579,7 @@ onBeforeUnmount(() => {
     >
       <section v-if="action" class="banking-sheet__content">
         <span class="banking-modal__icon">
-          <Send :size="23" />
+          <SkyIcon :icon="Send" :size="23" />
         </span>
         <h2 :id="`banking-${action}-title`">
           {{ phone.t(`Apps.banking.forms.${action}.title`) }}
@@ -632,7 +641,7 @@ onBeforeUnmount(() => {
           />
           <template v-else>
             {{ phone.t(`Apps.banking.forms.${action}.submit`) }}
-            <ArrowRight :size="17" />
+            <SkyIcon :icon="ArrowRight" :size="17" />
           </template>
         </SkyButton>
       </section>

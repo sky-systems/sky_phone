@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SkyIcon from '../controls/SkyIcon.vue'
+
 import { Check, ChevronRight } from 'lucide-vue-next'
 import { computed } from 'vue'
 
@@ -22,12 +24,16 @@ const props = withDefaults(
   defineProps<{
     items: readonly SkyDropdownItem[]
     label: string
+    motion?: 'fade' | 'spring'
     opened: boolean
     placement?: 'auto' | 'bottom' | 'left' | 'right' | 'top'
+    singleLine?: boolean
     target: HTMLElement | string | null
   }>(),
   {
     placement: 'bottom',
+    motion: 'spring',
+    singleLine: false,
   },
 )
 
@@ -37,6 +43,10 @@ const emit = defineEmits<{
   positionerror: [reason: string]
   select: [id: string, event: MouseEvent]
 }>()
+
+const actionOnly = computed(() =>
+  props.items.every((item) => item.checked === undefined && !item.submenu),
+)
 
 const menuSections = computed(() => {
   const sections: Array<{
@@ -70,8 +80,13 @@ const menuSections = computed(() => {
   <SkyPopover
     v-bind="$attrs"
     class="sky-dropdown"
+    :class="{
+      'sky-dropdown--single-line': singleLine,
+      'sky-dropdown--actions': actionOnly,
+    }"
     :aria-label="label"
     :opened="opened"
+    :motion="motion"
     :placement="placement"
     role="menu"
     :target="target"
@@ -102,10 +117,16 @@ const menuSections = computed(() => {
           @click="emit('select', item.id, $event)"
         >
           <span class="sky-dropdown__indicator" aria-hidden="true">
-            <Check v-if="item.checked" :size="21" :stroke-width="2.5" />
+            <SkyIcon
+              :icon="Check"
+              v-if="item.checked"
+              :size="21"
+              :stroke-width="2.5"
+            />
           </span>
           <span class="sky-dropdown__label">{{ item.label }}</span>
-          <ChevronRight
+          <SkyIcon
+            :icon="ChevronRight"
             v-if="item.submenu"
             class="sky-dropdown__chevron"
             :size="21"

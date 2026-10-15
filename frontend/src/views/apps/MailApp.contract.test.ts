@@ -30,7 +30,7 @@ describe('MailApp Sky UI contract', () => {
   it('uses Sky navigation for logout and mailbox back actions', () => {
     expect(source).toContain('class="mail-navbar mail-folders-navbar"')
     expect(source).toContain(':aria-label="phone.t(\'Apps.mail.logout\')"')
-    expect(source).toContain('<LogOut :size="20"')
+    expect(source).toContain('<SkyIcon :icon="LogOut" :size="20"')
     expect(source).toContain('<sky-navbar-back-link')
     expect(source).not.toContain('<header class="mail-header')
     expect(source).not.toContain('class="mail-header__back"')
@@ -79,8 +79,8 @@ describe('MailApp Sky UI contract', () => {
     expect(mailboxModal).toContain('class="mail-modal__nav-button"')
     expect(mailboxModal).toContain(':aria-label="phone.t(\'Common.cancel\')"')
     expect(mailboxModal).toContain(':aria-label="phone.t(\'Common.save\')"')
-    expect(mailboxModal).toContain('<X :size="20" />')
-    expect(mailboxModal).toContain('<Check :size="20" />')
+    expect(mailboxModal).toContain('<SkyIcon :icon="X" :size="20" />')
+    expect(mailboxModal).toContain('<SkyIcon :icon="Check" :size="20" />')
     expect(mailboxModal).not.toContain('<sky-spinner')
     expect(mailboxModal).toContain('class="mail-mailbox-create__name"')
     expect(mailboxModal).toContain('class="mail-mailbox-create__location-row"')
@@ -109,7 +109,7 @@ describe('MailApp Sky UI contract', () => {
 
     expect(toolbar).toContain('component="footer"')
     expect(toolbar).toContain('@click="openMailFilters"')
-    expect(toolbar).toContain('<ListFilter :size="21"')
+    expect(toolbar).toContain('<SkyIcon :icon="ListFilter" :size="21"')
     expect(toolbar).toContain('mail-filter-fab--active')
     expect(toolbar).toContain("phone.t('Apps.mail.filteredBy')")
     expect(toolbar).toContain('{{ activeFilterSummary }}')
@@ -181,7 +181,7 @@ describe('MailApp Sky UI contract', () => {
     expect(source).toMatch(
       /\.mail-auth__warning\s*\{[^}]*color:\s*var\(--sky-text\)[^}]*font-size:\s*14px[^}]*font-weight:\s*500[^}]*line-height:\s*19px/s,
     )
-    expect(source).toContain('<ShieldCheck :size="17" />')
+    expect(source).toContain('<SkyIcon :icon="ShieldCheck" :size="17" />')
   })
 
   it('uses icon actions in the new-message navbar', () => {
@@ -189,9 +189,9 @@ describe('MailApp Sky UI contract', () => {
     const compose = source.slice(composeStart)
 
     expect(compose).toContain(':aria-label="phone.t(\'Common.cancel\')"')
-    expect(compose).toContain('<X :size="21"')
+    expect(compose).toContain('<SkyIcon :icon="X" :size="21"')
     expect(compose).toContain(':aria-label="phone.t(\'Common.send\')"')
-    expect(compose).toContain('<Send :size="20"')
+    expect(compose).toContain('<SkyIcon :icon="Send" :size="20"')
     expect(source).toMatch(
       /\.mail-navbar\s*\{[^}]*--sky-safe-area-top:\s*calc\(46px \+ var\(--sky-space-2\)\)/s,
     )
@@ -208,7 +208,7 @@ describe('MailApp Sky UI contract', () => {
     )
     expect(source).toContain('class="mail-navbar__select"')
     expect(source).toMatch(
-      /\.mail-navbar__select\.sky-link\)\s*\{[^}]*width:\s*auto[^}]*height:\s*var\(--sky-touch-target\)[^}]*padding:\s*0 var\(--sky-space-3\)[^}]*color:\s*var\(--sky-text\)[^}]*font-size:\s*15px/s,
+      /\.mail-navbar__select\.sky-link\)\s*\{[^}]*width:\s*auto[^}]*height:\s*var\(--sky-touch-target\)[^}]*padding:\s*0 var\(--sky-space-3\)[^}]*color:\s*var\(--sky-button-text,\s*#ffffff\)[^}]*font-size:\s*15px/s,
     )
     expect(source).toMatch(
       /\.mail-navbar__select\.sky-link:focus-visible\)\s*\{[^}]*outline:\s*0[^}]*box-shadow:\s*inset 0 0 0 1px #fff/s,
@@ -217,10 +217,10 @@ describe('MailApp Sky UI contract', () => {
       /\.sky-navbar-back-link__icon\)\s*\{[^}]*transform:\s*translateX\(2px\)/s,
     )
     expect(source).toMatch(
-      /\.mail-navbar\s+:deep\(\.sky-link\)\s*\{[^}]*color:\s*var\(--sky-text\)/s,
+      /\.mail-navbar\s+:deep\(\.sky-link\)\s*\{[^}]*color:\s*var\(--sky-button-text,\s*#ffffff\)/s,
     )
     expect(source).toMatch(
-      /\.mail-navbar\s+:deep\(\.sky-navbar-back-link\)\s*\{[^}]*color:\s*var\(--sky-text\)/s,
+      /\.mail-navbar\s+:deep\(\.sky-navbar-back-link\)\s*\{[^}]*color:\s*var\(--sky-button-text,\s*#ffffff\)/s,
     )
     expect(source).not.toMatch(
       /\.mail-navbar\s+:deep\(\.sky-link\)\s*\{[^}]*color:\s*var\(--mail-blue\)/s,

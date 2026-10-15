@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyButton, SkyIcon } from '@/ui'
+
 import { Check, ChevronDown } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
@@ -54,7 +56,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="root" class="darkchat-choice">
-    <button
+    <SkyButton
+      variant="content"
       type="button"
       class="darkchat-choice__trigger"
       role="combobox"
@@ -64,12 +67,13 @@ onBeforeUnmount(() => {
       @click="opened = !opened"
     >
       <span>{{ selectedOption?.label }}</span>
-      <ChevronDown :size="14" :class="{ open: opened }" />
-    </button>
+      <SkyIcon :icon="ChevronDown" :size="14" :class="{ open: opened }" />
+    </SkyButton>
 
     <Transition name="darkchat-choice">
       <div v-if="opened" class="darkchat-choice__menu" role="listbox">
-        <button
+        <SkyButton
+          variant="content"
           v-for="option in options"
           :key="option.value"
           type="button"
@@ -79,15 +83,22 @@ onBeforeUnmount(() => {
           @click="selectOption(option)"
         >
           <span>{{ option.label }}</span>
-          <Check v-if="option.value === modelValue" :size="14" />
-        </button>
+          <SkyIcon
+            :icon="Check"
+            v-if="option.value === modelValue"
+            :size="14"
+          />
+        </SkyButton>
       </div>
     </Transition>
   </div>
 </template>
 
 <style scoped>
-.darkchat-choice { position: relative; min-width: 0; }
+.darkchat-choice {
+  position: relative;
+  min-width: 0;
+}
 .darkchat-choice__trigger {
   width: 145px;
   height: 35px;
@@ -106,9 +117,19 @@ onBeforeUnmount(() => {
   text-align: left;
 }
 .darkchat-choice__trigger span,
-.darkchat-choice__menu span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.darkchat-choice__trigger svg { flex: none; transition: transform .18s ease; }
-.darkchat-choice__trigger svg.open { transform: rotate(180deg); }
+.darkchat-choice__menu span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.darkchat-choice__trigger svg {
+  flex: none;
+  transition: transform 0.18s ease;
+}
+.darkchat-choice__trigger svg.open {
+  transform: rotate(180deg);
+}
 .darkchat-choice__menu {
   position: absolute;
   z-index: 80;
@@ -138,10 +159,24 @@ onBeforeUnmount(() => {
   font-size: 11px;
   text-align: left;
 }
-.darkchat-choice__menu button.selected { background: rgb(139 92 246 / 18%); color: #c4b5fd; }
-.darkchat-choice__menu button svg { flex: none; color: #a78bfa; }
+.darkchat-choice__menu button.selected {
+  background: rgb(139 92 246 / 18%);
+  color: #c4b5fd;
+}
+.darkchat-choice__menu button svg {
+  flex: none;
+  color: #a78bfa;
+}
 .darkchat-choice-enter-active,
-.darkchat-choice-leave-active { transition: opacity .16s ease, transform .16s ease; transform-origin: top right; }
+.darkchat-choice-leave-active {
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+  transform-origin: top right;
+}
 .darkchat-choice-enter-from,
-.darkchat-choice-leave-to { opacity: 0; transform: translateY(-4px) scale(.97); }
+.darkchat-choice-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.97);
+}
 </style>

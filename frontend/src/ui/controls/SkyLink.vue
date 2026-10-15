@@ -7,14 +7,16 @@ const props = withDefaults(
   defineProps<{
     component?: 'a' | 'button'
     disabled?: boolean
+    variant?: 'action' | 'content'
     href?: string
     iconOnly?: boolean
     linkProps?: Record<string, unknown>
     type?: 'button' | 'reset' | 'submit'
   }>(),
   {
-    component: 'a',
+    component: undefined,
     disabled: false,
+    variant: 'action',
     href: undefined,
     iconOnly: false,
     linkProps: () => ({}),
@@ -26,8 +28,10 @@ const emit = defineEmits<{
   click: [event: MouseEvent]
 }>()
 
+const element = computed(() => props.component ?? (props.href ? 'a' : 'button'))
+
 const elementProps = computed<Record<string, unknown>>(() => {
-  if (props.component === 'a') {
+  if (element.value === 'a') {
     return {
       ...props.linkProps,
       'aria-disabled': props.disabled || undefined,
@@ -56,11 +60,13 @@ function handleClick(event: MouseEvent): void {
 
 <template>
   <component
-    :is="component"
+    :is="element"
     v-bind="{ ...$attrs, ...elementProps }"
     class="sky-link"
-    :class="{ 'sky-link--icon-only': iconOnly }"
-    role="link"
+    :class="{
+      'sky-link--content': variant === 'content',
+      'sky-link--icon-only': iconOnly,
+    }"
     @click="handleClick"
   >
     <slot />

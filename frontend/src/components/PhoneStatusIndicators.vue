@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import { Plane } from 'lucide-vue-next'
 import { cellular } from '@/utils/cellular'
 
@@ -18,7 +20,8 @@ withDefaults(
 
 <template>
   <span class="phone-status-indicators" aria-hidden="true">
-    <Plane
+    <SkyIcon
+      :icon="Plane"
       v-if="airplaneMode"
       :size="18"
       :stroke-width="2.6"

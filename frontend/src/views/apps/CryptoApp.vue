@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SkyIcon } from '@/ui'
+
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -753,7 +755,7 @@ onUnmounted(() => {
           :title="t('logout')"
           @click="logoutDialogOpen = true"
         >
-          <LogOut :size="14" />
+          <SkyIcon :icon="LogOut" :size="14" />
           <span>{{ t('logout') }}</span>
         </SkyLink>
       </template>
@@ -801,12 +803,12 @@ onUnmounted(() => {
               ></SkySegmented
             >
             <div class="auth-account">
-              <span><Mail :size="20" /></span>
+              <span><SkyIcon :icon="Mail" :size="20" /></span>
               <div>
                 <small>{{ t('auth.accountEmail') }}</small>
                 <strong>{{ account.email || t('auth.accountMissing') }}</strong>
               </div>
-              <ShieldCheck :size="17" />
+              <SkyIcon :icon="ShieldCheck" :size="17" />
             </div>
             <form class="form auth-form" @submit.prevent="submitAuth">
               <SkyField
@@ -818,7 +820,8 @@ onUnmounted(() => {
                 autocomplete="username"
                 maxlength="20"
                 outline
-                ><template #leading><UserRound :size="18" /></template
+                ><template #leading
+                  ><SkyIcon :icon="UserRound" :size="18" /></template
               ></SkyField>
               <SkyField
                 v-model="password"
@@ -831,17 +834,22 @@ onUnmounted(() => {
                 "
                 maxlength="72"
                 outline
-                ><template #leading><LockKeyhole :size="18" /></template
+                ><template #leading
+                  ><SkyIcon :icon="LockKeyhole" :size="18" /></template
                 ><template #trailing
-                  ><button
+                  ><SkyButton
+                    variant="content"
                     class="visibility"
                     type="button"
                     @click="showPassword = !showPassword"
                   >
-                    <EyeOff v-if="showPassword" :size="18" /><Eye
+                    <SkyIcon
+                      :icon="EyeOff"
+                      v-if="showPassword"
+                      :size="18" /><SkyIcon
+                      :icon="Eye"
                       v-else
-                      :size="18"
-                    /></button></template
+                      :size="18" /></SkyButton></template
               ></SkyField>
               <p v-if="authMode === 'register'" class="auth-password-hint">
                 {{ t('auth.ruleLength') }} · {{ t('auth.ruleMixed') }} ·
@@ -957,7 +965,8 @@ onUnmounted(() => {
           </g>
         </svg>
         <div class="periods">
-          <button
+          <SkyButton
+            variant="content"
             v-for="value in CHART_PERIODS"
             :key="value"
             :class="{ active: period === value }"
@@ -965,7 +974,7 @@ onUnmounted(() => {
             @click="period = value"
           >
             {{ value }}
-          </button>
+          </SkyButton>
         </div></SkyCard
       >
       <p class="detail-copy">{{ t('marketDetail.description') }}</p>
@@ -1022,7 +1031,9 @@ onUnmounted(() => {
           <div class="portfolio-glow" />
           <div class="portfolio-topline">
             <span
-              ><ShieldCheck :size="13" />{{ t('portfolio.performance') }}</span
+              ><SkyIcon :icon="ShieldCheck" :size="13" />{{
+                t('portfolio.performance')
+              }}</span
             >
             <span class="forecast-pill">{{ t('portfolio.forecast') }}</span>
           </div>
@@ -1134,23 +1145,23 @@ onUnmounted(() => {
           </div>
         </section>
         <div class="quick">
-          <button @click="setTab('markets')">
-            <span><ChartNoAxesCombined :size="20" /></span>
-            <b>{{ t('quick.trade') }}</b></button
-          ><button @click="openSettlement('deposit')">
-            <span><ArrowDownLeft :size="20" /></span>
-            <b>{{ t('actions.deposit') }}</b></button
-          ><button @click="openSettlement('withdraw')">
-            <span><ArrowUpRight :size="20" /></span>
-            <b>{{ t('actions.withdraw') }}</b></button
-          ><button @click="openSend">
-            <span><Send :size="20" /></span>
+          <SkyButton variant="content" @click="setTab('markets')">
+            <span><SkyIcon :icon="ChartNoAxesCombined" :size="20" /></span>
+            <b>{{ t('quick.trade') }}</b></SkyButton
+          ><SkyButton variant="content" @click="openSettlement('deposit')">
+            <span><SkyIcon :icon="ArrowDownLeft" :size="20" /></span>
+            <b>{{ t('actions.deposit') }}</b></SkyButton
+          ><SkyButton variant="content" @click="openSettlement('withdraw')">
+            <span><SkyIcon :icon="ArrowUpRight" :size="20" /></span>
+            <b>{{ t('actions.withdraw') }}</b></SkyButton
+          ><SkyButton variant="content" @click="openSend">
+            <span><SkyIcon :icon="Send" :size="20" /></span>
             <b>{{ t('quick.send') }}</b>
-          </button>
+          </SkyButton>
         </div>
         <SkyCard class="allocation-card">
           <div class="allocation-copy">
-            <span><WalletCards :size="19" /></span>
+            <span><SkyIcon :icon="WalletCards" :size="19" /></span>
             <div>
               <small>{{ t('portfolio.allocation') }}</small>
               <b
@@ -1172,7 +1183,8 @@ onUnmounted(() => {
           v-if="!holdings.length"
           :title="t('portfolio.empty')"
           :description="t('portfolio.emptyBody')"
-        /><button
+        /><SkyButton
+          variant="content"
           v-for="holding in holdings"
           v-else
           :key="holding.assetId"
@@ -1199,13 +1211,13 @@ onUnmounted(() => {
               "
               >{{ market(holding.assetId)?.changePercent.toFixed(2) }}%</small
             ></span
-          ><ChevronRight :size="17" />
-        </button>
+          ><SkyIcon :icon="ChevronRight" :size="17" />
+        </SkyButton>
         <SkyStatusCard
           tone="neutral"
           :title="t('portfolio.insightTitle')"
           :subtitle="t('portfolio.insightBody')"
-          ><template #icon><Sparkles :size="19" /></template
+          ><template #icon><SkyIcon :icon="Sparkles" :size="19" /></template
         ></SkyStatusCard>
       </template>
 
@@ -1216,7 +1228,8 @@ onUnmounted(() => {
             <h2>{{ t('markets.title') }}</h2></span
           ><em>{{ t('markets.live') }}</em>
         </div>
-        <button
+        <SkyButton
+          variant="content"
           v-if="topMover"
           class="featured-market"
           @click="openMarket(topMover)"
@@ -1228,7 +1241,7 @@ onUnmounted(() => {
               <b>{{ topMover.name }}</b>
               <em>{{ topMover.symbol }}</em>
             </span>
-            <ChevronRight :size="18" />
+            <SkyIcon :icon="ChevronRight" :size="18" />
           </div>
           <div class="featured-market__quote">
             <strong>{{ money(topMover.price) }}</strong>
@@ -1250,13 +1263,14 @@ onUnmounted(() => {
               ><b>{{ money(topMover.low24h) }}</b></span
             >
           </div>
-        </button>
+        </SkyButton>
         <div class="heading market-list-heading">
           <h2>{{ t('portfolio.assets') }}</h2>
           <em>{{ markets.length }} {{ t('markets.live') }}</em>
         </div>
         <div class="market-grid market-grid--advanced">
-          <button
+          <SkyButton
+            variant="content"
             v-for="item in markets"
             :key="item.id"
             @click="openMarket(item)"
@@ -1279,14 +1293,15 @@ onUnmounted(() => {
             <svg viewBox="0 0 150 52" preserveAspectRatio="none">
               <polyline :points="points(item.sparkline, 150, 50)" />
             </svg>
-          </button>
+          </SkyButton>
         </div>
         <SkyCard class="movers"
           ><div class="heading">
             <h2>{{ t('markets.movers') }}</h2>
             <em>{{ t('markets.today') }}</em>
           </div>
-          <button
+          <SkyButton
+            variant="content"
             v-for="item in [...markets]
               .sort((a, b) => b.changePercent - a.changePercent)
               .slice(0, 5)"
@@ -1303,7 +1318,7 @@ onUnmounted(() => {
                 }}{{ item.changePercent.toFixed(2) }}%</small
               ></span
             >
-          </button></SkyCard
+          </SkyButton></SkyCard
         >
         <SkyStatusCard
           tone="accent"
@@ -1316,7 +1331,9 @@ onUnmounted(() => {
         <section class="activity-overview">
           <div class="activity-head activity-dashboard">
             <div class="activity-dashboard__copy">
-              <p><History :size="14" />{{ t('activity.volume') }}</p>
+              <p>
+                <SkyIcon :icon="History" :size="14" />{{ t('activity.volume') }}
+              </p>
               <strong>{{ privateMoney(profile?.totalVolume ?? '0') }}</strong>
               <span class="activity-trade-count"
                 ><i />{{ profile?.totalTrades }}
@@ -1325,7 +1342,7 @@ onUnmounted(() => {
             </div>
             <div class="activity-status">
               <span class="activity-status__icon">
-                <ShieldCheck :size="19" />
+                <SkyIcon :icon="ShieldCheck" :size="19" />
               </span>
               <b>{{ t('statuses.completed') }}</b>
             </div>
@@ -1348,7 +1365,7 @@ onUnmounted(() => {
                 :active="activityFilter === 'all'"
                 @click="activityFilter = 'all'"
                 ><span class="activity-filter-content"
-                  ><History :size="15" /><span>{{
+                  ><SkyIcon :icon="History" :size="15" /><span>{{
                     t('activity.filters.all')
                   }}</span></span
                 ></SkySegmentedButton
@@ -1356,7 +1373,7 @@ onUnmounted(() => {
                 :active="activityFilter === 'trades'"
                 @click="activityFilter = 'trades'"
                 ><span class="activity-filter-content"
-                  ><ChartNoAxesCombined :size="15" /><span>{{
+                  ><SkyIcon :icon="ChartNoAxesCombined" :size="15" /><span>{{
                     t('activity.filters.trades')
                   }}</span></span
                 ></SkySegmentedButton
@@ -1364,7 +1381,7 @@ onUnmounted(() => {
                 :active="activityFilter === 'wallet'"
                 @click="activityFilter = 'wallet'"
                 ><span class="activity-filter-content"
-                  ><WalletCards :size="15" /><span>{{
+                  ><SkyIcon :icon="WalletCards" :size="15" /><span>{{
                     t('activity.filters.wallet')
                   }}</span></span
                 ></SkySegmentedButton
@@ -1388,11 +1405,27 @@ onUnmounted(() => {
           class="row static activity-row"
         >
           <span :class="['activity-icon', `activity-icon--${item.type}`]">
-            <ArrowDownLeft v-if="item.type === 'deposit'" :size="18" />
-            <ArrowUpRight v-else-if="item.type === 'withdrawal'" :size="18" />
-            <Send v-else-if="item.type === 'transfer_out'" :size="18" />
-            <KeyRound v-else-if="item.type === 'transfer_in'" :size="18" />
-            <ChartNoAxesCombined v-else :size="18" /> </span
+            <SkyIcon
+              :icon="ArrowDownLeft"
+              v-if="item.type === 'deposit'"
+              :size="18"
+            />
+            <SkyIcon
+              :icon="ArrowUpRight"
+              v-else-if="item.type === 'withdrawal'"
+              :size="18"
+            />
+            <SkyIcon
+              :icon="Send"
+              v-else-if="item.type === 'transfer_out'"
+              :size="18"
+            />
+            <SkyIcon
+              :icon="KeyRound"
+              v-else-if="item.type === 'transfer_in'"
+              :size="18"
+            />
+            <SkyIcon :icon="ChartNoAxesCombined" v-else :size="18" /> </span
           ><span
             ><b>{{ t(`activityTypes.${item.type}`) }}</b
             ><small
@@ -1426,7 +1459,11 @@ onUnmounted(() => {
           <div class="profile-card__identity">
             <span>
               <h2>@{{ profile?.handle }}</h2>
-              <p><ShieldCheck :size="15" />{{ t('profile.verified') }}</p>
+              <p>
+                <SkyIcon :icon="ShieldCheck" :size="15" />{{
+                  t('profile.verified')
+                }}
+              </p>
             </span>
             <SkyButton
               class="profile-edit-button"
@@ -1434,18 +1471,20 @@ onUnmounted(() => {
               small
               @click="openProfileEditor"
             >
-              <Settings2 :size="15" />{{ t('profile.edit') }}
+              <SkyIcon :icon="Settings2" :size="15" />{{ t('profile.edit') }}
             </SkyButton>
           </div>
           <div class="profile-card__id">
             <small>VAULTX ID</small>
             <b>{{ profile?.id.slice(0, 8).toUpperCase() }}</b>
-            <Fingerprint :size="26" />
+            <SkyIcon :icon="Fingerprint" :size="26" />
           </div>
         </section>
         <SkyCard class="wallet-key-card" :content-wrap="false">
           <div class="wallet-key-card__content">
-            <span class="wallet-key-card__icon"><KeyRound :size="20" /></span>
+            <span class="wallet-key-card__icon"
+              ><SkyIcon :icon="KeyRound" :size="20"
+            /></span>
             <span>
               <small>{{ t('profile.walletKey') }}</small>
               <b>{{ profile?.walletKey }}</b>
@@ -1454,14 +1493,16 @@ onUnmounted(() => {
           </div>
           <div class="wallet-key-card__actions">
             <SkyButton variant="secondary" tonal @click="copyWalletKey">
-              <CheckCircle2 v-if="walletKeyCopied" :size="16" />
-              <Copy v-else :size="16" />
+              <SkyIcon :icon="CheckCircle2" v-if="walletKeyCopied" :size="16" />
+              <SkyIcon :icon="Copy" v-else :size="16" />
               <span>{{
                 t(walletKeyCopied ? 'profile.copied' : 'profile.copyKey')
               }}</span>
             </SkyButton>
             <SkyButton @click="shareWalletKey">
-              <Share2 :size="16" /><span>{{ t('profile.shareKey') }}</span>
+              <SkyIcon :icon="Share2" :size="16" /><span>{{
+                t('profile.shareKey')
+              }}</span>
             </SkyButton>
           </div>
         </SkyCard>
@@ -1488,7 +1529,8 @@ onUnmounted(() => {
         </div>
         <SkyCard class="security-overview" :content-wrap="false">
           <div class="security-score">
-            <ShieldCheck :size="22" /><b>100</b><small>/100</small>
+            <SkyIcon :icon="ShieldCheck" :size="22" /><b>100</b
+            ><small>/100</small>
           </div>
           <span
             ><small>{{ t('profile.securityTitle') }}</small
@@ -1500,7 +1542,7 @@ onUnmounted(() => {
         <SkyCard class="settings"
           ><label
             ><span
-              ><BellRing :size="18" /><span
+              ><SkyIcon :icon="BellRing" :size="18" /><span
                 ><b>{{ t('profile.priceAlerts') }}</b
                 ><small>{{ t('profile.priceAlertsBody') }}</small></span
               ></span
@@ -1509,7 +1551,7 @@ onUnmounted(() => {
               @change="savePreferences" /></label
           ><label
             ><span
-              ><Fingerprint :size="18" /><span
+              ><SkyIcon :icon="Fingerprint" :size="18" /><span
                 ><b>{{ t('profile.confirmations') }}</b
                 ><small>{{ t('profile.confirmationsBody') }}</small></span
               ></span
@@ -1518,7 +1560,7 @@ onUnmounted(() => {
               @change="savePreferences" /></label
           ><label
             ><span
-              ><EyeOff :size="18" /><span
+              ><SkyIcon :icon="EyeOff" :size="18" /><span
                 ><b>{{ t('profile.hideBalances') }}</b
                 ><small>{{ t('profile.hideBalancesBody') }}</small></span
               ></span
@@ -1527,7 +1569,7 @@ onUnmounted(() => {
               @change="savePreferences" /></label
         ></SkyCard>
         <p v-if="saved" class="profile-feedback success">
-          <ShieldCheck :size="15" />{{ t('profile.saved') }}
+          <SkyIcon :icon="ShieldCheck" :size="15" />{{ t('profile.saved') }}
         </p>
         <p v-if="formError" class="profile-feedback error">{{ formError }}</p>
       </template>
@@ -1544,7 +1586,7 @@ onUnmounted(() => {
         class="detail-trade-action detail-trade-action--buy"
         @click="openTrade(detail, 'buy')"
       >
-        <span><ArrowDownLeft :size="19" /></span>
+        <span><SkyIcon :icon="ArrowDownLeft" :size="19" /></span>
         <span>
           <b>{{ t('trade.buy') }}</b>
           <small>{{ t('trade.buyBody') }}</small>
@@ -1556,7 +1598,7 @@ onUnmounted(() => {
         class="detail-trade-action detail-trade-action--sell"
         @click="openTrade(detail, 'sell')"
       >
-        <span><ArrowUpRight :size="19" /></span>
+        <span><SkyIcon :icon="ArrowUpRight" :size="19" /></span>
         <span>
           <b>{{ t('trade.sell') }}</b>
           <small>{{ t('trade.sellBody') }}</small>
@@ -1572,25 +1614,25 @@ onUnmounted(() => {
         ><SkySegmentedButton
           :active="tab === 'portfolio'"
           @click="setTab('portfolio')"
-          ><WalletCards :size="19" /><span>{{
+          ><SkyIcon :icon="WalletCards" :size="19" /><span>{{
             t('tabs.portfolio')
           }}</span></SkySegmentedButton
         ><SkySegmentedButton
           :active="tab === 'markets'"
           @click="setTab('markets')"
-          ><ChartNoAxesCombined :size="19" /><span>{{
+          ><SkyIcon :icon="ChartNoAxesCombined" :size="19" /><span>{{
             t('tabs.markets')
           }}</span></SkySegmentedButton
         ><SkySegmentedButton
           :active="tab === 'activity'"
           @click="setTab('activity')"
-          ><History :size="19" /><span>{{
+          ><SkyIcon :icon="History" :size="19" /><span>{{
             t('tabs.activity')
           }}</span></SkySegmentedButton
         ><SkySegmentedButton
           :active="tab === 'profile'"
           @click="setTab('profile')"
-          ><UserRound :size="19" /><span>{{
+          ><SkyIcon :icon="UserRound" :size="19" /><span>{{
             t('tabs.profile')
           }}</span></SkySegmentedButton
         ></SkySegmented
@@ -1627,10 +1669,18 @@ onUnmounted(() => {
                 class="sheet-crypto-logo"
                 :market="selectedMarket"
               />
-              <ArrowDownLeft v-else-if="sheet === 'deposit'" :size="19" />
-              <ArrowUpRight v-else-if="sheet === 'withdraw'" :size="19" />
-              <Send v-else-if="sheet === 'send'" :size="19" />
-              <UserRound v-else :size="19" />
+              <SkyIcon
+                :icon="ArrowDownLeft"
+                v-else-if="sheet === 'deposit'"
+                :size="19"
+              />
+              <SkyIcon
+                :icon="ArrowUpRight"
+                v-else-if="sheet === 'withdraw'"
+                :size="19"
+              />
+              <SkyIcon :icon="Send" v-else-if="sheet === 'send'" :size="19" />
+              <SkyIcon :icon="UserRound" v-else :size="19" />
             </span>
             <span>
               <small>{{
@@ -1676,13 +1726,13 @@ onUnmounted(() => {
             ><SkySegmentedButton
               :active="side === 'buy'"
               @click="selectTradeSide('buy')"
-              ><ArrowDownLeft :size="16" />{{
+              ><SkyIcon :icon="ArrowDownLeft" :size="16" />{{
                 t('trade.buy')
               }}</SkySegmentedButton
             ><SkySegmentedButton
               :active="side === 'sell'"
               @click="selectTradeSide('sell')"
-              ><ArrowUpRight :size="16" />{{
+              ><SkyIcon :icon="ArrowUpRight" :size="16" />{{
                 t('trade.sell')
               }}</SkySegmentedButton
             ></SkySegmented
@@ -1696,7 +1746,8 @@ onUnmounted(() => {
               placeholder="0.000000"
               inputmode="decimal"
               outline
-              ><template #leading><ChartCandlestick :size="18" /></template
+              ><template #leading
+                ><SkyIcon :icon="ChartCandlestick" :size="18" /></template
             ></SkyField>
             <div class="trade-entry-meta">
               <span>
@@ -1716,7 +1767,7 @@ onUnmounted(() => {
             </div>
           </div>
           <div v-if="!crypto.pendingQuote" class="trade-protection">
-            <ShieldCheck :size="18" />
+            <SkyIcon :icon="ShieldCheck" :size="18" />
             <span>
               <b>{{ t('trade.protected') }}</b>
               <small>{{ t('trade.protectedBody') }}</small>
@@ -1732,7 +1783,7 @@ onUnmounted(() => {
                 <small>{{ t('trade.review') }}</small>
                 <b>{{ t(`trade.${side}`) }} {{ selectedMarket.symbol }}</b>
               </span>
-              <ShieldCheck :size="18" />
+              <SkyIcon :icon="ShieldCheck" :size="18" />
             </div>
             <div>
               <span>{{ t('trade.price') }}</span
@@ -1765,7 +1816,7 @@ onUnmounted(() => {
           > </template
         ><template v-else-if="sheet === 'send'">
           <div class="transfer-intro">
-            <span><KeyRound :size="19" /></span>
+            <span><SkyIcon :icon="KeyRound" :size="19" /></span>
             <div>
               <b>{{ t('transfer.keyTitle') }}</b
               ><small>{{ t('transfer.keyBody') }}</small>
@@ -1780,7 +1831,8 @@ onUnmounted(() => {
               maxlength="22"
               autocomplete="off"
               outline
-              ><template #leading><KeyRound :size="17" /></template
+              ><template #leading
+                ><SkyIcon :icon="KeyRound" :size="17" /></template
             ></SkyField>
             <SkyButton
               class="transfer-resolve"
@@ -1790,7 +1842,7 @@ onUnmounted(() => {
             </SkyButton>
           </div>
           <div v-if="transferRecipient" class="transfer-recipient">
-            <span><CheckCircle2 :size="20" /></span>
+            <span><SkyIcon :icon="CheckCircle2" :size="20" /></span>
             <div>
               <small>{{ t('transfer.verifiedRecipient') }}</small
               ><b>@{{ transferRecipient.handle }}</b
@@ -1800,7 +1852,8 @@ onUnmounted(() => {
           <div class="transfer-assets">
             <small>{{ t('transfer.asset') }}</small>
             <div>
-              <button
+              <SkyButton
+                variant="content"
                 v-for="holding in holdings"
                 :key="holding.assetId"
                 :class="{ active: transferMarketId === holding.assetId }"
@@ -1811,7 +1864,7 @@ onUnmounted(() => {
                   ><b>{{ market(holding.assetId)?.symbol }}</b
                   ><small>{{ quantity(holding.quantity) }}</small></span
                 >
-              </button>
+              </SkyButton>
             </div>
           </div>
           <SkyField
@@ -1823,7 +1876,7 @@ onUnmounted(() => {
             outline
             ><template #trailing
               ><b>{{ transferMarket?.symbol }}</b></template
-            ><template #leading><Send :size="18" /></template
+            ><template #leading><SkyIcon :icon="Send" :size="18" /></template
           ></SkyField>
           <div class="transfer-balance">
             <span>{{ t('transfer.available') }}</span>
@@ -1839,10 +1892,11 @@ onUnmounted(() => {
             type="password"
             autocomplete="current-password"
             outline
-            ><template #leading><LockKeyhole :size="17" /></template
+            ><template #leading
+              ><SkyIcon :icon="LockKeyhole" :size="17" /></template
           ></SkyField>
           <div class="trade-protection">
-            <ShieldCheck :size="17" />
+            <SkyIcon :icon="ShieldCheck" :size="17" />
             <span
               ><b>{{ t('transfer.protected') }}</b
               ><small>{{ t('transfer.protectedBody') }}</small></span
@@ -1855,7 +1909,7 @@ onUnmounted(() => {
             class="transfer-submit"
             @click="submitTransfer"
           >
-            <Send :size="17" />{{ t('transfer.confirm') }}
+            <SkyIcon :icon="Send" :size="17" />{{ t('transfer.confirm') }}
           </SkyButton> </template
         ><template v-else-if="sheet === 'profile'">
           <p class="sheet-copy">{{ t('profile.editBody') }}</p>
@@ -1869,7 +1923,8 @@ onUnmounted(() => {
                 maxlength="20"
                 autocomplete="username"
                 outline
-                ><template #leading><UserRound :size="18" /></template
+                ><template #leading
+                  ><SkyIcon :icon="UserRound" :size="18" /></template
               ></SkyField>
               <SkyField
                 v-model="profileCurrentPassword"
@@ -1880,7 +1935,8 @@ onUnmounted(() => {
                 type="password"
                 autocomplete="current-password"
                 outline
-                ><template #leading><LockKeyhole :size="18" /></template
+                ><template #leading
+                  ><SkyIcon :icon="LockKeyhole" :size="18" /></template
               ></SkyField>
               <SkyField
                 v-model="profileNewPassword"
@@ -1891,16 +1947,17 @@ onUnmounted(() => {
                 type="password"
                 autocomplete="new-password"
                 outline
-                ><template #leading><Fingerprint :size="18" /></template
+                ><template #leading
+                  ><SkyIcon :icon="Fingerprint" :size="18" /></template
               ></SkyField>
             </div>
             <div class="profile-edit-note">
-              <ShieldCheck :size="17" />
+              <SkyIcon :icon="ShieldCheck" :size="17" />
               <span>{{ t('profile.passwordSecurity') }}</span>
             </div>
             <p v-if="formError" class="error">{{ formError }}</p>
             <SkyButton block large class="profile-save-button" type="submit">
-              <ShieldCheck :size="18" />
+              <SkyIcon :icon="ShieldCheck" :size="18" />
               <span>{{ t('profile.saveChanges') }}</span>
             </SkyButton>
           </form>
@@ -1908,7 +1965,7 @@ onUnmounted(() => {
         <template v-else>
           <form class="settlement-form" @submit.prevent="submitSettlement">
             <div class="settlement-intro">
-              <span><ShieldCheck :size="18" /></span>
+              <span><SkyIcon :icon="ShieldCheck" :size="18" /></span>
               <p class="sheet-copy settlement-copy">
                 {{
                   t(
@@ -1928,7 +1985,8 @@ onUnmounted(() => {
                 placeholder="0"
                 inputmode="numeric"
                 outline
-                ><template #leading><WalletCards :size="18" /></template
+                ><template #leading
+                  ><SkyIcon :icon="WalletCards" :size="18" /></template
               ></SkyField>
               <SkyField
                 v-model="financialPassword"
@@ -1938,14 +1996,15 @@ onUnmounted(() => {
                 type="password"
                 autocomplete="current-password"
                 outline
-                ><template #leading><LockKeyhole :size="18" /></template
+                ><template #leading
+                  ><SkyIcon :icon="LockKeyhole" :size="18" /></template
               ></SkyField>
             </div>
             <p v-if="formError" class="error settlement-error">
               {{ formError }}
             </p>
             <SkyButton block large class="settlement-submit" type="submit">
-              <ShieldCheck :size="18" />
+              <SkyIcon :icon="ShieldCheck" :size="18" />
               <span>{{ t('settlement.confirm') }}</span>
             </SkyButton>
           </form>
@@ -2800,7 +2859,7 @@ onUnmounted(() => {
   min-height: 34px;
   gap: 6px;
   padding: 0 10px;
-  color: #ff9aa8;
+  color: var(--sky-button-text, #ffffff);
   font-size: 10px;
   font-weight: 850;
   white-space: nowrap;
@@ -2825,7 +2884,7 @@ onUnmounted(() => {
   color: #ff7588;
 }
 .profile-signout:hover {
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   background: linear-gradient(
     145deg,
     rgba(255, 117, 136, 0.24),
@@ -2868,7 +2927,7 @@ onUnmounted(() => {
   --sky-glass-solid: var(--sky-surface);
 }
 .crypto-app :deep(.sky-pill-navigation .sky-segmented-button--active) {
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
 }
 .auth-hero__mark {
   display: grid;
@@ -3755,7 +3814,7 @@ onUnmounted(() => {
   min-height: 36px;
   flex: 0 0 auto;
   padding: 0 12px;
-  color: var(--sky-text);
+  color: var(--sky-button-text, #ffffff);
   background: rgba(101, 251, 210, 0.1);
   border: 1px solid rgba(101, 251, 210, 0.2);
   box-shadow: inset 0 1px color-mix(in srgb, var(--sky-text) 6%, transparent);
