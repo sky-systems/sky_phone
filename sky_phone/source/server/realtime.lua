@@ -54,9 +54,40 @@ local function public_config()
         iceTransportPolicy = Config.Realtime.ForceRelay and Config.Realtime.Transport == "p2p" and "relay" or "all",
     }
 end
+local function snapshot_matches(room, source, member)
+    local cached = member.snapshot
+    if cached.id ~= room.id or cached.kind ~= room.kind or cached.app ~= room.app
+        or cached.title ~= room.title or cached.description ~= room.description
+        or cached.hostName ~= room.hostName or cached.hostAvatar ~= room.hostAvatar
+        or cached.profileId ~= tostring(room.profileId or "") or cached.transport ~= room.transport
+        or cached.role ~= member.role or cached.self ~= source
+        or (member.role ~= "nearby" and cached.messages ~= room.messages) then return false end
+    local viewers, peer_count = 0, 0
+    for id, other in pairs(room.members) do
+        if other.role == "viewer" and other.ready then viewers = viewers + 1 end
+        local receives, sends = edge(room, id, source), edge(room, source, id)
+        if receives or sends then
+            peer_count = peer_count + 1
+            local peer = member.snapshotPeers[id]
+            if not peer or peer.role ~= other.role or peer.receives ~= receives or peer.sends ~= sends
+                or peer.gain ~= math.floor((other.gain or 1) * 20) / 20 then return false end
+            if receives then
+                if #peer.tracks ~= #(other.tracks or {}) then return false end
+                for index, track in ipairs(other.tracks or {}) do
+                    local cached_track = peer.tracks[index]
+                    if cached_track.sessionId ~= other.session or cached_track.trackName ~= track.trackName
+                        or cached_track.kind ~= track.kind then return false end
+                end
+            elseif #peer.tracks > 0 then return false end
+        end
+    end
+    return cached.viewers == viewers and #cached.peers == peer_count
+end
 local function snapshot(room, source)
     local member = room.members[source]
+    if member.snapshot and snapshot_matches(room, source, member) then return member.snapshot end
     local peers, viewers = {}, 0
+    local peer_index = {}
     for id, other in pairs(room.members) do
         if other.role == "viewer" and other.ready then viewers = viewers + 1 end
         local receives, sends = edge(room, id, source), edge(room, source, id)
@@ -69,20 +100,17 @@ local function snapshot(room, source)
             end
             peers[#peers + 1] = { id = id, role = other.role, receives = receives, sends = sends,
                 gain = math.floor((other.gain or 1) * 20) / 20, tracks = tracks }
+            peer_index[id] = peers[#peers]
         end
     end
     table.sort(peers, function(a, b) return a.id < b.id end)
     local data = { id = room.id, kind = room.kind, app = room.app, title = room.title, description = room.description, hostName = room.hostName, profileId = tostring(room.profileId or ""), hostAvatar = room.hostAvatar,
         role = member.role, self = source, peers = peers, viewers = viewers, transport = room.transport,
         messages = member.role ~= "nearby" and room.messages or {} }
-    -- Callback replies and room events can reach NUI in a different order. Only
-    -- advance the member's revision when its public snapshot actually changes.
-    local encoded = json.encode(data)
-    if member.lastSnapshot ~= encoded then
-        member.lastSnapshot = encoded
-        member.revision = (member.revision or 0) + 1
-    end
+    -- Keep one immutable visible state; unchanged heartbeats need no JSON or copies.
+    member.revision = (member.revision or 0) + 1
     data.revision = member.revision
+    member.snapshot, member.snapshotPeers = data, peer_index
     return data
 end
 local function broadcast(room)
@@ -156,7 +184,7 @@ local function new_room(source, data)
         if rooms[id] then return rooms[id] end
         local caller, callee = call.caller.source, call.callee.source
         if not caller or not callee then return nil end
-        local room = { id = id, callId = call.id, kind = "call", members = {
+        local room = { id = id, callId = call.id, kind = "call", messages = {}, members = {
             [caller] = new_member("call"), [callee] = new_member("call"),
         }, host = caller, created = os.time(), transport = Config.Realtime.Transport }
         rooms[id] = room
@@ -282,9 +310,11 @@ Bridge.Database.AfterMigration("sky_phone", function()
         local profile = own_profile(source, room.app)
         if not profile or rooms[room.id] ~= room or room.members[source] ~= member then return failure("ended") end
         room.messageSequence = room.messageSequence + 1
-        room.messages[#room.messages + 1] = { id = room.messageSequence, name = profile.display_name or profile.username,
+        local messages = { table.unpack(room.messages) }
+        messages[#messages + 1] = { id = room.messageSequence, name = profile.display_name or profile.username,
             text = message, host = member.role == "host", at = os.time() }
-        if #room.messages > 50 then table.remove(room.messages, 1) end
+        if #messages > 50 then table.remove(messages, 1) end
+        room.messages = messages
         broadcast(room)
         return { success = true }
     end)
