@@ -26,6 +26,7 @@ shared_scripts {
     'source/shared/phone_prop.lua',
     'source/shared/sim_number.lua',
     'source/shared/cellular.lua',
+    'source/shared/cell_tower_props.lua',
     'source/shared/custom_apps.lua',
     'source/bridge/phones/shared.lua',
     'source/bridge/phones/shared/lb.lua',
@@ -42,6 +43,7 @@ client_scripts {
     'source/client/phone_configurator.lua',
     'source/client/cellular.lua',
     'source/bridge/client/framework.lua',
+    'source/client/cell_tower_props.lua',
     'source/bridge/client/player_state.lua',
     'source/bridge/client/inventory.lua',
     'source/bridge/client/vehiclekeys.lua',
@@ -116,6 +118,7 @@ server_scripts {
     'source/bridge/server/inventory.lua',
     'source/bridge/server/inventory/*.lua',
     'source/bridge/server/inventory_contract.lua',
+    'source/server/cell_tower_props.lua',
     'source/bridge/server/pma_calls.lua',
     'source/bridge/server/voice.lua',
     'source/server/custom_apps.lua',
@@ -192,7 +195,10 @@ files {
     'source/html/img/**',
     'source/html/sounds/**',
     'config/music/**',
+    'stream/sky_phone_cell_towers.ytyp',
 }
+
+data_file 'DLC_ITYP_REQUEST' 'stream/sky_phone_cell_towers.ytyp'
 
 ui_page 'source/html/index.html'
 

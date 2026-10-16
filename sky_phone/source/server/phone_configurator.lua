@@ -323,7 +323,33 @@ local function merge_values(defaults, saved, path, excluded_paths)
         end
         return companies
     end
-    if path == "Phone.DisabledControls" or path == "CityWarn.Publishers" or path == "CellTowers.Towers"
+    if path == "CellTowers.Towers" then
+        local towers = copy_value(saved)
+        -- Earlier defaults were virtual antenna positions above the map. Move
+        -- only those exact legacy positions; keep custom coordinates/ranges.
+        local legacy_positions = {
+            { 215, -920, 100 }, { -720, -850, 90 }, { -1350, -430, 110 },
+            { 700, -1550, 90 }, { -850, -2450, 80 }, { 750, -2950, 70 },
+            { 650, 200, 150 }, { -450, 1000, 340 }, { -2900, 900, 60 },
+            { -2200, 2900, 100 }, { 500, 2700, 90 }, { 1750, 3700, 70 },
+            { 2450, 4900, 80 }, { -100, 6250, 90 }, { 4450, -4500, 50 },
+            { 5050, -4750, 65 }, { 4900, -5350, 80 }, { 5050, -5850, 65 },
+        }
+        for _, tower in ipairs(towers) do
+            if tower.Heading == nil then
+                tower.Heading = 0.0
+                for index, position in ipairs(legacy_positions) do
+                    if tower.Coords.x == position[1] and tower.Coords.y == position[2]
+                        and tower.Coords.z == position[3] and defaults[index] then
+                        tower.Coords = copy_value(defaults[index].Coords)
+                        break
+                    end
+                end
+            end
+        end
+        return towers
+    end
+    if path == "Phone.DisabledControls" or path == "CityWarn.Publishers" or path == "CellTowers.Props.RepairJobs"
         or path == "CellTowers.OfflineApps" or path == "CellTowers.OnlineActions" then
         return copy_value(saved)
     end
@@ -636,10 +662,14 @@ local function empty_structure(scope, path)
                 kind = "table",
                 fields = {
                     Coords = { kind = "vector", vectorType = "vector3" },
+                    Heading = { kind = "value", valueType = "number" },
                     Range = { kind = "value", valueType = "number" },
                 },
             },
         }
+    end
+    if path == "CellTowers.Props.RepairJobs" then
+        return { items = {}, kind = "list", template = { kind = "value", valueType = "string" } }
     end
     if path == "Payphones.CustomLocations" then
         return {
@@ -738,7 +768,7 @@ local function company_definition_entry_default(company_id, configuration)
 end
 
 local function build_structure(value, scope, path)
-    if scope == "config" and (path == "Phone.DisabledControls" or path == "CellTowers.Towers"
+    if scope == "config" and (path == "Phone.DisabledControls" or path == "CellTowers.Towers" or path == "CellTowers.Props.RepairJobs"
         or path:match("^Companies%.Definitions%.[^.]+%.Services$")) then
         return empty_structure(scope, path)
     end
@@ -1770,11 +1800,42 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     if type(cellular.Enabled) ~= "boolean" or #cellular.Towers > 256 then
         return { success = false, error = "invalid_value" }
     end
-    for _, tower in ipairs(cellular.Towers) do
-        if type(tower.Range) ~= "number"
-            or not (tower.Range >= 1 and tower.Range <= 50000) then
+    local props = cellular.Props
+    if type(props.Enabled) ~= "boolean" or type(props.LockpickItem) ~= "string"
+        or not props.LockpickItem:match("^[%w_-]+$") or #props.LockpickItem > 64
+        or type(props.RepairSeconds) ~= "number" or props.RepairSeconds % 1 ~= 0
+        or props.RepairSeconds < 1 or props.RepairSeconds > 300
+        or type(props.RepairJobs) ~= "table" or #props.RepairJobs > 64 then
+        return { success = false, error = "invalid_value" }
+    end
+    local jobs = {}
+    for _, name in ipairs({ "Tower", "Door", "Intact", "Damaged" }) do
+        local model = props.Models[name]
+        if type(model) ~= "string" or #model > 64 or not model:match("^[%w_-]+$") then
             return { success = false, error = "invalid_value" }
         end
+    end
+    for _, angle in ipairs({ props.DoorClosedAngle, props.DoorOpenAngle }) do
+        if type(angle) ~= "number" or not (angle >= -360 and angle <= 360) then
+            return { success = false, error = "invalid_value" }
+        end
+    end
+    for _, job in ipairs(props.RepairJobs) do
+        if type(job) ~= "string" or #job > 64 or not job:match("^[%w_-]+$") or jobs[job] then
+            return { success = false, error = "invalid_value" }
+        end
+        jobs[job] = true
+    end
+    local positions = {}
+    for _, tower in ipairs(cellular.Towers) do
+        if type(tower.Range) ~= "number"
+            or not (tower.Range >= 1 and tower.Range <= 50000)
+            or type(tower.Heading) ~= "number" or not (tower.Heading >= 0 and tower.Heading < 360) then
+            return { success = false, error = "invalid_value" }
+        end
+        local key = ("%.3f:%.3f:%.3f"):format(tower.Coords.x, tower.Coords.y, tower.Coords.z)
+        if positions[key] then return { success = false, error = "invalid_value" } end
+        positions[key] = true
     end
     local realtime = candidate_config.Realtime
     local bounds = {

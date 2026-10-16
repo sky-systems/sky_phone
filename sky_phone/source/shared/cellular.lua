@@ -25,9 +25,12 @@ function SkyPhoneCellular.Level(coords)
     if not Config.CellTowers.Enabled then return 1.0 end
     local strongest = 0.0
     for _, tower in ipairs(Config.CellTowers.Towers) do
-        -- Coverage is horizontal: antenna/aircraft height does not shrink its footprint.
-        local dx, dy = coords.x - tower.Coords.x, coords.y - tower.Coords.y
-        strongest = math.max(strongest, 1.0 - math.sqrt(dx * dx + dy * dy) / tower.Range)
+        local state = Config.CellTowers.Props.Enabled and SkyPhoneCellular.TowerStates[SkyPhoneCellular.TowerKey(tower)]
+        if not state or not state.damaged then
+            -- Coverage is horizontal: antenna/aircraft height does not shrink its footprint.
+            local dx, dy = coords.x - tower.Coords.x, coords.y - tower.Coords.y
+            strongest = math.max(strongest, 1.0 - math.sqrt(dx * dx + dy * dy) / tower.Range)
+        end
     end
     return strongest
 end

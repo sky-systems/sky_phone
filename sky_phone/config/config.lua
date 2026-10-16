@@ -207,25 +207,44 @@ Config.AdminPanel = {
 -- Mobile coverage. Disabled means full service everywhere. Managed in /phonepanel.
 Config.CellTowers = {
     Enabled = true,
+    Props = {
+        Enabled = false, -- Physical masts, lockpicking, weapon damage and repairs.
+        LockpickItem = "lockpick", -- One is consumed each time a closed cabinet is opened.
+        RepairJobs = {}, -- Empty: everyone. Otherwise job names, e.g. { "mechanic" }.
+        RepairSeconds = 10,
+        Models = {
+            Tower = "sky_phone_cell_tower",
+            Door = "sky_phone_cell_door",
+            Intact = "sky_phone_cell_panel",
+            Damaged = "sky_phone_cell_panel_broken",
+        },
+        DoorOffset = vector3(-0.37945, -1.5499, 1.30), -- Door hinge relative to the mast origin.
+        PanelOffset = vector3(0.0, 0.0, 0.0), -- Shared origin of both interior models.
+        CabinetOffset = vector3(0.0, -1.55, 1.30), -- Interaction point relative to the mast origin.
+        DoorClosedAngle = 0.0, -- Degrees relative to the mast heading.
+        DoorOpenAngle = -110.0,
+    },
     Towers = {
-        { Coords = vector3(215.0, -920.0, 100.0), Range = 1600.0 }, -- Downtown / Pillbox
-        { Coords = vector3(-720.0, -850.0, 90.0), Range = 1400.0 }, -- Little Seoul / Vespucci
-        { Coords = vector3(-1350.0, -430.0, 110.0), Range = 1500.0 }, -- Del Perro / Rockford
-        { Coords = vector3(700.0, -1550.0, 90.0), Range = 1600.0 }, -- East LS / El Burro
-        { Coords = vector3(-850.0, -2450.0, 80.0), Range = 1700.0 }, -- Airport / La Puerta
-        { Coords = vector3(750.0, -2950.0, 70.0), Range = 1500.0 }, -- Port / Elysian Island
-        { Coords = vector3(650.0, 200.0, 150.0), Range = 1500.0 }, -- Vinewood / Mirror Park
-        { Coords = vector3(-450.0, 1000.0, 340.0), Range = 1600.0 }, -- Vinewood Hills
-        { Coords = vector3(-2900.0, 900.0, 60.0), Range = 1700.0 }, -- Chumash / west coast
-        { Coords = vector3(-2200.0, 2900.0, 100.0), Range = 1700.0 }, -- Zancudo
-        { Coords = vector3(500.0, 2700.0, 90.0), Range = 1700.0 }, -- Route 68 / Harmony
-        { Coords = vector3(1750.0, 3700.0, 70.0), Range = 1800.0 }, -- Sandy Shores
-        { Coords = vector3(2450.0, 4900.0, 80.0), Range = 1500.0 }, -- Grapeseed
-        { Coords = vector3(-100.0, 6250.0, 90.0), Range = 1800.0 }, -- Paleto Bay
-        { Coords = vector3(4450.0, -4500.0, 50.0), Range = 1050.0 }, -- Cayo airstrip / north dock
-        { Coords = vector3(5050.0, -4750.0, 65.0), Range = 1000.0 }, -- Cayo north / fields
-        { Coords = vector3(4900.0, -5350.0, 80.0), Range = 1000.0 }, -- Cayo main dock / centre
-        { Coords = vector3(5050.0, -5850.0, 65.0), Range = 950.0 }, -- Cayo compound / south
+        -- Coords mark the bottom centre of the foundation, not the antenna.
+        -- Ground measured on the standard map; custom maps may need new positions.
+        { Coords = vector3(200.0, -935.0, 29.672), Heading = 0.0, Range = 1600.0 }, -- Downtown / Pillbox
+        { Coords = vector3(-705.0, -880.0, 22.550), Heading = 0.0, Range = 1400.0 }, -- Little Seoul / Vespucci
+        { Coords = vector3(-1320.0, -430.0, 32.733), Heading = 0.0, Range = 1500.0 }, -- Del Perro / Rockford
+        { Coords = vector3(685.0, -1535.0, 8.689), Heading = 0.0, Range = 1600.0 }, -- East LS / El Burro
+        { Coords = vector3(-865.0, -2480.0, 12.811), Heading = 0.0, Range = 1700.0 }, -- Airport / La Puerta
+        { Coords = vector3(780.0, -2965.0, 4.781), Heading = 0.0, Range = 1500.0 }, -- Port / Elysian Island
+        { Coords = vector3(620.0, 200.0, 97.387), Heading = 0.0, Range = 1500.0 }, -- Vinewood / Mirror Park
+        { Coords = vector3(-390.0, 940.0, 233.315), Heading = 0.0, Range = 1600.0 }, -- Vinewood Hills
+        { Coords = vector3(-3030.0, 710.0, 21.850), Heading = 0.0, Range = 1700.0 }, -- Chumash / west coast
+        { Coords = vector3(-2185.0, 2900.0, 31.790), Heading = 0.0, Range = 1700.0 }, -- Zancudo
+        { Coords = vector3(560.0, 2730.0, 41.040), Heading = 0.0, Range = 1700.0 }, -- Route 68 / Harmony
+        { Coords = vector3(1780.0, 3685.0, 33.191), Heading = 0.0, Range = 1800.0 }, -- Sandy Shores
+        { Coords = vector3(2390.0, 4840.0, 40.203), Heading = 0.0, Range = 1500.0 }, -- Grapeseed
+        { Coords = vector3(-100.0, 6280.0, 30.294), Heading = 0.0, Range = 1800.0 }, -- Paleto Bay
+        { Coords = vector3(4430.0, -4460.0, 3.308), Heading = 0.0, Range = 1050.0 }, -- Cayo airstrip / north dock
+        { Coords = vector3(4960.0, -4720.0, 7.340), Heading = 0.0, Range = 1000.0 }, -- Cayo north / fields
+        { Coords = vector3(4900.0, -5200.0, 1.419), Heading = 0.0, Range = 1000.0 }, -- Cayo main dock / centre
+        { Coords = vector3(4900.0, -5730.0, 25.331), Heading = 0.0, Range = 950.0 }, -- Cayo compound / south
     },
     -- true: usable without reception. Unlisted/custom apps require signal.
     -- Calls and Messages stay readable; transmitting actions are listed below.

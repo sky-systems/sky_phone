@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import {
   ChevronDown,
+  LocateFixed,
   Plus,
   Rows3,
   TableProperties,
   Trash2,
 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 
 import type { AdminConfiguratorStructure } from '@/types/admin'
 import { SkyProvider } from '@/ui'
+import { usePhoneStore } from '@/stores/phone'
+import { nuiCall } from '@/utils/nui'
 import AdminConfigKeybind from './AdminConfigKeybind.vue'
 import {
   blankFromConfiguratorStructure,
@@ -62,6 +65,13 @@ const props = withDefaults(
   { ariaLabel: '', depth: 0, disabled: false, path: '' },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>()
+const phone = usePhoneStore()
+const locating = ref(false)
+const locationError = ref(false)
+let mounted = true
+onBeforeUnmount(() => {
+  mounted = false
+})
 
 type ValueKind = 'boolean' | 'list' | 'number' | 'string' | 'table'
 type MapKeyKind = 'number' | 'string'
@@ -109,6 +119,46 @@ const vectorType = computed(() => {
   const value = tableValue.value.__skyType
   return typeof value === 'string' && /^vector[234]$/.test(value) ? value : ''
 })
+const isWorldLocation = computed(
+  () =>
+    Boolean(vectorType.value) &&
+    /^(?:CellTowers\.Towers\[\d+\]\.Coords|Companies\.Definitions\.[^.]+\.Location|SkyRide\.QuickLocations\[\d+\]\.Coords|Payphones\.CustomLocations\[\d+\])$/.test(
+      props.path,
+    ),
+)
+
+async function useCurrentLocation(): Promise<void> {
+  locating.value = true
+  locationError.value = false
+  const path = props.path
+  const response = await nuiCall<{
+    coords: { x: number; y: number; z: number }
+    heading: number
+  }>('configurator:get-player-coords', {
+    grounded: props.path.startsWith('CellTowers.'),
+  })
+  if (!mounted) return
+  locating.value = false
+  if (props.disabled || props.path !== path) return
+  const coords = response.data?.coords
+  if (
+    !response.success ||
+    !coords ||
+    ![coords.x, coords.y, coords.z, response.data?.heading].every(
+      Number.isFinite,
+    )
+  ) {
+    locationError.value = true
+    return
+  }
+  emit('update:modelValue', {
+    ...tableValue.value,
+    x: coords.x,
+    y: coords.y,
+    ...(vectorType.value !== 'vector2' ? { z: coords.z } : {}),
+    ...(vectorType.value === 'vector4' ? { w: response.data!.heading } : {}),
+  })
+}
 const mapType = computed(
   () => props.structure?.kind === 'map' || tableValue.value.__skyType === 'map',
 )
@@ -788,6 +838,26 @@ function mapEntryStructure(
       </div>
     </header>
 
+    <div v-if="isWorldLocation" class="config-structured-editor__location">
+      <button
+        type="button"
+        :disabled="disabled || locating"
+        @click="useCurrentLocation"
+      >
+        <LocateFixed :size="14" />
+        {{
+          phone.t(
+            locating
+              ? 'Cellular.locationLoading'
+              : 'Cellular.useCurrentLocation',
+          )
+        }}
+      </button>
+      <span v-if="locationError" role="alert">{{
+        phone.t('Cellular.locationFailed')
+      }}</span>
+    </div>
+
     <nav
       v-if="rootTableTabs.length"
       class="config-structured-editor__tabs"
@@ -1196,6 +1266,21 @@ function mapEntryStructure(
 </template>
 
 <style scoped>
+.config-structured-editor__location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(8 * var(--admin-unit));
+  padding: calc(6 * var(--admin-unit));
+  color: var(--admin-text);
+  font-size: calc(9 * var(--admin-unit));
+  line-height: 1.5;
+}
+
+.config-structured-editor .config-structured-editor__location button {
+  min-height: 44px;
+}
+
 .config-structured-editor {
   min-width: 0;
   overflow: hidden;

@@ -7,6 +7,23 @@ local function player_coordinates()
     }
 end
 
+RegisterNUICallback("configurator:get-player-coords", function(data, cb)
+    local coords = player_coordinates()
+    if type(data) == "table" and data.grounded then
+        local found, ground_z = GetGroundZFor_3dCoord(coords.x, coords.y, coords.z + 0.5, false)
+        if not found then
+            Bridge.Debug("warn", "[sky_phone] No solid ground found below the player for a cell tower location.")
+            cb({ success = false, error = "ground_unavailable" })
+            return
+        end
+        coords.z = ground_z
+    end
+    cb({ success = true, data = {
+        coords = coords,
+        heading = GetEntityHeading(PlayerPedId()),
+    } })
+end)
+
 RegisterNUICallback("map:getPlayerCoords", function(data, cb)
     if type(data) ~= "table" then
         cb({ success = false, error = "invalid_request" })

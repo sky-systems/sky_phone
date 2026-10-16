@@ -1,0 +1,68 @@
+[
+  {
+    "file": "sky_phone_cell_tower.ydr",
+    "sha256": "269cd26f172a44db0de271c9125706a1df81af453d610bdbba6e38626f753bbf",
+    "triangles": {
+      "HIGH": 39999,
+      "MEDIUM": 12000,
+      "LOW": 3499,
+      "VERYLOW": 2982
+    },
+    "textures": [
+      "sky_phone_cell_tower_d.dds",
+      "sky_phone_cell_tower_d.dds.001",
+      "sky_phone_cell_tower_n.dds"
+    ],
+    "collisionBoxes": 11
+  },
+  {
+    "file": "sky_phone_cell_door.ydr",
+    "sha256": "5d8950f778b7bc46c4d06b3997b31e30de98bc1e350091102dcf718ccfb10fa5",
+    "triangles": {
+      "HIGH": 2527,
+      "MEDIUM": 1400,
+      "LOW": 499,
+      "VERYLOW": 276
+    },
+    "textures": [
+      "sky_phone_cell_panel_d.dds",
+      "sky_phone_cell_panel_d.dds.001",
+      "sky_phone_cell_panel_n.dds"
+    ],
+    "collisionBoxes": 1
+  },
+  {
+    "file": "sky_phone_cell_panel.ydr",
+    "sha256": "1cfa1ca92b5d58cd64531a090090822a6848662e88c4f8c7a4f490c4deb1fe1e",
+    "triangles": {
+      "HIGH": 26430,
+      "MEDIUM": 7000,
+      "LOW": 12,
+      "VERYLOW": 12
+    },
+    "textures": [
+      "sky_phone_cell_panel_d.dds.002",
+      "sky_phone_cell_panel_d.dds.003",
+      "sky_phone_cell_panel_far.dds",
+      "sky_phone_cell_panel_n.dds.001"
+    ],
+    "collisionBoxes": 1
+  },
+  {
+    "file": "sky_phone_cell_panel_broken.ydr",
+    "sha256": "97fa30db78fcf6ccb8dda7262ec9314e4cb308ce9d81a61d953d1fa5481d3f4e",
+    "triangles": {
+      "HIGH": 23899,
+      "MEDIUM": 23169,
+      "LOW": 12,
+      "VERYLOW": 12
+    },
+    "textures": [
+      "sky_phone_cell_panel_broken_d.dds",
+      "sky_phone_cell_panel_broken_d.dds.001",
+      "sky_phone_cell_panel_broken_far.dds",
+      "sky_phone_cell_panel_broken_n.dds"
+    ],
+    "collisionBoxes": 1
+  }
+]

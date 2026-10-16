@@ -1097,7 +1097,17 @@ test("cell towers, offline rules and master switch roundtrip through SQL and liv
     local settings = field.value
     assert(#settings.Towers == 18 and settings.Enabled)
     settings.Enabled = false
-    settings.Towers = { { Coords = { __skyType = "vector3", x = 4500, y = -5000, z = 50 }, Range = 900 } }
+    settings.Towers = { { Coords = { __skyType = "vector3", x = 4500, y = -5000, z = 50 }, Range = 900, Heading = 90 } }
+    assert(settings.Props.Enabled == false)
+    assert(field.structure.fields.Props.fields.RepairJobs.kind == "list")
+    settings.Props.Enabled, settings.Props.LockpickItem = true, "lockpick_advanced"
+    settings.Props.RepairJobs, settings.Props.RepairSeconds = { "mechanic", "police" }, 20
+    settings.Props.Models.Tower, settings.Props.Models.Door = "customer_mast", "customer_door"
+    settings.Props.Models.Intact, settings.Props.Models.Damaged = "customer_panel", "customer_panel_broken"
+    settings.Props.DoorOffset = { __skyType = "vector3", x = 1, y = 2, z = 3 }
+    settings.Props.PanelOffset = { __skyType = "vector3", x = 4, y = 5, z = 6 }
+    settings.Props.CabinetOffset = { __skyType = "vector3", x = 7, y = 8, z = 9 }
+    settings.Props.DoorClosedAngle, settings.Props.DoorOpenAngle = 90, 200
     settings.OfflineApps["custom-offline"] = true
     settings.OnlineActions["notes:custom-sync"] = true
     assert(server.save({ change("CellTowers", settings) }).success)
@@ -1105,12 +1115,57 @@ test("cell towers, offline rules and master switch roundtrip through SQL and liv
     local loaded = restarted.env.Config.CellTowers
     assert(not loaded.Enabled and #loaded.Towers == 1 and loaded.Towers[1].Coords.x == 4500)
     assert(loaded.OfflineApps["custom-offline"] and loaded.OnlineActions["notes:custom-sync"])
+    assert(loaded.Towers[1].Heading == 90 and loaded.Props.Enabled and loaded.Props.RepairSeconds == 20)
+    assert(loaded.Props.LockpickItem == "lockpick_advanced" and loaded.Props.RepairJobs[2] == "police")
+    assert(loaded.Props.Models.Tower == "customer_mast" and loaded.Props.Models.Damaged == "customer_panel_broken")
+    assert(loaded.Props.DoorOffset.x == 1 and loaded.Props.PanelOffset.y == 5 and loaded.Props.CabinetOffset.z == 9)
+    assert(loaded.Props.DoorClosedAngle == 90 and loaded.Props.DoorOpenAngle == 200)
     local client = new_client(restarted)
     assert(not client.config.CellTowers.Enabled and #client.config.CellTowers.Towers == 1)
     settings = restarted.field("CellTowers").value
     settings.Enabled, settings.Towers = true, {}
     assert(restarted.save({ change("CellTowers", settings) }).success)
     assert(#new_server(server.database).env.Config.CellTowers.Towers == 0)
+end)
+
+test("invalid physical tower settings are rejected before SQL writes", function()
+    for _, invalid in ipairs({
+        { key = "RepairSeconds", value = 0 }, { key = "RepairSeconds", value = 301 },
+        { key = "RepairSeconds", value = 1.5 }, { key = "Enabled", value = "yes" },
+        { key = "LockpickItem", value = "" }, { key = "RepairJobs", value = { "police", "police" } },
+        { key = "DoorOpenAngle", value = 361 }, { key = "DoorClosedAngle", value = -361 },
+        { key = "Models", value = { Tower = "", Door = "door", Intact = "panel", Damaged = "broken" } },
+    }) do
+        local server = new_server()
+        local settings = server.field("CellTowers").value
+        settings.Props[invalid.key] = invalid.value
+        assert(not server.save({ change("CellTowers", settings) }).success, invalid.key)
+        assert(server.database.writes == 0)
+    end
+    for _, heading in ipairs({ -1, 360, "north" }) do
+        local server = new_server()
+        local settings = server.field("CellTowers").value
+        settings.Towers[1].Heading = heading
+        assert(not server.save({ change("CellTowers", settings) }).success)
+        assert(server.database.writes == 0)
+    end
+end)
+
+test("legacy virtual tower positions migrate while custom positions and ranges survive", function()
+    local server = new_server()
+    local saved = server.database.payloads[tonumber(server.database.row.config_payload)]
+    saved.CellTowers = {
+        Enabled = true,
+        Towers = {
+            { Coords = { __skyType = "vector3", x = 215, y = -920, z = 100 }, Range = 700 },
+            { Coords = { __skyType = "vector3", x = 100, y = 200, z = 30 }, Range = 500 },
+        },
+    }
+    local restarted = new_server(server.database)
+    local towers = restarted.env.Config.CellTowers.Towers
+    assert(towers[1].Coords.z == 29.672 and towers[1].Range == 700 and towers[1].Heading == 0)
+    assert(towers[2].Coords.x == 100 and towers[2].Coords.z == 30 and towers[2].Range == 500)
+    assert(restarted.env.Config.CellTowers.Props.Enabled == false)
 end)
 
 test("cell tower invalid ranges and coordinates never reach SQL or clients", function()

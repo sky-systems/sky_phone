@@ -1,5 +1,8 @@
 const { randomUUID } = require('node:crypto')
-const { socialPosts, deleteSocialPost } = require('./social-moderation-fixture.cjs')
+const {
+  socialPosts,
+  deleteSocialPost,
+} = require('./social-moderation-fixture.cjs')
 
 const cors = require('cors')
 const express = require('express')
@@ -11077,7 +11080,10 @@ app.post('/api/:endpoint', (request, response) => {
     return
   }
   if (endpoint === 'crypto:watch') {
-    response.json({ success: true, data: request.body.active ? cryptoOverview().markets : undefined })
+    response.json({
+      success: true,
+      data: request.body.active ? cryptoOverview().markets : undefined,
+    })
     return
   }
   if (endpoint === 'crypto:login') {
@@ -11630,10 +11636,13 @@ app.post('/api/:endpoint', (request, response) => {
     })
     return
   }
-  if (endpoint === 'map:getPlayerCoords') {
+  if (
+    endpoint === 'map:getPlayerCoords' ||
+    endpoint === 'configurator:get-player-coords'
+  ) {
     response.json({
       success: true,
-      data: { coords: { x: -75.2, y: -818.9, z: 326.2 } },
+      data: { coords: { x: -75.2, y: -818.9, z: 326.2 }, heading: 90 },
     })
     return
   }
