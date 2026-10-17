@@ -430,15 +430,18 @@ function configuratorDescription(
   structure?: AdminConfiguratorStructure,
   label?: string,
 ): string {
-  if (path.startsWith('CellTowers.')) {
-    const key =
-      path
-        .replace(/\[\d+\]/g, '')
-        .split('.')
-        .at(-1) ?? ''
-    return phone.t(
-      `Cellular.help.${['Enabled', 'Towers', 'OfflineApps', 'OnlineActions', 'Coords', 'Range'].includes(key) ? key : path.split('.')[1]}`,
-    )
+  if (path === 'CellTowers' || path.startsWith('CellTowers.')) {
+    const parts = path.replace(/\[\d+\]/g, '').split('.')
+    const key = parts.includes('Coords')
+      ? 'Coords'
+      : parts[1] === 'Props'
+        ? parts[2] === 'Enabled'
+          ? 'PropsEnabled'
+          : (parts[2] ?? 'Props')
+        : parts[1] === 'Towers'
+          ? (parts[2] ?? 'Towers')
+          : (parts[1] ?? 'Enabled')
+    return phone.t(`Cellular.help.${key}`)
   }
   if (/^Realtime(?:Secrets)?(?:\.|$)/.test(path))
     return phone.t(`Realtime.help.${path.split('.').at(-1)}`)
@@ -457,14 +460,35 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
+    ['CellTowers', phone.t('Cellular.group')],
     ['Phone.DisabledControls', t('configurator.phoneDisabledControlsLabel')],
-    ...['Enabled', 'Towers', 'OfflineApps', 'OnlineActions'].map((key) => [
-      `CellTowers.${key}`,
-      phone.t(`Cellular.labels.${key}`),
-    ]),
-    ...['Coords', 'Range'].map((key) => [
+    ...['Enabled', 'Towers', 'Props', 'OfflineApps', 'OnlineActions'].map(
+      (key) => [`CellTowers.${key}`, phone.t(`Cellular.labels.${key}`)],
+    ),
+    ...['Coords', 'Range', 'Heading'].map((key) => [
       `CellTowers.Towers[].${key}`,
       phone.t(`Cellular.labels.${key}`),
+    ]),
+    ...[
+      'Enabled',
+      'Destructible',
+      'LockpickItem',
+      'RepairItem',
+      'RepairJobs',
+      'RepairSeconds',
+      'Models',
+      'DoorOffset',
+      'PanelOffset',
+      'CabinetOffset',
+      'DoorClosedAngle',
+      'DoorOpenAngle',
+    ].map((key) => [
+      `CellTowers.Props.${key}`,
+      phone.t(`Cellular.labels.${key === 'Enabled' ? 'PropsEnabled' : key}`),
+    ]),
+    ...['Tower', 'Door', 'Intact', 'Damaged'].map((key) => [
+      `CellTowers.Props.Models.${key}`,
+      phone.t(`Cellular.labels.${key}Model`),
     ]),
     ['Garage.VehicleKeySystem', t('configurator.vehicleKeySystemLabel')],
     [
@@ -1867,7 +1891,7 @@ onBeforeUnmount(() => {
                       v-else-if="field.type === 'json'"
                       :model-value="configuratorFieldValue(field)"
                       :structure="field.structure"
-                      :aria-label="`${field.label} ${field.path}`"
+                      :aria-label="`${configuratorEditorLabels.fieldNames?.[field.path] ?? field.label} ${field.path}`"
                       :describe="configuratorDescription"
                       :labels="configuratorEditorLabels"
                       :disabled="!admin.configurator.enabled || saving"

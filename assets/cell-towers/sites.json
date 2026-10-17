@@ -1,0 +1,311 @@
+{
+  "checkedAt": "2026-10-17",
+  "method": "Offline downward ray tests against base-map YBNs and placed YDR embedded collisions, excluding North Yankton/prologue. CodeWalker Bounds.RayIntersect.",
+  "installedGameVersion": "1.0.3889.0",
+  "codeWalkerCoreSha256": "f08e8fb273c8c080d438508685b3b158db6b531a856d03be2514c46bf2e1b03a",
+  "sampling": {
+    "spacingMetres": 0.25,
+    "footprintSideMetres": 4,
+    "footprintSamples": 289,
+    "frontApproachWidthMetres": 2,
+    "frontApproachDistanceMetres": [
+      2.75,
+      4
+    ],
+    "foundationBottomBelowLowestSampleMetres": 0.02
+  },
+  "scope": "Mainland and mpheist4 standard map. No custom MLO/map geometry. Roof access routes and GTA build 3258 visuals have not been retested in game. These coordinates change coverage centres; configured ranges are preserved.",
+  "sites": [
+    {
+      "id": 1,
+      "x": 102.0,
+      "y": -861.0,
+      "z": 133.75,
+      "heading": 90,
+      "footprintSurfaceMin": 133.7701,
+      "footprintSurfaceMax": 133.7701,
+      "approachSurfaceMin": 133.7701,
+      "approachSurfaceMax": 133.7701,
+      "collisionSources": [
+        "x64i.rpf\\levels\\gta5\\_citye\\downtown_01\\dt1_12.rpf\\dt1_12_0.ybn"
+      ],
+      "site": "Downtown / Pillbox technical rooftop",
+      "range": 1600
+    },
+    {
+      "id": 2,
+      "x": -774.0,
+      "y": -778.0,
+      "z": 83.883,
+      "heading": 0,
+      "footprintSurfaceMin": 83.9035,
+      "footprintSurfaceMax": 83.9035,
+      "approachSurfaceMin": 83.9035,
+      "approachSurfaceMax": 83.9035,
+      "collisionSources": [
+        "x64l.rpf\\levels\\gta5\\_cityw\\koreatown_01\\kt1_06.rpf\\kt1_06_0.ybn"
+      ],
+      "site": "Little Seoul high-rise rooftop",
+      "range": 1400
+    },
+    {
+      "id": 3,
+      "x": -1294.0,
+      "y": -437.0,
+      "z": 106.462,
+      "heading": 0,
+      "footprintSurfaceMin": 106.4816,
+      "footprintSurfaceMax": 106.4816,
+      "approachSurfaceMin": 106.4815,
+      "approachSurfaceMax": 106.4816,
+      "collisionSources": [
+        "x64l.rpf\\levels\\gta5\\_cityw\\beverly_01\\bh1_01.rpf\\bh1_01_0.ybn"
+      ],
+      "site": "Del Perro / Rockford high-rise rooftop",
+      "range": 1500
+    },
+    {
+      "id": 4,
+      "x": 1255.0,
+      "y": -1072.0,
+      "z": 40.935,
+      "heading": 0,
+      "footprintSurfaceMin": 40.9545,
+      "footprintSurfaceMax": 40.9597,
+      "approachSurfaceMin": 40.9555,
+      "approachSurfaceMax": 40.9603,
+      "collisionSources": [
+        "x64j.rpf\\levels\\gta5\\_citye\\indust_02\\id2_00.rpf\\id2_00_0.ybn"
+      ],
+      "site": "East LS industrial rooftop",
+      "range": 1600
+    },
+    {
+      "id": 5,
+      "x": -1043.0,
+      "y": -2377.0,
+      "z": 27.486,
+      "heading": 0,
+      "footprintSurfaceMin": 27.506,
+      "footprintSurfaceMax": 27.506,
+      "approachSurfaceMin": 27.506,
+      "approachSurfaceMax": 27.506,
+      "collisionSources": [
+        "x64l.rpf\\levels\\gta5\\_cityw\\airport_01\\ap1_01_a.rpf\\ap1_01_a_0.ybn"
+      ],
+      "site": "LSIA service-building rooftop",
+      "range": 1700
+    },
+    {
+      "id": 6,
+      "x": 244.0,
+      "y": -3145.0,
+      "z": 39.582,
+      "heading": 0,
+      "footprintSurfaceMin": 39.6024,
+      "footprintSurfaceMax": 39.6024,
+      "approachSurfaceMin": 39.6024,
+      "approachSurfaceMax": 39.6024,
+      "collisionSources": [
+        "x64k.rpf\\levels\\gta5\\_citye\\port_01\\po1_08.rpf\\hi@po1_08_7.ybn"
+      ],
+      "site": "Elysian Island warehouse rooftop",
+      "range": 1500
+    },
+    {
+      "id": 7,
+      "x": 575.0,
+      "y": 97.0,
+      "z": 117.881,
+      "heading": 0,
+      "footprintSurfaceMin": 117.9012,
+      "footprintSurfaceMax": 117.9012,
+      "approachSurfaceMin": 117.9012,
+      "approachSurfaceMax": 117.9012,
+      "collisionSources": [
+        "x64j.rpf\\levels\\gta5\\_citye\\hollywood_01\\hw1_04.rpf\\hi@hw1_04_0.ybn"
+      ],
+      "site": "Vinewood technical rooftop",
+      "range": 1500
+    },
+    {
+      "id": 8,
+      "x": 733.5,
+      "y": 1272.0,
+      "z": 359.276,
+      "heading": 180,
+      "footprintSurfaceMin": 359.296,
+      "footprintSurfaceMax": 359.296,
+      "approachSurfaceMin": 359.296,
+      "approachSurfaceMax": 359.2961,
+      "collisionSources": [
+        "x64o.rpf\\levels\\gta5\\_hills\\cityhills_02\\ch2_03.rpf\\ch2_03_6.ybn"
+      ],
+      "site": "Vinewood Hills radio-site service rooftop",
+      "range": 1600
+    },
+    {
+      "id": 9,
+      "x": -2308.0,
+      "y": 327.0,
+      "z": 193.592,
+      "heading": 0,
+      "footprintSurfaceMin": 193.6116,
+      "footprintSurfaceMax": 193.6116,
+      "approachSurfaceMin": 193.6116,
+      "approachSurfaceMax": 193.6116,
+      "collisionSources": [
+        "x64n.rpf\\levels\\gta5\\_hills\\cityhills_01\\ch1_07.rpf\\ch1_07_2.ybn"
+      ],
+      "site": "Kortz Center hilltop technical rooftop",
+      "range": 1700
+    },
+    {
+      "id": 10,
+      "x": -1715.0,
+      "y": 3153.0,
+      "z": 57.433,
+      "heading": 180,
+      "footprintSurfaceMin": 57.4534,
+      "footprintSurfaceMax": 57.4535,
+      "approachSurfaceMin": 57.4534,
+      "approachSurfaceMax": 57.4535,
+      "collisionSources": [
+        "x64s.rpf\\levels\\gta5\\_hills\\country_03\\cs3_07.rpf\\hi@cs3_07_0.ybn"
+      ],
+      "site": "Fort Zancudo water-tower rooftop",
+      "range": 1700
+    },
+    {
+      "id": 11,
+      "x": 725.0,
+      "y": 2525.0,
+      "z": 77.973,
+      "heading": 0,
+      "footprintSurfaceMin": 77.9925,
+      "footprintSurfaceMax": 77.9926,
+      "approachSurfaceMin": 77.9925,
+      "approachSurfaceMax": 77.9926,
+      "collisionSources": [
+        "x64u.rpf\\levels\\gta5\\_hills\\country_06\\cs6_03.rpf\\cs6_03_1.ybn"
+      ],
+      "site": "Harmony radio-station rooftop",
+      "range": 1700
+    },
+    {
+      "id": 12,
+      "x": 1694.0,
+      "y": 3592.0,
+      "z": 39.306,
+      "heading": 0,
+      "footprintSurfaceMin": 39.3262,
+      "footprintSurfaceMax": 39.3263,
+      "approachSurfaceMin": 39.3262,
+      "approachSurfaceMax": 39.3263,
+      "collisionSources": [
+        "x64t.rpf\\levels\\gta5\\_hills\\country_04\\cs4_09.rpf\\cs4_09_0.ybn",
+        "x64t.rpf\\levels\\gta5\\_hills\\country_04\\cs4_09.rpf\\hi@cs4_09_0.ybn"
+      ],
+      "site": "Sandy Shores service-building rooftop",
+      "range": 1800
+    },
+    {
+      "id": 13,
+      "x": 2548.0,
+      "y": 5208.0,
+      "z": 49.947,
+      "heading": 0,
+      "footprintSurfaceMin": 49.9667,
+      "footprintSurfaceMax": 50.2115,
+      "approachSurfaceMin": 49.9258,
+      "approachSurfaceMax": 50.0876,
+      "collisionSources": [
+        "x64q.rpf\\levels\\gta5\\_hills\\country_01\\cs1_11b.rpf\\cs1_11b_32.ybn",
+        "x64q.rpf\\levels\\gta5\\_hills\\country_01\\cs1_11b.rpf\\hi@cs1_11b_30.ybn"
+      ],
+      "site": "Grapeseed northern hillside",
+      "range": 1500
+    },
+    {
+      "id": 14,
+      "x": -148.0,
+      "y": 6294.0,
+      "z": 39.262,
+      "heading": 0,
+      "footprintSurfaceMin": 39.282,
+      "footprintSurfaceMax": 39.282,
+      "approachSurfaceMin": 39.282,
+      "approachSurfaceMax": 39.282,
+      "collisionSources": [
+        "x64q.rpf\\levels\\gta5\\_hills\\country_01\\cs1_05.rpf\\cs1_05_0.ybn"
+      ],
+      "site": "Paleto Bay technical rooftop",
+      "range": 1800
+    },
+    {
+      "id": 15,
+      "x": 4368.0,
+      "y": -4577.0,
+      "z": 18.946,
+      "heading": 0,
+      "footprintSurfaceMin": 18.9659,
+      "footprintSurfaceMax": 18.9686,
+      "approachSurfaceMin": 18.9667,
+      "approachSurfaceMax": 19.0599,
+      "collisionSources": [
+        "update\\x64\\dlcpacks\\mpheist4\\dlc1.rpf\\x64\\levels\\gta5\\mph4_island\\mph4_airstrip.rpf\\h4_islandairstrip_11.ybn"
+      ],
+      "site": "Cayo airstrip control-tower rooftop",
+      "range": 1050
+    },
+    {
+      "id": 16,
+      "x": 5068.0,
+      "y": -4867.0,
+      "z": 17.183,
+      "heading": 0,
+      "footprintSurfaceMin": 17.2028,
+      "footprintSurfaceMax": 17.3754,
+      "approachSurfaceMin": 17.1311,
+      "approachSurfaceMax": 17.2201,
+      "collisionSources": [
+        "update\\x64\\dlcpacks\\mpheist4\\dlc1.rpf\\x64\\levels\\gta5\\mph4_terrain\\mph4_terrain_02.rpf\\h4_islandx_terrain_02_28.ybn"
+      ],
+      "site": "Cayo northern hillside above service road",
+      "range": 1000
+    },
+    {
+      "id": 17,
+      "x": 5264.0,
+      "y": -5406.0,
+      "z": 64.227,
+      "heading": 0,
+      "footprintSurfaceMin": 64.2465,
+      "footprintSurfaceMax": 64.3835,
+      "approachSurfaceMin": 64.143,
+      "approachSurfaceMax": 64.2929,
+      "collisionSources": [
+        "update\\x64\\dlcpacks\\mpheist4\\dlc2.rpf\\x64\\levels\\gta5\\mph4_terrain\\mph4_terrain_06.rpf\\h4_islandx_terrain_06_11.ybn",
+        "update\\x64\\dlcpacks\\mpheist4\\dlc2.rpf\\x64\\levels\\gta5\\mph4_terrain\\mph4_terrain_06.rpf\\h4_islandx_terrain_06_13.ybn"
+      ],
+      "site": "Cayo radio-site hilltop",
+      "range": 1000
+    },
+    {
+      "id": 18,
+      "x": 5129.0,
+      "y": -5516.0,
+      "z": 52.722,
+      "heading": 0,
+      "footprintSurfaceMin": 52.7419,
+      "footprintSurfaceMax": 52.9348,
+      "approachSurfaceMin": 52.8312,
+      "approachSurfaceMax": 52.9117,
+      "collisionSources": [
+        "update\\x64\\dlcpacks\\mpheist4\\dlc2.rpf\\x64\\levels\\gta5\\mph4_terrain\\mph4_terrain_06.rpf\\h4_islandx_terrain_06_4.ybn"
+      ],
+      "site": "Cayo southern lookout ridge",
+      "range": 950
+    }
+  ]
+}

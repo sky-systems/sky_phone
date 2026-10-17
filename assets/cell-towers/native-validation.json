@@ -1,0 +1,336 @@
+[
+  {
+    "file": "sky_phone_cell_tower.ydr",
+    "sha256": "d2eb682752d087a60ff4f359f62f93841255ec164fef87352a58dbb31e031560",
+    "fileBytes": 36641204,
+    "triangles": {
+      "HIGH": 317402,
+      "MEDIUM": 89757,
+      "LOW": 22648,
+      "VERYLOW": 5178
+    },
+    "vertices": {
+      "HIGH": 273774,
+      "MEDIUM": 80057,
+      "LOW": 26971,
+      "VERYLOW": 9455
+    },
+    "highBounds": {
+      "min": [
+        -1.826292634010315,
+        -1.8186922073364258,
+        0.0
+      ],
+      "max": [
+        1.8188351392745972,
+        1.826872706413269,
+        16.0
+      ]
+    },
+    "lodDistances": [
+      35.0,
+      100.0,
+      230.0,
+      500.0
+    ],
+    "textures": {
+      "sky_phone_cell_cabinet_d": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      },
+      "sky_phone_cell_cabinet_n": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      },
+      "sky_phone_cell_cabinet_s": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      },
+      "sky_phone_cell_tower_d": {
+        "width": 4096,
+        "height": 4096,
+        "nativeMipLevels": 12,
+        "reimportMipLevels": 11,
+        "format": "DXT1",
+        "reimportDdsBytes": 11184936
+      },
+      "sky_phone_cell_tower_n": {
+        "width": 4096,
+        "height": 4096,
+        "nativeMipLevels": 13,
+        "reimportMipLevels": 11,
+        "format": "DXT5",
+        "reimportDdsBytes": 22369744
+      },
+      "sky_phone_cell_tower_s": {
+        "width": 2048,
+        "height": 2048,
+        "nativeMipLevels": 12,
+        "reimportMipLevels": 10,
+        "format": "DXT5",
+        "reimportDdsBytes": 5592528
+      }
+    },
+    "collisionBoxes": 12,
+    "collisionTriangles": 5999,
+    "collisionSurfaceCheck": {
+      "rays": 48256,
+      "visualHits": 14121,
+      "surfaceCoverage": 0.9641668437079527,
+      "clearGaps": 0.9837703237146623,
+      "distanceError95Metres": 0.034198001027107225
+    },
+    "archetypeBounds": {
+      "min": [
+        -1.826292634010315,
+        -1.8250000476837158,
+        0.0
+      ],
+      "max": [
+        1.8250000476837158,
+        1.826872706413269,
+        16.0
+      ]
+    }
+  },
+  {
+    "file": "sky_phone_cell_door.ydr",
+    "sha256": "111ec15e0b0cf0560d7347b8dc4f5534285a7196733e6960b328414f56b2077c",
+    "fileBytes": 279750,
+    "triangles": {
+      "HIGH": 6830,
+      "MEDIUM": 3790,
+      "LOW": 558,
+      "VERYLOW": 12
+    },
+    "vertices": {
+      "HIGH": 5368,
+      "MEDIUM": 3468,
+      "LOW": 644,
+      "VERYLOW": 24
+    },
+    "highBounds": {
+      "min": [
+        -0.02054998278617859,
+        -0.124599888920784,
+        -0.5180000066757202
+      ],
+      "max": [
+        0.7264499664306641,
+        -0.03609989583492279,
+        0.5180000066757202
+      ]
+    },
+    "lodDistances": [
+      20.0,
+      45.0,
+      90.0,
+      150.0
+    ],
+    "textures": {
+      "sky_phone_cell_cabinet_d": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      },
+      "sky_phone_cell_cabinet_n": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      },
+      "sky_phone_cell_cabinet_s": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      }
+    },
+    "collisionBoxes": 1,
+    "collisionTriangles": 0,
+    "collisionSurfaceCheck": null,
+    "archetypeBounds": {
+      "min": [
+        -0.02054998278617859,
+        -0.124599888920784,
+        -0.5249999761581421
+      ],
+      "max": [
+        0.7450000047683716,
+        -0.010000001639127731,
+        0.5249999761581421
+      ]
+    }
+  },
+  {
+    "file": "sky_phone_cell_panel.ydr",
+    "sha256": "31c6c6a6f4c1fe3abd679fb8f0610126d6889a44b43ace6a6175a1d3acff4914",
+    "fileBytes": 1292632,
+    "triangles": {
+      "HIGH": 26328,
+      "MEDIUM": 14936,
+      "LOW": 2200,
+      "VERYLOW": 24
+    },
+    "vertices": {
+      "HIGH": 26528,
+      "MEDIUM": 13584,
+      "LOW": 2405,
+      "VERYLOW": 48
+    },
+    "highBounds": {
+      "min": [
+        -0.3428197503089905,
+        -1.559499979019165,
+        0.8199999332427979
+      ],
+      "max": [
+        0.31281977891921997,
+        -1.3034999370574951,
+        1.7799999713897705
+      ]
+    },
+    "lodDistances": [
+      20.0,
+      45.0,
+      90.0,
+      150.0
+    ],
+    "textures": {
+      "sky_phone_cell_cabinet_d": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      },
+      "sky_phone_cell_cabinet_n": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      },
+      "sky_phone_cell_cabinet_s": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      }
+    },
+    "collisionBoxes": 1,
+    "collisionTriangles": 0,
+    "collisionSurfaceCheck": null,
+    "archetypeBounds": {
+      "min": [
+        -0.3428197503089905,
+        -1.559999942779541,
+        0.8199999332427979
+      ],
+      "max": [
+        0.31281977891921997,
+        -1.3034999370574951,
+        1.7799999713897705
+      ]
+    }
+  },
+  {
+    "file": "sky_phone_cell_panel_broken.ydr",
+    "sha256": "dcadfe318ec0ed3a322003a576d95c0f3e711e9ef2088d92ba4294863e89f065",
+    "fileBytes": 1702910,
+    "triangles": {
+      "HIGH": 32043,
+      "MEDIUM": 17803,
+      "LOW": 2024,
+      "VERYLOW": 24
+    },
+    "vertices": {
+      "HIGH": 37680,
+      "MEDIUM": 15807,
+      "LOW": 2208,
+      "VERYLOW": 48
+    },
+    "highBounds": {
+      "min": [
+        -0.3428197503089905,
+        -1.6635338068008423,
+        0.8199999332427979
+      ],
+      "max": [
+        0.31281977891921997,
+        -1.3034999370574951,
+        1.7799999713897705
+      ]
+    },
+    "lodDistances": [
+      20.0,
+      45.0,
+      90.0,
+      150.0
+    ],
+    "textures": {
+      "sky_phone_cell_cabinet_d": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      },
+      "sky_phone_cell_cabinet_n": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      },
+      "sky_phone_cell_cabinet_s": {
+        "width": 256,
+        "height": 256,
+        "nativeMipLevels": 9,
+        "reimportMipLevels": 9,
+        "format": "RGBA8",
+        "reimportDdsBytes": 349652
+      }
+    },
+    "collisionBoxes": 1,
+    "collisionTriangles": 0,
+    "collisionSurfaceCheck": null,
+    "archetypeBounds": {
+      "min": [
+        -0.3428197503089905,
+        -1.6635338068008423,
+        0.8199999332427979
+      ],
+      "max": [
+        0.31281977891921997,
+        -1.3034999370574951,
+        1.7799999713897705
+      ]
+    }
+  }
+]

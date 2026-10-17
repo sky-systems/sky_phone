@@ -81,6 +81,17 @@ Save with the checkmark and restart for changed defaults. Existing player bindin
 still take priority and can be changed under FiveM Settings → Key Bindings → FiveM.
 See the [full configuration and access guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/phone-configurator.md).
 
+### Physical tower items
+
+Physical tower props are disabled by default. If you enable them under
+**Cell towers → Physical towers**, register the configured `LockpickItem`
+(default `lockpick`) and `RepairItem` (default `radiotowerparts`) in your active
+inventory. These are ordinary items without phone use exports or identity
+metadata. Opening consumes one lockpick; successful repair consumes one part.
+An interrupted repair consumes nothing. Item names, repair jobs/duration and
+the `Destructible` boolean are available in both Phonepanel and Lua file mode.
+Disabling `Destructible` prevents new damage; existing damage still needs repair.
+
 ### Keep configuration during updates
 
 Back up the database, including `sky_phone_configurator`, plus file-owned config,
