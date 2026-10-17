@@ -42,35 +42,53 @@ def activate(obj):
     bpy.context.view_layer.objects.active = obj
 
 
-def decimate(obj, triangles, preserve_uv=False):
+def decimate(obj, triangles, preserve_uv=False, preserve_tip=False):
     activate(obj)
     mod = obj.modifiers.new("Meshy topology reduction", "DECIMATE")
     mod.ratio = min(1.0, triangles / len(obj.data.polygons))
     mod.use_collapse_triangulate = True
-    if preserve_uv:
+    if preserve_uv or preserve_tip:
         # A zero weight prevents an edge collapse at an atlas boundary. Keep
         # those vertices so the original maps remain usable on the near mesh.
-        indices = np.empty(len(obj.data.loops), dtype=np.int32)
-        obj.data.loops.foreach_get("vertex_index", indices)
-        uv = np.empty(len(obj.data.loops) * 2, dtype=np.float32)
-        obj.data.uv_layers.active.data.foreach_get("uv", uv)
-        uv = uv.reshape(-1, 2)
-        low = np.full((len(obj.data.vertices), 2), np.inf)
-        high = np.full((len(obj.data.vertices), 2), -np.inf)
-        np.minimum.at(low, indices, uv)
-        np.maximum.at(high, indices, uv)
-        interior = np.flatnonzero(np.max(high - low, axis=1) < .000001).tolist()
-        group = obj.vertex_groups.new(name="Preserve UV seams")
+        unlocked = np.ones(len(obj.data.vertices), dtype=bool)
+        if preserve_uv:
+            indices = np.empty(len(obj.data.loops), dtype=np.int32)
+            obj.data.loops.foreach_get("vertex_index", indices)
+            uv = np.empty(len(obj.data.loops) * 2, dtype=np.float32)
+            obj.data.uv_layers.active.data.foreach_get("uv", uv)
+            uv = uv.reshape(-1, 2)
+            low = np.full((len(obj.data.vertices), 2), np.inf)
+            high = np.full((len(obj.data.vertices), 2), -np.inf)
+            np.minimum.at(low, indices, uv)
+            np.maximum.at(high, indices, uv)
+            unlocked &= np.max(high - low, axis=1) < .000001
+        if preserve_tip:
+            positions = np.empty(len(obj.data.vertices) * 3, dtype=np.float32)
+            obj.data.vertices.foreach_get("co", positions)
+            heights = positions.reshape(-1, 3)[:, 2]
+            unlocked &= heights < heights.max() - .05
+        interior = np.flatnonzero(unlocked).tolist()
+        group = obj.vertex_groups.new(name="Preserve atlas and antenna tip")
         group.add(interior, 1.0, "REPLACE")
         mod.vertex_group = group.name
         mod.vertex_group_factor = 1.0
     bpy.ops.object.modifier_apply(modifier=mod.name)
-    if preserve_uv:
+    if preserve_uv or preserve_tip:
         obj.vertex_groups.clear()
     if obj.data.has_custom_normals:
         bpy.ops.mesh.customdata_custom_splitnormals_clear()
     for face in obj.data.polygons:
         face.use_smooth = True
+
+
+def transfer_normals(source, obj):
+    activate(obj)
+    transfer = obj.modifiers.new("Original surface normals", "DATA_TRANSFER")
+    transfer.object = source
+    transfer.use_loop_data = True
+    transfer.data_types_loops = {"CUSTOM_NORMAL"}
+    transfer.loop_mapping = "POLYINTERP_NEAREST"
+    bpy.ops.object.modifier_apply(modifier=transfer.name)
 
 
 def cut(obj, predicate):
@@ -98,13 +116,14 @@ def dds_rgba(path, pixels):
     path.write_bytes(b"DDS " + struct.pack("<31I", *header) + b"".join(levels))
 
 
-def bake_maps(source, obj, name):
-    # The more heavily reduced cabinet parts use their own baked UV atlas.
+def bake_maps(source, obj, name, preserve_uv=False):
     activate(obj)
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=.003)
-    bpy.ops.object.mode_set(mode="OBJECT")
+    if not preserve_uv:
+        # The more heavily reduced cabinet parts use their own atlas.
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=.003)
+        bpy.ops.object.mode_set(mode="OBJECT")
     material = bpy.data.materials.new(name + ".bake")
     material.use_nodes = True
     obj.data.materials.clear()
@@ -116,56 +135,98 @@ def bake_maps(source, obj, name):
     scene.cycles.samples = 1
     scene.render.bake.use_selected_to_active = True
     scene.render.bake.use_cage = False
-    scene.render.bake.cage_extrusion = .003
-    scene.render.bake.max_ray_distance = .025
-    scene.render.bake.margin = 8
+    scene.render.bake.cage_extrusion = .002 if preserve_uv else .003
+    scene.render.bake.max_ray_distance = .015 if preserve_uv else .025
+    scene.render.bake.margin = 12 if preserve_uv else 8
     scene.render.bake.use_clear = True
     activate(obj)
     source.select_set(True)
     images = []
     for kind in ("DIFFUSE", "NORMAL"):
-        image = bpy.data.images.new(name + "." + kind.lower(), 2048, 2048, alpha=False)
+        size = 4096 if preserve_uv else 2048
+        image = bpy.data.images.new(name + "." + kind.lower(), size, size, alpha=False)
         if kind == "NORMAL":
             image.colorspace_settings.name = "Non-Color"
         target.image = image
         bpy.ops.object.bake(type=kind, pass_filter={"COLOR"} if kind == "DIFFUSE" else set())
+        images.append(image)
+    if preserve_uv:
+        # Project all original maps onto the reduced surface. Keeping the UV
+        # islands alone does not correct interpolation after edge collapses.
+        nodes = source.data.materials[0].node_tree.nodes
+        bsdf = next(node for node in nodes if node.type == "BSDF_PRINCIPLED")
+        split = bsdf.inputs["Metallic"].links[0].from_node
+        orm = split.inputs[0].links[0].from_node
+        emission = nodes.new("ShaderNodeEmission")
+        output = next(node for node in nodes if node.type == "OUTPUT_MATERIAL")
+        links = source.data.materials[0].node_tree.links
+        links.new(orm.outputs["Color"], emission.inputs["Color"])
+        links.new(emission.outputs[0], output.inputs["Surface"])
+        image = bpy.data.images.new(name + ".metallic_roughness", 2048, 2048, alpha=False)
+        image.colorspace_settings.name = "Non-Color"
+        target.image = image
+        bpy.ops.object.bake(type="EMIT")
         images.append(image)
     bpy.data.objects.remove(source, do_unlink=True)
     return images
 
 
 def game_material(obj, name, texconv, images):
-    diffuse, normal = images
+    diffuse, normal = images[:2]
     material = shader("normal_spec.sps")
     material.name = name
     texture_dir = HERE / "textures"
     raw_dir = HERE / "build" / "textures"
     texture_dir.mkdir(parents=True, exist_ok=True)
     raw_dir.mkdir(parents=True, exist_ok=True)
-    for suffix, image, sampler in (("d", diffuse, "DiffuseSampler"), ("n", normal, "BumpSampler")):
+    maps = [("d", diffuse, "DiffuseSampler"), ("n", normal, "BumpSampler")]
+    if len(images) == 3:
+        orm = images[2]
+        width, height = orm.size
+        pixels = np.empty(width * height * 4, dtype=np.float32)
+        orm.pixels.foreach_get(pixels)
+        pixels = pixels.reshape(height, width, 4)
+        metallic = pixels[:, :, 2].copy()
+        roughness = pixels[:, :, 1].copy()
+        # GTA's legacy specular workflow stores highlight strength in RGB
+        # and gloss in alpha, rather than glTF's metallic/roughness channels.
+        pixels[:, :, :3] = (.08 + .7 * metallic)[:, :, None]
+        pixels[:, :, 3] = 1 - roughness
+        specular = bpy.data.images.new(name + ".specular", width, height, alpha=True)
+        specular.colorspace_settings.name = "Non-Color"
+        specular.pixels.foreach_set(pixels.ravel())
+        maps.append(("s", specular, "SpecSampler"))
+    for suffix, image, sampler in maps:
         width, height = image.size
         pixels = np.empty(width * height * 4, dtype=np.float32)
         image.pixels.foreach_get(pixels)
         pixels = pixels.reshape(height, width, 4)
-        pixels[:, :, 3] = 1
+        if suffix != "s":
+            pixels[:, :, 3] = 1
+        if len(images) == 3 and suffix == "n":
+            # glTF uses +Y tangent normals; GTA/Sollumz uses -Y.
+            pixels[:, :, 1] = 1 - pixels[:, :, 1]
         raw = raw_dir / f"{name}_{suffix}.dds"
         # DDS origin is top-left; Blender exposes rows from the bottom.
         dds_rgba(raw, np.clip(pixels[::-1] * 255, 0, 255).astype(np.uint8))
-        result = subprocess.run([str(texconv), "-nologo", "-y", "-dx9", "-f", "BC3_UNORM" if suffix == "n" else "BC1_UNORM", "-o", str(texture_dir), str(raw)], capture_output=True, text=True)
+        result = subprocess.run([str(texconv), "-nologo", "-y", "-dx9", "-f", "BC1_UNORM" if suffix == "d" else "BC3_UNORM", "-o", str(texture_dir), str(raw)], capture_output=True, text=True)
         if result.returncode:
             raise RuntimeError(result.stdout + result.stderr)
         converted = bpy.data.images.load(str(texture_dir / raw.name), check_existing=True)
-        if suffix == "n":
+        if suffix != "d":
             converted.colorspace_settings.name = "Non-Color"
         node = material.node_tree.nodes[sampler]
         node.image = converted
         node.texture_properties.embedded = True
-    material.node_tree.nodes["SpecSampler"].image = material.node_tree.nodes["DiffuseSampler"].image
-    material.node_tree.nodes["SpecSampler"].texture_properties.embedded = True
-    material.node_tree.nodes["specularIntensityMult"].set_float(.12)
-    material.node_tree.nodes["specularFalloffMult"].set_float(32)
-    if name == PREFIX + "tower":
-        material.node_tree.nodes["bumpiness"].set_float(.3)
+    if len(images) == 3:
+        material.node_tree.nodes["specularIntensityMult"].set_float(1)
+        material.node_tree.nodes["specularFalloffMult"].set_float(180)
+        material.node_tree.nodes["specularFresnel"].set_float(.5)
+    else:
+        material.node_tree.nodes["SpecSampler"].image = material.node_tree.nodes["DiffuseSampler"].image
+        material.node_tree.nodes["SpecSampler"].texture_properties.embedded = True
+        material.node_tree.nodes["specularIntensityMult"].set_float(.12)
+        material.node_tree.nodes["specularFalloffMult"].set_float(32)
     obj.data.materials.clear()
     obj.data.materials.append(material)
     obj.data.uv_layers.active.name = "UVMap 0"
@@ -232,7 +293,9 @@ def export_model(obj, name, ytyp, counts, boxes):
             duplicate = obj.copy()
             duplicate.data = obj.data.copy()
             bpy.context.collection.objects.link(duplicate)
-            decimate(duplicate, count)
+            decimate(duplicate, count, preserve_tip=name == "tower")
+            if name == "tower":
+                transfer_normals(obj, duplicate)
         obj.sz_lods.get_lod(level).mesh = duplicate.data
         report[level.name] = len(duplicate.data.polygons)
         bpy.data.objects.remove(duplicate, do_unlink=True)
@@ -332,7 +395,7 @@ def main():
         ytyp.name = "sky_phone_cell_towers"
         scene.ytyp_index = 0
         roots, report = {}, {"inputs": {}, "doorOffset": list(DOOR_OFFSET), "cabinetOffset": [0, -1.55, 1.30], "models": {}}
-    sources = (("tower_textured", "tower", 160000), ("intact", "panel", 24000), ("damaged", "panel_broken", 24000))
+    sources = (("tower_textured", "tower", 300000), ("intact", "panel", 24000), ("damaged", "panel_broken", 24000))
     for source_name, name, budget in sources[:1] if args.tower_only else sources:
         path = args.inputs / (source_name + ".glb")
         report["inputs"][path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -359,16 +422,8 @@ def main():
         # Reduce before splitting to keep the working authoring scene manageable.
         decimate(obj, budget + (5000 if name == "panel" else 0), preserve_uv=name == "tower")
         if name == "tower":
-            nodes = original.data.materials[0].node_tree.nodes
-            bsdf = next(node for node in nodes if node.type == "BSDF_PRINCIPLED")
-            diffuse = bsdf.inputs["Base Color"].links[0].from_node.image
-            normal_map = bsdf.inputs["Normal"].links[0].from_node
-            normal = normal_map.inputs["Color"].links[0].from_node.image
-            normal.scale(2048, 2048)
-            images = diffuse, normal
-            bpy.data.objects.remove(original, do_unlink=True)
-        else:
-            images = bake_maps(original, obj, PREFIX + name)
+            transfer_normals(original, obj)
+        images = bake_maps(original, obj, PREFIX + name, preserve_uv=name == "tower")
         game_material(obj, PREFIX + name, args.texconv, images)
         if name != "tower":
             if name == "panel":
@@ -403,7 +458,7 @@ def main():
             boxes += [((x, -1.43, 1.3), (.07, .36, 1.08), (0, 0, 0)) for x in (-.37, .34)]
             boxes += [((-.015, -1.43, z), (.78, .36, .07), (0, 0, 0)) for z in (.77, 1.84)]
             boxes.append(((-.015, -1.27, 1.3), (.78, .06, 1.1), (0, 0, 0)))
-            counts = (40000, 12000, 3000)
+            counts = (80000, 20000, 5000)
         roots[name], report["models"][name] = export_model(obj, name, ytyp, counts, boxes)
         print("READY", name, report["models"][name], flush=True)
     STREAM.mkdir(parents=True, exist_ok=True)

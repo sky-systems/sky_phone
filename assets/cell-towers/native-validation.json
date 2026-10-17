@@ -1,29 +1,29 @@
 [
   {
     "file": "sky_phone_cell_tower.ydr",
-    "sha256": "6d9ba3bceafc9100b8610e470866b1a48ee902d987fa030d2f230fed39ba85e8",
-    "fileBytes": 19424599,
+    "sha256": "b36b09f1db226c1a7d1b777de52d33600ab68e890ce1fd99a591edd9c5e724be",
+    "fileBytes": 35825224,
     "triangles": {
-      "HIGH": 171509,
-      "MEDIUM": 39999,
-      "LOW": 11999,
-      "VERYLOW": 3075
+      "HIGH": 299999,
+      "MEDIUM": 79999,
+      "LOW": 19999,
+      "VERYLOW": 4999
     },
     "vertices": {
-      "HIGH": 189240,
-      "MEDIUM": 44106,
-      "LOW": 16780,
-      "VERYLOW": 5826
+      "HIGH": 261223,
+      "MEDIUM": 71724,
+      "LOW": 23985,
+      "VERYLOW": 9099
     },
     "highBounds": {
       "min": [
-        -1.8467333316802979,
-        -1.8169453144073486,
+        -1.826292634010315,
+        -1.8186922073364258,
         0.0
       ],
       "max": [
-        1.8170881271362305,
-        1.8251179456710815,
+        1.8188351392745972,
+        1.826872706413269,
         16.0
       ]
     },
@@ -43,6 +43,14 @@
         "reimportDdsBytes": 11184936
       },
       "sky_phone_cell_tower_n": {
+        "width": 4096,
+        "height": 4096,
+        "nativeMipLevels": 13,
+        "reimportMipLevels": 11,
+        "format": "DXT5",
+        "reimportDdsBytes": 22369744
+      },
+      "sky_phone_cell_tower_s": {
         "width": 2048,
         "height": 2048,
         "nativeMipLevels": 12,
@@ -54,13 +62,13 @@
     "collisionBoxes": 11,
     "archetypeBounds": {
       "min": [
-        -1.8467333316802979,
+        -1.826292634010315,
         -1.8250000476837158,
         0.0
       ],
       "max": [
         1.8250000476837158,
-        1.8251179456710815,
+        1.826872706413269,
         16.0
       ]
     }

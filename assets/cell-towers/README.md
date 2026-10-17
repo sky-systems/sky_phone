@@ -12,20 +12,46 @@ Opening consumes one `Props.LockpickItem` (default `lockpick`); closing is free.
 Only an open interior accepts weapon damage. The damage check accepts any weapon
 type, rather than a weapon-name allowlist. A damaged tower stops contributing
 coverage; another healthy tower can still cover the same position.
+`Props.Destructible` defaults to `true`. Set it to `false` to prevent new weapon
+damage, including client reports sent directly to the server. Already damaged
+towers remain damaged and can still be repaired. The switch is available in
+both Lua and Phonepanel; `Props.Enabled` remains `false` by default.
 
 Press **G** at an open, damaged cabinet to repair it. `Props.RepairJobs = {}`
 allows everyone; a nonempty list allows only those framework job names.
 `Props.RepairSeconds` defaults to 10. Moving away, dying, losing the required job
 or closing the cabinet cancels repair. A successful repair restores coverage and
-closes the cabinet. Damage persists in resource KVP storage across restarts;
+closes the cabinet. Repair requires `Props.RepairItem` (default `radiotowerparts`)
+in the active inventory. The server checks it at the start and removes one only
+on successful completion. Losing the item during repair prevents completion;
+cancelled repairs consume nothing. Register the item in your inventory catalogue
+as described in [inventory setup](../../docs/inventory-setup.md#physical-tower-materials).
+Damage persists in resource KVP storage across restarts;
 doors restart closed. Disabling props restores ordinary virtual-tower coverage.
 
 Tower `Coords` is the bottom center of the foundation, not the antenna or player
-center. `Heading` rotates the entire assembly. The 18 default sites were measured
-against GTA build 3258 terrain, including foundation corners and the four Cayo
-Perico sites. Custom map geometry may require adjusting them. Exact old default
-positions without a heading migrate automatically; custom positions/ranges and
-list ordering remain intact. Position (rounded to 1 mm) identifies a tower;
+center. `Heading` rotates the entire assembly. The 18 defaults now use technical
+rooftops and hills instead of public squares or street-level spots. Downtown is
+on a rooftop at `(102, -861, 133.750)`, replacing the mast on Legion Square.
+The hilltop radio sites, Fort Zancudo water-tower roof and Cayo airstrip control
+tower provide other elevated locations. Each site has a sampled 4 x 4 metre
+foundation area and a clear sampled approach to the cabinet. The bottom sits
+2 cm below the lowest sampled surface; the 48 cm foundation accommodates the
+small terrain differences at hillside sites.
+
+[sites.json](sites.json) records coordinates, headings, collision sources and
+surface ranges. Checks used CodeWalker against the locally installed GTA
+1.0.3889.0 map archives, including placed props and Cayo, with 25 cm sampling.
+North Yankton collision was excluded because its world coordinates overlap Cayo.
+This is an offline placement check, not a live GTA 3258 visual/access-route test.
+Some roofs require a ladder, aircraft or a server-specific access route; custom
+map geometry may require adjusting the positions. Moving coverage centres can
+change edge coverage; existing configured ranges are preserved.
+
+Exact earlier virtual and street-level defaults with a missing or zero heading
+normalize to the new sites when loading Phonepanel configuration. Custom
+coordinates, nonzero headings, ranges and list ordering remain intact.
+Position (rounded to 1 mm) identifies a tower;
 moving it creates a fresh damage state. Duplicate positions are rejected.
 
 The panel's current-location button uses the ground below the player for towers.
@@ -69,25 +95,32 @@ contains the standalone textures. The exported four YDRs and YTYP live under
 
 Authoring used Blender 5.2.1 and Sollumz 2.9.0 with its native GEN8 exporter.
 `build.py` welds glTF seam vertices before reduction, preserves the mast's UV
-boundaries and original maps, and rebakes the cabinet maps. It separates and
+boundaries, transfers the original surface normals and reprojects the original
+maps onto the reduced surface. Cabinet parts receive their own atlas. It separates and
 reorients the door around its hinge, adds four LODs and box
 collision using Sollumz's General preset, and exports game assets. Far cabinet
 LODs are simple boxes. Each YTYP archetype references its embedded physics data.
 The casing collider belongs to the invulnerable mast; only the interior opening
 belongs to the damageable panel. Do not combine these collisions.
 
-The mast's near mesh retains roughly 172,000 triangles, with approximately
-40,000 / 12,000 / 3,000 in the remaining LODs. Its drawable LOD thresholds are
+The mast's near mesh retains roughly 300,000 triangles, with approximately
+80,000 / 20,000 / 5,000 in the remaining LODs. Its drawable LOD thresholds are
 35 / 100 / 230 / 500 metres; selection also depends on GTA's LOD calculation.
-The mast uses the original 4K diffuse map, a 2K normal map, BC1/BC3 compression
-and mipmaps. Geometry is concentrated in the near view instead of
+The mast uses reprojected 4K diffuse/normal maps and a 2K specular/gloss map,
+BC1/BC3 compression and mipmaps. Original metallic/roughness channels are
+converted to the GTA specular workflow; tangent-normal Y is converted for GTA.
+This preserves the source detail, but GTA's lighting is not identical to Meshy's
+PBR viewer. Geometry is concentrated in the near view instead of
 keeping the original 1.7 million triangles at every distance. These are asset
 budgets, not measured frame-time guarantees.
 
 The earlier 40,000-triangle near mesh visibly flattened small braces and curved
 parts. A fresh atlas also produced black triangular texture artifacts; plain
-decimation with the original UVs distorted their boundaries. The near mesh now
-protects UV-boundary vertices during reduction. The original fixed side enclosure
+decimation with the original UVs distorted their boundaries and surface shading.
+The near mesh now protects UV-boundary vertices, retains source normals and
+reprojects texture details after reduction. Merely increasing polygon count or
+copying the original texture onto changed interpolation did not correct those
+artifacts. The original fixed side enclosure
 is retained because its former spatial cut also removed adjacent mast braces.
 The animated fuse cabinet remains a separate assembly at the front.
 The archetype bounds include the full 16-metre mast. The build exports YTYP
@@ -182,9 +215,17 @@ both current-player and ground-level coordinate callbacks returned successfully.
 Browser tests separately cover the English/German controls, loading/error states,
 preserved values, company locations and editable customer model settings.
 
-The higher-detail mast revision passed native reimport and rendered comparison
-of all four LODs. The local resource copy was hash-verified and restarted after
-`refresh`; the server reported 24 MiB physical and 19 MiB virtual asset memory
-for the mast. These are resource allocation figures, not a gameplay profiler
-measurement. No client was connected for a new in-game visual check. Door and
-interior YDRs are unchanged from the gameplay-tested version described above.
+The latest mast revision passed native reimport of all four LODs and a rendered
+comparison of the exported near mesh against the original textured Meshy GLB.
+The tower YDR is approximately 34.2 MiB on disk; see `native-validation.json`
+for exact sizes and counts. Door and interior YDRs are unchanged from the
+gameplay-tested version described above. The latest geometry/materials, new
+repair-item requirement and relocated sites have not received a new live
+gameplay/visual test; the earlier live results do not verify these revisions.
+After the final local copy (570 files, matching hashes) and resource reload,
+the server registered the mast with 48 MiB physical and 21.4 MiB virtual asset
+memory. FiveM flags the physical allocation as large. The detail increase has
+a real memory cost; LODs and mipmaps do not establish a frame-time guarantee.
+`radiotowerparts` was also confirmed in the test server's active ox_inventory
+catalogue after reloading that inventory. The production NUI build, 1,897
+frontend tests, all 52 browser scenarios and the focused Lua suites passed.

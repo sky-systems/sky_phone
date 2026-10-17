@@ -87,7 +87,8 @@ for name, specification in expected["models"].items():
     if name == "tower":
         assert abs(high_max[2] - high_min[2] - 16.0) < .001
         assert textures["sky_phone_cell_tower_d"]["width"] == 4096
-        assert textures["sky_phone_cell_tower_n"]["width"] == 2048
+        assert textures["sky_phone_cell_tower_n"]["width"] == 4096
+        assert textures["sky_phone_cell_tower_s"]["width"] == 2048
     distances = root.drawable_properties
     results.append({"file": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         "fileBytes": path.stat().st_size, "triangles": counts, "vertices": vertices,
