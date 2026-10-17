@@ -177,25 +177,25 @@ Config.CellTowers = {
     },
     Towers = {
         -- Coords mark the bottom centre of the foundation, not the antenna.
-        -- Ground measured on the standard map; custom maps may need new positions.
-        { Coords = vector3(200.0, -935.0, 29.672), Heading = 0.0, Range = 1600.0 }, -- Downtown / Pillbox
-        { Coords = vector3(-705.0, -880.0, 22.550), Heading = 0.0, Range = 1400.0 }, -- Little Seoul / Vespucci
-        { Coords = vector3(-1320.0, -430.0, 32.733), Heading = 0.0, Range = 1500.0 }, -- Del Perro / Rockford
-        { Coords = vector3(685.0, -1535.0, 8.689), Heading = 0.0, Range = 1600.0 }, -- East LS / El Burro
-        { Coords = vector3(-865.0, -2480.0, 12.811), Heading = 0.0, Range = 1700.0 }, -- Airport / La Puerta
-        { Coords = vector3(780.0, -2965.0, 4.781), Heading = 0.0, Range = 1500.0 }, -- Port / Elysian Island
-        { Coords = vector3(620.0, 200.0, 97.387), Heading = 0.0, Range = 1500.0 }, -- Vinewood / Mirror Park
-        { Coords = vector3(-390.0, 940.0, 233.315), Heading = 0.0, Range = 1600.0 }, -- Vinewood Hills
-        { Coords = vector3(-3030.0, 710.0, 21.850), Heading = 0.0, Range = 1700.0 }, -- Chumash / west coast
-        { Coords = vector3(-2185.0, 2900.0, 31.790), Heading = 0.0, Range = 1700.0 }, -- Zancudo
-        { Coords = vector3(560.0, 2730.0, 41.040), Heading = 0.0, Range = 1700.0 }, -- Route 68 / Harmony
-        { Coords = vector3(1780.0, 3685.0, 33.191), Heading = 0.0, Range = 1800.0 }, -- Sandy Shores
-        { Coords = vector3(2390.0, 4840.0, 40.203), Heading = 0.0, Range = 1500.0 }, -- Grapeseed
-        { Coords = vector3(-100.0, 6280.0, 30.294), Heading = 0.0, Range = 1800.0 }, -- Paleto Bay
-        { Coords = vector3(4430.0, -4460.0, 3.308), Heading = 0.0, Range = 1050.0 }, -- Cayo airstrip / north dock
-        { Coords = vector3(4960.0, -4720.0, 7.340), Heading = 0.0, Range = 1000.0 }, -- Cayo north / fields
-        { Coords = vector3(4900.0, -5200.0, 1.419), Heading = 0.0, Range = 1000.0 }, -- Cayo main dock / centre
-        { Coords = vector3(4900.0, -5730.0, 25.331), Heading = 0.0, Range = 950.0 }, -- Cayo compound / south
+        -- Technical rooftops/hills; see assets/cell-towers/sites.json for surface checks.
+        { Coords = vector3(102.00, -861.00, 133.750), Heading = 90.0, Range = 1600.0 }, -- Downtown / Pillbox technical rooftop
+        { Coords = vector3(-774.00, -778.00, 83.883), Heading = 0.0, Range = 1400.0 }, -- Little Seoul high-rise rooftop
+        { Coords = vector3(-1294.00, -437.00, 106.462), Heading = 0.0, Range = 1500.0 }, -- Del Perro / Rockford high-rise rooftop
+        { Coords = vector3(1255.00, -1072.00, 40.935), Heading = 0.0, Range = 1600.0 }, -- East LS industrial rooftop
+        { Coords = vector3(-1043.00, -2377.00, 27.486), Heading = 0.0, Range = 1700.0 }, -- LSIA service-building rooftop
+        { Coords = vector3(244.00, -3145.00, 39.582), Heading = 0.0, Range = 1500.0 }, -- Elysian Island warehouse rooftop
+        { Coords = vector3(575.00, 97.00, 117.881), Heading = 0.0, Range = 1500.0 }, -- Vinewood technical rooftop
+        { Coords = vector3(733.50, 1272.00, 359.276), Heading = 180.0, Range = 1600.0 }, -- Vinewood Hills radio-site service rooftop
+        { Coords = vector3(-2308.00, 327.00, 193.592), Heading = 0.0, Range = 1700.0 }, -- Kortz Center hilltop technical rooftop
+        { Coords = vector3(-1715.00, 3153.00, 57.433), Heading = 180.0, Range = 1700.0 }, -- Fort Zancudo water-tower rooftop
+        { Coords = vector3(725.00, 2525.00, 77.973), Heading = 0.0, Range = 1700.0 }, -- Harmony radio-station rooftop
+        { Coords = vector3(1694.00, 3592.00, 39.306), Heading = 0.0, Range = 1800.0 }, -- Sandy Shores service-building rooftop
+        { Coords = vector3(2548.00, 5208.00, 49.947), Heading = 0.0, Range = 1500.0 }, -- Grapeseed northern hillside
+        { Coords = vector3(-148.00, 6294.00, 39.262), Heading = 0.0, Range = 1800.0 }, -- Paleto Bay technical rooftop
+        { Coords = vector3(4368.00, -4577.00, 18.946), Heading = 0.0, Range = 1050.0 }, -- Cayo airstrip control-tower rooftop
+        { Coords = vector3(5068.00, -4867.00, 17.183), Heading = 0.0, Range = 1000.0 }, -- Cayo northern hillside above service road
+        { Coords = vector3(5264.00, -5406.00, 64.227), Heading = 0.0, Range = 1000.0 }, -- Cayo radio-site hilltop
+        { Coords = vector3(5129.00, -5516.00, 52.722), Heading = 0.0, Range = 950.0 }, -- Cayo southern lookout ridge
     },
     -- true: usable without reception. Unlisted/custom apps require signal.
     -- Calls and Messages stay readable; transmitting actions are listed below.

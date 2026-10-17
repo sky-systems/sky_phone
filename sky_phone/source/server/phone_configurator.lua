@@ -325,8 +325,8 @@ local function merge_values(defaults, saved, path, excluded_paths)
     end
     if path == "CellTowers.Towers" then
         local towers = copy_value(saved)
-        -- Earlier defaults were virtual antenna positions above the map. Move
-        -- only those exact legacy positions; keep custom coordinates/ranges.
+        -- Move exact earlier defaults to technical rooftops/hill sites. Match
+        -- coordinates rather than list order and preserve customer edits.
         local legacy_positions = {
             { 215, -920, 100 }, { -720, -850, 90 }, { -1350, -430, 110 },
             { 700, -1550, 90 }, { -850, -2450, 80 }, { 750, -2950, 70 },
@@ -335,14 +335,25 @@ local function merge_values(defaults, saved, path, excluded_paths)
             { 2450, 4900, 80 }, { -100, 6250, 90 }, { 4450, -4500, 50 },
             { 5050, -4750, 65 }, { 4900, -5350, 80 }, { 5050, -5850, 65 },
         }
+        local ground_positions = {
+            { 200, -935, 29.672 }, { -705, -880, 22.550 }, { -1320, -430, 32.733 },
+            { 685, -1535, 8.689 }, { -865, -2480, 12.811 }, { 780, -2965, 4.781 },
+            { 620, 200, 97.387 }, { -390, 940, 233.315 }, { -3030, 710, 21.850 },
+            { -2185, 2900, 31.790 }, { 560, 2730, 41.040 }, { 1780, 3685, 33.191 },
+            { 2390, 4840, 40.203 }, { -100, 6280, 30.294 }, { 4430, -4460, 3.308 },
+            { 4960, -4720, 7.340 }, { 4900, -5200, 1.419 }, { 4900, -5730, 25.331 },
+        }
         for _, tower in ipairs(towers) do
-            if tower.Heading == nil then
-                tower.Heading = 0.0
-                for index, position in ipairs(legacy_positions) do
-                    if tower.Coords.x == position[1] and tower.Coords.y == position[2]
-                        and tower.Coords.z == position[3] and defaults[index] then
-                        tower.Coords = copy_value(defaults[index].Coords)
-                        break
+            tower.Heading = tower.Heading or 0.0
+            if tower.Heading == 0 then
+                for _, positions in ipairs({ legacy_positions, ground_positions }) do
+                    for index, position in ipairs(positions) do
+                        if tower.Coords.x == position[1] and tower.Coords.y == position[2]
+                            and tower.Coords.z == position[3] and defaults[index] then
+                            tower.Coords = copy_value(defaults[index].Coords)
+                            tower.Heading = defaults[index].Heading
+                            break
+                        end
                     end
                 end
             end
