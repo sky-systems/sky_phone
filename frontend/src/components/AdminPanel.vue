@@ -471,7 +471,9 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
     ]),
     ...[
       'Enabled',
+      'Destructible',
       'LockpickItem',
+      'RepairItem',
       'RepairJobs',
       'RepairSeconds',
       'Models',

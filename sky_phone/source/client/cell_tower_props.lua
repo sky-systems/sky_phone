@@ -56,7 +56,7 @@ local function apply_state(payload)
             end
             if visual.open ~= state.open then ClearEntityLastWeaponDamage(visual.panel) end
             visual.open = state.open
-            SetEntityCanBeDamaged(visual.panel, state.open and not state.damaged)
+            SetEntityCanBeDamaged(visual.panel, Config.CellTowers.Props.Destructible and state.open and not state.damaged)
         end
     end
 end
@@ -126,7 +126,7 @@ local function configure()
                             SkyPhoneCellular.PropPosition(tower, props.PanelOffset), heading)
                         SetEntityCanBeDamaged(visual.tower, false)
                         SetEntityCanBeDamaged(visual.door, false)
-                        SetEntityCanBeDamaged(visual.panel, state.open and not state.damaged)
+                        SetEntityCanBeDamaged(visual.panel, props.Destructible and state.open and not state.damaged)
                         visuals[key] = visual
                     end
                 elseif visuals[key] then
@@ -156,7 +156,7 @@ local function configure()
                         or math.max(visual.angle - step, target_angle)
                     SetEntityHeading(visual.door, (visual.definition.Heading or 0.0) + visual.angle)
                 end
-                if state.open and not state.damaged and not visual.damage_pending
+                if props.Destructible and state.open and not state.damaged and not visual.damage_pending
                     and HasEntityBeenDamagedByWeapon(visual.panel, 0, 2) then
                     ClearEntityLastWeaponDamage(visual.panel)
                     visual.damage_pending = true

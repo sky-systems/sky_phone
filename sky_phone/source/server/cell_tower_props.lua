@@ -89,6 +89,7 @@ end)
 Bridge.Callbacks.Register("sky_phone:cellular:damage", function(player_source, data)
     local state, reason = resolve_tower(player_source, data, 500.0)
     if not state then return reject(player_source, reason) end
+    if not Config.CellTowers.Props.Destructible then return reject(player_source, "indestructible") end
     if not state.open or state.damaged then return reject(player_source, "invalid_state") end
     state.damaged = true
     damage[data.key] = true
@@ -108,6 +109,10 @@ Bridge.Callbacks.Register("sky_phone:cellular:repair", function(player_source, d
             return reject(player_source, "repair_not_ready")
         end
         repairs[data.key] = nil
+        state.busy = true
+        local removed = Bridge.Inventory.RemoveItem(player_source, Config.CellTowers.Props.RepairItem, 1)
+        state.busy = nil
+        if removed ~= 1 then return reject(player_source, "repair_item_required") end
         state.damaged = false
         state.open = false
         damage[data.key] = nil
@@ -117,6 +122,12 @@ Bridge.Callbacks.Register("sky_phone:cellular:repair", function(player_source, d
     end
     if data.finish ~= nil and data.finish ~= false then return reject(player_source, "invalid_state") end
     if repair then return reject(player_source, "busy") end
+    state.busy = true
+    local parts = Bridge.Inventory.GetSlotsWithItem(player_source, Config.CellTowers.Props.RepairItem)
+    state.busy = nil
+    if not next(parts) then
+        return reject(player_source, "repair_item_required")
+    end
     local duration = Config.CellTowers.Props.RepairSeconds * 1000
     repair = { source = player_source, ends = GetGameTimer() + duration }
     repairs[data.key] = repair

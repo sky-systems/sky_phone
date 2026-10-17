@@ -61,6 +61,20 @@ for (const [language, mode] of [
       .click()
     await expect(panel).toContainText(cellular.labels.PropsEnabled)
     await expect(panel).toContainText(cellular.help.RepairJobs)
+    const destructible = panel.getByRole('checkbox', {
+      name: new RegExp(cellular.labels.Destructible),
+    })
+    await expect(destructible).toBeChecked()
+    await destructible.uncheck()
+    await expect(destructible).not.toBeChecked()
+    await expect(panel).toContainText(cellular.help.Destructible)
+    const repairItem = panel.getByRole('textbox', {
+      name: new RegExp(cellular.labels.RepairItem),
+    })
+    await expect(repairItem).toHaveValue('radiotowerparts')
+    await repairItem.fill('custom_radio_parts')
+    await expect(repairItem).toHaveValue('custom_radio_parts')
+    await expect(panel).toContainText(cellular.help.RepairItem)
     await panel
       .locator('.config-structured-editor__section-toggle')
       .filter({
