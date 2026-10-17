@@ -1,6 +1,7 @@
 local states = SkyPhoneCellular.TowerStates
 local repairs = {}
 local revision = 0
+local ready = promise.new()
 local stored_damage = GetResourceKvpString("sky_phone:cell_towers:damage")
 local damage = stored_damage and json.decode(stored_damage) or {}
 
@@ -33,6 +34,7 @@ local function reject(player_source, reason)
 end
 
 local function resolve_tower(player_source, data, maximum_distance)
+    Citizen.Await(ready)
     if not Config.CellTowers.Enabled or not Config.CellTowers.Props.Enabled then return nil, "disabled" end
     if type(data) ~= "table" or type(data.key) ~= "string" or #data.key > 80 then return nil, "invalid_tower" end
     local state = states[data.key]
@@ -62,6 +64,7 @@ local function can_repair(player_source)
 end
 
 Bridge.Callbacks.Register("sky_phone:cellular:props", function()
+    Citizen.Await(ready)
     return { success = true, data = { revision = revision, states = states } }
 end)
 
@@ -152,4 +155,6 @@ AddEventHandler("playerDropped", function()
     end
 end)
 AddEventHandler("sky_phone:configurator:serverUpdated", reconcile)
+Citizen.Await(SkyPhoneConfigurator.Ready)
 reconcile()
+ready:resolve(true)

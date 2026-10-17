@@ -1206,6 +1206,23 @@ test("old ground sites migrate by coordinates while customized towers and orderi
     assert(client.config.CellTowers.Towers[4].Coords.x == 201)
 end)
 
+test("saved float32 tower heights migrate without moving custom heights", function()
+    local server = new_server()
+    local defaults = server.field("CellTowers").value.Towers
+    local saved = server.database.payloads[tonumber(server.database.row.config_payload)]
+    saved.CellTowers.Towers = {
+        { Coords = { __skyType = "vector3", x = 200, y = -935, z = 29.67200088501 }, Heading = 0, Range = 777 },
+        { Coords = { __skyType = "vector3", x = -390, y = 940, z = 233.31500244141 }, Heading = 0, Range = 800 },
+        { Coords = { __skyType = "vector3", x = 200, y = -935, z = 29.673 }, Heading = 0, Range = 500 },
+    }
+    local restarted = new_server(server.database)
+    local towers = restarted.env.Config.CellTowers.Towers
+    assert(towers[1].Coords.x == defaults[1].Coords.x and towers[1].Heading == defaults[1].Heading)
+    assert(towers[1].Range == 777 and towers[2].Coords.z == defaults[8].Coords.z)
+    assert(towers[3].Coords.x == 200 and towers[3].Coords.z == 29.673)
+    assert(new_client(restarted).config.CellTowers.Towers[1].Coords.x == defaults[1].Coords.x)
+end)
+
 test("cell tower invalid ranges and coordinates never reach SQL or clients", function()
     for _, invalid in ipairs({ -1, 0, 50001, "1000" }) do
         local server = new_server()

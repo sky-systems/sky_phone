@@ -229,3 +229,15 @@ a real memory cost; LODs and mipmaps do not establish a frame-time guarantee.
 `radiotowerparts` was also confirmed in the test server's active ox_inventory
 catalogue after reloading that inventory. The production NUI build, 1,897
 frontend tests, all 52 browser scenarios and the focused Lua suites passed.
+
+A subsequent live startup exposed two initialization defects: SQL-serialized
+float32 heights did not exactly equal the historical decimal defaults, and tower
+states were reconciled before the saved configuration finished loading. Legacy
+height matching now permits only the sub-millimetre float32 rounding difference;
+state initialization and initial client requests wait for configuration readiness.
+Regression tests cover both the saved heights and delayed startup with persisted
+custom-site damage. After deployment and restart, the live client configuration
+and all 18 state keys agreed. The nearest mast, door and intact panel were present
+at the new Downtown rooftop, with visible entities and full opacity. This confirms
+spawning and synchronization; it does not extend the earlier weapon/repair or
+streaming-performance evidence.

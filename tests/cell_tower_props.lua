@@ -4,6 +4,15 @@ function vector3(x, y, z) return setmetatable({ x = x, y = y, z = z }, vector_me
 vector_meta.__sub = function(a, b) return vector3(a.x - b.x, a.y - b.y, a.z - b.z) end
 vector_meta.__len = function(v) return math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z) end
 function joaat(value) return value end
+promise = { new = function()
+    return { resolve = function(self) self.resolved = true end }
+end }
+Citizen = { Await = function(pending)
+    if not pending.resolved then coroutine.yield("awaiting_configuration") end
+    assert(pending.resolved, "Configuration must finish loading before tower initialization")
+end }
+SkyPhoneConfigurator = { Ready = promise.new() }
+SkyPhoneConfigurator.Ready:resolve(true)
 Config = { Bridge = {}, CellTowers = {
     Enabled = true, Props = { Enabled = false, Destructible = true, LockpickItem = "lockpick",
         RepairItem = "radiotowerparts", RepairJobs = {}, RepairSeconds = 10,
@@ -170,4 +179,33 @@ dofile("sky_phone/source/server/cell_tower_props.lua")
 assert(SkyPhoneCellular.TowerStates[key].damaged and not SkyPhoneCellular.TowerStates[key].open,
     "Damage survives restart, while the cabinet is closed")
 assert(broadcasts > 0)
+
+-- Resource scripts continue loading while the configurator awaits its SQL row.
+-- No default-site reconciliation may discard damage for a saved custom site.
+local custom_tower = { Coords = vector3(200, 300, 40), Heading = 90, Range = 100 }
+local custom_key = SkyPhoneCellular.TowerKey(custom_tower)
+saved = { [custom_key] = true }
+SkyPhoneCellular.TowerStates = {}
+SkyPhoneConfigurator.Ready = promise.new()
+local initialization = coroutine.create(function()
+    dofile("sky_phone/source/server/cell_tower_props.lua")
+end)
+local started, waiting = coroutine.resume(initialization)
+assert(started and waiting == "awaiting_configuration", "Tower initialization must await the saved config")
+assert(saved[custom_key], "Loading defaults must not discard saved custom-site damage")
+local initial_response
+local initial_request = coroutine.create(function()
+    initial_response = callbacks["sky_phone:cellular:props"]()
+end)
+local requested, request_waiting = coroutine.resume(initial_request)
+assert(requested and request_waiting == "awaiting_configuration", "Clients must wait for reconciled tower states")
+Config.CellTowers.Towers = { custom_tower }
+SkyPhoneConfigurator.Ready:resolve(true)
+local initialized, initialize_error = coroutine.resume(initialization)
+assert(initialized, initialize_error)
+assert(coroutine.status(initialization) == "dead")
+local answered, answer_error = coroutine.resume(initial_request)
+assert(answered, answer_error)
+assert(initial_response.success and initial_response.data.states[custom_key].damaged)
+assert(not initial_response.data.states[key] and saved[custom_key])
 print("Physical cell tower inventory, damage, coverage, permission, repair and persistence tests passed")

@@ -348,8 +348,9 @@ local function merge_values(defaults, saved, path, excluded_paths)
             if tower.Heading == 0 then
                 for _, positions in ipairs({ legacy_positions, ground_positions }) do
                     for index, position in ipairs(positions) do
+                        -- Persisted vector3 heights include float32 rounding.
                         if tower.Coords.x == position[1] and tower.Coords.y == position[2]
-                            and tower.Coords.z == position[3] and defaults[index] then
+                            and math.abs(tower.Coords.z - position[3]) < 0.0001 and defaults[index] then
                             tower.Coords = copy_value(defaults[index].Coords)
                             tower.Heading = defaults[index].Heading
                             break
@@ -1725,6 +1726,7 @@ default_media = serialize_value(ConfigDefaults.Media)
 
 -- Clients can request their runtime config while the first database query yields.
 local runtime_ready = promise.new()
+SkyPhoneConfigurator.Ready = runtime_ready
 Bridge.Callbacks.Register("sky_phone:configurator:runtime", function()
     Citizen.Await(runtime_ready)
     return {
