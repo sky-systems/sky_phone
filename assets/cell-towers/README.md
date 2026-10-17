@@ -86,9 +86,12 @@ the drawable containing its embedded collision.
 
 ## Assets and authoring
 
-The owner supplied three Meshy models. Input names and SHA-256 hashes are recorded
-in `export-report.json`: `tower_textured.glb`, `intact.glb`, `damaged.glb`.
-The original multi-million-triangle GLBs are kept outside the repository.
+The mast comes from the owner's textured Meshy model, `tower_textured.glb`.
+Input SHA-256 hashes are recorded in `export-report.json`, including the two
+historical cabinet inputs. The original GLBs are kept outside the repository.
+The current cabinets are authored by `cabinet.py`: flat steel leaves, rounded
+edges, hinges, latches, louvres, geometric warning symbols and separate intact /
+damaged electrical components. They do not reuse the blurred cabinet atlases.
 `cell_towers.blend` is the editable source, with packed DDS textures; `textures/`
 contains the standalone textures. The exported four YDRs and YTYP live under
 `sky_phone/stream/`. Textures are embedded, so no separate YTD is required.
@@ -96,15 +99,17 @@ contains the standalone textures. The exported four YDRs and YTYP live under
 Authoring used Blender 5.2.1 and Sollumz 2.9.0 with its native GEN8 exporter.
 `build.py` welds glTF seam vertices before reduction, preserves the mast's UV
 boundaries, transfers the original surface normals and reprojects the original
-maps onto the reduced surface. Cabinet parts receive their own atlas. It separates and
-reorients the door around its hinge, adds four LODs and box
-collision using Sollumz's General preset, and exports game assets. Far cabinet
-LODs are simple boxes. Each YTYP archetype references its embedded physics data.
+maps onto the reduced surface. `cabinet.py` retains the shipped door hinge and
+panel origins, so existing configuration needs no offset migration. Cabinet
+parts share 256 x 256 colour, flat-normal and specular/gloss swatches. Surface
+detail comes from geometry; increasing a blurry atlas's resolution is unnecessary.
+Cabinets use four explicitly authored detail levels; the distant levels omit
+screws, wires and small fittings. Each YTYP archetype references its embedded physics data.
 The casing collider belongs to the invulnerable mast; only the interior opening
 belongs to the damageable panel. Do not combine these collisions.
 
-The mast's near mesh retains roughly 300,000 triangles, with approximately
-80,000 / 20,000 / 5,000 in the remaining LODs. Its drawable LOD thresholds are
+The mast and fixed cases have approximately 317,000 triangles near the player,
+with 90,000 / 23,000 / 5,200 in the remaining LODs. Its drawable LOD thresholds are
 35 / 100 / 230 / 500 metres; selection also depends on GTA's LOD calculation.
 The mast uses reprojected 4K diffuse/normal maps and a 2K specular/gloss map,
 BC1/BC3 compression and mipmaps. Original metallic/roughness channels are
@@ -120,9 +125,13 @@ decimation with the original UVs distorted their boundaries and surface shading.
 The near mesh now protects UV-boundary vertices, retains source normals and
 reprojects texture details after reduction. Merely increasing polygon count or
 copying the original texture onto changed interpolation did not correct those
-artifacts. The original fixed side enclosure
-is retained because its former spatial cut also removed adjacent mast braces.
-The animated fuse cabinet remains a separate assembly at the front.
+artifacts. The protruding side enclosure is now replaced within its measured
+volume, outside the neighbouring lattice; retained mast faces keep their UVs
+and split normals. The animated fuse cabinet remains at the front.
+Twelve simple colliders cover the foundation, posts, head and cases. A separate
+embedded Bound Geometry of approximately 6,000 triangles follows the actual
+diagonal/horizontal lattice, including its irregular ends and open gaps. All
+colliders use the General preset. The former box-only collision omitted the braces.
 The archetype bounds include the full 16-metre mast. The build exports YTYP
 after the YDR's temporary LOD switches and a dependency-graph update, so cached
 mesh bounds cannot truncate the antenna tip. Validation checks that each
@@ -132,10 +141,14 @@ archetype encloses its exported near mesh.
 blender --background --python-exit-code 1 --python assets/cell-towers/build.py -- \
   --inputs /path/to/original-glbs --texconv /path/to/texconv.exe
 blender --background --python-exit-code 1 --python assets/cell-towers/validate.py
+blender --background --python-exit-code 1 --python assets/cell-towers/render_native.py
 ```
 
-Add `--tower-only` to rebuild the mast from the saved source while preserving
-the door and interior exports. All four LODs remain editable in the blend file.
+Use `--cabinet-only` to rebuild the cabinets from the saved blend, or
+`--collision-only` to rebuild lattice collision without changing the visible
+models. These two modes do not need the original GLB or texconv. `--tower-only`
+rebuilds the mast from its GLB and refits the cabinets. All four LODs remain
+editable in the blend file. Repeated builds preserve Blender's packed DDS paths.
 
 Texconv is the Microsoft DirectXTex command-line utility. Validation reimports
 all four native exports in a fresh Blender process, checking LOD triangle counts,
@@ -145,8 +158,12 @@ reference. It records native triangle/vertex counts, bounds and file sizes.
 The source DDS files have full mip chains. The GEN8 importer strips compressed
 levels below a 4x4 block when extracting DDS images; validation checks native mip
 counts separately and compares the retained DDS payload with the source texture.
-`native-validation.json` records the exported hashes and results. Previews are
-authoring renders, not in-game screenshots.
+`native-validation.json` records the exported hashes and results. The lattice
+check casts 48,256 rays against reimported visual/collision surfaces on all four
+sides: over 95% surface coverage, over 98% clear gaps and under 5 cm distance
+error at the 95th percentile. `render_native.py` renders the actual exported
+models in closed, open, damaged, whole-mast and side-cabinet views. These are
+Blender renders of the native exports, not in-game screenshots.
 
 ## Runtime and verification boundary
 
@@ -215,20 +232,32 @@ both current-player and ground-level coordinate callbacks returned successfully.
 Browser tests separately cover the English/German controls, loading/error states,
 preserved values, company locations and editable customer model settings.
 
-The latest mast revision passed native reimport of all four LODs and a rendered
-comparison of the exported near mesh against the original textured Meshy GLB.
-The tower YDR is approximately 34.2 MiB on disk; see `native-validation.json`
-for exact sizes and counts. Door and interior YDRs are unchanged from the
-gameplay-tested version described above. The latest geometry/materials, new
-repair-item requirement and relocated sites have not received a new live
-gameplay/visual test; the earlier live results do not verify these revisions.
-After the final local copy (570 files, matching hashes) and resource reload,
-the server registered the mast with 48 MiB physical and 21.4 MiB virtual asset
-memory. FiveM flags the physical allocation as large. The detail increase has
-a real memory cost; LODs and mipmaps do not establish a frame-time guarantee.
-`radiotowerparts` was also confirmed in the test server's active ox_inventory
-catalogue after reloading that inventory. The production NUI build, 1,897
-frontend tests, all 52 browser scenarios and the focused Lua suites passed.
+The clean cabinet / lattice-collision revision passed native reimport of all
+four models and their four LODs, plus close-up renders from those native files.
+The tower YDR is approximately 34.9 MiB on disk; exact sizes and counts are in
+`native-validation.json`. After copying all 570 resource files with matching
+hashes and restarting the resource, FiveM reported 48 MiB physical and 22.8 MiB
+virtual memory for the mast. It still flags the physical allocation as large;
+LODs and mipmaps do not establish a frame-time guarantee.
+
+Live probes of freshly loaded copies of the final models passed all 17 lattice
+checks: eight diagonal hits, eight clear gaps and a foundation control. Cabinet
+probes hit the door at 0 degrees, the intact interior at -110 degrees, and the
+door again after closing. Swapping in the damaged interior also produced the
+expected hit. Temporary probe resources and objects were removed afterward.
+The client retained old collision under the original model name across resource
+restarts; a fresh test name loaded the new data correctly. Reconnect after this
+asset update to release previously loaded models. This does not require renaming
+customer configuration or adding a production cache workaround.
+After reconnecting, the same 17 lattice checks, closed/open/closed door checks
+and damaged-interior check also passed using the regular `sky_phone_cell_*`
+model names. All temporary test objects were removed.
+
+The new models have not repeated the complete lockpick, projectile, repair-item
+and network-coverage workflow. The earlier gameplay evidence above applies to
+the earlier models. Before this asset-only change, `radiotowerparts` was confirmed
+in the active ox_inventory catalogue, and the production NUI build, 1,897 frontend
+tests, all 52 browser scenarios and the focused Lua suites passed.
 
 A subsequent live startup exposed two initialization defects: SQL-serialized
 float32 heights did not exactly equal the historical decimal defaults, and tower

@@ -17,59 +17,64 @@
   "models": {
     "tower": {
       "triangles": {
-        "HIGH": 299999,
-        "MEDIUM": 79999,
-        "LOW": 19999,
-        "VERYLOW": 4999
+        "HIGH": 317402,
+        "MEDIUM": 89757,
+        "LOW": 22648,
+        "VERYLOW": 5178
       },
       "dimensions": [
         3.645127773284912,
         3.6455650329589844,
         16.0
       ],
-      "collisionBoxes": 11
+      "collisionBoxes": 12,
+      "collisionTriangles": 5999
     },
     "door": {
       "triangles": {
-        "HIGH": 2527,
-        "MEDIUM": 1400,
-        "LOW": 499,
-        "VERYLOW": 276
+        "HIGH": 6830,
+        "MEDIUM": 3790,
+        "LOW": 558,
+        "VERYLOW": 12
       },
       "dimensions": [
-        0.7739285230636597,
-        0.08166871964931488,
-        1.0015419721603394
+        0.746999979019165,
+        0.0884999930858612,
+        1.0360000133514404
       ],
-      "collisionBoxes": 1
+      "collisionBoxes": 1,
+      "collisionTriangles": 0
     },
     "panel": {
       "triangles": {
-        "HIGH": 26430,
-        "MEDIUM": 7000,
-        "LOW": 12,
-        "VERYLOW": 12
+        "HIGH": 26328,
+        "MEDIUM": 14936,
+        "LOW": 2200,
+        "VERYLOW": 24
       },
       "dimensions": [
-        0.7553668022155762,
-        0.7267425060272217,
-        1.1982191801071167
+        0.6556395292282104,
+        0.2560000419616699,
+        0.9600000381469727
       ],
-      "collisionBoxes": 1
+      "collisionBoxes": 1,
+      "collisionTriangles": 0
     },
     "panel_broken": {
       "triangles": {
-        "HIGH": 23899,
-        "MEDIUM": 23169,
-        "LOW": 12,
-        "VERYLOW": 12
+        "HIGH": 32043,
+        "MEDIUM": 17803,
+        "LOW": 2024,
+        "VERYLOW": 24
       },
       "dimensions": [
-        0.7236210703849792,
-        0.6349731683731079,
-        1.1408281326293945
+        0.6556395292282104,
+        0.36003386974334717,
+        0.9600000381469727
       ],
-      "collisionBoxes": 1
+      "collisionBoxes": 1,
+      "collisionTriangles": 0
     }
-  }
+  },
+  "cabinetAuthoring": "Procedural sheet metal, geometric hardware and warning symbols; shared 256px colour/specular swatches."
 }

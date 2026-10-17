@@ -1,4 +1,4 @@
-"""Convert the owner's three Meshy GLBs into four native, articulated GTA props.
+"""Build the Meshy mast and clean cabinet as four native, articulated GTA props.
 
 Run with Blender + Sollumz 2.9 native export. See README.md for inputs/options.
 """
@@ -33,6 +33,7 @@ empty = importlib.import_module(addon + ".tools.blenderhelper").create_empty_obj
 convert = importlib.import_module(addon + ".tools.drawablehelper").convert_obj_to_model
 shader = importlib.import_module(addon + ".ydr.shader_materials").create_shader
 bound_box = importlib.import_module(addon + ".tools.boundhelper").create_bound_box
+convert_bound_geometry = importlib.import_module(addon + ".tools.boundhelper").convert_obj_to_geometry
 collision = importlib.import_module(addon + ".ybn.collision_materials")
 
 
@@ -235,11 +236,13 @@ def game_material(obj, name, texconv, images):
     return material
 
 
-def add_collision(root, boxes, material_name="METAL_SOLID_MEDIUM"):
-    composite = empty(p.SollumType.BOUND_COMPOSITE, root.name + ".collision")
-    composite.parent = root
-    composite.hide_render = True
+def add_collision(root, boxes, material_name="METAL_SOLID_MEDIUM", composite=None):
+    if composite is None:
+        composite = empty(p.SollumType.BOUND_COMPOSITE, root.name + ".collision")
+        composite.parent = root
+        composite.hide_render = True
     material = collision.create_collision_material_from_index(next(i for i, m in enumerate(collision.collisionmats) if m.name == material_name))
+    created = []
     for centre, size, rotation in boxes:
         box = bound_box()
         box.parent = composite
@@ -251,33 +254,33 @@ def add_collision(root, boxes, material_name="METAL_SOLID_MEDIUM"):
         for group, values in COLLISION_FLAGS.items():
             for flag, enabled in values.items():
                 setattr(getattr(box, group), flag, enabled)
+        created.append(box)
+    return created
 
 
-def distant_cabinet(name):
-    """At distance the cabinet occupies only a few pixels; use its solid case."""
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, -1.43, 1.30))
-    obj = bpy.context.object
-    obj.dimensions = (.76, .36, 1.20)
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    triangulate = obj.modifiers.new("Native triangles", "TRIANGULATE")
-    bpy.ops.object.modifier_apply(modifier=triangulate.name)
-    obj.data.uv_layers.active.name = "UVMap 0"
-    colours = obj.data.color_attributes.new(name="Color 1", type="BYTE_COLOR", domain="CORNER")
-    colours.data.foreach_set("color", np.ones(len(colours.data) * 4, dtype=np.float32))
-    texture = HERE / "textures" / (PREFIX + name + "_far.dds")
-    shade = (62, 59, 55, 255) if name == "panel_broken" else (120, 122, 122, 255)
-    dds_rgba(texture, np.array([[shade]], dtype=np.uint8))
-    material = shader("default.sps")
-    material.name = PREFIX + name + "_far"
-    node = material.node_tree.nodes["DiffuseSampler"]
-    node.image = bpy.data.images.load(str(texture), check_existing=True)
-    node.texture_properties.embedded = True
+def add_lattice_collision(root, source):
+    """Follow the Meshy braces, including their irregular ends and open gaps."""
+    composite = next(child for child in root.children if child.sollum_type == p.SollumType.BOUND_COMPOSITE)
+    obj = bpy.data.objects.new(root.name + ".lattice_collision", source.data.copy())
+    bpy.context.collection.objects.link(obj)
+    cut(obj, lambda vertex: vertex.z < .60 or vertex.z > 12.4)
+    decimate(obj, 6000)
     obj.data.materials.clear()
-    obj.data.materials.append(material)
-    return obj
+    material_index = next(i for i, material in enumerate(collision.collisionmats) if material.name == "METAL_SOLID_MEDIUM")
+    obj.data.materials.append(collision.create_collision_material_from_index(material_index))
+    for face in obj.data.polygons:
+        face.material_index = 0
+    for layer in list(obj.data.uv_layers):
+        obj.data.uv_layers.remove(layer)
+    for attribute in list(obj.data.color_attributes):
+        obj.data.color_attributes.remove(attribute)
+    convert_bound_geometry(obj, "General (Default)")
+    obj.parent = composite
+    obj.hide_render = True
+    return len(obj.data.polygons)
 
 
-def export_model(obj, name, ytyp, counts, boxes):
+def export_model(obj, name, ytyp, counts, boxes, lods=None):
     # Vertex edits must invalidate Blender's cached bounds before the YTYP
     # exporter reads object.bound_box.
     obj.data.update()
@@ -286,9 +289,9 @@ def export_model(obj, name, ytyp, counts, boxes):
     convert(obj)
     obj.parent = root
     report = {"HIGH": len(obj.data.polygons)}
-    for level, count in zip((p.LODLevel.MEDIUM, p.LODLevel.LOW, p.LODLevel.VERYLOW), counts):
-        if name.startswith("panel") and level in (p.LODLevel.LOW, p.LODLevel.VERYLOW):
-            duplicate = distant_cabinet(name)
+    for index, (level, count) in enumerate(zip((p.LODLevel.MEDIUM, p.LODLevel.LOW, p.LODLevel.VERYLOW), counts)):
+        if lods is not None:
+            duplicate = lods[index]
         else:
             duplicate = obj.copy()
             duplicate.data = obj.data.copy()
@@ -318,10 +321,11 @@ def export_model(obj, name, ytyp, counts, boxes):
     arch.flags.total = "0"
     arch.lod_dist = distances[-1]
     arch.hd_texture_dist = distances[0]
-    return root, {"triangles": report, "dimensions": list(obj.dimensions), "collisionBoxes": len(boxes)}
+    return root, {"triangles": report, "dimensions": list(obj.dimensions), "collisionBoxes": len(boxes),
+        "collisionTriangles": 0}
 
 
-def render_preview(roots):
+def render_preview(roots, states=("closed", "open", "damaged", "tower", "side")):
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.samples = 32
@@ -349,13 +353,18 @@ def render_preview(roots):
                 child.hide_render = not enabled
     previews = HERE / "previews"
     previews.mkdir(exist_ok=True)
-    for state in ("closed", "open", "damaged", "tower"):
+    for state in states:
         visible(panel, state != "damaged")
         visible(broken, state == "damaged")
-        door.rotation_euler.z = 0 if state in ("closed", "tower") else math.radians(-110)
-        centre = Vector((0, -.7, 8)) if state == "tower" else Vector((-.15, -1.65, 1.3))
+        door.rotation_euler.z = 0 if state in ("closed", "tower", "side") else math.radians(-110)
+        if state == "tower":
+            centre, view = Vector((0, -.7, 8)), Vector((8, -24, 3))
+        elif state == "side":
+            centre, view = Vector((-1.48, -.045, 2.44)), Vector((-4, -.8, .7))
+        else:
+            centre, view = Vector((-.15, -1.65, 1.3)), Vector((1.0, -4, 1))
         camera.data.ortho_scale = 20 if state == "tower" else 1.8
-        camera.location = centre + Vector((8, -24, 3) if state == "tower" else (1.0, -4, 1))
+        camera.location = centre + view
         camera.rotation_euler = (centre - camera.location).to_track_quat("-Z", "Y").to_euler()
         scene.render.filepath = str(previews / (state + ".png"))
         bpy.ops.render.render(write_still=True)
@@ -366,11 +375,21 @@ def render_preview(roots):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--inputs", required=True, type=Path)
-    parser.add_argument("--texconv", required=True, type=Path)
-    parser.add_argument("--tower-only", action="store_true", help="Rebuild the mast while preserving cabinet assets.")
+    parser.add_argument("--inputs", type=Path)
+    parser.add_argument("--texconv", type=Path)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--tower-only", action="store_true", help="Rebuild the mast and refit the cabinet assemblies.")
+    mode.add_argument("--collision-only", action="store_true", help="Rebuild lattice collision from the saved mast; preserve all visual assets.")
+    mode.add_argument("--cabinet-only", action="store_true", help="Rebuild clean cabinet parts while preserving the mast's geometry and textures.")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
-    if args.tower_only:
+    if not args.collision_only and not args.cabinet_only and (args.inputs is None or args.texconv is None):
+        parser.error("--inputs and --texconv are required when rebuilding visual assets")
+    if args.collision_only or args.cabinet_only:
+        bpy.ops.wm.open_mainfile(filepath=str(HERE / "cell_towers.blend"))
+        roots = {name: bpy.data.objects[PREFIX + name] for name in ("tower", "door", "panel", "panel_broken")}
+        report = json.loads((HERE / "export-report.json").read_text())
+        ytyp = bpy.context.scene.ytyps[0]
+    elif args.tower_only:
         bpy.ops.wm.open_mainfile(filepath=str(HERE / "cell_towers.blend"))
         root = bpy.data.objects[PREFIX + "tower"]
         meshes = set()
@@ -395,18 +414,14 @@ def main():
         ytyp.name = "sky_phone_cell_towers"
         scene.ytyp_index = 0
         roots, report = {}, {"inputs": {}, "doorOffset": list(DOOR_OFFSET), "cabinetOffset": [0, -1.55, 1.30], "models": {}}
-    sources = (("tower_textured", "tower", 300000), ("intact", "panel", 24000), ("damaged", "panel_broken", 24000))
-    for source_name, name, budget in sources[:1] if args.tower_only else sources:
-        path = args.inputs / (source_name + ".glb")
+    if not (args.collision_only or args.cabinet_only):
+        path = args.inputs / "tower_textured.glb"
         report["inputs"][path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
-        print("IMPORT", name, flush=True)
+        print("IMPORT tower", flush=True)
         bpy.ops.import_scene.gltf(filepath=str(path))
         obj = next(o for o in bpy.context.selected_objects if o.type == "MESH")
         activate(obj)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        # Preserve the mast's fixed side enclosure. A spatial cut through it
-        # also removes neighboring load-bearing braces. The interactive fuse
-        # cabinet is a separate assembly on the front of the foundation.
         original = obj.copy()
         original.data = obj.data.copy()
         bpy.context.collection.objects.link(original)
@@ -419,51 +434,41 @@ def main():
         bpy.ops.object.mode_set(mode="OBJECT")
         if obj.data.attributes.get("sharp_edge"):
             obj.data.attributes.remove(obj.data.attributes["sharp_edge"])
-        # Reduce before splitting to keep the working authoring scene manageable.
-        decimate(obj, budget + (5000 if name == "panel" else 0), preserve_uv=name == "tower")
-        if name == "tower":
-            transfer_normals(original, obj)
-        images = bake_maps(original, obj, PREFIX + name, preserve_uv=name == "tower")
-        game_material(obj, PREFIX + name, args.texconv, images)
-        if name != "tower":
-            if name == "panel":
-                door = obj.copy()
-                door.data = obj.data.copy()
-                bpy.context.collection.objects.link(door)
-                cut(door, lambda v: v.x >= -.535)
-                for vertex in door.data.vertices:
-                    relative = vertex.co - HINGE
-                    # Fit the generated door's width to its cabinet opening.
-                    vertex.co = Vector((-relative.y * 1.32, relative.x, relative.z)) * SCALE
-                roots["door"], report["models"]["door"] = export_model(door, "door", ytyp, (1400, 500, 120), [((.37, -.045, 0), (.75, .07, 1.05), (0, 0, 0))])
-            cut(obj, lambda v: v.x < -.535)
-            for vertex in obj.data.vertices:
-                vertex.co = vertex.co * SCALE + SHIFT
-            boxes = [((0, -1.50, 1.30), (.61, .12, .91), (0, 0, 0))]
-            counts = (7000, 1800, 300)
-        else:
-            low = min(v.co.z for v in obj.data.vertices)
-            high = max(v.co.z for v in obj.data.vertices)
-            scale = 16 / (high - low)
-            for vertex in obj.data.vertices:
-                vertex.co = Vector((vertex.co.x * scale, vertex.co.y * scale, (vertex.co.z - low) * scale))
-            boxes = [((0, 0, .24), (3.65, 3.65, .48), (0, 0, 0)), ((0, 0, 13.2), (2.6, 2.6, 2.5), (0, 0, 0))]
-            for x in (-1, 1):
-                for y in (-1, 1):
-                    start, end = Vector((x * 1.25, y * 1.25, .5)), Vector((x * .42, y * .42, 12))
-                    direction = end - start
-                    boxes.append((tuple((start + end) * .5), (.16, .16, direction.length), direction.to_track_quat("Z", "Y").to_euler()))
-            # Cabinet case belongs to the invulnerable tower; only its inner
-            # opening belongs to the damageable panel collision.
-            boxes += [((x, -1.43, 1.3), (.07, .36, 1.08), (0, 0, 0)) for x in (-.37, .34)]
-            boxes += [((-.015, -1.43, z), (.78, .36, .07), (0, 0, 0)) for z in (.77, 1.84)]
-            boxes.append(((-.015, -1.27, 1.3), (.78, .06, 1.1), (0, 0, 0)))
-            counts = (80000, 20000, 5000)
-        roots[name], report["models"][name] = export_model(obj, name, ytyp, counts, boxes)
-        print("READY", name, report["models"][name], flush=True)
+        decimate(obj, 300000, preserve_uv=True)
+        transfer_normals(original, obj)
+        images = bake_maps(original, obj, PREFIX + "tower", preserve_uv=True)
+        game_material(obj, PREFIX + "tower", args.texconv, images)
+        low = min(v.co.z for v in obj.data.vertices)
+        high = max(v.co.z for v in obj.data.vertices)
+        scale = 16 / (high - low)
+        for vertex in obj.data.vertices:
+            vertex.co = Vector((vertex.co.x * scale, vertex.co.y * scale, (vertex.co.z - low) * scale))
+        boxes = [((0, 0, .24), (3.65, 3.65, .48), (0, 0, 0)), ((0, 0, 13.2), (2.6, 2.6, 2.5), (0, 0, 0))]
+        for x in (-1, 1):
+            for y in (-1, 1):
+                start, end = Vector((x * 1.25, y * 1.25, .5)), Vector((x * .42, y * .42, 12))
+                direction = end - start
+                boxes.append((tuple((start + end) * .5), (.16, .16, direction.length), direction.to_track_quat("Z", "Y").to_euler()))
+        # The fixed casing is invulnerable; only the interior collider accepts damage.
+        boxes += [((x, -1.43, 1.3), (.07, .36, 1.08), (0, 0, 0)) for x in (-.37, .34)]
+        boxes += [((-.015, -1.43, z), (.78, .36, .07), (0, 0, 0)) for z in (.77, 1.84)]
+        boxes.append(((-.015, -1.27, 1.3), (.78, .06, 1.1), (0, 0, 0)))
+        roots["tower"], report["models"]["tower"] = export_model(obj, "tower", ytyp, (80000, 20000, 5000), boxes)
+    if not args.collision_only:
+        sys.path.insert(0, str(HERE))
+        import cabinet
+        cabinet.install(sys.modules[__name__], roots, report, ytyp)
+    root = roots["tower"]
+    for obj in list(root.children_recursive):
+        if obj.sollum_type in (p.SollumType.BOUND_GEOMETRY, p.SollumType.BOUND_GEOMETRYBVH, p.SollumType.BOUND_POLY_TRIANGLE):
+            bpy.data.objects.remove(obj, do_unlink=True)
+    model = bpy.data.objects[PREFIX + "tower.mesh"]
+    model.sz_lods.active_lod_level = p.LODLevel.HIGH
+    report["models"]["tower"]["collisionTriangles"] = add_lattice_collision(root, model)
+    print("LATTICE_COLLISION", report["models"]["tower"]["collisionTriangles"], flush=True)
     STREAM.mkdir(parents=True, exist_ok=True)
     bpy.ops.object.select_all(action="DESELECT")
-    export_roots = [roots["tower"]] if args.tower_only else roots.values()
+    export_roots = [roots["tower"]] if args.collision_only else roots.values()
     for root in export_roots:
         root.select_set(True)
     bpy.context.view_layer.objects.active = roots["tower"]
@@ -484,11 +489,13 @@ def main():
     (HERE / "export-report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     for image in bpy.data.images:
         if image.filepath.endswith(".dds"):
+            filename = Path(bpy.path.abspath(image.filepath)).name
             image.pack()
-            image.filepath = "//textures/" + Path(image.filepath).name
+            image.filepath = "//textures/" + filename
     bpy.data.orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(HERE / "cell_towers.blend"), compress=True)
-    render_preview(roots)
+    if not args.collision_only:
+        render_preview(roots)
     print("CELL_TOWERS_EXPORT_OK", flush=True)
 
 

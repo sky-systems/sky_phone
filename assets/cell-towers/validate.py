@@ -6,6 +6,9 @@ import math
 from pathlib import Path
 import struct
 import bpy
+import numpy as np
+from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 from pymateria.gta5 import gen8
 
 HERE = Path(__file__).resolve().parent
@@ -14,6 +17,53 @@ addon = next(a.module for a in bpy.context.preferences.addons if "sollumz" in a.
 p = importlib.import_module(addon + ".sollumz_properties")
 expected = json.loads((HERE / "export-report.json").read_text())
 results = []
+
+
+def check_lattice_surface(models, lattice_meshes):
+    """Compare the exported collision with the visible lattice on all four sides."""
+    surfaces = []
+    for objects, visual in ((models, True), (lattice_meshes, False)):
+        vertices, faces = [], []
+        for obj in objects:
+            mesh = obj.sz_lods.get_lod(p.LODLevel.HIGH).mesh if visual else obj.data
+            base = len(vertices)
+            vertices.extend(obj.matrix_world @ vertex.co for vertex in mesh.vertices)
+            for face in mesh.polygons:
+                if visual:
+                    material = mesh.materials[face.material_index]
+                    if material.node_tree.nodes["DiffuseSampler"].sollumz_texture_name != "sky_phone_cell_tower_d":
+                        continue
+                faces.append([base + index for index in face.vertices])
+        surfaces.append(BVHTree.FromPolygons(vertices, faces))
+    reference, lattice = surfaces
+    rays = hits = missed = extra = 0
+    errors = []
+    for axis, side in ((1, -1), (0, 1), (1, 1), (0, -1)):
+        direction = Vector((0, 0, 0))
+        direction[axis] = -side
+        for z in np.arange(.72, 12.15, .055):
+            for across in np.arange(-1.3, 1.3, .045):
+                origin = Vector((0, 0, float(z)))
+                origin[axis], origin[1 - axis] = side * 1.65, float(across)
+                expected_hit, _, _, expected_distance = reference.ray_cast(origin, direction, 1.30)
+                actual_hit, _, _, actual_distance = lattice.ray_cast(origin, direction, 1.30)
+                rays += 1
+                if expected_hit is not None:
+                    hits += 1
+                    if actual_hit is None:
+                        missed += 1
+                    else:
+                        errors.append(abs(actual_distance - expected_distance))
+                elif actual_hit is not None:
+                    extra += 1
+    coverage = 1 - missed / hits
+    clear_gaps = 1 - extra / (rays - hits)
+    distance_95 = float(np.quantile(errors, .95))
+    assert coverage > .95 and clear_gaps > .98 and distance_95 < .05, (coverage, clear_gaps, distance_95)
+    return {"rays": rays, "visualHits": hits, "surfaceCoverage": coverage,
+        "clearGaps": clear_gaps, "distanceError95Metres": distance_95}
+
+
 for name, specification in expected["models"].items():
     for obj in list(bpy.data.objects):
         bpy.data.objects.remove(obj, do_unlink=True)
@@ -79,12 +129,20 @@ for name, specification in expected["models"].items():
         vertices[level.name] = vertex_count
         assert count == specification["triangles"][level.name], (name, level.name, count)
     composite = next(child for child in root.children if child.sollum_type == p.SollumType.BOUND_COMPOSITE)
-    assert len(composite.children) == specification["collisionBoxes"]
+    boxes = [child for child in composite.children if child.sollum_type == p.SollumType.BOUND_BOX]
+    assert len(boxes) == specification["collisionBoxes"]
+    lattice_meshes = [child for child in composite.children_recursive if child.sollum_type == p.SollumType.BOUND_GEOMETRY]
+    collision_triangles = sum(len(obj.data.polygons) for obj in lattice_meshes)
+    assert collision_triangles == specification.get("collisionTriangles", 0), (name, collision_triangles, specification.get("collisionTriangles", 0))
     for bound in composite.children:
         assert bound.composite_flags1.map_weapon and bound.composite_flags1.map_dynamic
         assert bound.composite_flags2.projectile and bound.composite_flags2.test_weapon
         assert bound.composite_flags2.explosion and bound.composite_flags2.ped
+    surface_check = None
     if name == "tower":
+        assert 0 < collision_triangles <= 6000
+        bpy.context.view_layer.update()
+        surface_check = check_lattice_surface(models, lattice_meshes)
         assert abs(high_max[2] - high_min[2] - 16.0) < .001
         assert textures["sky_phone_cell_tower_d"]["width"] == 4096
         assert textures["sky_phone_cell_tower_n"]["width"] == 4096
@@ -94,7 +152,8 @@ for name, specification in expected["models"].items():
         "fileBytes": path.stat().st_size, "triangles": counts, "vertices": vertices,
         "highBounds": {"min": high_min, "max": high_max},
         "lodDistances": [distances.lod_dist_high, distances.lod_dist_med, distances.lod_dist_low, distances.lod_dist_vlow],
-        "textures": textures, "collisionBoxes": len(composite.children)})
+        "textures": textures, "collisionBoxes": len(boxes), "collisionTriangles": collision_triangles,
+        "collisionSurfaceCheck": surface_check})
 assert (STREAM / "sky_phone_cell_towers.ytyp").read_bytes()[:4] == b"RSC7"
 assert bpy.ops.sollumz.import_assets(directory=str(STREAM), files=[{"name": "sky_phone_cell_towers.ytyp"}],
     use_custom_settings=True) == {"FINISHED"}
