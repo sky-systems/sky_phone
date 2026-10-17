@@ -42,12 +42,31 @@ def activate(obj):
     bpy.context.view_layer.objects.active = obj
 
 
-def decimate(obj, triangles):
+def decimate(obj, triangles, preserve_uv=False):
     activate(obj)
     mod = obj.modifiers.new("Meshy topology reduction", "DECIMATE")
     mod.ratio = min(1.0, triangles / len(obj.data.polygons))
     mod.use_collapse_triangulate = True
+    if preserve_uv:
+        # A zero weight prevents an edge collapse at an atlas boundary. Keep
+        # those vertices so the original maps remain usable on the near mesh.
+        indices = np.empty(len(obj.data.loops), dtype=np.int32)
+        obj.data.loops.foreach_get("vertex_index", indices)
+        uv = np.empty(len(obj.data.loops) * 2, dtype=np.float32)
+        obj.data.uv_layers.active.data.foreach_get("uv", uv)
+        uv = uv.reshape(-1, 2)
+        low = np.full((len(obj.data.vertices), 2), np.inf)
+        high = np.full((len(obj.data.vertices), 2), -np.inf)
+        np.minimum.at(low, indices, uv)
+        np.maximum.at(high, indices, uv)
+        interior = np.flatnonzero(np.max(high - low, axis=1) < .000001).tolist()
+        group = obj.vertex_groups.new(name="Preserve UV seams")
+        group.add(interior, 1.0, "REPLACE")
+        mod.vertex_group = group.name
+        mod.vertex_group_factor = 1.0
     bpy.ops.object.modifier_apply(modifier=mod.name)
+    if preserve_uv:
+        obj.vertex_groups.clear()
     if obj.data.has_custom_normals:
         bpy.ops.mesh.customdata_custom_splitnormals_clear()
     for face in obj.data.polygons:
@@ -80,9 +99,7 @@ def dds_rgba(path, pixels):
 
 
 def bake_maps(source, obj, name):
-    # Meshy uses a dense UV atlas. Collapsing its triangles invalidates the
-    # original atlas interpolation; reproject the original surface onto a new
-    # low-poly UV layout instead of stretching that atlas over the decimation.
+    # The more heavily reduced cabinet parts use their own baked UV atlas.
     activate(obj)
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
@@ -98,6 +115,7 @@ def bake_maps(source, obj, name):
     scene.render.engine = "CYCLES"
     scene.cycles.samples = 1
     scene.render.bake.use_selected_to_active = True
+    scene.render.bake.use_cage = False
     scene.render.bake.cage_extrusion = .003
     scene.render.bake.max_ray_distance = .025
     scene.render.bake.margin = 8
@@ -125,10 +143,10 @@ def game_material(obj, name, texconv, images):
     texture_dir.mkdir(parents=True, exist_ok=True)
     raw_dir.mkdir(parents=True, exist_ok=True)
     for suffix, image, sampler in (("d", diffuse, "DiffuseSampler"), ("n", normal, "BumpSampler")):
-        image.scale(2048, 2048)
-        pixels = np.empty(2048 * 2048 * 4, dtype=np.float32)
+        width, height = image.size
+        pixels = np.empty(width * height * 4, dtype=np.float32)
         image.pixels.foreach_get(pixels)
-        pixels = pixels.reshape(2048, 2048, 4)
+        pixels = pixels.reshape(height, width, 4)
         pixels[:, :, 3] = 1
         raw = raw_dir / f"{name}_{suffix}.dds"
         # DDS origin is top-left; Blender exposes rows from the bottom.
@@ -146,6 +164,8 @@ def game_material(obj, name, texconv, images):
     material.node_tree.nodes["SpecSampler"].texture_properties.embedded = True
     material.node_tree.nodes["specularIntensityMult"].set_float(.12)
     material.node_tree.nodes["specularFalloffMult"].set_float(32)
+    if name == PREFIX + "tower":
+        material.node_tree.nodes["bumpiness"].set_float(.3)
     obj.data.materials.clear()
     obj.data.materials.append(material)
     obj.data.uv_layers.active.name = "UVMap 0"
@@ -197,6 +217,9 @@ def distant_cabinet(name):
 
 
 def export_model(obj, name, ytyp, counts, boxes):
+    # Vertex edits must invalidate Blender's cached bounds before the YTYP
+    # exporter reads object.bound_box.
+    obj.data.update()
     root = empty(p.SollumType.DRAWABLE, PREFIX + name)
     obj.name = root.name + ".mesh"
     convert(obj)
@@ -214,11 +237,13 @@ def export_model(obj, name, ytyp, counts, boxes):
         report[level.name] = len(duplicate.data.polygons)
         bpy.data.objects.remove(duplicate, do_unlink=True)
     obj.sz_lods.active_lod_level = p.LODLevel.HIGH
-    distances = (70, 140, 260, 500) if name == "tower" else (20, 45, 90, 150)
+    distances = (35, 100, 230, 500) if name == "tower" else (20, 45, 90, 150)
     props = root.drawable_properties
     props.lod_dist_high, props.lod_dist_med, props.lod_dist_low, props.lod_dist_vlow = distances
     add_collision(root, boxes)
-    arch = ytyp.new_archetype(p.ArchetypeType.BASE)
+    arch = next((archetype for archetype in ytyp.archetypes if archetype.name == root.name), None)
+    if arch is None:
+        arch = ytyp.new_archetype(p.ArchetypeType.BASE)
     arch.name = root.name
     arch.asset = root
     arch.asset_type = p.AssetType.DRAWABLE
@@ -280,16 +305,35 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--inputs", required=True, type=Path)
     parser.add_argument("--texconv", required=True, type=Path)
+    parser.add_argument("--tower-only", action="store_true", help="Rebuild the mast while preserving cabinet assets.")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
-    bpy.ops.object.select_all(action="SELECT")
-    bpy.ops.object.delete(use_global=False)
-    scene = bpy.context.scene
-    scene.ytyps.clear()
-    ytyp = scene.ytyps.add()
-    ytyp.name = "sky_phone_cell_towers"
-    scene.ytyp_index = 0
-    roots, report = {}, {"inputs": {}, "doorOffset": list(DOOR_OFFSET), "cabinetOffset": [0, -1.55, 1.30], "models": {}}
-    for source_name, name, budget in (("tower_textured", "tower", 40000), ("intact", "panel", 24000), ("damaged", "panel_broken", 24000)):
+    if args.tower_only:
+        bpy.ops.wm.open_mainfile(filepath=str(HERE / "cell_towers.blend"))
+        root = bpy.data.objects[PREFIX + "tower"]
+        meshes = set()
+        for obj in root.children_recursive:
+            if obj.sollum_type == p.SollumType.DRAWABLE_MODEL:
+                for level in (p.LODLevel.HIGH, p.LODLevel.MEDIUM, p.LODLevel.LOW, p.LODLevel.VERYLOW):
+                    meshes.add(obj.sz_lods.get_lod(level).mesh)
+        for obj in list(root.children_recursive) + [root]:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        for mesh in meshes:
+            bpy.data.meshes.remove(mesh)
+        bpy.data.orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=True)
+        ytyp = bpy.context.scene.ytyps[0]
+        roots = {name: bpy.data.objects[PREFIX + name] for name in ("door", "panel", "panel_broken")}
+        report = json.loads((HERE / "export-report.json").read_text())
+    else:
+        bpy.ops.object.select_all(action="SELECT")
+        bpy.ops.object.delete(use_global=False)
+        scene = bpy.context.scene
+        scene.ytyps.clear()
+        ytyp = scene.ytyps.add()
+        ytyp.name = "sky_phone_cell_towers"
+        scene.ytyp_index = 0
+        roots, report = {}, {"inputs": {}, "doorOffset": list(DOOR_OFFSET), "cabinetOffset": [0, -1.55, 1.30], "models": {}}
+    sources = (("tower_textured", "tower", 160000), ("intact", "panel", 24000), ("damaged", "panel_broken", 24000))
+    for source_name, name, budget in sources[:1] if args.tower_only else sources:
         path = args.inputs / (source_name + ".glb")
         report["inputs"][path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
         print("IMPORT", name, flush=True)
@@ -297,8 +341,9 @@ def main():
         obj = next(o for o in bpy.context.selected_objects if o.type == "MESH")
         activate(obj)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        if name == "tower":
-            cut(obj, lambda v: v.x < -.16 and -.80 < v.z < -.54)
+        # Preserve the mast's fixed side enclosure. A spatial cut through it
+        # also removes neighboring load-bearing braces. The interactive fuse
+        # cabinet is a separate assembly on the front of the foundation.
         original = obj.copy()
         original.data = obj.data.copy()
         bpy.context.collection.objects.link(original)
@@ -312,8 +357,18 @@ def main():
         if obj.data.attributes.get("sharp_edge"):
             obj.data.attributes.remove(obj.data.attributes["sharp_edge"])
         # Reduce before splitting to keep the working authoring scene manageable.
-        decimate(obj, budget + (5000 if name == "panel" else 0))
-        images = bake_maps(original, obj, PREFIX + name)
+        decimate(obj, budget + (5000 if name == "panel" else 0), preserve_uv=name == "tower")
+        if name == "tower":
+            nodes = original.data.materials[0].node_tree.nodes
+            bsdf = next(node for node in nodes if node.type == "BSDF_PRINCIPLED")
+            diffuse = bsdf.inputs["Base Color"].links[0].from_node.image
+            normal_map = bsdf.inputs["Normal"].links[0].from_node
+            normal = normal_map.inputs["Color"].links[0].from_node.image
+            normal.scale(2048, 2048)
+            images = diffuse, normal
+            bpy.data.objects.remove(original, do_unlink=True)
+        else:
+            images = bake_maps(original, obj, PREFIX + name)
         game_material(obj, PREFIX + name, args.texconv, images)
         if name != "tower":
             if name == "panel":
@@ -348,17 +403,25 @@ def main():
             boxes += [((x, -1.43, 1.3), (.07, .36, 1.08), (0, 0, 0)) for x in (-.37, .34)]
             boxes += [((-.015, -1.43, z), (.78, .36, .07), (0, 0, 0)) for z in (.77, 1.84)]
             boxes.append(((-.015, -1.27, 1.3), (.78, .06, 1.1), (0, 0, 0)))
-            counts = (12000, 3500, 700)
+            counts = (40000, 12000, 3000)
         roots[name], report["models"][name] = export_model(obj, name, ytyp, counts, boxes)
         print("READY", name, report["models"][name], flush=True)
     STREAM.mkdir(parents=True, exist_ok=True)
     bpy.ops.object.select_all(action="DESELECT")
-    for root in roots.values():
+    export_roots = [roots["tower"]] if args.tower_only else roots.values()
+    for root in export_roots:
         root.select_set(True)
     bpy.context.view_layer.objects.active = roots["tower"]
+    bpy.context.view_layer.update()
     result = bpy.ops.sollumz.export_assets(directory=str(STREAM), direct_export=True, use_custom_settings=True,
         target_formats={"NATIVE"}, target_versions={"GEN8"}, limit_to_selected=True, exclude_skeleton=True,
-        apply_transforms=False, export_ytyps=True, export_ytyps_include="ALL", export_ymaps=False, export_ytds=False)
+        apply_transforms=False, export_ytyps=False, export_ymaps=False, export_ytds=False)
+    assert result == {"FINISHED"}, result
+    # YDR export temporarily switches LOD meshes. Update their restored High
+    # bounds before exporting the archetypes in a separate operator call.
+    bpy.context.view_layer.update()
+    result = bpy.ops.sollumz.export_ytyp_io(directory=str(STREAM), direct_export=True, use_custom_settings=True,
+        target_formats={"NATIVE"}, target_versions={"GEN8"}, apply_transforms=False, export_ytyps_include="ALL")
     assert result == {"FINISHED"}, result
     for name in [root.name + ".ydr" for root in roots.values()] + ["sky_phone_cell_towers.ytyp"]:
         path = STREAM / name

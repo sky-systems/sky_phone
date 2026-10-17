@@ -68,12 +68,32 @@ contains the standalone textures. The exported four YDRs and YTYP live under
 `sky_phone/stream/`. Textures are embedded, so no separate YTD is required.
 
 Authoring used Blender 5.2.1 and Sollumz 2.9.0 with its native GEN8 exporter.
-`build.py` welds glTF seam vertices before reduction, rebakes diffuse/normal maps,
-separates and reorients the door around its hinge, adds four LODs and box
+`build.py` welds glTF seam vertices before reduction, preserves the mast's UV
+boundaries and original maps, and rebakes the cabinet maps. It separates and
+reorients the door around its hinge, adds four LODs and box
 collision using Sollumz's General preset, and exports game assets. Far cabinet
 LODs are simple boxes. Each YTYP archetype references its embedded physics data.
 The casing collider belongs to the invulnerable mast; only the interior opening
 belongs to the damageable panel. Do not combine these collisions.
+
+The mast's near mesh retains roughly 172,000 triangles, with approximately
+40,000 / 12,000 / 3,000 in the remaining LODs. Its drawable LOD thresholds are
+35 / 100 / 230 / 500 metres; selection also depends on GTA's LOD calculation.
+The mast uses the original 4K diffuse map, a 2K normal map, BC1/BC3 compression
+and mipmaps. Geometry is concentrated in the near view instead of
+keeping the original 1.7 million triangles at every distance. These are asset
+budgets, not measured frame-time guarantees.
+
+The earlier 40,000-triangle near mesh visibly flattened small braces and curved
+parts. A fresh atlas also produced black triangular texture artifacts; plain
+decimation with the original UVs distorted their boundaries. The near mesh now
+protects UV-boundary vertices during reduction. The original fixed side enclosure
+is retained because its former spatial cut also removed adjacent mast braces.
+The animated fuse cabinet remains a separate assembly at the front.
+The archetype bounds include the full 16-metre mast. The build exports YTYP
+after the YDR's temporary LOD switches and a dependency-graph update, so cached
+mesh bounds cannot truncate the antenna tip. Validation checks that each
+archetype encloses its exported near mesh.
 
 ```sh
 blender --background --python-exit-code 1 --python assets/cell-towers/build.py -- \
@@ -81,10 +101,17 @@ blender --background --python-exit-code 1 --python assets/cell-towers/build.py -
 blender --background --python-exit-code 1 --python assets/cell-towers/validate.py
 ```
 
+Add `--tower-only` to rebuild the mast from the saved source while preserving
+the door and interior exports. All four LODs remain editable in the blend file.
+
 Texconv is the Microsoft DirectXTex command-line utility. Validation reimports
 all four native exports in a fresh Blender process, checking LOD triangle counts,
 finite vertices, UV/color layers, packed DDS textures, collision counts/weapon
-flags and each archetype's physics dictionary reference.
+flags, texture dimensions/mip levels and each archetype's physics dictionary
+reference. It records native triangle/vertex counts, bounds and file sizes.
+The source DDS files have full mip chains. The GEN8 importer strips compressed
+levels below a 4x4 block when extracting DDS images; validation checks native mip
+counts separately and compares the retained DDS payload with the source texture.
 `native-validation.json` records the exported hashes and results. Previews are
 authoring renders, not in-game screenshots.
 
@@ -154,3 +181,10 @@ workflow was retested. In the actual CitizenFX 37151 / Chromium 103 CEF runtime,
 both current-player and ground-level coordinate callbacks returned successfully.
 Browser tests separately cover the English/German controls, loading/error states,
 preserved values, company locations and editable customer model settings.
+
+The higher-detail mast revision passed native reimport and rendered comparison
+of all four LODs. The local resource copy was hash-verified and restarted after
+`refresh`; the server reported 24 MiB physical and 19 MiB virtual asset memory
+for the mast. These are resource allocation figures, not a gameplay profiler
+measurement. No client was connected for a new in-game visual check. Door and
+interior YDRs are unchanged from the gameplay-tested version described above.

@@ -1,68 +1,282 @@
 [
   {
     "file": "sky_phone_cell_tower.ydr",
-    "sha256": "269cd26f172a44db0de271c9125706a1df81af453d610bdbba6e38626f753bbf",
+    "sha256": "6d9ba3bceafc9100b8610e470866b1a48ee902d987fa030d2f230fed39ba85e8",
+    "fileBytes": 19424599,
     "triangles": {
-      "HIGH": 39999,
-      "MEDIUM": 12000,
-      "LOW": 3499,
-      "VERYLOW": 2982
+      "HIGH": 171509,
+      "MEDIUM": 39999,
+      "LOW": 11999,
+      "VERYLOW": 3075
     },
-    "textures": [
-      "sky_phone_cell_tower_d.dds",
-      "sky_phone_cell_tower_d.dds.001",
-      "sky_phone_cell_tower_n.dds"
+    "vertices": {
+      "HIGH": 189240,
+      "MEDIUM": 44106,
+      "LOW": 16780,
+      "VERYLOW": 5826
+    },
+    "highBounds": {
+      "min": [
+        -1.8467333316802979,
+        -1.8169453144073486,
+        0.0
+      ],
+      "max": [
+        1.8170881271362305,
+        1.8251179456710815,
+        16.0
+      ]
+    },
+    "lodDistances": [
+      35.0,
+      100.0,
+      230.0,
+      500.0
     ],
-    "collisionBoxes": 11
+    "textures": {
+      "sky_phone_cell_tower_d": {
+        "width": 4096,
+        "height": 4096,
+        "nativeMipLevels": 12,
+        "reimportMipLevels": 11,
+        "format": "DXT1",
+        "reimportDdsBytes": 11184936
+      },
+      "sky_phone_cell_tower_n": {
+        "width": 2048,
+        "height": 2048,
+        "nativeMipLevels": 12,
+        "reimportMipLevels": 10,
+        "format": "DXT5",
+        "reimportDdsBytes": 5592528
+      }
+    },
+    "collisionBoxes": 11,
+    "archetypeBounds": {
+      "min": [
+        -1.8467333316802979,
+        -1.8250000476837158,
+        0.0
+      ],
+      "max": [
+        1.8250000476837158,
+        1.8251179456710815,
+        16.0
+      ]
+    }
   },
   {
     "file": "sky_phone_cell_door.ydr",
     "sha256": "5d8950f778b7bc46c4d06b3997b31e30de98bc1e350091102dcf718ccfb10fa5",
+    "fileBytes": 3101636,
     "triangles": {
       "HIGH": 2527,
       "MEDIUM": 1400,
       "LOW": 499,
       "VERYLOW": 276
     },
-    "textures": [
-      "sky_phone_cell_panel_d.dds",
-      "sky_phone_cell_panel_d.dds.001",
-      "sky_phone_cell_panel_n.dds"
+    "vertices": {
+      "HIGH": 2959,
+      "MEDIUM": 1880,
+      "LOW": 811,
+      "VERYLOW": 526
+    },
+    "highBounds": {
+      "min": [
+        -0.018938545137643814,
+        -0.09428057074546814,
+        -0.46222200989723206
+      ],
+      "max": [
+        0.7549899816513062,
+        -0.012611853890120983,
+        0.5393199324607849
+      ]
+    },
+    "lodDistances": [
+      20.0,
+      45.0,
+      90.0,
+      150.0
     ],
-    "collisionBoxes": 1
+    "textures": {
+      "sky_phone_cell_panel_d": {
+        "width": 2048,
+        "height": 2048,
+        "nativeMipLevels": 11,
+        "reimportMipLevels": 10,
+        "format": "DXT1",
+        "reimportDdsBytes": 2796328
+      },
+      "sky_phone_cell_panel_n": {
+        "width": 2048,
+        "height": 2048,
+        "nativeMipLevels": 12,
+        "reimportMipLevels": 10,
+        "format": "DXT5",
+        "reimportDdsBytes": 5592528
+      }
+    },
+    "collisionBoxes": 1,
+    "archetypeBounds": {
+      "min": [
+        -0.018938545137643814,
+        -0.09428057074546814,
+        -0.5249999761581421
+      ],
+      "max": [
+        0.7549899816513062,
+        -0.010000001639127731,
+        0.5393199324607849
+      ]
+    }
   },
   {
     "file": "sky_phone_cell_panel.ydr",
     "sha256": "1cfa1ca92b5d58cd64531a090090822a6848662e88c4f8c7a4f490c4deb1fe1e",
+    "fileBytes": 4533399,
     "triangles": {
       "HIGH": 26430,
       "MEDIUM": 7000,
       "LOW": 12,
       "VERYLOW": 12
     },
-    "textures": [
-      "sky_phone_cell_panel_d.dds.002",
-      "sky_phone_cell_panel_d.dds.003",
-      "sky_phone_cell_panel_far.dds",
-      "sky_phone_cell_panel_n.dds.001"
+    "vertices": {
+      "HIGH": 36939,
+      "MEDIUM": 13232,
+      "LOW": 24,
+      "VERYLOW": 24
+    },
+    "highBounds": {
+      "min": [
+        -0.3914983570575714,
+        -1.6170178651809692,
+        0.7004815340042114
+      ],
+      "max": [
+        0.3636532425880432,
+        -1.317336082458496,
+        1.8987007141113281
+      ]
+    },
+    "lodDistances": [
+      20.0,
+      45.0,
+      90.0,
+      150.0
     ],
-    "collisionBoxes": 1
+    "textures": {
+      "sky_phone_cell_panel_d": {
+        "width": 2048,
+        "height": 2048,
+        "nativeMipLevels": 11,
+        "reimportMipLevels": 10,
+        "format": "DXT1",
+        "reimportDdsBytes": 2796328
+      },
+      "sky_phone_cell_panel_n": {
+        "width": 2048,
+        "height": 2048,
+        "nativeMipLevels": 12,
+        "reimportMipLevels": 10,
+        "format": "DXT5",
+        "reimportDdsBytes": 5592528
+      },
+      "sky_phone_cell_panel_far": {
+        "width": 1,
+        "height": 1,
+        "nativeMipLevels": 1,
+        "reimportMipLevels": 1,
+        "format": "RGBA8",
+        "reimportDdsBytes": 132
+      }
+    },
+    "collisionBoxes": 1,
+    "archetypeBounds": {
+      "min": [
+        -0.39171352982521057,
+        -2.0440785884857178,
+        0.7004815340042114
+      ],
+      "max": [
+        0.3636532425880432,
+        -1.317336082458496,
+        1.8987007141113281
+      ]
+    }
   },
   {
     "file": "sky_phone_cell_panel_broken.ydr",
     "sha256": "97fa30db78fcf6ccb8dda7262ec9314e4cb308ce9d81a61d953d1fa5481d3f4e",
+    "fileBytes": 4479279,
     "triangles": {
       "HIGH": 23899,
       "MEDIUM": 23169,
       "LOW": 12,
       "VERYLOW": 12
     },
-    "textures": [
-      "sky_phone_cell_panel_broken_d.dds",
-      "sky_phone_cell_panel_broken_d.dds.001",
-      "sky_phone_cell_panel_broken_far.dds",
-      "sky_phone_cell_panel_broken_n.dds"
+    "vertices": {
+      "HIGH": 35170,
+      "MEDIUM": 34821,
+      "LOW": 24,
+      "VERYLOW": 24
+    },
+    "highBounds": {
+      "min": [
+        -0.39193639159202576,
+        -1.7670484781265259,
+        0.7086155414581299
+      ],
+      "max": [
+        0.3316846787929535,
+        -1.3690162897109985,
+        1.8494436740875244
+      ]
+    },
+    "lodDistances": [
+      20.0,
+      45.0,
+      90.0,
+      150.0
     ],
-    "collisionBoxes": 1
+    "textures": {
+      "sky_phone_cell_panel_broken_d": {
+        "width": 2048,
+        "height": 2048,
+        "nativeMipLevels": 11,
+        "reimportMipLevels": 10,
+        "format": "DXT1",
+        "reimportDdsBytes": 2796328
+      },
+      "sky_phone_cell_panel_broken_n": {
+        "width": 2048,
+        "height": 2048,
+        "nativeMipLevels": 12,
+        "reimportMipLevels": 10,
+        "format": "DXT5",
+        "reimportDdsBytes": 5592528
+      },
+      "sky_phone_cell_panel_broken_far": {
+        "width": 1,
+        "height": 1,
+        "nativeMipLevels": 1,
+        "reimportMipLevels": 1,
+        "format": "RGBA8",
+        "reimportDdsBytes": 132
+      }
+    },
+    "collisionBoxes": 1,
+    "archetypeBounds": {
+      "min": [
+        -0.39193639159202576,
+        -2.0039894580841064,
+        0.7086155414581299
+      ],
+      "max": [
+        0.3316846787929535,
+        -1.3690162897109985,
+        1.8494436740875244
+      ]
+    }
   }
 ]
