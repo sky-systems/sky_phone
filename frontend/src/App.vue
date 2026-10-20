@@ -1238,7 +1238,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
 
     const notification: PhoneNotificationInput = {
       appId: 'messages',
-      subtitle: data.phoneNumber,
+      subtitle: data.sender ?? data.phoneNumber,
       text:
         data.text ??
         phone.t('Apps.messages.newMessage', { sender: data.sender ?? '' }),

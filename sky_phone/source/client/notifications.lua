@@ -293,7 +293,7 @@ end)
 RegisterNetEvent("sky_phone:messages:new", function(data)
     local locale = app_locales.messages
     data.title = locale.name
-    data.text = locale.newMessage:gsub("{sender}", tostring(data.sender))
+    data.text = locale.newMessage:gsub("{sender}", { ["{sender}"] = tostring(data.sender) })
     SendNUIMessage({ type = "messages:new", data = data })
 end)
 

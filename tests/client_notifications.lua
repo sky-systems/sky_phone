@@ -31,7 +31,9 @@ SkyPhoneLocales = {
     Resolve = function()
         return {
             Nui = {
-                Apps = {},
+                Apps = {
+                    messages = { name = "Messages", newMessage = "New message from {sender}" },
+                },
             },
         }
     end,
@@ -168,5 +170,14 @@ net_events["sky_phone:notifications:show"]({
     text = "Rejected",
 })
 assert(#nui_messages == 2, "invalid server device contexts must be rejected")
+
+for _, sender in ipairs({ "Saved Contact", "100% Kontakt %1", "5550001" }) do
+    net_events["sky_phone:messages:new"]({ phoneNumber = "5550001", sender = sender })
+    local message = nui_messages[#nui_messages]
+    assert(message.type == "messages:new", "SMS notification route changed")
+    assert(message.data.sender == sender, "SMS sender label was changed")
+    assert(message.data.text == "New message from " .. sender, "SMS sender must be inserted literally")
+    assert(message.data.phoneNumber == "5550001", "SMS number must remain available separately")
+end
 
 print("Client notification router tests passed")

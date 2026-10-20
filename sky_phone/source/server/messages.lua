@@ -301,12 +301,18 @@ end
 
 local function notify_sim(sim_id, event_name, data)
     local devices = Bridge.Database.Query([[
-        SELECT d.`imei`, d.`device_name`, settings.`payload` AS `settings`
+        SELECT d.`imei`, d.`device_name`, settings.`payload` AS `settings`,
+            (SELECT contact.`name` FROM `sky_phone_contacts` contact
+                WHERE contact.`phone_number` = ?
+                    AND (contact.`account_id` = d.`account_id`
+                        OR (d.`account_id` IS NULL AND contact.`account_id` IS NULL
+                            AND contact.`device_imei` = d.`imei`))
+                ORDER BY LOWER(contact.`name`), contact.`contact_id` LIMIT 1) AS `sender_name`
         FROM `sky_phone_devices` d
         LEFT JOIN `sky_phone_device_data` settings
             ON settings.`device_imei` = d.`imei` AND settings.`namespace` = 'settings'
         WHERE d.`sim_id` = ?
-    ]], { sim_id })
+    ]], { data.phoneNumber, sim_id })
     for _, device in ipairs(devices) do
         for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
             local source = tonumber(player_source) or player_source
@@ -315,6 +321,7 @@ local function notify_sim(sim_id, event_name, data)
                 for key, value in pairs(data) do
                     payload[key] = value
                 end
+                payload.sender = device.sender_name or data.sender
                 payload.device = {
                     imei = device.imei,
                     name = device.device_name,
