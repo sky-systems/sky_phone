@@ -87,9 +87,11 @@ Physical tower props are disabled by default. If you enable them under
 **Cell towers → Physical towers**, register the configured `LockpickItem`
 (default `lockpick`) and `RepairItem` (default `radiotowerparts`) in your active
 inventory. These are ordinary items without phone use exports or identity
-metadata. Opening consumes one lockpick; successful repair consumes one part.
-An interrupted repair consumes nothing. Item names, repair jobs/duration and
-the `Destructible` boolean are available in both Phonepanel and Lua file mode.
+metadata. Successful lockpicking consumes one lockpick; successful repair consumes
+one part. Lockpicking takes `LockpickSeconds` (default 5); repair takes
+`RepairSeconds` (default 10). Press **X** to cancel either action. Interrupted
+actions consume nothing. Item names, action durations, repair jobs and the
+`Destructible` boolean are available in both Phonepanel and Lua file mode.
 Disabling `Destructible` prevents new damage; existing damage still needs repair.
 
 ### Keep configuration during updates

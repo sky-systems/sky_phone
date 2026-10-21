@@ -8,7 +8,10 @@ so FiveM reloads the manifest's new script and archetype registrations.
 
 Each tower contains a static mast/cabinet, a hinged door and an interchangeable
 intact/damaged interior. Press **E** near the cabinet to open or close it.
-Opening consumes one `Props.LockpickItem` (default `lockpick`); closing is free.
+Lockpicking takes `Props.LockpickSeconds` (default 5, configurable from 1 to 300
+seconds in Phonepanel). Completing it consumes one `Props.LockpickItem` (default
+`lockpick`); closing is free. Press **X** to cancel. Interrupted lockpicking
+consumes nothing.
 Only an open interior accepts weapon damage. The damage check accepts any weapon
 type, rather than a weapon-name allowlist. A damaged tower stops contributing
 coverage; another healthy tower can still cover the same position.
@@ -19,15 +22,22 @@ both Lua and Phonepanel; `Props.Enabled` remains `false` by default.
 
 Press **G** at an open, damaged cabinet to repair it. `Props.RepairJobs = {}`
 allows everyone; a nonempty list allows only those framework job names.
-`Props.RepairSeconds` defaults to 10. Moving away, dying, losing the required job
-or closing the cabinet cancels repair. A successful repair restores coverage and
-closes the cabinet. Repair requires `Props.RepairItem` (default `radiotowerparts`)
+`Props.RepairSeconds` defaults to 10. Press **X** to cancel. Moving away, entering
+a vehicle, dying, losing the required job or closing the cabinet cancels repair.
+A successful repair restores coverage and closes the cabinet.
+Repair requires `Props.RepairItem` (default `radiotowerparts`)
 in the active inventory. The server checks it at the start and removes one only
 on successful completion. Losing the item during repair prevents completion;
 cancelled repairs consume nothing. Register the item in your inventory catalogue
 as described in [inventory setup](../../docs/inventory-setup.md#physical-tower-materials).
 Damage persists in resource KVP storage across restarts;
 doors restart closed. Disabling props restores ordinary virtual-tower coverage.
+
+Lockpicking and repair show progress and play a working animation. The standalone
+Phone bridges use supported installed help, notification and progress providers,
+with native fallbacks when none is available. No Sky Base dependency is required.
+Payphone interaction and call hints use the same help provider; leaving one
+interaction releases only its own hint.
 
 Tower `Coords` is the bottom center of the foundation, not the antenna or player
 center. `Heading` rotates the entire assembly. The 18 defaults now use technical
