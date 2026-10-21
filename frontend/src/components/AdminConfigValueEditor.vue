@@ -1279,6 +1279,7 @@ function mapEntryStructure(
 
 .config-structured-editor .config-structured-editor__location button {
   min-height: 44px;
+  color: #fff;
 }
 
 .config-structured-editor {
