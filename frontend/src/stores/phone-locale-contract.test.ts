@@ -123,7 +123,7 @@ describe('phone locale contract', () => {
   )
   const englishPaths = new Set(englishValues.keys())
 
-  it('bundles all fifteen supported languages', () => {
+  it('bundles all sixteen supported languages', () => {
     expect([...localeSources.keys()].sort()).toEqual([
       'ar',
       'cn',
@@ -134,6 +134,7 @@ describe('phone locale contract', () => {
       'fi',
       'fr',
       'it',
+      'ja',
       'nl',
       'pl',
       'pt',

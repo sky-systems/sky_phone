@@ -68,13 +68,18 @@ assert(loadfile("sky_phone/source/shared/public_api.lua"))()
 assert(loadfile("sky_phone/source/server/public_api.lua"))()
 
 assert(registered_exports.GetApiVersion() == "1.0.0")
-local invalid_format, invalid_format_error = registered_exports.FormatPhoneNumber("123")
+assert(registered_exports.NormalizePhoneNumber("0298822") == "0298822")
+assert(registered_exports.FormatPhoneNumber("123") == "123")
+local invalid_format, invalid_format_error = registered_exports.FormatPhoneNumber("")
 assert(invalid_format == nil and invalid_format_error == "invalid_phone_number")
 assert(registered_exports.IsApiReady() == false)
 local unavailable, unavailable_error = registered_exports.GetEquippedPhoneNumber(10)
 assert(unavailable == nil and unavailable_error == "api_not_ready")
 local unready_change, unready_change_error = registered_exports.ChangePhoneNumber(10, "7654321")
 assert(unready_change == nil and unready_change_error == "api_not_ready")
+local unready_validation, validation_error = registered_exports.ValidatePhoneNumberChange(10, "7654321")
+assert(unready_validation == false and validation_error == "api_not_ready",
+    "preflight errors must have a nonnil first result across FiveM exports")
 
 SkyPhone = {
     GetEquippedPhoneNumber = function(player)
@@ -113,6 +118,10 @@ SkyPhoneDeviceDirectory = {
     end,
 }
 SkyPhoneSim = {
+    ValidateNumberChangeForSource = function(source, number)
+        service_calls.validate_number = { source, number }
+        return false, "no_sim"
+    end,
     ChangeNumberForSource = function(source, number)
         service_calls.change_number = { source, number }
         return true, number
@@ -162,6 +171,7 @@ local capabilities = registered_exports.GetApiCapabilities()
 assert(capabilities.ready and capabilities.side == "server")
 assert(capabilities.features.deviceDirectory and capabilities.features.calls.video == false)
 assert(capabilities.features.phoneNumberChange)
+assert(capabilities.features.phoneNumberValidation)
 assert(capabilities.features.calls.externalControl)
 assert(capabilities.features.customApps.enabled and capabilities.features.customApps.external)
 assert(capabilities.features.notifications.customApps)
@@ -177,6 +187,9 @@ assert(service_calls.number == "1234567")
 local changed, changed_number = registered_exports.ChangePhoneNumber(10, "7654321")
 assert(changed and changed_number == "7654321")
 assert(service_calls.change_number[1] == 10 and service_calls.change_number[2] == "7654321")
+local valid_number, number_error = registered_exports.ValidatePhoneNumberChange(10, "7654321")
+assert(valid_number == false and number_error == "no_sim")
+assert(service_calls.validate_number[1] == 10 and service_calls.validate_number[2] == "7654321")
 assert(registered_exports.AddCustomAppPolicy({ id = "creator-app" }))
 assert(service_calls.custom_app.name == "AddCustomAppPolicy")
 assert(registered_exports.SendAppMessage(10, "creator-app", { type = "refresh" }))

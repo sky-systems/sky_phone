@@ -3,7 +3,7 @@ Locales = Locales or {}
 SkyPhoneLocales = SkyPhoneLocales or {}
 
 local resolved_locales = {}
-local locale_aliases = { zh = "cn", cs = "cz", sr = "rs", sv = "se" }
+local locale_aliases = { zh = "cn", cs = "cz", jp = "ja", sr = "rs", sv = "se" }
 
 local function clone_locale(value)
     if type(value) ~= "table" then

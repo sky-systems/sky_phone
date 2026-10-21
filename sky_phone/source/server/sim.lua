@@ -70,7 +70,7 @@ local function sim_metadata(sim)
         sim_metadata_version = 1,
         sim_id = sim.id,
         phone_number = sim.phone_number,
-        formatted_number = SkyPhoneSimNumber.Format(sim.phone_number, Config.Sim.NumberGroups, Config.Sim.NumberLength, Config.Sim.NumberPrefix),
+        formatted_number = SkyPhoneSimNumber.Format(sim.phone_number, Config.Sim.NumberGroups),
         sim_type = sim.sim_type,
     }
     if sim.sim_type == "registered" and sim.owner_identifier then
@@ -96,12 +96,7 @@ local function set_phone_sim_metadata(source, phone_slot, sim)
     end
     metadata.sim_id = sim and sim.id or nil
     metadata.phone_number = sim and sim.phone_number or nil
-    metadata.formatted_number = sim and SkyPhoneSimNumber.Format(
-        sim.phone_number,
-        Config.Sim.NumberGroups,
-        Config.Sim.NumberLength,
-        Config.Sim.NumberPrefix
-    ) or nil
+    metadata.formatted_number = sim and SkyPhoneSimNumber.Format(sim.phone_number, Config.Sim.NumberGroups) or nil
     if not Bridge.Inventory.SetSlotMetadata(source, phone_slot.slot, metadata) then
         return false
     end
@@ -181,8 +176,8 @@ end
 
 SkyPhoneSim.PrepareDevice = prepare_device
 
-function SkyPhoneSim.ChangeNumber(source, imei, sim_id, value)
-    local number = SkyPhoneSimNumber.Normalize(value, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+local function validate_number_change(sim_id, value)
+    local number = SkyPhoneSimNumber.Normalize(value)
     if not number or SkyPhoneCompanies.IsServiceNumber(number) then
         return false, "invalid_phone_number"
     end
@@ -202,6 +197,28 @@ function SkyPhoneSim.ChangeNumber(source, imei, sim_id, value)
     if existing[1] then
         return false, "phone_number_taken"
     end
+
+    return true, number, sim
+end
+
+function SkyPhoneSim.ValidateNumberChangeForSource(source, value)
+    local device, device_error = SkyPhoneDeviceDirectory.GetOnlineBySource(source)
+    if not device then
+        return false, device_error
+    end
+    if not device.simId then
+        return false, "no_sim"
+    end
+    local valid, number_or_error = validate_number_change(device.simId, value)
+    return valid, number_or_error
+end
+
+function SkyPhoneSim.ChangeNumber(source, imei, sim_id, value)
+    local valid, number_or_error, sim = validate_number_change(sim_id, value)
+    if not valid then
+        return false, number_or_error
+    end
+    local number = number_or_error
 
     local phone_slot
     if Config.Phone.Unique ~= false then

@@ -1640,7 +1640,7 @@ const adminPanelFallbackLocales = {
     operation_in_progress: 'Another tone upload is already in progress.',
     account_not_found: 'No iFruit account is linked to this phone.',
     invalid_phone_number:
-      'Enter a phone number in the configured server format.',
+      'Enter a valid phone number. Company numbers are reserved.',
     phone_number_unchanged: 'This SIM already uses that phone number.',
     phone_number_taken: 'That phone number is already assigned.',
     no_sim: 'This phone has no SIM that can be changed.',

@@ -19,11 +19,7 @@ local function get_api_version()
 end
 
 local function normalize_phone_number(phone_number)
-    local normalized = SkyPhoneSimNumber.Normalize(
-        phone_number,
-        Config.Sim.NumberLength,
-        Config.Sim.NumberPrefix
-    )
+    local normalized = SkyPhoneSimNumber.Normalize(phone_number)
     if not normalized then
         return nil, "invalid_phone_number"
     end
@@ -35,12 +31,7 @@ local function format_phone_number(phone_number)
     if not normalized then
         return nil, normalize_error
     end
-    return SkyPhoneSimNumber.Format(
-        normalized,
-        Config.Sim.NumberGroups,
-        Config.Sim.NumberLength,
-        Config.Sim.NumberPrefix
-    )
+    return SkyPhoneSimNumber.Format(normalized, Config.Sim.NumberGroups)
 end
 
 SkyPhonePublicApi.Copy = copy_value

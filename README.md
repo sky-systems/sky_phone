@@ -81,7 +81,7 @@ Snake advances one level every 10 points, cycles through six food appearances, a
 | A polished phone that feels like one connected product | A free replacement for fragmented or expensive phone setups | Full source access and a documented-in-code integration surface |
 | Persistent phones, SIMs, accounts, settings, and content | Automatic schema installation and upgrades | Client and server exports for custom app lifecycle and permissions |
 | Social, business, media, utility, and game experiences | Framework, inventory, voice, garage, and housing bridges | Compatibility layers for established FiveM phone app ecosystems |
-| 15 bundled locales with English fallback | Controlled LB Phone migration with preview and rollback | Vue 3, TypeScript, Pinia, Vite, and reusable Sky UI components |
+| 16 bundled locales with English fallback | Controlled LB Phone migration with preview and rollback | Vue 3, TypeScript, Pinia, Vite, and reusable Sky UI components |
 
 ## Compatibility at a glance
 
@@ -110,7 +110,7 @@ Snake advances one level every 10 points, cycles through six food appearances, a
 - Automatic database installation and versioned upgrades
 - LB Phone migration with preview, progress reporting, safe retries, and rollback support
 - Custom app APIs and compatibility adapters for established phone ecosystems
-- 15 bundled locales with English fallback throughout the player-facing interface
+- 16 bundled locales with English fallback throughout the player-facing interface
 
 ## Requirements
 
@@ -339,10 +339,11 @@ Available locales:
 | Arabic | `ar` | Chinese | `cn` | Czech | `cz` |
 | Dutch | `nl` | English | `en` | Finnish | `fi` |
 | French | `fr` | German | `de` | Italian | `it` |
-| Polish | `pl` | Portuguese | `pt` | Russian | `ru` |
-| Serbian | `rs` | Spanish | `es` | Swedish | `se` |
+| Japanese | `ja` | Polish | `pl` | Portuguese | `pt` |
+| Russian | `ru` | Serbian | `rs` | Spanish | `es` |
+| Swedish | `se` |  |  |  |  |
 
-Regional codes resolve to their base language. The aliases `zh`, `cs`, `sr`, and `sv` select `cn`, `cz`, `rs`, and `se`.
+Regional codes resolve to their base language. The aliases `zh`, `cs`, `jp`, `sr`, and `sv` select `cn`, `cz`, `ja`, `rs`, and `se`.
 
 In SQL mode, select the default language under **Phone configurator → General → Framework & integrations**, then save with the checkmark. In file mode, edit `Bridge.Locale` in Part 2 of `config.lua` and restart:
 

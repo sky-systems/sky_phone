@@ -83,7 +83,7 @@ local function clamp_text(value, maximum)
 end
 
 local function normalize_number(value)
-    return SkyPhoneSimNumber.Normalize(value, Config.Sim.NumberLength, Config.Sim.NumberPrefix)
+    return SkyPhoneSimNumber.Normalize(value)
 end
 
 local function deterministic_hex(namespace, value)

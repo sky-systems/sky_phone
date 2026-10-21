@@ -104,6 +104,7 @@ const choices: Record<string, string[]> = {
     'fi',
     'fr',
     'it',
+    'ja',
     'nl',
     'pl',
     'pt',

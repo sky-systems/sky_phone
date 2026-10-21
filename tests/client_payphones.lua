@@ -12,6 +12,7 @@ test.coords = vector(0.0, 0.0, 0.0)
 local noop = function() end
 local hashes = { booth_a = 1, booth_b = 2, booth_c = 3, booth_d = 4, replacement = 5 }
 local env = setmetatable({}, { __index = _G })
+assert(loadfile("sky_phone/source/shared/sim_number.lua", "t", env))()
 env.Config = {
     Bridge = { Locale = "en" }, Sim = { NumberLength = 10 },
     Payphones = {

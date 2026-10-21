@@ -268,4 +268,21 @@ local online_shared = assert(SkyPhoneDeviceDirectory.GetOnlineBySource(5))
 assert(online_shared.imei == "666666666666666" and online_shared.identifier == "char:5")
 assert(online_shared.phoneNumber == "5550005")
 
+-- A number outside the generated SIM format remains discoverable everywhere.
+Config.Sim.NumberLength = 10
+Config.Sim.NumberPrefix = "555"
+local changed_device = devices["222222222222222"]
+local changed_sim = sims["5550002"]
+changed_device.phone_number = "0298822"
+changed_sim.phone_number = "0298822"
+sims["5550002"] = nil
+sims["0298822"] = changed_sim
+equipped_numbers[1] = "0298822"
+source_by_number["5550002"] = nil
+source_by_number["0298822"] = 1
+assert(assert(SkyPhoneDeviceDirectory.GetStoredDeviceByPhoneNumber("029 8822")).phoneNumber == "0298822")
+assert(assert(SkyPhoneDeviceDirectory.GetStoredSimByPhoneNumber("0298822")).simId == "sim-b")
+assert(assert(SkyPhoneDeviceDirectory.GetOnlineByPhoneNumber("029 8822")).source == 1)
+assert(assert(SkyPhoneDeviceDirectory.GetOnlineBySource(1)).phoneNumber == "0298822")
+
 print("Server device directory tests passed")

@@ -209,6 +209,8 @@ const isPointerDown = ref(false)
 const pointerStart = { x: 0, y: 0, panX: 0, panY: 0 }
 const pointerLatest = { x: 0, y: 0 }
 let liveTimer: number | undefined
+let disposed = false
+let liveRefreshPending = false
 let toastTimer: number | undefined
 let pointerFrame: number | undefined
 
@@ -1143,6 +1145,7 @@ onMounted(async () => {
   }
   if (appAuth.isSignedIn('crewlink')) {
     await crew.bootstrap()
+    if (disposed) return
     if (!crew.authenticated) appAuth.signOut('crewlink')
   }
   username.value = crew.profile?.username ?? ''
@@ -1158,12 +1161,22 @@ onMounted(async () => {
   }
   openSharedInvite()
   await nextTick()
+  if (disposed) return
   fitOnlineMembers()
-  liveTimer = window.setInterval(() => void crew.refreshLive(), 3000)
+  liveTimer = window.setInterval(async () => {
+    if (liveRefreshPending || !crew.authenticated || !crew.activeGroup) return
+    liveRefreshPending = true
+    try {
+      await crew.refreshLive()
+    } finally {
+      liveRefreshPending = false
+    }
+  }, 3000)
   window.addEventListener('message', onCrewLinkMessage)
 })
 
 onBeforeUnmount(() => {
+  disposed = true
   if (liveTimer) window.clearInterval(liveTimer)
   if (toastTimer) window.clearTimeout(toastTimer)
   if (pointerFrame) cancelAnimationFrame(pointerFrame)

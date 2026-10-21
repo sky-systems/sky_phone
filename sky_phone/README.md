@@ -299,10 +299,11 @@ Available locales:
 | Arabic | `ar` | Chinese | `cn` | Czech | `cz` |
 | Dutch | `nl` | English | `en` | Finnish | `fi` |
 | French | `fr` | German | `de` | Italian | `it` |
-| Polish | `pl` | Portuguese | `pt` | Russian | `ru` |
-| Serbian | `rs` | Spanish | `es` | Swedish | `se` |
+| Japanese | `ja` | Polish | `pl` | Portuguese | `pt` |
+| Russian | `ru` | Serbian | `rs` | Spanish | `es` |
+| Swedish | `se` |  |  |  |  |
 
-Regional codes resolve to their base language. The aliases `zh`, `cs`, `sr`, and `sv` select `cn`, `cz`, `rs`, and `se`.
+Regional codes resolve to their base language. The aliases `zh`, `cs`, `jp`, `sr`, and `sv` select `cn`, `cz`, `ja`, `rs`, and `se`.
 
 In SQL mode, select the default language under **Phone configurator → General → Framework & integrations**, then save with the checkmark. In file mode, edit `Bridge.Locale` in Part 2 of `config.lua` and restart:
 

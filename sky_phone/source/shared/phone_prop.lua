@@ -34,33 +34,39 @@ function SkyPhoneProp.Model(frame, configured)
 end
 
 -- Read the SOF header before forwarding client-provided compressed images.
+local base64_values = {}
+local base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+for i = 1, #base64_alphabet do
+    base64_values[base64_alphabet:sub(i, i)] = i - 1
+end
+
 function SkyPhoneProp.ValidFrame(jpeg)
     if type(jpeg) ~= "string" or #jpeg < 100 or #jpeg > SkyPhoneProp.MaxFrameBytes
         or not jpeg:match("^data:image/jpeg;base64,/9j/[A-Za-z0-9+/=]+$") then return false end
-    local alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-    local values = {}
-    for i = 1, #alphabet do values[alphabet:sub(i, i)] = i - 1 end
-    local bytes, buffer, bits = {}, 0, 0
+    local bytes, buffer, bits, offset = {}, 0, 0, 3
     for i = 24, math.min(#jpeg, 24 + 4095) do
-        local value = values[jpeg:sub(i, i)]
+        local value = base64_values[jpeg:sub(i, i)]
         if not value then break end
         buffer, bits = buffer * 64 + value, bits + 6
         if bits >= 8 then
             bits = bits - 8
             bytes[#bytes + 1] = math.floor(buffer / 2 ^ bits) % 256
             buffer = buffer % 2 ^ bits
+            if #bytes >= offset + 3 then
+                if bytes[offset] ~= 255 then return false end
+                local marker = bytes[offset + 1]
+                local length = bytes[offset + 2] * 256 + bytes[offset + 3]
+                if length < 2 then return false end
+                if marker == 192 or marker == 194 then
+                    if #bytes >= offset + 8 then
+                        return bytes[offset + 5] * 256 + bytes[offset + 6] == SkyPhoneProp.Height
+                            and bytes[offset + 7] * 256 + bytes[offset + 8] == SkyPhoneProp.Width
+                    end
+                else
+                    offset = offset + 2 + length
+                end
+            end
         end
-    end
-    local offset = 3
-    while offset + 8 <= #bytes and bytes[offset] == 255 do
-        local marker = bytes[offset + 1]
-        local length = bytes[offset + 2] * 256 + bytes[offset + 3]
-        if marker == 192 or marker == 194 then
-            return bytes[offset + 5] * 256 + bytes[offset + 6] == SkyPhoneProp.Height
-                and bytes[offset + 7] * 256 + bytes[offset + 8] == SkyPhoneProp.Width
-        end
-        if length < 2 then return false end
-        offset = offset + 2 + length
     end
     return false
 end

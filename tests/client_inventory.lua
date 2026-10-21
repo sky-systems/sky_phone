@@ -1,5 +1,5 @@
 dofile("sky_phone/config/init.lua")
-for _, name in ipairs({ "ar", "cn", "cz", "de", "en", "es", "fi", "fr", "it", "nl", "pl", "pt", "rs", "ru", "se" }) do dofile("sky_phone/config/locales/" .. name .. ".lua") end
+for _, name in ipairs({ "ar", "cn", "cz", "de", "en", "es", "fi", "fr", "it", "ja", "nl", "pl", "pt", "rs", "ru", "se" }) do dofile("sky_phone/config/locales/" .. name .. ".lua") end
 
 local function setup(adapter, resources, framework)
     Config = { Bridge = { Inventory = adapter, Locale = "de" }, Phone = { Item = "phone" },
@@ -95,7 +95,7 @@ state.events["sky_phone:configurator:updated"]()
 assert(#state.registered == 2, "yielding exports must not register duplicates")
 
 -- All shipped languages and their regional aliases use the phone's existing translations.
-for _, locale_name in ipairs({ "ar", "cn", "cz", "de", "en", "es", "fi", "fr", "it", "nl", "pl", "pt", "rs", "ru", "se", "de-DE", "zh-CN", "cs-CZ", "sr-RS", "sv-SE", "unknown" }) do
+for _, locale_name in ipairs({ "ar", "cn", "cz", "de", "en", "es", "fi", "fr", "it", "ja", "nl", "pl", "pt", "rs", "ru", "se", "de-DE", "ja-JP", "jp", "zh-CN", "cs-CZ", "sr-RS", "sv-SE", "unknown" }) do
     Config.Bridge.Locale = locale_name
     local locale = SkyPhoneLocales.Resolve(locale_name)
     local labels = state.exports.GetInventoryLabels()

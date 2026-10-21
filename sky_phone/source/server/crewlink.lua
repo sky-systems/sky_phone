@@ -38,7 +38,9 @@ local ping_types = {
 local live_sources_cache = {
     expires_at = 0,
     sources = {},
+    revision = 0,
 }
+local pending_live_sources
 local last_ping_at = {}
 local pending_pings = {}
 
@@ -301,16 +303,37 @@ local function live_sources_by_account()
     if live_sources_cache.expires_at >= now then
         return live_sources_cache.sources
     end
-    local live = {}
-    for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
-        local source = tonumber(player_source) or player_source
-        local profile = background_profile(source)
-        if profile and not live[profile.account_id] then
-            live[profile.account_id] = { source = source, profileId = profile.id, groupId = profile.active_group_id }
+    if pending_live_sources then return Citizen.Await(pending_live_sources) end
+    -- Each background profile lookup yields to SQL. Concurrent world/live
+    -- requests must share this rebuild rather than scan every player again.
+    local pending = promise.new()
+    pending_live_sources = pending
+    local revision = live_sources_cache.revision
+    local success, live = pcall(function()
+        local sources = {}
+        for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
+            local source = tonumber(player_source) or player_source
+            local profile = background_profile(source)
+            if profile and not sources[profile.account_id] then
+                sources[profile.account_id] = { source = source, profileId = profile.id, groupId = profile.active_group_id }
+            end
         end
+        return sources
+    end)
+    pending_live_sources = nil
+    if not success then
+        pending:reject(live)
+        error(live, 0)
     end
-    live_sources_cache.expires_at = now + 1
-    live_sources_cache.sources = live
+    if revision == live_sources_cache.revision then
+        live_sources_cache.expires_at = os.time() + 1
+        live_sources_cache.sources = live
+    else
+        -- A disconnect/group mutation during SQL must not repopulate an
+        -- invalidated presence snapshot. The next poll builds current state.
+        live = {}
+    end
+    pending:resolve(live)
     return live
 end
 
@@ -372,6 +395,7 @@ end
 
 local function refresh_group(group_id)
     live_sources_cache.expires_at = 0
+    live_sources_cache.revision = live_sources_cache.revision + 1
     for _, account_id in ipairs(group_account_ids(group_id)) do
         SkyPhone.NotifyAccount(account_id, "sky_phone:crewlink:changed", { groupId = group_id })
     end
@@ -1348,6 +1372,7 @@ end)
 AddEventHandler("playerDropped", function()
     live_sources_cache.expires_at = 0
     live_sources_cache.sources = {}
+    live_sources_cache.revision = live_sources_cache.revision + 1
 end)
 
 exports("GetCrewLinkActiveGroup", function(source)

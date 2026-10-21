@@ -48,6 +48,18 @@ local function base64(bytes)
 end
 local jpeg = 'data:image/jpeg;base64,' .. base64(string.char(255,216,255,192,0,11,8,3,12,1,104,1,1,17,0) .. string.rep('\0',90))
 assert(SkyPhoneProp.ValidFrame(jpeg))
+local function segmented_frame(marker, metadata_length, height, width)
+    local metadata = string.char(255, 224, math.floor((metadata_length + 2) / 256), (metadata_length + 2) % 256)
+        .. string.rep("\0", metadata_length)
+    local sof = string.char(255, marker, 0, 11, 8, math.floor(height / 256), height % 256,
+        math.floor(width / 256), width % 256, 1, 1, 17, 0)
+    return "data:image/jpeg;base64," .. base64(string.char(255, 216) .. metadata .. sof .. string.rep("\0", 4000))
+end
+assert(SkyPhoneProp.ValidFrame(segmented_frame(192, 1000, 780, 360)), "Baseline SOF after APP metadata remains valid")
+assert(SkyPhoneProp.ValidFrame(segmented_frame(194, 1000, 780, 360)), "Progressive SOF remains valid")
+assert(not SkyPhoneProp.ValidFrame(segmented_frame(192, 1000, 360, 780)), "Wrong dimensions after metadata stay rejected")
+assert(not SkyPhoneProp.ValidFrame(segmented_frame(192, 3100, 780, 360)), "SOF beyond the bounded header stays rejected")
+assert(not SkyPhoneProp.ValidFrame(jpeg .. "!"), "Invalid characters after a valid SOF stay rejected")
 assert(not SkyPhoneProp.ValidFrame('https://example.com'))
 assert(not SkyPhoneProp.ValidFrame(jpeg .. string.rep('A',64000)))
 assert(SkyPhoneProp.Model('red','sky_phone_prop') == 'sky_phone_prop_red')

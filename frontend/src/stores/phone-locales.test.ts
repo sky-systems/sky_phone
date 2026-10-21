@@ -21,6 +21,7 @@ describe('phone locale fallback', () => {
     ['rs', 'sr-Cyrl-RS'],
     ['se', 'sv-SE'],
     ['de', 'de'],
+    ['ja', 'ja'],
   ])('formats %s using the correct browser language', (code, expected) => {
     const phone = usePhoneStore()
     const copy = { caption: 'Localized caption' }

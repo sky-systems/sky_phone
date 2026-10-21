@@ -39,11 +39,7 @@ Bridge.Database.AfterMigration("sky_phone", function()
     end
 
     local function normalize_phone_number(phone_number)
-        return SkyPhoneSimNumber.Normalize(
-            phone_number,
-            Config.Sim.NumberLength,
-            Config.Sim.NumberPrefix
-        )
+        return SkyPhoneSimNumber.Normalize(phone_number)
     end
 
     local function build_device_identity(row)

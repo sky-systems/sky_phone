@@ -491,7 +491,7 @@ end
 local function payphone_open_payload()
     return {
         currency = Config.Payphones.Currency,
-        maxNumberLength = Config.Sim.NumberLength,
+        maxNumberLength = SkyPhoneSimNumber.MaximumLength,
         pricePerSecond = Config.Payphones.PricePerSecond,
         locales = locale.Nui.Payphone,
     }

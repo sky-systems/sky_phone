@@ -1,7 +1,7 @@
 local callbacks, handlers, items, devices, sims, added, calls, writes, flags, session, usable
 local imei_a, imei_b = "123456789012345", "223456789012345"
 dofile("sky_phone/source/shared/sim_number.lua")
-local normalize_number = SkyPhoneSimNumber.Normalize
+local sim_number = SkyPhoneSimNumber
 
 local function copy(value)
     if type(value) ~= "table" then return value end
@@ -147,11 +147,7 @@ local function reset()
     }
     SkyPhoneCalls = { EndForSim = function(id, reason) calls.ended, calls.reason = id, reason end }
     SkyPhoneImei = { IsValid = function(imei) return type(imei) == "string" and #imei == 15 and imei:match("^%d+$") ~= nil end }
-    SkyPhoneSimNumber = {
-        Normalize = normalize_number,
-        ValidateConfiguration = function() return true end,
-        Format = function(number) return number:sub(1, 3) .. "-" .. number:sub(4) end,
-    }
+    SkyPhoneSimNumber = sim_number
     AddEventHandler = function(name, fn) handlers[name] = fn end
     GetGameTimer = function() return 1 end
     TriggerClientEvent = function() end
@@ -324,20 +320,56 @@ assert(eject(8).success and #added == 2 and added[2].metadata.sim_id == "third")
 assert(items[8].metadata.phone_number == nil and devices[imei_b].sim_id == nil)
 
 -- External number changes reuse the SIM update and refresh the equipped device.
+for _, case in ipairs({
+    { value = "555-0103", number = "5550103" },
+    { value = "0298822", number = "0298822" },
+    { value = "5550102", error = "phone_number_taken" },
+    { value = "5550101", error = "phone_number_unchanged" },
+    { value = "abc", error = "invalid_phone_number" },
+    { value = "5550103", flag = "service_number", flag_value = "5550103", error = "invalid_phone_number" },
+    { value = "5550103", flag = "device_error", flag_value = "device_not_equipped", error = "device_not_equipped" },
+}) do
+    reset()
+    if case.flag then flags[case.flag] = case.flag_value end
+    local valid, result = SkyPhoneSim.ValidateNumberChangeForSource(21, case.value)
+    assert(valid == (case.error == nil) and result == (case.error or case.number))
+    assert(#writes == 0 and sims.first.phone_number == "5550101" and items[3].metadata.phone_number == "5550101")
+    assert(calls.ended == nil and calls.refreshed == nil and calls.cached_number == nil and not calls.cleared)
+end
+reset()
+devices[imei_a].sim_id = nil
+local valid_without_sim, sim_error = SkyPhoneSim.ValidateNumberChangeForSource(21, "5550103")
+assert(valid_without_sim == false and sim_error == "no_sim")
 reset()
 local changed, number = SkyPhoneSim.ChangeNumberForSource(21, "555-0103")
 assert(changed and number == "5550103")
 assert(sims.first.phone_number == number and items[3].metadata.phone_number == number)
-assert(items[3].metadata.formatted_number == "555-0103" and items[3].metadata.custom == "keep")
+assert(items[3].metadata.formatted_number == "555 0103" and items[3].metadata.custom == "keep")
 assert(items[3].metadata.imei == imei_a and items[3].metadata.sim_id == "first")
 assert(sims.second.phone_number == "5550102" and items[8].metadata.phone_number == "5550102")
 assert(calls.ended == "first" and calls.reason == "number_changed" and calls.cleared)
 assert(calls.cached_number == number and calls.refreshed == imei_a)
 
+-- Changed numbers are digit strings independent of the new-SIM length and prefix.
+for _, new_number in ipairs({ "0298822", "0", "0298822123456", string.rep("0", 24) }) do
+    reset()
+    Config.Sim.NumberLength = 10
+    Config.Sim.NumberPrefix = "555"
+    local success, changed_number = SkyPhoneSim.ChangeNumberForSource(21, new_number)
+    assert(success and changed_number == new_number, "number changes must not require the generated SIM format")
+    assert(sims.first.phone_number == new_number and items[3].metadata.phone_number == new_number)
+    assert(items[3].metadata.formatted_number:gsub("%D", "") == new_number)
+    assert(calls.cached_number == new_number and calls.refreshed == imei_a)
+    local unchanged_number, unchanged_error = SkyPhoneSim.ChangeNumberForSource(21, new_number)
+    assert(not unchanged_number and unchanged_error == "phone_number_unchanged")
+end
+
 for _, case in ipairs({
     { value = "5550102", error = "phone_number_taken" },
     { value = "5550101", error = "phone_number_unchanged" },
     { value = "abc", error = "invalid_phone_number" },
+    { value = "", error = "invalid_phone_number" },
+    { value = string.rep("0", 25), error = "invalid_phone_number" },
     { value = "5550103", flag = "service_number", flag_value = "5550103", error = "invalid_phone_number" },
     { value = "5550103", flag = "metadata_failure", flag_value = true, error = "metadata_unsupported" },
     { value = "5550103", flag = "number_claim_failure", flag_value = true, error = "phone_number_taken" },
@@ -350,6 +382,12 @@ for _, case in ipairs({
     assert(sims.first.phone_number == "5550101" and items[3].metadata.phone_number == "5550101")
     assert(calls.ended == nil and calls.refreshed == nil and calls.cached_number == nil)
 end
+
+reset()
+sims.second.phone_number = "0298822"
+local occupied, occupied_error = SkyPhoneSim.ChangeNumberForSource(21, "029 8822")
+assert(not occupied and occupied_error == "phone_number_taken", "raw and displayed forms must identify the same SIM")
+assert(sims.first.phone_number == "5550101" and #writes == 0)
 
 reset()
 devices[imei_a].sim_id = nil

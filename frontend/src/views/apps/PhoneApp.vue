@@ -57,7 +57,11 @@ import { usePhoneStore } from '@/stores/phone'
 import type { EasySharePayload } from '@/types/easyshare'
 import type { PhoneContact, RecentCall } from '@/types/phone'
 import { nuiCall } from '@/utils/nui'
-import { formatPhoneNumber, normalizePhoneNumber } from '@/utils/phone'
+import {
+  formatPhoneNumber,
+  normalizePhoneNumber,
+  PHONE_NUMBER_MAX_LENGTH,
+} from '@/utils/phone'
 
 type PhoneTab = 'recents' | 'contacts' | 'keypad'
 type RecentFilter = 'all' | 'missed'
@@ -626,7 +630,7 @@ async function deleteEditedContact(): Promise<void> {
 }
 
 function addDigit(digit: string): void {
-  if (keypad.value.length < 10) keypad.value += digit
+  if (keypad.value.length < PHONE_NUMBER_MAX_LENGTH) keypad.value += digit
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -672,7 +676,7 @@ function handleKeypadKeyboard(event: KeyboardEvent): void {
 }
 
 function chooseKeypadSuggestion(contact: PhoneContact): void {
-  keypad.value = contact.phone_number.replace(/\D/g, '').slice(0, 10)
+  keypad.value = contact.phone_number.replace(/\D/g, '')
 }
 
 function recentStatus(recent: RecentCall): string {

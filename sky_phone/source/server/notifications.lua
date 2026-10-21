@@ -100,11 +100,7 @@ local function normalize_target(target)
     end
 
     if target.kind == "number" then
-        local phone_number = SkyPhoneSimNumber.Normalize(
-            target.value,
-            Config.Sim.NumberLength,
-            Config.Sim.NumberPrefix
-        )
+        local phone_number = SkyPhoneSimNumber.Normalize(target.value)
         if not phone_number then
             return nil, "invalid_target"
         end

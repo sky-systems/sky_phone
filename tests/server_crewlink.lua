@@ -14,6 +14,9 @@ local ping_count, account_offset = 0, 0
 local allow_operation = true
 local ping_timer = 0
 local pause_ping_query, fail_ping_query = false, false
+local pause_presence_query, fail_presence_query = false, false
+local presence_reads = 0
+local handlers = {}
 local profile = { id = "profile-1", account_id = 1, username = "Skyline" }
 local group = {
     id = "group-1", group_id = "group-1", name = "Road Crew", colour = "blue",
@@ -24,7 +27,7 @@ local env = setmetatable({
     IsDuplicityVersion = function() return true end,
     vector3 = function(x, y, z) return { x = x, y = y, z = z } end,
     vector4 = function(x, y, z, w) return { x = x, y = y, z = z, w = w } end,
-    AddEventHandler = function() end,
+    AddEventHandler = function(name, callback) handlers[name] = callback end,
     TriggerEvent = function() end,
     exports = function() end,
     os = { time = function() return now end },
@@ -33,6 +36,18 @@ local env = setmetatable({
     GetPlayerPed = function() return player_ped end,
     GetEntityCoords = function() return { x = 10, y = 20, z = 30 } end,
 }, { __index = _G })
+env.promise = { new = function()
+    return {
+        state = "pending",
+        resolve = function(self, value) self.state, self.value = "resolved", value end,
+        reject = function(self, value) self.state, self.value = "rejected", value end,
+    }
+end }
+env.Citizen = { Await = function(pending)
+    while pending.state == "pending" do coroutine.yield("presence_wait") end
+    if pending.state == "rejected" then error(pending.value, 0) end
+    return pending.value
+end }
 assert(loadfile("sky_phone/source/shared/config_default.lua", "t", env))()
 env.Config = env.ConfigDefaults
 env.SkyPhone = {
@@ -57,7 +72,12 @@ env.Bridge = {
         RegisterDeferred = function() end,
         Register = function(name, callback) callbacks[name] = callback end,
     },
-    Framework = { GetPlayers = function() return { 1, 2 } end },
+    Framework = { GetPlayers = function()
+        presence_reads = presence_reads + 1
+        if pause_presence_query then coroutine.yield("presence_query") end
+        if fail_presence_query then error("Test presence database failure") end
+        return { 1, 2 }
+    end },
     Database = {
         AfterMigration = function(_, callback) callback() end,
         Query = function(query, params)
@@ -215,4 +235,42 @@ assert(call("world").error == "disabled")
 app_enabled, account_offset = true, 1
 assert(not call("world").success and not call("quick-ping").success,
     "a phone signed into another cloud account must not retain the previous CrewLink session")
-print("CrewLink persistence and visibility tests passed")
+account_offset, now = 0, now + 2
+pause_presence_query = true
+local before_presence = presence_reads
+local first_presence = coroutine.create(function() return call("world") end)
+local second_presence = coroutine.create(function() return call("world") end)
+local first_ok, first_wait = coroutine.resume(first_presence)
+local second_ok, second_wait = coroutine.resume(second_presence)
+assert(first_ok and first_wait == "presence_query")
+assert(second_ok and second_wait == "presence_wait")
+assert(presence_reads == before_presence + 1, "simultaneous world/live polls must share one player scan")
+pause_presence_query = false
+local owner_ok, owner_result = coroutine.resume(first_presence)
+local waiter_ok, waiter_result = coroutine.resume(second_presence)
+assert(owner_ok and waiter_ok and owner_result.success and waiter_result.success)
+assert(owner_result.data.members[1].coords and waiter_result.data.members[1].coords)
+assert(call("world").success and presence_reads == before_presence + 1, "completed presence remains cached")
+
+now, pause_presence_query = now + 2, true
+first_presence = coroutine.create(function() return call("world") end)
+assert(coroutine.resume(first_presence))
+handlers.playerDropped()
+pause_presence_query = false
+owner_ok, owner_result = coroutine.resume(first_presence)
+assert(owner_ok and not owner_result.data.members[1].coords, "disconnects during SQL must not restore stale presence")
+assert(call("world").data.members[1].coords, "the next poll must rebuild an invalidated cache")
+
+now, pause_presence_query = now + 2, true
+first_presence = coroutine.create(function() return call("world") end)
+second_presence = coroutine.create(function() return call("world") end)
+assert(coroutine.resume(first_presence))
+assert(coroutine.resume(second_presence))
+pause_presence_query, fail_presence_query = false, true
+owner_ok, owner_result = coroutine.resume(first_presence)
+waiter_ok, waiter_result = coroutine.resume(second_presence)
+assert(not owner_ok and tostring(owner_result):find("Test presence database failure", 1, true))
+assert(not waiter_ok and tostring(waiter_result):find("Test presence database failure", 1, true))
+fail_presence_query = false
+assert(call("world").success, "a failed scan must release its promise so the next poll can recover")
+print("CrewLink persistence, visibility and concurrent presence tests passed")

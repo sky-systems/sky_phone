@@ -990,12 +990,7 @@ local function seed_for_source(source)
         local metadata = phone_slot.metadata or {}
         metadata.sim_id = sim.id
         metadata.phone_number = sim.phone_number
-        metadata.formatted_number = SkyPhoneSimNumber.Format(
-            sim.phone_number,
-            Config.Sim.NumberGroups,
-            Config.Sim.NumberLength,
-            Config.Sim.NumberPrefix
-        )
+        metadata.formatted_number = SkyPhoneSimNumber.Format(sim.phone_number, Config.Sim.NumberGroups)
         if not Bridge.Inventory.SetSlotMetadata(source, phone_slot.slot, metadata) then
             if not restore_sim_attachment(sim.id, imei, previous_imei) then
                 error(
