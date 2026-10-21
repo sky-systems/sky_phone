@@ -81,12 +81,27 @@ RegisterNUICallback("garage:vehicles", function(data, cb)
         return
     end
     local msk_fuel_config
+    local image_config = Config.Garage.VehicleImages or {}
+    local image_template = image_config.Enabled == true and tostring(image_config.UrlTemplate or "") or ""
+    local model_names
     for _, vehicle in ipairs(result.data.vehicles or {}) do
         local model_hash = tonumber(vehicle.model)
         if not model_hash and type(vehicle.model) == "string" and vehicle.model ~= "" then
             model_hash = joaat(vehicle.model)
         end
         if model_hash then
+            if not vehicle.imageUrl and image_template:find("{model}", 1, true) then
+                if not model_names then
+                    model_names = {}
+                    for _, name in ipairs(GetAllVehicleModels()) do
+                        model_names[joaat(name) % 4294967296] = string.lower(name)
+                    end
+                end
+                local model_name = model_names[model_hash % 4294967296]
+                if model_name then
+                    vehicle.imageUrl = (image_template:gsub("{model}", model_name))
+                end
+            end
             if vehicle.mskFuel ~= nil and GetResourceState("msk_fuel") == "started" then
                 msk_fuel_config = msk_fuel_config or exports.msk_fuel:Config()
                 local capacity = tonumber((msk_fuel_config.PetrolTankVolume or {})[model_hash])
