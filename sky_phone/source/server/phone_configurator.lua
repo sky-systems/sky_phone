@@ -1818,6 +1818,8 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     if type(props.Enabled) ~= "boolean" or type(props.Destructible) ~= "boolean" or type(props.LockpickItem) ~= "string"
         or not props.LockpickItem:match("^[%w_-]+$") or #props.LockpickItem > 64
         or type(props.RepairItem) ~= "string" or not props.RepairItem:match("^[%w_-]+$") or #props.RepairItem > 64
+        or type(props.LockpickSeconds) ~= "number" or props.LockpickSeconds % 1 ~= 0
+        or props.LockpickSeconds < 1 or props.LockpickSeconds > 300
         or type(props.RepairSeconds) ~= "number" or props.RepairSeconds % 1 ~= 0
         or props.RepairSeconds < 1 or props.RepairSeconds > 300
         or type(props.RepairJobs) ~= "table" or #props.RepairJobs > 64 then

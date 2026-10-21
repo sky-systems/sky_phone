@@ -3,8 +3,6 @@ local models = {}
 local generation = 0
 local revision = -1
 local interacting = false
-local repairing_until
-local repairing_key
 local locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
 
 local function remove_visual(key)
@@ -18,7 +16,7 @@ end
 
 local function notify_failure(response)
     local reason = response and response.error or "request_failed"
-    Bridge.Framework.Notify(locale.CellTower.Title,
+    Bridge.Notifications.Show(locale.CellTower.Title,
         locale.CellTower.Errors[reason] or locale.CellTower.Errors.request_failed, "error")
 end
 
@@ -35,13 +33,6 @@ local function apply_state(payload)
     revision = payload.revision
     SkyPhoneCellular.TowerStates = payload.states
     SendNUIMessage({ type = "cellular:update", data = SkyPhoneCellular.GetPayload() })
-    if repairing_key then
-        local state = payload.states[repairing_key]
-        if not state or not state.open or not state.damaged then
-            repairing_until, repairing_key = nil, nil
-            Bridge.Framework.Notify(locale.CellTower.Title, locale.CellTower.RepairCancelled, "error")
-        end
-    end
     for key, visual in pairs(visuals) do
         local state = payload.states[key]
         if not state then
@@ -66,17 +57,51 @@ RegisterNetEvent("sky_phone:cellular:props", apply_state)
 local function request_action(key, action, data)
     if interacting then return end
     interacting = true
+    Bridge.HelpNotify.Hide()
     local current_generation = generation
     CreateThread(function()
         data.key = key
         local response = Bridge.Callbacks.Trigger("sky_phone:cellular:" .. action, data)
+        if current_generation ~= generation then
+            Bridge.Callbacks.Trigger("sky_phone:cellular:cancel", { key = key })
+            interacting = false
+            return
+        end
+        if response and response.success and response.data then
+            local completed, failure = Bridge.Progressbar.Run({
+                duration = response.data.duration,
+                label = action == "repair" and locale.CellTower.RepairProgress or locale.CellTower.LockpickProgress,
+                cancelLabel = locale.CellTower.Cancel,
+                animation = { dict = "anim@amb@clubhouse@tutorial@bkr_tut_ig3@", clip = "machinic_loop_mechandplayer" },
+                valid = function()
+                    if current_generation ~= generation then return false end
+                    local visual, state = visuals[key], SkyPhoneCellular.TowerStates[key]
+                    if not visual or not state then return false end
+                    if action == "repair" and (not state.open or not state.damaged)
+                        or action == "door" and state.open then return false end
+                    return #(GetEntityCoords(PlayerPedId())
+                        - SkyPhoneCellular.PropPosition(visual.definition, Config.CellTowers.Props.CabinetOffset)) <= 2.5
+                end,
+            })
+            if completed then
+                data.finish = true
+                response = Bridge.Callbacks.Trigger("sky_phone:cellular:" .. action, data)
+            else
+                Bridge.Callbacks.Trigger("sky_phone:cellular:cancel", { key = key })
+                if current_generation == generation then
+                    if failure then notify_failure({ error = failure })
+                    else Bridge.Notifications.Show(locale.CellTower.Title, locale.CellTower.ActionCancelled, "info") end
+                end
+                interacting = false
+                return
+            end
+        end
         interacting = false
         if current_generation ~= generation then return end
         if not response or not response.success then notify_failure(response) return end
-        if action == "repair" and not data.finish then
-            repairing_until = GetGameTimer() + response.data.duration
-            repairing_key = key
-        end
+        local message = action == "repair" and locale.CellTower.Repaired
+            or data.open and locale.CellTower.Unlocked or locale.CellTower.Closed
+        Bridge.Notifications.Show(locale.CellTower.Title, message, "success")
     end)
 end
 
@@ -84,7 +109,8 @@ local function configure()
     generation = generation + 1
     local current_generation = generation
     for key in pairs(visuals) do remove_visual(key) end
-    repairing_until, repairing_key = nil, nil
+    Bridge.Progressbar.Cancel()
+    Bridge.HelpNotify.Hide()
     locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
     for _, model in pairs(models) do SetModelAsNoLongerNeeded(model) end
     models = {}
@@ -173,33 +199,19 @@ local function configure()
                 if distance < nearest_distance then nearest_key, nearest_distance = key, distance end
             end
 
-            if repairing_until and (nearest_key ~= repairing_key or IsEntityDead(ped)) then
-                repairing_until, repairing_key = nil, nil
-                Bridge.Framework.Notify(locale.CellTower.Title, locale.CellTower.RepairCancelled, "error")
-            end
-            if nearest_key and not IsEntityDead(ped) then
+            if nearest_key and not IsEntityDead(ped) and not IsPedInAnyVehicle(ped, false) and not interacting then
                 wait_time = 0
                 local state = SkyPhoneCellular.TowerStates[nearest_key]
-                local help
-                if repairing_until then
-                    help = locale.CellTower.Repairing:format(math.max(0, math.ceil((repairing_until - now) / 1000)))
-                    if now >= repairing_until then
-                        local key = repairing_key
-                        repairing_until, repairing_key = nil, nil
-                        request_action(key, "repair", { finish = true })
-                    end
-                else
-                    help = state.open and (state.damaged and locale.CellTower.BrokenHelp or locale.CellTower.OpenHelp)
-                        or locale.CellTower.ClosedHelp
-                    if not interacting and IsControlJustReleased(0, 38) then
-                        request_action(nearest_key, "door", { open = not state.open })
-                    elseif not interacting and state.open and state.damaged and IsControlJustReleased(0, 47) then
-                        request_action(nearest_key, "repair", {})
-                    end
+                local help = state.open and (state.damaged and locale.CellTower.BrokenHelp or locale.CellTower.OpenHelp)
+                    or locale.CellTower.ClosedHelp
+                Bridge.HelpNotify.Show(help:gsub("^~INPUT_CONTEXT~%s*", ""):gsub("~INPUT_DETONATE~", "[G]"), "E")
+                if IsControlJustReleased(0, 38) then
+                    request_action(nearest_key, "door", { open = not state.open })
+                elseif state.open and state.damaged and IsControlJustReleased(0, 47) then
+                    request_action(nearest_key, "repair", {})
                 end
-                BeginTextCommandDisplayHelp("STRING")
-                AddTextComponentSubstringPlayerName(help)
-                EndTextCommandDisplayHelp(0, false, false, -1)
+            elseif not interacting then
+                Bridge.HelpNotify.Hide()
             end
             Wait(wait_time)
         end
@@ -210,6 +222,8 @@ AddEventHandler("sky_phone:configurator:updated", configure)
 AddEventHandler("onResourceStop", function(resource)
     if resource ~= GetCurrentResourceName() then return end
     generation = generation + 1
+    Bridge.HelpNotify.Hide()
+    Bridge.Progressbar.Cancel()
     for key in pairs(visuals) do remove_visual(key) end
     for _, model in pairs(models) do SetModelAsNoLongerNeeded(model) end
 end)

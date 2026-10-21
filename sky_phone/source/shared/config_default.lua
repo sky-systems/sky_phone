@@ -160,6 +160,7 @@ Config.CellTowers = {
         Enabled = false, -- Physical masts, lockpicking, weapon damage and repairs.
         Destructible = true, -- Allow weapon damage to an open cabinet's interior.
         LockpickItem = "lockpick", -- One is consumed each time a closed cabinet is opened.
+        LockpickSeconds = 5,
         RepairItem = "radiotowerparts", -- One is consumed after a successful repair.
         RepairJobs = {}, -- Empty: everyone. Otherwise job names, e.g. { "mechanic" }.
         RepairSeconds = 10,

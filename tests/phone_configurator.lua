@@ -1104,6 +1104,7 @@ test("cell towers, offline rules and master switch roundtrip through SQL and liv
     assert(field.structure.fields.Props.fields.Destructible.valueType == "boolean")
     assert(field.structure.fields.Props.fields.RepairJobs.kind == "list")
     settings.Props.Enabled, settings.Props.LockpickItem = true, "lockpick_advanced"
+    settings.Props.LockpickSeconds = 7
     settings.Props.Destructible, settings.Props.RepairItem = false, "custom_radio_parts"
     settings.Props.RepairJobs, settings.Props.RepairSeconds = { "mechanic", "police" }, 20
     settings.Props.Models.Tower, settings.Props.Models.Door = "customer_mast", "customer_door"
@@ -1120,6 +1121,7 @@ test("cell towers, offline rules and master switch roundtrip through SQL and liv
     assert(not loaded.Enabled and #loaded.Towers == 1 and loaded.Towers[1].Coords.x == 4500)
     assert(loaded.OfflineApps["custom-offline"] and loaded.OnlineActions["notes:custom-sync"])
     assert(loaded.Towers[1].Heading == 90 and loaded.Props.Enabled and loaded.Props.RepairSeconds == 20)
+    assert(loaded.Props.LockpickSeconds == 7)
     assert(loaded.Props.LockpickItem == "lockpick_advanced" and loaded.Props.RepairJobs[2] == "police")
     assert(loaded.Props.Destructible == false and loaded.Props.RepairItem == "custom_radio_parts")
     assert(loaded.Props.Models.Tower == "customer_mast" and loaded.Props.Models.Damaged == "customer_panel_broken")
@@ -1136,6 +1138,8 @@ end)
 
 test("invalid physical tower settings are rejected before SQL writes", function()
     for _, invalid in ipairs({
+        { key = "LockpickSeconds", value = 0 }, { key = "LockpickSeconds", value = 301 },
+        { key = "LockpickSeconds", value = 1.5 }, { key = "LockpickSeconds", value = "5" },
         { key = "RepairSeconds", value = 0 }, { key = "RepairSeconds", value = 301 },
         { key = "RepairSeconds", value = 1.5 }, { key = "Enabled", value = "yes" },
         { key = "LockpickItem", value = "" }, { key = "RepairJobs", value = { "police", "police" } },
