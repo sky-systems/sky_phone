@@ -26,6 +26,7 @@ local function new_server(database, configure_defaults, defer_initialization)
             assert(pending.resolved, "runtime must be initialized before answering")
         end },
     }, { __index = _G })
+    load_script("config/init.lua", environment)
     load_script("config/config.lua", environment)
     load_script("config/media.lua", environment)
     load_script("source/shared/config_default.lua", environment)

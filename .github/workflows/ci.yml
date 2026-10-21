@@ -54,6 +54,7 @@ jobs:
 
       - name: Test Phone Configurator persistence and runtime sync
         run: |
+          lua5.4 tests/server_locales.lua
           lua5.4 tests/framework_permissions.lua
           lua5.4 tests/phone_configurator.lua
           lua5.4 tests/cellular.lua
@@ -62,6 +63,7 @@ jobs:
       - name: Test realtime media and EasyShare receive flows
         run: |
           lua5.4 tests/server_realtime.lua
+          lua5.4 tests/realtime_snapshot_allocation.lua
           lua5.4 tests/server_realtime_cloudflare.lua
           lua5.4 tests/client_realtime.lua
           lua5.4 tests/server_easyshare.lua

@@ -92,7 +92,7 @@ server_scripts {
     'config/config.lua',
     'config/media.lua',
     'config/WebHooks.lua',
-    'config/locales/*.lua',
+    'source/server/locales.lua',
     'source/shared/config_default.lua',
     'source/server/nui_build_check.lua',
     'source/server/update_check.lua',
@@ -189,6 +189,7 @@ server_scripts {
 }
 
 files {
+    'config/locales/*.lua',
     'source/html/index.html',
     'source/html/display.html',
     'source/html/assets/**',
