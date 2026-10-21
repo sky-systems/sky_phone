@@ -483,9 +483,17 @@ function emptyStructure(scope, path) {
         kind: 'table',
         fields: {
           Coords: { kind: 'vector', vectorType: 'vector3' },
+          Heading: { kind: 'value', valueType: 'number' },
           Range: { kind: 'value', valueType: 'number' },
         },
       },
+    }
+  }
+  if (path === 'CellTowers.Props.RepairJobs') {
+    return {
+      items: [],
+      kind: 'list',
+      template: { kind: 'value', valueType: 'string' },
     }
   }
   if (path === 'Payphones.CustomLocations') {
@@ -578,7 +586,9 @@ function companyDefinitionEntryDefault(definitions) {
 function buildStructure(value, scope, path) {
   if (
     scope === 'config' &&
-    (path === 'Phone.DisabledControls' || path === 'CellTowers.Towers')
+    (path === 'Phone.DisabledControls' ||
+      path === 'CellTowers.Towers' ||
+      path === 'CellTowers.Props.RepairJobs')
   )
     return emptyStructure(scope, path)
   if (scope === 'config' && path === 'CityWarn.Publishers') {

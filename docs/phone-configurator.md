@@ -4,6 +4,14 @@ For a first installation, also follow the [installation guide](../sky_phone/PHON
 This guide covers the administrator's `/phonepanel`; the Settings app on a player's
 phone changes that device's personal preferences, not the server-wide SIM or identity mode.
 
+Physical cell towers are optional and disabled by default. The Cell towers
+section exposes the prop toggle, lockpick item, allowed repair jobs, repair time,
+ground positions and headings. A damaged mast stops supplying coverage until
+repaired. See the [cell tower guide and asset source](../assets/cell-towers/README.md)
+for operation, migration, model authoring and runtime verification details.
+The current-location button is available for tower positions, company locations,
+SkyRide quick locations and custom payphones.
+
 ## Choose the configuration owner first
 
 `config/config.lua` has two clearly separated parts. The configuration keys and

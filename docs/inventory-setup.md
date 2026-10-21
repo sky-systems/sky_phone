@@ -48,8 +48,41 @@ The constraints below describe **Sky Phone's adapters**. Also follow the provide
 | `phone` | Opens the phone | Always, including character-based phone mode | `phone.png` |
 | `sky_phone_sim_registered` | Registered physical SIM | `Sim.Enabled = true` | `sky_phone_sim_registered.png` |
 | `sky_phone_sim_anonymous` | Anonymous physical SIM | `Sim.Enabled = true` | `sky_phone_sim_anonymous.png` |
+| `lockpick` | Opens a physical tower cabinet; consumes one | `CellTowers.Props.Enabled = true` | Use your inventory's lockpick image |
+| `radiotowerparts` | Repairs a damaged tower; consumes one on success | Physical towers with damage enabled | Use your inventory's parts image |
 
-The images are included in `sky_phone/config/images/`. Copy them to your inventory's image location below. If your inventory has a configurable image URL or a separate image resource, use its active location.
+The phone and SIM images are included in `sky_phone/config/images/`. Copy them to your inventory's image location below. If your inventory has a configurable image URL or a separate image resource, use its active location.
+
+### Physical tower materials
+
+Physical towers are disabled by default. When enabling them, register
+`CellTowers.Props.LockpickItem` and `CellTowers.Props.RepairItem` in the active
+inventory's item catalogue. The defaults are `lockpick` and `radiotowerparts`.
+These are ordinary count-based items: they need no phone use export, metadata,
+or usable-item handler. Players interact with the cabinet in the world.
+Cancelled repairs consume nothing; a successful repair removes one part.
+
+For ox_inventory, add this entry to the existing item table:
+
+```lua
+["radiotowerparts"] = {
+    label = "Radio tower parts",
+    weight = 1000,
+    stack = true,
+    close = true,
+},
+```
+
+For native ESX, add a row named `radiotowerparts` to `items`, with your localized
+label and weight convention (`rare = 0`, `can_remove = 1` where those columns
+exist). For QBCore-style catalogues, use an ordinary non-unique item with
+`name = "radiotowerparts"`, `type = "item"`, `unique = false`, and
+`useable = false`. Follow the provider's normal item registration/reload process.
+Add shop stock through your own distribution flow.
+
+Both item names and the `Destructible` boolean are editable in `/phonepanel` →
+Cell towers → Physical towers, or Lua in file mode. Turning `Destructible` off
+prevents new weapon damage; existing damage still needs repair and parts.
 
 - Merge the entries into the existing item catalogue. Replace an existing definition of the same name instead of adding a duplicate key.
 - Keep the item IDs identical in Phonepanel, the inventory, and any shops or distribution scripts. Display labels can be translated.

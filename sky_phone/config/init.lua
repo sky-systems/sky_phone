@@ -31,6 +31,12 @@ function SkyPhoneLocales.Resolve(requested_locale)
     local normalized = type(requested_locale) == "string" and requested_locale:lower():gsub("_", "-") or "en"
     local base = normalized:match("^([^-]+)") or "en"
     base = locale_aliases[base] or base
+    -- The server loads only requested languages; clients retain their bundled locales.
+    if SkyPhoneLocales.Load then
+        SkyPhoneLocales.Load("en")
+        if not locale_aliases[normalized] then SkyPhoneLocales.Load(normalized) end
+        if base ~= normalized then SkyPhoneLocales.Load(base) end
+    end
     local locale_name = Locales[normalized] and normalized or (Locales[base] and base or "en")
     local selected = Locales[locale_name] or Locales.en or {}
     local english = Locales.en or {}
