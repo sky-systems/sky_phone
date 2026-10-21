@@ -15,7 +15,7 @@ SkyPhoneConfigurator = { Ready = promise.new() }
 SkyPhoneConfigurator.Ready:resolve(true)
 Config = { Bridge = {}, CellTowers = {
     Enabled = true, Props = { Enabled = false, Destructible = true, LockpickItem = "lockpick",
-        RepairItem = "radiotowerparts", RepairJobs = {}, RepairSeconds = 10,
+        RepairItem = "radiotowerparts", RepairJobs = {}, RepairSeconds = 10, LockpickSeconds = 5,
         CabinetOffset = vector3(0, -1.55, 1.3) },
     Towers = { { Coords = vector3(0, 0, 0), Heading = 0, Range = 100 } },
 } }
@@ -48,7 +48,7 @@ Bridge = {
     Framework = { GetJob = function() return { name = job } end },
     Inventory = {
         GetSlotsWithItem = function(_, item)
-            assert(item == "radiotowerparts")
+            assert(item == "radiotowerparts" or item == "lockpick")
             if during_check then during_check() end
             return inventory[item] > 0 and { { slot = 2, count = inventory[item] } } or {}
         end,
@@ -94,10 +94,36 @@ assert(action("damage").error == "invalid_state", "Closed cabinet protects the i
 inventory.lockpick = 0
 assert(action("door", { open = true }).error == "lockpick_required")
 inventory.lockpick = 2
+assert(action("door", { open = true, finish = true }).error == "lockpick_not_ready")
+assert(action("door", { open = true }).data.duration == 5000)
+assert(removed.lockpick == 0 and not SkyPhoneCellular.TowerStates[key].open)
+assert(action("door", { open = true }, 8).error == "busy")
+assert(action("door", { open = true, finish = true }).error == "lockpick_not_ready")
+assert(action("cancel", nil, 8).success)
+assert(action("door", { open = true }).error == "busy", "Another player cannot cancel the lockpick")
+assert(action("cancel").success)
+tick(5000)
+assert(action("door", { open = true, finish = true }).error == "lockpick_not_ready")
+assert(removed.lockpick == 0, "Cancelled lockpicking consumes no item")
+assert(action("door", { open = true }).success)
+position = vector3(30, 0, 0)
+tick(250)
+position = vector3(0, -1.55, 1.3)
+tick(5000)
+assert(action("door", { open = true, finish = true }).error == "lockpick_not_ready")
+assert(action("door", { open = true }).success)
+health = 0
+tick(250)
+health = 100
+tick(5000)
+assert(action("door", { open = true, finish = true }).error == "lockpick_not_ready")
+assert(action("door", { open = true }).success)
+tick(5000)
+assert(action("door", { open = true, finish = true }, 8).error == "lockpick_not_ready")
 during_remove = function()
     assert(action("door", { open = true }, 8).error == "busy", "Unlocking must serialize inventory consumption")
 end
-assert(action("door", { open = true }).success)
+assert(action("door", { open = true, finish = true }).success)
 during_remove = nil
 assert(removed.lockpick == 1 and inventory.lockpick == 1)
 assert(action("door", { open = true }).error == "invalid_state")
@@ -140,6 +166,10 @@ position = vector3(0, -1.55, 1.3)
 tick(6000)
 assert(action("repair", { finish = true }).error == "repair_not_ready", "Leaving cancels the server's repair")
 assert(action("repair").success)
+assert(action("cancel").success)
+tick(10000)
+assert(action("repair", { finish = true }).error == "repair_not_ready")
+assert(action("repair").success)
 job = "unemployed"
 tick(250)
 job = "mechanic"
@@ -168,7 +198,9 @@ assert(action("repair", { finish = true }).error == "invalid_state")
 assert(removed.radiotowerparts == 1, "Repeated completion must not consume another part")
 assert(SkyPhoneCellular.Level(vector3(0, 0, 0)) == 1 and not next(saved))
 assert(not SkyPhoneCellular.TowerStates[key].open, "Repair closes the cabinet")
-assert(action("door", { open = true }).success and removed.lockpick == 2)
+assert(action("door", { open = true }).success)
+tick(5000)
+assert(action("door", { open = true, finish = true }).success and removed.lockpick == 2)
 Config.CellTowers.Props.Destructible = true
 assert(action("damage").success)
 Config.CellTowers.Towers[1], Config.CellTowers.Towers[2] = Config.CellTowers.Towers[2], Config.CellTowers.Towers[1]

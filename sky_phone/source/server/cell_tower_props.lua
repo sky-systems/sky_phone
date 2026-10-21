@@ -1,5 +1,5 @@
 local states = SkyPhoneCellular.TowerStates
-local repairs = {}
+local actions = {}
 local revision = 0
 local ready = promise.new()
 local stored_damage = GetResourceKvpString("sky_phone:cell_towers:damage")
@@ -23,7 +23,7 @@ local function reconcile()
     for key in pairs(damage) do
         if not configured[key] then damage[key] = nil end
     end
-    repairs = {}
+    actions = {}
     SetResourceKvp("sky_phone:cell_towers:damage", json.encode(damage))
     publish()
 end
@@ -63,6 +63,48 @@ local function can_repair(player_source)
     return false
 end
 
+-- Both timed actions share one reservation per cabinet. Inventory is checked
+-- before starting and consumed only after an authorized, elapsed completion.
+local function progress_action(player_source, data, state, kind)
+    local props = Config.CellTowers.Props
+    local item = kind == "repair" and props.RepairItem or props.LockpickItem
+    local missing = kind == "repair" and "repair_item_required" or "lockpick_required"
+    local not_ready = kind == "repair" and "repair_not_ready" or "lockpick_not_ready"
+    local action = actions[data.key]
+    if data.finish == true then
+        if not action or action.source ~= player_source or action.kind ~= kind or GetGameTimer() < action.ends then
+            return reject(player_source, not_ready)
+        end
+        actions[data.key] = nil
+        state.busy = true
+        local removed = Bridge.Inventory.RemoveItem(player_source, item, 1)
+        state.busy = nil
+        if removed ~= 1 then return reject(player_source, missing) end
+        return { success = true }
+    end
+    if data.finish ~= nil and data.finish ~= false then return reject(player_source, "invalid_state") end
+    if action then return reject(player_source, "busy") end
+    state.busy = true
+    local slots = Bridge.Inventory.GetSlotsWithItem(player_source, item)
+    state.busy = nil
+    if not next(slots) then return reject(player_source, missing) end
+    local duration = (kind == "repair" and props.RepairSeconds or props.LockpickSeconds) * 1000
+    action = { source = player_source, kind = kind, ends = GetGameTimer() + duration }
+    actions[data.key] = action
+    local function check_action()
+        if actions[data.key] ~= action then return end
+        local current = resolve_tower(player_source, data, 2.5)
+        if not current or kind == "repair" and (not current.open or not current.damaged or not can_repair(player_source))
+            or kind == "lockpick" and current.open or GetGameTimer() > action.ends + 15000 then
+            actions[data.key] = nil
+            return
+        end
+        SetTimeout(250, check_action)
+    end
+    SetTimeout(250, check_action)
+    return { success = true, data = { duration = duration } }
+end
+
 Bridge.Callbacks.Register("sky_phone:cellular:props", function()
     Citizen.Await(ready)
     return { success = true, data = { revision = revision, states = states } }
@@ -74,12 +116,10 @@ Bridge.Callbacks.Register("sky_phone:cellular:door", function(player_source, dat
     if type(data.open) ~= "boolean" or data.open == state.open then return reject(player_source, "invalid_state") end
     if state.open then
         state.open = false
-        repairs[data.key] = nil
+        actions[data.key] = nil
     else
-        state.busy = true
-        local removed = Bridge.Inventory.RemoveItem(player_source, Config.CellTowers.Props.LockpickItem, 1)
-        state.busy = nil
-        if removed ~= 1 then return reject(player_source, "lockpick_required") end
+        local result = progress_action(player_source, data, state, "lockpick")
+        if not result.success or not data.finish then return result end
         state.open = true
     end
     publish()
@@ -106,52 +146,27 @@ Bridge.Callbacks.Register("sky_phone:cellular:repair", function(player_source, d
     if not state then return reject(player_source, reason) end
     if not can_repair(player_source) then return reject(player_source, "not_authorized") end
     if not state.open or not state.damaged then return reject(player_source, "invalid_state") end
-    local repair = repairs[data.key]
-    if data.finish == true then
-        if not repair or repair.source ~= player_source or GetGameTimer() < repair.ends then
-            return reject(player_source, "repair_not_ready")
-        end
-        repairs[data.key] = nil
-        state.busy = true
-        local removed = Bridge.Inventory.RemoveItem(player_source, Config.CellTowers.Props.RepairItem, 1)
-        state.busy = nil
-        if removed ~= 1 then return reject(player_source, "repair_item_required") end
-        state.damaged = false
-        state.open = false
-        damage[data.key] = nil
-        SetResourceKvp("sky_phone:cell_towers:damage", json.encode(damage))
-        publish()
-        return { success = true }
-    end
-    if data.finish ~= nil and data.finish ~= false then return reject(player_source, "invalid_state") end
-    if repair then return reject(player_source, "busy") end
-    state.busy = true
-    local parts = Bridge.Inventory.GetSlotsWithItem(player_source, Config.CellTowers.Props.RepairItem)
-    state.busy = nil
-    if not next(parts) then
-        return reject(player_source, "repair_item_required")
-    end
-    local duration = Config.CellTowers.Props.RepairSeconds * 1000
-    repair = { source = player_source, ends = GetGameTimer() + duration }
-    repairs[data.key] = repair
-    local function check_repair()
-        if repairs[data.key] ~= repair then return end
-        local current = resolve_tower(player_source, data, 2.5)
-        if not current or not current.open or not current.damaged or not can_repair(player_source)
-            or GetGameTimer() > repair.ends + 5000 then
-            repairs[data.key] = nil
-            return
-        end
-        SetTimeout(250, check_repair)
-    end
-    SetTimeout(250, check_repair)
-    return { success = true, data = { duration = duration } }
+    local result = progress_action(player_source, data, state, "repair")
+    if not result.success or not data.finish then return result end
+    state.damaged = false
+    state.open = false
+    damage[data.key] = nil
+    SetResourceKvp("sky_phone:cell_towers:damage", json.encode(damage))
+    publish()
+    return { success = true }
+end)
+
+Bridge.Callbacks.Register("sky_phone:cellular:cancel", function(player_source, data)
+    if type(data) ~= "table" or type(data.key) ~= "string" then return reject(player_source, "invalid_tower") end
+    local action = actions[data.key]
+    if action and action.source == player_source then actions[data.key] = nil end
+    return { success = true }
 end)
 
 AddEventHandler("playerDropped", function()
     local player_source = source
-    for key, repair in pairs(repairs) do
-        if repair.source == player_source then repairs[key] = nil end
+    for key, action in pairs(actions) do
+        if action.source == player_source then actions[key] = nil end
     end
 end)
 AddEventHandler("sky_phone:configurator:serverUpdated", reconcile)

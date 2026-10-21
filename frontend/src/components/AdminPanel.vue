@@ -476,6 +476,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
       'RepairItem',
       'RepairJobs',
       'RepairSeconds',
+      'LockpickSeconds',
       'Models',
       'DoorOffset',
       'PanelOffset',
