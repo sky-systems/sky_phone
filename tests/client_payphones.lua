@@ -30,10 +30,17 @@ env.SkyPhoneLocales = { Resolve = function() return {
 } end }
 env.Bridge = {
     Debug = function(_, message) error(message) end,
-    Framework = { ShowHelpNotification = function(message, key)
-        assert(type(message) == "string" and key == "E")
-        test.help = test.help + 1
-    end },
+    HelpNotify = {
+        Show = function(message, key, owner)
+            assert(type(message) == "string" and key == "E")
+            assert(owner == "payphone_interaction" or owner == "payphone_call")
+            test.help = test.help + 1
+            test.help_message, test.help_owner = message, owner
+        end,
+        Hide = function(owner)
+            if owner == test.help_owner then test.help_message, test.help_owner = nil, nil end
+        end,
+    },
     Calls = { Join = function() test.voice = true; return true end, Leave = function() test.voice = false end },
     Callbacks = { Trigger = function(name, payload)
         test.requests[#test.requests + 1] = { name = name, payload = payload }
@@ -169,14 +176,29 @@ test.focused = false
 frame(1000)
 assert(test.searches == 2 and test.help > 0, "newly streamed models must be found on the next configured scan")
 assert(active_threads() == 2, "a nearby booth must have exactly one prompt worker")
+assert(test.help_message == "Use payphone", "the interaction prompt must use the helpnotify bridge")
+test.focused = true
+frame()
+assert(test.help_message == nil, "NUI focus must release persistent interaction help")
+test.focused = false
+frame(1000)
+assert(test.help_message == "Use payphone")
 test.coords = vector(10.0, 0.0, 0.0)
 frame(1000)
 assert(active_threads() == 1, "leaving interaction range must terminate the prompt worker")
+assert(test.help_message == nil, "leaving the booth must hide persistent interaction help")
 test.coords = vector(0.0, 0.0, 0.0)
 frame(1000)
+configure(false)
+assert(test.help_message == nil, "configuration changes must release the previous interaction hint immediately")
+frame(1000)
+assert(active_threads() == 0)
+configure(true)
+frame()
 test.released = true
 frame()
 assert(test.focused and test.messages[#test.messages].type == "payphone:open", "E must open the nearest booth")
+assert(test.help_message == nil, "opening the dial pad must immediately hide the interaction prompt")
 frame()
 assert(active_threads() == 1, "opening the dial pad must terminate the prompt worker")
 assert(nui("payphone:dial", { phoneNumber = "5551234" }).success)
@@ -184,10 +206,15 @@ assert(test.requests[1].payload.model == "booth_b" and test.requests[1].payload.
     "discovery must preserve nearest-booth selection and the server-authoritative dial request")
 frame()
 assert(active_threads() == 2 and not test.focused, "a call must start its worker immediately without retaining NUI focus")
+assert(test.help_message == "Calling 5551234" and test.help_owner == "payphone_call",
+    "ringing and hangup help must use the helpnotify bridge")
 assert(not test.entities[12].visible and test.entities[99], "call visuals must still replace the original booth")
 test.events["sky_phone:payphone:state"]({ id = "local-call", state = "connected", channel = 123, elapsedSeconds = 5 })
 frame()
 assert(test.voice and active_threads() == 2, "call state updates must join voice without duplicating the worker")
+assert(test.help_message == "5551234: 00:05 $5", "connected help must preserve number, duration and cost")
+frame(1000)
+assert(test.help_message == "5551234: 00:06 $6", "persistent call help must update elapsed time and cost")
 test.coords = vector(10.0, 0.0, 0.0)
 frame()
 assert(#test.requests == 2 and test.requests[2].name == "sky_phone:payphone:hangup",
@@ -196,6 +223,7 @@ test.released = true
 frame()
 assert(#test.requests == 2, "pending hangup must not generate duplicate requests")
 test.events["sky_phone:payphone:state"]({ id = "local-call", state = "ended" })
+assert(test.help_message == nil, "ending a call must immediately hide persistent hangup help")
 for _ = 1, 20 do frame() end
 assert(not test.voice and not test.entities[99] and test.entities[12].visible,
     "hangup must complete its animation, leave voice and restore the original booth")
@@ -215,8 +243,10 @@ frame(250)
 assert(active_threads() == 0 and test.entities[11].visible, "the last remote stop must restore the booth and stop polling")
 test.events["sky_phone:payphone:visual:start"](remote)
 frame()
+configure(true)
+frame()
+assert(test.help_message == "Use payphone")
 test.events.onResourceStop("sky_phone")
-frame(250)
-assert(active_threads() == 0 and test.entities[11].visible, "resource cleanup must restore remote visuals")
+assert(test.help_message == nil and test.entities[11].visible, "resource cleanup must hide help and restore remote visuals")
 
 print("Client payphone discovery, interaction, call and cleanup tests passed")

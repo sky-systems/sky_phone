@@ -218,6 +218,7 @@ local function clear_custom_payphones()
 end
 
 AddEventHandler("sky_phone:configurator:updated", function()
+    Bridge.HelpNotify.Hide("payphone_interaction")
     locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
     refresh_configured_models()
     clear_custom_payphones()
@@ -551,7 +552,7 @@ local function ensure_call_thread()
             local call_id = active_call_id
             local booth = active_booth
             keep_animation_ped_grounded()
-            Bridge.Framework.ShowHelpNotification(call_help_message(), "E")
+            Bridge.HelpNotify.Show(call_help_message(), "E", "payphone_call")
             if IsControlJustReleased(0, 38) and not hangup_requested then
                 hangup_requested = true
                 Bridge.Callbacks.Trigger("sky_phone:payphone:hangup", { id = call_id })
@@ -566,6 +567,7 @@ local function ensure_call_thread()
             end
             Wait(0)
         end
+        Bridge.HelpNotify.Hide("payphone_call")
         call_thread_active = false
     end)
 end
@@ -589,6 +591,7 @@ local function apply_active_call_state(data)
 end
 
 local function clear_active_call_state()
+    Bridge.HelpNotify.Hide("payphone_call")
     active_call_id = nil
     active_call_state = nil
     active_call_number = nil
@@ -604,6 +607,7 @@ local function open_payphone(booth)
     end
     active_booth = booth
     payphone_open = true
+    Bridge.HelpNotify.Hide("payphone_interaction")
     TriggerEvent("sky_phone:client:setPayphoneFocus", true)
     SendNUIMessage({
         type = "payphone:open",
@@ -709,12 +713,13 @@ local function ensure_interaction_thread()
             and not payphone_open and not active_call_id and not visuals_ending
             and not IsNuiFocused()
         do
-            Bridge.Framework.ShowHelpNotification(locale.Payphone.Interact, "E")
+            Bridge.HelpNotify.Show(locale.Payphone.Interact, "E", "payphone_interaction")
             if IsControlJustReleased(0, 38) then
                 open_payphone(nearest_payphone)
             end
             Wait(0)
         end
+        Bridge.HelpNotify.Hide("payphone_interaction")
         interaction_thread_active = false
     end)
 end
@@ -771,6 +776,7 @@ AddEventHandler("onResourceStop", function(resource_name)
     if resource_name ~= GetCurrentResourceName() then
         return
     end
+    Bridge.HelpNotify.Hide("payphone_interaction")
     TriggerEvent("sky_phone:client:setPayphoneFocus", false)
     leave_call_voice()
     stop_call_visuals()

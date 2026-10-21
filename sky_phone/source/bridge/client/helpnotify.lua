@@ -4,7 +4,7 @@
 Bridge.HelpNotify = {}
 local providers = {}
 local selected, selected_resource
-local last_message, last_key, serial
+local last_message, last_key, last_owner, serial
 
 providers["codem-supreme-hud"] = {
     show = function(message, key, shown)
@@ -225,12 +225,13 @@ local priority = {
 
 }
 
-function Bridge.HelpNotify.Hide()
+function Bridge.HelpNotify.Hide(owner)
+    if owner and owner ~= last_owner then return end
     if last_message and selected.hide then selected.hide() end
-    last_message, last_key = nil, nil
+    last_message, last_key, last_owner = nil, nil, nil
 end
 
-function Bridge.HelpNotify.Show(message, key)
+function Bridge.HelpNotify.Show(message, key, owner)
     if not selected then
         selected = providers.native
         for _, candidate in ipairs(priority) do
@@ -245,6 +246,7 @@ function Bridge.HelpNotify.Show(message, key)
         selected.show(message, key, last_message ~= nil, selected_resource)
         last_message, last_key = message, key
     end
+    last_owner = owner
 end
 
 AddEventHandler("onClientResourceStart", function(resource)
@@ -261,6 +263,6 @@ AddEventHandler("onResourceStop", function(resource)
         Bridge.HelpNotify.Hide()
     elseif resource == selected_resource then
         -- The provider has already stopped; do not call its expired exports.
-        selected, selected_resource, last_message, last_key, serial = nil, nil, nil, nil, nil
+        selected, selected_resource, last_message, last_key, last_owner, serial = nil, nil, nil, nil, nil, nil
     end
 end)

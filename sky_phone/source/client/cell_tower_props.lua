@@ -57,7 +57,7 @@ RegisterNetEvent("sky_phone:cellular:props", apply_state)
 local function request_action(key, action, data)
     if interacting then return end
     interacting = true
-    Bridge.HelpNotify.Hide()
+    Bridge.HelpNotify.Hide("cell_tower")
     local current_generation = generation
     CreateThread(function()
         data.key = key
@@ -110,7 +110,7 @@ local function configure()
     local current_generation = generation
     for key in pairs(visuals) do remove_visual(key) end
     Bridge.Progressbar.Cancel()
-    Bridge.HelpNotify.Hide()
+    Bridge.HelpNotify.Hide("cell_tower")
     locale = SkyPhoneLocales.Resolve(Config.Bridge.Locale)
     for _, model in pairs(models) do SetModelAsNoLongerNeeded(model) end
     models = {}
@@ -204,14 +204,14 @@ local function configure()
                 local state = SkyPhoneCellular.TowerStates[nearest_key]
                 local help = state.open and (state.damaged and locale.CellTower.BrokenHelp or locale.CellTower.OpenHelp)
                     or locale.CellTower.ClosedHelp
-                Bridge.HelpNotify.Show(help:gsub("^~INPUT_CONTEXT~%s*", ""):gsub("~INPUT_DETONATE~", "[G]"), "E")
+                Bridge.HelpNotify.Show(help:gsub("^~INPUT_CONTEXT~%s*", ""):gsub("~INPUT_DETONATE~", "[G]"), "E", "cell_tower")
                 if IsControlJustReleased(0, 38) then
                     request_action(nearest_key, "door", { open = not state.open })
                 elseif state.open and state.damaged and IsControlJustReleased(0, 47) then
                     request_action(nearest_key, "repair", {})
                 end
             elseif not interacting then
-                Bridge.HelpNotify.Hide()
+                Bridge.HelpNotify.Hide("cell_tower")
             end
             Wait(wait_time)
         end
@@ -222,7 +222,7 @@ AddEventHandler("sky_phone:configurator:updated", configure)
 AddEventHandler("onResourceStop", function(resource)
     if resource ~= GetCurrentResourceName() then return end
     generation = generation + 1
-    Bridge.HelpNotify.Hide()
+    Bridge.HelpNotify.Hide("cell_tower")
     Bridge.Progressbar.Cancel()
     for key in pairs(visuals) do remove_visual(key) end
     for _, model in pairs(models) do SetModelAsNoLongerNeeded(model) end

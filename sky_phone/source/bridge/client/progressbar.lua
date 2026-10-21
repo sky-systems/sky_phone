@@ -196,7 +196,7 @@ function Bridge.Progressbar.Run(data)
                 AddTextComponentSubstringPlayerName(data.label)
                 EndTextCommandDisplayText(0.5, 0.84)
             end
-            Bridge.HelpNotify.Show(data.cancelLabel, "X")
+            Bridge.HelpNotify.Show(data.cancelLabel, "X", "progressbar")
             if (not request.provider or request.provider.timed) and elapsed >= data.duration then finish(false) end
             Wait(0)
         end
@@ -204,7 +204,7 @@ function Bridge.Progressbar.Run(data)
     end, debug.traceback)
     if not ok then Bridge.Progressbar.Cancel() end
     stop_animation(request)
-    Bridge.HelpNotify.Hide()
+    Bridge.HelpNotify.Hide("progressbar")
     active = nil
     if not ok then
         print(failure)
