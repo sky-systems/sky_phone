@@ -14,7 +14,8 @@ root. Python's standard library produces deterministic mono, 44.1 kHz, 16-bit
 PCM WAV files in `frontend/public/sounds/notifications/`. The frontend build
 publishes those files with the NUI; playback requires no external service.
 
-The sound uses exponentially decaying glass partials, a short attack, quiet early
-reflections and a fade at the end. Peak level is capped at 0.25 to keep alerts
-restrained. Existing saved preference IDs, app notification toggles and focus
+The sound uses lower-register struck keys, a rounded FM attack, quiet octave
+body, filtered hammer noise and short early reflections. Each alert has its own
+decay and brightness; peak levels stay below 0.25 to keep alerts restrained.
+Existing saved preference IDs, app notification toggles and focus
 mode remain compatible. Playback uses the phone's media volume controller.
