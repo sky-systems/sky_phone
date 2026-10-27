@@ -1,14 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ALARM_SOUND_IDS } from './alarms'
+import { setPhoneOutputVolume } from './phoneAudio'
 import {
   phoneToneDuration,
   playPhoneMediaTone,
+  playPhoneTone,
   playPhoneVibration,
 } from './tones'
 
 describe('phone tones', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    setPhoneOutputVolume(1)
+    vi.unstubAllGlobals()
+  })
 
   it('defines a playable duration for every alarm sound', () => {
     for (const sound of ALARM_SOUND_IDS) {
@@ -16,6 +21,48 @@ describe('phone tones', () => {
       expect(phoneToneDuration(sound)).toBeLessThanOrEqual(1500)
     }
   })
+
+  it.each([
+    ['chime', 'glass.wav', 1800],
+    ['signal', 'triad.wav', 1400],
+    ['soft', 'ripple.wav', 1400],
+  ] as const)(
+    'plays the local %s notification recording through phone volume control',
+    (tone, filename, duration) => {
+      const players: Array<{ src: string; volume: number; loop: boolean }> = []
+      const pause = vi.fn()
+      vi.stubGlobal(
+        'Audio',
+        class extends EventTarget {
+          volume = 1
+          loop = false
+          preload = ''
+          pause = pause
+          constructor(public src: string) {
+            super()
+            players.push(this)
+          }
+          async play(): Promise<void> {}
+          load(): void {}
+          removeAttribute(): void {}
+        },
+      )
+
+      setPhoneOutputVolume(0.5)
+      const stop = playPhoneTone(tone, 60, true)
+      expect(players[0]).toMatchObject({
+        src: expect.stringContaining(`sounds/notifications/${filename}`),
+        volume: 0.3,
+        loop: true,
+      })
+      expect(phoneToneDuration(tone)).toBe(duration)
+      setPhoneOutputVolume(0)
+      expect(players[0]?.volume).toBe(0)
+      stop()
+      stop()
+      expect(pause).toHaveBeenCalledOnce()
+    },
+  )
 
   it.each([
     ['notification', 'sounds/vibration-notification.mp3', false],
