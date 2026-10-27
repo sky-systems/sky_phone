@@ -23,9 +23,9 @@ describe('phone tones', () => {
   })
 
   it.each([
-    ['chime', 'glass.wav', 1200],
+    ['chime', 'glass.wav', 1800],
     ['signal', 'triad.wav', 1400],
-    ['soft', 'ripple.wav', 1000],
+    ['soft', 'ripple.wav', 1400],
   ] as const)(
     'plays the local %s notification recording through phone volume control',
     (tone, filename, duration) => {

@@ -344,14 +344,14 @@ const TONE_PATTERNS: Record<AlarmSoundId, TonePattern> = {
   },
 }
 
-// Original glass alerts rendered by assets/audio/generate_notifications.py.
+// Recorded alerts; provenance and processing in assets/audio/README.md.
 const NOTIFICATION_TONES: Record<
   BuiltInNotificationSoundId,
   { path: string; durationMs: number }
 > = {
-  chime: { path: 'sounds/notifications/glass.wav', durationMs: 1200 },
+  chime: { path: 'sounds/notifications/glass.wav', durationMs: 1800 },
   signal: { path: 'sounds/notifications/triad.wav', durationMs: 1400 },
-  soft: { path: 'sounds/notifications/ripple.wav', durationMs: 1000 },
+  soft: { path: 'sounds/notifications/ripple.wav', durationMs: 1400 },
 }
 
 const VIBRATION_SOUND_PATHS: Record<PhoneVibrationKind, string> = {
