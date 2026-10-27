@@ -6165,9 +6165,9 @@ Locales["de"] = {
                     pulse = "Puls",
                 },
                 notificationSoundsList = {
-                    chime = "Glockenspiel",
-                    signal = "Signal",
-                    soft = "Sanft",
+                    chime = "Glas",
+                    signal = "Dreiklang",
+                    soft = "Impuls",
                 },
                 wallpapers = {
                     midnight = "Mitternacht",
