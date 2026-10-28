@@ -346,9 +346,15 @@ local function validate_profile(source, data)
         local media_id = tonumber(value)
         if not media_id or media_id < 1 or media_id ~= math.floor(media_id)
             or seen_media[media_id]
-            or not SkyPhoneMedia.ResolveOwnedMedia(source, media_id, "photo")
         then
             return nil, "invalid_profile_photos"
+        end
+        local photo_url, photo_error = SkyPhoneMedia.ResolveOwnedMedia(source, media_id, "photo")
+        if not photo_url then
+            if photo_error == "import_url_unavailable" or photo_error == "import_media_unavailable" then
+                return nil, "profile_photo_unavailable"
+            end
+            return nil, "profile_photo_verification_failed"
         end
         seen_media[media_id] = true
         photo_media_ids[#photo_media_ids + 1] = media_id

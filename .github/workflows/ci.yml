@@ -74,7 +74,9 @@ jobs:
           lua5.4 tests/server_pma_calls.lua
 
       - name: Test media import URL probes and validation
-        run: lua5.4 tests/media_import.lua
+        run: |
+          lua5.4 tests/media_import.lua
+          lua5.4 tests/flare_profile_photos.lua
 
       - name: Test TK Housing bridge permissions and mutations
         run: lua5.4 tests/housing_tk.lua
