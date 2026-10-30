@@ -1,5 +1,7 @@
-SkyPhoneRealtime = SkyPhoneRealtime or { Apps = {} }
-Bridge.Database.AfterMigration("sky_phone", function()
+SkyPhoneRealtime = SkyPhoneRealtime or { Apps = {} };
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("picstagram") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local report_reasons = {}
 local password_pepper = ""
 

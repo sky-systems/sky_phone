@@ -3264,69 +3264,86 @@ local schema = {
 
 schema[#schema + 1] = SkyPhoneConfiguratorSchema
 
-Bridge.Database.Migrate("sky_phone", schema)
-Bridge.Database.EnsureIndex(
-    "sky_phone_skypic_profiles",
-    "uniq_sky_phone_skypic_profile_account",
-    "(`account_id`)",
-    { unique = true }
-)
-Bridge.Database.EnsureIndex(
-    "sky_phone_skypic_profiles",
-    "uniq_sky_phone_skypic_profile_handle",
-    "(`handle`)",
-    { unique = true }
-)
-Bridge.Database.EnsureIndex(
-    "sky_phone_skypic_friendships",
-    "uniq_sky_phone_skypic_friend_pair",
-    "(`profile_a_id`, `profile_b_id`)",
-    { unique = true }
-)
-Bridge.Database.Query([[
-    INSERT IGNORE INTO `sky_phone_fliptok_video_media` (`video_id`, `media_id`, `sort_order`)
-    SELECT `id`, `media_id`, 1 FROM `sky_phone_fliptok_videos`
-]], {})
-Bridge.Database.Query([[
-    INSERT IGNORE INTO `sky_phone_weazel_article_media` (`article_id`, `media_id`, `position`)
-    SELECT `id`, `image_media_id`, 1
-    FROM `sky_phone_weazel_articles`
-    WHERE `image_media_id` IS NOT NULL
-]], {})
-Bridge.Database.Query("DELETE FROM `sky_phone_feather_notifications` WHERE `kind` = 'repost'", {})
-Bridge.Database.Query("DELETE FROM `sky_phone_feather_reactions` WHERE `kind` = 'repost'", {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_feather_reactions`
-    MODIFY COLUMN `kind` ENUM('like', 'bookmark') NOT NULL
-]], {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_feather_notifications`
-    MODIFY COLUMN `kind` ENUM('like', 'reply', 'follow', 'quote') NOT NULL
-]], {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_picstagram_activities`
-    MODIFY COLUMN `kind` ENUM('follow_request', 'follow', 'request_accepted', 'like', 'comment', 'comment_like', 'reply', 'verified') NOT NULL
-]], {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_flare_swipes`
-    MODIFY COLUMN `choice` ENUM('like', 'pass', 'superlike') NOT NULL
-]], {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_flare_messages`
-    MODIFY COLUMN `message_type` ENUM('text', 'image', 'gif', 'video', 'share') NOT NULL DEFAULT 'text'
-]], {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_sms_messages`
-    MODIFY COLUMN `message_type` ENUM('text', 'voice', 'image', 'gif', 'video', 'contact', 'share') NOT NULL DEFAULT 'text'
-]], {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_sms_messages`
-    MODIFY COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
-]], {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_darkchat_messages`
-    MODIFY COLUMN `message_type` ENUM('text', 'emoji', 'gif', 'voice', 'image', 'video', 'share', 'system') NOT NULL DEFAULT 'text'
-]], {})
+SkyPhoneAppDatabase.Remember(schema)
+Bridge.Database.Migrate("sky_phone", SkyPhoneAppDatabase.Filter(schema))
+SkyPhoneAppDatabase.Run("skypic", function()
+    Bridge.Database.EnsureIndex(
+        "sky_phone_skypic_profiles",
+        "uniq_sky_phone_skypic_profile_account",
+        "(`account_id`)",
+        { unique = true }
+    )
+    Bridge.Database.EnsureIndex(
+        "sky_phone_skypic_profiles",
+        "uniq_sky_phone_skypic_profile_handle",
+        "(`handle`)",
+        { unique = true }
+    )
+    Bridge.Database.EnsureIndex(
+        "sky_phone_skypic_friendships",
+        "uniq_sky_phone_skypic_friend_pair",
+        "(`profile_a_id`, `profile_b_id`)",
+        { unique = true }
+    )
+end)
+SkyPhoneAppDatabase.Run("fliptok", function()
+    Bridge.Database.Query([[
+        INSERT IGNORE INTO `sky_phone_fliptok_video_media` (`video_id`, `media_id`, `sort_order`)
+        SELECT `id`, `media_id`, 1 FROM `sky_phone_fliptok_videos`
+    ]], {})
+end)
+SkyPhoneAppDatabase.Run("weazel-news", function()
+    Bridge.Database.Query([[
+        INSERT IGNORE INTO `sky_phone_weazel_article_media` (`article_id`, `media_id`, `position`)
+        SELECT `id`, `image_media_id`, 1
+        FROM `sky_phone_weazel_articles`
+        WHERE `image_media_id` IS NOT NULL
+    ]], {})
+end)
+SkyPhoneAppDatabase.Run("feather", function()
+    Bridge.Database.Query("DELETE FROM `sky_phone_feather_notifications` WHERE `kind` = 'repost'", {})
+    Bridge.Database.Query("DELETE FROM `sky_phone_feather_reactions` WHERE `kind` = 'repost'", {})
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_feather_reactions`
+        MODIFY COLUMN `kind` ENUM('like', 'bookmark') NOT NULL
+    ]], {})
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_feather_notifications`
+        MODIFY COLUMN `kind` ENUM('like', 'reply', 'follow', 'quote') NOT NULL
+    ]], {})
+end)
+SkyPhoneAppDatabase.Run("picstagram", function()
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_picstagram_activities`
+        MODIFY COLUMN `kind` ENUM('follow_request', 'follow', 'request_accepted', 'like', 'comment', 'comment_like', 'reply', 'verified') NOT NULL
+    ]], {})
+end)
+SkyPhoneAppDatabase.Run("flare", function()
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_flare_swipes`
+        MODIFY COLUMN `choice` ENUM('like', 'pass', 'superlike') NOT NULL
+    ]], {})
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_flare_messages`
+        MODIFY COLUMN `message_type` ENUM('text', 'image', 'gif', 'video', 'share') NOT NULL DEFAULT 'text'
+    ]], {})
+end)
+SkyPhoneAppDatabase.Run("messages", function()
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_sms_messages`
+        MODIFY COLUMN `message_type` ENUM('text', 'voice', 'image', 'gif', 'video', 'contact', 'share') NOT NULL DEFAULT 'text'
+    ]], {})
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_sms_messages`
+        MODIFY COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+    ]], {})
+end)
+SkyPhoneAppDatabase.Run("darkchat", function()
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_darkchat_messages`
+        MODIFY COLUMN `message_type` ENUM('text', 'emoji', 'gif', 'voice', 'image', 'video', 'share', 'system') NOT NULL DEFAULT 'text'
+    ]], {})
+end)
 Bridge.Database.Query([[
     ALTER TABLE `sky_phone_media`
     MODIFY COLUMN `media_type` ENUM('photo', 'video', 'audio') NOT NULL
@@ -3346,30 +3363,38 @@ Bridge.Database.Query([[
     END
     WHERE `mime_type` IS NULL OR `mime_type` = ''
 ]], {})
-Bridge.Database.Query([[
-    UPDATE `sky_phone_sms_messages` message
-    INNER JOIN `sky_phone_media` media ON media.`url` = message.`media_payload`
-    SET message.`media_mime` = media.`mime_type`
-    WHERE message.`message_type` = 'video'
-        AND media.`mime_type` IN ('video/webm', 'video/mp4')
-        AND (message.`media_mime` IS NULL OR message.`media_mime` <> media.`mime_type`)
-]], {})
-Bridge.Database.Query([[
-    UPDATE `sky_phone_darkchat_messages` message
-    INNER JOIN `sky_phone_media` media ON media.`url` = message.`media_payload`
-    SET message.`media_mime` = media.`mime_type`
-    WHERE message.`message_type` = 'video'
-        AND media.`mime_type` IN ('video/webm', 'video/mp4')
-        AND (message.`media_mime` IS NULL OR message.`media_mime` <> media.`mime_type`)
-]], {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_marketplace_images`
-    MODIFY COLUMN `gradient` VARCHAR(2200) NOT NULL
-]], {})
-Bridge.Database.Query([[
-    ALTER TABLE `sky_phone_pages_images`
-    MODIFY COLUMN `gradient` VARCHAR(2200) NOT NULL
-]], {})
+SkyPhoneAppDatabase.Run("messages", function()
+    Bridge.Database.Query([[
+        UPDATE `sky_phone_sms_messages` message
+        INNER JOIN `sky_phone_media` media ON media.`url` = message.`media_payload`
+        SET message.`media_mime` = media.`mime_type`
+        WHERE message.`message_type` = 'video'
+            AND media.`mime_type` IN ('video/webm', 'video/mp4')
+            AND (message.`media_mime` IS NULL OR message.`media_mime` <> media.`mime_type`)
+    ]], {})
+end)
+SkyPhoneAppDatabase.Run("darkchat", function()
+    Bridge.Database.Query([[
+        UPDATE `sky_phone_darkchat_messages` message
+        INNER JOIN `sky_phone_media` media ON media.`url` = message.`media_payload`
+        SET message.`media_mime` = media.`mime_type`
+        WHERE message.`message_type` = 'video'
+            AND media.`mime_type` IN ('video/webm', 'video/mp4')
+            AND (message.`media_mime` IS NULL OR message.`media_mime` <> media.`mime_type`)
+    ]], {})
+end)
+SkyPhoneAppDatabase.Run("citymarkt", function()
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_marketplace_images`
+        MODIFY COLUMN `gradient` VARCHAR(2200) NOT NULL
+    ]], {})
+end)
+SkyPhoneAppDatabase.Run("local-pages", function()
+    Bridge.Database.Query([[
+        ALTER TABLE `sky_phone_pages_images`
+        MODIFY COLUMN `gradient` VARCHAR(2200) NOT NULL
+    ]], {})
+end)
 Bridge.Database.EnsureIndex("sky_phone_devices", "uniq_sky_phone_devices_sim", "(`sim_id`)", { unique = true })
 Bridge.Database.Query("UPDATE `sky_phone_contacts` SET `contact_id` = `id` WHERE `contact_id` IS NULL", {})
 Bridge.Database.EnsureIndex("sky_phone_contacts", "uniq_sky_phone_contacts_account_contact", "(`account_id`, `contact_id`)", { unique = true })

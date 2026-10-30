@@ -1,7 +1,12 @@
 Bridge.Callbacks.RegisterDeferred("sky_phone:crewlink:world")
-Bridge.Callbacks.RegisterDeferred("sky_phone:crewlink:quick-ping")
+Bridge.Callbacks.RegisterDeferred("sky_phone:crewlink:quick-ping");
 
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("crewlink", {
+    "sky_phone:crewlink:world",
+    "sky_phone:crewlink:quick-ping",
+}) or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local password_pepper = tostring(Config.Server.CrewLinkPasswordPepper or "")
 AddEventHandler("sky_phone:configurator:serverUpdated", function()
     password_pepper = tostring(Config.Server.CrewLinkPasswordPepper or "")

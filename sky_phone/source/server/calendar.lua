@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("calendar") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local reminder_minutes = {
     [0] = true,
     [10] = true,
@@ -189,6 +191,7 @@ end)
 CreateThread(function()
     while true do
         Wait(Config.Calendar.ReminderPollSeconds * 1000)
+        if not SkyPhoneAppDatabase or SkyPhoneAppDatabase.Enabled("calendar") then
         local due_events = Bridge.Database.Query([[
             SELECT `id`, `account_id`, `title`, UNIX_TIMESTAMP(`starts_at`) AS `starts_at_unix`
             FROM `sky_phone_calendar_events`
@@ -212,6 +215,7 @@ CreateThread(function()
                     startsAt = (tonumber(event.starts_at_unix) or 0) * 1000,
                 })
             end
+        end
         end
     end
 end)

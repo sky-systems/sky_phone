@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("local-pages") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local categories = {}
 local districts = {}
 

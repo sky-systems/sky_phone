@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("memos") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 SkyPhoneMemos = {}
 
 local pending_uploads = {}

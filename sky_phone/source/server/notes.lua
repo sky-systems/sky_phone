@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("notes") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 SkyPhoneNotes = {}
 
 local function text_length(value)

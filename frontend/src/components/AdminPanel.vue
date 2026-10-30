@@ -495,6 +495,7 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
+    ['Apps.skypic', phone.t('Apps.skypic.name')],
     ['CellTowers', phone.t('Cellular.group')],
     ['Phone.DisabledControls', t('configurator.phoneDisabledControlsLabel')],
     ...['Enabled', 'Towers', 'Props', 'OfflineApps', 'OnlineActions'].map(

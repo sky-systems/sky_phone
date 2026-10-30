@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("health") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 
 local activity_reports = {}
 local allowed_blood_types = {

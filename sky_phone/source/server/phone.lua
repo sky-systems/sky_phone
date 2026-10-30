@@ -606,8 +606,10 @@ local function bootstrap(source, security, security_loaded)
             email = device.email,
             devices = SkyPhoneAccounts.List(device.account_id, device.imei),
         } or nil,
-        notes = SkyPhoneNotes.List(device.account_id, device.imei),
-        memos = SkyPhoneMemos.List(device.account_id, device.imei),
+        notes = SkyPhoneNotes and (not SkyPhoneAppDatabase or SkyPhoneAppDatabase.Enabled("notes"))
+            and SkyPhoneNotes.List(device.account_id, device.imei) or {},
+        memos = SkyPhoneMemos and (not SkyPhoneAppDatabase or SkyPhoneAppDatabase.Enabled("memos"))
+            and SkyPhoneMemos.List(device.account_id, device.imei) or {},
         player = {
             job = Bridge.Framework.GetJob(source),
             firstName = trim(Bridge.Framework.GetFirstname(source)) or "",

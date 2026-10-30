@@ -28,11 +28,24 @@ function Bridge.Callbacks.Register(name, callback)
     deferred_callbacks[name] = nil
 end
 
+function Bridge.Callbacks.CancelDeferred(name)
+    deferred_callbacks[name] = nil
+end
+
 RegisterNetEvent("sky_phone:bridge:callback:request", function(name, request_id, data)
     local player_source = source
     if type(name) ~= "string" or type(request_id) ~= "number" or type(data) ~= "table" then
         Bridge.Debug("warn", "[sky_phone] Rejected malformed callback request from source %s.", tostring(player_source))
         return
+    end
+
+    if SkyPhoneAppDatabase then
+        local app_id = SkyPhoneAppDatabase.CallbackApp(name)
+        if app_id and not SkyPhoneAppDatabase.Enabled(app_id) then
+            Bridge.Network.SendClient("sky_phone:bridge:callback:response", player_source, request_id,
+                { success = false, error = "app_disabled" })
+            return
+        end
     end
 
     local callback = registered_callbacks[name]

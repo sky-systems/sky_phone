@@ -153,6 +153,7 @@ Config.Apps = {
     radio = true,
     settings = true,
     ["sky-flappy"] = true,
+    skypic = true,
     skyride = true,
     snake = true,
     ["tower-stack"] = true,

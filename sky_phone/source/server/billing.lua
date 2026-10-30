@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("billing") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 
 local function affected_rows(result)
     if type(result) == "number" then

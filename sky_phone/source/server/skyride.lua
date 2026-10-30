@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("skyride") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local allowed_cancel_reasons = {
     changed_mind = true,
     driver_delay = true,
@@ -1834,6 +1836,7 @@ CreateThread(function()
         )
     end
     while true do
+        if not SkyPhoneAppDatabase or SkyPhoneAppDatabase.Enabled("skyride") then
         local recovery_success, recovery_rows = pcall(
             Bridge.Database.Query,
             (([[
@@ -1867,6 +1870,7 @@ CreateThread(function()
                 "[sky_phone] SkyRide refund recovery query failed: %s",
                 tostring(recovery_rows)
             )
+        end
         end
         Wait(math.floor(Config.SkyRide.RecoveryIntervalSeconds * 1000))
     end
