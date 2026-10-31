@@ -164,9 +164,8 @@ SkyPhoneMediaImport.RegisterAdapter("fivemanage", {
                 )
                 return file
             end
-            if resolve_error == "import_provider_unauthorized" then
-                return nil, resolve_error
-            end
+            -- Public links may belong to another team than the server API key.
+            -- The public probe still verifies the URL without provider credentials.
             Bridge.Debug(
                 "debug",
                 "[sky_phone] FiveManage metadata lookup for file '%s' failed with '%s'; probing the public URL.",

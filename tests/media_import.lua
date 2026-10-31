@@ -134,13 +134,40 @@ end)
 assert(authenticated.ResolveUrl("fivemanage", url).externalId == "wallpaper")
 assert(#authenticated_requests == 1)
 
-local unauthorized, unauthorized_requests = new_server(function() return 401, "", {} end)
-local item, failure = unauthorized.ResolveUrl("fivemanage", url)
-assert(not item and failure == "import_provider_unauthorized" and #unauthorized_requests == 1)
+for _, metadata_status in ipairs({ 401, 403 }) do
+    local public, public_requests = new_server(function(request_url, headers)
+        if request_url:find("https://api.fivemanage.com/", 1, true) == 1 then
+            assert(headers.Authorization == "test-token")
+            return metadata_status, "", {}
+        end
+        assert(headers.Authorization == nil, "Never send provider credentials to public media hosts")
+        assert(headers.Range == "bytes=0-0")
+        return 206, "x", {
+            ["content-type"] = "image/jpeg", ["content-range"] = "bytes 0-0/173000",
+        }
+    end)
+    local item, failure = public.ResolveUrl("fivemanage", url)
+    assert(item and not failure and item.size == 173000 and #public_requests == 2,
+        "Public photos must remain usable when their provider metadata requires another team token")
+    item, failure = public.Resolve("fivemanage", "wallpaper")
+    assert(not item and failure == "import_provider_unauthorized", "Provider-owned resolution must retain authorization")
+
+    for _, public_status in ipairs({ 403, 404 }) do
+        local unavailable = new_server(function(request_url, headers)
+            if request_url:find("https://api.fivemanage.com/", 1, true) == 1 then
+                return metadata_status, "", {}
+            end
+            assert(headers.Authorization == nil)
+            return public_status, "", {}
+        end)
+        item, failure = unavailable.ResolveUrl("fivemanage", url)
+        assert(not item and failure == "import_url_unavailable", "Unavailable public photos must remain rejected")
+    end
+end
 
 local unconfigured, unconfigured_requests = new_server(function() error("Source requires a token") end,
     function(media) media.FiveManage.ApiKey = "" end)
-item, failure = unconfigured.ResolveUrl("fivemanage", url)
+local item, failure = unconfigured.ResolveUrl("fivemanage", url)
 assert(not item and failure == "import_url_not_allowed" and #unconfigured_requests == 0)
 
 print("Media import public URL, provider metadata and validation checks passed")

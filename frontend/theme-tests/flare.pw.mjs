@@ -2,6 +2,62 @@ import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 import { auditTheme } from './audit.mjs'
 
+test('Flare creates a profile with six selected gallery photos', async ({
+  page,
+}) => {
+  let profile = null
+  let submitted
+  await page.route('**/api/flare:bootstrap', (route) =>
+    route.fulfill({
+      json: {
+        success: true,
+        data: { profile, suggestions: [], likes: [], matches: [] },
+      },
+    }),
+  )
+  await page.route('**/api/flare:save-profile', async (route) => {
+    submitted = route.request().postDataJSON()
+    profile = {
+      ...submitted,
+      id: 77,
+      discoverable: true,
+      photoUrls: submitted.photoMediaIds.map(
+        (id) => `https://cdn.example.test/${id}.jpg`,
+      ),
+    }
+    await route.fulfill({
+      json: {
+        success: true,
+        data: { profile, suggestions: [], likes: [], matches: [] },
+      },
+    })
+  })
+  await page.goto('/?apiPort=3098#/apps/flare', {
+    waitUntil: 'domcontentloaded',
+  })
+  await page.getByLabel('Your name', { exact: true }).fill('Alex')
+  await page.getByLabel('Age', { exact: true }).fill('27')
+  await page
+    .locator('.flare-onboarding-photo-actions')
+    .getByRole('button', { name: /Choose.*Photos/i })
+    .click()
+  const tiles = page.locator('.gallery-tile')
+  await expect(tiles.nth(5)).toBeVisible()
+  for (let index = 0; index < 6; index++) await tiles.nth(index).click()
+  await page.getByRole('link', { name: /^Done$/i }).click()
+  await expect(page.locator('.flare-photo-slot')).toHaveCount(6)
+  await expect(page.getByLabel('Your name', { exact: true })).toHaveValue(
+    'Alex',
+  )
+  await expect(page.getByLabel('Age', { exact: true })).toHaveValue('27')
+  await page.locator('.flare-profile-form__actions button').click()
+  await expect(page.locator('.flare-tabbar')).toBeVisible()
+  expect(submitted.name).toBe('Alex')
+  expect(submitted.age).toBe(27)
+  expect(submitted.photoMediaIds).toHaveLength(6)
+  expect(new Set(submitted.photoMediaIds).size).toBe(6)
+})
+
 test('Flare restores the existing profile after signing out and back in', async ({
   page,
 }, info) => {
