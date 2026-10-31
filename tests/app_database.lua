@@ -55,6 +55,7 @@ dofile("sky_phone/source/server/app_database.lua")
 local schema = {
     { name = "sky_phone_picstagram_posts" },
     { name = "sky_phone_skypic_profiles" },
+    { name = "sky_phone_skypic_blocks" },
     { name = "sky_phone_media" },
     { name = "sky_phone_mail_messages" },
     { name = "sky_phone_mailboxes" },
@@ -71,7 +72,8 @@ end
 
 local filtered = names_of(SkyPhoneAppDatabase.Filter(schema))
 assert(not filtered["sky_phone_picstagram_posts"], "disabled Picstagram tables must stay out of startup")
-assert(not filtered["sky_phone_skypic_profiles"], "disabled SkyPic tables must stay out of startup")
+assert(filtered["sky_phone_skypic_profiles"], "gallery safety retains shared SkyPic identity storage")
+assert(not filtered["sky_phone_skypic_blocks"], "disabled app-only SkyPic tables must stay out of startup")
 assert(filtered["sky_phone_media"], "shared media must stay in startup")
 assert(filtered["sky_phone_mail_messages"] and filtered["sky_phone_mailboxes"],
     "mail and its mailboxes share one app")
@@ -156,4 +158,22 @@ Config.Apps.picstagram = true
 handlers["sky_phone:bridge:callback:request"][1]("sky_phone:missing", 5, {})
 assert(responses[5] == nil)
 
+for _, app in ipairs({ "skyride", "garage", "radio" }) do Config.Apps[app] = false end
+for _, name in ipairs({ "sky_phone:skyride:cancel", "sky_phone:garage:valet-complete", "sky_phone:radio:disconnect" }) do
+    Bridge.Callbacks.Register(name, function() return { success = true } end)
+    handlers["sky_phone:bridge:callback:request"][1](name, 6, {})
+    assert(responses[6].success, "Disabled apps must allow registered terminal cleanup: " .. name)
+end
+Bridge.Callbacks.Register("sky_phone:skyride:request", function() error("Disabled app started new paid work") end)
+handlers["sky_phone:bridge:callback:request"][1]("sky_phone:skyride:request", 7, {})
+assert(responses[7].error == "app_disabled")
+assert(SkyPhoneAppDatabase.CanCleanup("sky_phone:skyride:set-driver-status", { online = false }))
+assert(not SkyPhoneAppDatabase.CanCleanup("sky_phone:skyride:set-driver-status", { online = true }))
+
 print("app database: ok; disabled apps stay out of startup until they are enabled")
+dofile("tests/app_database_dependencies.lua")
+dofile("tests/app_database_crypto_validation.lua")
+dofile("tests/app_database_testdata.lua")
+dofile("tests/server_disabled_app_events.lua")
+dofile("tests/server_skyride_lifecycle.lua")
+dofile("tests/app_database_readiness.lua")

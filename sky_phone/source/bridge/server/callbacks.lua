@@ -41,9 +41,15 @@ RegisterNetEvent("sky_phone:bridge:callback:request", function(name, request_id,
 
     if SkyPhoneAppDatabase then
         local app_id = SkyPhoneAppDatabase.CallbackApp(name)
-        if app_id and not SkyPhoneAppDatabase.Enabled(app_id) then
+        if app_id and not SkyPhoneAppDatabase.Enabled(app_id)
+            and (not registered_callbacks[name] or not SkyPhoneAppDatabase.CanCleanup(name, data)) then
             Bridge.Network.SendClient("sky_phone:bridge:callback:response", player_source, request_id,
                 { success = false, error = "app_disabled" })
+            return
+        end
+        if app_id and SkyPhoneAppDatabase.Enabled(app_id) and SkyPhoneAppDatabase.Initializing(app_id) then
+            Bridge.Network.SendClient("sky_phone:bridge:callback:response", player_source, request_id,
+                { success = false, error = "server_initializing" })
             return
         end
     end

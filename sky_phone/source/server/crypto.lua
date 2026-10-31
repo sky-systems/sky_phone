@@ -358,8 +358,19 @@ function SkyPhoneCrypto.ValidateConfiguration(configuration)
         end
         configured_markets[market.Id] = market
     end
-    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("crypto") then
+    if type(configuration.Apps) == "table" and configuration.Apps.crypto == false then
         return true
+    end
+    -- An app that was off at resource start may have no storage yet. When an
+    -- administrator enables it, validate any retained balances BEFORE saving
+    -- the candidate config; current Config.Apps still contains the old value.
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("crypto") then
+        local existing = Bridge.Database.Query([[
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = DATABASE() AND table_name = 'sky_phone_crypto_markets'
+            LIMIT 1
+        ]], {})
+        if not existing[1] then return true end
     end
     local persisted = Bridge.Database.Query([[
         SELECT `id`, `asset_scale`, `price_scale`, `issued_supply` FROM `sky_phone_crypto_markets`

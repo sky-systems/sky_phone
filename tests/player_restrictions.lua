@@ -255,3 +255,23 @@ on_query = function() r.metadata[1] = { ishandcuffed = true } end
 assert(join().error == "player_cuffed", "SQL completion must not reconnect a newly cuffed player")
 assert(not get(1).data.connected)
 print("PASS radio: idle cost, phone removal, both frequencies, independent toggles, live config, async revalidation")
+
+-- Configurator disable must clean both server voice membership and speaker state.
+-- Callback gating alone cannot do this: it also rejects a later disconnect request.
+r.SkyPhoneAppDatabase = { Enabled = function(app) return r.Config.Apps[app] ~= false end }
+r.metadata[1], r.players[1] = {}, {}
+assert(join().success)
+local disconnected = r.disconnects
+r.Config.Apps.radio = false
+before = r.item_queries
+r.TriggerEvent("sky_phone:configurator:serverUpdated")
+assert(r.disconnects == disconnected + 1, "Disabling Radio must disconnect the active server channel")
+assert(r.item_queries == before, "A disabled app must not check inventory before cleanup")
+assert(join().error == "app_disabled", "Disabled Radio must not reconnect")
+r.Config.Apps.radio = true
+assert(not get(1).data.connected, "Re-enabling Radio must not restore stale live membership")
+assert(join().success)
+r.Config.Apps.radio = false
+tick(r.threads[1])
+assert(r.disconnects == disconnected + 2, "Periodic enforcement must also clean disabled Radio")
+print("PASS radio: app disable cleans active membership and prevents reconnection")

@@ -334,6 +334,8 @@ Locales["ja"] = {
             },
         },
         Common = {
+            appDisabled = "このサーバーでは、このアプリは無効になっています。",
+            appInitializing = "このアプリは起動中です。しばらくしてからもう一度お試しください。",
             add = "追加",
             back = "戻る",
             cancel = "キャンセル",

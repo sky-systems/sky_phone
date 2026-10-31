@@ -334,6 +334,8 @@ Locales["se"] = {
             },
         },
         Common = {
+            appDisabled = "Den här appen är avstängd på den här servern.",
+            appInitializing = "Appen startar fortfarande. Försök igen om en stund.",
             add = "Lägg till",
             back = "Tillbaka",
             cancel = "Avbryt",

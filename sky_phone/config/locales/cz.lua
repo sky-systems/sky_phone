@@ -334,6 +334,8 @@ Locales["cz"] = {
             },
         },
         Common = {
+            appDisabled = "Tato aplikace je na tomto serveru vypnutá.",
+            appInitializing = "Aplikace se ještě spouští. Za chvíli to zkuste znovu.",
             add = "Přidat",
             back = "Zpět",
             cancel = "Zrušit",

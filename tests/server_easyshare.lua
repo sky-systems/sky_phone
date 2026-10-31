@@ -102,3 +102,11 @@ assert(not music_receive({imei="recipient-device",account_id=20},music_payload))
 for i=before+1,#queries do assert(not queries[i].sql:find("INSERT",1,true),"limits must be checked before writes") end
 env.Config.Music.MaximumPlaylists=max
 print("EasyShare music copy ownership, playlist remapping and limits passed")
+env.SkyPhoneAppDatabase = { Enabled = function() return false end }
+local sanitize = find("sanitize_payload")
+local previous_queries = #queries
+local payload, disabled_error = sanitize(1, { imei = "test-device", account_id = 20 }, {
+    appId = "feather", kind = "post", id = "disabled-post", title = "Synthetic post", copyText = "Synthetic text",
+})
+assert(payload == nil and disabled_error == "app_disabled" and #queries == previous_queries,
+    "EasyShare must reject disabled app content before querying absent optional storage")

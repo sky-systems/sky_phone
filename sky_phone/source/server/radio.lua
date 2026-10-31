@@ -6,6 +6,9 @@ local speaker_states = {}
 local connection_versions = {}
 
 local function access_error(source)
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("radio") then
+        return "app_disabled"
+    end
     local blocked = Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(source)
     if blocked then return blocked end
     if Config.Radio.RequirePhoneItem ~= false then

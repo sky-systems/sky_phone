@@ -334,6 +334,8 @@ Locales["cn"] = {
             },
         },
         Common = {
+            appDisabled = "此服务器已停用此应用。",
+            appInitializing = "此应用正在启动，请稍后重试。",
             add = "添加",
             back = "返回",
             cancel = "取消",

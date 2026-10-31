@@ -334,6 +334,8 @@ Locales["nl"] = {
             },
         },
         Common = {
+            appDisabled = "Deze app is uitgeschakeld op deze server.",
+            appInitializing = "Deze app wordt nog gestart. Probeer het zo nog eens.",
             add = "Toevoegen",
             back = "Terug",
             cancel = "Annuleren",

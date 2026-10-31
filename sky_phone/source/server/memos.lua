@@ -331,6 +331,10 @@ end)
 
 RegisterNetEvent("sky_phone:memos:request-upload", function(data)
     local src = source
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("memos") then
+        upload_result(src, type(data) == "table" and data.correlationId or nil, false, "app_disabled")
+        return
+    end
     if not SkyPhone.AllowOperation(src, "memos_upload", Config.Memos.UploadsPerMinute, 60) then
         upload_result(src, type(data) == "table" and data.correlationId or nil, false, "rate_limited")
         return
