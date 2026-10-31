@@ -44,4 +44,12 @@ local english_only = setmetatable({ Config = { Bridge = { Locale = "en" } },
 assert(loadfile("sky_phone/config/init.lua", "t", english_only))()
 assert(loadfile("sky_phone/source/server/locales.lua", "t", english_only))()
 assert(next(english_only.Locales, "en") == nil, "English-only servers must not load another language")
+for _, language in ipairs({ "en", "de", "ar", "cn", "cz", "es", "fi", "fr", "it", "ja", "nl", "pl", "pt", "rs", "ru", "se" }) do
+    local locale = environment.SkyPhoneLocales.Resolve(language)
+    local activity = locale.Nui.AdminPanel.activity
+    assert(activity.title and activity.states.created and activity.messagesTitle and activity.callsTitle,
+        "Phone activity and protected SMS/call labels must coexist after Lua evaluates the locale: " .. language)
+end
+assert(environment.Locales.en.Nui.AdminPanel.activity.title == "Phone activity")
+assert(environment.Locales.de.Nui.AdminPanel.activity.title == "Handy-Aktivitäten")
 print("PASS: selective server locales, cached fallback/merge, aliases, configurator updates and safe paths")

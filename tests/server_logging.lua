@@ -819,3 +819,4 @@ for _, section in ipairs({ "shared_scripts", "client_scripts", "files" }) do
     assert(not content:find("config/%*"), "A config glob could publish server secrets")
 end
 print("Server Discord logging tests passed")
+dofile("tests/server_activity_logging.lua")

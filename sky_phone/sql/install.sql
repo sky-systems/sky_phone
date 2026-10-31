@@ -2,6 +2,25 @@
 -- MySQL/MariaDB with InnoDB and utf8mb4 support is required.
 -- Runtime migrations remain enabled and handle upgrades of existing installations.
 
+CREATE TABLE IF NOT EXISTS `sky_phone_activity_log` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `owner_identifier` VARCHAR(80) NOT NULL,
+    `actor_source` INT UNSIGNED NOT NULL,
+    `actor_name` VARCHAR(120) NOT NULL,
+    `device_imei` VARCHAR(15) NOT NULL DEFAULT '',
+    `phone_number` VARCHAR(24) NOT NULL DEFAULT '',
+    `category` VARCHAR(32) NOT NULL,
+    `action` VARCHAR(80) NOT NULL,
+    `status` VARCHAR(48) NOT NULL,
+    `details` LONGTEXT NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_sky_phone_activity_owner` (`owner_identifier`, `id`),
+    KEY `idx_sky_phone_activity_device` (`device_imei`, `id`),
+    KEY `idx_sky_phone_activity_category` (`category`, `id`),
+    KEY `idx_sky_phone_activity_created` (`created_at`, `id`)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_accounts` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `email` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -333,6 +352,7 @@ CREATE TABLE IF NOT EXISTS `sky_phone_calls` (
     PRIMARY KEY (`id`),
     KEY `idx_sky_phone_calls_caller` (`caller_sim_id`, `started_at`),
     KEY `idx_sky_phone_calls_callee` (`callee_sim_id`, `started_at`),
+    KEY `idx_sky_phone_calls_started` (`started_at`),
     FOREIGN KEY (`caller_sim_id`) REFERENCES `sky_phone_sims` (`id`) ON DELETE CASCADE,
     FOREIGN KEY (`callee_sim_id`) REFERENCES `sky_phone_sims` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -478,6 +498,7 @@ CREATE TABLE IF NOT EXISTS `sky_phone_sms_messages` (
     PRIMARY KEY (`id`),
     KEY `idx_sky_phone_sms_sender` (`sender_sim_id`, `created_at`),
     KEY `idx_sky_phone_sms_recipient` (`recipient_sim_id`, `created_at`),
+    KEY `idx_sky_phone_sms_created` (`created_at`),
     FOREIGN KEY (`sender_sim_id`) REFERENCES `sky_phone_sims` (`id`) ON DELETE SET NULL,
     FOREIGN KEY (`recipient_sim_id`) REFERENCES `sky_phone_sims` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

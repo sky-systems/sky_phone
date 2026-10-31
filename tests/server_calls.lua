@@ -8,11 +8,14 @@ local stopped_calls = {}
 local speaker_enabled = true
 local audit_records = {}
 local server_time = 1000
+local log_owner = "original-call-owner"
+local reassign_during_transaction = false
 os.time = function() return server_time end
 
-SkyPhoneLog = { Record = function(category, action, status, source, details)
+SkyPhoneLog = { Record = function(category, action, status, source, details, actor, owner_identifier)
     audit_records[#audit_records + 1] = {
         category = category, action = action, status = status, source = source, details = details,
+        actor = actor, ownerIdentifier = owner_identifier,
     }
 end }
 
@@ -60,12 +63,14 @@ Bridge = {
         end,
         Transaction = function(operations)
             transactions[#transactions + 1] = operations
+            if reassign_during_transaction then log_owner = "reused-source-owner" end
             return true
         end,
     },
     Debug = function()
     end,
     Framework = {
+        GetIdentifier = function() return log_owner end,
         GetPlayers = function()
             return {}
         end,
@@ -118,6 +123,10 @@ function AddEventHandler()
 end
 
 function CreateThread()
+end
+
+function GetPlayerName(source)
+    return "Test Caller " .. source
 end
 
 function GetCurrentResourceName()
@@ -251,7 +260,10 @@ client_events = {}
 
 local ended, end_error = SkyPhoneCalls.EndForSource(0)
 assert(not ended and end_error == "invalid_source", "invalid termination sources must be rejected")
+reassign_during_transaction = true
 assert(SkyPhoneCalls.EndForSource(10), "authoritative source termination must end the call")
+reassign_during_transaction = false
+log_owner = "original-call-owner"
 assert(not SkyPhoneCalls.IsActiveForSource(10) and not SkyPhoneCalls.IsActiveForSource(20), "termination must clear participants")
 assert(calls[call.id] == nil, "termination must remove the authoritative call")
 local ended_id_call, ended_id_error = SkyPhoneCalls.GetById(call.id)
@@ -263,6 +275,9 @@ assert(#audit_records == 1 and audit_records[1].action == "calls:ended"
 assert(audit_records[1].details.caller.number == "5550101"
     and audit_records[1].details.callee.number == "5550102", "Call logs need both participants")
 assert(audit_records[1].details.durationSeconds >= 0, "Call logs need the connected duration")
+assert(audit_records[1].ownerIdentifier == "original-call-owner"
+    and audit_records[1].actor.name == "Test Caller 10",
+    "A yielding call-end transaction must retain the original actor after source reuse")
 assert(transactions[1][1].params[1] == "completed", "answered calls must remain completed")
 assert(#client_events == 2, "both participants must receive the terminal state")
 assert(client_events[1].payload.channel == nil and client_events[2].payload.channel == nil, "terminal states must drop the voice channel")

@@ -74,6 +74,7 @@ import AdminCustomToneManager from './AdminCustomToneManager.vue'
 import AdminGeneralSettings from './AdminGeneralSettings.vue'
 import AdminWebhookManager from './AdminWebhookManager.vue'
 import AdminSocialManager from './AdminSocialManager.vue'
+import AdminPhoneActivity from './AdminPhoneActivity.vue'
 
 type AdminTab =
   | 'overview'
@@ -85,6 +86,7 @@ type AdminTab =
   | 'calls'
   | 'moderation'
   | 'social'
+  | 'activity'
   | 'tones'
   | 'webhooks'
   | 'audit'
@@ -1078,7 +1080,7 @@ onMounted(() => {
   document.addEventListener('keydown', onKeydown)
   void refreshData()
   statisticsTimer = window.setInterval(() => {
-    if (tab.value === 'overview' && !admin.loading) void admin.load()
+    if (tab.value === 'overview' && !admin.loading) void admin.loadStatistics()
   }, 15_000)
 })
 
@@ -1299,6 +1301,15 @@ onBeforeUnmount(() => {
           >
             <Webhook :size="19" style="--admin-icon-size: 19" />
           </button>
+          <SkyButton
+            variant="plain"
+            icon-only
+            :class="{ 'is-active': tab === 'activity' }"
+            :aria-label="t('tabs.activity')"
+            :title="t('tabs.activity')"
+            @click="selectTab('activity')"
+            ><Clipboard :size="19" style="--admin-icon-size: 19"
+          /></SkyButton>
           <button
             type="button"
             :class="{ 'is-active': tab === 'audit' }"
@@ -1413,17 +1424,6 @@ onBeforeUnmount(() => {
             </div>
           </template>
 
-          <template v-else-if="tab === 'social'">
-            <div class="admin-panel-directory__header">
-              <div>
-                <h2>{{ t('tabs.social') }}</h2>
-              </div>
-              <MessageSquare :size="19" style="--admin-icon-size: 19" />
-            </div>
-            <div class="admin-panel-overview-directory">
-              <p class="admin-panel-webhook-help">{{ t('social.body') }}</p>
-            </div>
-          </template>
           <template v-else-if="tab === 'webhooks'">
             <div class="admin-panel-directory__header">
               <div>
@@ -1787,7 +1787,19 @@ onBeforeUnmount(() => {
             v-else-if="tab === 'social'"
             class="admin-panel-editor__scroll"
           >
-            <AdminSocialManager />
+            <AdminSocialManager
+              :target-source="admin.selectedPlayer?.source"
+              :target-name="admin.selectedPlayer?.name"
+            />
+          </section>
+          <section
+            v-else-if="tab === 'activity'"
+            class="admin-panel-editor__scroll"
+          >
+            <AdminPhoneActivity
+              :target-source="admin.selectedPlayer?.source"
+              :target-name="admin.selectedPlayer?.name"
+            />
           </section>
           <section
             v-else-if="tab === 'webhooks'"
@@ -2160,6 +2172,20 @@ onBeforeUnmount(() => {
               </button>
             </div>
 
+            <SkyProvider
+              v-if="tab === 'players' || tab === 'apps' || tab === 'accounts'"
+              class="admin-panel-inspect-actions"
+              dark
+              :safe-areas="false"
+              accent="var(--admin-accent)"
+            >
+              <SkyButton @click="selectTab('activity')">{{
+                t('activity.inspect')
+              }}</SkyButton>
+              <SkyButton @click="selectTab('social')">{{
+                t('social.inspect')
+              }}</SkyButton>
+            </SkyProvider>
             <div v-if="tab === 'players'" class="admin-panel-stat-grid">
               <article>
                 <WalletCards :size="18" style="--admin-icon-size: 18" />
@@ -4647,6 +4673,13 @@ button:disabled {
 .admin-panel-page-heading h1,
 .admin-panel-empty-editor h1 {
   font-size: calc(17 * var(--admin-unit));
+}
+
+.admin-panel-inspect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sky-space-3);
+  margin-bottom: var(--sky-space-5);
 }
 
 .admin-panel-audit-grid {

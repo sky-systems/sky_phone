@@ -289,36 +289,94 @@ local function load_player_devices(source, identifier)
     return devices
 end
 
-local function build_player_summary(source)
-    local identifier = Bridge.Framework.GetIdentifier(source)
-    local devices = load_player_devices(source, identifier)
-    local job = Bridge.Framework.GetJob(source)
-    return {
-        source = source,
-        identifier = identifier,
-        name = player_name(source),
-        serverName = GetPlayerName(source) or "",
-        job = job.label ~= "" and job.label or job.name,
-        grade = job.grade,
-        onDuty = job.onDuty,
-        deviceCount = #devices,
-        phoneNumber = devices[1] and devices[1].number or nil,
-    }
-end
-
 local function list_players()
     local sources = Bridge.Framework.GetPlayers()
     table.sort(sources, function(left, right)
         return tonumber(left) < tonumber(right)
     end)
 
-    local players = {}
+    local players, identifiers, owner_devices = {}, {}, {}
     local maximum = math.max(1, math.floor(tonumber(Config.AdminPanel.MaximumPlayers) or 128))
     for index = 1, math.min(#sources, maximum) do
         local player_source = tonumber(sources[index])
-        if player_source and Bridge.Framework.GetIdentifier(player_source) then
-            players[#players + 1] = build_player_summary(player_source)
+        local identifier = player_source and Bridge.Framework.GetIdentifier(player_source)
+        if identifier then
+            local job = Bridge.Framework.GetJob(player_source)
+            players[#players + 1] = {
+                source = player_source,
+                identifier = identifier,
+                name = player_name(player_source),
+                serverName = GetPlayerName(player_source) or "",
+                job = job.label ~= "" and job.label or job.name,
+                grade = job.grade,
+                onDuty = job.onDuty,
+                deviceCount = 0,
+            }
+            if not owner_devices[identifier] then
+                identifiers[#identifiers + 1] = identifier
+                owner_devices[identifier] = {}
+            end
+            for _, item in ipairs(Bridge.Inventory.GetSlotsWithItem(player_source, Config.Phone.Item)) do
+                local imei = item.metadata and item.metadata.imei
+                if SkyPhoneImei.IsValid(imei) then owner_devices[identifier][imei] = true end
+            end
         end
+    end
+    if #identifiers == 0 then return players end
+
+    -- The sidebar needs counts and the latest number, not every device's app JSON,
+    -- account and security data. Resolve ownership once for the whole player list.
+    local placeholders, parameters = {}, {}
+    for index, identifier in ipairs(identifiers) do
+        placeholders[index] = "?"
+        parameters[#parameters + 1] = identifier
+    end
+    for _, identifier in ipairs(identifiers) do parameters[#parameters + 1] = identifier end
+    local owners = Bridge.Database.Query(([[
+        SELECT `owner_identifier`, `device_imei` AS `imei`
+        FROM `sky_phone_character_devices` WHERE `owner_identifier` IN (%s)
+        UNION
+        SELECT sim.`owner_identifier`, device.`imei`
+        FROM `sky_phone_devices` device
+        JOIN `sky_phone_sims` sim ON sim.`id` = device.`sim_id`
+        WHERE sim.`owner_identifier` IN (%s)
+    ]]):format(table.concat(placeholders, ", "), table.concat(placeholders, ", ")), parameters)
+    for _, row in ipairs(owners) do
+        if owner_devices[row.owner_identifier] and SkyPhoneImei.IsValid(row.imei) then
+            owner_devices[row.owner_identifier][row.imei] = true
+        end
+    end
+    local imeis, seen = {}, {}
+    for _, devices in pairs(owner_devices) do
+        for imei in pairs(devices) do
+            if not seen[imei] then
+                seen[imei] = true
+                imeis[#imeis + 1] = imei
+            end
+        end
+    end
+    if #imeis == 0 then return players end
+    placeholders = {}
+    for index = 1, #imeis do placeholders[index] = "?" end
+    local rows = Bridge.Database.Query(([[
+        SELECT device.`imei`, sim.`phone_number`
+        FROM `sky_phone_devices` device
+        LEFT JOIN `sky_phone_sims` sim ON sim.`id` = device.`sim_id`
+        WHERE device.`imei` IN (%s)
+        ORDER BY device.`updated_at` DESC, device.`imei` ASC
+    ]]):format(table.concat(placeholders, ", ")), imeis)
+    local devices_by_imei = {}
+    for rank, row in ipairs(rows) do devices_by_imei[row.imei] = { rank = rank, number = row.phone_number } end
+    for _, player in ipairs(players) do
+        local latest
+        for imei in pairs(owner_devices[player.identifier]) do
+            local device = devices_by_imei[imei]
+            if device then
+                player.deviceCount = player.deviceCount + 1
+                if not latest or device.rank < latest.rank then latest = device end
+            end
+        end
+        player.phoneNumber = latest and latest.number or nil
     end
     return players
 end
@@ -430,11 +488,145 @@ end
 
 -- Table/column names come only from this server-owned allowlist.
 local SOCIAL_CONTENT = {
-    feather = { posts = "sky_phone_feather_posts", profiles = "sky_phone_feather_profiles", body = "body" },
-    fliptok = { posts = "sky_phone_fliptok_videos", profiles = "sky_phone_fliptok_profiles", body = "caption" },
-    picstagram = { posts = "sky_phone_picstagram_posts", profiles = "sky_phone_picstagram_profiles", body = "caption" },
-    ["weazel-news"] = { posts = "sky_phone_weazel_articles" },
+    feather = {
+        posts = "sky_phone_feather_posts", profiles = "sky_phone_feather_profiles", body = "body",
+        media = "sky_phone_feather_post_media", mediaKey = "post_id", mediaOrder = "sort_order",
+    },
+    fliptok = {
+        posts = "sky_phone_fliptok_videos", profiles = "sky_phone_fliptok_profiles", body = "caption",
+        sessions = "sky_phone_fliptok_sessions", media = "sky_phone_fliptok_video_media",
+        mediaKey = "video_id", mediaOrder = "sort_order",
+    },
+    picstagram = {
+        posts = "sky_phone_picstagram_posts", profiles = "sky_phone_picstagram_profiles", body = "caption",
+        sessions = "sky_phone_picstagram_sessions", media = "sky_phone_picstagram_post_media",
+        mediaKey = "post_id", mediaOrder = "position",
+    },
+    skypic = {
+        posts = "sky_phone_skypic_spotlights", profiles = "sky_phone_skypic_profiles",
+        bodySql = "CONCAT_WS(CHAR(10), NULLIF(post.`caption`, ''), NULLIF(post.`overlay_text`, ''))",
+        directMedia = "media_id", publishedStatus = "active", expires = true, headline = "ad_headline",
+    },
+    ["skypic-stories"] = {
+        posts = "sky_phone_skypic_stories", profiles = "sky_phone_skypic_profiles",
+        bodySql = "CONCAT_WS(CHAR(10), NULLIF(post.`caption`, ''), NULLIF(post.`overlay_text`, ''))",
+        directMedia = "media_id", publishedStatus = "active", expires = true, publicCondition = " AND post.`privacy` = 'everyone'",
+    },
+    ["weazel-news"] = {
+        posts = "sky_phone_weazel_articles", media = "sky_phone_weazel_article_media",
+        mediaKey = "article_id", mediaOrder = "position",
+    },
 }
+
+local function sql_placeholders(values)
+    local placeholders = {}
+    for index = 1, #values do placeholders[index] = "?" end
+    return table.concat(placeholders, ", ")
+end
+
+local function resolve_social_scope(data, platform)
+    if data.targetSource == nil then return {} end
+    local target_source = normalize_source(data.targetSource)
+    if not target_source then return nil, { success = false, error = "player_unavailable" } end
+    local identifier = Bridge.Framework.GetIdentifier(target_source)
+    local scope = { source = target_source, identifier = identifier, accounts = {}, profileIds = {} }
+    if not platform.profiles then return scope end
+
+    local imeis = collect_device_imeis(target_source, identifier)
+    if #imeis == 0 then return scope end
+    local parameters = {}
+    for _, imei in ipairs(imeis) do parameters[#parameters + 1] = imei end
+    local profile_columns = [[profile.`id`, profile.`account_id` AS `accountId`, profile.`handle`,
+        profile.`display_name` AS `displayName`]]
+    local queries = { ([[
+        SELECT DISTINCT %s FROM `sky_phone_devices` device
+        JOIN `%s` profile ON profile.`account_id` = device.`account_id`
+        WHERE device.`imei` IN (%s)
+    ]]):format(profile_columns, platform.profiles, sql_placeholders(imeis)) }
+    if platform.sessions then
+        queries[#queries + 1] = ([[
+            SELECT %s FROM `%s` session
+            JOIN `%s` profile ON profile.`id` = session.`profile_id`
+            WHERE session.`device_imei` IN (%s)
+        ]]):format(profile_columns, platform.sessions, platform.profiles, sql_placeholders(imeis))
+        for _, imei in ipairs(imeis) do parameters[#parameters + 1] = imei end
+    end
+    -- Begin with the target's indexed device/session keys instead of scanning
+    -- every platform profile. UNION deduplicates accounts linked in both ways.
+    local profiles = Bridge.Database.Query(table.concat(queries, " UNION ") .. " ORDER BY `handle` ASC", parameters)
+    for _, profile in ipairs(profiles) do
+        scope.accounts[#scope.accounts + 1] = {
+            id = tostring(profile.id), accountId = tonumber(profile.accountId),
+            handle = profile.handle, displayName = profile.displayName,
+        }
+        scope.profileIds[#scope.profileIds + 1] = profile.id
+    end
+    return scope
+end
+
+local function social_target_condition(scope, platform, parameters)
+    if not scope.source then return "" end
+    if not platform.profiles then
+        parameters[#parameters + 1] = scope.identifier
+        return " AND post.`author_identifier` = ?"
+    end
+    if #scope.profileIds == 0 then return " AND 1 = 0" end
+    for _, profile_id in ipairs(scope.profileIds) do parameters[#parameters + 1] = profile_id end
+    return (" AND post.`profile_id` IN (%s)"):format(sql_placeholders(scope.profileIds))
+end
+
+local function public_social_condition(platform)
+    local condition = (" AND post.`status` = '%s'"):format(platform.publishedStatus or "published")
+    if platform.expires then condition = condition .. " AND post.`expires_at` > CURRENT_TIMESTAMP(6)" end
+    return condition .. (platform.publicCondition or "")
+end
+
+local function hydrate_admin_social_media(rows, platform, platform_id)
+    local ids, posts = {}, {}
+    for _, row in ipairs(rows) do
+        row.profileId = row.profileId and tostring(row.profileId) or nil
+        row.media = {}
+        ids[#ids + 1] = row.id
+        posts[row.id] = row
+    end
+    if #ids == 0 then return end
+    if platform.directMedia then
+        local media_rows = Bridge.Database.Query(([[
+            SELECT post.`id` AS `postId`, media.`url`, media.`media_type` AS `type`
+            FROM `%s` post JOIN `sky_phone_media` media ON media.`id` = post.`%s`
+            WHERE post.`id` IN (%s)
+        ]]):format(platform.posts, platform.directMedia, sql_placeholders(ids)), ids)
+        for _, media in ipairs(media_rows) do
+            local post = posts[media.postId]
+            if post then post.media[1] = { url = media.url, type = media.type } end
+        end
+        return
+    end
+    local media_rows = Bridge.Database.Query(([[
+        SELECT relation.`%s` AS `postId`, media.`url`, media.`media_type` AS `type`
+        FROM `%s` relation JOIN `sky_phone_media` media ON media.`id` = relation.`media_id`
+        WHERE relation.`%s` IN (%s)
+        ORDER BY relation.`%s`, relation.`%s`
+    ]]):format(platform.mediaKey, platform.media, platform.mediaKey, sql_placeholders(ids),
+        platform.mediaKey, platform.mediaOrder), ids)
+    for _, media in ipairs(media_rows) do
+        local post = posts[media.postId]
+        if post then post.media[#post.media + 1] = { url = media.url, type = media.type } end
+    end
+    -- Earlier FlipTok videos and Weazel articles can predate their attachment tables.
+    if platform_id == "fliptok" or platform_id == "weazel-news" then
+        local media_column = platform_id == "fliptok" and "media_id" or "image_media_id"
+        local fallback_rows = Bridge.Database.Query(([[
+            SELECT post.`id` AS `postId`, media.`url`, media.`media_type` AS `type`
+            FROM `%s` post JOIN `sky_phone_media` media ON media.`id` = post.`%s`
+            WHERE post.`id` IN (%s)
+        ]]):format(platform.posts, media_column, sql_placeholders(ids)), ids)
+        for _, media in ipairs(fallback_rows) do
+            local post = posts[media.postId]
+            if post and #post.media == 0 then post.media[1] = { url = media.url, type = media.type } end
+        end
+    end
+end
 
 Bridge.Callbacks.Register("sky_phone:admin:social-posts", function(source, data)
     local allowed, error_response = require_admin(source, "social_read", Config.AdminPanel.ReadRequestsPerMinute)
@@ -446,31 +638,55 @@ Bridge.Callbacks.Register("sky_phone:admin:social-posts", function(source, data)
         or type(query) ~= "string" or #query > 100 then
         return { success = false, error = "invalid_request" }
     end
+    local scope, scope_error = resolve_social_scope(data, platform)
+    if not scope then return scope_error end
     local search = "%" .. trim(query) .. "%"
+    local parameters = { search, search, search }
+    local target_condition = social_target_condition(scope, platform, parameters)
+    parameters[#parameters + 1] = page * 50
     local rows
     if data.platform == "weazel-news" then
-        rows = Bridge.Database.Query([[
-            SELECT post.`id`, post.`title`, post.`excerpt` AS `body`,
-                post.`author_name` AS `author`, post.`created_at` AS `createdAt`
-            FROM `sky_phone_weazel_articles` post
-            WHERE post.`deleted_at` IS NULL AND post.`status` = 'published'
-                AND (post.`title` LIKE ? OR post.`author_name` LIKE ? OR post.`id` LIKE ?)
-            ORDER BY post.`created_at` DESC, post.`id` DESC LIMIT 51 OFFSET ?
-        ]], { search, search, search, page * 50 })
-    else
         rows = Bridge.Database.Query(([[
-            SELECT post.`id`, LEFT(post.`%s`, 500) AS `body`, profile.`handle` AS `author`,
-                post.`created_at` AS `createdAt`
-            FROM `%s` post JOIN `%s` profile ON profile.`id` = post.`profile_id`
-            WHERE post.`status` = 'published'
-                AND (post.`%s` LIKE ? OR profile.`handle` LIKE ? OR post.`id` LIKE ?)
+            SELECT post.`id`, post.`title`, post.`%s` AS `body`, post.`status`,
+                post.`author_name` AS `author`, post.`created_at` AS `createdAt`,
+                post.`deleted_at` AS `deletedAt`
+            FROM `sky_phone_weazel_articles` post
+            WHERE (post.`title` LIKE ? OR post.`author_name` LIKE ? OR post.`id` LIKE ?)%s%s
             ORDER BY post.`created_at` DESC, post.`id` DESC LIMIT 51 OFFSET ?
-        ]]):format(platform.body, platform.posts, platform.profiles, platform.body),
-            { search, search, search, page * 50 })
+        ]]):format(scope.source and "body" or "excerpt", target_condition,
+            scope.source and "" or " AND post.`deleted_at` IS NULL AND post.`status` = 'published'"), parameters)
+    else
+        local status_columns = platform.expires and [[
+            CASE WHEN post.`status` = 'active' AND post.`expires_at` <= CURRENT_TIMESTAMP(6)
+                THEN 'expired' ELSE post.`status` END AS `status`,
+            UNIX_TIMESTAMP(post.`expires_at`) * 1000 AS `expiresAt`
+        ]] or "post.`status`"
+        local title_column = platform.headline and (", post.`%s` AS `title`"):format(platform.headline) or ""
+        rows = Bridge.Database.Query(([[
+            SELECT post.`id`, %s AS `body`, profile.`handle` AS `author`,
+                profile.`id` AS `profileId`, profile.`display_name` AS `displayName`,
+                %s, post.`created_at` AS `createdAt`%s
+            FROM `%s` post JOIN `%s` profile ON profile.`id` = post.`profile_id`
+            WHERE (%s LIKE ? OR profile.`handle` LIKE ? OR post.`id` LIKE ?)%s%s
+            ORDER BY post.`created_at` DESC, post.`id` DESC LIMIT 51 OFFSET ?
+        ]]):format(platform.bodySql or ("post.`%s`"):format(platform.body), status_columns, title_column,
+            platform.posts, platform.profiles, platform.bodySql or ("post.`%s`"):format(platform.body), target_condition,
+            scope.source and "" or public_social_condition(platform)), parameters)
     end
     local has_more = #rows > 50
     if has_more then rows[51] = nil end
-    return { success = true, data = { items = rows, hasMore = has_more } }
+    for _, row in ipairs(rows) do
+        if row.deletedAt then row.status = "removed" end
+        row.deletedAt = nil
+        row.expiresAt = row.expiresAt and tonumber(row.expiresAt) or nil
+    end
+    hydrate_admin_social_media(rows, platform, data.platform)
+    if scope.source then
+        write_audit(source, scope.source, scope.identifier, nil, "view_social_posts", {
+            platform = data.platform, page = page,
+        })
+    end
+    return { success = true, data = { items = rows, hasMore = has_more, accounts = scope.accounts or {} } }
 end)
 
 Bridge.Callbacks.Register("sky_phone:admin:delete-social-post", function(source, data)
@@ -482,21 +698,30 @@ Bridge.Callbacks.Register("sky_phone:admin:delete-social-post", function(source,
         or not id:match("^%x+%-%x+%-%x+%-%x+%-%x+$") then
         return { success = false, error = "invalid_request" }
     end
+    local scope, scope_error = resolve_social_scope(data, platform)
+    if not scope then return scope_error end
+    local parameters = data.platform == "weazel-news"
+        and { Bridge.Framework.GetIdentifier(source), id } or { id }
+    local target_condition = social_target_condition(scope, platform, parameters)
     local result
     if data.platform == "weazel-news" then
-        result = Bridge.Database.Query([[
-            UPDATE `sky_phone_weazel_articles`
+        result = Bridge.Database.Query(([[
+            UPDATE `sky_phone_weazel_articles` post
             SET `deleted_at` = CURRENT_TIMESTAMP, `deleted_by_identifier` = ?, `revision` = `revision` + 1
-            WHERE `id` = ? AND `deleted_at` IS NULL AND `status` = 'published'
-        ]], { Bridge.Framework.GetIdentifier(source), id })
+            WHERE post.`id` = ? AND post.`deleted_at` IS NULL%s%s
+        ]]):format(target_condition, scope.source and "" or " AND post.`status` = 'published'"), parameters)
     else
         result = Bridge.Database.Query(
-            ("UPDATE `%s` SET `status` = 'removed' WHERE `id` = ? AND `status` = 'published'"):format(platform.posts),
-            { id }
+            ("UPDATE `%s` post SET `status` = 'removed' WHERE post.`id` = ?%s%s")
+                :format(platform.posts, target_condition,
+                    scope.source and " AND post.`status` <> 'removed'" or public_social_condition(platform)),
+            parameters
         )
     end
     if affected_rows(result) ~= 1 then return { success = false, error = "not_found" } end
-    write_audit(source, nil, nil, nil, "delete_social_post", { platform = data.platform, postId = id })
+    write_audit(source, scope.source, scope.identifier or "", nil, "delete_social_post", {
+        platform = data.platform, postId = id,
+    })
     return { success = true }
 end)
 
@@ -525,6 +750,50 @@ local function load_audit()
     return audit
 end
 
+local function load_statistics(online)
+    local totals = Bridge.Database.Query([[
+        SELECT COUNT(*) AS `devices`,
+            COALESCE(SUM(device.`account_id` IS NOT NULL), 0) AS `linked_devices`,
+            COALESCE(SUM(device.`sim_id` IS NOT NULL), 0) AS `sim_devices`,
+            COALESCE(SUM(device.`updated_at` >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)), 0) AS `active_devices`,
+            (SELECT COUNT(*) FROM `sky_phone_accounts`) AS `accounts`,
+            (SELECT COUNT(*) FROM `sky_phone_sms_messages`
+                WHERE `created_at` >= CURRENT_DATE) AS `messages_today`,
+            (SELECT COUNT(*) FROM `sky_phone_calls`
+                WHERE `started_at` >= CURRENT_DATE) AS `calls_today`,
+            (SELECT COUNT(*) FROM `sky_phone_admin_audit`) AS `audit_entries`,
+            (SELECT COUNT(*) FROM `sky_phone_admin_audit`
+                WHERE `created_at` >= CURRENT_DATE) AS `audit_today`
+        FROM `sky_phone_devices` device
+    ]], {})
+    local stats = totals[1] or {}
+    return {
+        online = online,
+        devices = tonumber(stats.devices) or 0,
+        accounts = tonumber(stats.accounts) or 0,
+        linkedDevices = tonumber(stats.linked_devices) or 0,
+        simDevices = tonumber(stats.sim_devices) or 0,
+        activeDevices = tonumber(stats.active_devices) or 0,
+        messagesToday = tonumber(stats.messages_today) or 0,
+        callsToday = tonumber(stats.calls_today) or 0,
+        auditEntries = tonumber(stats.audit_entries) or 0,
+        auditToday = tonumber(stats.audit_today) or 0,
+    }
+end
+
+Bridge.Callbacks.Register("sky_phone:admin:statistics", function(source)
+    local authorized, error_response = require_admin(source, "bootstrap", Config.AdminPanel.ReadRequestsPerMinute)
+    if not authorized then return error_response end
+    local online = 0
+    local sources = Bridge.Framework.GetPlayers()
+    table.sort(sources, function(left, right) return tonumber(left) < tonumber(right) end)
+    local maximum = math.max(1, math.floor(tonumber(Config.AdminPanel.MaximumPlayers) or 128))
+    for index = 1, math.min(#sources, maximum) do
+        if Bridge.Framework.GetIdentifier(tonumber(sources[index])) then online = online + 1 end
+    end
+    return { success = true, data = load_statistics(online) }
+end)
+
 Bridge.Callbacks.Register("sky_phone:admin:bootstrap", function(source)
     local authorized, error_response = require_admin(
         source,
@@ -536,40 +805,12 @@ Bridge.Callbacks.Register("sky_phone:admin:bootstrap", function(source)
     end
 
     local players = list_players()
-    local totals = Bridge.Database.Query([[
-        SELECT
-            (SELECT COUNT(*) FROM `sky_phone_devices`) AS `devices`,
-            (SELECT COUNT(*) FROM `sky_phone_accounts`) AS `accounts`,
-            (SELECT COUNT(*) FROM `sky_phone_devices` WHERE `account_id` IS NOT NULL) AS `linked_devices`,
-            (SELECT COUNT(*) FROM `sky_phone_devices` WHERE `sim_id` IS NOT NULL) AS `sim_devices`,
-            (SELECT COUNT(*) FROM `sky_phone_devices`
-                WHERE `updated_at` >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)) AS `active_devices`,
-            (SELECT COUNT(*) FROM `sky_phone_sms_messages`
-                WHERE `created_at` >= CURRENT_DATE) AS `messages_today`,
-            (SELECT COUNT(*) FROM `sky_phone_calls`
-                WHERE `started_at` >= CURRENT_DATE) AS `calls_today`,
-            (SELECT COUNT(*) FROM `sky_phone_admin_audit`) AS `audit_entries`,
-            (SELECT COUNT(*) FROM `sky_phone_admin_audit`
-                WHERE `created_at` >= CURRENT_DATE) AS `audit_today`
-    ]], {})
-    local stats = totals[1] or {}
     return {
         success = true,
         data = {
             players = players,
             disabledApps = SkyPhone.GetDisabledApps(),
-            stats = {
-                online = #players,
-                devices = tonumber(stats.devices) or 0,
-                accounts = tonumber(stats.accounts) or 0,
-                linkedDevices = tonumber(stats.linked_devices) or 0,
-                simDevices = tonumber(stats.sim_devices) or 0,
-                activeDevices = tonumber(stats.active_devices) or 0,
-                messagesToday = tonumber(stats.messages_today) or 0,
-                callsToday = tonumber(stats.calls_today) or 0,
-                auditEntries = tonumber(stats.audit_entries) or 0,
-                auditToday = tonumber(stats.audit_today) or 0,
-            },
+            stats = load_statistics(#players),
             audit = load_audit(),
         },
     }
@@ -1160,5 +1401,79 @@ Bridge.Callbacks.Register("sky_phone:admin:delete-tone", function(source, data)
         })
     end
     return response
+end)
+
+Bridge.Callbacks.Register("sky_phone:admin:phone-activity", function(source, data)
+    local authorized, error_response = require_admin(source, "phone_activity", Config.AdminPanel.ReadRequestsPerMinute)
+    if not authorized then return error_response end
+    if not SkyPhoneLog.ActivityEnabled() then
+        Bridge.Debug("error", "[sky_phone] Phone activity recorder is unavailable after database initialization.")
+        return { success = false, error = "server_initializing" }
+    end
+    if type(data) ~= "table" then return { success = false, error = "invalid_request" } end
+
+    local target_source, target_identifier
+    if data.source ~= nil then
+        target_source = normalize_source(data.source)
+        if not target_source then return { success = false, error = "player_unavailable" } end
+        target_identifier = Bridge.Framework.GetIdentifier(target_source)
+    end
+    if data.imei ~= nil and not SkyPhoneImei.IsValid(data.imei) then
+        return { success = false, error = "invalid_request" }
+    end
+    if data.category ~= nil and (type(data.category) ~= "string"
+        or not data.category:match("^[%w]+$") or #data.category > 32) then
+        return { success = false, error = "invalid_request" }
+    end
+    if data.beforeId ~= nil and (type(data.beforeId) ~= "string"
+        or not data.beforeId:match("^[1-9]%d*$") or #data.beforeId > 20
+        or (#data.beforeId == 20 and data.beforeId > "18446744073709551615")) then
+        return { success = false, error = "invalid_request" }
+    end
+
+    local filters, parameters = {}, {}
+    for _, filter in ipairs({
+        { "activity.`owner_identifier` = ?", target_identifier },
+        { "activity.`device_imei` = ?", data.imei },
+        { "activity.`category` = ?", data.category },
+        { "activity.`id` < ?", data.beforeId },
+    }) do
+        if filter[2] ~= nil then
+            filters[#filters + 1] = filter[1]
+            parameters[#parameters + 1] = filter[2]
+        end
+    end
+    local limit = math.max(1, math.min(100, math.floor(tonumber(Config.AdminPanel.ActivityLimit) or 40)))
+    local where = #filters > 0 and ("WHERE " .. table.concat(filters, " AND ")) or ""
+    local rows = Bridge.Database.Query(([[
+        SELECT CAST(activity.`id` AS CHAR) AS `id`, activity.`actor_source`, activity.`actor_name`,
+            activity.`device_imei`, activity.`phone_number`, activity.`category`, activity.`action`,
+            activity.`status`, activity.`details`, activity.`created_at`
+        FROM `sky_phone_activity_log` activity
+        %s ORDER BY activity.`id` DESC LIMIT %s
+    ]]):format(where, limit + 1), parameters)
+    local items = {}
+    for index = 1, math.min(#rows, limit) do
+        local row = rows[index]
+        local details = json.decode(row.details)
+        if type(details) ~= "table" then error("[sky_phone] Stored phone activity details are not a JSON object.") end
+        items[#items + 1] = {
+            id = row.id,
+            actorSource = tonumber(row.actor_source) or 0,
+            actorName = row.actor_name,
+            imei = row.device_imei,
+            phoneNumber = row.phone_number,
+            category = row.category,
+            action = row.action,
+            status = row.status,
+            details = details,
+            createdAt = row.created_at,
+        }
+    end
+    local has_more = #rows > limit
+    return { success = true, data = {
+        items = items, hasMore = has_more,
+        nextBeforeId = has_more and items[#items].id or nil,
+    } }
 end)
 end)

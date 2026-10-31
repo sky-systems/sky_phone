@@ -1295,6 +1295,38 @@ label.sky-list-item__row {
   outline: 1px solid var(--sky-app-accent);
 }
 
+.sky-field.sky-field--admin {
+  padding: 0;
+}
+.sky-field--admin .sky-field__inner {
+  padding: 0;
+}
+.sky-field--admin .sky-field__label {
+  margin-bottom: 5px;
+  color: var(--admin-muted, var(--sky-text));
+  font-size: 11px;
+  line-height: 16px;
+}
+.sky-field.sky-field--admin .sky-field__control {
+  margin: 0;
+}
+.sky-field--admin .sky-field__input {
+  min-height: var(--sky-touch-target);
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--admin-border-strong, var(--sky-field-outline));
+  border-radius: 3px;
+  background: var(--admin-input-background, var(--sky-surface-muted));
+  color: var(--admin-text, var(--sky-text));
+  font-size: 13px;
+}
+.sky-field--admin .sky-field__input:focus-visible {
+  outline: 1px solid var(--sky-app-accent);
+  border-color: var(--sky-app-accent);
+}
+.sky-field--admin .sky-field__dropdown {
+  right: 12px;
+}
+
 .sky-field--floating-label.sky-field--outline:not(
     .sky-field--floating-raised
   ):not(.sky-field--inline)

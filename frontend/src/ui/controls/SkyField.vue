@@ -98,7 +98,7 @@ const props = withDefaults(
       | 'time'
       | 'url'
     value?: FieldValue
-    variant?: 'row' | 'control'
+    variant?: 'row' | 'control' | 'admin'
   }>(),
   {
     accept: undefined,
@@ -260,6 +260,7 @@ function clear(): void {
         'sky-field--has-label': Boolean(label || slots.label),
         'sky-field--inline': layout === 'inline',
         'sky-field--control': variant === 'control',
+        'sky-field--admin': variant === 'admin',
         'sky-field--outline': outline,
         'sky-field--has-leading': Boolean(slots.leading),
         'sky-field--has-media': hasMedia,

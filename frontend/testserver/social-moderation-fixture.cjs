@@ -1,4 +1,11 @@
-const platforms = ['feather', 'fliptok', 'picstagram', 'weazel-news']
+const platforms = [
+  'feather',
+  'fliptok',
+  'picstagram',
+  'weazel-news',
+  'skypic',
+  'skypic-stories',
+]
 const posts = Object.fromEntries(
   platforms.map((platform, index) => [
     platform,
@@ -8,6 +15,8 @@ const posts = Object.fromEntries(
         author: 'preview_author',
         body: `Preview moderation post for ${platform}`,
         createdAt: '2026-09-25 12:00:00',
+        status: 'published',
+        media: [],
       },
     ],
   ]),
@@ -27,6 +36,17 @@ function socialPosts(data) {
     data: {
       items: filtered.slice(offset, offset + 50),
       hasMore: filtered.length > offset + 50,
+      accounts:
+        data.targetSource && data.platform !== 'weazel-news'
+          ? [
+              {
+                id: '1',
+                handle: 'preview_author',
+                displayName: 'Preview Author',
+                accountId: Number(data.targetSource),
+              },
+            ]
+          : [],
     },
   }
 }

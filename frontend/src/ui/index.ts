@@ -1,4 +1,5 @@
 export { default as SkyApp } from './SkyApp.vue'
+export { default as SkyAdminRecords } from './SkyAdminRecords.vue'
 export { default as SkyAppPage } from './SkyAppPage.vue'
 export { default as SkyEmptyState } from './SkyEmptyState.vue'
 export { default as SkyInfiniteLoader } from './SkyInfiniteLoader.vue'

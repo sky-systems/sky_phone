@@ -59,6 +59,7 @@ jobs:
           lua5.4 tests/phone_configurator.lua
           lua5.4 tests/cellular.lua
           lua5.4 tests/server_admin_social.lua
+          lua5.4 tests/server_admin_performance.lua
 
       - name: Test realtime media and EasyShare receive flows
         run: |

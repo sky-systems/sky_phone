@@ -59,7 +59,7 @@ describe('SkyExtensionsDemo', () => {
     expect(source).toContain("{ icon: Gamepad2, label: 'Games' }")
     expect(source).toContain("{ icon: Search, label: 'Search' }")
     expect(source).toContain('class="sky-ui-demo-extension-navigation-item"')
-    expect(source.match(/\scompact\s/g)).toHaveLength(4)
+    expect(source.match(/^\s+compact\s*$/gm)).toHaveLength(4)
     expect(source).toContain(':strong="splitTab < 2"')
     expect(source).toContain(':strong="splitTab === 2"')
   })
