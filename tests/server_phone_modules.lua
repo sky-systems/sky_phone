@@ -391,3 +391,44 @@ end
 assert(not SkyPhone.OpenDeviceForCall(1, phone_item.metadata.imei) and opened_event == nil,
     "Incoming calls must recheck custom cancellation after loading the device")
 print("server phone modules: ok; custom opening checks and cancellation after preparation")
+
+-- Account fanout must validate matching recipients, without performing the
+-- status/framework/inventory path for every unrelated open phone on the server.
+local function upvalue(fn, wanted)
+    for index = 1, 30 do
+        local name, value = debug.getupvalue(fn, index)
+        if not name then break end
+        if name == wanted then return value, index end
+    end
+    error("Missing production upvalue: " .. wanted)
+end
+local fanout_sessions = upvalue(SkyPhone.NotifyAccount, "sessions")
+for source in pairs(fanout_sessions) do fanout_sessions[source] = nil end
+for source = 100, 1099 do fanout_sessions[source] = { account_id = 200 } end
+for source = 1, 4 do fanout_sessions[source] = { account_id = 17 } end
+fanout_sessions[5] = {}
+local checks, delivered, refreshed = 0, {}, {}
+SkyPhone.RequireAccount = function(source)
+    checks = checks + 1
+    assert(source >= 1 and source <= 4, "Unrelated sessions must not enter ownership validation")
+    if source == 3 then return nil, { success = false, error = "player_cuffed" } end
+    return { id = source == 4 and 18 or 17 }
+end
+TriggerClientEvent = function(event, source, payload)
+    assert(event == "sky_phone:test-account" and payload.value == 1)
+    delivered[source] = true
+end
+SkyPhone.NotifyAccount("17", "sky_phone:test-account", { value = 1 })
+assert(checks == 4 and delivered[1] and delivered[2] and not delivered[3] and not delivered[4],
+    "Only matching, still-authorized account recipients may receive an event")
+local _, refresh_index = upvalue(SkyPhone.RefreshAccount, "refresh_source")
+debug.setupvalue(SkyPhone.RefreshAccount, refresh_index, function(source) refreshed[source] = true end)
+checks = 0
+SkyPhone.RefreshAccount(17)
+assert(checks == 4 and refreshed[1] and refreshed[2] and not refreshed[3] and not refreshed[4],
+    "Refresh fanout must retain current account/ownership checks")
+checks = 0
+SkyPhone.NotifyAccount("invalid", "sky_phone:test-account", { value = 1 })
+SkyPhone.RefreshAccount(nil)
+assert(checks == 0, "Invalid account IDs must not scan anonymous sessions")
+print("server phone modules: account fanout checks 4 target sessions instead of 1,005 open sessions")

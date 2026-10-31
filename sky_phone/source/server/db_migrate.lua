@@ -172,6 +172,9 @@ local schema = {
         uniqueKeys = {
             { name = "uniq_sky_phone_sim_number", columns = "(`phone_number`)" },
         },
+        indexes = {
+            { name = "idx_sky_phone_sim_owner_registration", columns = "(`owner_identifier`, `sim_type`, `registered_at`, `created_at`, `id`)" },
+        },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
@@ -429,6 +432,30 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_activity_log",
+        columns = {
+            { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
+            { name = "owner_identifier", type = "VARCHAR(80) NOT NULL" },
+            { name = "actor_source", type = "INT UNSIGNED NOT NULL" },
+            { name = "actor_name", type = "VARCHAR(120) NOT NULL" },
+            { name = "device_imei", type = "VARCHAR(15) NOT NULL DEFAULT ''" },
+            { name = "phone_number", type = "VARCHAR(24) NOT NULL DEFAULT ''" },
+            { name = "category", type = "VARCHAR(32) NOT NULL" },
+            { name = "action", type = "VARCHAR(80) NOT NULL" },
+            { name = "status", type = "VARCHAR(48) NOT NULL" },
+            { name = "details", type = "LONGTEXT NOT NULL" },
+            { name = "created_at", type = "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" },
+        },
+        primaryKey = "id",
+        indexes = {
+            { name = "idx_sky_phone_activity_owner", columns = "(`owner_identifier`, `id`)" },
+            { name = "idx_sky_phone_activity_device", columns = "(`device_imei`, `id`)" },
+            { name = "idx_sky_phone_activity_category", columns = "(`category`, `id`)" },
+            { name = "idx_sky_phone_activity_created", columns = "(`created_at`, `id`)" },
+        },
+        tableOptions = "ENGINE=InnoDB",
+    },
+    {
         name = "sky_phone_admin_audit",
         columns = {
             { name = "id", type = "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT" },
@@ -650,6 +677,7 @@ local schema = {
         indexes = {
             { name = "idx_sky_phone_calls_caller", columns = "(`caller_sim_id`, `started_at`)" },
             { name = "idx_sky_phone_calls_callee", columns = "(`callee_sim_id`, `started_at`)" },
+            { name = "idx_sky_phone_calls_started", columns = "(`started_at`)" },
         },
         foreignKeys = {
             { column = "caller_sim_id", references = "`sky_phone_sims` (`id`) ON DELETE CASCADE" },
@@ -855,6 +883,7 @@ local schema = {
         indexes = {
             { name = "idx_sky_phone_sms_sender", columns = "(`sender_sim_id`, `created_at`)" },
             { name = "idx_sky_phone_sms_recipient", columns = "(`recipient_sim_id`, `created_at`)" },
+            { name = "idx_sky_phone_sms_created", columns = "(`created_at`)" },
         },
         foreignKeys = {
             { column = "sender_sim_id", references = "`sky_phone_sims` (`id`) ON DELETE SET NULL" },

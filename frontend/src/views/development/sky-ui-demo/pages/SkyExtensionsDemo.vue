@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { Gamepad2, LayoutGrid, PackageOpen, Search } from 'lucide-vue-next'
+import {
+  ChevronDown,
+  Gamepad2,
+  LayoutGrid,
+  PackageOpen,
+  ScrollText,
+  Search,
+} from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
 import {
   SkyApp,
+  SkyAdminRecords,
   SkyButton,
   SkyCard,
   SkyEmptyState,
+  SkyField,
   SkyGlass,
   SkyInfiniteLoader,
   SkyListCard,
@@ -37,6 +46,7 @@ const fullTab = ref(0)
 const compactTab = ref(0)
 const splitTab = ref(0)
 const loaderState = ref<'error' | 'loading' | 'ready'>('loading')
+const adminCategory = ref('all')
 const demo = useSkyUiDemoContext()
 const fullNavigationItems = [
   { icon: LayoutGrid, label: 'Apps' },
@@ -63,6 +73,7 @@ function resetExamples(): void {
   fullTab.value = 0
   compactTab.value = 0
   splitTab.value = 0
+  adminCategory.value = 'all'
   loaderState.value = 'loading'
 }
 </script>
@@ -163,6 +174,58 @@ function resetExamples(): void {
             Card {{ index }}
           </SkyCard>
         </SkyScrollRail>
+      </div>
+    </SkySection>
+
+    <SkySection title="Admin records">
+      <div class="sky-ui-demo-stack">
+        <SkyField
+          v-model="adminCategory"
+          component="div"
+          variant="admin"
+          type="select"
+          dropdown
+          label="App"
+          :options="[
+            { value: 'all', label: 'All apps' },
+            { value: 'feather', label: 'Feather' },
+          ]"
+        />
+        <SkyAdminRecords aria-label="Admin record example">
+          <li>
+            <details>
+              <summary class="sky-admin-records__summary">
+                <span class="sky-admin-records__icon"
+                  ><ScrollText :size="15"
+                /></span>
+                <span class="sky-admin-records__copy">
+                  <span class="sky-admin-records__title"
+                    ><strong>Feather · Created</strong
+                    ><time>31.10.2026, 12:30</time></span
+                  >
+                  <span class="sky-admin-records__meta"
+                    >Example player · ID 1</span
+                  >
+                  <span class="sky-admin-records__preview"
+                    >A compact record with additional context available on
+                    expansion.</span
+                  >
+                </span>
+                <ChevronDown class="sky-admin-records__chevron" :size="14" />
+              </summary>
+              <div class="sky-admin-records__details">
+                <p>
+                  Keyboard-accessible disclosure keeps detailed record content
+                  out of the summary.
+                </p>
+                <dl>
+                  <dt>Action ID</dt>
+                  <dd><code>feather:create-post</code></dd>
+                </dl>
+              </div>
+            </details>
+          </li>
+        </SkyAdminRecords>
       </div>
     </SkySection>
 

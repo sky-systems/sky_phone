@@ -74,6 +74,7 @@ import AdminCustomToneManager from './AdminCustomToneManager.vue'
 import AdminGeneralSettings from './AdminGeneralSettings.vue'
 import AdminWebhookManager from './AdminWebhookManager.vue'
 import AdminSocialManager from './AdminSocialManager.vue'
+import AdminPhoneActivity from './AdminPhoneActivity.vue'
 
 type AdminTab =
   | 'overview'
@@ -85,6 +86,7 @@ type AdminTab =
   | 'calls'
   | 'moderation'
   | 'social'
+  | 'activity'
   | 'tones'
   | 'webhooks'
   | 'audit'
@@ -1079,7 +1081,7 @@ onMounted(() => {
   document.addEventListener('keydown', onKeydown)
   void refreshData()
   statisticsTimer = window.setInterval(() => {
-    if (tab.value === 'overview' && !admin.loading) void admin.load()
+    if (tab.value === 'overview' && !admin.loading) void admin.loadStatistics()
   }, 15_000)
 })
 
@@ -1300,6 +1302,15 @@ onBeforeUnmount(() => {
           >
             <Webhook :size="19" style="--admin-icon-size: 19" />
           </button>
+          <SkyButton
+            variant="plain"
+            icon-only
+            :class="{ 'is-active': tab === 'activity' }"
+            :aria-label="t('tabs.activity')"
+            :title="t('tabs.activity')"
+            @click="selectTab('activity')"
+            ><Clipboard :size="19" style="--admin-icon-size: 19"
+          /></SkyButton>
           <button
             type="button"
             :class="{ 'is-active': tab === 'audit' }"
@@ -1325,7 +1336,6 @@ onBeforeUnmount(() => {
           <template v-if="tab === 'overview'">
             <div class="admin-panel-directory__header">
               <div>
-                <span>{{ t('overview.eyebrow') }}</span>
                 <h2>{{ t('overview.features') }}</h2>
               </div>
               <strong>{{ admin.stats.online }}</strong>
@@ -1414,21 +1424,9 @@ onBeforeUnmount(() => {
             </div>
           </template>
 
-          <template v-else-if="tab === 'social'">
-            <div class="admin-panel-directory__header">
-              <div>
-                <h2>{{ t('tabs.social') }}</h2>
-              </div>
-              <MessageSquare :size="19" style="--admin-icon-size: 19" />
-            </div>
-            <div class="admin-panel-overview-directory">
-              <p class="admin-panel-webhook-help">{{ t('social.body') }}</p>
-            </div>
-          </template>
           <template v-else-if="tab === 'webhooks'">
             <div class="admin-panel-directory__header">
               <div>
-                <span>Discord</span>
                 <h2>{{ t('tabs.webhooks') }}</h2>
               </div>
               <Webhook :size="19" style="--admin-icon-size: 19" />
@@ -1443,7 +1441,6 @@ onBeforeUnmount(() => {
           <template v-else-if="tab === 'tones'">
             <div class="admin-panel-directory__header">
               <div>
-                <span>{{ t('configurator.customTones.eyebrow') }}</span>
                 <h2>{{ t('configurator.customTones.library') }}</h2>
               </div>
               <strong>{{ admin.customTones.length }}</strong>
@@ -1487,7 +1484,6 @@ onBeforeUnmount(() => {
           <template v-else-if="tab === 'configurator'">
             <div class="admin-panel-directory__header">
               <div>
-                <span>{{ t('configurator.eyebrow') }}</span>
                 <h2>{{ t('configurator.sections') }}</h2>
               </div>
               <strong>{{ filteredConfiguratorFieldCount }}</strong>
@@ -1563,7 +1559,6 @@ onBeforeUnmount(() => {
           <template v-else-if="tab !== 'audit'">
             <div class="admin-panel-directory__header">
               <div>
-                <span>{{ t('players.eyebrow') }}</span>
                 <h2>{{ t('players.title') }}</h2>
               </div>
               <strong>{{ filteredPlayers.length }}</strong>
@@ -1615,7 +1610,6 @@ onBeforeUnmount(() => {
           <template v-else>
             <div class="admin-panel-directory__header">
               <div>
-                <span>{{ t('audit.eyebrow') }}</span>
                 <h2>{{ t('audit.title') }}</h2>
               </div>
               <strong>{{ admin.audit.length }}</strong>
@@ -1654,7 +1648,6 @@ onBeforeUnmount(() => {
           >
             <div class="admin-panel-page-heading">
               <div>
-                <span>{{ t('overview.eyebrow') }}</span>
                 <h1>{{ t('overview.title') }}</h1>
                 <p>{{ t('overview.body') }}</p>
               </div>
@@ -1688,7 +1681,6 @@ onBeforeUnmount(() => {
             >
               <div class="admin-panel-section-card__heading">
                 <div>
-                  <span>{{ t('statistics.eyebrow') }}</span>
                   <h2>{{ t('statistics.title') }}</h2>
                   <p>{{ t('statistics.body') }}</p>
                 </div>
@@ -1788,7 +1780,19 @@ onBeforeUnmount(() => {
             v-else-if="tab === 'social'"
             class="admin-panel-editor__scroll"
           >
-            <AdminSocialManager />
+            <AdminSocialManager
+              :target-source="admin.selectedPlayer?.source"
+              :target-name="admin.selectedPlayer?.name"
+            />
+          </section>
+          <section
+            v-else-if="tab === 'activity'"
+            class="admin-panel-editor__scroll"
+          >
+            <AdminPhoneActivity
+              :target-source="admin.selectedPlayer?.source"
+              :target-name="admin.selectedPlayer?.name"
+            />
           </section>
           <section
             v-else-if="tab === 'webhooks'"
@@ -1809,7 +1813,6 @@ onBeforeUnmount(() => {
                 <BellRing :size="23" style="--admin-icon-size: 23" />
               </div>
               <div>
-                <span>{{ t('configurator.customTones.eyebrow') }}</span>
                 <h1>{{ t('configurator.customTones.title') }}</h1>
                 <p>{{ t('configurator.customTones.body') }}</p>
               </div>
@@ -1839,7 +1842,6 @@ onBeforeUnmount(() => {
                   <Settings2 :size="23" style="--admin-icon-size: 23" />
                 </div>
                 <div class="admin-panel-config-heading-copy">
-                  <span>{{ t('configurator.eyebrow') }}</span>
                   <h1>{{ t('configurator.title') }}</h1>
                   <p>{{ t('configurator.body') }}</p>
                 </div>
@@ -1871,11 +1873,6 @@ onBeforeUnmount(() => {
               >
                 <header>
                   <div>
-                    <span>{{
-                      activeConfiguratorSection.scope === 'media'
-                        ? t('configurator.mediaScope')
-                        : t('configurator.configScope')
-                    }}</span>
                     <h2>
                       {{ configuratorSectionLabel(activeConfiguratorSection) }}
                     </h2>
@@ -2054,7 +2051,6 @@ onBeforeUnmount(() => {
                 <ScrollText :size="23" style="--admin-icon-size: 23" />
               </div>
               <div>
-                <span>{{ t('audit.eyebrow') }}</span>
                 <h1>{{ t('audit.title') }}</h1>
                 <p>{{ t('audit.body') }}</p>
               </div>
@@ -2092,7 +2088,6 @@ onBeforeUnmount(() => {
                 {{ initials(admin.selectedPlayer.name) }}
               </span>
               <div>
-                <span>{{ t('detail.character') }}</span>
                 <h1>{{ admin.selectedPlayer.name }}</h1>
                 <p>{{ admin.selectedPlayer.serverName }}</p>
               </div>
@@ -2161,6 +2156,20 @@ onBeforeUnmount(() => {
               </button>
             </div>
 
+            <SkyProvider
+              v-if="tab === 'players' || tab === 'apps' || tab === 'accounts'"
+              class="admin-panel-inspect-actions"
+              dark
+              :safe-areas="false"
+              accent="var(--admin-accent)"
+            >
+              <SkyButton @click="selectTab('activity')">{{
+                t('activity.inspect')
+              }}</SkyButton>
+              <SkyButton @click="selectTab('social')">{{
+                t('social.inspect')
+              }}</SkyButton>
+            </SkyProvider>
             <div v-if="tab === 'players'" class="admin-panel-stat-grid">
               <article>
                 <WalletCards :size="18" style="--admin-icon-size: 18" />
@@ -2205,7 +2214,6 @@ onBeforeUnmount(() => {
               <article class="admin-panel-section-card">
                 <div class="admin-panel-section-card__heading">
                   <div>
-                    <span>{{ t('editor.profile') }}</span>
                     <h2>{{ t('detail.playerData') }}</h2>
                   </div>
                   <CircleUserRound :size="20" style="--admin-icon-size: 20" />
@@ -2239,7 +2247,6 @@ onBeforeUnmount(() => {
               <article class="admin-panel-section-card">
                 <div class="admin-panel-section-card__heading">
                   <div>
-                    <span>{{ t('editor.device') }}</span>
                     <h2>{{ t('devices.title') }}</h2>
                   </div>
                   <HardDrive :size="20" style="--admin-icon-size: 20" />
@@ -2280,7 +2287,6 @@ onBeforeUnmount(() => {
             >
               <div class="admin-panel-section-card__heading">
                 <div>
-                  <span>{{ t('editor.device') }}</span>
                   <h2>{{ t('devices.title') }}</h2>
                   <p>{{ t('devices.body') }}</p>
                 </div>
@@ -2334,7 +2340,6 @@ onBeforeUnmount(() => {
             >
               <div class="admin-panel-section-card__heading">
                 <div>
-                  <span>{{ t('activity.protected') }}</span>
                   <h2>{{ t('activity.messagesTitle') }}</h2>
                   <p>{{ t('activity.messagesBody') }}</p>
                 </div>
@@ -2383,7 +2388,6 @@ onBeforeUnmount(() => {
             >
               <div class="admin-panel-section-card__heading">
                 <div>
-                  <span>{{ t('activity.protected') }}</span>
                   <h2>{{ t('activity.callsTitle') }}</h2>
                   <p>{{ t('activity.callsBody') }}</p>
                 </div>
@@ -2432,7 +2436,6 @@ onBeforeUnmount(() => {
             >
               <div class="admin-panel-section-card__heading">
                 <div>
-                  <span>{{ t('moderation.eyebrow') }}</span>
                   <h2>{{ t('moderation.title') }}</h2>
                   <p>{{ t('moderation.body') }}</p>
                 </div>
@@ -2487,7 +2490,6 @@ onBeforeUnmount(() => {
             >
               <div class="admin-panel-section-card__heading">
                 <div>
-                  <span>{{ t('editor.security') }}</span>
                   <h2>{{ t('credentials.title') }}</h2>
                 </div>
                 <KeyRound :size="20" style="--admin-icon-size: 20" />
@@ -2552,7 +2554,6 @@ onBeforeUnmount(() => {
                 class="admin-panel-section-card__heading admin-panel-app-heading"
               >
                 <div>
-                  <span>{{ t('apps.eyebrow') }}</span>
                   <h2>{{ t('apps.title') }}</h2>
                   <p>{{ t('apps.description') }}</p>
                 </div>
@@ -2647,7 +2648,6 @@ onBeforeUnmount(() => {
             <span class="admin-panel-empty-editor__icon">
               <LayoutDashboard :size="34" style="--admin-icon-size: 34" />
             </span>
-            <span>{{ t('overview.eyebrow') }}</span>
             <h1>{{ t('overview.title') }}</h1>
             <p>{{ t('editor.selectPlayer') }}</p>
             <div class="admin-panel-empty-stats">
@@ -3135,16 +3135,6 @@ button:disabled {
 .admin-panel-page-heading > div:last-child {
   display: grid;
   gap: calc(2 * var(--admin-unit));
-}
-
-.admin-panel-directory__header span,
-.admin-panel-section-card__heading span,
-.admin-panel-page-heading span,
-.admin-panel-profile-heading > div > span {
-  color: var(--admin-muted);
-  font-size: calc(9 * var(--admin-unit));
-  font-weight: 650;
-  letter-spacing: 0.08em;
 }
 
 .admin-panel-directory__header h2,
@@ -4435,7 +4425,6 @@ button:disabled {
   gap: calc(2 * var(--admin-unit));
 }
 
-.admin-panel-config-workspace > header span,
 .admin-panel-config-workspace > header > strong {
   color: var(--admin-muted);
   font-size: calc(8 * var(--admin-unit));
@@ -4648,6 +4637,13 @@ button:disabled {
 .admin-panel-page-heading h1,
 .admin-panel-empty-editor h1 {
   font-size: calc(17 * var(--admin-unit));
+}
+
+.admin-panel-inspect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sky-space-3);
+  margin-bottom: var(--sky-space-5);
 }
 
 .admin-panel-audit-grid {
