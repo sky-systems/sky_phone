@@ -334,6 +334,8 @@ Locales["cn"] = {
             },
         },
         Common = {
+            appDisabled = "此服务器已停用此应用。",
+            appInitializing = "此应用正在启动，请稍后重试。",
             add = "添加",
             back = "返回",
             cancel = "取消",
@@ -6327,9 +6329,9 @@ Locales["cn"] = {
                     pulse = "脉动",
                 },
                 notificationSoundsList = {
-                    chime = "钟声",
-                    signal = "信号",
-                    soft = "柔和",
+                    chime = "iPhone 信息",
+                    signal = "经典",
+                    soft = "低沉",
                 },
                 wallpapers = {
                     midnight = "午夜",

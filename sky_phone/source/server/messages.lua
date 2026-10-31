@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("messages") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 
 local allowed_voice_mimes = {
     ["audio/webm"] = true,

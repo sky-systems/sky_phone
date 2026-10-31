@@ -334,6 +334,8 @@ Locales["fi"] = {
             },
         },
         Common = {
+            appDisabled = "Tämä sovellus on poistettu käytöstä tällä palvelimella.",
+            appInitializing = "Sovellus käynnistyy vielä. Yritä hetken kuluttua uudelleen.",
             add = "Lisää",
             back = "Takaisin",
             cancel = "Peruuta",
@@ -6327,9 +6329,9 @@ Locales["fi"] = {
                     pulse = "Syke",
                 },
                 notificationSoundsList = {
-                    chime = "Kellonsoitto",
-                    signal = "Signaali",
-                    soft = "Pehmeä",
+                    chime = "iPhone-viesti",
+                    signal = "Klassinen",
+                    soft = "Vaimennettu",
                 },
                 wallpapers = {
                     midnight = "Keskiyö",

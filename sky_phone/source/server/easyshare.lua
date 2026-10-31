@@ -642,6 +642,9 @@ local function sanitize_payload(source, device, data)
     if not title or not copy_text or not app_id or not valid_apps[app_id] then
         return nil, "invalid_payload"
     end
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled(app_id) then
+        return nil, "app_disabled"
+    end
     local payload = {
         appId = app_id,
         kind = data.kind,

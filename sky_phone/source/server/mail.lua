@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("mail") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 
 local MAX_SAFE_INTEGER = 9007199254740991
 local DELETE_FOLDERS = {

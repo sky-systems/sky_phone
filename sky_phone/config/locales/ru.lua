@@ -334,6 +334,8 @@ Locales["ru"] = {
             },
         },
         Common = {
+            appDisabled = "Это приложение отключено на этом сервере.",
+            appInitializing = "Это приложение ещё запускается. Повторите попытку чуть позже.",
             add = "Добавить",
             back = "Назад",
             cancel = "Отмена",
@@ -6327,9 +6329,9 @@ Locales["ru"] = {
                     pulse = "Пульс",
                 },
                 notificationSoundsList = {
-                    chime = "Перезвон",
-                    signal = "Сигнал",
-                    soft = "Мягкий",
+                    chime = "Сообщение iPhone",
+                    signal = "Классический",
+                    soft = "Приглушённый",
                 },
                 wallpapers = {
                     midnight = "Полночь",

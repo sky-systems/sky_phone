@@ -1,6 +1,9 @@
 SkyPhoneHousing = {}
 
 function SkyPhoneHousing.ResolveShare(source, property_id)
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("house") then
+        return nil
+    end
     local overview = Bridge.Housing.GetOverview(source)
     if not overview or type(overview.properties) ~= "table" then
         return nil

@@ -4,6 +4,38 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePhoneStore } from '@/stores/phone'
 
 describe('phone locale fallback', () => {
+  it('localizes app lifecycle errors centrally when app-specific locale keys are absent', () => {
+    const phone = usePhoneStore()
+    phone.open({ locales: { Apps: { skypic: { name: 'SkyPic' } } } })
+    for (const prefix of [
+      'Apps.skypic.errors',
+      'Apps.radio.errors',
+      'AdminPanel.errors',
+    ]) {
+      expect(phone.t(`${prefix}.app_disabled`)).toBe(
+        'This app is disabled on this server.',
+      )
+      expect(phone.t(`${prefix}.server_initializing`)).toBe(
+        'This app is still starting. Try again shortly.',
+      )
+    }
+    phone.setLocale(
+      'de',
+      {
+        Common: {
+          appDisabled: 'Diese App ist deaktiviert.',
+          appInitializing: 'Diese App startet noch.',
+        },
+      },
+      {},
+    )
+    expect(phone.t('Apps.skypic.errors.app_disabled')).toBe(
+      'Diese App ist deaktiviert.',
+    )
+    expect(phone.t('Apps.skypic.errors.server_initializing')).toBe(
+      'Diese App startet noch.',
+    )
+  })
   it('keeps inspection and protected activity labels readable before runtime locales arrive', () => {
     const phone = usePhoneStore()
     expect(phone.t('AdminPanel.activity.title')).toBe('Phone activity')
@@ -23,6 +55,18 @@ describe('phone locale fallback', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+  })
+
+  it('keeps recorded alert names accurate when server locales are partial', () => {
+    const phone = usePhoneStore()
+    phone.open({ locales: { Apps: { settings: { name: 'Settings' } } } })
+    expect(phone.t('Apps.settings.notificationSoundsList.chime')).toBe(
+      'iPhone Message',
+    )
+    expect(phone.t('Apps.settings.notificationSoundsList.signal')).toBe(
+      'Classic',
+    )
+    expect(phone.t('Apps.settings.notificationSoundsList.soft')).toBe('Muffled')
   })
 
   it.each([

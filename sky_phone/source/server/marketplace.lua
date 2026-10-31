@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("citymarkt") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local categories = {}
 local districts = {}
 local item_conditions = { new = true, very_good = true, used = true, defective = true }

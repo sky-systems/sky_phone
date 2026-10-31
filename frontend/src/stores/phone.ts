@@ -6468,9 +6468,9 @@ const defaultLocales: LocaleTree = {
         pulse: 'Pulse',
       },
       notificationSoundsList: {
-        chime: 'Chime',
-        signal: 'Signal',
-        soft: 'Soft',
+        chime: 'iPhone Message',
+        signal: 'Classic',
+        soft: 'Muffled',
       },
       wallpapers: {
         midnight: 'Midnight',
@@ -6649,6 +6649,8 @@ const defaultLocales: LocaleTree = {
     },
   },
   Common: {
+    appDisabled: 'This app is disabled on this server.',
+    appInitializing: 'This app is still starting. Try again shortly.',
     add: 'Add',
     cancel: 'Cancel',
     clear: 'Clear',
@@ -7235,6 +7237,9 @@ export const usePhoneStore = defineStore('phone', {
     },
     t(path: string, replacements: Record<string, string> = {}): string {
       if (path.endsWith('.no_signal')) path = 'Cellular.noSignal'
+      else if (path.endsWith('.app_disabled')) path = 'Common.appDisabled'
+      else if (path.endsWith('.server_initializing'))
+        path = 'Common.appInitializing'
       const translated = getByPath(this.locales, path)
       const english = getByPath(this.fallbackLocales, path)
       const emergencyFallback = getByPath(defaultLocales, path)

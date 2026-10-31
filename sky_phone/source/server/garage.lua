@@ -1,6 +1,8 @@
-SkyPhoneGarage = {}
+SkyPhoneGarage = {};
 
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("garage") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 
 local supported_systems = {
     auto = true,

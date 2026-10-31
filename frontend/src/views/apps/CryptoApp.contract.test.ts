@@ -377,10 +377,10 @@ describe('VaultX crypto app contracts', () => {
       /start_crypto_schedulers\(\)[\s\S]*?if Config\.Crypto\.Enabled ~= true then\s+return/,
     )
     expect(server).toContain(
-      'while scheduler_generation == generation and Config.Crypto.Enabled == true do',
+      'while scheduler_generation == generation and Config.Crypto.Enabled == true and crypto_app_enabled() do',
     )
-    expect(server).toContain(
-      'AddEventHandler("sky_phone:configurator:serverUpdated", refresh_crypto_runtime)',
+    expect(server).toMatch(
+      /AddEventHandler\("sky_phone:configurator:serverUpdated", function\(\)[\s\S]*?if not crypto_app_enabled\(\) then\s+return\s+end[\s\S]*?refresh_crypto_runtime\(\)/,
     )
     expect(server).not.toMatch(
       /CreateThread\(function\(\)\s+while true do\s+Wait\(5 \* 60 \* 1000\)/,

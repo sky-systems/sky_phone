@@ -6,6 +6,9 @@ local speaker_states = {}
 local connection_versions = {}
 
 local function access_error(source)
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("radio") then
+        return "app_disabled"
+    end
     local blocked = Bridge.PlayerState and Bridge.PlayerState.GetBlockReason(source)
     if blocked then return blocked end
     if Config.Radio.RequirePhoneItem ~= false then
@@ -136,6 +139,9 @@ local function sanitize_history(source, history)
 end
 
 local function load_profile(source)
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("radio") then
+        return nil, nil
+    end
     local identifier = Bridge.Framework.GetIdentifier(source)
     if not identifier then
         return nil, nil
@@ -165,6 +171,9 @@ local function load_profile(source)
 end
 
 local function save_profile(identifier, profile)
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("radio") then
+        return
+    end
     Bridge.Database.Query([[
         INSERT INTO `sky_phone_radio_profiles`
             (`identifier`, `history`, `settings`, `primary_frequency`, `secondary_frequency`, `badge`, `display_name`)

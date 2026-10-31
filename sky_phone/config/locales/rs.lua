@@ -334,6 +334,8 @@ Locales["rs"] = {
             },
         },
         Common = {
+            appDisabled = "Ова апликација је искључена на овом серверу.",
+            appInitializing = "Ова апликација се још покреће. Покушајте поново ускоро.",
             add = "Додај",
             back = "Назад",
             cancel = "Откажи",
@@ -6327,9 +6329,9 @@ Locales["rs"] = {
                     pulse = "Пулс",
                 },
                 notificationSoundsList = {
-                    chime = "Звончићи",
-                    signal = "Сигнал",
-                    soft = "Нежан",
+                    chime = "iPhone порука",
+                    signal = "Класичан",
+                    soft = "Пригушен",
                 },
                 wallpapers = {
                     midnight = "Поноћ",

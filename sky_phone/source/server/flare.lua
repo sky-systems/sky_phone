@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("flare") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local genders = { woman = true, man = true, nonbinary = true }
 local interests = { woman = true, man = true, nonbinary = true, everyone = true }
 local looking_for = { longTerm = true, dates = true, friends = true }

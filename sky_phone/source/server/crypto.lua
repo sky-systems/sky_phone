@@ -24,6 +24,10 @@ local global_market_cycle = {
     target = 0,
 }
 
+local function crypto_app_enabled()
+    return not SkyPhoneAppDatabase or SkyPhoneAppDatabase.Enabled("crypto")
+end
+
 local function ensure_schema()
     local statements = {
         [[CREATE TABLE IF NOT EXISTS `sky_phone_crypto_profiles` (
@@ -353,6 +357,20 @@ function SkyPhoneCrypto.ValidateConfiguration(configuration)
             return false, ("Duplicate Crypto market ID '%s'."):format(market.Id)
         end
         configured_markets[market.Id] = market
+    end
+    if type(configuration.Apps) == "table" and configuration.Apps.crypto == false then
+        return true
+    end
+    -- An app that was off at resource start may have no storage yet. When an
+    -- administrator enables it, validate any retained balances BEFORE saving
+    -- the candidate config; current Config.Apps still contains the old value.
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("crypto") then
+        local existing = Bridge.Database.Query([[
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = DATABASE() AND table_name = 'sky_phone_crypto_markets'
+            LIMIT 1
+        ]], {})
+        if not existing[1] then return true end
     end
     local persisted = Bridge.Database.Query([[
         SELECT `id`, `asset_scale`, `price_scale`, `issued_supply` FROM `sky_phone_crypto_markets`
@@ -1571,11 +1589,6 @@ AddEventHandler("playerDropped", function()
     market_viewers[source] = nil
 end)
 
-ensure_schema()
-migrate_crypto_keys()
-initialize_markets()
-load_market_cache()
-
 local function reconcile_settlements(include_recent)
     local age_clause = include_recent and "" or " AND settlement.`updated_at` < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE)"
     local rows = Bridge.Database.Query([[
@@ -1716,9 +1729,9 @@ local function start_crypto_schedulers()
     reconcile_settlements(true)
 
     CreateThread(function()
-        while scheduler_generation == generation and Config.Crypto.Enabled == true do
+        while scheduler_generation == generation and Config.Crypto.Enabled == true and crypto_app_enabled() do
             Wait(market_persistence_interval)
-            if scheduler_generation ~= generation or Config.Crypto.Enabled ~= true then
+            if scheduler_generation ~= generation or Config.Crypto.Enabled ~= true or not crypto_app_enabled() then
                 break
             end
             with_exchange_lock(persist_market_cache)
@@ -1726,9 +1739,9 @@ local function start_crypto_schedulers()
     end)
 
     CreateThread(function()
-        while scheduler_generation == generation and Config.Crypto.Enabled == true do
+        while scheduler_generation == generation and Config.Crypto.Enabled == true and crypto_app_enabled() do
             Wait(5 * 60 * 1000)
-            if scheduler_generation ~= generation or Config.Crypto.Enabled ~= true then
+            if scheduler_generation ~= generation or Config.Crypto.Enabled ~= true or not crypto_app_enabled() then
                 break
             end
             reconcile_settlements(false)
@@ -1736,14 +1749,14 @@ local function start_crypto_schedulers()
     end)
 
     CreateThread(function()
-        while scheduler_generation == generation and Config.Crypto.Enabled == true do
+        while scheduler_generation == generation and Config.Crypto.Enabled == true and crypto_app_enabled() do
             local tick_seconds = crypto_random_int(
                 Config.Crypto.PriceTickMinimumSeconds,
                 Config.Crypto.PriceTickMaximumSeconds + 1,
                 "[sky_phone] Crypto entropy provider did not return a market tick interval."
             )
             Wait(tick_seconds * 1000)
-            if scheduler_generation ~= generation or Config.Crypto.Enabled ~= true then
+            if scheduler_generation ~= generation or Config.Crypto.Enabled ~= true or not crypto_app_enabled() then
                 break
             end
             with_exchange_lock(function()
@@ -1889,12 +1902,35 @@ refresh_crypto_runtime = function()
     end)
 end
 
-AddEventHandler("sky_phone:configurator:serverUpdated", refresh_crypto_runtime)
+local crypto_storage_started = false
+
+local function start_crypto_storage()
+    if crypto_storage_started or not crypto_app_enabled() then
+        return
+    end
+    crypto_storage_started = true
+    ensure_schema()
+    migrate_crypto_keys()
+    initialize_markets()
+    load_market_cache()
+    start_crypto_schedulers()
+end
+
+AddEventHandler("sky_phone:configurator:serverUpdated", function()
+    if not crypto_app_enabled() then
+        return
+    end
+    if not crypto_storage_started then
+        start_crypto_storage()
+        return
+    end
+    refresh_crypto_runtime()
+end)
 AddEventHandler("onResourceStop", function(resource_name)
     if resource_name == GetCurrentResourceName() then
         persist_market_cache()
     end
 end)
-start_crypto_schedulers()
+start_crypto_storage()
 
 end)

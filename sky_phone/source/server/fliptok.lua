@@ -1,5 +1,7 @@
-SkyPhoneRealtime = SkyPhoneRealtime or { Apps = {} }
-Bridge.Database.AfterMigration("sky_phone", function()
+SkyPhoneRealtime = SkyPhoneRealtime or { Apps = {} };
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("fliptok") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local account_types = { person = true, business = true, organization = true, media = true, event = true }
 local visibilities = { public = true, followers = true, private = true }
 local report_reasons = { spam = true, harassment = true, dangerous = true, illegal = true, other = true }

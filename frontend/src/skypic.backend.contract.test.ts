@@ -200,7 +200,7 @@ describe('SkyPic backend contracts', () => {
 
   it('backfills every normalized unique key on existing databases', () => {
     const afterMigrate = migration.slice(
-      migration.indexOf('Bridge.Database.Migrate("sky_phone", schema)'),
+      migration.indexOf('Bridge.Database.Migrate("sky_phone", SkyPhoneAppDatabase.Filter(schema))'),
     )
     for (const index of [
       'uniq_sky_phone_skypic_profile_account',

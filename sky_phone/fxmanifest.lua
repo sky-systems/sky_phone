@@ -128,6 +128,7 @@ server_scripts {
     'source/server/media_metadata.lua',
     'source/server/companies.lua',
     'source/server/sim.lua',
+    'source/server/app_database.lua',
     'source/server/memos.lua',
     'source/server/notes.lua',
     'source/server/phone_security.lua',

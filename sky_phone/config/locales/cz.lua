@@ -334,6 +334,8 @@ Locales["cz"] = {
             },
         },
         Common = {
+            appDisabled = "Tato aplikace je na tomto serveru vypnutá.",
+            appInitializing = "Aplikace se ještě spouští. Za chvíli to zkuste znovu.",
             add = "Přidat",
             back = "Zpět",
             cancel = "Zrušit",
@@ -6327,9 +6329,9 @@ Locales["cz"] = {
                     pulse = "Pulz",
                 },
                 notificationSoundsList = {
-                    chime = "Zvonění",
-                    signal = "Signál",
-                    soft = "Jemný",
+                    chime = "Zpráva iPhonu",
+                    signal = "Klasický",
+                    soft = "Tlumený",
                 },
                 wallpapers = {
                     midnight = "Půlnoc",

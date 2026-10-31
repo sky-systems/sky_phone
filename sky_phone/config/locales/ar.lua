@@ -334,6 +334,8 @@ Locales["ar"] = {
             },
         },
         Common = {
+            appDisabled = "هذا التطبيق معطّل على هذا الخادم.",
+            appInitializing = "جارٍ بدء هذا التطبيق. حاول مجددًا بعد قليل.",
             add = "إضافة",
             back = "رجوع",
             cancel = "إلغاء",
@@ -6327,9 +6329,9 @@ Locales["ar"] = {
                     pulse = "نبض",
                 },
                 notificationSoundsList = {
-                    chime = "رنين",
-                    signal = "إشارة",
-                    soft = "ناعم",
+                    chime = "رسالة iPhone",
+                    signal = "كلاسيكي",
+                    soft = "مكتوم",
                 },
                 wallpapers = {
                     midnight = "منتصف الليل",

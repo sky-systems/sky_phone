@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("feather") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local reaction_kinds = { like = true, bookmark = true }
 local report_reasons = { spam = true, harassment = true, dangerous = true, illegal = true, other = true }
 

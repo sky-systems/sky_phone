@@ -334,6 +334,8 @@ Locales["pt"] = {
             },
         },
         Common = {
+            appDisabled = "Este aplicativo está desativado neste servidor.",
+            appInitializing = "Este aplicativo ainda está iniciando. Tente novamente em instantes.",
             add = "Adicionar",
             back = "Voltar",
             cancel = "Cancelar",
@@ -6327,9 +6329,9 @@ Locales["pt"] = {
                     pulse = "Pulso",
                 },
                 notificationSoundsList = {
-                    chime = "Sino",
-                    signal = "Sinal",
-                    soft = "Suave",
+                    chime = "Mensagem do iPhone",
+                    signal = "Clássico",
+                    soft = "Abafado",
                 },
                 wallpapers = {
                     midnight = "Meia-noite",

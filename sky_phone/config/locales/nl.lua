@@ -334,6 +334,8 @@ Locales["nl"] = {
             },
         },
         Common = {
+            appDisabled = "Deze app is uitgeschakeld op deze server.",
+            appInitializing = "Deze app wordt nog gestart. Probeer het zo nog eens.",
             add = "Toevoegen",
             back = "Terug",
             cancel = "Annuleren",
@@ -6327,9 +6329,9 @@ Locales["nl"] = {
                     pulse = "Puls",
                 },
                 notificationSoundsList = {
-                    chime = "Klokkenspel",
-                    signal = "Signaal",
-                    soft = "Zacht",
+                    chime = "iPhone-bericht",
+                    signal = "Klassiek",
+                    soft = "Gedempt",
                 },
                 wallpapers = {
                     midnight = "Middernacht",

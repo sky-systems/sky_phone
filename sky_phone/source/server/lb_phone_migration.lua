@@ -3408,6 +3408,20 @@ local domain_runners = {
     flare = run_flare,
 }
 
+local domain_apps = {
+    messages = "messages",
+    notes = "notes",
+    wallet = "banking",
+    voiceMemos = "memos",
+    picstagram = "picstagram",
+    mail = "mail",
+    mapMarkers = "map",
+    darkChat = "darkchat",
+    flipTok = "fliptok",
+    feather = "feather",
+    flare = "flare",
+}
+
 local preview_tables = {
     settings = { "phones" },
     alarms = { "clock_alarms" },
@@ -3627,6 +3641,10 @@ local function run_migration(options)
                 local has_owner_mappings = Bridge.Database.Query([[
                     SELECT 1 FROM `sky_phone_migration_owners` WHERE `source` = ? LIMIT 1
                 ]], { source_name })[1] ~= nil
+                local app_id = domain_apps[domain]
+                if app_id and SkyPhoneAppDatabase then
+                    SkyPhoneAppDatabase.Ensure(app_id, true)
+                end
                 local runner = dry_run and domain ~= "devices" and not has_owner_mappings
                     and preview_domain
                     or domain_runners[domain]

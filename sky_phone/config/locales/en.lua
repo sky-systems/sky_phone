@@ -334,6 +334,8 @@ Locales["en"] = {
             },
         },
         Common = {
+            appDisabled = "This app is disabled on this server.",
+            appInitializing = "This app is still starting. Try again shortly.",
             add = "Add",
             back = "Back",
             cancel = "Cancel",
@@ -6326,9 +6328,9 @@ Locales["en"] = {
                     pulse = "Pulse",
                 },
                 notificationSoundsList = {
-                    chime = "Chime",
-                    signal = "Signal",
-                    soft = "Soft",
+                    chime = "iPhone Message",
+                    signal = "Classic",
+                    soft = "Muffled",
                 },
                 wallpapers = {
                     midnight = "Midnight",
