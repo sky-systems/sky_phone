@@ -6165,9 +6165,9 @@ Locales["ja"] = {
                     pulse = "パルス",
                 },
                 notificationSoundsList = {
-                    chime = "チャイム",
-                    signal = "シグナル",
-                    soft = "ソフト",
+                    chime = "iPhoneメッセージ",
+                    signal = "クラシック",
+                    soft = "こもった音",
                 },
                 wallpapers = {
                     midnight = "ミッドナイト",

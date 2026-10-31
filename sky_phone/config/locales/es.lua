@@ -6165,9 +6165,9 @@ Locales["es"] = {
                     pulse = "Pulso",
                 },
                 notificationSoundsList = {
-                    chime = "Campanilla",
-                    signal = "Señal",
-                    soft = "Suave",
+                    chime = "Mensaje de iPhone",
+                    signal = "Clásico",
+                    soft = "Atenuado",
                 },
                 wallpapers = {
                     midnight = "Noche",

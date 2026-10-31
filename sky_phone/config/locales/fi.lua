@@ -6165,9 +6165,9 @@ Locales["fi"] = {
                     pulse = "Syke",
                 },
                 notificationSoundsList = {
-                    chime = "Kellonsoitto",
-                    signal = "Signaali",
-                    soft = "Pehmeä",
+                    chime = "iPhone-viesti",
+                    signal = "Klassinen",
+                    soft = "Vaimennettu",
                 },
                 wallpapers = {
                     midnight = "Keskiyö",

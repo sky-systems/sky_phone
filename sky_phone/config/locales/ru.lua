@@ -6165,9 +6165,9 @@ Locales["ru"] = {
                     pulse = "Пульс",
                 },
                 notificationSoundsList = {
-                    chime = "Перезвон",
-                    signal = "Сигнал",
-                    soft = "Мягкий",
+                    chime = "Сообщение iPhone",
+                    signal = "Классический",
+                    soft = "Приглушённый",
                 },
                 wallpapers = {
                     midnight = "Полночь",

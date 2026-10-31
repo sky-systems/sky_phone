@@ -6165,9 +6165,9 @@ Locales["cz"] = {
                     pulse = "Pulz",
                 },
                 notificationSoundsList = {
-                    chime = "Zvonění",
-                    signal = "Signál",
-                    soft = "Jemný",
+                    chime = "Zpráva iPhonu",
+                    signal = "Klasický",
+                    soft = "Tlumený",
                 },
                 wallpapers = {
                     midnight = "Půlnoc",
