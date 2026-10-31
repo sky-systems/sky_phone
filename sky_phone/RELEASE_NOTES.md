@@ -1,3 +1,46 @@
+# Sky Phone 1.4.0
+
+## Changes
+
+- Add persistent Phonepanel activity history for confirmed Phone actions, with player/app filters, stable pagination, readable local timestamps and expandable details. Recording starts with this update; earlier actions cannot be reconstructed. The existing AdminPanel permission protects reads, and local history works without a Discord webhook.
+- Inspect the accounts, complete text, statuses and attachments associated with a selected player's devices in Feather, FlipTok, Picstagram, SkyPic Spotlight, SkyPic Stories and Weazel News. Scoped moderation includes drafts, archived content and private Stories. Keep public-feed visibility rules for global browsing.
+- Replace oversized activity cards with compact rows and matching panel controls. Remove the small heading overlines throughout the panel. Preserve the selected player when asynchronous requests finish late, and retry the page that actually failed.
+- Batch the player/device directory, separate lightweight statistics polling from full bootstrap, index registered-SIM ownership and history reads, and validate only matching account-notification recipients. Matching recipients still pass the original ownership and restriction checks.
+- Skip optional app startup/schema work while an app is disabled, initialize it when enabled, and return localized unavailable/initializing errors during transitions. Retain storage shared by core features and foreign keys. Keep financial settlement and refund recovery available, clear disabled radio membership, and reject new disabled-app uploads/activity without blocking cleanup.
+- Add the SkyPic switch to the Phone Configurator and file configuration, enabled by default. Preserve saved SQL settings and existing app data when an app is disabled.
+- Fix Flare profile-photo validation: accept one to six verified owned photos, distinguish unavailable media from ownership/provider verification failures, and allow the credential-free public FiveManage URL check after a 401/403 metadata response. Ownership, host, MIME and size validation remain enforced.
+- Replace the three synthesized notification alerts with recorded sounds, retaining existing preference IDs. Align their names across the sixteen locales and the frontend fallback. Include the audio source/license notices; custom notification sounds and ringtone selection remain supported.
+
+## Update instructions
+
+These steps cover upgrading from 1.3.0. For older installations, also apply the intervening release instructions.
+
+1. Back up the resource and database. Preserve configuration, translations, server peppers, hooks and custom files, including custom sounds under `source/html/sounds`.
+2. Stop resources registering Phone apps, then stop `sky_phone`. Use **sky_phone-1.4.0.zip**, keeping the folder named `sky_phone`. Replace `fxmanifest.lua`, `SOURCE.txt`, `RELEASE_NOTES.md`, `THIRD_PARTY_NOTICES.md`, `sql/install.sql` and the complete `source/` directory, then restore custom files. Install the rebuilt NUI and Lua together, including the new notification WAV files.
+3. In Lua file mode, merge `skypic = true` into `Config.Apps` in `config/config.lua`. In SQL mode, review **Phonepanel -> Phone configurator -> Apps -> SkyPic**. Missing values receive the default; existing saved values remain intact. Do not reset saved configuration. Disabling an app preserves its data and does not stop required shared storage or financial recovery.
+4. Merge the Phonepanel activity/social, Flare photo-error and notification-sound entries from `config/locales/` into every language you maintain. Keep the English fallback installed. Source installations must rebuild the frontend after updating locales and sound assets.
+5. The normal additive migration creates `sky_phone_activity_log` and the new indexes. No manual SQL is required for an upgrade; `sql/install.sql` remains the clean-install schema. Local history records new actions while `Config.AdminPanel.Enabled` is enabled. Batched maintenance removes records older than 30 days during mutation traffic; a backlog or idle server can retain older records longer. Disabling the panel stops new local history without deleting existing records or changing Discord logging settings.
+6. Run `refresh`, start `sky_phone`, then start app resources in their normal order. Verify Phonepanel access, player-scoped content and activity, one-to-six-photo Flare profiles, notification previews and any app toggles you use. Existing paid rides and pending refunds must still settle when SkyRide is disabled. No mandatory framework, voice-provider or inventory-item update is required.
+
+There is no destructive SQL migration, streamed-model change or dependency-version update. Public Phone API versions and stored notification preference IDs remain compatible. Published ZIP installations do not need Node.js or pnpm; source installations use the existing lockfile and pnpm 10.33.0.
+
+## Changed shipped files
+
+Relative to the installed `sky_phone` directory:
+
+- `fxmanifest.lua` - version 1.4.0 and the activity/app-database server modules.
+- `SOURCE.txt`, `RELEASE_NOTES.md` and `THIRD_PARTY_NOTICES.md` - package provenance, update instructions and recorded-audio notices.
+- `config/config.lua` and `config/locales/*.lua` - the default-enabled SkyPic switch, Phonepanel/Flare/error labels and notification-sound names.
+- `sql/install.sql`, `source/server/db_migrate.lua`, `source/server/app_database.lua` and `source/shared/config_default.lua` - additive history/index migrations, optional-app initialization, shared-storage dependencies and aligned defaults.
+- `source/bridge/server/callbacks.lua`, `source/client/nui_server_bridge.lua` and affected `source/server/` modules - activity, social administration, batched reads, media validation and disabled-app lifecycle/settlement handling. Replace the complete `source/` directory rather than mixing Lua versions.
+- `source/html/` - complete rebuilt NUI and the three new files under `sounds/notifications/`: `glass.wav`, `ripple.wav` and `triad.wav`. Replace this directory as a unit and restore custom files afterward.
+
+No files are removed or renamed outside the rebuilt NUI bundle. Raw recording sources, frontend source, tests and repository-only verification reports remain outside the deployable resource.
+
+Included pull requests: [#151](https://github.com/sky-systems/sky_phone/pull/151), [#152](https://github.com/sky-systems/sky_phone/pull/152), [#153](https://github.com/sky-systems/sky_phone/pull/153), [#154](https://github.com/sky-systems/sky_phone/pull/154), [#155](https://github.com/sky-systems/sky_phone/pull/155).
+
+---
+
 # Sky Phone 1.3.0
 
 ## Changes
