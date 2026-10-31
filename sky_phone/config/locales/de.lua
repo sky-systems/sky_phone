@@ -6326,9 +6326,9 @@ Locales["de"] = {
                     pulse = "Puls",
                 },
                 notificationSoundsList = {
-                    chime = "Glockenspiel",
-                    signal = "Signal",
-                    soft = "Sanft",
+                    chime = "iPhone-Nachricht",
+                    signal = "Klassisch",
+                    soft = "Gedämpft",
                 },
                 wallpapers = {
                     midnight = "Mitternacht",

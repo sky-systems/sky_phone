@@ -25,6 +25,18 @@ describe('phone locale fallback', () => {
     vi.unstubAllGlobals()
   })
 
+  it('keeps recorded alert names accurate when server locales are partial', () => {
+    const phone = usePhoneStore()
+    phone.open({ locales: { Apps: { settings: { name: 'Settings' } } } })
+    expect(phone.t('Apps.settings.notificationSoundsList.chime')).toBe(
+      'iPhone Message',
+    )
+    expect(phone.t('Apps.settings.notificationSoundsList.signal')).toBe(
+      'Classic',
+    )
+    expect(phone.t('Apps.settings.notificationSoundsList.soft')).toBe('Muffled')
+  })
+
   it.each([
     ['cn', 'zh-CN'],
     ['cz', 'cs-CZ'],

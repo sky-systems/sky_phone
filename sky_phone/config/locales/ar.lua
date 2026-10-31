@@ -6327,9 +6327,9 @@ Locales["ar"] = {
                     pulse = "نبض",
                 },
                 notificationSoundsList = {
-                    chime = "رنين",
-                    signal = "إشارة",
-                    soft = "ناعم",
+                    chime = "رسالة iPhone",
+                    signal = "كلاسيكي",
+                    soft = "مكتوم",
                 },
                 wallpapers = {
                     midnight = "منتصف الليل",

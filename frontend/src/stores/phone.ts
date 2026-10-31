@@ -6468,9 +6468,9 @@ const defaultLocales: LocaleTree = {
         pulse: 'Pulse',
       },
       notificationSoundsList: {
-        chime: 'Chime',
-        signal: 'Signal',
-        soft: 'Soft',
+        chime: 'iPhone Message',
+        signal: 'Classic',
+        soft: 'Muffled',
       },
       wallpapers: {
         midnight: 'Midnight',

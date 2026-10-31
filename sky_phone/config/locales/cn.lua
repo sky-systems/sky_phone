@@ -6327,9 +6327,9 @@ Locales["cn"] = {
                     pulse = "脉动",
                 },
                 notificationSoundsList = {
-                    chime = "钟声",
-                    signal = "信号",
-                    soft = "柔和",
+                    chime = "iPhone 信息",
+                    signal = "经典",
+                    soft = "低沉",
                 },
                 wallpapers = {
                     midnight = "午夜",

@@ -3,7 +3,10 @@ import {
   unregisterPhoneMediaElement,
 } from '@/utils/phoneAudio'
 import type { AlarmSoundId } from '@/utils/alarms'
-import type { BuiltInNotificationSoundId } from '@/utils/preferences'
+import {
+  isBuiltInNotificationSoundId,
+  type BuiltInNotificationSoundId,
+} from '@/utils/preferences'
 
 export type PhoneToneId = AlarmSoundId | BuiltInNotificationSoundId
 export type PhoneVibrationKind = 'call' | 'notification'
@@ -28,7 +31,7 @@ type TonePattern = {
   steps: ToneStep[]
 }
 
-const TONE_PATTERNS: Record<PhoneToneId, TonePattern> = {
+const TONE_PATTERNS: Record<AlarmSoundId, TonePattern> = {
   apex: {
     loopPauseMs: 420,
     steps: [
@@ -125,23 +128,6 @@ const TONE_PATTERNS: Record<PhoneToneId, TonePattern> = {
           { frequency: 880, type: 'triangle' },
           { frequency: 1320, gain: 0.16 },
         ],
-      },
-    ],
-  },
-  chime: {
-    loopPauseMs: 360,
-    steps: [
-      {
-        offsetMs: 0,
-        durationMs: 360,
-        releaseMs: 220,
-        voices: [{ frequency: 784 }, { frequency: 1568, gain: 0.16 }],
-      },
-      {
-        offsetMs: 250,
-        durationMs: 500,
-        releaseMs: 320,
-        voices: [{ frequency: 1047 }, { frequency: 2093, gain: 0.12 }],
       },
     ],
   },
@@ -318,54 +304,6 @@ const TONE_PATTERNS: Record<PhoneToneId, TonePattern> = {
       },
     ],
   },
-  signal: {
-    loopPauseMs: 360,
-    steps: [
-      {
-        offsetMs: 0,
-        durationMs: 180,
-        voices: [{ frequency: 740, type: 'triangle' }],
-      },
-      {
-        offsetMs: 210,
-        durationMs: 220,
-        voices: [{ frequency: 988, type: 'triangle' }],
-      },
-      {
-        offsetMs: 470,
-        durationMs: 300,
-        voices: [
-          { frequency: 740, type: 'triangle' },
-          { frequency: 1110, gain: 0.12 },
-        ],
-      },
-    ],
-  },
-  soft: {
-    loopPauseMs: 420,
-    steps: [
-      {
-        offsetMs: 0,
-        durationMs: 420,
-        attackMs: 55,
-        releaseMs: 260,
-        voices: [
-          { frequency: 523, gain: 0.72 },
-          { frequency: 784, gain: 0.16 },
-        ],
-      },
-      {
-        offsetMs: 300,
-        durationMs: 520,
-        attackMs: 65,
-        releaseMs: 320,
-        voices: [
-          { frequency: 659, gain: 0.7 },
-          { frequency: 988, gain: 0.14 },
-        ],
-      },
-    ],
-  },
   uplift: {
     loopPauseMs: 440,
     steps: [
@@ -406,12 +344,24 @@ const TONE_PATTERNS: Record<PhoneToneId, TonePattern> = {
   },
 }
 
+// Recorded alerts; provenance and processing in assets/audio/README.md.
+const NOTIFICATION_TONES: Record<
+  BuiltInNotificationSoundId,
+  { path: string; durationMs: number }
+> = {
+  chime: { path: 'sounds/notifications/glass.wav', durationMs: 1800 },
+  signal: { path: 'sounds/notifications/triad.wav', durationMs: 1400 },
+  soft: { path: 'sounds/notifications/ripple.wav', durationMs: 1400 },
+}
+
 const VIBRATION_SOUND_PATHS: Record<PhoneVibrationKind, string> = {
   call: 'sounds/vibration-call.mp3',
   notification: 'sounds/vibration-notification.mp3',
 }
 
 export function phoneToneDuration(tone: PhoneToneId): number {
+  if (isBuiltInNotificationSoundId(tone))
+    return NOTIFICATION_TONES[tone].durationMs
   return Math.max(
     ...TONE_PATTERNS[tone].steps.map((step) => step.offsetMs + step.durationMs),
   )
@@ -422,6 +372,14 @@ export function playPhoneTone(
   volumePercent: number,
   loop: boolean,
 ): () => void {
+  if (isBuiltInNotificationSoundId(tone)) {
+    return playPhoneMediaTone(
+      `${import.meta.env.BASE_URL}${NOTIFICATION_TONES[tone].path}`,
+      volumePercent,
+      loop,
+    )
+  }
+
   const AudioContextConstructor =
     window.AudioContext ??
     (window as typeof window & { webkitAudioContext?: typeof AudioContext })
@@ -518,7 +476,7 @@ export function playPhoneMediaTone(
     })
     .catch((error: unknown) => {
       if (!stopped) {
-        console.error('[Phone audio] Failed to start custom tone', error)
+        console.error('[Phone audio] Failed to start media tone', error)
         callbacks.onError?.(error)
       }
     })
