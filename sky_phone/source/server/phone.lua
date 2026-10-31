@@ -816,10 +816,14 @@ function SkyPhone.RequireAccount(source)
 end
 
 function SkyPhone.NotifyAccount(account_id, event_name, data)
-    for source in pairs(sessions) do
-        local account = SkyPhone.RequireAccount(source)
-        if account and account.id == tonumber(account_id) then
-            TriggerClientEvent(event_name, source, data)
+    account_id = tonumber(account_id)
+    if not account_id then return end
+    for source, session in pairs(sessions) do
+        if session.account_id == account_id then
+            local account = SkyPhone.RequireAccount(source)
+            if account and account.id == account_id then
+                TriggerClientEvent(event_name, source, data)
+            end
         end
     end
 end
@@ -903,10 +907,14 @@ function SkyPhone.NotifyAccountDevices(account_id, event_name, data, required_ap
 end
 
 function SkyPhone.RefreshAccount(account_id)
-    for source in pairs(sessions) do
-        local account = SkyPhone.RequireAccount(source)
-        if account and account.id == tonumber(account_id) then
-            refresh_source(source)
+    account_id = tonumber(account_id)
+    if not account_id then return end
+    for source, session in pairs(sessions) do
+        if session.account_id == account_id then
+            local account = SkyPhone.RequireAccount(source)
+            if account and account.id == account_id then
+                refresh_source(source)
+            end
         end
     end
 end

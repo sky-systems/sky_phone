@@ -2,15 +2,57 @@ export type AdminSocialPlatform =
   | 'feather'
   | 'fliptok'
   | 'picstagram'
+  | 'skypic'
+  | 'skypic-stories'
   | 'weazel-news'
 export type AdminSocialPost = {
   id: string
   author: string
   body: string
   title?: string
-  createdAt: string
+  createdAt: string | number
+  profileId?: string
+  displayName?: string
+  status: string
+  media: { url: string; type: 'photo' | 'video' | 'audio' }[]
+  expiresAt?: number
 }
-export type AdminSocialPosts = { items: AdminSocialPost[]; hasMore: boolean }
+export type AdminSocialPosts = {
+  items: AdminSocialPost[]
+  hasMore: boolean
+  accounts: {
+    id: string
+    handle: string
+    displayName: string
+    accountId: number
+  }[]
+}
+
+export type AdminPhoneActivity = {
+  id: string
+  actorName: string
+  actorSource: number
+  imei: string
+  phoneNumber: string
+  category: string
+  action: string
+  status: string
+  details: Record<string, unknown>
+  createdAt: string | number
+}
+
+export type AdminPhoneActivityQuery = {
+  source?: number
+  imei?: string
+  category?: string
+  beforeId?: string
+}
+
+export type AdminPhoneActivities = {
+  items: AdminPhoneActivity[]
+  hasMore: boolean
+  nextBeforeId?: string
+}
 
 export type AdminStats = {
   accounts: number

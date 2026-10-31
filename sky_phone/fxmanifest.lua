@@ -137,6 +137,7 @@ server_scripts {
     'source/server/world_display.lua',
     'source/server/device_directory.lua',
     'source/server/db_migrate.lua',
+    'source/server/logging_activity.lua',
     'source/server/logging_settings.lua',
     'source/server/custom_tones.lua',
     'source/server/admin.lua',

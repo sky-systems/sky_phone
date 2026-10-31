@@ -15,6 +15,8 @@ import type {
   AdminMessageActivity,
   AdminPlayerDetail,
   AdminPlayerSummary,
+  AdminPhoneActivities,
+  AdminPhoneActivityQuery,
   AdminStats,
   AdminWebhooks,
   AdminWebhookChange,
@@ -62,10 +64,12 @@ export const useAdminStore = defineStore('admin', {
     customTones: [] as AdminCustomTone[],
     customTonesLoading: false,
     detailLoading: false,
+    playerRequestId: 0,
     disabledApps: [] as string[],
     error: '',
     initialized: false,
     loading: false,
+    statisticsLoading: false,
     players: [] as AdminPlayerSummary[],
     revealedCredentials: {} as Record<string, AdminCredential>,
     deviceActivity: {} as Record<
@@ -83,15 +87,36 @@ export const useAdminStore = defineStore('admin', {
       platform: AdminSocialPlatform,
       query: string,
       page: number,
+      targetSource?: number,
     ) {
       return nuiCall<AdminSocialPosts>('admin:social-posts', {
         platform,
         query,
         page,
+        targetSource,
       })
     },
-    async deleteSocialPost(platform: AdminSocialPlatform, id: string) {
-      return nuiCall('admin:delete-social-post', { platform, id })
+    async deleteSocialPost(
+      platform: AdminSocialPlatform,
+      id: string,
+      targetSource?: number,
+    ) {
+      return nuiCall('admin:delete-social-post', { platform, id, targetSource })
+    },
+    async loadPhoneActivity(query: AdminPhoneActivityQuery) {
+      return nuiCall<AdminPhoneActivities>('admin:phone-activity', query)
+    },
+    async loadStatistics(): Promise<boolean> {
+      if (this.statisticsLoading) return false
+      this.statisticsLoading = true
+      try {
+        const response = await nuiCall<AdminStats>('admin:statistics')
+        if (!response.success || !response.data) return false
+        this.stats = response.data
+        return true
+      } finally {
+        this.statisticsLoading = false
+      }
     },
     async loadWebhooks(): Promise<boolean> {
       this.webhooksLoading = true
@@ -148,11 +173,13 @@ export const useAdminStore = defineStore('admin', {
       return true
     },
     async openPlayer(source: number): Promise<boolean> {
+      const requestId = ++this.playerRequestId
       this.detailLoading = true
       this.revealedCredentials = {}
       const response = await nuiCall<AdminPlayerDetail>('admin:player', {
         source,
       })
+      if (requestId !== this.playerRequestId) return true
       this.detailLoading = false
       if (!response.success || !response.data) {
         this.error = response.error ?? 'request_failed'
@@ -163,6 +190,8 @@ export const useAdminStore = defineStore('admin', {
       return true
     },
     closePlayer(): void {
+      this.playerRequestId += 1
+      this.detailLoading = false
       this.selectedPlayer = null
       this.revealedCredentials = {}
     },

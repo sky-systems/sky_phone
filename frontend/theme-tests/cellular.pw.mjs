@@ -81,7 +81,7 @@ test('phonepanel searches and removes a post after confirmation', async ({
     .getByRole('button', { name: 'Search', exact: true })
     .click()
   await expect(page.locator('.admin-social')).toContainText(
-    'No published posts found.',
+    'No posts found for this selection.',
   )
   await page
     .locator('.admin-social')
@@ -124,7 +124,7 @@ test('phonepanel searches and removes a post after confirmation', async ({
     .getByRole('button', { name: 'Delete post', exact: true })
     .click()
   await expect(page.locator('.admin-social')).toContainText(
-    'No published posts found.',
+    'No posts found for this selection.',
   )
   for (const platform of ['fliptok', 'picstagram', 'weazel-news']) {
     await expect(
@@ -132,7 +132,7 @@ test('phonepanel searches and removes a post after confirmation', async ({
     ).toBeHidden()
     await page
       .locator('.admin-social')
-      .getByRole('combobox')
+      .getByRole('combobox', { name: 'Platform', exact: true })
       .selectOption(platform)
     await expect(page.locator('.admin-social')).toContainText(
       'Preview moderation post for ' + platform,
@@ -146,7 +146,7 @@ test('phonepanel searches and removes a post after confirmation', async ({
       .getByRole('button', { name: 'Delete post', exact: true })
       .click()
     await expect(page.locator('.admin-social')).toContainText(
-      'No published posts found.',
+      'No posts found for this selection.',
     )
   }
 })

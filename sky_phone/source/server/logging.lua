@@ -121,8 +121,8 @@ local function sanitize(value, budget, seen, depth)
     return result
 end
 
-local function safe_value(value)
-    return sanitize(value, { bytes = max_record_bytes, nodes = max_nodes }, {}, 0)
+local function safe_value(value, bytes, nodes)
+    return sanitize(value, { bytes = bytes or max_record_bytes, nodes = nodes or max_nodes }, {}, 0)
 end
 
 local function identity(source)
@@ -377,13 +377,33 @@ function SkyPhoneLog.Publish(action, post)
     return ok and result or false
 end
 
-function SkyPhoneLog.Record(category, action, status, source, details, actor)
-    if not SkyPhoneLog.IsEnabled(category, action) then return false end
+function SkyPhoneLog.Record(category, action, status, source, details, actor, owner_identifier)
+    local activity_enabled = SkyPhoneLog.ActivityEnabled and SkyPhoneLog.ActivityEnabled()
+    local webhook_enabled = SkyPhoneLog.IsEnabled(category, action)
+    if not activity_enabled and not webhook_enabled then return false end
+    if not actor then
+        local ok, resolved_actor = pcall(identity, source)
+        if not ok then
+            diagnostic("identity", "Could not resolve the phone activity actor.")
+            return false
+        end
+        actor = resolved_actor
+    end
+    local stored = false
+    if activity_enabled then
+        local ok, result = pcall(function()
+            return SkyPhoneLog.RecordActivity(category, action, status, source,
+                safe_value(details, 12000, 500), actor, owner_identifier)
+        end)
+        stored = ok and result or false
+        if not ok then diagnostic("activity", "Could not persist a phone activity record.") end
+    end
+    if not webhook_enabled then return stored end
     local ok, result = pcall(function()
-        return enqueue(category, action, status, actor or identity(source), details)
+        return enqueue(category, action, status, actor, details)
     end)
     if not ok then diagnostic("record", "Could not prepare an audit record.") end
-    return ok and result or false
+    return stored or (ok and result or false)
 end
 
 -- Capture an authorized row before a destructive edit. It is published only if
@@ -412,7 +432,9 @@ function SkyPhoneLog.WrapCallback(name, callback)
     local spec = action and SkyPhoneLog.Actions and SkyPhoneLog.Actions[action]
     if not spec then return callback end
     return function(source, data, ...)
-        local audit_enabled = SkyPhoneLog.IsEnabled(spec.category, action)
+        local webhook_enabled = SkyPhoneLog.IsEnabled(spec.category, action)
+        local activity_enabled = SkyPhoneLog.ActivityEnabled and SkyPhoneLog.ActivityEnabled()
+        local audit_enabled = webhook_enabled or activity_enabled
         local public_enabled = SkyPhoneLog.IsPublicEnabled(action)
         if not audit_enabled and not public_enabled then return callback(source, data, ...) end
         local thread = coroutine.running()
@@ -420,12 +442,16 @@ function SkyPhoneLog.WrapCallback(name, callback)
         local context = { snapshots = {} }
         contexts[thread] = context
         local actor_ok, actor = pcall(identity, source)
+        -- Resolve before a yielding mutation: an old source ID may be reused
+        -- after a disconnect. Never attribute the completed action to its successor.
+        local owner_identifier = activity_enabled and source and source > 0
+            and Bridge.Framework.GetIdentifier(source) or nil
         local request = {}
         for field in (spec.fields or ""):gmatch("%S+") do
             if type(data) == "table" then request[field] = data[field] end
         end
         local sanitized, saved_request = pcall(safe_value, request)
-        if audit_enabled and spec.before and actor_ok and actor.imei then
+        if webhook_enabled and spec.before and actor_ok and actor.imei then
             local ok, content = pcall(spec.before, source, data or {}, actor)
             if ok then SkyPhoneLog.Capture("before", content)
             else diagnostic("before:" .. action, "Could not read previous content for " .. action .. ".") end
@@ -442,18 +468,21 @@ function SkyPhoneLog.WrapCallback(name, callback)
                     result = spec.result ~= false and response.data or nil,
                     snapshots = next(context.snapshots) and context.snapshots or nil,
                 }
-                local after_ok, actor_after = pcall(identity, source)
-                if after_ok and actor_ok and (actor_after.accountId ~= actor.accountId or actor_after.imei ~= actor.imei) then
-                    details.actorAfter = actor_after
+                if webhook_enabled then
+                    local after_ok, actor_after = pcall(identity, source)
+                    if after_ok and actor_ok and (actor_after.accountId ~= actor.accountId or actor_after.imei ~= actor.imei) then
+                        details.actorAfter = actor_after
+                    end
                 end
-                if spec.enrich then
+                if webhook_enabled and spec.enrich then
                     local enriched = pcall(spec.enrich, source, data or {}, response, details)
                     if not enriched then
                         details.contentError = "Content lookup failed; request and result retained"
                         diagnostic("enrich:" .. action, "Could not read content for " .. action .. ".")
                     end
                 end
-                SkyPhoneLog.Record(spec.category, action, status or "completed", source, details, actor_ok and actor or nil)
+                SkyPhoneLog.Record(spec.category, action, status or "completed", source, details,
+                    actor_ok and actor or nil, owner_identifier or false)
             end)
             if not ok then diagnostic("callback", "Could not prepare callback audit content for " .. action .. ".") end
         end

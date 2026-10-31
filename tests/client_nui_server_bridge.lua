@@ -38,7 +38,7 @@ local callback_count = 0
 for _ in pairs(callbacks) do
     callback_count = callback_count + 1
 end
-assert(callback_count == 363, ("expected 363 NUI server callbacks, got %d"):format(callback_count))
+assert(callback_count == 365, ("expected 365 NUI server callbacks, got %d"):format(callback_count))
 for _, required in ipairs({
     "custom-app:authorize", "custom-app:install", "custom-app:uninstall",
     "crypto:watch",
@@ -51,6 +51,8 @@ for _, required in ipairs({
     "realtime:signal", "realtime:sfu", "realtime:chat", "realtime:drop",
     "media:import:commit",
     "flare:delete-profile",
+    "admin:statistics",
+    "admin:phone-activity",
     "admin:webhooks",
     "admin:save-webhooks",
     "security:set-face-id",

@@ -5701,6 +5701,38 @@ app.post('/api/:endpoint', async (request, response, next) => {
     response.json({ success: true, data: adminMockBootstrap() })
     return
   }
+  if (endpoint === 'admin:statistics') {
+    response.json({ success: true, data: adminMockBootstrap().stats })
+    return
+  }
+  if (endpoint === 'admin:phone-activity') {
+    const source = request.body.source ? Number(request.body.source) : 1
+    const target = adminMockPlayerDetail(source)
+    const items =
+      request.body.beforeId ||
+      (request.body.category && request.body.category !== 'Feather')
+        ? []
+        : [
+            {
+              id: '42',
+              actorName: target.name,
+              actorSource: source,
+              imei: target.devices[0].imei,
+              phoneNumber: target.devices[0].number,
+              category: 'Feather',
+              action: 'feather:create-post',
+              status: 'created',
+              details: {
+                request: {
+                  body: `Preview phone activity for player ${source}`,
+                },
+              },
+              createdAt: '2026-10-31 12:00:00',
+            },
+          ]
+    response.json({ success: true, data: { items, hasMore: false } })
+    return
+  }
   if (endpoint === 'admin:social-posts') {
     response.json(socialPosts(request.body))
     return

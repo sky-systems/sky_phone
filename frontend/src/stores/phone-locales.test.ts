@@ -4,6 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePhoneStore } from '@/stores/phone'
 
 describe('phone locale fallback', () => {
+  it('keeps inspection and protected activity labels readable before runtime locales arrive', () => {
+    const phone = usePhoneStore()
+    expect(phone.t('AdminPanel.activity.title')).toBe('Phone activity')
+    expect(phone.t('AdminPanel.activity.messagesTitle')).toBe('Messages')
+    expect(phone.t('AdminPanel.social.scope')).toBe('Player')
+    expect(phone.t('AdminPanel.social.skyPicStories')).toBe('SkyPic Stories')
+    expect(phone.t('AdminPanel.audit.actions.view_social_posts')).toBe(
+      'App accounts and posts viewed',
+    )
+  })
   beforeEach(() => {
     vi.stubGlobal('window', {
       matchMedia: vi.fn(() => ({ matches: false })),
