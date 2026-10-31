@@ -1,3 +1,6 @@
+-- Persisted fares and refunds remain owned by the resource while the app is
+-- hidden. The callback dispatcher rejects new rides, while terminal operations
+-- and the recovery worker can still settle already accepted payments.
 Bridge.Database.AfterMigration("sky_phone", function()
 local allowed_cancel_reasons = {
     changed_mind = true,

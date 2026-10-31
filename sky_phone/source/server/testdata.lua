@@ -948,6 +948,13 @@ local function seed_for_source(source)
     if not phone_slot then
         error(("[sky_phone] Test data source %s has no phone item."):format(source))
     end
+    -- This explicit administrator operation seeds all documented test domains,
+    -- including apps whose UI is currently off. Prepare them before writing any
+    -- account/SIM/device rows so a missing optional table cannot leave a partial seed.
+    for app_id in ([[banking billing calendar crewlink darkchat feather flare fliptok
+        mail citymarkt local-pages radio skyride]]):gmatch("%S+") do
+        SkyPhoneAppDatabase.Ensure(app_id, true)
+    end
     local imei, device_error = SkyPhone.EnsureDevice(source, phone_slot)
     if not imei then
         error(("[sky_phone] Test data could not resolve the phone device: %s"):format(tostring(device_error)))

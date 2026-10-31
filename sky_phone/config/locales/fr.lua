@@ -334,6 +334,8 @@ Locales["fr"] = {
             },
         },
         Common = {
+            appDisabled = "Cette application est désactivée sur ce serveur.",
+            appInitializing = "Cette application est en cours de démarrage. Réessayez dans un instant.",
             add = "Ajouter",
             back = "Retour",
             cancel = "Annuler",

@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("darkchat") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 
 local allowed_voice_mimes = {
     ["audio/webm"] = true,
@@ -931,6 +933,7 @@ end)
 CreateThread(function()
     while true do
         Wait(Config.DarkChat.CleanupIntervalSeconds * 1000)
+        if not SkyPhoneAppDatabase or SkyPhoneAppDatabase.Enabled("darkchat") then
         local batch_size = math.max(
             1,
             math.floor(tonumber(Config.DarkChat.CleanupBatchSize) or 250)
@@ -941,6 +944,7 @@ CreateThread(function()
             ORDER BY `expires_at`, `id`
             LIMIT ?
         ]], { batch_size })
+        end
     end
 end)
 

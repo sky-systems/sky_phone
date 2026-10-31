@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("health") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 
 local activity_reports = {}
 local allowed_blood_types = {
@@ -207,6 +209,7 @@ Bridge.Callbacks.Register("sky_phone:health:save-profile", function(source, data
 end)
 
 RegisterNetEvent("sky_phone:health:record-activity", function(data)
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled("health") then return end
     local player_source = source
     if type(data) ~= "table"
         or type(data.steps) ~= "number" or data.steps ~= math.floor(data.steps)

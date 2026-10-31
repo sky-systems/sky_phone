@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("music") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local server_tracks = {}
 local server_tracks_by_id = {}
 local configured_track_ids = {}

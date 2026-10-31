@@ -508,6 +508,7 @@ local SOCIAL_CONTENT = {
         directMedia = "media_id", publishedStatus = "active", expires = true, headline = "ad_headline",
     },
     ["skypic-stories"] = {
+        app = "skypic",
         posts = "sky_phone_skypic_stories", profiles = "sky_phone_skypic_profiles",
         bodySql = "CONCAT_WS(CHAR(10), NULLIF(post.`caption`, ''), NULLIF(post.`overlay_text`, ''))",
         directMedia = "media_id", publishedStatus = "active", expires = true, publicCondition = " AND post.`privacy` = 'everyone'",
@@ -638,6 +639,9 @@ Bridge.Callbacks.Register("sky_phone:admin:social-posts", function(source, data)
         or type(query) ~= "string" or #query > 100 then
         return { success = false, error = "invalid_request" }
     end
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled(platform.app or data.platform) then
+        return { success = false, error = "app_disabled" }
+    end
     local scope, scope_error = resolve_social_scope(data, platform)
     if not scope then return scope_error end
     local search = "%" .. trim(query) .. "%"
@@ -697,6 +701,9 @@ Bridge.Callbacks.Register("sky_phone:admin:delete-social-post", function(source,
     if not platform or type(id) ~= "string" or #id ~= 36
         or not id:match("^%x+%-%x+%-%x+%-%x+%-%x+$") then
         return { success = false, error = "invalid_request" }
+    end
+    if SkyPhoneAppDatabase and not SkyPhoneAppDatabase.Enabled(platform.app or data.platform) then
+        return { success = false, error = "app_disabled" }
     end
     local scope, scope_error = resolve_social_scope(data, platform)
     if not scope then return scope_error end

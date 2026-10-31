@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("weazel-news") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local config = Config.WeazelNews
 
 if type(config) ~= "table" then

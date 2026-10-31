@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("banking") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 
 local function valid_amount(value)
     local amount = tonumber(value)

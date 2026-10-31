@@ -334,6 +334,8 @@ Locales["fi"] = {
             },
         },
         Common = {
+            appDisabled = "Tämä sovellus on poistettu käytöstä tällä palvelimella.",
+            appInitializing = "Sovellus käynnistyy vielä. Yritä hetken kuluttua uudelleen.",
             add = "Lisää",
             back = "Takaisin",
             cancel = "Peruuta",

@@ -1,4 +1,6 @@
-Bridge.Database.AfterMigration("sky_phone", function()
+(SkyPhoneAppDatabase and SkyPhoneAppDatabase.Bind("skypic") or function(start)
+    Bridge.Database.AfterMigration("sky_phone", start)
+end)(function()
 local settings = Config.SkyPic or {}
 local json_null = type(json) == "table" and json.null or nil
 local spotlight_report_reasons = {}
@@ -2747,6 +2749,7 @@ end)
 CreateThread(function()
     while true do
         Wait(limit("CleanupIntervalSeconds", 45) * 1000)
+        if not SkyPhoneAppDatabase or SkyPhoneAppDatabase.Enabled("skypic") then
         Bridge.Database.Query([[
             DELETE FROM `sky_phone_skypic_messages`
             WHERE `deleted_at` IS NOT NULL
@@ -2771,6 +2774,7 @@ CreateThread(function()
                 AND (`streak_updated_on` IS NULL
                     OR `streak_updated_on` < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY))
         ]], {})
+        end
     end
 end)
 
