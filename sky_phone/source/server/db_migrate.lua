@@ -172,6 +172,9 @@ local schema = {
         uniqueKeys = {
             { name = "uniq_sky_phone_sim_number", columns = "(`phone_number`)" },
         },
+        indexes = {
+            { name = "idx_sky_phone_sim_owner_registration", columns = "(`owner_identifier`, `sim_type`, `registered_at`, `created_at`, `id`)" },
+        },
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {

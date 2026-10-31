@@ -78,7 +78,8 @@ CREATE TABLE IF NOT EXISTS `sky_phone_sims` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uniq_sky_phone_sim_number` (`phone_number`)
+    UNIQUE KEY `uniq_sky_phone_sim_number` (`phone_number`),
+    KEY `idx_sky_phone_sim_owner_registration` (`owner_identifier`, `sim_type`, `registered_at`, `created_at`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `sky_phone_devices` (
