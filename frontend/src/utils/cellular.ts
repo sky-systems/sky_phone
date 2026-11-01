@@ -24,6 +24,9 @@ export const cellular = reactive<CellularState>({
 })
 
 export function appNeedsSignal(appId: string): boolean {
+  // Keep accepted KnoWay rides reachable, including after reopening offline.
+  // Quotes and new bookings still require reception at the request boundary.
+  if (appId === 'knoway') return false
   return (
     cellular.enabled &&
     !cellular.hasSignal &&
@@ -39,6 +42,7 @@ export function blocksCellularRequest(
   const namespace = endpoint.split(':')[0] ?? endpoint
   if (cellular.systemNamespaces[namespace] || cellular.cleanupActions[endpoint])
     return false
+  if (endpoint === 'knoway:quote' || endpoint === 'knoway:request') return true
   if (cellular.onlineActions[endpoint]) return true
   const appId =
     namespace === 'custom-app' && typeof data.appId === 'string'

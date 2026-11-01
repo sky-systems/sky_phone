@@ -1884,6 +1884,8 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         return type(value) == "number" and value % 1 == 0 and value >= minimum and value <= maximum
     end
     local knoway = candidate_config.Knoway
+    local knoway_currency_length = type(knoway) == "table" and type(knoway.Currency) == "string"
+        and utf8.len(knoway.Currency)
     if type(knoway) ~= "table" or type(knoway.VehicleModel) ~= "string"
         or #knoway.VehicleModel > 64
         or (knoway.VehicleModel ~= "" and not knoway.VehicleModel:match("^[%w_-]+$"))
@@ -1892,7 +1894,7 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
         or not knoway.DriverModel:match("^[%w_-]+$")
         or type(knoway.PaymentAccount) ~= "string" or #knoway.PaymentAccount > 32
         or not knoway.PaymentAccount:match("^[%w_-]+$")
-        or type(knoway.Currency) ~= "string" or #knoway.Currency > 12
+        or not knoway_currency_length or knoway_currency_length > 8
         or not knoway.Currency:find("%S") or knoway.Currency:find("%c") then
         return { success = false, error = "invalid_value" }
     end

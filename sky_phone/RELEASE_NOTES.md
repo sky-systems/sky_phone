@@ -6,6 +6,9 @@
 - Add server-managed vehicle/driver lifecycle, an invisible AI driver with a reserved driver seat, bounded routing retries and occupied-vehicle cleanup. OneSync and a separately installed, verified vehicle resource are required; the app is disabled and its vehicle model empty by default.
 - Expose the full KnoWay configuration through both existing configuration modes: `config.lua` with the Configurator disabled, or `/phonepanel` with SQL persistence when enabled. English/German labels, validation, defaults and client sync remain aligned.
 - Add the `sky_phone_knoway_rides` fare journal and additive migration. Preserve accepted prices/refund policies, retain cleanup and recovery when the app is disabled, and quarantine ambiguous framework debit/credit results for manual review rather than replaying them.
+- Recover online owners' refunds without letting offline claims or rejected credits block later batches. Keep each batch bounded and successful credits protected against replay.
+- Keep existing ride controls accessible without reception, including after reopening the app. New quotes and bookings still require reception while cellular restrictions are enabled.
+- Validate the configured currency against the journal's eight-character limit before saving, including Unicode values.
 
 See the [KnoWay setup and payment-recovery guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/knoway.md). The linked Ocelot E-Stride vehicle is not bundled with Sky Phone. Exact model/game-build compatibility and multiplayer FiveM acceptance remain pending; browser/build checks do not establish native driving behaviour. This section does not change the resource version or announce a release.
 

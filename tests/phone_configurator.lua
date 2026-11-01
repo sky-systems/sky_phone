@@ -1492,6 +1492,28 @@ test("KnoWay rejects invalid limits and activation without a vehicle before any 
     assert(server.database.writes == 0)
 end)
 
+test("KnoWay currency fits the journal's eight-character column before any write", function()
+    for _, currency in ipairs({ "US Dollar", string.rep("€", 9), "USD" .. string.char(255) }) do
+        local server = new_server()
+        local settings = server.field("Knoway").value
+        settings.Currency = currency
+        local result = server.save({ change("Knoway", settings) })
+        assert(not result.success and result.error == "invalid_value")
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+    for _, currency in ipairs({ "12345678", string.rep("€", 8) }) do
+        local server = new_server()
+        local settings = server.field("Knoway").value
+        settings.Currency = currency
+        local result = server.save({ change("Knoway", settings) })
+        assert(result.success, result.error)
+        assert(server.database.writes == 1)
+        local restarted = new_server(server.database)
+        assert(restarted.env.Config.Knoway.Currency == currency)
+        assert(new_client(restarted).config.Knoway.Currency == currency)
+    end
+end)
+
 test("KnoWay honors file mode and never treats Lua overrides as panel values", function()
     local function override(config)
         config.Knoway.BaseFare = 99
