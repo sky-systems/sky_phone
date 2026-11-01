@@ -132,7 +132,7 @@ function createSession() {
     }
     return { success: false, error: 'request_failed' }
   }
-  return handleKnoway
+  return { handleKnoway }
 }
 
 const sessions = new Map()
@@ -140,7 +140,7 @@ function handleKnoway(endpoint, body) {
   if (!endpoint.startsWith('knoway:')) return null
   const key = body._testScenario || 'default'
   if (!sessions.has(key)) sessions.set(key, createSession())
-  return sessions.get(key)(endpoint, body)
+  return sessions.get(key).handleKnoway(endpoint, body)
 }
 
 module.exports = { handleKnoway }
