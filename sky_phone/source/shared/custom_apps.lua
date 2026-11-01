@@ -72,6 +72,7 @@ local RESERVED_APP_IDS = {
     settings = true,
     ["sky-flappy"] = true,
     skyride = true,
+    knoway = true,
     snake = true,
     ["tower-stack"] = true,
     weather = true,

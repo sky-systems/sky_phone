@@ -37,6 +37,7 @@ local BUILTIN_APPS = {
     settings = true,
     ["sky-flappy"] = true,
     skyride = true,
+    knoway = true,
     snake = true,
     ["tower-stack"] = true,
     weather = true,

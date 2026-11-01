@@ -30,6 +30,7 @@ const APP_STORE_PREVIEW_STYLES = {
   house: { accent: '#d4a25c', surface: '#21170c' },
   map: { accent: '#46c97c', surface: '#091f16' },
   skyride: { accent: '#f6c43d', surface: '#211a08' },
+  knoway: { accent: '#0a84ff', surface: '#081f36' },
   banking: { accent: '#3dcc8b', surface: '#092019' },
   billing: { accent: '#4aa2ff', surface: '#09192a' },
   mail: { accent: '#52a8ff', surface: '#091a2b' },

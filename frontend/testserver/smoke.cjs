@@ -10,6 +10,9 @@ const {
 } = require('./index.cjs')
 
 const browserDataRequests = [
+  ['knoway:bootstrap', {}],
+  ['knoway:get-player-coords', {}],
+  ['knoway:get-waypoint', {}],
   ['admin:webhooks', {}],
   ['development:bootstrap', {}],
   ['account:devices', {}],
@@ -141,11 +144,11 @@ function verifyBrowserTestData(dataByEndpoint) {
   expectItems(
     development.device.data.apps.payload.claimedApps,
     'installed demo apps',
-    42,
+    43,
   )
   assert.equal(
     new Set(development.device.data.apps.payload.claimedApps).size,
-    42,
+    43,
     'browser demo apps were not uniquely installed',
   )
   assert.equal(

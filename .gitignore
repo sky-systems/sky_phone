@@ -11,6 +11,7 @@
 /docs/*
 !/docs/custom-app-registration-audit.md
 !/docs/phone-configurator.md
+!/docs/knoway.md
 !/docs/inventory-setup.md
 !/docs/custom-app-input.md
 !/docs/phone-performance-review.md

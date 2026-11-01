@@ -14,6 +14,7 @@ SkyPhoneCellular.CleanupActions = {
     ["realtime:config"] = true,
     ["custom-app:lifecycle"] = true, ["custom-app:catalog-debug"] = true,
     ["garage:valet-cancel"] = true, ["radio:disconnect"] = true,
+    ["knoway:bootstrap"] = true, ["knoway:start"] = true, ["knoway:cancel"] = true,
 }
 SkyPhoneCellular.AppNamespaces = {
     calls = "phone", contacts = "phone", gallery = "photos", media = "camera",

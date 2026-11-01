@@ -200,6 +200,47 @@ describe('CityWarn blip configuration', () => {
   })
 })
 
+describe('KnoWay configuration', () => {
+  it('exposes the complete fixed schema and safe opt-in defaults in the live preview', () => {
+    const fields = loadConfiguratorSections().flatMap(
+      (section) => section.fields,
+    )
+    const knoway = fields.find((field) => field.path === 'Knoway')
+    const settings = knoway?.value as Record<string, unknown>
+    expect(settings).toMatchObject({
+      VehicleModel: '',
+      PaymentAccount: 'bank',
+      Currency: '$',
+      BaseFare: 12,
+      PricePerKilometer: 18,
+      MinimumFare: 15,
+      MaxActiveRides: 10,
+      MaxSpeedKmh: 80,
+      BoardingTimeoutSeconds: 120,
+      RefundBeforeStart: true,
+      RefundAfterStart: false,
+      RefundTechnicalFailure: true,
+    })
+    expect(Object.keys(settings)).toHaveLength(28)
+    expect(knoway?.structure?.kind).toBe('table')
+    expect(knoway?.structure?.mutableKeys).not.toBe(true)
+    for (const [key, value] of Object.entries(settings)) {
+      expect(knoway?.structure?.fields?.[key]).toEqual({
+        kind: 'value',
+        valueType: typeof value,
+      })
+    }
+    expect(fields.find((field) => field.path === 'Apps')?.value).toMatchObject({
+      knoway: false,
+    })
+    expect(
+      fields.find((field) => field.path === 'CellTowers')?.value,
+    ).toMatchObject({
+      OfflineApps: { knoway: false },
+    })
+  })
+})
+
 function countStructure(structure: ConfiguratorStructure | undefined): number {
   if (!structure) return 1
   if (structure.fields) {
@@ -239,7 +280,7 @@ describe('admin configurator fixture', () => {
           root !== 'CustomTones',
       )
 
-    expect(sections).toHaveLength(50)
+    expect(sections).toHaveLength(51)
     expect(
       fields.reduce(
         (total, field) => total + countStructure(field.structure),

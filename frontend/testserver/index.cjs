@@ -1,4 +1,5 @@
 const { randomUUID } = require('node:crypto')
+const { handleKnoway } = require('./knoway-fixture.cjs')
 const {
   socialPosts,
   deleteSocialPost,
@@ -2919,6 +2920,7 @@ let calendarEvents = [
   },
 ]
 const demoInstalledAppIds = [
+  'knoway',
   'citywarn',
   'crypto',
   'health',
@@ -10697,6 +10699,10 @@ app.post('/api/:endpoint', (request, response) => {
   }
   if (endpoint.startsWith('fliptok:')) {
     response.json({ success: true })
+    return
+  }
+  if (endpoint.startsWith('knoway:')) {
+    response.json(handleKnoway(endpoint, request.body))
     return
   }
   if (endpoint === 'skyride:get-player-coords') {
