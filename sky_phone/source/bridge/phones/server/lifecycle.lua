@@ -1,6 +1,4 @@
 local server_bridge = SkyPhoneCompatibilityServer
-local RESOURCE_NAME = server_bridge.ResourceName
-local LB_PROVIDER_NAME = "lb-phone"
 
 AddEventHandler("sky_phone:server:phoneNumberChanged", function(player_source, phone_number)
     TriggerEvent("lb-phone:numberChanged", player_source, phone_number)
@@ -18,22 +16,13 @@ AddEventHandler("sky_phone:server:galleryMediaDeleted", function(player_source, 
     TriggerEvent("lb-phone:deletedFromGallery", player_source, phone_number, link)
 end)
 
-AddEventHandler("onResourceStop", function(resource_name)
-    if resource_name ~= RESOURCE_NAME then
-        return
-    end
-
-    SkyPhoneCompatibility.EmitServerProviderStop(LB_PROVIDER_NAME)
-end)
-
-local function reset_lb_export_cache()
+local function notify_compatibility_ready()
     Bridge.Debug(
         "debug",
-        "[sky_phone] Resetting the LB Phone server export cache after bridge startup.",
+        "[sky_phone] Phone compatibility server exports are ready.",
         { always = true }
     )
-    SkyPhoneCompatibility.EmitServerProviderStop(LB_PROVIDER_NAME)
-    SkyPhoneCompatibility.EmitServerProviderStart(LB_PROVIDER_NAME)
+    TriggerEvent("sky_phone:server:compatReady")
 end
 
-server_bridge.AfterPhoneReady(reset_lb_export_cache)
+server_bridge.AfterPhoneReady(notify_compatibility_ready)
