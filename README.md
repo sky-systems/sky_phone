@@ -1058,6 +1058,8 @@ That means servers can replace LB Phone without giving up supported custom apps,
 
 Start Sky Phone before the custom app resources and do not start the original phone resource for an alias at the same time. For example, an unchanged app using `exports["lb-phone"]:AddCustomApp(...)` must run with `sky_phone`, not with the original `lb-phone`, as the active provider. Two active providers expose the same FiveM export event and can send registrations to the wrong phone.
 
+After restarting Sky Phone, restart resources consuming its compatibility aliases in their normal startup order before reconnecting players. Phone does not simulate resource start/stop events to refresh another resource's export cache. Integrations can listen for `sky_phone:client:compatReady` or `sky_phone:server:compatReady` once the aliases are registered; these notifications do not refresh cached alias exports. See [compatibility lifecycle](sky_phone/integrations/COMPATIBILITY_LIFECYCLE.md).
+
 Custom apps with text fields must report typing to the phone's focus owner; focus events inside an iframe do not reach the parent document. See [custom-app input focus](docs/custom-app-input.md) for the client export and cleanup contract.
 
 ## Frontend development

@@ -11,6 +11,37 @@ See the [KnoWay setup and payment-recovery guide](https://github.com/sky-systems
 
 ---
 
+# Sky Phone 1.4.1
+
+## Changes
+
+- Stop emitting fabricated FiveM resource start/stop events for compatibility aliases when Sky Phone starts or stops. These events could execute unrelated resources' lifecycle handlers.
+- Notify integrations through the Phone-owned `sky_phone:client:compatReady` and `sky_phone:server:compatReady` events after the compatibility exports are registered. Existing provider-specific ready notifications remain available.
+
+## Update instructions
+
+These steps cover upgrading from 1.4.0. For older installations, also apply the intervening release instructions.
+
+1. Back up the resource and preserve configuration, translations, server peppers, hooks and custom files.
+2. Schedule maintenance with players disconnected. Stop consuming Phone integrations and custom-app resources, then stop `sky_phone`. Extract **sky_phone-1.4.1.zip**, keeping the folder named `sky_phone`, and restore custom files.
+3. Run `refresh`, start `sky_phone`, then restart consuming integrations and custom-app resources in their normal startup order before reconnecting players. Consumers using an alias such as `lb-phone` can retain stale export references after a Phone-only restart. The new ready events do not reset those caches. See [compatibility lifecycle](integrations/COMPATIBILITY_LIFECYCLE.md).
+
+No configuration, SQL, locale, streamed-asset or dependency update is required. Existing Phone data is preserved. This update removes a confirmed lifecycle side effect; resolution of a particular customer's GTA session disconnect still requires testing in that environment.
+
+## Changed shipped files
+
+Relative to the installed `sky_phone` directory:
+
+- `fxmanifest.lua` - version 1.4.1.
+- `SOURCE.txt` and `RELEASE_NOTES.md` - package provenance and update instructions.
+- `source/bridge/phones/shared.lua`, `source/bridge/phones/client/lifecycle.lua` and `source/bridge/phones/server/lifecycle.lua` - removal of fabricated lifecycle events and Phone-owned readiness notifications.
+- `README.md` and `integrations/COMPATIBILITY_LIFECYCLE.md` - compatibility startup and restart contracts.
+- `source/html/` - complete rebuilt NUI. Replace it as a unit, including generated asset filenames, and restore custom files afterward.
+
+Frontend application source and dependency versions are unchanged; the normal release workflow rebuilds the packaged NUI. No files are removed or renamed outside the rebuilt NUI bundle. Regression tests remain outside the deployable resource.
+
+---
+
 # Sky Phone 1.4.0
 
 ## Changes

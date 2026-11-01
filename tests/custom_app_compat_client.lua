@@ -2,10 +2,20 @@ local registered_exports = {}
 local registered_event_handlers = {}
 local registered_nui_callbacks = {}
 local triggered_events = {}
+local triggered_server_events = {}
 local nui_messages = {}
 local collision_messages = {}
 local registered_commands = {}
 local invoking_resource = nil
+local foreign_lifecycle_events = {}
+local lifecycle_event_names = {
+    onClientResourceStart = true,
+    onClientResourceStop = true,
+    onServerResourceStart = true,
+    onServerResourceStop = true,
+    onResourceStart = true,
+    onResourceStop = true,
+}
 
 Config = {
     Bridge = {
@@ -84,12 +94,37 @@ function AddEventHandler(event_name, handler)
     handlers[#handlers + 1] = handler
     registered_event_handlers[event_name] = handlers
 end
+for event_name in pairs(lifecycle_event_names) do
+    AddEventHandler(event_name, function(resource_name)
+        foreign_lifecycle_events[#foreign_lifecycle_events + 1] = {
+            event_name = event_name,
+            resource_name = resource_name,
+        }
+    end)
+end
 function SendNUIMessage(message)
     nui_messages[#nui_messages + 1] = message
 end
-function TriggerServerEvent() end
+function TriggerServerEvent(event_name, ...)
+    triggered_server_events[#triggered_server_events + 1] = {
+        event_name = event_name,
+        arguments = { ... },
+    }
+end
 function TriggerEvent(event_name, ...)
     local arguments = { ... }
+    if event_name == "sky_phone:client:compatReady" then
+        for _, registration_event in ipairs({
+            "__cfx_export_lb-phone_AddCustomApp",
+            "__cfx_export_17mov_Phone_AddApplication",
+            "__cfx_export_high-phone_addApplication",
+            "__cfx_export_qs-smartphone_addCustomApp",
+            "__cfx_export_yseries_AddCustomApp",
+        }) do
+            assert(registered_event_handlers[registration_event],
+                "Phone compatibility must register alias exports before announcing readiness")
+        end
+    end
     triggered_events[#triggered_events + 1] = {
         event_name = event_name,
         arguments = arguments,
@@ -97,6 +132,7 @@ function TriggerEvent(event_name, ...)
 
     if event_name:sub(1, 13) == "__cfx_export_"
         or event_name == "sky_phone:client:customAppRemoved"
+        or lifecycle_event_names[event_name]
     then
         local handlers = registered_event_handlers[event_name] or {}
         for index = 1, #handlers do
@@ -208,6 +244,9 @@ for _, path in ipairs({
     dofile(path)
 end
 
+assert(#foreign_lifecycle_events == 0,
+    "Phone startup must not invoke unrelated resource lifecycle listeners")
+
 local function get_alias_export(resource_name, export_name)
     local event_name = ("__cfx_export_%s_%s"):format(resource_name, export_name)
     local handlers = registered_event_handlers[event_name]
@@ -266,38 +305,33 @@ assert(registered_exports.CloseApp == nil, "compatibility bridge must not publis
 assert(registered_exports.OpenPhoneApp == nil, "compatibility bridge must not publish a bare OpenPhoneApp export")
 assert(type(registered_commands["phone:toggle"]) == "function", "Quasar phone:toggle command must be registered")
 
-local expected_provider_resources = {
-    ["lb-phone"] = true,
-    ["17mov_Phone"] = true,
-    ["high-phone"] = true,
-    ["qs-smartphone"] = true,
-    ["yseries"] = true,
-}
 assert(
     collision_messages[1]
         and collision_messages[1]:find("Compatibility collision: lb-phone:AddCustomApp has 2 providers", 1, true),
     "concurrent original phone providers must emit an actionable compatibility error"
 )
-local provider_lifecycle_events = {}
+local seventeen_ready = false
+local compat_ready_count = 0
 for index = 1, #triggered_events do
     local event = triggered_events[index]
-    local resource_name = event.arguments[1]
-    if expected_provider_resources[resource_name]
-        and (event.event_name == "onClientResourceStop"
-            or event.event_name == "onResourceStop"
-            or event.event_name == "onResourceStart")
-    then
-        local lifecycle = provider_lifecycle_events[resource_name] or {}
-        lifecycle[#lifecycle + 1] = event.event_name
-        provider_lifecycle_events[resource_name] = lifecycle
+    assert(not lifecycle_event_names[event.event_name],
+        ("Phone startup must not fabricate %s for %s"):format(event.event_name, tostring(event.arguments[1])))
+    if event.event_name == "17mov_Phone:Client:Ready" then
+        seventeen_ready = true
+    elseif event.event_name == "sky_phone:client:compatReady" then
+        assert(seventeen_ready, "Phone compatibility readiness must follow the provider-specific ready event")
+        compat_ready_count = compat_ready_count + 1
     end
 end
-for resource_name in pairs(expected_provider_resources) do
-    local lifecycle = assert(provider_lifecycle_events[resource_name])
-    assert(lifecycle[1] == "onClientResourceStop", ("Missing %s provider cache reset signal"):format(resource_name))
-    assert(lifecycle[2] == "onResourceStop", ("Missing %s provider stop signal"):format(resource_name))
-    assert(lifecycle[3] == "onResourceStart", ("Missing %s provider start signal"):format(resource_name))
+assert(seventeen_ready, "17Movement must retain its provider-specific ready event")
+assert(compat_ready_count == 1, "Phone compatibility must announce client readiness exactly once")
+local high_snapshot_requested = false
+for index = 1, #triggered_server_events do
+    if triggered_server_events[index].event_name == "sky_phone:compat:high:server:requestSnapshot" then
+        high_snapshot_requested = true
+    end
 end
+assert(high_snapshot_requested, "High compatibility must request the authoritative server snapshot")
 assert(yseries_get_data_loaded(), "YSeries must see the compatibility provider as loaded")
 
 invoking_resource = "provider_test"
@@ -714,25 +748,21 @@ assert(quasar_update_custom_app("services", {
 assert(quasar_remove_custom_app("services"), "Quasar removeCustomApp must remove an owned app")
 assert(quasar_add_custom_apps_batch({}), "Quasar batch alias must accept an empty batch")
 
+local shutdown_event_offset = #triggered_events
+local shutdown_lifecycle_count = #foreign_lifecycle_events
 local resource_stop_handlers = assert(registered_event_handlers["onResourceStop"])
 for index = 1, #resource_stop_handlers do
     resource_stop_handlers[index]("sky_phone")
 end
+assert(#foreign_lifecycle_events == shutdown_lifecycle_count + 1
+    and foreign_lifecycle_events[#foreign_lifecycle_events].event_name == "onResourceStop"
+    and foreign_lifecycle_events[#foreign_lifecycle_events].resource_name == "sky_phone",
+    "Phone shutdown must notify unrelated lifecycle listeners only about the real stopped resource")
 
-local client_stop_events = {}
-local resource_stop_events = {}
-for index = 1, #triggered_events do
+for index = shutdown_event_offset + 1, #triggered_events do
     local event = triggered_events[index]
-    local resource_name = event.arguments[1]
-    if event.event_name == "onClientResourceStop" then
-        client_stop_events[resource_name] = true
-    elseif event.event_name == "onResourceStop" then
-        resource_stop_events[resource_name] = true
-    end
-end
-for resource_name in pairs(expected_provider_resources) do
-    assert(client_stop_events[resource_name], ("Missing %s provider client stop signal"):format(resource_name))
-    assert(resource_stop_events[resource_name], ("Missing %s provider stop signal"):format(resource_name))
+    assert(not lifecycle_event_names[event.event_name],
+        ("Phone shutdown must not fabricate %s for %s"):format(event.event_name, tostring(event.arguments[1])))
 end
 
 print("Custom app compatibility client tests passed")
