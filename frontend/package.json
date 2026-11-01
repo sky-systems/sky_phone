@@ -19,15 +19,6 @@
     "test:browser-mocks": "node testserver/smoke.cjs",
     "test:themes": "playwright test --config theme-tests/playwright.config.mjs"
   },
-  "pnpm": {
-    "overrides": {
-      "nanoid@<3.3.18": "3.3.18",
-      "postcss-selector-parser@<7.1.6": "7.1.6",
-      "shell-quote@<1.11.0": "1.11.0",
-      "qs@<6.16.1": "6.16.1",
-      "body-parser@>=2.0.0 <2.4.0": "2.4.0"
-    }
-  },
   "dependencies": {
     "@tiptap/core": "^3.30.5",
     "@tiptap/extension-placeholder": "^3.30.5",
@@ -65,5 +56,6 @@
     "vite": "^7.3.7",
     "vitest": "^5.0.3",
     "vue-tsc": "^2.2.10"
-  }
+  },
+  "packageManager": "pnpm@12.16.1"
 }
