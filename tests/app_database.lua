@@ -94,6 +94,14 @@ assert(SkyPhoneAppDatabase.CallbackApp("sky_phone:device:open") == nil)
 assert(SkyPhoneAppDatabase.Owner("sky_phone_mailboxes") == "mail")
 assert(SkyPhoneAppDatabase.Owner("sky_phone_voice_memos") == "memos")
 assert(SkyPhoneAppDatabase.Owner("SKY_PHONE_MEDIA") == nil)
+assert(SkyPhoneAppDatabase.CallbackApp("sky_phone:knoway:request") == "knoway")
+assert(SkyPhoneAppDatabase.Owner("sky_phone_knoway_rides") == nil,
+    "KnoWay payment recovery must remain available while its app is disabled")
+assert(SkyPhoneAppDatabase.CanCleanup("sky_phone:knoway:bootstrap", {}))
+assert(SkyPhoneAppDatabase.CanCleanup("sky_phone:knoway:start", { rideId = "existing" }))
+assert(SkyPhoneAppDatabase.CanCleanup("sky_phone:knoway:cancel", { rideId = "existing" }))
+assert(not SkyPhoneAppDatabase.CanCleanup("sky_phone:knoway:quote", {}))
+assert(not SkyPhoneAppDatabase.CanCleanup("sky_phone:knoway:request", {}))
 
 local ran = false
 SkyPhoneAppDatabase.Run("picstagram", function()
@@ -158,8 +166,9 @@ Config.Apps.picstagram = true
 handlers["sky_phone:bridge:callback:request"][1]("sky_phone:missing", 5, {})
 assert(responses[5] == nil)
 
-for _, app in ipairs({ "skyride", "garage", "radio" }) do Config.Apps[app] = false end
-for _, name in ipairs({ "sky_phone:skyride:cancel", "sky_phone:garage:valet-complete", "sky_phone:radio:disconnect" }) do
+for _, app in ipairs({ "skyride", "garage", "radio", "knoway" }) do Config.Apps[app] = false end
+for _, name in ipairs({ "sky_phone:skyride:cancel", "sky_phone:garage:valet-complete", "sky_phone:radio:disconnect",
+    "sky_phone:knoway:bootstrap", "sky_phone:knoway:start", "sky_phone:knoway:cancel" }) do
     Bridge.Callbacks.Register(name, function() return { success = true } end)
     handlers["sky_phone:bridge:callback:request"][1](name, 6, {})
     assert(responses[6].success, "Disabled apps must allow registered terminal cleanup: " .. name)
@@ -167,6 +176,9 @@ end
 Bridge.Callbacks.Register("sky_phone:skyride:request", function() error("Disabled app started new paid work") end)
 handlers["sky_phone:bridge:callback:request"][1]("sky_phone:skyride:request", 7, {})
 assert(responses[7].error == "app_disabled")
+Bridge.Callbacks.Register("sky_phone:knoway:request", function() error("Disabled KnoWay started paid work") end)
+handlers["sky_phone:bridge:callback:request"][1]("sky_phone:knoway:request", 8, {})
+assert(responses[8].error == "app_disabled")
 assert(SkyPhoneAppDatabase.CanCleanup("sky_phone:skyride:set-driver-status", { online = false }))
 assert(not SkyPhoneAppDatabase.CanCleanup("sky_phone:skyride:set-driver-status", { online = true }))
 

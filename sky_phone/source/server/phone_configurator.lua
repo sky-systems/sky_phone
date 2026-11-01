@@ -81,6 +81,7 @@ local CLIENT_CONFIG_KEYS = {
     Garage = true,
     Health = true,
     Housing = true,
+    Knoway = true,
     LocalPages = true,
     Mail = true,
     MapMarkers = true,
@@ -1881,6 +1882,45 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
     local blip = citywarn and citywarn.Blip
     local function integer_between(value, minimum, maximum)
         return type(value) == "number" and value % 1 == 0 and value >= minimum and value <= maximum
+    end
+    local knoway = candidate_config.Knoway
+    if type(knoway) ~= "table" or type(knoway.VehicleModel) ~= "string"
+        or #knoway.VehicleModel > 64
+        or (knoway.VehicleModel ~= "" and not knoway.VehicleModel:match("^[%w_-]+$"))
+        or (candidate_config.Apps.knoway ~= false and knoway.VehicleModel == "")
+        or type(knoway.DriverModel) ~= "string" or #knoway.DriverModel > 64
+        or not knoway.DriverModel:match("^[%w_-]+$")
+        or type(knoway.PaymentAccount) ~= "string" or #knoway.PaymentAccount > 32
+        or not knoway.PaymentAccount:match("^[%w_-]+$")
+        or type(knoway.Currency) ~= "string" or #knoway.Currency > 12
+        or not knoway.Currency:find("%S") or knoway.Currency:find("%c") then
+        return { success = false, error = "invalid_value" }
+    end
+    local knoway_ranges = {
+        BaseFare = { 0, 1000000 }, PricePerKilometer = { 0, 1000000 }, MinimumFare = { 0, 1000000 },
+        RouteDistanceMultiplier = { 1, 5 }, AverageSpeedMetersPerSecond = { 1, 60 },
+        QuoteLifetimeSeconds = { 10, 600, true }, MaximumDistanceMeters = { 250, 100000 },
+        MinimumDistanceMeters = { 1, 100000 }, MaxActiveRides = { 1, 100, true },
+        RequestCooldownSeconds = { 0, 3600, true }, BoardingTimeoutSeconds = { 10, 600, true },
+        ApproachTimeoutSeconds = { 30, 900, true }, MaximumRideSeconds = { 60, 7200, true },
+        MaxSpeedKmh = { 5, 120 }, DrivingStyle = { 0, 2147483647, true },
+        ArrivalRadius = { 3, 50 }, SpawnMinimumDistance = { 50, 250 },
+        SpawnMaximumDistance = { 50, 250 }, RoadSnapDistance = { 5, 150 },
+        StuckTimeoutSeconds = { 10, 300, true }, MaximumReplans = { 0, 5, true },
+    }
+    for key, range in pairs(knoway_ranges) do
+        local value = knoway[key]
+        if type(value) ~= "number" or not (value >= range[1] and value <= range[2])
+            or (range[3] and not integer_between(value, range[1], range[2])) then
+            return { success = false, error = "invalid_value" }
+        end
+    end
+    if knoway.MinimumDistanceMeters >= knoway.MaximumDistanceMeters
+        or knoway.SpawnMinimumDistance >= knoway.SpawnMaximumDistance then
+        return { success = false, error = "invalid_value" }
+    end
+    for _, key in ipairs({ "RefundBeforeStart", "RefundAfterStart", "RefundTechnicalFailure" }) do
+        if type(knoway[key]) ~= "boolean" then return { success = false, error = "invalid_value" } end
     end
     local disabled_controls = candidate_config.Phone.DisabledControls
     if type(disabled_controls) ~= "table" or (next(disabled_controls) and not is_sequence(disabled_controls))

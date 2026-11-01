@@ -77,6 +77,7 @@ import flipTokIcon from '@/assets/img/app-icons/fliptok.webp'
 import picstagramIcon from '@/assets/img/app-icons/picstagram.webp'
 import skyPicIcon from '@/assets/img/app-icons/skypic.jpg'
 import skyRideIcon from '@/assets/img/app-icons/skyride.webp'
+import knowayIcon from '@/assets/img/app-icons/knoway.svg'
 import musicIcon from '@/assets/img/app-icons/music.webp'
 import featherIcon from '@/assets/img/app-icons/feather.webp'
 import crewLinkIcon from '@/assets/img/app-icons/crewlink.webp'
@@ -401,6 +402,20 @@ export const PHONE_APPS = shallowReactive<PhoneAppDefinition[]>([
     id: 'skyride',
     labelKey: 'Apps.skyride.name',
     route: '/apps/skyride',
+  },
+  {
+    category: 'utilities',
+    component: markRaw(
+      defineAsyncComponent(() => import('@/views/apps/KnowayApp.vue')),
+    ),
+    dockOrder: null,
+    gridOrder: 42,
+    icon: markRaw(CarFront),
+    iconClass: '',
+    iconImage: knowayIcon,
+    id: 'knoway',
+    labelKey: 'Apps.knoway.name',
+    route: '/apps/knoway',
   },
   {
     category: 'social',

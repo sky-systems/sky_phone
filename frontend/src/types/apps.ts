@@ -38,6 +38,7 @@ export type BuiltinPhoneAppId =
   | 'picstagram'
   | 'skypic'
   | 'skyride'
+  | 'knoway'
   | 'feather'
   | 'crewlink'
   | 'companies'

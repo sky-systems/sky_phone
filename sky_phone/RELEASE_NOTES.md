@@ -1,3 +1,16 @@
+# Unreleased
+
+## KnoWay autonomous rides
+
+- Add the optional built-in KnoWay app with map/GPS destination selection, fixed-price quotes, robotaxi pickup, passenger boarding, owner-controlled departure and live trip status. Closing the phone does not end the ride. SkyRide remains the player-driver service.
+- Add server-managed vehicle/driver lifecycle, an invisible AI driver with a reserved driver seat, bounded routing retries and occupied-vehicle cleanup. OneSync and a separately installed, verified vehicle resource are required; the app is disabled and its vehicle model empty by default.
+- Expose the full KnoWay configuration through both existing configuration modes: `config.lua` with the Configurator disabled, or `/phonepanel` with SQL persistence when enabled. English/German labels, validation, defaults and client sync remain aligned.
+- Add the `sky_phone_knoway_rides` fare journal and additive migration. Preserve accepted prices/refund policies, retain cleanup and recovery when the app is disabled, and quarantine ambiguous framework debit/credit results for manual review rather than replaying them.
+
+See the [KnoWay setup and payment-recovery guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/knoway.md). The linked Ocelot E-Stride vehicle is not bundled with Sky Phone. Exact model/game-build compatibility and multiplayer FiveM acceptance remain pending; browser/build checks do not establish native driving behaviour. This section does not change the resource version or announce a release.
+
+---
+
 # Sky Phone 1.4.1
 
 ## Changes

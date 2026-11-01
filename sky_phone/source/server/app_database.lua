@@ -4,6 +4,8 @@ SkyPhoneAppDatabase = {}
 -- safety, administration or receiving EasyShare content. Disabling an app must
 -- not break those consumers or bypass their ownership/reference checks.
 local shared_tables = {
+    -- Fare/refund recovery remains available while the app is disabled.
+    sky_phone_knoway_rides = true,
     sky_phone_notes = true,
     sky_phone_sms_messages = true,
     sky_phone_music_youtube_songs = true,
@@ -56,6 +58,7 @@ local callback_owners = {
     { "sky_phone:marketplace:", "citymarkt" },
     { "sky_phone:pages:", "local-pages" },
     { "sky_phone:skyride:", "skyride" },
+    { "sky_phone:knoway:", "knoway" },
     { "sky_phone:calendar:", "calendar" },
     { "sky_phone:music:", "music" },
     { "sky_phone:map:", "map" },
@@ -121,6 +124,9 @@ function SkyPhoneAppDatabase.CallbackApp(name)
 end
 
 local cleanup_callbacks = {
+    ["sky_phone:knoway:bootstrap"] = true,
+    ["sky_phone:knoway:start"] = true,
+    ["sky_phone:knoway:cancel"] = true,
     ["sky_phone:radio:disconnect"] = true,
     ["sky_phone:garage:valet-cancel"] = true,
     ["sky_phone:garage:valet-complete"] = true,

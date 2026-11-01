@@ -451,6 +451,7 @@ function configuratorSectionLabel(section: {
 }): string {
   if (section.id === 'config:general') return t('configurator.general.title')
   if (section.id === 'config:CellTowers') return phone.t('Cellular.group')
+  if (section.id === 'config:Knoway') return phone.t('Apps.knoway.name')
   if (section.id === 'config:Realtime') return phone.t('Realtime.settingsGroup')
   if (section.id === 'config:RealtimeSecrets')
     return phone.t('Realtime.credentialsGroup')
@@ -467,6 +468,10 @@ function configuratorDescription(
   structure?: AdminConfiguratorStructure,
   label?: string,
 ): string {
+  if (path === 'Apps.knoway') return t('configurator.knowayHelp.enabled')
+  if (path === 'Knoway' || path.startsWith('Knoway.')) {
+    return t(`configurator.knowayHelp.${path.split('.').at(-1)}`)
+  }
   if (path === 'CellTowers' || path.startsWith('CellTowers.')) {
     const parts = path.replace(/\[\d+\]/g, '').split('.')
     const key = parts.includes('Coords')
@@ -497,6 +502,39 @@ const configuratorEditorLabels = computed<AdminConfigEditorLabels>(() => ({
   emptyTable: t('configurator.table.emptyTable'),
   entry: t('configurator.table.entry'),
   fieldNames: Object.fromEntries([
+    ['Apps.knoway', phone.t('Apps.knoway.name')],
+    ['CellTowers.OfflineApps.knoway', phone.t('Apps.knoway.name')],
+    ['Knoway', phone.t('Apps.knoway.name')],
+    ...[
+      'VehicleModel',
+      'DriverModel',
+      'PaymentAccount',
+      'Currency',
+      'BaseFare',
+      'PricePerKilometer',
+      'MinimumFare',
+      'RouteDistanceMultiplier',
+      'AverageSpeedMetersPerSecond',
+      'QuoteLifetimeSeconds',
+      'MaximumDistanceMeters',
+      'MinimumDistanceMeters',
+      'MaxActiveRides',
+      'RequestCooldownSeconds',
+      'BoardingTimeoutSeconds',
+      'ApproachTimeoutSeconds',
+      'MaximumRideSeconds',
+      'MaxSpeedKmh',
+      'DrivingStyle',
+      'ArrivalRadius',
+      'SpawnMinimumDistance',
+      'SpawnMaximumDistance',
+      'RoadSnapDistance',
+      'StuckTimeoutSeconds',
+      'MaximumReplans',
+      'RefundBeforeStart',
+      'RefundAfterStart',
+      'RefundTechnicalFailure',
+    ].map((key) => [`Knoway.${key}`, t(`configurator.knowayLabels.${key}`)]),
     ['Apps.skypic', phone.t('Apps.skypic.name')],
     ['CellTowers', phone.t('Cellular.group')],
     ['Phone.DisabledControls', t('configurator.phoneDisabledControlsLabel')],

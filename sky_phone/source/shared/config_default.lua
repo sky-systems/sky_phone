@@ -85,6 +85,7 @@ Config.Apps = {
     garage = true,
     health = true,
     house = true,
+    knoway = false, -- Enable after installing and configuring the separate vehicle pack.
     ["local-pages"] = true,
     mail = true,
     map = true,
@@ -211,7 +212,7 @@ Config.CellTowers = {
         memory = true, messages = true, minesweeper = true, music = true,
         ["neon-drop"] = true, notes = true, ["number-merge"] = true,
         phone = true, photos = true, picstagram = false, radio = true,
-        settings = true, ["sky-flappy"] = true, skypic = false, skyride = false,
+        settings = true, ["sky-flappy"] = true, skypic = false, skyride = false, knoway = false,
         snake = true, ["tower-stack"] = true, weather = false, ["weazel-news"] = false,
     },
     -- Exceptions to offline apps. Ending calls and device controls always work.
@@ -818,6 +819,40 @@ Config.Calendar = {
     PastEditSeconds = 365 * 24 * 60 * 60,
     FutureSeconds = 5 * 365 * 24 * 60 * 60,
     ReminderPollSeconds = 15,
+}
+
+-- KnoWay uses the existing configuration source: this file when the Phone
+-- Configurator is disabled, otherwise /phonepanel and its persisted defaults.
+-- Install the vehicle separately and copy its verified vehicles.meta model name.
+Config.Knoway = {
+    VehicleModel = "",
+    DriverModel = "s_m_m_autoshop_01",
+    PaymentAccount = "bank",
+    Currency = "$",
+    BaseFare = 12,
+    PricePerKilometer = 18,
+    MinimumFare = 15,
+    RouteDistanceMultiplier = 1.25,
+    AverageSpeedMetersPerSecond = 12,
+    QuoteLifetimeSeconds = 120,
+    MaximumDistanceMeters = 40000,
+    MinimumDistanceMeters = 250,
+    MaxActiveRides = 10,
+    RequestCooldownSeconds = 60,
+    BoardingTimeoutSeconds = 120,
+    ApproachTimeoutSeconds = 180,
+    MaximumRideSeconds = 1800,
+    MaxSpeedKmh = 80,
+    DrivingStyle = 786603,
+    ArrivalRadius = 20,
+    SpawnMinimumDistance = 100,
+    SpawnMaximumDistance = 150,
+    RoadSnapDistance = 100,
+    StuckTimeoutSeconds = 45,
+    MaximumReplans = 2,
+    RefundBeforeStart = true,
+    RefundAfterStart = false,
+    RefundTechnicalFailure = true,
 }
 
 Config.SkyRide = {

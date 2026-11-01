@@ -140,6 +140,7 @@ const DEFAULT_APP_NOTIFICATIONS: Record<
   billing: { enabled: true, sounds: true },
   garage: { enabled: true, sounds: true },
   skyride: { enabled: true, sounds: true },
+  knoway: { enabled: true, sounds: true },
   house: { enabled: true, sounds: true },
   mail: { enabled: true, sounds: true },
   map: { enabled: true, sounds: true },

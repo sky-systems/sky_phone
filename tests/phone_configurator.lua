@@ -9,7 +9,7 @@ local function load_script(path, environment)
     assert(loadfile("sky_phone/" .. path, "t", environment))()
 end
 
-local function new_server(database, configure_defaults, defer_initialization)
+local function new_server(database, configure_defaults, defer_initialization, configure_file)
     database = database or { payloads = {}, writes = 0 }
     local callbacks, broadcasts, updates, migrations = {}, {}, {}, {}
     local noop = function() end
@@ -28,6 +28,7 @@ local function new_server(database, configure_defaults, defer_initialization)
     }, { __index = _G })
     load_script("config/init.lua", environment)
     load_script("config/config.lua", environment)
+    if configure_file then configure_file(environment.Config) end
     load_script("config/media.lua", environment)
     load_script("source/shared/config_default.lua", environment)
     if configure_defaults then configure_defaults(environment.ConfigDefaults) end
@@ -1425,6 +1426,100 @@ test("a save yielding during Crypto validation cannot overwrite a newer admin re
     local restarted = new_server(server.database)
     assert(restarted.env.Config.Phone.AllowMovement ~= server.env.ConfigDefaults.Phone.AllowMovement)
     assert(restarted.env.Config.Apps.feather ~= apps.feather)
+end)
+
+test("KnoWay has complete fixed configuration, localized labels and a disabled default", function()
+    local server = new_server()
+    local field = server.field("Knoway")
+    assert(server.field("Apps").value.knoway == false)
+    assert(field.value.VehicleModel == "" and field.value.MaxActiveRides == 10)
+    assert(field.value.BaseFare == 12 and field.value.PricePerKilometer == 18 and field.value.MinimumFare == 15)
+    assert(field.structure.kind == "table" and not field.structure.mutableKeys)
+    local locale_env = setmetatable({ Locales = {} }, { __index = _G })
+    load_script("config/locales/en.lua", locale_env)
+    load_script("config/locales/de.lua", locale_env)
+    for key, value in pairs(server.env.ConfigDefaults.Knoway) do
+        assert(field.structure.fields[key].valueType == type(value), "missing KnoWay schema: " .. key)
+        for _, language in ipairs({ "en", "de" }) do
+            local labels = locale_env.Locales[language].Nui.AdminPanel.configurator
+            assert(type(labels.knowayLabels[key]) == "string", "missing KnoWay label: " .. language .. ":" .. key)
+            assert(type(labels.knowayHelp[key]) == "string", "missing KnoWay help: " .. language .. ":" .. key)
+        end
+    end
+end)
+
+test("KnoWay settings and activation survive SQL reload and reach connected phones", function()
+    local server = new_server()
+    local client = new_client(server)
+    local settings = server.field("Knoway").value
+    local apps = server.field("Apps").value
+    settings.VehicleModel, settings.Currency = "verified_robotaxi_model", "€"
+    settings.BaseFare, settings.PricePerKilometer = 20, 9.5
+    settings.MaxSpeedKmh, settings.MaxActiveRides = 65, 4
+    settings.RefundBeforeStart, settings.RefundAfterStart, settings.RefundTechnicalFailure = false, true, false
+    apps.knoway = true
+    local result = server.save({ change("Knoway", settings), change("Apps", apps) })
+    assert(result.success, result.error)
+    client.sync(server.broadcasts[#server.broadcasts])
+    assert(client.config.Knoway.VehicleModel == "verified_robotaxi_model")
+    assert(client.config.Knoway.MaxSpeedKmh == 65 and client.config.Apps.knoway)
+    local restarted = new_server(server.database)
+    local saved = restarted.env.Config.Knoway
+    assert(saved.Currency == "€" and saved.PricePerKilometer == 9.5)
+    assert(saved.RefundBeforeStart == false and saved.RefundAfterStart and saved.RefundTechnicalFailure == false)
+    assert(new_client(restarted).config.Knoway.MaxActiveRides == 4)
+end)
+
+test("KnoWay rejects invalid limits and activation without a vehicle before any write", function()
+    local invalid = {
+        { "MaxActiveRides", 0 }, { "MaxActiveRides", 1.5 }, { "MaxSpeedKmh", 999 },
+        { "DrivingStyle", -1 }, { "RouteDistanceMultiplier", 0 }, { "MinimumDistanceMeters", 40000 },
+        { "SpawnMinimumDistance", 150 }, { "MaximumReplans", 6 }, { "VehicleModel", "../vehicle" },
+        { "DriverModel", "" }, { "PaymentAccount", "bank cash" }, { "Currency", "" },
+        { "RefundAfterStart", "yes" }, { "BaseFare", math.huge }, { "BaseFare", 0 / 0 },
+    }
+    for _, case in ipairs(invalid) do
+        local server = new_server()
+        local settings = server.field("Knoway").value
+        settings[case[1]] = case[2]
+        assert(not server.save({ change("Knoway", settings) }).success, case[1])
+        assert(server.database.writes == 0 and #server.broadcasts == 0)
+    end
+    local server = new_server()
+    local apps = server.field("Apps").value
+    apps.knoway = true
+    assert(server.save({ change("Apps", apps) }).error == "invalid_value")
+    assert(server.database.writes == 0)
+end)
+
+test("KnoWay honors file mode and never treats Lua overrides as panel values", function()
+    local function override(config)
+        config.Knoway.BaseFare = 99
+        config.Knoway.VehicleModel = "file_robotaxi"
+    end
+    local panel = new_server(nil, nil, nil, override)
+    assert(panel.env.Config.Knoway.BaseFare == 12 and panel.env.Config.Knoway.VehicleModel == "")
+    local file = new_server(nil, nil, nil, function(config)
+        config.PhoneConfigurator.Enabled = false
+        override(config)
+    end)
+    assert(file.env.Config.Knoway.BaseFare == 99 and file.env.Config.Knoway.VehicleModel == "file_robotaxi")
+    assert(not file.runtime().enabled)
+    assert(file.save({ change("Knoway", file.field("Knoway").value) }).error == "configurator_disabled")
+    assert(file.env.Config.Knoway.BaseFare == 99)
+end)
+
+test("existing SQL configurations acquire KnoWay defaults without resetting other settings", function()
+    local server = new_server()
+    local settings = server.field("Phone").value
+    settings.AllowMovement = not settings.AllowMovement
+    assert(server.save({ change("Phone", settings) }).success)
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.Knoway, stored.Apps.knoway = nil, nil
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.Knoway.BaseFare == 12)
+    assert(restarted.env.Config.Apps.knoway == false)
+    assert(restarted.env.Config.Phone.AllowMovement == settings.AllowMovement)
 end)
 
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))

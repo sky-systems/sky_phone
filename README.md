@@ -67,12 +67,14 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 | --- | --- |
 | **Communication** | Phone, Messages, Mail, DarkChat, Radio, EasyShare, group messaging, company calls, voice messages, and world payphones |
 | **Social** | Picstagram, FlipTok, Feather, Flare, and CrewLink |
-| **City & business** | Banking, Billing, Companies, CityMarkt, Local Pages, Garage, Housing, Maps, SkyRide, Weazel News, CityWarn, Crypto, and Health |
+| **City & business** | Banking, Billing, Companies, CityMarkt, Local Pages, Garage, Housing, Maps, SkyRide, KnoWay, Weazel News, CityWarn, Crypto, and Health |
 | **Media & productivity** | Camera, Photos, Music, Calendar, Clock, Notes, Voice Memos, Calculator, and Weather |
 | **Games** | Snake with levels, changing fruit and skins; Memory, Number Merge, Minesweeper, Tower Stack, Sky Flappy, and Neon Drop |
 | **Phone system** | App Store, Settings, lock screen, setup assistant, notifications, widgets, folders, passcodes, optional Face ID, multiple wallpapers, and light/dark appearance |
 
 Snake advances one level every 10 points, cycles through six food appearances, and changes between four skins every 30 points. The selected game speed stays unchanged. Restarting a round resets the level and skin; the high score remains saved. Artwork prompts and the existing visual reference are recorded in [the Snake asset directory](frontend/src/assets/img/games/snake/PROMPTS.md).
+
+[KnoWay](docs/knoway.md) adds optional autonomous robotaxi bookings with map/GPS destinations and prepaid fixed fares. It is disabled by default and requires a separately installed, verified vehicle resource and OneSync; configure it through `config.lua` or `/phonepanel` using the existing configuration mode.
 
 ## Built for players, owners, and developers
 

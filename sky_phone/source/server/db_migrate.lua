@@ -2170,6 +2170,32 @@ local schema = {
         tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     },
     {
+        name = "sky_phone_knoway_rides",
+        columns = {
+            { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },
+            { name = "owner_identifier", type = "VARCHAR(100) NOT NULL" },
+            { name = "active_owner", type = "VARCHAR(100) NULL" },
+            { name = "status", type = "VARCHAR(24) NOT NULL" },
+            { name = "payment_status", type = "VARCHAR(24) NOT NULL" },
+            { name = "price", type = "INT UNSIGNED NOT NULL" },
+            { name = "payment_account", type = "VARCHAR(32) NOT NULL" },
+            { name = "currency", type = "VARCHAR(8) NOT NULL" },
+            { name = "payload", type = "LONGTEXT NOT NULL" },
+            { name = "reason", type = "VARCHAR(40) NULL" },
+            { name = "created_epoch", type = "BIGINT UNSIGNED NOT NULL" },
+            { name = "updated_epoch", type = "BIGINT UNSIGNED NOT NULL" },
+        },
+        primaryKey = "id",
+        uniqueKeys = {
+            { name = "uq_sky_phone_knoway_active_owner", columns = "(`active_owner`)" },
+        },
+        indexes = {
+            { name = "idx_sky_phone_knoway_recovery", columns = "(`payment_status`, `updated_epoch`)" },
+            { name = "idx_sky_phone_knoway_owner", columns = "(`owner_identifier`, `created_epoch`)" },
+        },
+        tableOptions = "ENGINE=InnoDB",
+    },
+    {
         name = "sky_phone_skyride_profiles",
         columns = {
             { name = "id", type = "CHAR(36) NOT NULL", characterSet = "ascii", collation = "ascii_bin" },

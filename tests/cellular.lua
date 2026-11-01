@@ -34,7 +34,7 @@ for _, endpoint in ipairs({
     "calls:dial", "calls:answer", "calls:video", "messages:send", "messages:media",
     "feather:feed", "fliptok:publish", "picstagram:feed", "weazel-news:list",
     "banking:transfer", "crypto:execute", "crewlink:bootstrap", "weather:get",
-    "custom-app:storage:set", "media:import:url", "music:add-youtube",
+    "custom-app:storage:set", "media:import:url", "music:add-youtube", "knoway:quote", "knoway:request",
 }) do assert(SkyPhoneCellular.RequiresSignal(endpoint), endpoint .. " must require reception") end
 for _, endpoint in ipairs({
     "contacts:list", "calls:recents", "messages:thread", "notes:create", "calendar:update",
@@ -42,6 +42,7 @@ for _, endpoint in ipairs({
     "music:bootstrap", "radio:connect", "map:setWaypoint", "health:overview",
     "admin:delete-social-post", "calls:hangup", "calls:decline", "realtime:leave",
     "close", "device:open", "navigation:state", "security:unlock",
+    "knoway:bootstrap", "knoway:start", "knoway:cancel",
 }) do assert(not SkyPhoneCellular.RequiresSignal(endpoint), endpoint .. " must work offline") end
 
 Config.CellTowers.OfflineApps["offline-custom"] = true

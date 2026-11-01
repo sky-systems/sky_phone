@@ -986,6 +986,25 @@ CREATE TABLE IF NOT EXISTS `sky_phone_picstagram_moderation_audit` (
     FOREIGN KEY (`report_id`) REFERENCES `sky_phone_picstagram_reports` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sky_phone_knoway_rides` (
+    `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    `owner_identifier` VARCHAR(100) NOT NULL,
+    `active_owner` VARCHAR(100) NULL,
+    `status` VARCHAR(24) NOT NULL,
+    `payment_status` VARCHAR(24) NOT NULL,
+    `price` INT UNSIGNED NOT NULL,
+    `payment_account` VARCHAR(32) NOT NULL,
+    `currency` VARCHAR(8) NOT NULL,
+    `payload` LONGTEXT NOT NULL,
+    `reason` VARCHAR(40) NULL,
+    `created_epoch` BIGINT UNSIGNED NOT NULL,
+    `updated_epoch` BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_sky_phone_knoway_active_owner` (`active_owner`),
+    INDEX `idx_sky_phone_knoway_recovery` (`payment_status`, `updated_epoch`),
+    INDEX `idx_sky_phone_knoway_owner` (`owner_identifier`, `created_epoch`)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS `sky_phone_skyride_profiles` (
     `id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     `owner_identifier` VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
