@@ -23,8 +23,9 @@ Relative to the installed `sky_phone` directory:
 - `SOURCE.txt` and `RELEASE_NOTES.md` - package provenance and update instructions.
 - `source/bridge/phones/shared.lua`, `source/bridge/phones/client/lifecycle.lua` and `source/bridge/phones/server/lifecycle.lua` - removal of fabricated lifecycle events and Phone-owned readiness notifications.
 - `README.md` and `integrations/COMPATIBILITY_LIFECYCLE.md` - compatibility startup and restart contracts.
+- `source/html/` - complete rebuilt NUI. Replace it as a unit, including generated asset filenames, and restore custom files afterward.
 
-Frontend source and dependency versions are unchanged; the normal release workflow rebuilds the packaged NUI. No resource files are removed or renamed. Regression tests remain outside the deployable resource.
+Frontend application source and dependency versions are unchanged; the normal release workflow rebuilds the packaged NUI. No files are removed or renamed outside the rebuilt NUI bundle. Regression tests remain outside the deployable resource.
 
 ---
 
