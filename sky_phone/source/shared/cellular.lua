@@ -42,6 +42,8 @@ function SkyPhoneCellular.RequiresSignal(endpoint, data)
     if SkyPhoneCellular.SystemNamespaces[namespace] or SkyPhoneCellular.CleanupActions[endpoint] then
         return false
     end
+    -- App access keeps accepted rides reachable; new bookings still need reception.
+    if endpoint == "knoway:quote" or endpoint == "knoway:request" then return true end
     if Config.CellTowers.OnlineActions[endpoint] then return true end
     local app = SkyPhoneCellular.AppNamespaces[namespace] or namespace
     if namespace == "custom-app" and type(data) == "table" and type(data.appId) == "string" then

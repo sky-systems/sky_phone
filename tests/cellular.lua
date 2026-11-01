@@ -77,4 +77,38 @@ position = vector3(200, 0, 0)
 Config.CellTowers.Enabled = false
 handlers["sky_phone:bridge:callback:request"]("sky_phone:banking:transfer", 3, {})
 assert(response.success and called == 2, "Master switch must bypass coverage server-side")
+local knoway_called = 0
+for _, action in ipairs({ "bootstrap", "start", "cancel", "quote", "request" }) do
+    Bridge.Callbacks.Register("sky_phone:knoway:" .. action, function()
+        knoway_called = knoway_called + 1
+        return { success = true }
+    end)
+end
+Config.CellTowers.Enabled = true
+for _, offline in ipairs({ false, true }) do
+    Config.CellTowers.OfflineApps.knoway = offline
+    for _, action in ipairs({ "bootstrap", "start", "cancel" }) do
+        handlers["sky_phone:bridge:callback:request"]("sky_phone:knoway:" .. action, 4, {})
+        assert(response.success, "Accepted KnoWay rides must remain readable and controllable offline")
+    end
+    local before_booking = knoway_called
+    for _, action in ipairs({ "quote", "request" }) do
+        handlers["sky_phone:bridge:callback:request"]("sky_phone:knoway:" .. action, 5, {})
+        assert(response.error == "no_signal" and knoway_called == before_booking,
+            "New KnoWay bookings must require reception even when the app is marked offline")
+    end
+end
+assert(knoway_called == 6)
+position = vector3(50, 0, 0)
+for _, action in ipairs({ "quote", "request" }) do
+    handlers["sky_phone:bridge:callback:request"]("sky_phone:knoway:" .. action, 6, {})
+    assert(response.success, "Reception recovery must restore KnoWay bookings")
+end
+position = vector3(200, 0, 0)
+Config.CellTowers.Enabled = false
+for _, action in ipairs({ "quote", "request" }) do
+    handlers["sky_phone:bridge:callback:request"]("sky_phone:knoway:" .. action, 7, {})
+    assert(response.success, "The cellular master switch must bypass KnoWay coverage requirements")
+end
+assert(knoway_called == 10)
 print("Cellular coverage, offline policy and authoritative transport tests passed")

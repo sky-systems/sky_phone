@@ -104,16 +104,9 @@ local function locked(key, action)
     return result
 end
 
-local function online_owner(identifier)
-    for _, player in ipairs(Bridge.Framework.GetPlayers()) do
-        if Bridge.Framework.GetIdentifier(player) == identifier then return player end
-    end
-end
-
-local function refund(row)
+local function refund(row, player)
     if row.payment_status ~= "refund_pending" then return end
-    local player = online_owner(row.owner_identifier)
-    if not player then return end
+    if not player or Bridge.Framework.GetIdentifier(player) ~= row.owner_identifier then return end
     local claim = Bridge.Database.Query([[
         UPDATE `sky_phone_knoway_rides` SET `payment_status` = 'refund_processing', `updated_epoch` = ?
         WHERE `id` = ? AND `payment_status` = 'refund_pending'
@@ -204,7 +197,7 @@ local function finish(ride, status, reason, technical)
     push(ride)
     if payment == "refund_pending" then
         refund({ id = ride.id, owner_identifier = ride.owner, payment_status = payment,
-            price = ride.price, payment_account = ride.config.PaymentAccount })
+            price = ride.price, payment_account = ride.config.PaymentAccount }, ride.source)
     end
     return state(ride.source, ride)
 end
@@ -443,10 +436,24 @@ local function tick(ride, now)
 end
 
 local function recovery()
-    local rows = Bridge.Database.Query([[
-        SELECT * FROM `sky_phone_knoway_rides` WHERE `payment_status` = 'refund_pending' LIMIT 100
-    ]], {})
-    for _, row in ipairs(rows) do refund(row) end
+    local players, identifiers, placeholders = {}, {}, {}
+    for _, player in ipairs(Bridge.Framework.GetPlayers()) do
+        local identifier = Bridge.Framework.GetIdentifier(player)
+        if identifier and not players[identifier] then
+            players[identifier] = player
+            identifiers[#identifiers + 1] = identifier
+            placeholders[#placeholders + 1] = "?"
+        end
+    end
+    if #identifiers == 0 then return end
+    -- Offline claims must not fill the bounded batch ahead of payable refunds.
+    -- Oldest attempts go first so rejected credits rotate through later batches.
+    local rows = Bridge.Database.Query(([[
+        SELECT * FROM `sky_phone_knoway_rides` WHERE `payment_status` = 'refund_pending'
+            AND `owner_identifier` IN (%s)
+        ORDER BY `updated_epoch`, `id` LIMIT 100
+    ]]):format(table.concat(placeholders, ",")), identifiers)
+    for _, row in ipairs(rows) do refund(row, players[row.owner_identifier]) end
 end
 
 -- A cold start never resumes an unattended journey or guesses an ambiguous debit.

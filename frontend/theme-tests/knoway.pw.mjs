@@ -70,6 +70,35 @@ for (const mode of ['light', 'dark']) {
     await expect(
       page.getByRole('button', { name: 'Fahrt starten' }),
     ).toBeVisible({ timeout: 12000 })
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: 'cellular:update',
+          data: {
+            enabled: true,
+            hasSignal: false,
+            bars: 0,
+            offlineApps: { knoway: false },
+            onlineActions: {},
+            appNamespaces: {},
+            systemNamespaces: {
+              ui: true,
+              device: true,
+              close: true,
+              navigation: true,
+            },
+            cleanupActions: {
+              'knoway:bootstrap': true,
+              'knoway:start': true,
+              'knoway:cancel': true,
+            },
+          },
+        },
+        '*',
+      )
+    })
+    await expect(page.locator('.phone-no-signal')).toBeVisible()
+    await expect(page.locator('.knoway-app')).toBeVisible()
     await page.getByRole('button', { name: 'Fahrt starten' }).click()
     await expect(
       page.getByRole('button', { name: 'Fahrt beenden' }),
@@ -88,6 +117,7 @@ for (const mode of ['light', 'dark']) {
     await expect(
       page.getByRole('button', { name: 'Fahrt beenden' }),
     ).toBeVisible()
+    await expect(page.locator('.phone-no-signal')).toBeVisible()
     await page.getByRole('button', { name: 'Fahrt beenden' }).click()
     await expect(
       page.getByRole('button', { name: 'Neue Fahrt planen' }),

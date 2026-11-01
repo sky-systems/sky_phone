@@ -43,6 +43,32 @@ describe('cellular policy supplied by Lua', () => {
       true,
     )
   })
+  it.each([false, true])(
+    'keeps KnoWay ride controls reachable with offlineApps.knoway=%s',
+    (offline) => {
+      cellular.offlineApps.knoway = offline
+      Object.assign(cellular.cleanupActions, {
+        'knoway:bootstrap': true,
+        'knoway:start': true,
+        'knoway:cancel': true,
+      })
+
+      expect(appNeedsSignal('knoway')).toBe(false)
+      for (const action of ['bootstrap', 'start', 'cancel'])
+        expect(blocksCellularRequest(`knoway:${action}`)).toBe(false)
+      for (const action of ['quote', 'request'])
+        expect(blocksCellularRequest(`knoway:${action}`)).toBe(true)
+
+      cellular.hasSignal = true
+      expect(blocksCellularRequest('knoway:quote')).toBe(false)
+      expect(blocksCellularRequest('knoway:request')).toBe(false)
+      cellular.hasSignal = false
+      cellular.enabled = false
+      expect(appNeedsSignal('knoway')).toBe(false)
+      expect(blocksCellularRequest('knoway:quote')).toBe(false)
+      expect(blocksCellularRequest('knoway:request')).toBe(false)
+    },
+  )
   it('restores requests when reception returns or the master switch is off', () => {
     cellular.hasSignal = true
     expect(blocksCellularRequest('calls:dial')).toBe(false)

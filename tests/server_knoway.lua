@@ -120,12 +120,30 @@ local function fixture(options)
         end
         if sql:find("SELECT *", 1, true) then
             local result = {}
+            local pending_refunds = sql:find("'refund_pending'", 1, true)
+            local online_owners = sql:find("`owner_identifier` IN", 1, true) and {} or nil
+            if online_owners then
+                for _, identifier in ipairs(params) do online_owners[identifier] = true end
+            end
             for _, row in pairs(s.rows) do
-                if sql:find("'refund_pending'", 1, true) and row.payment_status == "refund_pending"
-                    or not sql:find("'refund_pending'", 1, true) and row.payment_status == "charged"
+                if pending_refunds and row.payment_status == "refund_pending"
+                        and (not online_owners or online_owners[row.owner_identifier])
+                    or not pending_refunds and row.payment_status == "charged"
                         and (row.status == "preparing" or row.status == "approaching" or row.status == "waiting" or row.status == "driving") then
                     result[#result + 1] = copy(row)
                 end
+            end
+            if pending_refunds then
+                -- Model the recovery index order and SQL batch limit, including
+                -- claims belonging to offline players unless SQL filters them.
+                table.sort(result, function(a, b)
+                    local a_epoch, b_epoch = a.updated_epoch or 0, b.updated_epoch or 0
+                    return a_epoch < b_epoch or a_epoch == b_epoch and a.id < b.id
+                end)
+            end
+            local limit = tonumber(sql:match("LIMIT%s+(%d+)"))
+            if limit then
+                for index = #result, limit + 1, -1 do result[index] = nil end
             end
             return result
         end
@@ -176,13 +194,14 @@ local function fixture(options)
                 local row = s.rows[params[change[3]]]
                 if not row or row.payment_status ~= change[2] then return 0 end
                 row.payment_status = change[1]
+                if change[3] == 2 then row.updated_epoch = params[1] end
                 return 1
             end
         end
         if sql:find("SET `payment_status` = ?", 1, true) then
             local row = s.rows[params[3]]
             if not row or row.payment_status ~= "refund_processing" then return 0 end
-            row.payment_status = params[1]
+            row.payment_status, row.updated_epoch = params[1], params[2]
             return 1
         end
         error("Unexpected KnoWay SQL: " .. sql)
@@ -319,6 +338,52 @@ retry.env.Config.Apps.knoway = false; retry.refund_fail = false; retry.work(16)
 assert(retry.rows[retry_ride.id].payment_status == "refunded" and retry.players[7].balance == 1000)
 local refund_attempts = retry.refunds; retry.work(16)
 assert(retry.refunds == refund_attempts, "a failed refund can retry while disabled but a successful refund cannot repeat")
+
+local offline_backlog = {}
+for index = 1, 101 do
+    local id = ("backlog-%03d"):format(index)
+    offline_backlog[id] = { id = id, owner_identifier = index == 101 and "owner-7" or "offline-owner-" .. index,
+        status = "failed", payment_status = "refund_pending", price = 35, payment_account = "bank", updated_epoch = index }
+end
+local backlog = fixture({ enabled = false, rows = offline_backlog })
+backlog.work(16)
+assert(backlog.rows["backlog-101"].payment_status == "refunded" and backlog.refunds == 1,
+    "100 older offline claims must not block an online owner's refund")
+assert(backlog.players[7].balance == 1035 and backlog.rows["backlog-001"].payment_status == "refund_pending")
+backlog.work(16); backlog.work(16)
+assert(backlog.refunds == 1 and backlog.players[7].balance == 1035, "backlog recovery must never refund twice")
+
+local online_backlog = {}
+for index = 1, 101 do
+    local id = ("online-%03d"):format(index)
+    online_backlog[id] = { id = id, owner_identifier = "owner-7", status = "failed", payment_status = "refund_pending",
+        price = 1, payment_account = "bank", updated_epoch = index }
+end
+local batches = fixture({ rows = online_backlog })
+batches.work(16)
+assert(batches.refunds == 100 and batches.rows["online-101"].payment_status == "refund_pending",
+    "recovery must keep the SQL batch bounded to 100 claims")
+batches.work(16); batches.work(16)
+assert(batches.refunds == 101 and batches.players[7].balance == 1101,
+    "later batches must recover the remaining claim exactly once")
+
+local rejected_backlog = {}
+for index = 1, 101 do
+    local id = ("rejected-%03d"):format(index)
+    rejected_backlog[id] = { id = id, owner_identifier = index == 101 and "owner-8" or "owner-7",
+        status = "failed", payment_status = "refund_pending", price = 1, payment_account = "bank", updated_epoch = index }
+end
+local rejected = fixture({ rows = rejected_backlog })
+local add_money = rejected.env.Bridge.Framework.AddMoney
+rejected.env.Bridge.Framework.AddMoney = function(source, account, amount)
+    if source == 7 then return false end
+    return add_money(source, account, amount)
+end
+rejected.work(16)
+assert(rejected.rows["rejected-101"].payment_status == "refund_pending")
+rejected.work(16); rejected.work(16)
+assert(rejected.rows["rejected-101"].payment_status == "refunded" and rejected.players[8].balance == 1001,
+    "rejected credits must rotate behind older unattempted claims without double refunds")
 
 local disabled = fixture({ enabled = false })
 assert(disabled.invoke("quote").error == "app_disabled" and disabled.invoke("request").error == "app_disabled")
