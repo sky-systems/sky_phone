@@ -1,8 +1,6 @@
 dofile("sky_phone/source/bridge/phones/shared.lua")
 
 assert(type(SkyPhoneCompatibility.RegisterExportAlias) == "function", "Shared core must expose export aliases")
-assert(type(SkyPhoneCompatibility.EmitServerProviderStop) == "function", "Shared core must expose stop lifecycle")
-assert(type(SkyPhoneCompatibility.EmitServerProviderStart) == "function", "Shared core must expose start lifecycle")
 assert(type(SkyPhoneCompatibility.NormalizeAtResourceUrl) == "function", "Shared core must expose URL validation")
 assert(SkyPhoneCompatibility.Providers.lb == "lb_phone", "Shared core must expose provider constants")
 assert(SkyPhoneCompatibility.BuildLbDefinition == nil, "Shared core must not contain the LB mapper")

@@ -69,9 +69,7 @@ describe('phone inventory contracts', () => {
   })
 
   it('uses One Inventory slot ids and authoritative slot reads', () => {
-    const adapter = readResourceFile(
-      'source/bridge/server/inventory/one.lua',
-    )
+    const adapter = readResourceFile('source/bridge/server/inventory/one.lua')
 
     expect(adapter).toContain('inventory:GetSlotIdsWithItem(')
     expect(adapter).toContain(
@@ -145,9 +143,6 @@ describe('phone inventory contracts', () => {
     const phoneServer = readResourceFile('source/server/phone.lua')
     const clientBridge = readResourceFile('source/bridge/phones/client/lb.lua')
     const serverBridge = readResourceFile('source/bridge/phones/server/lb.lua')
-    const serverLifecycle = readResourceFile(
-      'source/bridge/phones/server/lifecycle.lua',
-    )
 
     expect(clientBridge).toMatch(
       /"GetEquippedPhoneNumber",\s+phone\.GetEquippedPhoneNumber/,
@@ -201,12 +196,31 @@ describe('phone inventory contracts', () => {
     expect(phoneServer).toContain(
       'TriggerEvent("sky_phone:server:phoneNumberChanged", source, phone_number)',
     )
-    expect(serverLifecycle).toContain(
-      'SkyPhoneCompatibility.EmitServerProviderStop(LB_PROVIDER_NAME)',
+  })
+
+  it('announces compatibility readiness without fabricating resource lifecycle events', () => {
+    const clientLifecycle = readResourceFile(
+      'source/bridge/phones/client/lifecycle.lua',
+    )
+    const serverLifecycle = readResourceFile(
+      'source/bridge/phones/server/lifecycle.lua',
+    )
+    const sharedBridge = readResourceFile('source/bridge/phones/shared.lua')
+
+    expect(clientLifecycle).toContain(
+      'TriggerEvent("sky_phone:client:compatReady")',
     )
     expect(serverLifecycle).toContain(
-      'SkyPhoneCompatibility.EmitServerProviderStart(LB_PROVIDER_NAME)',
+      'TriggerEvent("sky_phone:server:compatReady")',
     )
+    expect(serverLifecycle).toContain(
+      'server_bridge.AfterPhoneReady(notify_compatibility_ready)',
+    )
+    for (const source of [clientLifecycle, serverLifecycle, sharedBridge]) {
+      expect(source).not.toMatch(
+        /TriggerEvent\(\s*["']on(?:Client|Server)?Resource(?:Start|Stop)["']/,
+      )
+    }
   })
 
   it('maps LB client lifecycle and state contracts', () => {
