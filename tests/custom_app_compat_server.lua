@@ -5,6 +5,15 @@ local registered_exports = {}
 local sent_events = {}
 local triggered_events = {}
 local invoking_resource = nil
+local foreign_lifecycle_events = {}
+local lifecycle_event_names = {
+    onClientResourceStart = true,
+    onClientResourceStop = true,
+    onServerResourceStart = true,
+    onServerResourceStop = true,
+    onResourceStart = true,
+    onResourceStop = true,
+}
 local seam_calls = {
     equipped_number = {},
     formatted_number = {},
@@ -45,6 +54,14 @@ function AddEventHandler(event_name, handler)
     handlers[#handlers + 1] = handler
     registered_event_handlers[event_name] = handlers
 end
+for event_name in pairs(lifecycle_event_names) do
+    AddEventHandler(event_name, function(resource_name)
+        foreign_lifecycle_events[#foreign_lifecycle_events + 1] = {
+            event_name = event_name,
+            resource_name = resource_name,
+        }
+    end)
+end
 
 function TriggerClientEvent(event_name, target, ...)
     sent_events[#sent_events + 1] = {
@@ -55,10 +72,30 @@ function TriggerClientEvent(event_name, target, ...)
 end
 
 function TriggerEvent(event_name, ...)
+    if event_name == "sky_phone:server:compatReady" then
+        assert(SkyPhoneCompatibilityServer.Phone,
+            "Phone compatibility must wait for the migrated phone core before announcing readiness")
+        for _, registration_event in ipairs({
+            "__cfx_export_lb-phone_GetEquippedPhoneNumber",
+            "__cfx_export_17mov_Phone_GetNumberFromPlayer",
+            "__cfx_export_high-phone_addApplication",
+            "__cfx_export_qs-smartphone_GetCurrentPhoneNumber",
+            "__cfx_export_yseries_GetPhoneNumberBySourceId",
+        }) do
+            assert(registered_event_handlers[registration_event],
+                "Phone compatibility must register alias exports before announcing readiness")
+        end
+    end
     triggered_events[#triggered_events + 1] = {
         arguments = { ... },
         event_name = event_name,
     }
+    if lifecycle_event_names[event_name] then
+        local handlers = registered_event_handlers[event_name] or {}
+        for index = 1, #handlers do
+            handlers[index](...)
+        end
+    end
 end
 
 dofile("sky_phone/source/shared/imei.lua")
@@ -193,11 +230,18 @@ local function invoke_event_handlers(event_name, ...)
     end
 end
 
-assert(triggered_events[1].event_name == "onServerResourceStop", "LB server export caches must be invalidated")
-assert(triggered_events[1].arguments[1] == "lb-phone", "LB server stop must use the provided resource name")
-assert(triggered_events[2].event_name == "onResourceStop", "LB generic stop listeners must be notified")
-assert(triggered_events[3].event_name == "onServerResourceStart", "LB server start listeners must be notified")
-assert(triggered_events[4].event_name == "onResourceStart", "LB generic start listeners must be notified")
+assert(#foreign_lifecycle_events == 0,
+    "Phone startup must not invoke unrelated resource lifecycle listeners")
+local compat_ready_count = 0
+for index = 1, #triggered_events do
+    local event = triggered_events[index]
+    assert(not lifecycle_event_names[event.event_name],
+        ("Phone startup must not fabricate %s for %s"):format(event.event_name, tostring(event.arguments[1])))
+    if event.event_name == "sky_phone:server:compatReady" then
+        compat_ready_count = compat_ready_count + 1
+    end
+end
+assert(compat_ready_count == 1, "Phone compatibility must announce server readiness exactly once")
 
 local lifecycle_event_offset = #triggered_events
 invoke_event_handlers("sky_phone:server:phoneNumberChanged", 42, "5550000042")
@@ -450,14 +494,16 @@ assert(
 assert(sent_events[3].arguments[2] == "bankingv2", "High owner cleanup must remove its app")
 
 local shutdown_event_offset = #triggered_events
+local shutdown_lifecycle_count = #foreign_lifecycle_events
 invoke_event_handlers("onResourceStop", "sky_phone")
-assert(
-    triggered_events[shutdown_event_offset + 1].event_name == "onServerResourceStop",
-    "Sky Phone shutdown must invalidate the LB server cache"
-)
-assert(
-    triggered_events[shutdown_event_offset + 2].event_name == "onResourceStop",
-    "Sky Phone shutdown must notify LB generic stop listeners"
-)
+for index = shutdown_event_offset + 1, #triggered_events do
+    local event = triggered_events[index]
+    assert(not lifecycle_event_names[event.event_name],
+        ("Phone shutdown must not fabricate %s for %s"):format(event.event_name, tostring(event.arguments[1])))
+end
+assert(#foreign_lifecycle_events == shutdown_lifecycle_count + 1
+    and foreign_lifecycle_events[#foreign_lifecycle_events].event_name == "onResourceStop"
+    and foreign_lifecycle_events[#foreign_lifecycle_events].resource_name == "sky_phone",
+    "Phone shutdown must notify unrelated lifecycle listeners only about the real stopped resource")
 
 print("Custom app compatibility server tests passed")

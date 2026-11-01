@@ -37,20 +37,6 @@ function SkyPhoneCompatibility.RegisterExportAlias(resource_name, export_name, h
     end)
 end
 
-function SkyPhoneCompatibility.EmitServerProviderStop(resource_name)
-    assert(type(resource_name) == "string" and resource_name ~= "", "Provider resource must be a non-empty string")
-
-    TriggerEvent("onServerResourceStop", resource_name)
-    TriggerEvent("onResourceStop", resource_name)
-end
-
-function SkyPhoneCompatibility.EmitServerProviderStart(resource_name)
-    assert(type(resource_name) == "string" and resource_name ~= "", "Provider resource must be a non-empty string")
-
-    TriggerEvent("onServerResourceStart", resource_name)
-    TriggerEvent("onResourceStart", resource_name)
-end
-
 SkyPhoneCompatibility.Providers = {
     lb = "lb_phone",
     seventeen = "17mov",
