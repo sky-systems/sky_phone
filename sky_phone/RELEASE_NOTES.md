@@ -3,14 +3,15 @@
 ## KnoWay autonomous rides
 
 - Add the optional built-in KnoWay app with map/GPS destination selection, fixed-price quotes, robotaxi pickup, passenger boarding, owner-controlled departure and live trip status. Closing the phone does not end the ride. SkyRide remains the player-driver service.
-- Add server-managed vehicle/driver lifecycle, an invisible AI driver with a reserved driver seat, bounded routing retries and occupied-vehicle cleanup. OneSync and a separately installed, verified vehicle resource are required; the app is disabled and its vehicle model empty by default.
+- Add server-managed vehicle/driver lifecycle, an invisible AI driver with a reserved driver seat, bounded routing retries and occupied-vehicle cleanup. OneSync is required; the app is disabled and its vehicle model empty by default.
+- Include the KnoWay E-Stride directly in `stream/`, with vehicle layouts, handling, vehicle and variation metadata in `data/`. Select `knowayest` or retain a verified custom model in the existing configuration. Remove any separately installed copy before activating the bundled model. The eight files retain their verified hashes and Legacy build 3258 metadata; actual streaming and driving remain to be tested in FiveM.
 - Expose the full KnoWay configuration through both existing configuration modes: `config.lua` with the Configurator disabled, or `/phonepanel` with SQL persistence when enabled. English/German labels, validation, defaults and client sync remain aligned.
 - Add the `sky_phone_knoway_rides` fare journal and additive migration. Preserve accepted prices/refund policies, retain cleanup and recovery when the app is disabled, and quarantine ambiguous framework debit/credit results for manual review rather than replaying them.
 - Recover online owners' refunds without letting offline claims or rejected credits block later batches. Keep each batch bounded and successful credits protected against replay.
 - Keep existing ride controls accessible without reception, including after reopening the app. New quotes and bookings still require reception while cellular restrictions are enabled.
 - Validate the configured currency against the journal's eight-character limit before saving, including Unicode values.
 
-See the [KnoWay setup and payment-recovery guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/knoway.md). The linked Ocelot E-Stride vehicle is not bundled with Sky Phone. Exact model/game-build compatibility and multiplayer FiveM acceptance remain pending; browser/build checks do not establish native driving behaviour. This section does not change the resource version or announce a release.
+See the [KnoWay setup and payment-recovery guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/knoway.md) and the [project asset notice](https://github.com/sky-systems/sky_phone/blob/dev/THIRD_PARTY_ASSETS.md). The vehicle is included only with the free project and may not be redistributed in paid or paywalled bundles. Multiplayer FiveM acceptance remains pending; browser/build checks do not establish native driving behaviour. This section does not change the resource version or announce a release.
 
 ---
 

@@ -85,7 +85,7 @@ Config.Apps = {
     garage = true,
     health = true,
     house = true,
-    knoway = false, -- Enable after installing and configuring the separate vehicle pack.
+    knoway = false, -- Configure the bundled knowayest model (or a verified custom model), then enable.
     ["local-pages"] = true,
     mail = true,
     map = true,
@@ -823,7 +823,7 @@ Config.Calendar = {
 
 -- KnoWay uses the existing configuration source: this file when the Phone
 -- Configurator is disabled, otherwise /phonepanel and its persisted defaults.
--- Install the vehicle separately and copy its verified vehicles.meta model name.
+-- The bundled vehicle uses modelName "knowayest"; a verified custom model can also be configured.
 Config.Knoway = {
     VehicleModel = "",
     DriverModel = "s_m_m_autoshop_01",

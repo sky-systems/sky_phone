@@ -855,9 +855,9 @@ Locales["it"] = {
                     RefundTechnicalFailure = "Rimborsa i guasti tecnici",
                 },
                 knowayHelp = {
-                    Knoway = "Viaggi autonomi con un pacchetto di veicoli separato. Configura il modello verificato e attiva KnoWay in Apps. Le modifiche si applicano alle nuove prenotazioni; le tariffe e le condizioni di rimborso accettate restano valide.",
-                    enabled = "Attiva KnoWay solo dopo aver installato la risorsa del veicolo e inserito il nome del modello verificato in KnoWay. I viaggi e i rimborsi esistenti vengono comunque gestiti dopo la disattivazione.",
-                    VehicleModel = "Il modelName esatto del vehicles.meta installato, non il nome della cartella DLC. Fino a 64 lettere, cifre, trattini bassi o trattini. Obbligatorio prima di attivare l'app. Il veicolo non è incluso in Sky Phone.",
+                    Knoway = "Viaggi autonomi con il veicolo knowayest incluso. Inserisci knowayest o un altro modello verificato, poi attiva KnoWay in Apps. Le modifiche si applicano alle nuove prenotazioni; le tariffe e le condizioni di rimborso accettate restano valide.",
+                    enabled = "Inserisci il modello knowayest incluso o un altro modello di veicolo verificato in KnoWay prima di attivare l’app. I viaggi e i rimborsi esistenti vengono comunque gestiti dopo la disattivazione.",
+                    VehicleModel = "Usa knowayest per il veicolo incluso, oppure il modelName esatto di un altro vehicles.meta installato, non il nome della cartella DLC. Fino a 64 lettere, cifre, trattini bassi o trattini. Obbligatorio prima di attivare l’app.",
                     DriverModel = "Modello di ped usato per il conducente IA invisibile. Il posto di guida resta riservato; i passeggeri non ricevono chiavi personali del veicolo.",
                     PaymentAccount = "Conto del framework per addebiti e rimborsi, ad esempio bank. Il nome esatto del conto deve essere supportato dal framework configurato per il telefono.",
                     Currency = "Solo simbolo visualizzato, fino a 12 byte. Non converte saldi o prezzi.",

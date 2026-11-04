@@ -855,9 +855,9 @@ Locales["pl"] = {
                     RefundTechnicalFailure = "Zwrot przy awarii technicznej",
                 },
                 knowayHelp = {
-                    Knoway = "Autonomiczne przejazdy z osobnym pakietem pojazdu. Ustaw sprawdzony model i włącz KnoWay w aplikacjach. Zmiany dotyczą nowych rezerwacji; zaakceptowane ceny i warunki zwrotu pozostają bez zmian.",
-                    enabled = "Włącz KnoWay dopiero po zainstalowaniu zasobu pojazdu i wpisaniu jego sprawdzonej nazwy modelu. Wyłączenie nie przerywa rozliczania istniejących przejazdów i zwrotów.",
-                    VehicleModel = "Dokładna wartość modelName z zainstalowanego pliku vehicles.meta, a nie nazwa folderu DLC. Do 64 liter, cyfr, podkreśleń lub łączników. Wymagana przed włączeniem aplikacji. Pojazd nie jest dołączony do Sky Phone.",
+                    Knoway = "Autonomiczne przejazdy z dołączonym pojazdem knowayest. Wpisz knowayest lub inny sprawdzony model, a następnie włącz KnoWay w aplikacjach. Zmiany dotyczą nowych rezerwacji; zaakceptowane ceny i warunki zwrotu pozostają bez zmian.",
+                    enabled = "Przed włączeniem aplikacji wpisz w KnoWay dołączony model knowayest lub inny sprawdzony model pojazdu. Wyłączenie nie przerywa rozliczania istniejących przejazdów i zwrotów.",
+                    VehicleModel = "Użyj knowayest dla dołączonego pojazdu lub dokładnej wartości modelName z innego zainstalowanego pliku vehicles.meta, a nie nazwy folderu DLC. Do 64 liter, cyfr, podkreśleń lub łączników. Wymagana przed włączeniem aplikacji.",
                     DriverModel = "Model postaci niewidocznego kierowcy AI. Fotel kierowcy pozostaje zarezerwowany; pasażerowie nie otrzymują osobistych kluczy do pojazdu.",
                     PaymentAccount = "Konto frameworka do pobierania opłat i zwrotów, np. bank. Dokładna nazwa konta musi być obsługiwana przez skonfigurowany framework telefonu.",
                     Currency = "Wyłącznie symbol wyświetlany przy cenach, do 12 bajtów. Nie przelicza sald ani cen.",

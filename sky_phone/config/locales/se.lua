@@ -855,9 +855,9 @@ Locales["se"] = {
                     RefundTechnicalFailure = "Återbetala tekniska fel",
                 },
                 knowayHelp = {
-                    Knoway = "Självkörande resor med ett separat fordonspaket. Ange den verifierade modellen och aktivera KnoWay under Appar. Ändringar gäller nya bokningar; godkända priser och återbetalningsvillkor bevaras.",
-                    enabled = "Aktivera KnoWay först när fordonsresursen har installerats och det verifierade modellnamnet har angetts. Befintliga resor och återbetalningar hanteras även när appen är inaktiverad.",
-                    VehicleModel = "Exakt modelName från den installerade vehicles.meta, inte DLC-mappens namn. Högst 64 bokstäver, siffror, understreck eller bindestreck. Krävs innan appen aktiveras. Fordonet ingår inte i Sky Phone.",
+                    Knoway = "Självkörande resor med det medföljande fordonet knowayest. Ange knowayest eller en annan verifierad modell och aktivera KnoWay under Appar. Ändringar gäller nya bokningar; godkända priser och återbetalningsvillkor bevaras.",
+                    enabled = "Ange den medföljande modellen knowayest eller en annan verifierad fordonsmodell under KnoWay innan appen aktiveras. Befintliga resor och återbetalningar hanteras även när appen är inaktiverad.",
+                    VehicleModel = "Använd knowayest för det medföljande fordonet, eller exakt modelName från en annan installerad vehicles.meta, inte DLC-mappens namn. Högst 64 bokstäver, siffror, understreck eller bindestreck. Krävs innan appen aktiveras.",
                     DriverModel = "Pedmodell för den osynliga AI-föraren. Förarsätet förblir reserverat; passagerarna får inga personliga fordonsnycklar.",
                     PaymentAccount = "Ramverkets konto för debitering och återbetalning, till exempel bank. Det exakta kontonamnet måste stödjas av telefonens konfigurerade ramverk.",
                     Currency = "Endast symbolen som visas, högst 12 byte. Omvandlar inte saldon eller priser.",

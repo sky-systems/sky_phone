@@ -5,35 +5,35 @@ phone's own framework, callback, configuration and database bridges. SkyRide
 continues to match passengers with real player drivers; KnoWay has its own
 bookings and fare journal.
 
-The app is **disabled by default**. Its vehicle model is deliberately empty until
-an administrator installs and verifies a suitable vehicle resource. A browser
-demo or a successful frontend build does not establish FiveM vehicle acceptance.
+The app is **disabled by default**. The free resource includes the `knowayest`
+vehicle directly in `sky_phone/stream/` and its four metadata files in
+`sky_phone/data/`. Its configuration model remains empty so administrators
+explicitly select the bundled model or retain a verified custom vehicle.
+A browser demo or a successful frontend build does not establish FiveM vehicle
+acceptance.
 
 ## Before enabling the service
 
 1. Enable OneSync on the test server and retain the phone's experimental OAL
    setting. Check the configured phone framework and its payment account.
-2. Obtain the [original KnoWay Ocelot E-Stride mod](https://www.gta5-mods.com/vehicles/knoway-ocelot-e-stride)
-   separately. The author's page permits FiveM use with credits, excludes
-   paywalled redistribution and names The Kortz Center Heist DLC as a dependency.
-   Sky Phone does not include or install that vehicle package. Do not add it to
-   a paid bundle or assume that the phone's license covers the model or textures.
-3. Prepare and install the model as a separate FiveM vehicle resource using its
-   own metadata and manifest. The author's single-player `dlcpacks` instructions
-   are not a ready-made FiveM resource installation.
-4. Read the installed `vehicles.meta` and use its exact `modelName`. The public
-   description names the DLC folder `knowayest`; it does **not** establish that
-   this is the spawn/model name. The exact spawn name and minimum numeric game
-   build have not been verified for this implementation. Check the actual
-   package, its referenced assets and a server build that includes its required
-   DLC content before publishing the service. Do not guess a build number or
-   silently substitute a different vehicle.
-5. Start the vehicle resource before testing KnoWay. Confirm the model loads,
-   passengers can use its seats and its handling/collision work on that build.
-   Keep its credits with the separately installed resource. The original page
-   credits Rockstar Games, Roost4R, sirstirfry, Suzuka/a_asdf556, JsH and HexR.
-6. Configure the verified model and enable the app using the configuration owner
-   below, then complete the multiplayer acceptance checklist.
+2. Keep the included vehicle files in their shipped locations. The Phone
+   manifest loads the vehicle layouts before the handling, vehicle and
+   variation metadata. Remove any separately installed copy of the same model
+   and layouts before activating this package to avoid duplicate mounts.
+3. Select `knowayest`, the verified `modelName` in `data/vehicles.meta`. The
+   included metadata retains the original YFT/YTD containers and adapts its
+   seats/layouts and electric audio to Legacy build 3258 using isolated
+   `KNOWAYEST_` definitions and `NEON` audio. Later game builds still require
+   runtime acceptance. To use a different vehicle, install and verify that
+   resource and configure its exact model name instead.
+4. Confirm that the model loads, passengers can use its seats and its
+   handling/collision work on the chosen game build. The eight included files,
+   references and unique metadata mounts are checked with
+   `node tests/knoway_vehicle_assets.mjs`; static checks do not prove gameplay.
+5. Configure the model and enable the app using the configuration owner below,
+   then complete the multiplayer acceptance checklist. The vehicle's source,
+   attribution and free-distribution terms are recorded outside the resource
+   in [the project asset notice](../THIRD_PARTY_ASSETS.md).
 
 ## Choose the existing configuration owner
 
@@ -62,25 +62,25 @@ labels and help are provided in English and German. New accepted bookings take
 a snapshot of their settings; later price or refund-policy edits do not change
 that booking's agreement.
 
-| Configuration key                                                        | Shipped default and purpose                                                                                                                              |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Apps.knoway`                                                            | `false`; enable after installing and verifying the vehicle. Disabling rejects new work while accepted rides and payment recovery remain available.       |
-| `Knoway.VehicleModel`, `DriverModel`                                     | Empty required vehicle model; invisible AI driver `s_m_m_autoshop_01`. Model names accept letters, digits, underscores and hyphens, up to 64 bytes.      |
-| `PaymentAccount`, `Currency`                                             | `bank`, `$`. The account must be supported by the selected framework. The currency is a display symbol; it does not convert balances.                    |
-| `BaseFare`, `PricePerKilometer`, `MinimumFare`                           | `12`, `18`, `15`. Fare values may be zero for a free service.                                                                                            |
-| `RouteDistanceMultiplier`                                                | `1.25`; scales the straight-line distance for an estimate. It is not the length of a fully routed navigation path.                                       |
-| `AverageSpeedMetersPerSecond`                                            | `12`; estimates travel time independently from the actual cruise-speed cap.                                                                              |
-| `QuoteLifetimeSeconds`                                                   | `120`; validity of an unaccepted quote.                                                                                                                  |
-| `MinimumDistanceMeters`, `MaximumDistanceMeters`                         | `250`, `40000`; bounds on the estimated trip distance.                                                                                                   |
-| `MaxActiveRides`                                                         | `10` across the server; each character can have one active booking.                                                                                      |
-| `RequestCooldownSeconds`                                                 | `60` between accepted bookings per character; `0` disables the cooldown.                                                                                 |
-| `BoardingTimeoutSeconds`, `ApproachTimeoutSeconds`, `MaximumRideSeconds` | `120`, `180`, `1800`; boarding, approach and journey deadlines.                                                                                          |
-| `MaxSpeedKmh`, `DrivingStyle`                                            | `80`, `786603`; cruise-speed cap and GTA driving-behaviour flags. Traffic and road geometry still affect the AI. Test custom flag combinations in FiveM. |
-| `ArrivalRadius`                                                          | `20` metres; arrival also requires the taxi to slow down.                                                                                                |
-| `SpawnMinimumDistance`, `SpawnMaximumDistance`                           | `100`, `150` metres; nearby spawn search rather than a simulated journey from a distant depot.                                                           |
-| `RoadSnapDistance`                                                       | `100` metres; maximum offset to a usable road point.                                                                                                     |
-| `StuckTimeoutSeconds`, `MaximumReplans`                                  | `45`, `2`; bounded route retries before a technical failure. No vehicle teleportation is used to complete the trip.                                      |
-| `RefundBeforeStart`, `RefundAfterStart`, `RefundTechnicalFailure`        | `true`, `false`, `true`; refund policy stored with each accepted booking.                                                                                |
+| Configuration key                                                        | Shipped default and purpose                                                                                                                                                                             |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Apps.knoway`                                                            | `false`; enable after selecting and testing the bundled or custom vehicle. Disabling rejects new work while accepted rides and payment recovery remain available.                                       |
+| `Knoway.VehicleModel`, `DriverModel`                                     | Empty required vehicle model; use bundled `knowayest` or a verified custom model. Invisible AI driver `s_m_m_autoshop_01`. Model names accept letters, digits, underscores and hyphens, up to 64 bytes. |
+| `PaymentAccount`, `Currency`                                             | `bank`, `$`. The account must be supported by the selected framework. The currency is a display symbol; it does not convert balances.                                                                   |
+| `BaseFare`, `PricePerKilometer`, `MinimumFare`                           | `12`, `18`, `15`. Fare values may be zero for a free service.                                                                                                                                           |
+| `RouteDistanceMultiplier`                                                | `1.25`; scales the straight-line distance for an estimate. It is not the length of a fully routed navigation path.                                                                                      |
+| `AverageSpeedMetersPerSecond`                                            | `12`; estimates travel time independently from the actual cruise-speed cap.                                                                                                                             |
+| `QuoteLifetimeSeconds`                                                   | `120`; validity of an unaccepted quote.                                                                                                                                                                 |
+| `MinimumDistanceMeters`, `MaximumDistanceMeters`                         | `250`, `40000`; bounds on the estimated trip distance.                                                                                                                                                  |
+| `MaxActiveRides`                                                         | `10` across the server; each character can have one active booking.                                                                                                                                     |
+| `RequestCooldownSeconds`                                                 | `60` between accepted bookings per character; `0` disables the cooldown.                                                                                                                                |
+| `BoardingTimeoutSeconds`, `ApproachTimeoutSeconds`, `MaximumRideSeconds` | `120`, `180`, `1800`; boarding, approach and journey deadlines.                                                                                                                                         |
+| `MaxSpeedKmh`, `DrivingStyle`                                            | `80`, `786603`; cruise-speed cap and GTA driving-behaviour flags. Traffic and road geometry still affect the AI. Test custom flag combinations in FiveM.                                                |
+| `ArrivalRadius`                                                          | `20` metres; arrival also requires the taxi to slow down.                                                                                                                                               |
+| `SpawnMinimumDistance`, `SpawnMaximumDistance`                           | `100`, `150` metres; nearby spawn search rather than a simulated journey from a distant depot.                                                                                                          |
+| `RoadSnapDistance`                                                       | `100` metres; maximum offset to a usable road point.                                                                                                                                                    |
+| `StuckTimeoutSeconds`, `MaximumReplans`                                  | `45`, `2`; bounded route retries before a technical failure. No vehicle teleportation is used to complete the trip.                                                                                     |
+| `RefundBeforeStart`, `RefundAfterStart`, `RefundTechnicalFailure`        | `true`, `false`, `true`; refund policy stored with each accepted booking.                                                                                                                               |
 
 ## Passenger workflow
 

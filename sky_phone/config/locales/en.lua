@@ -854,9 +854,9 @@ Locales["en"] = {
                     RefundTechnicalFailure = "Refund technical failures",
                 },
                 knowayHelp = {
-                    Knoway = "Autonomous rides with a separate vehicle pack. Configure its verified model and enable KnoWay under Apps. Changes apply to new bookings; accepted fares and refund terms are preserved.",
-                    enabled = "Enable KnoWay only after installing the vehicle resource and entering its verified model name under KnoWay. Existing rides and refunds still settle when disabled.",
-                    VehicleModel = "Exact modelName from the installed vehicles.meta, not the DLC folder name. Up to 64 letters, digits, underscores or hyphens. Required before enabling the app. The vehicle is not bundled with Sky Phone.",
+                    Knoway = "Autonomous rides with the included knowayest vehicle. Enter knowayest or another verified model, then enable KnoWay under Apps. Changes apply to new bookings; accepted fares and refund terms are preserved.",
+                    enabled = "Enter the included knowayest model or another verified vehicle model under KnoWay before enabling the app. Existing rides and refunds still settle when disabled.",
+                    VehicleModel = "Use knowayest for the included vehicle, or the exact modelName from another installed vehicles.meta, not the DLC folder name. Up to 64 letters, digits, underscores or hyphens. Required before enabling the app.",
                     DriverModel = "Ped model used for the invisible AI driver. The driver seat stays reserved; passengers receive no personal vehicle keys.",
                     PaymentAccount = "Framework account to charge and refund, for example bank. The exact account name must be supported by the configured phone framework.",
                     Currency = "Display symbol only, up to 12 bytes. This does not convert balances or prices.",

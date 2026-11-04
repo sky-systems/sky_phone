@@ -855,9 +855,9 @@ Locales["es"] = {
                     RefundTechnicalFailure = "Reembolsar fallos técnicos",
                 },
                 knowayHelp = {
-                    Knoway = "Viajes autónomos con un paquete de vehículos independiente. Configura el modelo verificado y activa KnoWay en Apps. Los cambios afectan a las nuevas reservas; se conservan las tarifas y condiciones de reembolso aceptadas.",
-                    enabled = "Activa KnoWay solo después de instalar el recurso del vehículo e introducir el nombre verificado de su modelo en KnoWay. Los viajes y reembolsos existentes se siguen tramitando al desactivarlo.",
-                    VehicleModel = "El modelName exacto de vehicles.meta instalado, no el nombre de la carpeta DLC. Hasta 64 letras, dígitos, guiones bajos o guiones. Es obligatorio antes de activar la app. El vehículo no se incluye con Sky Phone.",
+                    Knoway = "Viajes autónomos con el vehículo knowayest incluido. Introduce knowayest u otro modelo verificado y activa KnoWay en Apps. Los cambios afectan a las nuevas reservas; se conservan las tarifas y condiciones de reembolso aceptadas.",
+                    enabled = "Introduce el modelo knowayest incluido u otro modelo de vehículo verificado en KnoWay antes de activar la app. Los viajes y reembolsos existentes se siguen tramitando al desactivarla.",
+                    VehicleModel = "Usa knowayest para el vehículo incluido, o el modelName exacto de otro vehicles.meta instalado, no el nombre de la carpeta DLC. Hasta 64 letras, dígitos, guiones bajos o guiones. Es obligatorio antes de activar la app.",
                     DriverModel = "Modelo de ped usado para el conductor invisible de IA. El asiento del conductor queda reservado; los pasajeros no reciben llaves personales del vehículo.",
                     PaymentAccount = "Cuenta del framework para cobrar y reembolsar, por ejemplo bank. El framework configurado del teléfono debe admitir el nombre exacto de la cuenta.",
                     Currency = "Solo el símbolo mostrado, hasta 12 bytes. No convierte saldos ni precios.",

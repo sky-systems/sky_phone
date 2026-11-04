@@ -855,9 +855,9 @@ Locales["cn"] = {
                     RefundTechnicalFailure = "技术故障时退款",
                 },
                 knowayHelp = {
-                    Knoway = "使用单独的车辆包提供自动驾驶服务。配置已验证的模型，并在“应用”中启用 KnoWay。更改适用于新订单；已接受的车费和退款条款保持不变。",
-                    enabled = "安装车辆资源并在 KnoWay 中输入经过验证的模型名称后，才能启用 KnoWay。停用后仍会结算现有行程和退款。",
-                    VehicleModel = "填写已安装 vehicles.meta 中准确的 modelName，而非 DLC 文件夹名称。最多 64 个字母、数字、下划线或连字符。启用应用前必须填写。Sky Phone 不附带该车辆。",
+                    Knoway = "使用附带的 knowayest 车辆提供自动驾驶服务。输入 knowayest 或其他已验证的模型，然后在“应用”中启用 KnoWay。更改适用于新订单；已接受的车费和退款条款保持不变。",
+                    enabled = "启用应用前，请在 KnoWay 中输入附带的 knowayest 模型或其他已验证的车辆模型。停用后仍会结算现有行程和退款。",
+                    VehicleModel = "附带车辆使用 knowayest；其他已安装车辆请填写其 vehicles.meta 中准确的 modelName，而非 DLC 文件夹名称。最多 64 个字母、数字、下划线或连字符。启用应用前必须填写。",
                     DriverModel = "用于隐形 AI 驾驶员的角色模型。驾驶座始终保留；乘客不会获得个人车辆钥匙。",
                     PaymentAccount = "用于扣款和退款的框架账户，例如 bank。已配置的手机框架必须支持该账户的准确名称。",
                     Currency = "仅用于显示的符号，最多 12 字节。不会换算余额或价格。",

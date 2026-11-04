@@ -855,9 +855,9 @@ Locales["cz"] = {
                     RefundTechnicalFailure = "Vrátit jízdné při technické závadě",
                 },
                 knowayHelp = {
-                    Knoway = "Autonomní jízdy se samostatným balíčkem vozidla. Nastavte ověřený model a povolte KnoWay v části Aplikace. Změny platí pro nové objednávky; přijaté ceny a podmínky vrácení jízdného zůstávají zachovány.",
-                    enabled = "KnoWay povolte až po instalaci prostředku vozidla a zadání ověřeného názvu modelu v části KnoWay. Probíhající jízdy a vrácení jízdného se vypořádají i po vypnutí.",
-                    VehicleModel = "Přesný modelName z nainstalovaného souboru vehicles.meta, nikoli název složky DLC. Nejvýše 64 písmen, číslic, podtržítek nebo spojovníků. Vyžadováno před povolením aplikace. Vozidlo není součástí Sky Phone.",
+                    Knoway = "Autonomní jízdy s přiloženým vozidlem knowayest. Zadejte knowayest nebo jiný ověřený model a povolte KnoWay v části Aplikace. Změny platí pro nové objednávky; přijaté ceny a podmínky vrácení jízdného zůstávají zachovány.",
+                    enabled = "Před povolením aplikace zadejte v části KnoWay přiložený model knowayest nebo jiný ověřený model vozidla. Probíhající jízdy a vrácení jízdného se vypořádají i po vypnutí.",
+                    VehicleModel = "Pro přiložené vozidlo použijte knowayest, jinak přesný modelName z jiného nainstalovaného souboru vehicles.meta, nikoli název složky DLC. Nejvýše 64 písmen, číslic, podtržítek nebo spojovníků. Vyžadováno před povolením aplikace.",
                     DriverModel = "Model postavy pro neviditelného řidiče řízeného AI. Sedadlo řidiče zůstává vyhrazené; cestující nedostávají osobní klíče od vozidla.",
                     PaymentAccount = "Účet frameworku pro platby a vrácení jízdného, například bank. Přesný název účtu musí podporovat nastavený framework telefonu.",
                     Currency = "Pouze zobrazovaný symbol, nejvýše 12 bajtů. Nepřepočítává zůstatky ani ceny.",
