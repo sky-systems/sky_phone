@@ -1,3 +1,9 @@
+> [!WARNING]
+> **Installing on a server? Download the prebuilt resource, not the source code.**
+> Open [Releases → Assets](https://github.com/sky-systems/sky_phone/releases/latest) and choose **`sky_phone-<version>.zip`**.
+> **Code → Download ZIP**, **Source code (zip)** and **Source code (tar.gz)** contain developer sources without the built phone UI. They are not ready to install.
+> Extract the release ZIP and copy its complete `sky_phone` folder into your server's `resources` directory. Node.js and pnpm are only needed when [building from source](#frontend-development).
+
 <p align="center">
   <img src=".github/assets/sky-phone-banner.png" alt="Sky Phone, the free FiveM phone script">
 </p>

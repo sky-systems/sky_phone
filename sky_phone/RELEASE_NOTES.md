@@ -1,17 +1,55 @@
-# Unreleased
+# Sky Phone 1.5.0
 
-## KnoWay autonomous rides
+> [!WARNING]
+> **Server installation: download [sky_phone-1.5.0.zip](https://github.com/sky-systems/sky_phone/releases/download/1.5.0/sky_phone-1.5.0.zip) under Assets.**
+> GitHub's **Source code (zip / tar.gz)** and **Code → Download ZIP** contain developer sources without the built phone UI. They are not the prebuilt resource.
 
-- Add the optional built-in KnoWay app with map/GPS destination selection, fixed-price quotes, robotaxi pickup, passenger boarding, owner-controlled departure and live trip status. Closing the phone does not end the ride. SkyRide remains the player-driver service.
-- Add server-managed vehicle/driver lifecycle, an invisible AI driver with a reserved driver seat, bounded routing retries and occupied-vehicle cleanup. OneSync is required; the app is disabled and its vehicle model empty by default.
-- Include the KnoWay E-Stride directly in `stream/`, with vehicle layouts, handling, vehicle and variation metadata in `data/`. Select `knowayest` or retain a verified custom model in the existing configuration. Remove any separately installed copy before activating the bundled model. The eight files retain their verified hashes and Legacy build 3258 metadata; actual streaming and driving remain to be tested in FiveM.
-- Expose the full KnoWay configuration through both existing configuration modes: `config.lua` with the Configurator disabled, or `/phonepanel` with SQL persistence when enabled. English/German labels, validation, defaults and client sync remain aligned.
-- Add the `sky_phone_knoway_rides` fare journal and additive migration. Preserve accepted prices/refund policies, retain cleanup and recovery when the app is disabled, and quarantine ambiguous framework debit/credit results for manual review rather than replaying them.
-- Recover online owners' refunds without letting offline claims or rejected credits block later batches. Keep each batch bounded and successful credits protected against replay.
-- Keep existing ride controls accessible without reception, including after reopening the app. New quotes and bookings still require reception while cellular restrictions are enabled.
-- Validate the configured currency against the journal's eight-character limit before saving, including Unicode values.
+## Changes
 
-See the [KnoWay setup and payment-recovery guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/knoway.md) and the [project asset notice](https://github.com/sky-systems/sky_phone/blob/dev/THIRD_PARTY_ASSETS.md). The vehicle is included only with the free project and may not be redistributed in paid or paywalled bundles. Multiplayer FiveM acceptance remains pending; browser/build checks do not establish native driving behaviour. This section does not change the resource version or announce a release.
+- Add the optional **KnoWay** robotaxi app: choose a map/GPS destination, review a fixed fare, book a pickup and start the ride after boarding. Closing the phone keeps the trip running. SkyRide remains the service for real player drivers.
+- Include the **KnoWay E-Stride** vehicle (`knowayest`) with its handling and isolated seat layouts. KnoWay stays disabled by default and requires OneSync; select and test the bundled or a custom model on your server before enabling it for players.
+- Keep ride ownership, fares, cancellation and refunds on the server. Existing ride controls remain available without reception; payment recovery continues while KnoWay is disabled. Uncertain payment results require operator review instead of an automatic second charge or refund.
+- Add KnoWay settings to both file configuration and the Phone Configurator, with help and interface translations in all 16 bundled locales.
+- Fix the Ember cryptocurrency logo.
+- Include a short **INSTALL.md**, replace the outdated duplicate package README with a setup entry point, and explain the correct download in the repository, package and missing-UI console warning. Future GitHub releases show these update instructions automatically.
+
+## Update from 1.4.1
+
+For older installations, also follow the intervening release instructions below.
+
+1. Back up your resource and database. Preserve `config/config.lua`, `config/media.lua`, `config/WebHooks.lua`, custom translations, all server peppers, saved Phone Configurator settings and custom files, including tones and app assets.
+2. Schedule maintenance with players disconnected. Stop integrations and custom-app resources that consume Phone, then stop `sky_phone`. Extract **sky_phone-1.5.0.zip** and keep the folder named `sky_phone`.
+3. Replace `fxmanifest.lua`, the complete `source/`, `data/` and `stream/` directories, `sql/install.sql` and the included Markdown/license files from the release. Keep your existing configuration and restore custom files. Replace generated `source/html/` as a complete directory so old hashed bundles do not remain mixed with the new UI.
+4. Update the bundled `config/locales/*.lua` files, or copy the new KnoWay app, error and Configurator translations into your custom versions. Keep your chosen language and other saved settings.
+5. With **SQL configuration enabled** (the default), retain your database settings. The new KnoWay defaults are supplied automatically; do not reset SQL or edit `source/shared/config_default.lua`. With **file configuration enabled**, open the new release's `config/config.lua`: copy `knoway = false,` from its `Config.Apps` table into the same table in your retained file, then copy the complete new `Config.Knoway = { ... }` block between `Config.Calendar` and `Config.SkyRide` into that position in your retained file. Keep the other app switches and settings unchanged.
+6. Run `refresh`, start `sky_phone`, then start consuming integrations and custom-app resources in their normal order before reconnecting players. The additive migration creates `sky_phone_knoway_rides` automatically; do not manually import `install.sql` over an existing installation. Keep the fare journal even if KnoWay is disabled.
+7. Reconnect and verify normal phone opening, calls/messages and saved configuration. Follow the optional KnoWay steps below only if you want to offer robotaxi rides.
+
+No new inventory item or mandatory provider upgrade is required. Existing devices, accounts and SQL-managed configuration are retained. Integrations using compatibility aliases still require the coordinated maintenance restart described in [compatibility lifecycle](https://github.com/sky-systems/sky_phone/blob/1.5.0/sky_phone/integrations/COMPATIBILITY_LIFECYCLE.md).
+
+## Optional: enable KnoWay
+
+1. Enable OneSync. Remove or stop any separately installed copy of the same `knowayest` model/layouts before using the bundled vehicle; a verified custom vehicle may remain configured instead.
+2. In SQL mode, open `/phonepanel` → **Phone configurator** → **KnoWay**, set **Vehicle model** to `knowayest` (or your verified model), and review the payment account, fares and refund settings. Under **Apps**, enable **KnoWay** and save with the checkmark. In file mode, set `Config.Knoway.VehicleModel`, review the same `Config.Knoway` settings, set `Config.Apps.knoway = true`, then restart Phone and its consuming integrations during maintenance.
+3. Reconnect and test model streaming, passenger seats, pickup, driving, cancellation, refunds and multiplayer cleanup on your actual game build before enabling access for players. Install KnoWay from the phone's App Store if it is not already installed.
+
+See the [KnoWay guide](https://github.com/sky-systems/sky_phone/blob/1.5.0/docs/knoway.md) for configuration and payment recovery. The bundled vehicle has [separate attribution and distribution terms](https://github.com/sky-systems/sky_phone/blob/1.5.0/THIRD_PARTY_ASSETS.md); it may not be redistributed in paid or paywalled bundles.
+
+## Changed shipped files
+
+Relative to the installed `sky_phone` directory:
+
+- `fxmanifest.lua` — version `1.5.0`, KnoWay client/server entries and four vehicle metadata mounts; remove the obsolete Lua 5.4 opt-in.
+- `INSTALL.md`, `README.md`, `RELEASE_NOTES.md`, `SOURCE.txt` — setup, download, update instructions and exact source reference.
+- `config/config.lua`, `config/locales/*.lua`, `source/shared/config_default.lua` — KnoWay defaults, translations and generated defaults.
+- `data/{vehiclelayouts,handling,vehicles,carvariations}.meta`, `stream/knowayest.yft`, `stream/knowayest_hi.yft`, `stream/knowayest.ytd`, `stream/knowayest+hi.ytd` — bundled vehicle and metadata.
+- `source/client/knoway.lua`, `source/server/knoway.lua` — new ride lifecycle.
+- `source/server/{admin,app_database,db_migrate,phone_configurator,nui_build_check}.lua`, `source/shared/{cellular,custom_apps}.lua`, `sql/install.sql` — app integration, persistence, validation and the missing-UI warning.
+- `source/html/` — complete rebuilt UI, including KnoWay and the corrected Ember logo.
+
+No installed files are removed or renamed outside the rebuilt NUI. The redundant repository-root `inventory_images` copies are removed; the shipped icons remain in `config/images`.
+
+[All changes since 1.4.1](https://github.com/sky-systems/sky_phone/compare/1.4.1...1.5.0)
 
 ---
 

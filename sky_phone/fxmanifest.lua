@@ -1,12 +1,11 @@
 fx_version 'cerulean'
 game 'gta5'
-lua54 'yes'
 node_version '22'
 use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '1.4.1'
+version '1.5.0'
 
 provide 'lb-phone'
 provide '17mov_Phone'
