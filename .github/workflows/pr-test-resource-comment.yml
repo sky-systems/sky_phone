@@ -64,6 +64,7 @@ jobs:
                 `✅ Der aktuelle Pull Request wurde erfolgreich geprüft und gebaut. [Test-Resource herunterladen](${artifactUrl}).`,
                 '',
                 'Das ZIP enthält den deploybaren `sky_phone`-Ordner inklusive gebautem Frontend und bleibt 14 Tage verfügbar.',
+                `Die mitgelieferten KnoWay-Fahrzeugdateien sind für kostenlose Verteilung vorgesehen. [Quellen und Namensnennung](https://github.com/${owner}/${repo}/blob/${run.head_sha}/THIRD_PARTY_ASSETS.md).`,
                 '',
                 `[Workflow-Lauf öffnen](${runUrl})`,
               ].join('\n');

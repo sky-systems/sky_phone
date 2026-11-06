@@ -855,9 +855,9 @@ Locales["nl"] = {
                     RefundTechnicalFailure = "Technische storingen terugbetalen",
                 },
                 knowayHelp = {
-                    Knoway = "Autonome ritten met een apart voertuigpakket. Stel het gecontroleerde model in en schakel KnoWay in bij Apps. Wijzigingen gelden voor nieuwe boekingen; geaccepteerde tarieven en terugbetalingsvoorwaarden blijven behouden.",
-                    enabled = "Schakel KnoWay pas in nadat de voertuigresource is geïnstalleerd en de gecontroleerde modelnaam is ingevuld. Bestaande ritten en terugbetalingen worden ook bij uitschakeling afgehandeld.",
-                    VehicleModel = "De exacte modelName uit de geïnstalleerde vehicles.meta, niet de DLC-mapnaam. Maximaal 64 letters, cijfers, underscores of koppeltekens. Verplicht voor inschakeling. Het voertuig wordt niet met Sky Phone meegeleverd.",
+                    Knoway = "Autonome ritten met het meegeleverde knowayest-voertuig. Vul knowayest of een ander geverifieerd model in en schakel KnoWay in onder Apps. Wijzigingen gelden voor nieuwe boekingen; geaccepteerde tarieven en terugbetalingsvoorwaarden blijven behouden.",
+                    enabled = "Vul het meegeleverde model knowayest of een ander geverifieerd voertuigmodel in onder KnoWay voordat je de app inschakelt. Bestaande ritten en terugbetalingen worden ook bij uitschakeling afgehandeld.",
+                    VehicleModel = "Gebruik knowayest voor het meegeleverde voertuig, of de exacte modelName uit een andere geïnstalleerde vehicles.meta, niet de DLC-mapnaam. Maximaal 64 letters, cijfers, underscores of koppeltekens. Verplicht voor inschakeling.",
                     DriverModel = "Pedmodel voor de onzichtbare AI-bestuurder. De bestuurdersstoel blijft gereserveerd; passagiers krijgen geen persoonlijke voertuigsleutels.",
                     PaymentAccount = "Frameworkrekening voor afschrijvingen en terugbetalingen, bijvoorbeeld bank. De exacte rekeningnaam moet door het ingestelde telefoonframework worden ondersteund.",
                     Currency = "Alleen het weergegeven symbool, maximaal 12 bytes. Saldi en prijzen worden niet omgerekend.",

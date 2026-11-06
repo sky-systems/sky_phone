@@ -7,6 +7,9 @@ local function fixture(options)
         locks = {}, blips = {}, removed_handlers = 0, destroyed = 0,
     }
     local e = setmetatable({}, { __index = _G })
+    e.AddTextEntry = function(key, value)
+        assert(key == "KNOWAYEST" and value == "KnoWay E-Stride", "only register the bundled vehicle label")
+    end
     e.Config = { Knoway = {
         VehicleModel = "knoway_car", DriverModel = "driver", RoadSnapDistance = 100,
         SpawnMinimumDistance = 100, SpawnMaximumDistance = 150,

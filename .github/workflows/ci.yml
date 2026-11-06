@@ -217,6 +217,7 @@ jobs:
           test -f ../sky_phone/source/html/index.html
           cmp ../LICENSE ../sky_phone/LICENSE
           cmp ../THIRD_PARTY_NOTICES.md ../sky_phone/THIRD_PARTY_NOTICES.md
+          node ../tests/knoway_vehicle_assets.mjs
 
       - name: Package pull request test resource
         if: github.event_name == 'pull_request'

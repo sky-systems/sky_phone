@@ -855,9 +855,9 @@ Locales["fi"] = {
                     RefundTechnicalFailure = "Hyvitä tekniset viat",
                 },
                 knowayHelp = {
-                    Knoway = "Autonomiset kyydit erikseen asennettavalla ajoneuvopaketilla. Määritä tarkistettu malli ja ota KnoWay käyttöön Sovellukset-kohdassa. Muutokset koskevat uusia tilauksia; hyväksytyt hinnat ja hyvitysehdot säilyvät.",
-                    enabled = "Ota KnoWay käyttöön vasta, kun ajoneuvoresurssi on asennettu ja sen tarkistettu mallinimi on syötetty KnoWay-kohdassa. Käynnissä olevat kyydit ja hyvitykset käsitellään myös käytöstä poistamisen jälkeen.",
-                    VehicleModel = "Asennetun vehicles.meta-tiedoston täsmällinen modelName, ei DLC-kansion nimi. Enintään 64 kirjainta, numeroa, alaviivaa tai yhdysmerkkiä. Vaaditaan ennen sovelluksen käyttöönottoa. Ajoneuvo ei sisälly Sky Phoneen.",
+                    Knoway = "Autonomiset kyydit mukana toimitettavalla knowayest-ajoneuvolla. Syötä knowayest tai muu tarkistettu malli ja ota KnoWay käyttöön Sovellukset-kohdassa. Muutokset koskevat uusia tilauksia; hyväksytyt hinnat ja hyvitysehdot säilyvät.",
+                    enabled = "Syötä mukana toimitettava malli knowayest tai muu tarkistettu ajoneuvomalli KnoWay-kohdassa ennen sovelluksen käyttöönottoa. Käynnissä olevat kyydit ja hyvitykset käsitellään myös käytöstä poistamisen jälkeen.",
+                    VehicleModel = "Käytä mukana toimitettavalle ajoneuvolle nimeä knowayest tai toisen asennetun vehicles.meta-tiedoston täsmällistä modelName-arvoa, ei DLC-kansion nimeä. Enintään 64 kirjainta, numeroa, alaviivaa tai yhdysmerkkiä. Vaaditaan ennen sovelluksen käyttöönottoa.",
                     DriverModel = "Näkymättömän tekoälykuljettajan hahmomalli. Kuljettajan paikka pysyy varattuna, eikä matkustajille anneta henkilökohtaisia ajoneuvon avaimia.",
                     PaymentAccount = "Frameworkin tili veloituksia ja hyvityksiä varten, esimerkiksi bank. Puhelimelle määritetyn frameworkin on tuettava tilin täsmällistä nimeä.",
                     Currency = "Vain näytettävä merkki, enintään 12 tavua. Ei muunna saldoja tai hintoja.",

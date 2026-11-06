@@ -855,9 +855,9 @@ Locales["fr"] = {
                     RefundTechnicalFailure = "Rembourser les incidents techniques",
                 },
                 knowayHelp = {
-                    Knoway = "Trajets autonomes avec un pack de véhicules séparé. Configurez le modèle vérifié et activez KnoWay dans Apps. Les changements concernent les nouvelles réservations ; les prix et conditions de remboursement acceptés sont conservés.",
-                    enabled = "Activez KnoWay uniquement après avoir installé la ressource du véhicule et saisi son nom de modèle vérifié dans KnoWay. Les trajets et remboursements existants restent traités après la désactivation.",
-                    VehicleModel = "Le modelName exact du fichier vehicles.meta installé, pas le nom du dossier DLC. Jusqu'à 64 lettres, chiffres, traits de soulignement ou traits d'union. Requis avant d'activer l'app. Le véhicule n'est pas fourni avec Sky Phone.",
+                    Knoway = "Trajets autonomes avec le véhicule knowayest inclus. Saisissez knowayest ou un autre modèle vérifié, puis activez KnoWay dans Apps. Les changements concernent les nouvelles réservations ; les prix et conditions de remboursement acceptés sont conservés.",
+                    enabled = "Saisissez le modèle knowayest inclus ou un autre modèle de véhicule vérifié dans KnoWay avant d’activer l’app. Les trajets et remboursements existants restent traités après la désactivation.",
+                    VehicleModel = "Utilisez knowayest pour le véhicule inclus, ou le modelName exact d’un autre fichier vehicles.meta installé, pas le nom du dossier DLC. Jusqu’à 64 lettres, chiffres, traits de soulignement ou traits d’union. Requis avant d’activer l’app.",
                     DriverModel = "Modèle de ped utilisé pour le conducteur IA invisible. Le siège conducteur reste réservé ; les passagers ne reçoivent pas de clés personnelles du véhicule.",
                     PaymentAccount = "Compte du framework à débiter et rembourser, par exemple bank. Le nom exact du compte doit être pris en charge par le framework configuré pour le téléphone.",
                     Currency = "Symbole d'affichage uniquement, jusqu'à 12 octets. Cela ne convertit ni les soldes ni les prix.",

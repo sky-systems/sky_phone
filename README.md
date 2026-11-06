@@ -74,7 +74,7 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 
 Snake advances one level every 10 points, cycles through six food appearances, and changes between four skins every 30 points. The selected game speed stays unchanged. Restarting a round resets the level and skin; the high score remains saved. Artwork prompts and the existing visual reference are recorded in [the Snake asset directory](frontend/src/assets/img/games/snake/PROMPTS.md).
 
-[KnoWay](docs/knoway.md) adds optional autonomous robotaxi bookings with map/GPS destinations and prepaid fixed fares. It is disabled by default and requires a separately installed, verified vehicle resource and OneSync; configure it through `config.lua` or `/phonepanel` using the existing configuration mode.
+[KnoWay](docs/knoway.md) adds optional autonomous robotaxi bookings with map/GPS destinations and prepaid fixed fares. The free resource includes the `knowayest` vehicle directly in its `stream/` and `data/` folders. The app remains disabled by default; choose the bundled model or a verified custom model and enable it through `config.lua` or `/phonepanel`. OneSync and in-game acceptance are required.
 
 ## Built for players, owners, and developers
 
@@ -1161,6 +1161,8 @@ The server-only [Music library export](MUSIC_API.md) lets authorized resources r
 ## License, credits, and notices
 
 Sky Phone is free and open-source software licensed under the [GNU General Public License v3.0](LICENSE).
+
+The bundled KnoWay vehicle has its own creator terms and is not relicensed under GPL-3.0. Attribution and permitted free distribution are recorded in [THIRD_PARTY_ASSETS.md](THIRD_PARTY_ASSETS.md), outside the deployable resource and frontend. Do not include the vehicle in a paid or paywalled bundle.
 
 Third-party acknowledgements and complete library license texts are available in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The production build updates this inventory and copies it together with the GPL into the deployable resource, so release and pull-request packages include both files. The listed licenses apply to the identified components; they do not grant additional rights to unrelated artwork, maps, or audio.
 

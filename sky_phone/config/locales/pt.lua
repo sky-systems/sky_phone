@@ -855,9 +855,9 @@ Locales["pt"] = {
                     RefundTechnicalFailure = "Reembolsar falhas técnicas",
                 },
                 knowayHelp = {
-                    Knoway = "Viagens autônomas com um pacote de veículo separado. Configure o modelo verificado e ative o KnoWay em Aplicativos. As alterações valem para novas reservas; tarifas e condições de reembolso já aceitas são mantidas.",
-                    enabled = "Ative o KnoWay somente após instalar o recurso do veículo e informar o nome de modelo verificado. Viagens e reembolsos existentes continuam sendo processados quando o aplicativo é desativado.",
-                    VehicleModel = "O modelName exato do vehicles.meta instalado, não o nome da pasta DLC. Até 64 letras, números, sublinhados ou hífens. Obrigatório para ativar o aplicativo. O veículo não acompanha o Sky Phone.",
+                    Knoway = "Viagens autônomas com o veículo knowayest incluído. Informe knowayest ou outro modelo verificado e ative o KnoWay em Aplicativos. As alterações valem para novas reservas; tarifas e condições de reembolso já aceitas são mantidas.",
+                    enabled = "Informe o modelo knowayest incluído ou outro modelo de veículo verificado no KnoWay antes de ativar o aplicativo. Viagens e reembolsos existentes continuam sendo processados quando o aplicativo é desativado.",
+                    VehicleModel = "Use knowayest para o veículo incluído ou o modelName exato de outro vehicles.meta instalado, não o nome da pasta DLC. Até 64 letras, números, sublinhados ou hífens. Obrigatório para ativar o aplicativo.",
                     DriverModel = "Modelo de ped usado pelo motorista de IA invisível. O banco do motorista fica reservado; passageiros não recebem chaves pessoais do veículo.",
                     PaymentAccount = "Conta do framework usada para cobrar e reembolsar, por exemplo bank. O nome exato deve ser compatível com o framework configurado no celular.",
                     Currency = "Somente o símbolo exibido, até 12 bytes. Não converte saldos nem preços.",

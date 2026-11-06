@@ -1,4 +1,5 @@
 -- The phone is only a view of the ride. Networked vehicle tasks outlive its UI.
+AddTextEntry("KNOWAYEST", "KnoWay E-Stride")
 local vehicles = {}
 local pending_bags = {}
 local worker_running = false

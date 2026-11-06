@@ -854,9 +854,9 @@ Locales["de"] = {
                     RefundTechnicalFailure = "Technische Ausfälle erstatten",
                 },
                 knowayHelp = {
-                    Knoway = "Autonome Fahrten mit separat installiertem Fahrzeugpaket. Das geprüfte Modell eintragen und KnoWay unter Apps aktivieren. Änderungen gelten für neue Bestellungen; bestätigte Preise und Erstattungsregeln bleiben erhalten.",
-                    enabled = "KnoWay erst nach Installation der Fahrzeugressource und Eintrag des geprüften Modellnamens unter KnoWay aktivieren. Laufende Fahrten und Erstattungen werden auch nach dem Deaktivieren abgeschlossen.",
-                    VehicleModel = "Exakter modelName aus der installierten vehicles.meta, nicht der DLC-Ordnername. Bis zu 64 Buchstaben, Ziffern, Unterstriche oder Bindestriche. Vor Aktivierung erforderlich. Das Fahrzeug wird nicht mit Sky Phone ausgeliefert.",
+                    Knoway = "Autonome Fahrten mit dem enthaltenen Fahrzeug knowayest. knowayest oder ein anderes geprüftes Modell eintragen und KnoWay unter Apps aktivieren. Änderungen gelten für neue Bestellungen; bestätigte Preise und Erstattungsregeln bleiben erhalten.",
+                    enabled = "Vor dem Aktivieren unter KnoWay das enthaltene Modell knowayest oder ein anderes geprüftes Fahrzeugmodell eintragen. Laufende Fahrten und Erstattungen werden auch nach dem Deaktivieren abgeschlossen.",
+                    VehicleModel = "knowayest für das enthaltene Fahrzeug oder den exakten modelName aus einer anderen installierten vehicles.meta verwenden, nicht den DLC-Ordnernamen. Bis zu 64 Buchstaben, Ziffern, Unterstriche oder Bindestriche. Vor Aktivierung erforderlich.",
                     DriverModel = "Ped-Modell für den unsichtbaren KI-Fahrer. Der Fahrersitz bleibt reserviert; Fahrgäste erhalten keine persönlichen Fahrzeugschlüssel.",
                     PaymentAccount = "Framework-Konto für Abbuchungen und Erstattungen, zum Beispiel bank. Der genaue Kontoname muss vom eingestellten Phone-Framework unterstützt werden.",
                     Currency = "Reines Anzeigesymbol mit bis zu 12 Bytes. Kontostände und Preise werden dadurch nicht umgerechnet.",

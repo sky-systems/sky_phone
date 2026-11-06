@@ -203,8 +203,17 @@ files {
     'source/html/img/**',
     'source/html/sounds/**',
     'config/music/**',
+    'data/vehiclelayouts.meta',
+    'data/handling.meta',
+    'data/vehicles.meta',
+    'data/carvariations.meta',
     'stream/sky_phone_cell_towers.ytyp',
 }
+
+data_file 'VEHICLE_LAYOUTS_FILE' 'data/vehiclelayouts.meta'
+data_file 'HANDLING_FILE' 'data/handling.meta'
+data_file 'VEHICLE_METADATA_FILE' 'data/vehicles.meta'
+data_file 'VEHICLE_VARIATION_FILE' 'data/carvariations.meta'
 
 data_file 'DLC_ITYP_REQUEST' 'stream/sky_phone_cell_towers.ytyp'
 
