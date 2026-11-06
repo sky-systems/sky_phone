@@ -34,6 +34,10 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match fxmanifest version $manifest_version"
             exit 1
           fi
+          if [[ "$(head -n 1 sky_phone/RELEASE_NOTES.md)" != "# Sky Phone $GITHUB_REF_NAME" ]]; then
+            echo "RELEASE_NOTES.md must start with the tagged version heading."
+            exit 1
+          fi
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -64,6 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           test -f sky_phone/fxmanifest.lua
+          test -f sky_phone/INSTALL.md
           test -f sky_phone/source/html/index.html
           test -d sky_phone/source/html/assets
           cmp LICENSE sky_phone/LICENSE
@@ -104,6 +109,7 @@ jobs:
           zip -r "$archive" sky_phone
           unzip -t "$archive"
           unzip -Z1 "$archive" | grep -Fx "sky_phone/fxmanifest.lua"
+          unzip -Z1 "$archive" | grep -Fx "sky_phone/INSTALL.md"
           unzip -Z1 "$archive" | grep -Fx "sky_phone/source/html/index.html"
           unzip -Z1 "$archive" | grep -Fx "sky_phone/LICENSE"
           unzip -Z1 "$archive" | grep -Fx "sky_phone/THIRD_PARTY_NOTICES.md"
@@ -127,16 +133,17 @@ jobs:
         run: |
           set -euo pipefail
           archive="sky_phone-${GITHUB_REF_NAME}.zip"
+          awk '/^---$/ { exit } { print }' sky_phone/RELEASE_NOTES.md > release-notes.md
 
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "$archive" "${archive}.sha256" --clobber
-            gh release edit "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --prerelease=false --latest
+            gh release edit "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md --prerelease=false --latest
           else
             gh release create "$GITHUB_REF_NAME" \
               "$archive" \
               "${archive}.sha256" \
               --verify-tag \
-              --generate-notes \
+              --notes-file release-notes.md \
               --latest \
               --title "$GITHUB_REF_NAME"
           fi
