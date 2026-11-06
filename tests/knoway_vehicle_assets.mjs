@@ -185,8 +185,12 @@ for (const credit of [
     `The repository asset notice must retain ${credit}'s credit`,
   );
 }
-assert.ok(
-  notice.includes("https://www.gta5-mods.com/vehicles/knoway-ocelot-e-stride"),
+const originalLink = /^Original: \[[^\]]+\]\(([^)]+)\)\.$/m.exec(notice);
+assert.ok(originalLink, "The asset notice must identify the original download");
+assert.equal(
+  originalLink[1],
+  "https://www.gta5-mods.com/vehicles/knoway-ocelot-e-stride",
+  "The asset notice must link to the exact original download page",
 );
 assert.match(
   notice,
