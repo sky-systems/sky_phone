@@ -977,6 +977,8 @@ Select `rtx`, `quasar`, `tgiann`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, `q
 
 The [TK Housing bridge](docs/tk-housing.md) lists owned properties and individual keyholder access, supports entrance waypoints, and checks TK's lock/key-management permissions for each action. If Phone Configurator is enabled, select `tk_housing` in its Housing settings; existing SQL settings keep their saved provider priority.
 
+The [VMS Housing bridge](docs/vms-housing.md) lists owned, rented, and authorized shared properties and supports entrance waypoints and EasyShare. With item-based keys, complete VMS's required inventory item setup, including `house_key`. The bridge accepts VMS's `nil` result for a missing key and still checks independently assigned permissions. Remote lock controls, key management, CCTV, and garage vehicle counts are not exposed by this bridge.
+
 ### Companies
 
 Company jobs, public profiles, service numbers, services, permissions, locations, and default
