@@ -3,6 +3,7 @@ local api_ready = false
 local SERVER_CAPABILITIES = {
     apiVersion = SkyPhonePublicApi.Version,
     features = {
+        financeProviders = true,
         calls = {
             audio = true,
             company = true,

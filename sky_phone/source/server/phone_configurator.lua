@@ -2038,6 +2038,12 @@ function SkyPhoneConfigurator.Save(expected_revision, changes, actor_identifier,
             seen[category] = true
         end
     end
+    for _, settings in ipairs({ candidate_config.Billing, candidate_config.Banking }) do
+        if type(settings.Provider) ~= "string" or #settings.Provider > 64
+            or not settings.Provider:match("^[%w_-]+$") then
+            return { success = false, error = "invalid_value" }
+        end
+    end
     local companies_valid, validation_error = SkyPhoneCompanies.ValidateConfiguration(candidate_config)
     if not companies_valid then
         Bridge.Debug(

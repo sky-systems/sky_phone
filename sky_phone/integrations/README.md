@@ -1,4 +1,9 @@
-# Phone voice controls
+# Phone integrations
+
+Optional banking and invoice providers are configured in Phone. See the
+[finance setup guide](FINANCE.md) for supported providers, required updates and limits.
+
+## Phone voice controls
 
 All controls execute in `sky_phone`. No script entry, patch or extension in `pma-voice` is required.
 

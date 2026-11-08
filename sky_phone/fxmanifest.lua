@@ -5,7 +5,7 @@ use_experimental_fxv2_oal 'yes'
 
 author 'Sky-Systems'
 description 'Sky Phone'
-version '1.5.0'
+version '1.6.0'
 
 provide 'lb-phone'
 provide '17mov_Phone'
@@ -163,6 +163,8 @@ server_scripts {
     'source/server/darkchat.lua',
     'source/server/flare.lua',
     'source/server/mail.lua',
+    'source/server/finance_providers.lua',
+    'source/bridge/server/finance_quasar.lua',
     'source/server/banking.lua',
     'source/server/crypto.lua',
     'source/server/health.lua',
