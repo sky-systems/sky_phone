@@ -19,6 +19,9 @@ export type BankingOverview = {
   currency: string
   playerId: number
   playerName: string
+  accounts?: { id: string; label: string; balance: number }[]
+  historyLimited?: boolean
+  historyWarning?: boolean
   transactions: BankingTransaction[]
 }
 

@@ -97,7 +97,17 @@ export const useBillingStore = defineStore('billing', {
     },
     async pay(id: string): Promise<NuiResponse<InvoiceDetail>> {
       this.isPaying = true
-      const response = await nuiCall<InvoiceDetail>('billing:pay', { id })
+      const snapshot =
+        this.detail?.id === id
+          ? {
+              amount: this.detail.amount,
+              amountPaid: this.detail.amountPaid ?? 0,
+            }
+          : {}
+      const response = await nuiCall<InvoiceDetail>('billing:pay', {
+        id,
+        ...snapshot,
+      })
       this.isPaying = false
       if (response.success && response.data) {
         this.detail = response.data

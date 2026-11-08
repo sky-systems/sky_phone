@@ -62,15 +62,39 @@ local function transactions(identifier)
     return result
 end
 
-local function overview(source, identifier)
-    return {
+local function overview(source, identifier, transfer_completed)
+    local provider = Config.Banking.Provider or "framework"
+    local provider_failed = false
+    if provider ~= "framework" and provider ~= "qs" then
+        local result = Bridge.Finance.Call("banking", "overview", source)
+        if Bridge.Framework.GetIdentifier(source) ~= identifier then
+            return { success = false, error = "not_authorized" }
+        end
+        if result.success or not transfer_completed then return result end
+        provider_failed = true
+    end
+    local data = {
         bank = math.max(0, tonumber(Bridge.Framework.GetMoney(source, "bank")) or 0),
         cash = math.max(0, tonumber(Bridge.Framework.GetMoney(source, "cash")) or 0),
         currency = Config.Banking.Currency,
         playerId = source,
         playerName = player_name(source),
-        transactions = transactions(identifier),
+        transactions = not provider_failed and transactions(identifier) or {},
+        historyWarning = provider_failed or nil,
     }
+    if Bridge.Framework.GetIdentifier(source) ~= identifier then
+        return { success = false, error = "not_authorized" }
+    end
+    if provider == "qs" then
+        local result = Bridge.Finance.Call("banking", "overview", source, { overview = data })
+        if Bridge.Framework.GetIdentifier(source) ~= identifier then
+            return { success = false, error = "not_authorized" }
+        end
+        if result.success or not transfer_completed then return result end
+        -- The transfer is already committed. A failed statement read must not invite another payment.
+        data.historyWarning = true
+    end
+    return { success = true, data = data }
 end
 
 local function record_transaction(identifier, kind, amount, label, reference)
@@ -111,7 +135,7 @@ Bridge.Callbacks.Register("sky_phone:banking:overview", function(source)
     if not identifier then
         return error_response
     end
-    return { success = true, data = overview(source, identifier) }
+    return overview(source, identifier)
 end)
 
 Bridge.Callbacks.Register("sky_phone:banking:transfer", function(source, data)
@@ -138,6 +162,17 @@ Bridge.Callbacks.Register("sky_phone:banking:transfer", function(source, data)
     if type(target_identifier) ~= "string" or target_identifier == "" then
         return { success = false, error = "target_not_found" }
     end
+    local provider = Config.Banking.Provider or "framework"
+    local transfer = { amount = amount, target = target, senderIdentifier = identifier,
+        targetIdentifier = target_identifier, senderName = player_name(source), targetName = player_name(target) }
+    if (Config.Banking.Provider or "framework") ~= "framework" then
+        local prepared = Bridge.Finance.Call("banking", "prepareTransfer", source, transfer)
+        if not prepared.success then return prepared end
+    end
+    if (Config.Banking.Provider or "framework") ~= provider or Bridge.Framework.GetIdentifier(source) ~= identifier
+        or Bridge.Framework.GetIdentifier(target) ~= target_identifier then
+        return { success = false, error = "target_not_found" }
+    end
     if not Bridge.Framework.RemoveMoney(source, "bank", amount) then
         return { success = false, error = "insufficient_funds" }
     end
@@ -147,16 +182,37 @@ Bridge.Callbacks.Register("sky_phone:banking:transfer", function(source, data)
     end
 
     local reference = ("phone-transfer-%s-%s"):format(os.time(), source)
-    local sender_name = player_name(source)
-    record_transaction(identifier, "transfer_out", amount, player_name(target), reference)
-    record_transaction(target_identifier, "transfer_in", amount, sender_name, reference)
-    notify_changed(target, {
-        kind = "transfer_in",
-        amount = amount,
-        currency = Config.Banking.Currency,
-        sender = sender_name,
-    })
-    return { success = true, data = overview(source, identifier) }
+    local sender_name = transfer.senderName
+    local history_synced = pcall(function()
+        record_transaction(identifier, "transfer_out", amount, transfer.targetName, reference)
+        record_transaction(target_identifier, "transfer_in", amount, sender_name, reference)
+    end)
+    if not history_synced then
+        Bridge.Debug("error", "[sky_phone] Transfer completed, but the Phone statement could not be updated.")
+    end
+    if provider ~= "framework" then
+        if (Config.Banking.Provider or "framework") == provider then
+            local recorded = Bridge.Finance.Call("banking", "recordTransfer", source, transfer)
+            history_synced = recorded.success and history_synced
+        else history_synced = false end
+    end
+    if Bridge.Framework.GetIdentifier(target) == target_identifier then
+        notify_changed(target, {
+            kind = "transfer_in", amount = amount, currency = Config.Banking.Currency, sender = sender_name,
+        })
+    end
+    local refreshed, result = pcall(overview, source, identifier, true)
+    if not refreshed or not result.success then
+        Bridge.Debug("error", "[sky_phone] Transfer completed, but its statement reload failed.")
+        if Bridge.Framework.GetIdentifier(source) ~= identifier then return { success = true } end
+        return { success = true, data = {
+            bank = Bridge.Framework.GetMoney(source, "bank"), cash = Bridge.Framework.GetMoney(source, "cash"),
+            currency = Config.Banking.Currency, playerId = source, playerName = transfer.senderName,
+            transactions = {}, historyWarning = true,
+        } }
+    end
+    if result.data and not history_synced then result.data.historyWarning = true end
+    return result
 end)
 
 end)

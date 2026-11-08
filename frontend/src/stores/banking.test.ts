@@ -47,6 +47,18 @@ describe('banking store', () => {
     })
   })
 
+  it('accepts a completed transfer without a replacement character overview', async () => {
+    mockNuiCall.mockResolvedValueOnce({ success: true })
+    const banking = useBankingStore()
+    banking.error = 'request_failed'
+
+    const response = await banking.perform('transfer', 200, '5551234567')
+
+    expect(response.success).toBe(true)
+    expect(banking.overview).toBeNull()
+    expect(banking.error).toBe('')
+  })
+
   it('keeps the previous overview and exposes server errors', async () => {
     mockNuiCall.mockResolvedValueOnce({
       error: 'insufficient_funds',

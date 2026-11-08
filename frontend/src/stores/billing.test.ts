@@ -81,7 +81,7 @@ describe('billing store', () => {
     ])
   })
 
-  it('never sends an amount when paying', async () => {
+  it('does not invent a payment snapshot without a loaded invoice', async () => {
     mockNuiCall
       .mockResolvedValueOnce({
         data: { ...detail, status: 'paid' },
@@ -94,6 +94,29 @@ describe('billing store', () => {
 
     expect(mockNuiCall).toHaveBeenNthCalledWith(1, 'billing:pay', {
       id: detail.id,
+    })
+  })
+  it('binds provider payment to the amount the player reviewed', async () => {
+    mockNuiCall
+      .mockResolvedValueOnce({
+        data: { ...detail, status: 'paid' },
+        success: true,
+      })
+      .mockResolvedValueOnce({ data: overview, success: true })
+    const billing = useBillingStore()
+    billing.detail = {
+      ...detail,
+      id: 'fixture-provider:17',
+      amount: 400,
+      amountPaid: 100,
+    }
+
+    await billing.pay(billing.detail.id)
+
+    expect(mockNuiCall).toHaveBeenNthCalledWith(1, 'billing:pay', {
+      id: 'fixture-provider:17',
+      amount: 400,
+      amountPaid: 100,
     })
   })
 })

@@ -1334,6 +1334,10 @@ const adminPanelFallbackLocales = {
       gameAsset: 'Sets the GTA model or prop used for {name}.',
       animation: 'Sets the animation asset used for {name}.',
       access: 'Defines the jobs, groups or permission level for {name}.',
+      bankingProvider:
+        'Use framework for the built-in bank account, qs for Quasar Banking Creator, or a registered provider resource. A stopped provider makes banking unavailable.',
+      billingProvider:
+        'Use phone for Phone invoices or a registered provider resource. Existing invoices remain with their original provider.',
       integration: 'Selects the connected framework or provider for {name}.',
       path: 'Sets the storage or resource path used for {name}.',
       color: 'Sets the interface color used for {name}.',
@@ -4434,6 +4438,11 @@ const defaultLocales: LocaleTree = {
       actions: 'Banking actions',
       send: 'Send',
       accounts: 'Accounts',
+      companyAccount: 'Company account',
+      historyLimited:
+        'This statement shows activity recorded by this phone. Your bank’s earlier history is available in its own app.',
+      historyWarning:
+        'The transfer completed, but the statement could not be fully updated. Check the balance before sending again.',
       bankAccount: 'Bank account',
       cash: 'Cash',
       latestTransactions: 'Latest Transactions',
@@ -4514,6 +4523,8 @@ const defaultLocales: LocaleTree = {
         paid: 'Paid',
       },
       status: {
+        partially_paid: 'Partially paid',
+        expired: 'Expired',
         open: 'Open',
         overdue: 'Overdue',
         processing: 'Processing',
@@ -4558,6 +4569,10 @@ const defaultLocales: LocaleTree = {
       },
       notifications: { newInvoice: 'New invoice from {issuer}: {amount}' },
       errors: {
+        payment_unknown:
+          'The payment result is unconfirmed. Check the invoice again before attempting another payment.',
+        payment_changed:
+          'The invoice changed. Open it again and confirm the current amount.',
         billing_unavailable: 'Billing is currently unavailable.',
         invoice_not_found: 'This invoice could not be found.',
         invoice_not_payable: 'This invoice can no longer be paid.',

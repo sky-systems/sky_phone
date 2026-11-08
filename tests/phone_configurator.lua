@@ -1544,6 +1544,25 @@ test("existing SQL configurations acquire KnoWay defaults without resetting othe
     assert(restarted.env.Config.Phone.AllowMovement == settings.AllowMovement)
 end)
 
+test("finance provider choices persist and new defaults preserve existing installations", function()
+    local server = new_server()
+    for _, entry in ipairs({ { "Banking", "qs" }, { "Billing", "fixture_invoices" } }) do
+        local settings = server.field(entry[1]).value
+        settings.Provider = entry[2]
+        assert(server.save({ change(entry[1], settings) }).success)
+        local restarted = new_server(server.database)
+        assert(restarted.env.Config[entry[1]].Provider == entry[2])
+    end
+    local settings = server.field("Banking").value
+    settings.Provider = "invalid/provider"
+    assert(server.save({ change("Banking", settings) }).error == "invalid_value")
+    local stored = server.database.payloads[tonumber(server.database.row.config_payload)]
+    stored.Banking.Provider, stored.Billing.Provider = nil, nil
+    local restarted = new_server(server.database)
+    assert(restarted.env.Config.Banking.Provider == "framework")
+    assert(restarted.env.Config.Billing.Provider == "phone")
+end)
+
 assert(failures == 0, ("%s phone configurator tests failed"):format(failures))
 
 dofile("tests/companies_profile_config_sync.lua")

@@ -9,6 +9,15 @@ import {
 } from './adminConfiguratorDescription'
 
 describe('admin configurator descriptions', () => {
+  it('explains banking and invoice provider ownership', () => {
+    expect(configuratorDescriptionKey('Banking.Provider', 'framework')).toBe(
+      'bankingProvider',
+    )
+    expect(configuratorDescriptionKey('Billing.Provider', 'phone')).toBe(
+      'billingProvider',
+    )
+  })
+
   it('explains phone control filters and their numeric GTA IDs', () => {
     expect(configuratorDescriptionKey('Phone.DisabledControls', [])).toBe(
       'phoneDisabledControls',

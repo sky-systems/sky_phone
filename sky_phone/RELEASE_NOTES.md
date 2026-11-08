@@ -1,3 +1,46 @@
+# Sky Phone 1.6.0
+
+> [!WARNING]
+> **Server installation: download [sky_phone-1.6.0.zip](https://github.com/sky-systems/sky_phone/releases/download/1.6.0/sky_phone-1.6.0.zip) under Assets.**
+> GitHub's **Source code (zip / tar.gz)** and **Code → Download ZIP** contain developer sources without the built phone UI.
+
+## Changes
+
+- Add optional invoice and banking providers with settings in file configuration and the Phone Configurator. Existing Phone invoices and framework banking remain the defaults.
+- Display and pay received Jobs Base invoices through its matching adapter update. Jobs Base retains invoice ownership, payment checks and society settlement. Item currencies remain payable through the Jobs Base interface; sent invoices and disputes are unavailable in Phone for this provider.
+- Personal transfers continue to use framework money once and log the completed transfer to the selected banking provider.
+- Add a Quasar Banking Creator adapter for held-fund checks, QBCore/Qbox boss company balances and transaction logging. It requires the documented Banking Creator exports; earlier Quasar history is not imported.
+- Show partially paid and expired invoices, protect confirmations against changed outstanding amounts, and preserve a successful transfer result if its statement update fails.
+- Include setup guidance and interface translations in all 16 bundled locales.
+
+## Update from 1.5.0
+
+For older installations, also apply the intervening release instructions below.
+
+1. Back up the resource and database. Preserve configuration, translations, server peppers, hooks and custom integrations.
+2. Schedule maintenance with players disconnected. Stop consuming Phone integrations and custom-app resources, then stop `sky_phone`. Extract **sky_phone-1.6.0.zip**, keeping the folder named `sky_phone`. Replace the complete `source/html` directory, then restore custom files.
+3. Keep the active configuration mode. Existing SQL settings are retained and missing provider fields receive the existing-behavior defaults. In file mode, add `Provider = "framework",` inside `Config.Banking` and `Provider = "phone",` inside `Config.Billing` in your retained `config/config.lua`; merge the new locale entries from this package into customized translations.
+4. Optional external providers require their matching adapter updates as well as Phone 1.6.0. Install those updates before selecting them. Follow [Banking and invoices](integrations/FINANCE.md) to choose providers and check the supported API/version and society-account setup. Existing installed provider versions without these adapters are insufficient.
+5. Run `refresh`, start the providers and `sky_phone` in their normal order, then restart consuming Phone integrations and custom-app resources before reconnecting players. Verify opening the phone, invoices, company access and a small transfer in your server environment. See [compatibility lifecycle](integrations/COMPATIBILITY_LIFECYCLE.md) for alias consumers.
+
+No SQL migration, new inventory item or mandatory provider upgrade is required to retain the default behavior. Existing Phone invoices remain stored when selecting an external invoice provider. No balances or previous provider history are migrated.
+
+## Changed shipped files
+
+Relative to the installed `sky_phone` directory:
+
+- `fxmanifest.lua`, `RELEASE_NOTES.md`, `README.md`, `SOURCE.txt` and `integrations/{README,FINANCE}.md` — version 1.6.0, setup and package provenance.
+- `config/config.lua`, `config/locales/*.lua`, `source/shared/config_default.lua` — provider defaults, translations and generated defaults.
+- `source/server/{finance_providers,banking,billing,phone_configurator,public_api}.lua` — optional providers, validated settlement delegation, configuration and API capability.
+- `source/bridge/server/finance_quasar.lua`, `source/bridge/server/frameworks/{qb,qbox}.lua` — Banking Creator adapter and framework-owned boss flags.
+- `source/html/` — complete rebuilt UI with company balances, statement warnings and invoice status support.
+
+No files are removed or renamed outside the rebuilt NUI bundle. Regression tests and provider implementations owned by other resources are outside this package.
+
+[All changes since 1.5.0](https://github.com/sky-systems/sky_phone/compare/1.5.0...1.6.0)
+
+---
+
 # Sky Phone 1.5.0
 
 > [!WARNING]

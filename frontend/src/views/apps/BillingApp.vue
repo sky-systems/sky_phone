@@ -86,6 +86,8 @@ const visibleInvoices = computed(() => {
 
 const statusIcons: Record<BillingStatus, typeof Clock3> = {
   open: Clock3,
+  partially_paid: Clock3,
+  expired: AlertTriangle,
   processing: RefreshCw,
   paid: CheckCircle2,
   disputed: ShieldAlert,

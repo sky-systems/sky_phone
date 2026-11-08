@@ -57,6 +57,7 @@ jobs:
           lua5.4 tests/server_locales.lua
           lua5.4 tests/framework_permissions.lua
           lua5.4 tests/phone_configurator.lua
+          lua5.4 tests/server_finance.lua
           lua5.4 tests/cellular.lua
           lua5.4 tests/server_admin_social.lua
           lua5.4 tests/server_admin_performance.lua

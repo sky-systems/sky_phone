@@ -105,6 +105,8 @@ Snake advances one level every 10 points, cycles through six food appearances, a
 | **Languages** | Arabic, Chinese, Czech, Dutch, English, Finnish, French, German, Italian, Polish, Portuguese, Russian, Serbian, Spanish, Swedish |
 | **Database** | MySQL or MariaDB through oxmysql |
 
+Optional invoice and bank adapters: [setup and provider contracts](docs/finance-integrations.md).
+
 ## Feature highlights
 
 - Modern Sky UI with responsive interactions, light and dark appearance, widgets, folders, notifications, and a full setup flow

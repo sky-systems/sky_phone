@@ -23,6 +23,7 @@ the maintenance/restart instructions before reconnecting players.
 - [Configuration and administrator access](https://www.sky-systems.net/docs/scripts/free-phone/configuration)
 - [Discord logging](LOGGING.md)
 - [Public APIs and custom apps](integrations/README.md)
+- [Banking and invoice providers](integrations/FINANCE.md)
 - [Features and developer source](https://github.com/sky-systems/sky_phone)
 - [Discord support](https://discord.gg/sky-systems)
 

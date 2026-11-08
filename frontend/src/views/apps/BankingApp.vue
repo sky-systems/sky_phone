@@ -337,6 +337,13 @@ onBeforeUnmount(() => {
         <SkySpinner :label="phone.t('Common.loading')" />
       </div>
       <template v-if="activeTab === 'home'">
+        <p
+          v-if="banking.overview.historyWarning"
+          class="banking-no-transactions"
+          role="status"
+        >
+          {{ phone.t('Apps.banking.historyWarning') }}
+        </p>
         <SkyGlass class="banking-balance">
           <div class="banking-balance__label">
             <span>{{ phone.t('Apps.banking.totalBalance') }}</span>
@@ -384,8 +391,23 @@ onBeforeUnmount(() => {
             >
               <template #media><CircleDollarSign :size="18" /></template>
             </SkyListItem>
+            <SkyListItem
+              v-for="account in banking.overview.accounts ?? []"
+              :key="account.id"
+              :title="account.label"
+              :subtitle="phone.t('Apps.banking.companyAccount')"
+              :after="formatMoney(account.balance)"
+            >
+              <template #media><Landmark :size="18" /></template>
+            </SkyListItem>
           </SkyList>
         </SkyCard>
+        <p
+          v-if="banking.overview.historyLimited"
+          class="banking-no-transactions"
+        >
+          {{ phone.t('Apps.banking.historyLimited') }}
+        </p>
 
         <section class="banking-transactions">
           <div class="banking-section-title">
