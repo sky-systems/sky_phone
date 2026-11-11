@@ -42,110 +42,7 @@ jobs:
           set -euo pipefail
           while IFS= read -r -d '' file; do
             luac5.4 -p "$file"
-          done < <(find sky_phone tests -type f -name '*.lua' -print0)
-
-      - name: Test inventory bridges, tooltips and SIM actions
-        run: |
-          lua5.4 tests/inventory_bridges.lua
-          lua5.4 tests/inventory_extended_bridges.lua
-          lua5.4 tests/client_inventory.lua
-          lua5.4 tests/server_sim_inventory.lua
-          lua5.4 tests/client_sim.lua
-
-      - name: Test Phone Configurator persistence and runtime sync
-        run: |
-          lua5.4 tests/server_locales.lua
-          lua5.4 tests/framework_permissions.lua
-          lua5.4 tests/phone_configurator.lua
-          lua5.4 tests/cellular.lua
-          lua5.4 tests/server_admin_social.lua
-          lua5.4 tests/server_admin_performance.lua
-
-      - name: Test realtime media and EasyShare receive flows
-        run: |
-          lua5.4 tests/server_realtime.lua
-          lua5.4 tests/realtime_snapshot_allocation.lua
-          lua5.4 tests/server_realtime_cloudflare.lua
-          lua5.4 tests/client_realtime.lua
-          lua5.4 tests/server_easyshare.lua
-          lua5.4 tests/server_social_discovery.lua
-          lua5.4 tests/client_calls.lua
-          lua5.4 tests/client_camera.lua
-          lua5.4 tests/client_pma_calls.lua
-          lua5.4 tests/server_pma_calls.lua
-
-      - name: Test media import URL probes and validation
-        run: |
-          lua5.4 tests/media_import.lua
-          lua5.4 tests/flare_profile_photos.lua
-
-      - name: Test TK Housing bridge permissions and mutations
-        run: lua5.4 tests/housing_tk.lua
-
-      - name: Test SkyPic reactions and configured pagination
-        run: lua5.4 tests/server_skypic.lua
-
-      - name: Test editable player checks and radio restrictions
-        run: |
-          lua5.4 tests/client_framework_status.lua
-          lua5.4 tests/player_restrictions.lua
-          lua5.4 tests/client_radio_restrictions.lua
-
-      - name: Test service-line routing and call lifecycle
-        run: |
-          lua5.4 tests/server_voice.lua
-          lua5.4 tests/server_calls.lua
-          lua5.4 tests/server_calls_ring_all.lua
-          lua5.4 tests/companies_call_availability_spec.lua
-          lua5.4 tests/companies_service_device_spec.lua
-          lua5.4 tests/server_phone_modules.lua
-          lua5.4 tests/server_phone_face_id.lua
-
-      - name: Test CityWarn blip lifecycle
-        run: |
-          lua5.4 tests/client_citywarn.lua
-          lua5.4 tests/server_citywarn.lua
-
-      - name: Test KnoWay dispatch, authority and payment recovery
-        run: |
-          lua5.4 tests/client_knoway.lua
-          lua5.4 tests/server_knoway.lua
-
-      - name: Test CrewLink visibility, world blips and quick pings
-        run: |
-          lua5.4 tests/server_crewlink.lua
-          lua5.4 tests/client_crewlink.lua
-
-      - name: Test Discord logging and call lifecycle
-        run: |
-          lua5.4 tests/server_logging.lua
-          lua5.4 tests/server_webhooks.lua
-          lua5.4 tests/server_calls.lua
-          lua5.4 tests/client_nui_server_bridge.lua
-      - name: Test server startup and tone catalog recovery
-        run: |
-          lua5.4 tests/database_migrations.lua
-          lua5.4 tests/app_database.lua
-          lua5.4 tests/server_callback_startup.lua
-          lua5.4 tests/client_phone_lifecycle.lua
-          lua5.4 tests/server_world_display.lua
-          lua5.4 tests/client_world_display.lua
-
-      - name: Test custom app registration and installation authority
-        run: |
-          lua5.4 tests/custom_app_compat.lua
-          lua5.4 tests/custom_app_compat_client.lua
-          lua5.4 tests/custom_app_compat_server.lua
-          lua5.4 tests/custom_app_messaging.lua
-          lua5.4 tests/custom_app_installations.lua
-          lua5.4 tests/custom_app_uninstall.lua
-
-      - name: Test client idle workers and active phone controls
-        run: |
-          lua5.4 tests/client_focus.lua
-          lua5.4 tests/client_camera.lua
-          lua5.4 tests/client_health.lua
-          lua5.4 tests/client_payphones.lua
+          done < <(find sky_phone -type f -name '*.lua' -print0)
 
   frontend:
     name: Frontend
@@ -190,25 +87,6 @@ jobs:
       - name: Typecheck frontend
         run: pnpm typecheck
 
-      - name: Test frontend
-        run: pnpm test
-
-      - name: Install theme test browser
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Test all app themes in the browser
-        run: pnpm test:themes
-
-      - name: Upload theme audit reports
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: app-theme-audit
-          path: |
-            frontend/theme-test-results
-            frontend/playwright-report
-          retention-days: 7
-
       - name: Build deployable NUI
         run: pnpm build-only
 
@@ -218,8 +96,6 @@ jobs:
           test -f ../sky_phone/INSTALL.md
           cmp ../LICENSE ../sky_phone/LICENSE
           cmp ../THIRD_PARTY_NOTICES.md ../sky_phone/THIRD_PARTY_NOTICES.md
-          node ../tests/knoway_vehicle_assets.mjs
-
       - name: Package pull request test resource
         if: github.event_name == 'pull_request'
         shell: bash

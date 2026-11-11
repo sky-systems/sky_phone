@@ -18,8 +18,8 @@ Closes #
 
 ## Validation
 
-- [ ] I ran the narrowest relevant automated tests.
-- [ ] I ran `pnpm typecheck`, `pnpm lint`, and `pnpm test` for frontend changes.
+- [ ] I ran the narrowest relevant syntax, type, lint and package checks.
+- [ ] I ran `pnpm typecheck` and `pnpm lint` for frontend changes.
 - [ ] I ran a production frontend build for frontend changes.
 - [ ] I tested affected Lua/native behavior with experimental OAL enabled, or marked the live runtime test as pending below.
 - [ ] I verified every changed NUI callback responds on every reachable path.
@@ -32,6 +32,8 @@ Commands and results:
 ```
 
 ## Runtime evidence
+
+Prefer MCP and in-game verification. Standalone test/spec files and internal documentation require a concrete recommendation and explicit user authorization.
 
 <!-- Distinguish local/static/build checks from an actual restarted FiveM runtime test. Add screenshots for visible UI changes. -->
 

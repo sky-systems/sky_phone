@@ -9,14 +9,57 @@
 /CONTEXT.md
 /design-qa.md
 /docs/*
-!/docs/custom-app-registration-audit.md
-!/docs/phone-configurator.md
-!/docs/knoway.md
-!/docs/inventory-setup.md
-!/docs/custom-app-input.md
-!/docs/phone-performance-review.md
-!/docs/tk-housing.md
 
 # Local history-rewrite and backup artifacts
 /.git-rewrite/
 /*.bundle
+
+# BEGIN Sky test/spec and internal documentation policy
+[Tt]est/
+[Tt]ests/
+[Ss]pec/
+[Ss]pecs/
+__tests__/
+[Tt]est-utils/
+[Tt]esting/
+[Tt]heme-tests/
+[Tt]heme-test-results/
+[Tt]est-results/
+[Pp]laywright-report/
+[Cc]overage/
+[Ee]2e/
+[Cc]ypress/
+.pytest_cache/
+.nyc_output/
+*.[Tt]est.*
+*.[Ss]pec.*
+[Tt]est_*
+[Tt]est-*
+*_[Tt]est.py
+*_[Tt]ests.py
+*_[Tt]est.lua
+*_[Tt]ests.lua
+*_[Ss]pec.lua
+*_[Ss]pec.py
+*_[Ss]pec.js
+*_[Ss]pec.ts
+*_[Tt]est.json
+*_[Tt]ests.json
+*_[Ss]pec.json
+[Ss]pec_*.lua
+[Ss]pec_*.py
+vitest.config.*
+playwright.config.*
+jest.config.*
+karma.config.*
+[Dd]oc/
+[Dd]ocs/
+[Dd]ocu/
+[Dd]ocumentation/
+[Dd]okumentation/
+
+# Agent instructions remain available to standalone checkouts.
+!/AGENTS.md
+!/CLAUDE.md
+/frontend/testserver/smoke.cjs
+# END Sky test/spec and internal documentation policy

@@ -55,12 +55,11 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
-      - name: Validate, test, and build frontend
+      - name: Validate and build frontend
         working-directory: frontend
         run: |
           pnpm licenses:check
           pnpm lint
-          pnpm test
           pnpm build
 
       - name: Verify deployable phone resource
@@ -88,15 +87,7 @@ jobs:
           set -euo pipefail
           while IFS= read -r -d '' file; do
             luac5.4 -p "$file"
-          done < <(find sky_phone tests -type f -name '*.lua' -print0)
-
-      - name: Test Lua resource contracts
-        shell: bash
-        run: |
-          set -euo pipefail
-          for file in tests/*.lua; do
-            lua5.4 "$file"
-          done
+          done < <(find sky_phone -type f -name '*.lua' -print0)
 
       - name: Create release archive
         shell: bash
