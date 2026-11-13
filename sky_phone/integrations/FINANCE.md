@@ -17,7 +17,7 @@ In file mode, edit `config/config.lua` and restart Phone and its consumers durin
 | `Banking.Provider` | `framework`     | Framework balance and Phone statement; default.                                                |
 | `Banking.Provider` | `qs`            | Quasar Banking Creator held-fund checks, boss company balances and transfer logging.           |
 | `Billing.Provider` | `phone`         | Phone's own invoices; default.                                                                 |
-| `Billing.Provider` | `sky_jobs_base` | Received Jobs Base invoices; requires its Phone adapter update and enabled Jobs Base billing.  |
+| `Billing.Provider` | `sky_jobs_base` | Received invoices from Jobs Base 1.55.0 or later with the Phone adapter and billing enabled.   |
 
 Company balances are read-only. Quasar company balances require the QBCore/Qbox boss flag. These options do
 not add company withdrawals or cash deposits to Phone.
@@ -40,4 +40,25 @@ ledgers automatically. A statement warning after a successful transfer means the
 money was transferred but the history could not be fully refreshed; check the
 statement before taking further action.
 
-For custom server adapters, see the [provider API and verification notes](https://github.com/sky-systems/sky_phone/blob/1.6.0/docs/finance-integrations.md).
+## Custom server adapters
+
+Register the provider's own server export with
+`exports.sky_phone:RegisterFinanceProvider(kind, endpoint)`, where `kind` is
+`"billing"` or `"banking"` and `endpoint` is the export name. Set the
+corresponding Provider field in Phone to the adapter's resource name. The adapter
+registers on its own startup if Phone is running and again on the server event
+`sky_phone:server:financeReady` after Phone starts.
+
+Phone calls the export with `(playerSource, action, data)`. Return a table with
+`success = true` and the applicable `data`, or `success = false` with an
+`error` code. Billing adapters handle `overview`, `list`, `detail`,
+`markRead`, `pay` and `dispute`. The provider authorizes the invoice
+owner and checks the confirmed `data.amount` and `data.amountPaid` before
+settlement. Banking adapters handle `overview`, `prepareTransfer`,
+`recordTransfer` and `recordPayment`. The record actions log completed
+movements. Phone or the billing provider has already moved the money.
+
+Call `exports.sky_phone:NotifyFinanceChanged(kind, playerSource)` after a
+successful change so Phone can reload the affected view. For the action handlers
+and response shapes, see the [finance bridge](../source/server/finance_providers.lua)
+and [Quasar adapter](../source/bridge/server/finance_quasar.lua).

@@ -29,7 +29,7 @@ the maintenance/restart instructions before reconnecting players.
 
 KnoWay is optional and disabled by default. The `knowayest` vehicle is included;
 select it or a verified custom model in the active configuration before enabling
-the app. Follow the [KnoWay guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/knoway.md).
+the app. Follow the [KnoWay guide](https://github.com/sky-systems/sky_phone/blob/1.5.0/docs/knoway.md).
 The vehicle retains its [creator's attribution and free-distribution terms](https://github.com/sky-systems/sky_phone/blob/dev/THIRD_PARTY_ASSETS.md).
 
 Sky Phone's software is licensed under [GPL-3.0](LICENSE). Frontend component
