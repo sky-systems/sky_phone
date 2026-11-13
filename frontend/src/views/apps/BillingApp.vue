@@ -29,6 +29,7 @@ import type {
   BillingDirection,
   BillingFilter,
   BillingStatus,
+  InvoiceDetail,
   InvoiceSummary,
 } from '@/types/billing'
 import {
@@ -62,7 +63,7 @@ const direction = ref<BillingDirection>('inbox')
 const filter = ref<BillingFilter>('all')
 const filters: BillingFilter[] = ['all', 'open', 'paid']
 const search = ref('')
-const paymentOpen = ref(false)
+const paymentInvoice = ref<InvoiceDetail | null>(null)
 const toastOpen = ref(false)
 const toastText = ref('')
 let searchTimer: number | undefined
@@ -86,6 +87,8 @@ const visibleInvoices = computed(() => {
 
 const statusIcons: Record<BillingStatus, typeof Clock3> = {
   open: Clock3,
+  partially_paid: Clock3,
+  expired: AlertTriangle,
   processing: RefreshCw,
   paid: CheckCircle2,
   disputed: ShieldAlert,
@@ -146,7 +149,7 @@ async function loadList(): Promise<boolean> {
 async function selectTab(nextTab: BillingTab): Promise<void> {
   tab.value = nextTab
   screen.value = 'main'
-  paymentOpen.value = false
+  paymentInvoice.value = null
   if (nextTab === 'overview') {
     await billing.loadOverview(direction.value)
     return
@@ -189,19 +192,20 @@ async function openInvoice(invoice: InvoiceSummary): Promise<void> {
 }
 
 function goBack(): void {
-  paymentOpen.value = false
+  paymentInvoice.value = null
   billing.detail = null
   screen.value = 'main'
 }
 
 async function payInvoice(): Promise<void> {
-  if (!billing.detail) return
-  const response = await billing.pay(billing.detail.id)
+  const invoice = paymentInvoice.value
+  if (!invoice || billing.isPaying) return
+  const response = await billing.pay(invoice)
+  paymentInvoice.value = null
   if (!response.success) {
     showToast(t(`errors.${response.error ?? 'payment_failed'}`))
     return
   }
-  paymentOpen.value = false
   showToast(t('payment.success'))
 }
 
@@ -405,7 +409,7 @@ onBeforeUnmount(() => {
         <div v-if="billing.detail.canPay" class="billing-detail__actions">
           <SkyButton
             class="billing-action billing-action--pay"
-            @click="paymentOpen = true"
+            @click="paymentInvoice = billing.detail"
           >
             <WalletCards :size="16" />
             {{ t('payment.payNow') }}
@@ -734,22 +738,22 @@ onBeforeUnmount(() => {
     </SkyTabBar>
 
     <SkySheet
-      :opened="paymentOpen"
+      :opened="paymentInvoice !== null"
       class="billing-payment-sheet"
-      :ariaLabelledby="billing.detail ? 'billing-payment-title' : undefined"
-      @backdropclick="paymentOpen = false"
-      @escape="paymentOpen = false"
+      :ariaLabelledby="paymentInvoice ? 'billing-payment-title' : undefined"
+      @backdropclick="paymentInvoice = null"
+      @escape="paymentInvoice = null"
     >
-      <section v-if="billing.detail" class="billing-payment-sheet__content">
+      <section v-if="paymentInvoice" class="billing-payment-sheet__content">
         <span class="billing-payment-sheet__icon"
           ><WalletCards :size="27"
         /></span>
         <h2 id="billing-payment-title">{{ t('payment.title') }}</h2>
-        <p>{{ t('payment.body', { issuer: billing.detail.issuerLabel }) }}</p>
+        <p>{{ t('payment.body', { issuer: paymentInvoice.issuerLabel }) }}</p>
         <SkyGlass :highlight="false" class="billing-payment-total">
-          <span>{{ billing.detail.title }}</span>
+          <span>{{ paymentInvoice.title }}</span>
           <strong>{{
-            formatMoney(billing.detail.amount, billing.detail.currency)
+            formatMoney(paymentInvoice.amount, paymentInvoice.currency)
           }}</strong>
         </SkyGlass>
         <SkyButton
@@ -765,7 +769,7 @@ onBeforeUnmount(() => {
           />
           <span v-else>{{ t('payment.confirm') }}</span>
         </SkyButton>
-        <SkyLink component="button" type="button" @click="paymentOpen = false">
+        <SkyLink component="button" type="button" @click="paymentInvoice = null">
           {{ t('payment.cancel') }}
         </SkyLink>
       </section>

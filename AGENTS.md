@@ -1,5 +1,13 @@
 # AGENTS - sky_phone
 
+## Test/spec files and internal documentation
+
+- Prefer the installed Sky MCP and real in-game workflows for FiveM verification. Use managed tasks, NUI inspection, callback traces and logs; leave required manual game interaction to the user. Otherwise use the existing application interfaces and relevant syntax, lint, type and build checks.
+- Do not create, restore, read, import or run standalone test/spec files, test fixtures/harnesses or internal documentation directories by default. Do not substitute renamed test helpers or another documentation folder.
+- An exception requires a concrete recommendation explaining the benefit and the user's explicit authorization for that scope. A general request to fix, implement, build or verify something is not authorization. Keep these paths ignored by Git; do not force-add them or remove ignores without explicit authorization.
+- This policy takes precedence over older test/doc commands in instructions, skills, READMEs and package scripts. Do not follow stale references or recreate deleted files.
+- Runtime gameplay code, in-game diagnostics, preview servers, product assets, customer-facing website content, installation READMEs, API references, maintained agent/skill instructions and existing syntax/lint/type/build validators remain usable.
+
 ## Scope
 
 This repository contains the standalone FiveM resource `sky_phone`. These rules
@@ -106,8 +114,7 @@ as project instructions, not as optional documentation.
 - The Configurator must remain complete when file-based configuration is
   disabled. Do not introduce a setting that can only be managed by editing Lua
   after `Config.PhoneConfigurator.Enabled` is enabled.
-- Add or update contract/fixture coverage so configuration parity regressions
-  fail automated checks.
+- Verify configuration parity through the in-game Configurator save/load workflow and MCP readback.
 
 ## Working method and verification
 
@@ -120,7 +127,7 @@ as project instructions, not as optional documentation.
 4. Run the narrowest relevant checks and inspect the final diff.
 
 For frontend changes, use the scripts declared in `frontend/package.json` as
-appropriate, including type checking, linting, tests, and the production build.
+appropriate, including type checking, linting, and the production build.
 Report build or browser-preview evidence separately from live in-game testing.
 
 ## Git

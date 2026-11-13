@@ -2,6 +2,8 @@ export type BillingDirection = 'inbox' | 'sent'
 
 export type BillingStatus =
   | 'open'
+  | 'partially_paid'
+  | 'expired'
   | 'processing'
   | 'paid'
   | 'disputed'
@@ -27,6 +29,7 @@ export type InvoiceSummary = {
 }
 
 export type InvoiceDetail = InvoiceSummary & {
+  amountPaid?: number
   canDispute: boolean
   canPay: boolean
   issuerAccount: string

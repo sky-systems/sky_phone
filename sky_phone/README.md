@@ -23,12 +23,13 @@ the maintenance/restart instructions before reconnecting players.
 - [Configuration and administrator access](https://www.sky-systems.net/docs/scripts/free-phone/configuration)
 - [Discord logging](LOGGING.md)
 - [Public APIs and custom apps](integrations/README.md)
+- [Banking and invoice providers](integrations/FINANCE.md)
 - [Features and developer source](https://github.com/sky-systems/sky_phone)
 - [Discord support](https://discord.gg/sky-systems)
 
 KnoWay is optional and disabled by default. The `knowayest` vehicle is included;
 select it or a verified custom model in the active configuration before enabling
-the app. Follow the [KnoWay guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/knoway.md).
+the app. Follow the [KnoWay guide](https://github.com/sky-systems/sky_phone/blob/1.5.0/docs/knoway.md).
 The vehicle retains its [creator's attribution and free-distribution terms](https://github.com/sky-systems/sky_phone/blob/dev/THIRD_PARTY_ASSETS.md).
 
 Sky Phone's software is licensed under [GPL-3.0](LICENSE). Frontend component

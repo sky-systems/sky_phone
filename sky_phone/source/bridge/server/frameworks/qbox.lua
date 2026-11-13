@@ -70,6 +70,7 @@ function Bridge.Framework.GetJob(source)
     local grade = job and job.grade
     return {
         name = job and job.name or "",
+        isBoss = job ~= nil and (job.isboss == true or type(grade) == "table" and grade.isboss == true),
         label = job and job.label or "",
         grade = type(grade) == "table" and tonumber(grade.level) or tonumber(grade) or 0,
         gradeLabel = type(grade) == "table" and (grade.name or job.label) or (job and job.label or ""),

@@ -101,6 +101,8 @@ export function configuratorDescriptionKey(
   value: unknown,
   structure?: AdminConfiguratorStructure,
 ): string {
+  if (path === 'Banking.Provider') return 'bankingProvider'
+  if (path === 'Billing.Provider') return 'billingProvider'
   if (path === 'Phone.BlockWhenDead') return 'phoneBlockWhenDead'
   if (path === 'Phone.BlockWhenCuffed') return 'phoneBlockWhenCuffed'
   if (path === 'Phone.DisabledControls') return 'phoneDisabledControls'

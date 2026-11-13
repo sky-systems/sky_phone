@@ -86,8 +86,8 @@ export const useBankingStore = defineStore('banking', {
         this.isLoading = this.pendingRequests > 0
       })
       if (generation !== this.requestGeneration) return response
-      if (response.success && response.data) {
-        this.overview = response.data
+      if (response.success) {
+        if (response.data) this.overview = response.data
         this.error = ''
       } else {
         this.error = response.error ?? 'request_failed'

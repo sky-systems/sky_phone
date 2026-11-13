@@ -115,8 +115,18 @@ local function boolean_export(export_name, callback)
     if not success then
         return nil, "provider_error"
     end
+    -- VMS item-based key checks return nil when no matching key is held.
+    if export_name == "HasKeys" and value == nil then
+        return false
+    end
     if type(value) ~= "boolean" then
-        Bridge.Debug("error", "[sky_phone] %s:%s returned a non-boolean value.", resource_name, export_name)
+        Bridge.Debug(
+            "error",
+            "[sky_phone] %s:%s returned a non-boolean value (expected boolean, got %s).",
+            resource_name,
+            export_name,
+            type(value)
+        )
         return nil, "provider_error"
     end
     return value

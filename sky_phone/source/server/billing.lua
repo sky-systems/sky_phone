@@ -184,6 +184,9 @@ Bridge.Callbacks.Register("sky_phone:billing:overview", function(source, data)
     if not identifier then
         return error_response
     end
+    if (Config.Billing.Provider or "phone") ~= "phone" then
+        return Bridge.Finance.Call("billing", "overview", source, data)
+    end
     local direction = data and data.direction == "sent" and "sent" or "inbox"
     local owner_column = direction == "sent" and "issuer_identifier" or "recipient_identifier"
     local rows = Bridge.Database.Query(([=[
@@ -220,6 +223,9 @@ Bridge.Callbacks.Register("sky_phone:billing:list", function(source, data)
     local identifier, error_response = require_billing_session(source)
     if not identifier then
         return error_response
+    end
+    if (Config.Billing.Provider or "phone") ~= "phone" then
+        return Bridge.Finance.Call("billing", "list", source, data)
     end
     local direction = data and data.direction == "sent" and "sent" or "inbox"
     local filter = type(data and data.filter) == "string" and data.filter or "all"
@@ -267,6 +273,9 @@ Bridge.Callbacks.Register("sky_phone:billing:detail", function(source, data)
     if not identifier then
         return error_response
     end
+    if (Config.Billing.Provider or "phone") ~= "phone" then
+        return Bridge.Finance.Call("billing", "detail", source, data)
+    end
     local row = find_owned_invoice(data and data.id, identifier)
     if not row then
         return { success = false, error = "invoice_not_found" }
@@ -279,6 +288,9 @@ Bridge.Callbacks.Register("sky_phone:billing:markRead", function(source, data)
     if not identifier then
         return error_response
     end
+    if (Config.Billing.Provider or "phone") ~= "phone" then
+        return Bridge.Finance.Call("billing", "markRead", source, data)
+    end
     if not valid_invoice_id(data and data.id) then
         return { success = false, error = "invoice_not_found" }
     end
@@ -290,12 +302,15 @@ Bridge.Callbacks.Register("sky_phone:billing:markRead", function(source, data)
 end)
 
 Bridge.Callbacks.Register("sky_phone:billing:dispute", function(source, data)
-    if not Config.Billing.AllowDisputes then
+    if (Config.Billing.Provider or "phone") == "phone" and not Config.Billing.AllowDisputes then
         return { success = false, error = "dispute_unavailable" }
     end
     local identifier, error_response = require_billing_session(source)
     if not identifier then
         return error_response
+    end
+    if (Config.Billing.Provider or "phone") ~= "phone" then
+        return Bridge.Finance.Call("billing", "dispute", source, data)
     end
     if not valid_invoice_id(data and data.id) then
         return { success = false, error = "invoice_not_found" }
@@ -324,6 +339,17 @@ Bridge.Callbacks.Register("sky_phone:billing:pay", function(source, data)
     if not identifier then
         return error_response
     end
+    if (Config.Billing.Provider or "phone") ~= "phone" then
+        local result = Bridge.Finance.Call("billing", "pay", source, data)
+        if result.success then
+            Bridge.Finance.RecordInvoicePayment(source, data.amount, result.data.issuerLabel, result.data.id, true)
+        end
+        if Bridge.Framework.GetIdentifier(source) ~= identifier then
+            return { success = false, error = "not_authorized" }
+        end
+        if result.success then TriggerClientEvent("sky_phone:banking:changed", source) end
+        return result
+    end
     local invoice_id = data and data.id
     if not valid_invoice_id(invoice_id) then
         return { success = false, error = "invoice_not_found" }
@@ -342,6 +368,10 @@ Bridge.Callbacks.Register("sky_phone:billing:pay", function(source, data)
     if row.status ~= "open" then
         return { success = false, error = "invoice_not_payable" }
     end
+    local amount = tonumber(row.amount) or 0
+    if data.amount ~= nil and (data.amount ~= amount or data.amountPaid ~= 0) then
+        return { success = false, error = "payment_changed" }
+    end
     local claim = Bridge.Database.Query([[
         UPDATE `sky_phone_billing_invoices` SET `status` = 'processing'
         WHERE `id` = ? AND `recipient_identifier` = ? AND `status` = 'open'
@@ -350,7 +380,6 @@ Bridge.Callbacks.Register("sky_phone:billing:pay", function(source, data)
         return { success = false, error = "payment_in_progress" }
     end
     local payment_id = uuid()
-    local amount = tonumber(row.amount) or 0
     Bridge.Database.Query([[
         INSERT INTO `sky_phone_billing_payments` (`id`, `invoice_id`, `recipient_identifier`, `amount`)
         VALUES (?, ?, ?, ?)
@@ -378,12 +407,18 @@ Bridge.Callbacks.Register("sky_phone:billing:pay", function(source, data)
         Bridge.Debug("error", "[sky_phone] Billing payment transaction failed for invoice %s; payer was refunded.", tostring(invoice_id))
         return { success = false, error = "payment_failed" }
     end
+    if (Config.Banking.Provider or "framework") ~= "framework" then
+        Bridge.Finance.RecordInvoicePayment(source, amount, row.issuer_label, payment_id, false)
+    end
     TriggerClientEvent("sky_phone:banking:changed", source)
     notify_identifier(identifier, "sky_phone:billing:changed")
     if row.issuer_identifier ~= "" then
         notify_identifier(row.issuer_identifier, "sky_phone:billing:changed")
     end
     local paid_row = find_owned_invoice(invoice_id, identifier)
+    if Bridge.Framework.GetIdentifier(source) ~= identifier then
+        return { success = false, error = "not_authorized" }
+    end
     return { success = true, data = invoice_dto(paid_row, identifier) }
 end)
 
