@@ -165,7 +165,7 @@ Bridge.Callbacks.Register("sky_phone:banking:transfer", function(source, data)
     local provider = Config.Banking.Provider or "framework"
     local transfer = { amount = amount, target = target, senderIdentifier = identifier,
         targetIdentifier = target_identifier, senderName = player_name(source), targetName = player_name(target) }
-    if (Config.Banking.Provider or "framework") ~= "framework" then
+    if provider ~= "framework" then
         local prepared = Bridge.Finance.Call("banking", "prepareTransfer", source, transfer)
         if not prepared.success then return prepared end
     end
@@ -191,10 +191,13 @@ Bridge.Callbacks.Register("sky_phone:banking:transfer", function(source, data)
         Bridge.Debug("error", "[sky_phone] Transfer completed, but the Phone statement could not be updated.")
     end
     if provider ~= "framework" then
-        if (Config.Banking.Provider or "framework") == provider then
+        if (Config.Banking.Provider or "framework") == provider
+            and Bridge.Framework.GetIdentifier(source) == identifier then
             local recorded = Bridge.Finance.Call("banking", "recordTransfer", source, transfer)
             history_synced = recorded.success and history_synced
-        else history_synced = false end
+        else
+            history_synced = false
+        end
     end
     if Bridge.Framework.GetIdentifier(target) == target_identifier then
         notify_changed(target, {

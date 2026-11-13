@@ -115,6 +115,6 @@ AddEventHandler("onResourceStop", function(resource)
 end)
 
 -- Registration uses fresh export names, never retained cross-resource function references.
-AddEventHandler("onResourceStart", function(resource)
+AddEventHandler("onServerResourceStart", function(resource)
     if resource == GetCurrentResourceName() then TriggerEvent("sky_phone:server:financeReady") end
 end)
