@@ -423,17 +423,20 @@ The `IsDuplicityVersion()` block only controls execution. Clients still download
 
 ## Inventory items
 
-**Start with the [Inventory Items & Setup guide](docs/inventory-setup.md).** It covers all 17 adapters with the correct Phonepanel value, item locations, complete templates or editor fields, images, version limits, and verification steps. In particular, TGIANN and other inventories must not use the ox-specific phone/SIM client exports.
+Find the Phonepanel adapter value, item definitions and image locations for your inventory in the [Inventory Items guide](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items). Check provider requirements in the [installation guide](https://www.sky-systems.net/docs/scripts/free-phone/installation#inventory-compatibility).
 
-The release includes an image for each default item in `sky_phone/config/images/`:
+Find the Sky Phone item images in `sky_phone/config/images/`.
 
 | Item | Image |
 | --- | --- |
 | `phone` | `phone.png` |
 | `sky_phone_sim_registered` | `sky_phone_sim_registered.png` |
 | `sky_phone_sim_anonymous` | `sky_phone_sim_anonymous.png` |
+| `radiotowerparts` (optional physical tower repairs) | `radiotowerparts.png` |
 
 Copy these PNG files into your inventory's item image directory. For the default `ox_inventory` image path, use `ox_inventory/web/images/`. Other inventories use their own image directory; the QBCore-style definitions below already name the matching files. If you change an item name in `Config.Phone` or `Config.Sim`, give its image the same name expected by your inventory.
+
+Use your inventory's existing image for `lockpick`. If your release ZIP predates the tower icon, use the PNG download in the [physical tower item setup](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items#physical-tower-items).
 
 ### ox_inventory
 
