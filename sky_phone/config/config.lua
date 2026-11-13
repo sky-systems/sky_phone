@@ -554,6 +554,7 @@ Config.Mail = {
 }
 
 Config.Banking = {
+    Provider = "framework", -- framework, qs, or a registered provider resource.
     Currency = "$",
     MinimumAmount = 1,
     MaximumAmount = 1000000,
@@ -572,6 +573,7 @@ Config.Health = {
 }
 
 Config.Billing = {
+    Provider = "phone", -- phone or a registered provider resource.
     Enabled = true,
     Currency = "$",
     PaymentAccount = "bank", -- bank or cash

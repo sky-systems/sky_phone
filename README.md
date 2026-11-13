@@ -80,7 +80,7 @@ Sky Phone is built to be the **free FiveM phone you can choose without accepting
 
 Snake advances one level every 10 points, cycles through six food appearances, and changes between four skins every 30 points. The selected game speed stays unchanged. Restarting a round resets the level and skin; the high score remains saved. Artwork prompts and the existing visual reference are recorded in [the Snake asset directory](frontend/src/assets/img/games/snake/PROMPTS.md).
 
-[KnoWay](docs/knoway.md) adds optional autonomous robotaxi bookings with map/GPS destinations and prepaid fixed fares. The free resource includes the `knowayest` vehicle directly in its `stream/` and `data/` folders. The app remains disabled by default; choose the bundled model or a verified custom model and enable it through `config.lua` or `/phonepanel`. OneSync and in-game acceptance are required.
+[KnoWay](https://github.com/sky-systems/sky_phone/blob/1.5.0/docs/knoway.md) adds optional autonomous robotaxi bookings with map/GPS destinations and prepaid fixed fares. The free resource includes the `knowayest` vehicle directly in its `stream/` and `data/` folders. The app remains disabled by default; choose the bundled model or a verified custom model and enable it through `config.lua` or `/phonepanel`. OneSync and in-game acceptance are required.
 
 ## Built for players, owners, and developers
 
@@ -104,6 +104,8 @@ Snake advances one level every 10 points, cycles through six food appearances, a
 | **Custom app contracts** | Sky Phone, LB Phone, 17Movement, High Phone, Quasar Smartphone, YSeries |
 | **Languages** | Arabic, Chinese, Czech, Dutch, English, Finnish, French, German, Italian, Polish, Portuguese, Russian, Serbian, Spanish, Swedish |
 | **Database** | MySQL or MariaDB through oxmysql |
+
+Optional invoice and bank adapters are documented in the [finance setup guide](sky_phone/integrations/FINANCE.md).
 
 ## Feature highlights
 
@@ -138,14 +140,14 @@ Snake advances one level every 10 points, cycles through six food appearances, a
 | `ps-inventory` (`ps`) | Yes | Yes | QBCore only; uses item `info` metadata |
 | `codem-inventory` (`codem`) | Yes | Yes | Full per-slot metadata |
 | `tgiann-inventory` (`tgiann`) | Yes | Yes | Per-slot metadata; item definitions must enable `hasMetadata` |
-| `core_inventory` (`core`) | Version-dependent | Version-dependent | Current provider APIs differ from the Phone 1.1.0 adapter; see the [Core setup limits](docs/inventory-setup.md#core-inventory) |
+| `core_inventory` (`core`) | Version-dependent | Version-dependent | Current provider APIs differ from the Phone 1.1.0 adapter. See the [Core setup limits](https://www.sky-systems.net/docs/scripts/free-phone/installation#core-and-mf). |
 | `jpr-inventory` (`jpr`) | Yes | Yes | QBCore only; uses item `info` metadata |
 | `origen_inventory` (`origen`) | Yes | Yes | Full per-slot metadata |
 | `ak47_inventory` (`ak47`) | Yes | Yes | Uses per-slot item `info` metadata |
 | `one_inventory` (`one`) | Yes | Yes | Full per-slot metadata |
 | `ox_inventory` (`ox`) | Yes | Yes | Full per-item phone and physical SIM metadata |
 | `mf-inventory` (`mf`) | Yes | Yes | ESX only |
-| `smx-inventory` (`smx`) | Character / item name | Limited | ESX only; cannot preserve separate identities for multiple copies or arbitrary item trades; see [SMX limits](docs/inventory-setup.md#smx-inventory) |
+| `smx-inventory` (`smx`) | Character / item name | Limited | ESX only. Multiple copies and arbitrary item trades cannot preserve separate identities. See [SMX limits](https://www.sky-systems.net/docs/scripts/free-phone/installation#smx-hex-and-native-esx). |
 | `lj-inventory` (`lj`) | Yes | Yes | QBCore inventory with item `info` metadata |
 | `qb-inventory` (`qb`) | Yes | Yes | Uses item `info` metadata |
 | `hex_4_inventory` (`hex`) | **No metadata support** | **No, Unique Phones are not possible** | ESX only; Sky Phone automatically disables unique phones and physical SIM cards |
@@ -323,7 +325,7 @@ stops. It needs no `add_principal` / `remove_principal` capability. Grants for
 `resource.sky_base` do not apply to `resource.sky_phone`. Existing installations must verify
 their administrators' ACE membership when updating from the earlier framework-role checks.
 
-See the [configuration and access guide](docs/phone-configurator.md) for the file/SQL boundary,
+See the [configuration and access guide](https://www.sky-systems.net/docs/scripts/free-phone/configuration) for the file/SQL boundary,
 General page, permission migration, keyboard IDs, restart behavior and troubleshooting.
 
 Media API keys and server peppers are never returned in plaintext to the NUI. Existing secrets are
@@ -440,7 +442,7 @@ Use your inventory's existing image for `lockpick`. If your release ZIP predates
 
 ### ox_inventory
 
-Phone requires the server-side `ox_inventory:usedItem` event, introduced in upstream **2.38.0**. Older versions can close the inventory without completing Phone's item use. See the [ox version requirement](docs/inventory-setup.md#required-ox-version-contract) before troubleshooting item definitions.
+Phone requires the server-side `ox_inventory:usedItem` event, introduced in upstream **2.38.0**. Older versions can close the inventory without completing Phone's item use. See the [ox version requirement](https://www.sky-systems.net/docs/scripts/free-phone/installation#ox_inventory-1) before troubleshooting item definitions.
 
 #### 1. Remove the NPWD phone handler (required)
 
@@ -563,7 +565,7 @@ sky_phone_sim_anonymous = {
 },
 ```
 
-For `tgiann-inventory`, select `tgiann` in Phonepanel and use the [complete TGIANN definitions](docs/inventory-setup.md#tgiann-inventory): all three need `hasMetadata = true`, `useable = true`, and `shouldClose = true`. Do not add the ox-only `sky_phone.UsePhoneItem` or `sky_phone.UseSimItem` use exports. Follow each inventory's own schema; unique phones and physical SIMs require separate item identities and persistent metadata. The guide calls out adapters that cannot provide that behavior.
+For `tgiann-inventory`, select `tgiann` in Phonepanel and open its tab in the [Inventory Items guide](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items). All three items need `hasMetadata = true`, `useable = true`, and `shouldClose = true`. Do not add the ox-only `sky_phone.UsePhoneItem` or `sky_phone.UseSimItem` use exports. Unique phones and physical SIMs require separate item identities and persistent metadata.
 
 ### Unique Phones and metadata
 
@@ -869,7 +871,7 @@ Supported values:
 
 YACA supports calls, payphone calls, provider-backed speaker mode, and real microphone mute. SaltyChat and PMA Voice also support speaker and microphone mute controls.
 
-Phone adapts to the official YACA API families from 1.0.0 through 3.6.0, including releases without `isEnabled` and the reversed radio-volume arguments in 3.3.0. See the [YACA compatibility evidence and limitations](https://github.com/sky-systems/sky_phone/blob/dev/docs/yaca-voice-compatibility.md).
+Phone adapts to the official YACA API families from 1.0.0 through 3.6.0, including releases without `isEnabled` and the reversed radio-volume arguments in 3.3.0. See the [YACA compatibility evidence and limitations](https://github.com/sky-systems/sky_phone/blob/1.5.0/docs/yaca-voice-compatibility.md).
 
 ### Radio
 
@@ -978,7 +980,9 @@ See the [MSK database contract](https://docu.msk-scripts.de/docs/msk_garage/data
 
 Select `rtx`, `quasar`, `tgiann`, `vms`, `rx`, `nolag`, `sn`, `esx_property`, `qbx_properties`, or `tk_housing` under `Config.Housing.System`. Automatic mode uses `Config.Housing.AutoPriority` and keeps the existing `esx_property` and `qbx_properties` defaults ahead of newly supported providers. Select a provider explicitly when multiple housing resources are running. Each bridge exposes only the capabilities supported by the documented provider API. The TGIANN bridge expects `tgiann-core` to start before `tgiann-house`, lists server-authorized owner properties, and supports entrance waypoints; TGIANN does not publish stable external contracts for keyholders, lock controls, CCTV, or live garage status.
 
-The [TK Housing bridge](docs/tk-housing.md) lists owned properties and individual keyholder access, supports entrance waypoints, and checks TK's lock/key-management permissions for each action. If Phone Configurator is enabled, select `tk_housing` in its Housing settings; existing SQL settings keep their saved provider priority.
+The [TK Housing bridge](https://github.com/sky-systems/sky_phone/blob/1.5.0/docs/tk-housing.md) lists owned properties and individual keyholder access, supports entrance waypoints, and checks TK's lock/key-management permissions for each action. If Phone Configurator is enabled, select `tk_housing` in its Housing settings; existing SQL settings keep their saved provider priority.
+
+The VMS Housing bridge lists owned, rented, and authorized shared properties and supports entrance waypoints and EasyShare. With item-based keys, register `house_key` as required by VMS. Phone treats a missing key as no key and still checks independently assigned permissions. [VMS Housing server exports](https://docs.vames-store.com/assets/vms_housing/developer-api/server-exports)
 
 ### Companies
 
@@ -1069,7 +1073,7 @@ Start Sky Phone before the custom app resources and do not start the original ph
 
 After restarting Sky Phone, restart resources consuming its compatibility aliases in their normal startup order before reconnecting players. Phone does not simulate resource start/stop events to refresh another resource's export cache. Integrations can listen for `sky_phone:client:compatReady` or `sky_phone:server:compatReady` once the aliases are registered; these notifications do not refresh cached alias exports. See [compatibility lifecycle](sky_phone/integrations/COMPATIBILITY_LIFECYCLE.md).
 
-Custom apps with text fields must report typing to the phone's focus owner; focus events inside an iframe do not reach the parent document. See [custom-app input focus](docs/custom-app-input.md) for the client export and cleanup contract.
+Custom apps with text fields must report typing to the phone's focus owner because focus events inside an iframe stay within that document. See [custom-app input focus](https://github.com/sky-systems/sky_phone/blob/1.5.0/docs/custom-app-input.md) for the client export and cleanup contract.
 
 ## Frontend development
 

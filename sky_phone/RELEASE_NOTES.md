@@ -1,3 +1,53 @@
+# Sky Phone 1.6.0
+
+> [!WARNING]
+> **Server installation: download [sky_phone-1.6.0.zip](https://github.com/sky-systems/sky_phone/releases/download/1.6.0/sky_phone-1.6.0.zip) under Assets.**
+> GitHub's **Source code (zip / tar.gz)** and **Code → Download ZIP** contain developer sources without the built phone UI.
+
+## Changes
+
+- Add optional invoice and banking providers with settings in file configuration and the Phone Configurator. Existing Phone invoices and framework banking remain the defaults.
+- Display and pay received Jobs Base invoices through its optional adapter. Jobs Base retains invoice ownership, payment checks and society settlement. Use Jobs Base to pay item-currency invoices and manage sent invoices and disputes.
+- Personal transfers continue to use framework money once and log the completed transfer to the selected banking provider.
+- Add a Quasar Banking Creator adapter for held-fund checks on personal transfers, read-only QBCore/Qbox boss company balances and transaction logging. Phone shows transactions recorded in its own statement.
+- Show partially paid and expired invoices. Confirm the amount shown when the payment dialog opens. If the provider reports a changed amount, reopen the invoice before confirming. A successful bank transfer still shows as completed when its statement update fails.
+- Fix VMS Housing lists and waypoints for installations where the key check returns no value. Property permissions still apply.
+- Bundle the `radiotowerparts.png` inventory icon for the optional physical cell tower repair item.
+- Include setup guidance and interface translations in all 16 bundled locales.
+
+## Update from 1.5.0
+
+For older installations, also apply the intervening release instructions below.
+
+1. Back up the resource and database, including saved Phone Configurator settings. Keep your `config/config.lua`, `config/media.lua`, `config/WebHooks.lua`, `config/functions.lua`, server peppers, custom translations, tones, music and custom assets.
+2. Schedule maintenance with players disconnected. Stop consuming Phone integrations and custom-app resources, then stop `sky_phone`. Extract **sky_phone-1.6.0.zip** into a clean `sky_phone` folder and replace the installed folder. Restore your backed-up settings and custom files. Keep the full new `source/` directory so the server loads the matching Lua and NUI.
+3. Copy the bundled `config/locales/` files. If you maintain your own translations, merge the new banking, billing and Configurator strings into those translations before restoring them.
+4. With SQL configuration enabled, keep the saved settings. Missing provider fields use the shipped defaults. In file mode, open your retained `config/config.lua`. Add `Provider = "framework",` directly below `Config.Banking = {` and `Provider = "phone",` directly below `Config.Billing = {`. Keep the other settings in those blocks.
+5. Run `refresh` in the server console. Start Phone and its consuming integrations in their normal order before reconnecting players. Verify that the phone opens, existing invoices are visible and a small transfer works. For consumers using a phone alias, follow the [compatibility lifecycle guide](https://github.com/sky-systems/sky_phone/blob/1.6.0/sky_phone/integrations/COMPATIBILITY_LIFECYCLE.md).
+
+The default setup continues to use framework banking and Phone invoices. Keep the existing database and inventory definitions. For VMS with item-based keys, check that `house_key` is registered and confirm that Housing still opens for a player without a key.
+
+## Optional setup
+
+- **Banking and invoices.** Install the selected provider update first. For Jobs Base billing, use Jobs Base 1.55.0 or a later build with its Phone adapter and billing enabled. For Quasar, use Banking Creator with the documented server exports. Then select your provider in `/phonepanel` → **Phone Configurator** → **Banking** or **Billing** and save with the checkmark. The [finance setup guide](https://github.com/sky-systems/sky_phone/blob/1.6.0/sky_phone/integrations/FINANCE.md) covers file mode, supported payment actions and society accounts. Existing invoices stay with the provider that issued them.
+- **Physical tower repairs.** Copy `sky_phone/config/images/radiotowerparts.png` from the ZIP into your inventory's item image directory. If you customized the repair item ID, use the image filename your inventory definition expects. See [physical tower items](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items#physical-tower-items).
+
+## Changed shipped files
+
+Relative to the installed `sky_phone` directory:
+
+- `fxmanifest.lua`, `INSTALL.md`, `README.md`, `PHONE_INSTALLATION_IMPORTANT.md`, `RELEASE_NOTES.md`, `SOURCE.txt` and `integrations/{README,FINANCE}.md` — version 1.6.0, setup and package provenance.
+- `config/config.lua`, `config/locales/*.lua`, `source/shared/config_default.lua` — provider defaults, translations and generated defaults.
+- `config/images/radiotowerparts.png` — repair item icon.
+- `source/server/{finance_providers,banking,billing,phone_configurator,public_api}.lua` — optional providers, validated settlement delegation, configuration and API capability.
+- `source/bridge/server/finance_quasar.lua`, `source/bridge/server/frameworks/{qb,qbox}.lua` — Banking Creator adapter and framework-owned boss flags.
+- `source/bridge/server/housing/vms.lua` — VMS key checks.
+- `source/html/` — complete rebuilt UI with company balances, statement warnings and invoice status support.
+
+[All changes since 1.5.0](https://github.com/sky-systems/sky_phone/compare/1.5.0...1.6.0)
+
+---
+
 # Sky Phone 1.5.0
 
 > [!WARNING]
@@ -230,7 +280,7 @@ These steps cover upgrading from 1.1.7. For older installations, also apply the 
 2. Schedule maintenance and have players disconnect before stopping `sky_phone` and resources registering Phone apps. Replace `fxmanifest.lua`, `SOURCE.txt`, `RELEASE_NOTES.md`, `PHONE_INSTALLATION_IMPORTANT.md`, the complete `source/` directory and the bundled `stream/` directory from the 1.2.0 package, then restore custom files. Keep the folder named `sky_phone`; install the rebuilt NUI together with the Lua and streamed assets.
 3. Update `config/init.lua` and merge the new entries from the bundled locale files into your translations. The server now loads locale files on demand, so keep the selected language and English locale installed.
 4. In file mode, merge the new `Config.CellTowers.Props` block and review `Config.CellTowers.Towers`. In SQL mode, use **Phonepanel -> Cell towers**; do not reset saved Phonepanel configuration. Review the migrated default coverage sites on your map before enabling physical props. Custom tower models require separate mast, hinged-door, intact-panel and damaged-panel models, with matching offsets and door angles.
-5. When enabling physical towers, register `CellTowers.Props.LockpickItem` and `CellTowers.Props.RepairItem` in the active inventory catalogue and provide them through your normal distribution flow. The defaults are `lockpick` and `radiotowerparts`; they are ordinary count-based items. See the [inventory setup guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/inventory-setup.md). `RepairJobs = {}` allows everyone to repair; set job names to restrict it. Disabling `Destructible` prevents new weapon damage but does not repair existing damage.
+5. When enabling physical towers, register `CellTowers.Props.LockpickItem` and `CellTowers.Props.RepairItem` in the active inventory catalogue and provide them through your normal distribution flow. The defaults are `lockpick` and `radiotowerparts`; they are ordinary count-based items. See the [inventory setup guide](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items#physical-tower-items). `RepairJobs = {}` allows everyone to repair; set job names to restrict it. Disabling `Destructible` prevents new weapon damage but does not repair existing damage.
 6. With players still disconnected, run `refresh`, then `start sky_phone` so FiveM loads the updated manifest and streamed assets. Start consuming app resources afterward in their normal order, then reconnect clients to release cached model collision.
 7. Verify garage previews, saved and unknown SMS senders, the configured language and any realtime calls or broadcasts you use. Check coverage on your map. If physical props are enabled, also check cabinet access, item consumption, damage, repair timing and configured job restrictions.
 

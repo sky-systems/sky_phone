@@ -79,7 +79,7 @@ fields such as `Phone.HoldToLook.Control = 19` stay numeric.
 
 Save with the checkmark and restart for changed defaults. Existing player bindings
 still take priority and can be changed under FiveM Settings → Key Bindings → FiveM.
-See the [full configuration and access guide](https://github.com/sky-systems/sky_phone/blob/dev/docs/phone-configurator.md).
+See the [full configuration and access guide](https://www.sky-systems.net/docs/scripts/free-phone/configuration).
 
 ### Physical tower items
 

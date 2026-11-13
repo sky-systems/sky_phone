@@ -1,4 +1,9 @@
-# Phone voice controls
+# Phone integrations
+
+Optional banking and invoice providers are configured in Phone. See the
+[finance setup guide](FINANCE.md) for supported providers, required updates and limits.
+
+## Phone voice controls
 
 All controls execute in `sky_phone`. No script entry, patch or extension in `pma-voice` is required.
 
@@ -10,7 +15,7 @@ All controls execute in `sky_phone`. No script entry, patch or extension in `pma
 
 Yaca call, radio and realtime adapters cover the official API families from 1.0.0 through 3.6.0. Versions before 3.0.7 have no `isEnabled` export; a started resource uses the documented legacy path. Newer status exports accept boolean values and numeric `1`/`0`, while failures and invalid values remain unavailable with an English diagnostic. Early radio APIs use `changeActiveRadioChannel` and raw secondary reception without the newer secondary transmission selector. Joining a frequency uses Yaca's own unmuted membership instead of invoking old toggle-only mute exports. Version 3.3.0 alone uses reversed radio-volume arguments. Realtime uses current getters when available and Yaca's official speaking/mute events and speaking state otherwise.
 
-The [Yaca compatibility audit](https://github.com/sky-systems/sky_phone/blob/dev/docs/yaca-voice-compatibility.md) records exact upstream changes and runtime limits. This does not certify every TeamSpeak/plugin configuration or custom fork. No Yaca files need patching.
+The [Yaca compatibility audit](https://github.com/sky-systems/sky_phone/blob/1.5.0/docs/yaca-voice-compatibility.md) records exact upstream changes and runtime limits. This does not certify every TeamSpeak/plugin configuration or custom fork. No Yaca files need patching.
 
 PMA speaker guests within three metres and the same routing bucket can both hear and speak. Players with an existing/pending phone call or a different PMA call channel are excluded. Overlapping speakers pick the closest handset (channel ID breaks ties). Walking away, disabling speaker, ending a call, disconnecting or stopping the phone releases guest membership without taking players out of a different call.
 

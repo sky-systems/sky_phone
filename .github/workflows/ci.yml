@@ -96,6 +96,7 @@ jobs:
           test -f ../sky_phone/INSTALL.md
           cmp ../LICENSE ../sky_phone/LICENSE
           cmp ../THIRD_PARTY_NOTICES.md ../sky_phone/THIRD_PARTY_NOTICES.md
+
       - name: Package pull request test resource
         if: github.event_name == 'pull_request'
         shell: bash
