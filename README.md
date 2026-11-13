@@ -442,7 +442,7 @@ Use your inventory's existing image for `lockpick`. If your release ZIP predates
 
 ### ox_inventory
 
-Phone requires the server-side `ox_inventory:usedItem` event, introduced in upstream **2.38.0**. Older versions can close the inventory without completing Phone's item use. See the [ox version requirement](https://www.sky-systems.net/docs/scripts/free-phone/installation#ox-inventory-1) before troubleshooting item definitions.
+Phone requires the server-side `ox_inventory:usedItem` event, introduced in upstream **2.38.0**. Older versions can close the inventory without completing Phone's item use. See the [ox version requirement](https://www.sky-systems.net/docs/scripts/free-phone/installation#ox_inventory-1) before troubleshooting item definitions.
 
 #### 1. Remove the NPWD phone handler (required)
 
