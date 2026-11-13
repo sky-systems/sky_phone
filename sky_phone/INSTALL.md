@@ -18,6 +18,8 @@ add_ace resource.sky_phone command.remove_ace allow
 
 Back up SQL/configuration and persistent files before updating. Merge settings and retain devices/accounts. Complete provider compatibility checks before enabling unique devices or physical SIMs.
 
+For optional physical cell towers, copy `config/images/radiotowerparts.png` to your inventory's image directory when registering the repair item. Use the existing inventory icon for `lockpick`. [Physical tower item setup](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items#physical-tower-items)
+
 - [Full installation and compatibility](https://www.sky-systems.net/docs/scripts/free-phone/installation)
 - [Provider-specific inventory definitions](https://www.sky-systems.net/docs/scripts/free-phone/inventory-items)
 - [Configuration and admin access](https://www.sky-systems.net/docs/scripts/free-phone/configuration)
