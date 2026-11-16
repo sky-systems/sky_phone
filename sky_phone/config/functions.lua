@@ -3,6 +3,16 @@
 -- See integrations/PLAYER_CHECKS.md for the context and cancellation contract.
 PhoneFunctions = {}
 
+local death_keys = { "dead", "isDead", "isdead", "inlaststand", "isDowned", "unconscious" }
+
+local function has_death_flag(data)
+    for _, key in ipairs(death_keys) do
+        local value = data[key]
+        if value == true or value == 1 then return true end
+    end
+    return false
+end
+
 function PhoneFunctions.IsDead(context)
     if context.report.dead == true or context.legacyDead then return true end
     if context.isServer then
@@ -13,14 +23,18 @@ function PhoneFunctions.IsDead(context)
         return true
     end
 
-    -- SaltyChat_IsAlive is a voice mute flag, not a medical state.
-    for _, data in ipairs({ context.state, context.framework }) do
-        for _, key in ipairs({ "dead", "isDead", "isdead", "inlaststand", "isDowned", "unconscious" }) do
-            local value = data[key]
-            if value == true or value == 1 then return true end
+    if Bridge.Framework.GetName() == "qbox" and GetResourceState("qbx_medical") == "started" then
+        local death_state = context.state["qbx_medical:deathState"]
+        -- qbx_medical's DeathState enum: ALIVE (1), LAST_STAND (2), DEAD (3).
+        if death_state == 2 or death_state == 3 then return true end
+        if death_state == 1 then
+            -- Legacy flags can lag after a revive. Server metadata still applies.
+            return context.isServer and has_death_flag(context.framework)
         end
     end
-    return false
+
+    -- SaltyChat_IsAlive is a voice mute flag, not a medical state.
+    return has_death_flag(context.state) or has_death_flag(context.framework)
 end
 
 function PhoneFunctions.IsHandcuffed(context)
