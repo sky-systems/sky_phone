@@ -1,3 +1,28 @@
+# Sky Phone 1.6.1
+
+> [!WARNING]
+> **Server installation: download [sky_phone-1.6.1.zip](https://github.com/sky-systems/sky_phone/releases/download/1.6.1/sky_phone-1.6.1.zip) under Assets.**
+> GitHub's **Source code (zip / tar.gz)** archives contain developer sources without the built phone UI.
+
+## Changes
+
+- Fix phone opening on Qbox when `qbx_medical` reports the player alive but an older death flag is still set. The phone checks the current Medical status for Last Stand and death.
+
+## Update from 1.6.0
+
+For older installations, also follow the intervening release instructions below.
+
+1. During maintenance, stop resources that consume Phone, then stop `sky_phone`. Back up `sky_phone/config/functions.lua`.
+2. Extract **sky_phone-1.6.1.zip** and copy `fxmanifest.lua`, `RELEASE_NOTES.md` and `SOURCE.txt` from the new `sky_phone` folder into your installed resource.
+3. If you use the bundled player checks, replace your installed `config/functions.lua` with the new file. If you customized the file, copy the new `death_keys` table and `has_death_flag` helper above `PhoneFunctions.IsDead`, then update that function and reapply your custom death checks inside it. Keep your existing cuff and opening checks.
+4. Run `refresh`, start `sky_phone`, then restart consuming resources in their normal order. On Qbox, verify that an alive player can open the phone, that Last Stand blocks opening when the restriction is enabled, and that opening works again after a revive.
+
+No SQL migration or settings update is required.
+
+[All changes since 1.6.0](https://github.com/sky-systems/sky_phone/compare/1.6.0...1.6.1)
+
+---
+
 # Sky Phone 1.6.0
 
 > [!WARNING]
