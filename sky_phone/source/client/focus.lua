@@ -105,7 +105,7 @@ function SkyPhoneFocus.ApplyFocusedControls()
     for _, group in ipairs(focused_control_groups) do
         DisableAllControlActions(group)
     end
-    if state.camera_active then
+    if state.camera_active and Bridge.Calls.GetProvider() == "pma" then
         -- Mumble requires INPUT_PUSH_TO_TALK to stay enabled, even with NUI focus.
         EnableControlAction(0, 249, true)
     end
