@@ -31,6 +31,7 @@ export type PhoneNotificationInput = {
   device?: PhoneNotificationDevice
   persistent?: boolean
   route?: string
+  signalVerified?: boolean
   sound?: PhoneToneId
   soundUrl?: string
   subtitle?: string
@@ -312,9 +313,11 @@ export const useNotificationsStore = defineStore('notifications', () => {
   }
 
   function show(input: PhoneNotificationInput): string | null {
+    // Delivered SMS already passed the server's current reception check.
     if (
-      appNeedsSignal(input.appId) ||
-      (input.appId === 'messages' && cellular.enabled && !cellular.hasSignal)
+      !input.signalVerified &&
+      (appNeedsSignal(input.appId) ||
+        (input.appId === 'messages' && cellular.enabled && !cellular.hasSignal))
     )
       return null
     if (!isPhoneAppId(input.appId)) {

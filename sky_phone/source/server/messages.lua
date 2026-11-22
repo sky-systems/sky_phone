@@ -324,6 +324,7 @@ local function notify_sim(sim_id, event_name, data)
                     payload[key] = value
                 end
                 payload.sender = device.sender_name or data.sender
+                payload.signalVerified = true
                 payload.device = {
                     imei = device.imei,
                     name = device.device_name,

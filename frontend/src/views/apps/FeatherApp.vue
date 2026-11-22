@@ -589,10 +589,11 @@ async function publish(): Promise<void> {
 }
 
 async function openThread(
-  post: FeatherPost,
+  post: FeatherPost | string,
   focusReply = false,
 ): Promise<void> {
-  if (!(await feather.loadThread(post.id))) return
+  if (!(await feather.loadThread(typeof post === 'string' ? post : post.id)))
+    return
   threadReplyBody.value = ''
   threadReplyTarget.value = feather.thread?.post ?? null
   screen.value = 'thread'
@@ -858,6 +859,19 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleMediaPreviewKeydown, true)
 })
 
+watch(
+  () => route.query.postId,
+  (postId) => {
+    if (
+      typeof postId === 'string' &&
+      feather.onboarded &&
+      isAuthenticated.value
+    ) {
+      void openThread(postId)
+    }
+  },
+)
+
 onMounted(async () => {
   window.addEventListener('keydown', handleMediaPreviewKeydown, true)
   const selection =
@@ -908,6 +922,8 @@ onMounted(async () => {
   await feather.bootstrap()
   if (route.query.profileEdit === '1' && feather.profile) screen.value = 'edit'
   if (feather.onboarded) {
+    if (typeof route.query.postId === 'string')
+      await openThread(route.query.postId)
     const easyShareId = String(route.query.easyShareId ?? '')
     if (easyShareId && route.query.easyShareKind === 'profile') {
       const profileId = Number(easyShareId)

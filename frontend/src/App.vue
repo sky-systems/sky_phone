@@ -178,6 +178,7 @@ type MessagesEventData = {
   device?: PhoneNotificationDevicePayload
   phoneNumber?: string
   sender?: string
+  signalVerified?: boolean
   text?: string
   title?: string
 }
@@ -293,7 +294,7 @@ type SkyPicChangedData = {
 type FeatherNotificationData = {
   actor?: string
   device?: PhoneNotificationDevicePayload
-  kind?: 'like' | 'reply' | 'follow' | 'quote'
+  kind?: 'like' | 'reply' | 'follow' | 'quote' | 'post'
   postId?: string
   text?: string
   title?: string
@@ -1086,6 +1087,9 @@ function onMessage(event: MessageEvent<AppMessage>): void {
     const data = event.data.data as FeatherNotificationData
     const notification: PhoneNotificationInput = {
       appId: 'feather',
+      route: data.postId
+        ? `/apps/feather?postId=${encodeURIComponent(data.postId)}`
+        : '/apps/feather',
       subtitle: data.actor,
       text: data.text ?? phone.t('Apps.feather.notifications.default'),
       title: data.title ?? phone.t('Apps.feather.name'),
@@ -1101,7 +1105,7 @@ function onMessage(event: MessageEvent<AppMessage>): void {
       }
     }
     notifications.show(notification)
-    if (phone.isOpen) void feather.loadActivities()
+    if (phone.isOpen && data.kind !== 'post') void feather.loadActivities()
   } else if (
     event.data?.type === 'picstagram:verification-changed' &&
     event.data.data
@@ -1227,17 +1231,40 @@ function onMessage(event: MessageEvent<AppMessage>): void {
   } else if (event.data?.type === 'easyshare:changed' && event.data.data) {
     easyShare.applyEvent(event.data.data as EasyShareEvent)
   } else if (event.data?.type === 'messages:changed') {
-    void messages.loadConversations()
-    if (messages.activeNumber) void messages.openThread(messages.activeNumber)
+    if (phone.isOpen) {
+      void messages.loadConversations()
+      if (
+        !isLocked.value &&
+        !activitySuspended.value &&
+        activeAppId.value === 'messages' &&
+        messages.activeNumber
+      ) {
+        void messages.openThread(messages.activeNumber)
+      }
+    }
   } else if (event.data?.type === 'messages:new' && event.data.data) {
     const data = event.data.data as MessagesEventData
-    void messages.loadConversations()
-    if (messages.activeNumber === data.phoneNumber) {
-      void messages.openThread(messages.activeNumber)
+    if (
+      phone.isOpen &&
+      (!data.device || data.device.imei === phone.device?.imei)
+    ) {
+      void messages.loadConversations()
+      if (
+        !isLocked.value &&
+        !activitySuspended.value &&
+        activeAppId.value === 'messages' &&
+        messages.activeNumber === data.phoneNumber
+      ) {
+        void messages.openThread(messages.activeNumber)
+      }
     }
 
     const notification: PhoneNotificationInput = {
       appId: 'messages',
+      route: data.phoneNumber
+        ? `/apps/messages?phoneNumber=${encodeURIComponent(data.phoneNumber)}`
+        : '/apps/messages',
+      signalVerified: data.signalVerified === true,
       subtitle: data.sender ?? data.phoneNumber,
       text:
         data.text ??
@@ -1589,6 +1616,15 @@ async function openNotificationPreview(
   const imei = notification.device?.imei ?? phone.device?.imei
   if (!imei) return
   pendingUnlockRoute.value = notification.route
+  if (phone.isOpen && phone.device?.imei === imei) {
+    notifications.dismissFromLockScreen(notification.id, imei)
+    if (isLocked.value) unlockPhone()
+    else if (!setupRequired.value) {
+      pendingUnlockRoute.value = null
+      await router.push(notification.route)
+    }
+    return
+  }
   const response = await nuiCall('device:notification-open', { imei })
   if (!response.success) {
     pendingUnlockRoute.value = null
@@ -1890,8 +1926,8 @@ watch(
 )
 
 watch(
-  () => phone.isOpen,
-  (isOpen) => {
+  () => [phone.isOpen, phone.device?.imei] as const,
+  ([isOpen]) => {
     faceIdRequest += 1
     faceIdVisible.value = false
     faceIdBusy.value = false
@@ -1952,6 +1988,11 @@ watch(
         loadUnlockedPhoneData()
       }
     } else if (!isLocked.value) {
+      if (pendingUnlockRoute.value) {
+        const requestedRoute = pendingUnlockRoute.value
+        pendingUnlockRoute.value = null
+        void router.replace(requestedRoute)
+      }
       loadUnlockedPhoneData()
     }
   },

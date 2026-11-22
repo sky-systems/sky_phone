@@ -20,7 +20,7 @@ import {
   X,
 } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import MessageAttachmentBubble from '@/components/MessageAttachmentBubble.vue'
 import MessageContactBubble from '@/components/MessageContactBubble.vue'
@@ -79,6 +79,7 @@ import {
   SkyToolbar,
 } from '@/ui'
 
+const route = useRoute()
 const VOICE_MAX_DURATION_MS = 30_000
 const VOICE_MAX_BYTES = 135_000
 const WAVEFORM_SAMPLES = 48
@@ -481,6 +482,16 @@ async function openEasyShareDraft(): Promise<void> {
   queuedSharePayload.value = null
   shareDraft.value = shared.payload
   draft.value = ''
+  await scrollToBottom(false)
+}
+
+async function openNotificationThread(phoneNumber: unknown): Promise<void> {
+  if (typeof phoneNumber !== 'string' || !phoneNumber) return
+  if (!(await messages.openThread(phoneNumber))) {
+    showToast(errorText())
+    return
+  }
+  composing.value = false
   await scrollToBottom(false)
 }
 
@@ -1046,6 +1057,7 @@ async function finishVoiceRecording(): Promise<void> {
 
 onMounted(async () => {
   await Promise.all([messages.loadConversations(), calls.loadContacts()])
+  await openNotificationThread(route.query.phoneNumber)
   await openEasyShareDraft()
   if (messages.activeNumber) {
     restoreMediaSelection(
@@ -1054,6 +1066,8 @@ onMounted(async () => {
     await scrollToBottom(false)
   }
 })
+
+watch(() => route.query.phoneNumber, openNotificationThread)
 
 watch(
   () => easyShare.chatDraft,

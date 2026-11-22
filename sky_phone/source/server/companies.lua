@@ -1778,10 +1778,15 @@ local function notify_sim(sim_id, event_name, payload)
     for _, device in ipairs(devices) do
         for _, player_source in ipairs(Bridge.Framework.GetPlayers()) do
             local target = tonumber(player_source) or player_source
-            if SkyPhone.FindDeviceSlots(target, device.imei)[1] then
+            if (event_name ~= "sky_phone:messages:new" or SkyPhoneCellular.HasSignal(target))
+                and SkyPhone.FindDeviceSlots(target, device.imei)[1]
+            then
                 local event_payload = {}
                 for key, value in pairs(payload) do
                     event_payload[key] = value
+                end
+                if event_name == "sky_phone:messages:new" then
+                    event_payload.signalVerified = true
                 end
                 event_payload.device = {
                     imei = device.imei,

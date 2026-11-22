@@ -831,7 +831,11 @@ function SkyPhone.NotifyAccount(account_id, event_name, data)
 end
 
 function SkyPhone.NotifyAccountDevices(account_id, event_name, data, required_app_auth)
-    local rows = Bridge.Database.Query([[
+    local account_ids = type(account_id) == "table" and account_id or { account_id }
+    if #account_ids == 0 then return end
+    local placeholders = {}
+    for index = 1, #account_ids do placeholders[index] = "?" end
+    local rows = Bridge.Database.Query(([[
         SELECT d.`imei`, d.`device_name`, account.`email` AS `account_email`,
             settings.`payload` AS `settings`, app_auth.`payload` AS `app_auth`
         FROM `sky_phone_devices` d
@@ -840,8 +844,8 @@ function SkyPhone.NotifyAccountDevices(account_id, event_name, data, required_ap
             ON settings.`device_imei` = d.`imei` AND settings.`namespace` = 'settings'
         LEFT JOIN `sky_phone_device_data` app_auth
             ON app_auth.`device_imei` = d.`imei` AND app_auth.`namespace` = 'appAuth'
-        WHERE d.`account_id` = ?
-    ]], { account_id })
+        WHERE d.`account_id` IN (%s)
+    ]]):format(table.concat(placeholders, ",")), account_ids)
     local devices = {}
     for _, row in ipairs(rows) do
         devices[row.imei] = row

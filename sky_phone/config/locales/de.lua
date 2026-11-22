@@ -2572,6 +2572,7 @@ Locales["de"] = {
                 },
                 notifications = {
                     default = "Du hast neue Aktivitäten.",
+                    post = "{actor} hat einen neuen Feather-Beitrag veröffentlicht.",
                     like = "{actor} gefällt dein Feather-Beitrag.",
                     reply = "{actor} hat auf deinen Feather-Beitrag geantwortet.",
                     follow = "{actor} folgt dir jetzt.",
