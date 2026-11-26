@@ -461,6 +461,24 @@ Bridge.Callbacks.Register("sky_phone:feather:create-post", function(source, data
     end
     if not Bridge.Database.Transaction(statements) then return { success = false, error = "request_failed" } end
     if target then notify_profile(tonumber(target.profile_id), profile, reply_to_id and "reply" or "quote", post_id) end
+    if not reply_to_id then
+        local recipients = Bridge.Database.Query([[
+            SELECT recipient.`account_id` FROM `sky_phone_feather_profiles` recipient
+            WHERE recipient.`id` <> ? AND recipient.`id` <> ?
+                AND NOT EXISTS(SELECT 1 FROM `sky_phone_feather_blocks` b WHERE
+                    (b.`blocker_id` = ? AND b.`blocked_id` = recipient.`id`) OR
+                    (b.`blocked_id` = ? AND b.`blocker_id` = recipient.`id`))
+        ]], { profile.id, target and target.profile_id or profile.id, profile.id, profile.id })
+        local account_ids = {}
+        for _, recipient in ipairs(recipients) do
+            account_ids[#account_ids + 1] = tonumber(recipient.account_id)
+        end
+        SkyPhone.NotifyAccountDevices(account_ids, "sky_phone:feather:new", {
+            actor = profile.display_name,
+            kind = "post",
+            postId = post_id,
+        })
+    end
     return { success = true, data = { id = post_id } }
 end)
 

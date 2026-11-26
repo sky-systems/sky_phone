@@ -3380,6 +3380,7 @@ const defaultLocales: LocaleTree = {
       },
       notifications: {
         default: 'You have new activity.',
+        post: '{actor} posted a new feather.',
         like: '{actor} liked your feather.',
         reply: '{actor} replied to your feather.',
         follow: '{actor} followed you.',

@@ -1,3 +1,36 @@
+# Sky Phone 1.6.2
+
+> [!WARNING]
+> **For server installation, download [sky_phone-1.6.2.zip](https://github.com/sky-systems/sky_phone/releases/download/1.6.2/sky_phone-1.6.2.zip) under Assets.**
+> GitHub's source archives require a separate frontend build.
+
+## Changes
+
+- Show a Feather notification when another eligible profile publishes a new post, including profiles outside your follow list. Tap the notification to open the post. Profile blocks and phone notification preferences still apply.
+- Keep incoming personal and company SMS notifications when the server confirms reception before the phone's signal display updates. Tap the notification to open the conversation.
+- Keep PMA Voice push-to-talk available while the phone camera is active.
+
+## Update from 1.6.1
+
+For older installations, follow the intervening update instructions below first.
+
+1. Schedule maintenance. Stop resources that use Sky Phone, then stop `sky_phone`. Back up the installed resource and its database.
+2. Extract **sky_phone-1.6.2.zip**. Replace the complete `source/` directory and copy `fxmanifest.lua`, `RELEASE_NOTES.md` and `SOURCE.txt` into your installed `sky_phone` folder.
+3. Update `config/locales/en.lua` and `config/locales/de.lua` from the ZIP. If you customized either file, copy the new `post` entry from `Nui.Apps.feather.notifications` in the matching bundled file into that section in your file. Keep your existing settings, saved Phone Configurator values, inventory definitions and database.
+4. Run `refresh` in the server console, start `sky_phone` and restart the consuming resources in their usual order.
+5. With two players on different Feather profiles and the receiving phone closed, send it a text while it has reception, then publish a Feather post. Check that each notification opens the correct conversation or post. If you use PMA Voice, check push-to-talk with the phone camera active.
+
+## Changed shipped files
+
+- `fxmanifest.lua`, `RELEASE_NOTES.md` and `SOURCE.txt`
+- `config/locales/{de,en}.lua`
+- `source/client/{focus,notifications}.lua` and `source/server/{companies,feather,messages,phone}.lua`
+- `source/html/` with the rebuilt phone UI
+
+[All changes since 1.6.1](https://github.com/sky-systems/sky_phone/compare/1.6.1...1.6.2)
+
+---
+
 # Sky Phone 1.6.1
 
 > [!WARNING]

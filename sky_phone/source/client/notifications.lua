@@ -224,7 +224,7 @@ RegisterNetEvent("sky_phone:feather:new", function(data)
     local locale = app_locales.feather
     local notification_text = locale.notifications[data.kind] or locale.notifications.default
     data.title = locale.name
-    data.text = notification_text:gsub("{actor}", tostring(data.actor or ""))
+    data.text = notification_text:gsub("{actor}", { ["{actor}"] = tostring(data.actor or "") })
     SendNUIMessage({ type = "feather:new", data = data })
 end)
 
@@ -294,6 +294,7 @@ RegisterNetEvent("sky_phone:messages:new", function(data)
     local locale = app_locales.messages
     data.title = locale.name
     data.text = locale.newMessage:gsub("{sender}", { ["{sender}"] = tostring(data.sender) })
+    data.signalVerified = source == 65535 and data.signalVerified == true
     SendNUIMessage({ type = "messages:new", data = data })
 end)
 
